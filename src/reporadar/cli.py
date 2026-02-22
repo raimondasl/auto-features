@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import webbrowser
 from pathlib import Path
 
 import click
@@ -205,11 +206,19 @@ def _parse_since(since: str) -> int:
     default=None,
     help="Output file path (default: from config digest_path).",
 )
+@click.option(
+    "--format",
+    "fmt",
+    default="md",
+    type=click.Choice(["md", "html"], case_sensitive=False),
+    help="Output format: md (default) or html.",
+)
 def digest(
     config_path: str | None,
     since: str,
     run_id: int | None,
     output_path: str | None,
+    fmt: str,
 ) -> None:
     """Generate a Markdown digest of scored papers.
 
@@ -233,6 +242,52 @@ def digest(
             run_id = last_run["run_id"]
 
         dest = output_path or cfg.output.digest_path
-        out = write_digest(store, run_id, dest, top_n=cfg.output.top_n)
+        out = write_digest(store, run_id, dest, top_n=cfg.output.top_n, fmt=fmt)
 
     click.echo(f"Digest written to {out}")
+
+
+@cli.command(name="open")
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
+)
+@click.option(
+    "-n",
+    "--top",
+    "top_n",
+    default=5,
+    type=int,
+    help="Number of top papers to open (default: 5).",
+)
+def open_top(config_path: str | None, top_n: int) -> None:
+    """Open top-scored papers in the default browser."""
+    cfg = load_config(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        click.echo("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    with PaperStore(db_path) as store:
+        last_run = store.get_last_run()
+        if last_run is None:
+            click.echo("No runs found. Run `rr update` first.")
+            raise SystemExit(1)
+
+        scores = store.get_scores_for_run(last_run["run_id"])
+
+    if not scores:
+        click.echo("No scored papers found.")
+        return
+
+    for s in scores[:top_n]:
+        url = s["url"]
+        click.echo(f"Opening: {s['title']}")
+        webbrowser.open(url)
+
+    click.echo(f"\nOpened {min(top_n, len(scores))} papers in browser.")

@@ -187,6 +187,39 @@ class TestGenerateDigest:
         assert "Low Relevance" not in content
 
 
+class TestGenerateDigestSuggestions:
+    def test_top_picks_have_suggestions_key(self, tmp_path: Path) -> None:
+        """Top pick papers with matching abstract patterns should get suggestions."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            # Insert a paper whose abstract triggers suggestion patterns
+            paper = _make_paper(
+                "2401.99999v1",
+                title="Benchmark Paper",
+                abstract="We evaluate on GLUE benchmark and outperforms BERT-base.",
+            )
+            store.upsert_paper(paper)
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(run_id, [_make_score("2401.99999v1", 0.9)])
+
+            content = generate_digest(store, run_id)
+
+        assert "Action ideas" in content
+
+    def test_suggestions_labeled_as_ideas(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            paper = _make_paper(
+                "2401.99999v1",
+                abstract="Code is open-sourced at our repository.",
+            )
+            store.upsert_paper(paper)
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(run_id, [_make_score("2401.99999v1", 0.9)])
+
+            content = generate_digest(store, run_id)
+
+        assert "auto-generated" in content
+
+
 class TestWriteDigest:
     def test_writes_file(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
@@ -202,4 +235,27 @@ class TestWriteDigest:
             run_id = _seed_store(store)
             out = write_digest(store, run_id, tmp_path / "deep" / "nested" / "digest.md")
 
+        assert out.exists()
+
+    def test_html_format(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            out = write_digest(
+                store, run_id, tmp_path / "digest.md", fmt="html"
+            )
+
+        assert out.suffix == ".html"
+        assert out.exists()
+        content = out.read_text(encoding="utf-8")
+        assert "<!DOCTYPE html>" in content
+        assert "RepoRadar Digest" in content
+
+    def test_html_format_explicit_extension(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            out = write_digest(
+                store, run_id, tmp_path / "output.html", fmt="html"
+            )
+
+        assert out.suffix == ".html"
         assert out.exists()
