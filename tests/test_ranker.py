@@ -221,6 +221,48 @@ class TestScorePaper:
         assert with_exclude["score_total"] < without_exclude["score_total"]
 
 
+class TestEdgeCases:
+    def test_recency_with_invalid_date(self) -> None:
+        paper = _make_paper(published="not-a-date")
+        score = score_recency(paper, lookback_days=14)
+        assert score == 0.0
+
+    def test_recency_with_missing_published(self) -> None:
+        paper = _make_paper()
+        del paper["published"]
+        score = score_recency(paper, lookback_days=14)
+        assert score == 0.0
+
+    def test_recency_future_date(self) -> None:
+        future = datetime.now(timezone.utc) + timedelta(days=5)
+        paper = _make_paper(published=future.isoformat())
+        score = score_recency(paper, lookback_days=14)
+        assert score == 1.0
+
+    def test_keyword_overlap_empty_abstract(self) -> None:
+        paper = _make_paper(title="", abstract="")
+        profile = _make_profile()
+        score = score_keyword_overlap(paper, profile)
+        assert score == 0.0
+
+    def test_all_weights_zero(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        result = score_paper(
+            paper, profile,
+            RankingConfig(w_keyword=0.0, w_category=0.0, w_recency=0.0),
+            QueriesConfig(),
+            ["cs.CL"],
+        )
+        assert result["score_total"] == 0.0
+
+    def test_category_superset(self) -> None:
+        # Paper has more categories than target — should still cap at 1.0
+        paper = _make_paper(categories=["cs.CL", "cs.LG", "cs.AI"])
+        score = score_category_match(paper, ["cs.CL"])
+        assert score == pytest.approx(1.0)
+
+
 class TestRankPapers:
     def test_returns_sorted_by_score(self) -> None:
         profile = _make_profile()

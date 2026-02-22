@@ -12,6 +12,7 @@ from reporadar.digest import (
     TOP_THRESHOLD,
     categorize_papers,
     generate_digest,
+    markdown_to_html,
     write_digest,
 )
 from reporadar.store import PaperStore
@@ -185,6 +186,24 @@ class TestGenerateDigest:
         assert "High Relevance RAG Paper" in content
         assert "Medium Relevance" not in content
         assert "Low Relevance" not in content
+
+
+class TestMarkdownToHtml:
+    def test_wraps_in_html(self) -> None:
+        html = markdown_to_html("# Hello World")
+        assert "<!DOCTYPE html>" in html
+        assert "Hello World" in html
+        assert "<title>RepoRadar Digest</title>" in html
+
+    def test_empty_content(self) -> None:
+        html = markdown_to_html("")
+        assert "<!DOCTYPE html>" in html
+
+    def test_preserves_markdown_content(self) -> None:
+        md = "## Section\n- item 1\n- item 2"
+        html = markdown_to_html(md)
+        assert "Section" in html
+        assert "item 1" in html
 
 
 class TestGenerateDigestSuggestions:
