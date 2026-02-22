@@ -9,6 +9,7 @@ from typing import Any
 from jinja2 import Environment, PackageLoader
 
 from reporadar.store import PaperStore
+from reporadar.suggestions import enrich_papers_with_suggestions
 
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -73,6 +74,7 @@ def generate_digest(
     run = store.get_last_run()
 
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
+    enrich_papers_with_suggestions(top_picks)
 
     template = _load_template()
     return template.render(
@@ -88,15 +90,38 @@ def generate_digest(
     )
 
 
+def markdown_to_html(md_content: str) -> str:
+    """Wrap rendered Markdown in a basic HTML page.
+
+    Uses a simple CSS stylesheet for readability. This avoids adding a
+    Markdown-to-HTML library dependency — the output is raw Markdown
+    inside <pre> tags with some basic styling. For a richer rendering,
+    users can pipe the .md through any Markdown renderer.
+    """
+    template = _load_template("digest.html.j2")
+    return template.render(markdown_content=md_content)
+
+
 def write_digest(
     store: PaperStore,
     run_id: int,
     output_path: str | Path,
     top_n: int = 15,
+    fmt: str = "md",
 ) -> Path:
-    """Generate and write the digest to a file. Returns the output path."""
+    """Generate and write the digest to a file.
+
+    *fmt* can be ``"md"`` (default) or ``"html"``.
+    Returns the output path.
+    """
     content = generate_digest(store, run_id, top_n=top_n)
+
     output_path = Path(output_path)
+    if fmt == "html":
+        content = markdown_to_html(content)
+        if output_path.suffix == ".md":
+            output_path = output_path.with_suffix(".html")
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")
     return output_path

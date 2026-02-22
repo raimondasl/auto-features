@@ -27,6 +27,12 @@
 
 > {{ p.abstract[:300] }}{% if p.abstract|length > 300 %}...{% endif %}
 
+{% if p.suggestions %}
+**Action ideas** *(auto-generated, treat as starting points):*
+{% for s in p.suggestions %}
+- {{ s }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 {% endif %}
 {% if maybe_relevant %}
