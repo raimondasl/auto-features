@@ -10,6 +10,7 @@ import click
 from reporadar.collector import build_queries, collect_papers
 from reporadar.config import DEFAULT_CONFIG_NAME, default_config_yaml, load_config
 from reporadar.profiler import profile_repo
+from reporadar.ranker import rank_papers
 from reporadar.store import PaperStore
 
 
@@ -138,6 +139,29 @@ def update(config_path: str | None, verbose: bool) -> None:
             papers_new=new_count,
             papers_seen=seen_count,
         )
+
+        # 5. Rank
+        click.echo("Scoring papers...")
+        scores = rank_papers(
+            papers,
+            repo_profile,
+            cfg.ranking,
+            cfg.queries,
+            cfg.arxiv.categories,
+            cfg.arxiv.lookback_days,
+        )
+        store.save_scores(run_id, scores)
+
+        top = scores[:5]
+        if top:
+            click.echo("\nTop papers:")
+            for i, s in enumerate(top, 1):
+                # Find paper title from the collected papers
+                title = next(
+                    (p["title"] for p in papers if p["arxiv_id"] == s["arxiv_id"]),
+                    s["arxiv_id"],
+                )
+                click.echo(f"  {i}. [{s['score_total']:.2f}] {title}")
 
     click.echo(f"\nDone! Run #{run_id}: {new_count} new, {seen_count} already seen.")
     click.echo(f"Total papers in DB: {new_count + seen_count}")
