@@ -8,7 +8,6 @@ from pathlib import Path
 
 import yaml
 
-
 DEFAULT_CONFIG_NAME = ".reporadar.yml"
 
 
@@ -76,10 +75,68 @@ def load_config(config_path: str | Path | None = None) -> RepoRadarConfig:
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
-    with open(config_path, "r", encoding="utf-8") as f:
+    with open(config_path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     return _dict_to_config(data)
+
+
+KNOWN_ARXIV_PREFIXES = frozenset(
+    {
+        "astro-ph",
+        "cond-mat",
+        "cs",
+        "econ",
+        "eess",
+        "gr-qc",
+        "hep-ex",
+        "hep-lat",
+        "hep-ph",
+        "hep-th",
+        "math",
+        "math-ph",
+        "nlin",
+        "nucl-ex",
+        "nucl-th",
+        "physics",
+        "q-bio",
+        "q-fin",
+        "quant-ph",
+        "stat",
+    }
+)
+
+
+def validate_config(cfg: RepoRadarConfig) -> list[str]:
+    """Return a list of warning messages for suspicious config values."""
+    warnings: list[str] = []
+
+    # Check arXiv category prefixes
+    for cat in cfg.arxiv.categories:
+        prefix = cat.split(".")[0]
+        if prefix not in KNOWN_ARXIV_PREFIXES:
+            warnings.append(f"Unknown arXiv category prefix: {prefix!r} (in {cat!r})")
+
+    # Numeric bounds
+    if cfg.arxiv.max_results_per_query < 1 or cfg.arxiv.max_results_per_query > 500:
+        warnings.append(
+            f"max_results_per_query={cfg.arxiv.max_results_per_query} is outside range [1, 500]"
+        )
+
+    if cfg.arxiv.lookback_days < 1:
+        warnings.append(f"lookback_days={cfg.arxiv.lookback_days} should be >= 1")
+
+    # Negative ranking weights
+    for name in ("w_keyword", "w_category", "w_recency"):
+        val = getattr(cfg.ranking, name)
+        if val < 0:
+            warnings.append(f"Negative ranking weight: {name}={val}")
+
+    # top_n
+    if cfg.output.top_n < 1:
+        warnings.append(f"top_n={cfg.output.top_n} should be >= 1")
+
+    return warnings
 
 
 def default_config_yaml() -> str:

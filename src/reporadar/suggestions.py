@@ -5,42 +5,54 @@ from __future__ import annotations
 import re
 from typing import Any
 
-
 # Each pattern maps a regex (applied to the abstract) to a suggestion template.
 # The template can use {match} to interpolate the captured text.
+_BENCHMARK_RE = re.compile(
+    r"\b(?:benchmark|evaluate[ds]? on|tested on)\s+([A-Z][\w\s\-]{2,30})",
+    re.IGNORECASE,
+)
+_DATASET_RE = re.compile(
+    r"\b(?:dataset|corpus)\s+(?:called|named)?\s*([A-Z][\w\-]{2,20})",
+    re.IGNORECASE,
+)
+_OUTPERFORM_RE = re.compile(
+    r"\boutperforms?\s+([A-Z][\w\s\-]{2,30})",
+    re.IGNORECASE,
+)
+_PROPOSE_RE = re.compile(
+    r"\b(?:we (?:propose|introduce|present))\s+(?:a |an )?"
+    r"([a-zA-Z][\w\s\-]{3,40}?)(?:\s*[,.]|\s+that|\s+which|\s+for)",
+    re.IGNORECASE,
+)
+_LOSS_RE = re.compile(
+    r"\b(?:loss function|objective|optimizer|regulariz(?:er|ation))"
+    r"\s+(?:called|named|based on)?\s*([A-Z][\w\-]{2,20})",
+    re.IGNORECASE,
+)
+_SOTA_RE = re.compile(
+    r"\b(?:state[- ]of[- ]the[- ]art|SOTA)"
+    r"\s+(?:on|for|in)\s+([a-zA-Z][\w\s\-]{3,30})",
+    re.IGNORECASE,
+)
+_OPENSOURCE_RE = re.compile(
+    r"\b(?:open[- ]source[d]?|release[ds]?|available at)\s",
+    re.IGNORECASE,
+)
+_MODULAR_RE = re.compile(
+    r"\b(?:plug[- ]?in|drop[- ]?in|module|component)"
+    r"\s+(?:that |which )?(?:can be|is )?(?:easily )?(?:added|integrated|applied)",
+    re.IGNORECASE,
+)
+
 SUGGESTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
-    (
-        re.compile(r"\b(?:benchmark|evaluate[ds]? on|tested on)\s+([A-Z][\w\s\-]{2,30})", re.IGNORECASE),
-        'Add evaluation on {match} (mentioned as a benchmark in this paper)',
-    ),
-    (
-        re.compile(r"\b(?:dataset|corpus)\s+(?:called|named)?\s*([A-Z][\w\-]{2,20})", re.IGNORECASE),
-        'Consider using the {match} dataset for evaluation',
-    ),
-    (
-        re.compile(r"\boutperforms?\s+([A-Z][\w\s\-]{2,30})", re.IGNORECASE),
-        'Compare your approach against {match} as a baseline',
-    ),
-    (
-        re.compile(r"\b(?:we (?:propose|introduce|present))\s+(?:a |an )?([a-zA-Z][\w\s\-]{3,40}?)(?:\s*[,.]|\s+that|\s+which|\s+for)", re.IGNORECASE),
-        'Explore integrating the proposed {match} into your pipeline',
-    ),
-    (
-        re.compile(r"\b(?:loss function|objective|optimizer|regulariz(?:er|ation))\s+(?:called|named|based on)?\s*([A-Z][\w\-]{2,20})", re.IGNORECASE),
-        'Try swapping your optimizer/loss for {match}',
-    ),
-    (
-        re.compile(r"\b(?:state[- ]of[- ]the[- ]art|SOTA)\s+(?:on|for|in)\s+([a-zA-Z][\w\s\-]{3,30})", re.IGNORECASE),
-        'This paper claims SOTA on {match} — worth checking methodology',
-    ),
-    (
-        re.compile(r"\b(?:open[- ]source[d]?|release[ds]?|available at)\s", re.IGNORECASE),
-        'Code/data may be publicly available — check the paper for links',
-    ),
-    (
-        re.compile(r"\b(?:plug[- ]?in|drop[- ]?in|module|component)\s+(?:that |which )?(?:can be|is )?(?:easily )?(?:added|integrated|applied)", re.IGNORECASE),
-        'This describes a modular component — consider adding it as a feature flag',
-    ),
+    (_BENCHMARK_RE, "Add evaluation on {match} (mentioned as a benchmark in this paper)"),
+    (_DATASET_RE, "Consider using the {match} dataset for evaluation"),
+    (_OUTPERFORM_RE, "Compare your approach against {match} as a baseline"),
+    (_PROPOSE_RE, "Explore integrating the proposed {match} into your pipeline"),
+    (_LOSS_RE, "Try swapping your optimizer/loss for {match}"),
+    (_SOTA_RE, "This paper claims SOTA on {match} — worth checking methodology"),
+    (_OPENSOURCE_RE, "Code/data may be publicly available — check the paper for links"),
+    (_MODULAR_RE, "This describes a modular component — consider adding it as a feature flag"),
 ]
 
 # Maximum suggestions per paper

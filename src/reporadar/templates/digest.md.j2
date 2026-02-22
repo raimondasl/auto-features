@@ -16,7 +16,7 @@
 ## Top Picks
 {% for p in top_picks %}
 
-### {{ loop.index }}. {{ p.title }}
+### {{ loop.index }}. {% if diff_mode and p.is_new %}[NEW] {% endif %}{{ p.title }}
 
 - **Score:** {{ "%.2f"|format(p.score_total) }} (keyword: {{ "%.2f"|format(p.keyword_score) }}, category: {{ "%.2f"|format(p.category_score) }}, recency: {{ "%.2f"|format(p.recency_score) }})
 - **Authors:** {{ p.authors | join(", ") }}
@@ -42,7 +42,7 @@
 ## Maybe Relevant
 {% for p in maybe_relevant %}
 
-### {{ loop.index }}. {{ p.title }}
+### {{ loop.index }}. {% if diff_mode and p.is_new %}[NEW] {% endif %}{{ p.title }}
 
 - **Score:** {{ "%.2f"|format(p.score_total) }} (keyword: {{ "%.2f"|format(p.keyword_score) }}, category: {{ "%.2f"|format(p.category_score) }}, recency: {{ "%.2f"|format(p.recency_score) }})
 - **Authors:** {{ p.authors | join(", ") }}
@@ -59,7 +59,7 @@
 
 ## Muted
 {% for p in muted %}
-- [{{ p.title }}]({{ p.url }}) — score {{ "%.2f"|format(p.score_total) }}
+- {% if diff_mode and p.is_new %}[NEW] {% endif %}[{{ p.title }}]({{ p.url }}) — score {{ "%.2f"|format(p.score_total) }}
 {% endfor %}
 {% endif %}
 {% if not top_picks and not maybe_relevant and not muted %}

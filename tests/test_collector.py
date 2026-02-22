@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import arxiv
 import pytest
 
-import arxiv
-
 from reporadar.collector import (
+    CollectionError,
     _category_filter,
+    _query_with_retry,
     _result_to_paper,
     build_queries,
     collect_papers,
@@ -43,7 +44,7 @@ def _make_arxiv_result(
     if categories is None:
         categories = ["cs.CL"]
     if published is None:
-        published = datetime.now(timezone.utc)
+        published = datetime.now(UTC)
 
     result = arxiv.Result(
         entry_id=entry_id,
@@ -167,13 +168,17 @@ class TestResultToPaper:
 class TestCollectPapers:
     @patch("reporadar.collector.arxiv.Client")
     def test_collects_and_deduplicates(self, MockClient: MagicMock) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         results_q1 = [
             _make_arxiv_result("http://arxiv.org/abs/2401.00001v1", "Paper A", published=now),
             _make_arxiv_result("http://arxiv.org/abs/2401.00002v1", "Paper B", published=now),
         ]
         results_q2 = [
-            _make_arxiv_result("http://arxiv.org/abs/2401.00002v1", "Paper B", published=now),  # duplicate
+            _make_arxiv_result(  # duplicate
+                "http://arxiv.org/abs/2401.00002v1",
+                "Paper B",
+                published=now,
+            ),
             _make_arxiv_result("http://arxiv.org/abs/2401.00003v1", "Paper C", published=now),
         ]
 
@@ -189,8 +194,8 @@ class TestCollectPapers:
 
     @patch("reporadar.collector.arxiv.Client")
     def test_filters_old_papers(self, MockClient: MagicMock) -> None:
-        now = datetime.now(timezone.utc)
-        old = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        now = datetime.now(UTC)
+        old = datetime(2020, 1, 1, tzinfo=UTC)
 
         results = [
             _make_arxiv_result("http://arxiv.org/abs/2401.00001v1", "New Paper", published=now),
@@ -208,7 +213,7 @@ class TestCollectPapers:
 
     @patch("reporadar.collector.arxiv.Client")
     def test_matched_query_recorded(self, MockClient: MagicMock) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         results = [
             _make_arxiv_result("http://arxiv.org/abs/2401.00001v1", published=now),
         ]
@@ -230,3 +235,89 @@ class TestCollectPapers:
         papers = collect_papers(["q1"], cfg)
 
         assert papers == []
+
+    @patch("reporadar.collector.arxiv.Client")
+    def test_on_query_start_callback(self, MockClient: MagicMock) -> None:
+        now = datetime.now(UTC)
+        results = [
+            _make_arxiv_result("http://arxiv.org/abs/2401.00001v1", published=now),
+        ]
+
+        mock_client = MockClient.return_value
+        mock_client.results.side_effect = [iter(results), iter([])]
+
+        calls: list[tuple[int, int, str]] = []
+
+        def callback(idx: int, total: int, query: str) -> None:
+            calls.append((idx, total, query))
+
+        cfg = ArxivConfig(max_results_per_query=50, lookback_days=30)
+        collect_papers(["q1", "q2"], cfg, on_query_start=callback)
+
+        assert len(calls) == 2
+        assert calls[0] == (0, 2, "q1")
+        assert calls[1] == (1, 2, "q2")
+
+    @patch("reporadar.collector.arxiv.Client")
+    def test_no_callback_by_default(self, MockClient: MagicMock) -> None:
+        mock_client = MockClient.return_value
+        mock_client.results.return_value = iter([])
+
+        cfg = ArxivConfig(max_results_per_query=50, lookback_days=14)
+        # Should not raise when callback is None (default)
+        papers = collect_papers(["q1"], cfg)
+        assert papers == []
+
+
+class TestQueryWithRetry:
+    @patch("reporadar.collector.time.sleep")
+    def test_succeeds_after_transient_failure(self, mock_sleep: MagicMock) -> None:
+        now = datetime.now(UTC)
+        good_result = _make_arxiv_result(
+            "http://arxiv.org/abs/2401.00001v1",
+            published=now,
+        )
+
+        mock_client = MagicMock()
+        mock_client.results.side_effect = [
+            ConnectionError("network down"),
+            [good_result],
+        ]
+
+        search = MagicMock()
+        results = _query_with_retry(mock_client, search, max_retries=3, base_delay=1.0)
+
+        assert len(results) == 1
+        assert mock_sleep.call_count == 1
+        # First retry delay should be base_delay * 2^0 = 1.0
+        mock_sleep.assert_called_with(1.0)
+
+    @patch("reporadar.collector.time.sleep")
+    def test_exhausted_raises_collection_error(self, mock_sleep: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.results.side_effect = ConnectionError("always fails")
+
+        search = MagicMock()
+        with pytest.raises(CollectionError, match="3 attempts"):
+            _query_with_retry(mock_client, search, max_retries=3, base_delay=1.0)
+
+        assert mock_sleep.call_count == 2  # retries = max_retries - 1
+
+    @patch("reporadar.collector.time.sleep")
+    def test_backoff_delay_doubles(self, mock_sleep: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.results.side_effect = [
+            TimeoutError("timeout"),
+            OSError("network"),
+            ConnectionError("fail"),
+        ]
+
+        search = MagicMock()
+        with pytest.raises(CollectionError):
+            _query_with_retry(mock_client, search, max_retries=3, base_delay=2.0)
+
+        # Should have slept twice with exponential backoff
+        assert mock_sleep.call_count == 2
+        calls = [c.args[0] for c in mock_sleep.call_args_list]
+        assert calls[0] == 2.0  # base_delay * 2^0
+        assert calls[1] == 4.0  # base_delay * 2^1

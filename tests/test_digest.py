@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
-
 from reporadar.digest import (
-    MAYBE_THRESHOLD,
-    TOP_THRESHOLD,
     categorize_papers,
     generate_digest,
     markdown_to_html,
@@ -114,9 +109,7 @@ class TestCategorizePapers:
             {"score_total": 0.9, "arxiv_id": "a"},
             {"score_total": 0.5, "arxiv_id": "b"},
         ]
-        top, maybe, muted = categorize_papers(
-            scored, top_threshold=0.8, maybe_threshold=0.4
-        )
+        top, maybe, muted = categorize_papers(scored, top_threshold=0.8, maybe_threshold=0.4)
         assert len(top) == 1
         assert len(maybe) == 1
 
@@ -239,6 +232,62 @@ class TestGenerateDigestSuggestions:
         assert "auto-generated" in content
 
 
+class TestDiffMode:
+    def test_diff_with_two_runs(self, tmp_path: Path) -> None:
+        """Papers in run 2 but not run 1 should be marked [NEW]."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            # Shared paper
+            store.upsert_paper(_make_paper("2401.00001v1", title="Old Paper"))
+            # New paper in run 2
+            store.upsert_paper(_make_paper("2401.00002v1", title="Brand New Paper"))
+
+            r1 = store.record_run(["q1"], 1, 0)
+            store.save_scores(r1, [_make_score("2401.00001v1", 0.8)])
+
+            r2 = store.record_run(["q2"], 2, 0)
+            store.save_scores(
+                r2,
+                [
+                    _make_score("2401.00001v1", 0.8),
+                    _make_score("2401.00002v1", 0.7),
+                ],
+            )
+
+            content = generate_digest(store, r2, diff=True)
+
+        assert "[NEW]" in content
+        # "Old Paper" was in r1, should NOT have [NEW]
+        # "Brand New Paper" was NOT in r1, should have [NEW]
+        lines = content.split("\n")
+        for line in lines:
+            if "Brand New Paper" in line and "###" in line:
+                assert "[NEW]" in line
+            if "Old Paper" in line and "###" in line:
+                assert "[NEW]" not in line
+
+    def test_diff_no_previous_run_all_new(self, tmp_path: Path) -> None:
+        """If there is no previous run, all papers are [NEW]."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.00001v1", title="Only Paper"))
+            r1 = store.record_run(["q1"], 1, 0)
+            store.save_scores(r1, [_make_score("2401.00001v1", 0.8)])
+
+            content = generate_digest(store, r1, diff=True)
+
+        assert "[NEW]" in content
+
+    def test_no_diff_no_badges(self, tmp_path: Path) -> None:
+        """Without diff=True, no [NEW] badges should appear."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.00001v1", title="Some Paper"))
+            r1 = store.record_run(["q1"], 1, 0)
+            store.save_scores(r1, [_make_score("2401.00001v1", 0.8)])
+
+            content = generate_digest(store, r1, diff=False)
+
+        assert "[NEW]" not in content
+
+
 class TestWriteDigest:
     def test_writes_file(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
@@ -259,9 +308,7 @@ class TestWriteDigest:
     def test_html_format(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(
-                store, run_id, tmp_path / "digest.md", fmt="html"
-            )
+            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="html")
 
         assert out.suffix == ".html"
         assert out.exists()
@@ -272,9 +319,7 @@ class TestWriteDigest:
     def test_html_format_explicit_extension(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(
-                store, run_id, tmp_path / "output.html", fmt="html"
-            )
+            out = write_digest(store, run_id, tmp_path / "output.html", fmt="html")
 
         assert out.suffix == ".html"
         assert out.exists()
