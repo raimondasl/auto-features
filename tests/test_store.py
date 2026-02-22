@@ -135,6 +135,33 @@ class TestGetAllPapers:
             assert store.get_all_papers() == []
 
 
+class TestGetPapersSince:
+    def test_filters_by_first_seen(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+
+            # Papers inserted now should be found when searching from an hour ago
+            from datetime import datetime, timedelta, timezone
+            one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+            papers = store.get_papers_since(one_hour_ago)
+            assert len(papers) == 1
+            assert papers[0]["arxiv_id"] == "2401.00001v1"
+
+    def test_excludes_old_papers(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+
+            from datetime import datetime, timedelta, timezone
+            future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+            papers = store.get_papers_since(future)
+            assert len(papers) == 0
+
+    def test_empty_db(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            papers = store.get_papers_since("2020-01-01T00:00:00+00:00")
+            assert papers == []
+
+
 class TestRecordRun:
     def test_records_and_retrieves(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
