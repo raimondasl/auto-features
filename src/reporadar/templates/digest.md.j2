@@ -1,0 +1,62 @@
+# RepoRadar Digest
+
+**Generated:** {{ generated_at }}
+**Run #{{ run_id }}** | {{ papers_new }} new, {{ papers_seen }} seen | {{ total_scored }} scored
+{% if queries_used %}
+
+**Queries used:**
+{% for q in queries_used %}
+- `{{ q }}`
+{% endfor %}
+{% endif %}
+
+---
+{% if top_picks %}
+
+## Top Picks
+{% for p in top_picks %}
+
+### {{ loop.index }}. {{ p.title }}
+
+- **Score:** {{ "%.2f"|format(p.score_total) }} (keyword: {{ "%.2f"|format(p.keyword_score) }}, category: {{ "%.2f"|format(p.category_score) }}, recency: {{ "%.2f"|format(p.recency_score) }})
+- **Authors:** {{ p.authors | join(", ") }}
+- **Categories:** {{ p.categories | join(", ") }}
+- **Published:** {{ p.published[:10] }}
+- **Link:** [{{ p.arxiv_id }}]({{ p.url }})
+{% if p.matched_query %}- **Matched query:** `{{ p.matched_query }}`{% endif %}
+
+> {{ p.abstract[:300] }}{% if p.abstract|length > 300 %}...{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if maybe_relevant %}
+
+---
+
+## Maybe Relevant
+{% for p in maybe_relevant %}
+
+### {{ loop.index }}. {{ p.title }}
+
+- **Score:** {{ "%.2f"|format(p.score_total) }} (keyword: {{ "%.2f"|format(p.keyword_score) }}, category: {{ "%.2f"|format(p.category_score) }}, recency: {{ "%.2f"|format(p.recency_score) }})
+- **Authors:** {{ p.authors | join(", ") }}
+- **Published:** {{ p.published[:10] }}
+- **Link:** [{{ p.arxiv_id }}]({{ p.url }})
+
+> {{ p.abstract[:200] }}{% if p.abstract|length > 200 %}...{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if muted %}
+
+---
+
+## Muted
+{% for p in muted %}
+- [{{ p.title }}]({{ p.url }}) — score {{ "%.2f"|format(p.score_total) }}
+{% endfor %}
+{% endif %}
+{% if not top_picks and not maybe_relevant and not muted %}
+
+*No scored papers found for this period.*
+{% endif %}
