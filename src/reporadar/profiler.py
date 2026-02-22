@@ -211,12 +211,16 @@ def _extract_keywords(
     # so anchor terms get some weight even if README doesn't mention them.
     all_docs = documents + [" ".join(anchors)] if anchors else documents
 
+    # With very few documents, max_df=0.95 would filter out all terms
+    # (every term appears in 100% of a single-doc corpus).
+    effective_max_df = 1.0 if len(all_docs) < 3 else 0.95
+
     vectorizer = TfidfVectorizer(
         max_features=200,
         stop_words="english",
         token_pattern=r"(?u)\b[a-zA-Z][a-zA-Z0-9_-]{1,}\b",
         ngram_range=(1, 2),
-        max_df=0.95,
+        max_df=effective_max_df,
         min_df=1,
     )
 
