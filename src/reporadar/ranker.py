@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import math
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from reporadar.config import QueriesConfig, RankingConfig
@@ -75,9 +74,9 @@ def score_recency(paper: dict[str, Any], lookback_days: int = 14) -> float:
         return 0.0
 
     if published.tzinfo is None:
-        published = published.replace(tzinfo=timezone.utc)
+        published = published.replace(tzinfo=UTC)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     age_days = (now - published).total_seconds() / 86400
 
     if age_days < 0:
@@ -127,9 +126,7 @@ def score_paper(
     rec = score_recency(paper, lookback_days)
 
     raw_total = (
-        ranking_cfg.w_keyword * kw
-        + ranking_cfg.w_category * cat
-        + ranking_cfg.w_recency * rec
+        ranking_cfg.w_keyword * kw + ranking_cfg.w_category * cat + ranking_cfg.w_recency * rec
     )
 
     penalty = compute_exclude_penalty(paper, queries_cfg.exclude)

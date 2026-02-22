@@ -4,17 +4,9 @@ from __future__ import annotations
 
 import json
 import re
-import sys
-from dataclasses import dataclass, field
+import tomllib
+from dataclasses import dataclass
 from pathlib import Path
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    try:
-        import tomllib  # type: ignore[import]
-    except ModuleNotFoundError:
-        import tomli as tomllib  # type: ignore[import,no-redef]
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -127,7 +119,7 @@ def _parse_package_json(path: Path) -> list[str]:
     if not path.is_file():
         return []
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     packages: list[str] = []

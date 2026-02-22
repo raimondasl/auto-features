@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -19,7 +19,7 @@ from reporadar.ranker import (
 
 
 def _make_paper(**overrides) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     base = {
         "arxiv_id": "2401.12345v1",
         "title": "Retrieval Augmented Generation with Long Context Transformers",
@@ -52,17 +52,13 @@ def _make_profile(**overrides) -> RepoProfile:
 class TestScoreKeywordOverlap:
     def test_full_overlap(self) -> None:
         paper = _make_paper()
-        profile = _make_profile(
-            keywords=[("retrieval", 0.5), ("transformers", 0.5)]
-        )
+        profile = _make_profile(keywords=[("retrieval", 0.5), ("transformers", 0.5)])
         score = score_keyword_overlap(paper, profile)
         assert score == pytest.approx(1.0)
 
     def test_partial_overlap(self) -> None:
         paper = _make_paper()
-        profile = _make_profile(
-            keywords=[("retrieval", 0.5), ("quantum", 0.5)]
-        )
+        profile = _make_profile(keywords=[("retrieval", 0.5), ("quantum", 0.5)])
         score = score_keyword_overlap(paper, profile)
         assert 0.4 < score < 0.6
 
@@ -71,9 +67,7 @@ class TestScoreKeywordOverlap:
             title="Quantum Computing Advances",
             abstract="A new quantum error correction code.",
         )
-        profile = _make_profile(
-            keywords=[("retrieval", 0.5), ("transformers", 0.5)]
-        )
+        profile = _make_profile(keywords=[("retrieval", 0.5), ("transformers", 0.5)])
         score = score_keyword_overlap(paper, profile)
         assert score == 0.0
 
@@ -117,25 +111,25 @@ class TestScoreCategoryMatch:
 
 class TestScoreRecency:
     def test_today_is_1(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paper = _make_paper(published=now.isoformat())
         score = score_recency(paper, lookback_days=14)
         assert score > 0.95
 
     def test_old_paper_is_0(self) -> None:
-        old = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        old = datetime(2020, 1, 1, tzinfo=UTC)
         paper = _make_paper(published=old.isoformat())
         score = score_recency(paper, lookback_days=14)
         assert score == 0.0
 
     def test_midpoint(self) -> None:
-        mid = datetime.now(timezone.utc) - timedelta(days=7)
+        mid = datetime.now(UTC) - timedelta(days=7)
         paper = _make_paper(published=mid.isoformat())
         score = score_recency(paper, lookback_days=14)
         assert 0.4 < score < 0.6
 
     def test_decays_linearly(self) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         scores = []
         for days_ago in [1, 5, 10, 13]:
             pub = now - timedelta(days=days_ago)
@@ -174,7 +168,8 @@ class TestScorePaper:
         paper = _make_paper()
         profile = _make_profile()
         result = score_paper(
-            paper, profile,
+            paper,
+            profile,
             RankingConfig(),
             QueriesConfig(),
             ["cs.CL", "cs.LG"],
@@ -191,14 +186,16 @@ class TestScorePaper:
 
         # Heavy keyword weight
         kw_heavy = score_paper(
-            paper, profile,
+            paper,
+            profile,
             RankingConfig(w_keyword=10.0, w_category=0.0, w_recency=0.0),
             QueriesConfig(),
             ["cs.CL"],
         )
         # Heavy recency weight
         rec_heavy = score_paper(
-            paper, profile,
+            paper,
+            profile,
             RankingConfig(w_keyword=0.0, w_category=0.0, w_recency=10.0),
             QueriesConfig(),
             ["cs.CL"],
@@ -212,10 +209,18 @@ class TestScorePaper:
         profile = _make_profile()
 
         without_exclude = score_paper(
-            paper, profile, RankingConfig(), QueriesConfig(), ["cs.CL"],
+            paper,
+            profile,
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL"],
         )
         with_exclude = score_paper(
-            paper, profile, RankingConfig(), QueriesConfig(exclude=["survey"]), ["cs.CL"],
+            paper,
+            profile,
+            RankingConfig(),
+            QueriesConfig(exclude=["survey"]),
+            ["cs.CL"],
         )
 
         assert with_exclude["score_total"] < without_exclude["score_total"]
@@ -234,7 +239,7 @@ class TestEdgeCases:
         assert score == 0.0
 
     def test_recency_future_date(self) -> None:
-        future = datetime.now(timezone.utc) + timedelta(days=5)
+        future = datetime.now(UTC) + timedelta(days=5)
         paper = _make_paper(published=future.isoformat())
         score = score_recency(paper, lookback_days=14)
         assert score == 1.0
@@ -249,7 +254,8 @@ class TestEdgeCases:
         paper = _make_paper()
         profile = _make_profile()
         result = score_paper(
-            paper, profile,
+            paper,
+            profile,
             RankingConfig(w_keyword=0.0, w_category=0.0, w_recency=0.0),
             QueriesConfig(),
             ["cs.CL"],
@@ -280,7 +286,11 @@ class TestRankPapers:
         ]
 
         scores = rank_papers(
-            papers, profile, RankingConfig(), QueriesConfig(), ["cs.CL"],
+            papers,
+            profile,
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL"],
         )
 
         assert len(scores) == 2
@@ -291,6 +301,10 @@ class TestRankPapers:
     def test_empty_papers(self) -> None:
         profile = _make_profile()
         scores = rank_papers(
-            [], profile, RankingConfig(), QueriesConfig(), ["cs.CL"],
+            [],
+            profile,
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL"],
         )
         assert scores == []

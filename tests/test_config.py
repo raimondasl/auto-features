@@ -14,6 +14,7 @@ from reporadar.config import (
     RepoRadarConfig,
     default_config_yaml,
     load_config,
+    validate_config,
 )
 
 
@@ -109,6 +110,45 @@ class TestDefaultConfigYaml:
 
         assert cfg.arxiv.categories == ["cs.LG", "cs.CL"]
         assert cfg.output.top_n == 15
+
+
+class TestValidateConfig:
+    def test_valid_config_no_warnings(self) -> None:
+        cfg = RepoRadarConfig()
+        warnings = validate_config(cfg)
+        assert warnings == []
+
+    def test_unknown_category_prefix(self) -> None:
+        cfg = RepoRadarConfig(arxiv=ArxivConfig(categories=["xx.YY", "cs.LG"]))
+        warnings = validate_config(cfg)
+        assert len(warnings) == 1
+        assert "Unknown arXiv category prefix" in warnings[0]
+        assert "xx" in warnings[0]
+
+    def test_max_results_out_of_range(self) -> None:
+        cfg = RepoRadarConfig(arxiv=ArxivConfig(max_results_per_query=0))
+        warnings = validate_config(cfg)
+        assert any("max_results_per_query" in w for w in warnings)
+
+        cfg2 = RepoRadarConfig(arxiv=ArxivConfig(max_results_per_query=501))
+        warnings2 = validate_config(cfg2)
+        assert any("max_results_per_query" in w for w in warnings2)
+
+    def test_lookback_days_too_low(self) -> None:
+        cfg = RepoRadarConfig(arxiv=ArxivConfig(lookback_days=0))
+        warnings = validate_config(cfg)
+        assert any("lookback_days" in w for w in warnings)
+
+    def test_negative_ranking_weights(self) -> None:
+        cfg = RepoRadarConfig(ranking=RankingConfig(w_keyword=-1.0, w_category=0.5, w_recency=0.3))
+        warnings = validate_config(cfg)
+        assert any("Negative ranking weight" in w for w in warnings)
+        assert any("w_keyword" in w for w in warnings)
+
+    def test_top_n_too_low(self) -> None:
+        cfg = RepoRadarConfig(output=OutputConfig(top_n=0))
+        warnings = validate_config(cfg)
+        assert any("top_n" in w for w in warnings)
 
 
 class TestDataclassDefaults:

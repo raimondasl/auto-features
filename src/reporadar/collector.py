@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import arxiv
@@ -12,6 +13,10 @@ from reporadar.config import ArxivConfig, QueriesConfig
 from reporadar.profiler import RepoProfile
 
 logger = logging.getLogger(__name__)
+
+
+class CollectionError(Exception):
+    """Raised when arXiv collection fails after exhausting retries."""
 
 
 def build_queries(
@@ -81,13 +86,46 @@ def _result_to_paper(result: arxiv.Result) -> dict[str, Any]:
     }
 
 
+def _query_with_retry(
+    client: arxiv.Client,
+    search: arxiv.Search,
+    max_retries: int = 3,
+    base_delay: float = 2.0,
+) -> list[arxiv.Result]:
+    """Execute an arXiv query with exponential backoff on transient errors.
+
+    Raises CollectionError if all retries are exhausted.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(max_retries):
+        try:
+            return list(client.results(search))
+        except (ConnectionError, TimeoutError, OSError) as exc:
+            last_exc = exc
+            if attempt < max_retries - 1:
+                delay = base_delay * (2**attempt)
+                logger.warning(
+                    "arXiv query failed (attempt %d/%d): %s. Retrying in %.1fs...",
+                    attempt + 1,
+                    max_retries,
+                    exc,
+                    delay,
+                )
+                time.sleep(delay)
+    raise CollectionError(f"arXiv query failed after {max_retries} attempts: {last_exc}")
+
+
 def collect_papers(
     queries: list[str],
     arxiv_cfg: ArxivConfig,
+    on_query_start: Any | None = None,
 ) -> list[dict[str, Any]]:
     """Execute arXiv queries and return deduplicated paper dicts.
 
     Deduplication is by arxiv_id (first result wins).
+
+    *on_query_start*, if provided, is called at the start of each query with
+    ``(query_index, total_queries, query_string)``.
     """
     client = arxiv.Client(
         page_size=arxiv_cfg.max_results_per_query,
@@ -95,11 +133,15 @@ def collect_papers(
         num_retries=3,
     )
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=arxiv_cfg.lookback_days)
+    cutoff = datetime.now(UTC) - timedelta(days=arxiv_cfg.lookback_days)
     seen_ids: set[str] = set()
     papers: list[dict[str, Any]] = []
+    total = len(queries)
 
-    for query_str in queries:
+    for idx, query_str in enumerate(queries):
+        if on_query_start is not None:
+            on_query_start(idx, total, query_str)
+
         logger.info("Querying arXiv: %s", query_str)
         search = arxiv.Search(
             query=query_str,
@@ -108,9 +150,10 @@ def collect_papers(
             sort_order=arxiv.SortOrder.Descending,
         )
 
-        for result in client.results(search):
+        results = _query_with_retry(client, search)
+        for result in results:
             # Skip papers older than lookback window
-            if result.published.replace(tzinfo=timezone.utc) < cutoff:
+            if result.published.replace(tzinfo=UTC) < cutoff:
                 continue
 
             paper = _result_to_paper(result)

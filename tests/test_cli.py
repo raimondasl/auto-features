@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -12,8 +11,7 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from reporadar.cli import _parse_since, cli
-from reporadar.config import default_config_yaml
+from reporadar.cli import _format_size, _parse_since, cli
 from reporadar.store import PaperStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -56,7 +54,7 @@ def _seed_db(tmp_path: Path) -> None:
                 "authors": ["Alice"],
                 "abstract": "Retrieval augmented generation with transformers.",
                 "categories": ["cs.CL"],
-                "published": datetime.now(timezone.utc).isoformat(),
+                "published": datetime.now(UTC).isoformat(),
                 "updated": None,
                 "url": "http://arxiv.org/abs/2401.00001v1",
                 "pdf_url": "http://arxiv.org/pdf/2401.00001v1",
@@ -75,24 +73,27 @@ def _seed_db(tmp_path: Path) -> None:
         ]
         store.upsert_papers(papers)
         run_id = store.record_run(["all:test"], papers_new=2, papers_seen=0)
-        store.save_scores(run_id, [
-            {
-                "arxiv_id": "2401.00001v1",
-                "score_total": 0.85,
-                "keyword_score": 0.5,
-                "category_score": 0.2,
-                "recency_score": 0.15,
-                "matched_query": "all:test",
-            },
-            {
-                "arxiv_id": "2401.00002v1",
-                "score_total": 0.1,
-                "keyword_score": 0.05,
-                "category_score": 0.0,
-                "recency_score": 0.05,
-                "matched_query": "all:test",
-            },
-        ])
+        store.save_scores(
+            run_id,
+            [
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "score_total": 0.85,
+                    "keyword_score": 0.5,
+                    "category_score": 0.2,
+                    "recency_score": 0.15,
+                    "matched_query": "all:test",
+                },
+                {
+                    "arxiv_id": "2401.00002v1",
+                    "score_total": 0.1,
+                    "keyword_score": 0.05,
+                    "category_score": 0.0,
+                    "recency_score": 0.05,
+                    "matched_query": "all:test",
+                },
+            ],
+        )
 
 
 class TestParseSince:
@@ -137,6 +138,7 @@ class TestInitCommand:
         runner.invoke(cli, ["init", "--path", str(tmp_path)])
 
         import yaml
+
         content = (tmp_path / ".reporadar.yml").read_text(encoding="utf-8")
         data = yaml.safe_load(content)
         assert data["repo_path"] == "."
@@ -169,7 +171,7 @@ class TestUpdateCommand:
     @patch("reporadar.cli.collect_papers")
     def test_full_pipeline(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         mock_collect.return_value = [
             {
                 "arxiv_id": "2401.99999v1",
@@ -207,12 +209,24 @@ class TestUpdateCommand:
         assert "No new papers found" in result.output
 
     @patch("reporadar.cli.collect_papers")
+    def test_collection_error(self, mock_collect: MagicMock, tmp_path: Path) -> None:
+        from reporadar.collector import CollectionError
+
+        repo = _setup_repo(tmp_path)
+        mock_collect.side_effect = CollectionError("network down")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 1
+        assert "Failed to fetch papers" in result.output
+
+    @patch("reporadar.cli.collect_papers")
     def test_no_queries(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         # Empty repo with no README — profiler finds no keywords
         config_file = tmp_path / ".reporadar.yml"
         config_file.write_text(
-            f"repo_path: {tmp_path}\n"
-            "arxiv:\n  categories: []\nqueries:\n  seed: []\n",
+            f"repo_path: {tmp_path}\narxiv:\n  categories: []\nqueries:\n  seed: []\n",
             encoding="utf-8",
         )
 
@@ -244,9 +258,16 @@ class TestDigestCommand:
         _seed_db(repo)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "digest", "--config", str(repo / ".reporadar.yml"), "--format", "html",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "digest",
+                "--config",
+                str(repo / ".reporadar.yml"),
+                "--format",
+                "html",
+            ],
+        )
 
         assert result.exit_code == 0
         assert (repo / "digest.html").exists()
@@ -257,13 +278,40 @@ class TestDigestCommand:
         out = tmp_path / "custom" / "output.md"
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "digest", "--config", str(repo / ".reporadar.yml"),
-            "-o", str(out),
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "digest",
+                "--config",
+                str(repo / ".reporadar.yml"),
+                "-o",
+                str(out),
+            ],
+        )
 
         assert result.exit_code == 0
         assert out.exists()
+
+    def test_diff_flag(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "digest",
+                "--config",
+                str(repo / ".reporadar.yml"),
+                "--diff",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Digest written to" in result.output
+        content = (repo / "digest.md").read_text(encoding="utf-8")
+        # All papers should be [NEW] since there's only one run
+        assert "[NEW]" in content
 
     def test_no_database(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
@@ -296,9 +344,16 @@ class TestOpenCommand:
         _seed_db(repo)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "open", "--config", str(repo / ".reporadar.yml"), "-n", "1",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "open",
+                "--config",
+                str(repo / ".reporadar.yml"),
+                "-n",
+                "1",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Opening:" in result.output
@@ -311,9 +366,14 @@ class TestOpenCommand:
         _seed_db(repo)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "open", "--config", str(repo / ".reporadar.yml"),
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "open",
+                "--config",
+                str(repo / ".reporadar.yml"),
+            ],
+        )
 
         assert result.exit_code == 0
         assert mock_open.call_count == 2  # only 2 papers in seeded DB
@@ -339,3 +399,116 @@ class TestOpenCommand:
 
         assert result.exit_code == 1
         assert "No runs found" in result.output
+
+
+class TestStatusCommand:
+    def test_status_with_db_and_runs(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["status", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "Repo path:" in result.output
+        assert "Categories:" in result.output
+        assert "DB size:" in result.output
+        assert "Papers:" in result.output
+        assert "Last run:" in result.output
+        assert "New/seen:" in result.output
+
+    def test_status_no_db(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["status", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "No database found" in result.output
+
+    def test_status_db_no_runs(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        db_path = repo / ".reporadar" / "papers.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with PaperStore(db_path):
+            pass
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["status", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "No runs yet" in result.output
+
+
+class TestHistoryCommand:
+    def test_history_with_runs(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["history", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "Run" in result.output
+        assert "New" in result.output
+
+    def test_history_no_db(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["history", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 1
+        assert "No database found" in result.output
+
+    def test_history_no_runs(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        db_path = repo / ".reporadar" / "papers.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with PaperStore(db_path):
+            pass
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["history", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "No runs found" in result.output
+
+    def test_history_limit_flag(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        db_path = repo / ".reporadar" / "papers.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with PaperStore(db_path) as store:
+            for i in range(5):
+                store.record_run([f"q{i}"], i, 0)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "history",
+                "--config",
+                str(repo / ".reporadar.yml"),
+                "--limit",
+                "2",
+            ],
+        )
+
+        assert result.exit_code == 0
+        # Should show header + separator + 2 data rows
+        lines = [line for line in result.output.strip().split("\n") if line.strip()]
+        # header + separator + 2 runs = 4 lines
+        assert len(lines) == 4
+
+
+class TestFormatSize:
+    def test_bytes(self) -> None:
+        assert _format_size(500) == "500 B"
+
+    def test_kilobytes(self) -> None:
+        result = _format_size(2048)
+        assert "KB" in result
+
+    def test_megabytes(self) -> None:
+        result = _format_size(5 * 1024 * 1024)
+        assert "MB" in result

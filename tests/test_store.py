@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 
 import pytest
 
-from reporadar.store import PaperStore
+from reporadar.store import CURRENT_SCHEMA_VERSION, PaperStore, StoreError
 
 
 def _make_paper(**overrides) -> dict:
@@ -52,6 +53,15 @@ class TestPaperStoreInit:
         # Re-open — should not lose data
         with PaperStore(db_path) as store:
             assert store.paper_count() == 1
+
+
+class TestCorruptDb:
+    def test_corrupt_file_raises_store_error(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "corrupt.db"
+        db_path.write_bytes(b"this is not a valid sqlite database!!")
+
+        with pytest.raises(StoreError, match="Cannot open database"):
+            PaperStore(db_path)
 
 
 class TestUpsertPaper:
@@ -123,10 +133,12 @@ class TestGetPaper:
 class TestGetAllPapers:
     def test_returns_all(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
-            store.upsert_papers([
-                _make_paper(arxiv_id="2401.00001v1"),
-                _make_paper(arxiv_id="2401.00002v1"),
-            ])
+            store.upsert_papers(
+                [
+                    _make_paper(arxiv_id="2401.00001v1"),
+                    _make_paper(arxiv_id="2401.00002v1"),
+                ]
+            )
             papers = store.get_all_papers()
         assert len(papers) == 2
 
@@ -141,8 +153,9 @@ class TestGetPapersSince:
             store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
 
             # Papers inserted now should be found when searching from an hour ago
-            from datetime import datetime, timedelta, timezone
-            one_hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+            from datetime import datetime, timedelta
+
+            one_hour_ago = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
             papers = store.get_papers_since(one_hour_ago)
             assert len(papers) == 1
             assert papers[0]["arxiv_id"] == "2401.00001v1"
@@ -151,8 +164,9 @@ class TestGetPapersSince:
         with PaperStore(tmp_path / "papers.db") as store:
             store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
 
-            from datetime import datetime, timedelta, timezone
-            future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+            from datetime import datetime, timedelta
+
+            future = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
             papers = store.get_papers_since(future)
             assert len(papers) == 0
 
@@ -191,6 +205,66 @@ class TestRecordRun:
         with PaperStore(tmp_path / "papers.db") as store:
             assert store.get_last_run() is None
 
+    def test_get_runs_with_limit(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            for i in range(5):
+                store.record_run([f"q{i}"], i, 0)
+
+            all_runs = store.get_runs()
+            assert len(all_runs) == 5
+
+            limited = store.get_runs(limit=2)
+            assert len(limited) == 2
+            # Should be most recent first
+            assert limited[0]["papers_new"] == 4
+            assert limited[1]["papers_new"] == 3
+
+
+class TestPreviousRunAndScoredIds:
+    def test_get_previous_run_id(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            r1 = store.record_run(["q1"], 1, 0)
+            r2 = store.record_run(["q2"], 2, 0)
+            r3 = store.record_run(["q3"], 3, 0)
+
+            assert store.get_previous_run_id(r3) == r2
+            assert store.get_previous_run_id(r2) == r1
+            assert store.get_previous_run_id(r1) is None
+
+    def test_get_scored_paper_ids_for_run(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.upsert_paper(_make_paper(arxiv_id="2401.00002v1"))
+            run_id = store.record_run(["q1"], 2, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.00001v1",
+                        "score_total": 0.8,
+                        "keyword_score": 0.5,
+                        "category_score": 0.2,
+                        "recency_score": 0.1,
+                    },
+                    {
+                        "arxiv_id": "2401.00002v1",
+                        "score_total": 0.4,
+                        "keyword_score": 0.3,
+                        "category_score": 0.1,
+                        "recency_score": 0.0,
+                    },
+                ],
+            )
+
+            ids = store.get_scored_paper_ids_for_run(run_id)
+            assert ids == {"2401.00001v1", "2401.00002v1"}
+
+    def test_get_scored_paper_ids_empty(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = store.record_run(["q1"], 0, 0)
+            ids = store.get_scored_paper_ids_for_run(run_id)
+            assert ids == set()
+
 
 class TestScores:
     def test_save_and_retrieve(self, tmp_path: Path) -> None:
@@ -227,3 +301,49 @@ class TestScores:
             # Should include joined paper data
             assert "title" in retrieved[0]
             assert "authors" in retrieved[0]
+
+
+class TestSchemaVersion:
+    def test_fresh_db_has_correct_version(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+
+    def test_reopened_db_skips_migration(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "papers.db"
+        with PaperStore(db_path) as store:
+            store.upsert_paper(_make_paper())
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+            assert store.paper_count() == 1
+
+    def test_legacy_db_gets_bootstrapped(self, tmp_path: Path) -> None:
+        import sqlite3
+
+        db_path = tmp_path / "legacy.db"
+        # Create a legacy DB with tables but no schema_version
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""\
+            CREATE TABLE papers (
+                arxiv_id TEXT PRIMARY KEY, title TEXT NOT NULL,
+                authors TEXT NOT NULL, abstract TEXT NOT NULL,
+                categories TEXT NOT NULL, published TEXT NOT NULL,
+                updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
+                first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE runs (
+                run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_time TEXT NOT NULL, queries_used TEXT NOT NULL,
+                papers_new INTEGER NOT NULL, papers_seen INTEGER NOT NULL
+            );
+            CREATE TABLE paper_scores (
+                arxiv_id TEXT NOT NULL, run_id INTEGER NOT NULL,
+                score_total REAL NOT NULL, keyword_score REAL,
+                category_score REAL, recency_score REAL,
+                matched_query TEXT, PRIMARY KEY (arxiv_id, run_id)
+            );
+        """)
+        conn.close()
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION

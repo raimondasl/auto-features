@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from reporadar.suggestions import (
     MAX_SUGGESTIONS,
     enrich_papers_with_suggestions,
@@ -25,16 +23,12 @@ def _make_paper(**overrides) -> dict:
 
 class TestGenerateSuggestions:
     def test_benchmark_pattern(self) -> None:
-        paper = _make_paper(
-            abstract="We evaluate on GLUE benchmark and show improvements."
-        )
+        paper = _make_paper(abstract="We evaluate on GLUE benchmark and show improvements.")
         suggestions = generate_suggestions(paper)
         assert any("GLUE" in s for s in suggestions)
 
     def test_outperforms_pattern(self) -> None:
-        paper = _make_paper(
-            abstract="Our method outperforms BERT-base on all tasks."
-        )
+        paper = _make_paper(abstract="Our method outperforms BERT-base on all tasks.")
         suggestions = generate_suggestions(paper)
         assert any("BERT" in s for s in suggestions)
 
@@ -46,16 +40,12 @@ class TestGenerateSuggestions:
         assert any("attention mechanism" in s.lower() for s in suggestions)
 
     def test_open_source_pattern(self) -> None:
-        paper = _make_paper(
-            abstract="Code is open-sourced at our repository."
-        )
+        paper = _make_paper(abstract="Code is open-sourced at our repository.")
         suggestions = generate_suggestions(paper)
         assert any("publicly available" in s for s in suggestions)
 
     def test_no_matches(self) -> None:
-        paper = _make_paper(
-            abstract="This is a simple abstract with no patterns."
-        )
+        paper = _make_paper(abstract="This is a simple abstract with no patterns.")
         suggestions = generate_suggestions(paper)
         assert suggestions == []
 

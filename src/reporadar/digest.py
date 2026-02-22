@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +10,6 @@ from jinja2 import Environment, PackageLoader
 
 from reporadar.store import PaperStore
 from reporadar.suggestions import enrich_papers_with_suggestions
-
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -65,20 +64,33 @@ def generate_digest(
     store: PaperStore,
     run_id: int,
     top_n: int = 15,
+    diff: bool = False,
 ) -> str:
     """Generate digest Markdown content for a given run.
+
+    If *diff* is True, marks each paper as new or carried over from the
+    previous run by setting ``is_new`` on each paper dict.
 
     Returns the rendered Markdown string.
     """
     scored = store.get_scores_for_run(run_id)
     run = store.get_last_run()
 
+    # Diff mode: determine which papers are new vs. carried over
+    diff_mode = False
+    if diff:
+        diff_mode = True
+        prev_id = store.get_previous_run_id(run_id)
+        prev_ids = store.get_scored_paper_ids_for_run(prev_id) if prev_id is not None else set()
+        for paper in scored:
+            paper["is_new"] = paper["arxiv_id"] not in prev_ids
+
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
     enrich_papers_with_suggestions(top_picks)
 
     template = _load_template()
     return template.render(
-        generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         run_id=run_id,
         papers_new=run["papers_new"] if run else 0,
         papers_seen=run["papers_seen"] if run else 0,
@@ -87,6 +99,7 @@ def generate_digest(
         top_picks=top_picks,
         maybe_relevant=maybe_relevant,
         muted=muted,
+        diff_mode=diff_mode,
     )
 
 
@@ -108,13 +121,14 @@ def write_digest(
     output_path: str | Path,
     top_n: int = 15,
     fmt: str = "md",
+    diff: bool = False,
 ) -> Path:
     """Generate and write the digest to a file.
 
     *fmt* can be ``"md"`` (default) or ``"html"``.
     Returns the output path.
     """
-    content = generate_digest(store, run_id, top_n=top_n)
+    content = generate_digest(store, run_id, top_n=top_n, diff=diff)
 
     output_path = Path(output_path)
     if fmt == "html":

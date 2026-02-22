@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+CURRENT_SCHEMA_VERSION = 1
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -41,11 +43,23 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     matched_query   TEXT,
     PRIMARY KEY (arxiv_id, run_id)
 );
+
+CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER NOT NULL
+);
 """
+
+# Maps target_version -> list of SQL statements to upgrade from previous version.
+# Currently empty — version 1 is the baseline. Future migrations add entries here.
+MIGRATIONS: dict[int, list[str]] = {}
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
+
+
+class StoreError(Exception):
+    """Raised when the database cannot be opened or is corrupt."""
 
 
 class PaperStore:
@@ -54,15 +68,81 @@ class PaperStore:
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path))
-        self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA foreign_keys=ON")
-        self._init_schema()
+        try:
+            self._conn = sqlite3.connect(str(self.db_path), timeout=5)
+            self._conn.row_factory = sqlite3.Row
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA foreign_keys=ON")
+            self._conn.execute("PRAGMA quick_check")
+            self._init_schema()
+        except sqlite3.DatabaseError as exc:
+            raise StoreError(
+                f"Cannot open database {self.db_path}: {exc}. "
+                "The file may be corrupt — try deleting it and running `rr update` again."
+            ) from exc
+        except sqlite3.OperationalError as exc:
+            raise StoreError(
+                f"Cannot open database {self.db_path}: {exc}. "
+                "The database may be locked by another process."
+            ) from exc
 
     def _init_schema(self) -> None:
-        self._conn.executescript(SCHEMA_SQL)
-        self._conn.commit()
+        # Check if this is a fresh DB or existing one
+        has_schema_version = (
+            self._conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'"
+            ).fetchone()
+            is not None
+        )
+
+        has_tables = (
+            self._conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='papers'"
+            ).fetchone()
+            is not None
+        )
+
+        if not has_tables:
+            # Fresh DB — create all tables including schema_version
+            self._conn.executescript(SCHEMA_SQL)
+            self._conn.execute(
+                "INSERT INTO schema_version (version) VALUES (?)",
+                (CURRENT_SCHEMA_VERSION,),
+            )
+            self._conn.commit()
+            return
+
+        if not has_schema_version:
+            # Legacy DB — has tables but no schema_version. Bootstrap at version 1.
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+            )
+            self._conn.execute(
+                "INSERT INTO schema_version (version) VALUES (?)",
+                (CURRENT_SCHEMA_VERSION,),
+            )
+            self._conn.commit()
+            return
+
+        # Existing DB with schema_version — check if migration needed
+        row = self._conn.execute("SELECT version FROM schema_version").fetchone()
+        current = row["version"] if row else 0
+
+        if current < CURRENT_SCHEMA_VERSION:
+            for target in range(current + 1, CURRENT_SCHEMA_VERSION + 1):
+                if target in MIGRATIONS:
+                    for sql in MIGRATIONS[target]:
+                        self._conn.execute(sql)
+            self._conn.execute(
+                "UPDATE schema_version SET version = ?",
+                (CURRENT_SCHEMA_VERSION,),
+            )
+            self._conn.commit()
+
+    def schema_version(self) -> int:
+        """Return the current schema version."""
+        row = self._conn.execute("SELECT version FROM schema_version").fetchone()
+        return row["version"] if row else 0
 
     def close(self) -> None:
         self._conn.close()
@@ -144,9 +224,7 @@ class PaperStore:
 
     def get_paper(self, arxiv_id: str) -> dict[str, Any] | None:
         """Fetch a single paper by its arXiv ID."""
-        row = self._conn.execute(
-            "SELECT * FROM papers WHERE arxiv_id = ?", (arxiv_id,)
-        ).fetchone()
+        row = self._conn.execute("SELECT * FROM papers WHERE arxiv_id = ?", (arxiv_id,)).fetchone()
         if row is None:
             return None
         return self._row_to_paper(row)
@@ -193,11 +271,15 @@ class PaperStore:
         self._conn.commit()
         return cur.lastrowid  # type: ignore[return-value]
 
-    def get_runs(self) -> list[dict[str, Any]]:
-        """Return all runs ordered by time descending."""
-        rows = self._conn.execute(
-            "SELECT * FROM runs ORDER BY run_time DESC"
-        ).fetchall()
+    def get_runs(self, limit: int | None = None) -> list[dict[str, Any]]:
+        """Return all runs ordered by time descending.
+
+        If *limit* is given, return at most that many runs.
+        """
+        sql = "SELECT * FROM runs ORDER BY run_time DESC"
+        if limit is not None:
+            sql += f" LIMIT {int(limit)}"
+        rows = self._conn.execute(sql).fetchall()
         result = []
         for row in rows:
             d = dict(row)
@@ -207,14 +289,28 @@ class PaperStore:
 
     def get_last_run(self) -> dict[str, Any] | None:
         """Return the most recent run, or None."""
-        row = self._conn.execute(
-            "SELECT * FROM runs ORDER BY run_time DESC LIMIT 1"
-        ).fetchone()
+        row = self._conn.execute("SELECT * FROM runs ORDER BY run_time DESC LIMIT 1").fetchone()
         if row is None:
             return None
         d = dict(row)
         d["queries_used"] = json.loads(d["queries_used"])
         return d
+
+    def get_previous_run_id(self, run_id: int) -> int | None:
+        """Find the run immediately before *run_id*, or None."""
+        row = self._conn.execute(
+            "SELECT run_id FROM runs WHERE run_id < ? ORDER BY run_id DESC LIMIT 1",
+            (run_id,),
+        ).fetchone()
+        return row["run_id"] if row else None
+
+    def get_scored_paper_ids_for_run(self, run_id: int) -> set[str]:
+        """Return the set of arxiv_ids that were scored in *run_id*."""
+        rows = self._conn.execute(
+            "SELECT arxiv_id FROM paper_scores WHERE run_id = ?",
+            (run_id,),
+        ).fetchall()
+        return {row["arxiv_id"] for row in rows}
 
     # ── Score operations ───────────────────────────────────────────────
 
