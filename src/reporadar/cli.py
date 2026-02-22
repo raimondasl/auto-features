@@ -9,6 +9,7 @@ import click
 
 from reporadar.collector import build_queries, collect_papers
 from reporadar.config import DEFAULT_CONFIG_NAME, default_config_yaml, load_config
+from reporadar.digest import write_digest
 from reporadar.profiler import profile_repo
 from reporadar.ranker import rank_papers
 from reporadar.store import PaperStore
@@ -165,3 +166,73 @@ def update(config_path: str | None, verbose: bool) -> None:
 
     click.echo(f"\nDone! Run #{run_id}: {new_count} new, {seen_count} already seen.")
     click.echo(f"Total papers in DB: {new_count + seen_count}")
+
+
+def _parse_since(since: str) -> int:
+    """Parse a human-friendly duration like '7d' or '14d' into days."""
+    since = since.strip().lower()
+    if since.endswith("d"):
+        try:
+            return int(since[:-1])
+        except ValueError:
+            pass
+    raise click.BadParameter(f"Invalid duration: {since!r}. Use format like '7d' or '14d'.")
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
+)
+@click.option(
+    "--since",
+    default="7d",
+    help="Only include papers from the last N days (e.g. 7d, 14d).",
+)
+@click.option(
+    "--run-id",
+    default=None,
+    type=int,
+    help="Use scores from a specific run ID (default: latest run).",
+)
+@click.option(
+    "-o",
+    "--output",
+    "output_path",
+    default=None,
+    help="Output file path (default: from config digest_path).",
+)
+def digest(
+    config_path: str | None,
+    since: str,
+    run_id: int | None,
+    output_path: str | None,
+) -> None:
+    """Generate a Markdown digest of scored papers.
+
+    By default uses the latest run's scores and writes to the
+    path configured in .reporadar.yml.
+    """
+    cfg = load_config(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        click.echo("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    with PaperStore(db_path) as store:
+        if run_id is None:
+            last_run = store.get_last_run()
+            if last_run is None:
+                click.echo("No runs found. Run `rr update` first.")
+                raise SystemExit(1)
+            run_id = last_run["run_id"]
+
+        dest = output_path or cfg.output.digest_path
+        out = write_digest(store, run_id, dest, top_n=cfg.output.top_n)
+
+    click.echo(f"Digest written to {out}")
