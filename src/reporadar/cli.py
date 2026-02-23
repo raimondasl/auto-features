@@ -171,6 +171,48 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
         raise SystemExit(1) from exc
     info(f"  Fetched {len(papers)} unique papers")
 
+    # 3b. Semantic Scholar source
+    if "semantic_scholar" in cfg.sources:
+        try:
+            from reporadar.sources.semantic_scholar import (
+                collect_papers as ss_collect,
+            )
+
+            info("Fetching papers from Semantic Scholar...")
+            ss_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            api_key = cfg.semantic_scholar.api_key or None
+            ss_papers = ss_collect(
+                ss_queries,
+                api_key=api_key,
+                lookback_days=cfg.arxiv.lookback_days,
+            )
+            # Merge: arXiv results take priority
+            existing_ids = {p["arxiv_id"] for p in papers}
+            new_from_ss = [p for p in ss_papers if p["arxiv_id"] not in existing_ids]
+            papers.extend(new_from_ss)
+            info(f"  {len(new_from_ss)} additional papers from Semantic Scholar")
+        except Exception as exc:
+            info(f"  Semantic Scholar collection failed: {exc}")
+
+    # 3c. OpenAlex source
+    if "openalex" in cfg.sources:
+        try:
+            from reporadar.sources.openalex import collect_papers as oa_collect
+
+            info("Fetching papers from OpenAlex...")
+            oa_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            oa_papers = oa_collect(
+                oa_queries,
+                email=cfg.openalex.email or None,
+                lookback_days=cfg.arxiv.lookback_days,
+            )
+            existing_ids = {p["arxiv_id"] for p in papers}
+            new_from_oa = [p for p in oa_papers if p["arxiv_id"] not in existing_ids]
+            papers.extend(new_from_oa)
+            info(f"  {len(new_from_oa)} additional papers from OpenAlex")
+        except Exception as exc:
+            info(f"  OpenAlex collection failed: {exc}")
+
     if not papers:
         warn("No new papers found.")
         return
@@ -233,6 +275,22 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
             citation_scores=citation_scores,
         )
         store.save_scores(run_id, scores)
+
+        # 8. PwC enrichments for top papers
+        try:
+            from reporadar.paperswithcode import fetch_enrichments_batch
+
+            top_ids = [s["arxiv_id"] for s in scores[: cfg.output.top_n]]
+            if top_ids:
+                info("Enriching top papers with Papers With Code data...")
+                enrichments = fetch_enrichments_batch(top_ids, rate_limit=1.0)
+                if enrichments:
+                    store.save_enrichments(enrichments)
+                    info(f"  Enrichment data for {len(enrichments)} papers.")
+                else:
+                    info("  No enrichment data found.")
+        except Exception as exc:
+            info(f"  PwC enrichment failed: {exc}")
 
         # Distribution stats
         dist = score_distribution(scores)
@@ -302,8 +360,8 @@ def _parse_since(since: str) -> int:
     "--format",
     "fmt",
     default="md",
-    type=click.Choice(["md", "html"], case_sensitive=False),
-    help="Output format: md (default) or html.",
+    type=click.Choice(["md", "html", "json", "csv", "rss"], case_sensitive=False),
+    help="Output format: md (default), html, json, csv, or rss.",
 )
 @click.option("--diff", is_flag=True, help="Mark papers as [NEW] vs. carried over.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
@@ -504,6 +562,119 @@ def queries(config_path: str | None, verbose: bool) -> None:
             idx += 1
 
     info(f"\nTotal: {len(query_list)} queries")
+
+
+@cli.command(name="gh-issues")
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+@click.option(
+    "--top",
+    "top_n",
+    default=5,
+    type=int,
+    help="Number of top papers to create issues for (default: 5).",
+)
+@click.option(
+    "--run-id",
+    default=None,
+    type=int,
+    help="Which run's scores to use (default: latest).",
+)
+@click.option("--dry-run", is_flag=True, help="Preview issues without creating them.")
+@click.option(
+    "--labels",
+    default="reporadar",
+    help="Comma-separated labels to add (default: reporadar).",
+)
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
+def gh_issues(
+    config_path: str | None,
+    top_n: int,
+    run_id: int | None,
+    dry_run: bool,
+    labels: str,
+    verbose: bool,
+) -> None:
+    """Export top papers as GitHub Issues.
+
+    Requires the `gh` CLI to be installed and authenticated.
+    """
+    if verbose:
+        setup_verbose_logging()
+
+    from reporadar.gh_issues import check_gh_available, create_issues
+    from reporadar.suggestions import enrich_papers_with_suggestions
+
+    if not dry_run and not check_gh_available():
+        error("GitHub CLI (gh) not found or not authenticated.")
+        error("Install it from https://cli.github.com/ and run `gh auth login`.")
+        raise SystemExit(1)
+
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    label_list = [lbl.strip() for lbl in labels.split(",") if lbl.strip()]
+
+    with _open_store(db_path) as store:
+        if run_id is None:
+            last_run = store.get_last_run()
+            if last_run is None:
+                error("No runs found. Run `rr update` first.")
+                raise SystemExit(1)
+            run_id = last_run["run_id"]
+
+        scores = store.get_scores_for_run(run_id)
+        if not scores:
+            warn("No scored papers found.")
+            return
+
+        # Filter out already-exported papers
+        exported = store.get_exported_ids("github_issue")
+        candidates = [s for s in scores if s["arxiv_id"] not in exported][:top_n]
+
+        if not candidates:
+            info("All top papers have already been exported as issues.")
+            return
+
+        # Enrich with suggestions
+        enrich_papers_with_suggestions(candidates)
+
+        # Get enrichments
+        arxiv_ids = [p["arxiv_id"] for p in candidates]
+        enrichments = store.get_enrichments(arxiv_ids)
+
+        info(f"{'[DRY RUN] ' if dry_run else ''}Creating issues for {len(candidates)} papers...")
+        results = create_issues(
+            candidates,
+            enrichments=enrichments,
+            labels=label_list,
+            dry_run=dry_run,
+        )
+
+        for r in results:
+            if r["status"] == "dry_run":
+                info(f"  [DRY RUN] {r.get('title', r['arxiv_id'])}")
+            elif r["status"] == "created":
+                store.record_export(r["arxiv_id"], "github_issue", r["issue_url"])
+                success(f"  Created: {r['issue_url']}")
+            else:
+                warn(f"  Skipped: {r['arxiv_id']}")
+
+    created = sum(1 for r in results if r["status"] == "created")
+    if dry_run:
+        info(f"\nDry run complete. {len(results)} issues would be created.")
+    elif created:
+        success(f"\nCreated {created} GitHub issues.")
 
 
 @cli.command()

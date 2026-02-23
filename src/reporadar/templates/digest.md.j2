@@ -16,7 +16,7 @@
 ## Top Picks
 {% for p in top_picks %}
 
-### {{ loop.index }}. {% if diff_mode and p.is_new %}[NEW] {% endif %}{{ p.title }}
+### {{ loop.index }}. {% if diff_mode and p.is_new %}[NEW] {% endif %}{% if p.has_code %}[CODE] {% endif %}{% if p.datasets %}[DATA] {% endif %}{{ p.title }}
 
 - **Score:** {{ "%.2f"|format(p.score_total) }} (keyword: {{ "%.2f"|format(p.keyword_score) }}, category: {{ "%.2f"|format(p.category_score) }}, recency: {{ "%.2f"|format(p.recency_score) }}{% if has_embeddings and p.embedding_score is not none %}, embedding: {{ "%.2f"|format(p.embedding_score) }}{% endif %}{% if has_citations and p.citation_score is not none %}, citation: {{ "%.2f"|format(p.citation_score) }}{% endif %})
 - **Authors:** {{ p.authors | join(", ") }}
@@ -24,6 +24,9 @@
 - **Published:** {{ p.published[:10] }}
 - **Link:** [{{ p.arxiv_id }}]({{ p.url }})
 {% if p.matched_query %}- **Matched query:** `{{ p.matched_query }}`{% endif %}
+{% if p.code_urls %}- **Code:** {{ p.code_urls | join(", ") }}{% endif %}
+{% if p.datasets %}- **Datasets:** {{ p.datasets | join(", ") }}{% endif %}
+{% if p.tasks %}- **Tasks:** {{ p.tasks | join(", ") }}{% endif %}
 
 > {{ p.abstract[:300] }}{% if p.abstract|length > 300 %}...{% endif %}
 

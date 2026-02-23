@@ -7,6 +7,9 @@ from pathlib import Path
 from reporadar.digest import (
     categorize_papers,
     generate_digest,
+    generate_digest_csv,
+    generate_digest_json,
+    generate_digest_rss,
     markdown_to_html,
     write_digest,
 )
@@ -232,6 +235,60 @@ class TestGenerateDigestSuggestions:
         assert "auto-generated" in content
 
 
+class TestEnrichmentBadges:
+    def test_code_badge_appears(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            paper = _make_paper("2401.00001v1", title="Code Paper")
+            store.upsert_paper(paper)
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "pwc_id": "test",
+                    "has_code": True,
+                    "code_urls": ["https://github.com/foo/bar"],
+                    "datasets": [],
+                    "tasks": [],
+                }
+            )
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(run_id, [_make_score("2401.00001v1", 0.9)])
+            content = generate_digest(store, run_id)
+
+        assert "[CODE]" in content
+
+    def test_data_badge_appears(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            paper = _make_paper("2401.00001v1", title="Dataset Paper")
+            store.upsert_paper(paper)
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "pwc_id": "test",
+                    "has_code": False,
+                    "code_urls": [],
+                    "datasets": ["ImageNet"],
+                    "tasks": [],
+                }
+            )
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(run_id, [_make_score("2401.00001v1", 0.9)])
+            content = generate_digest(store, run_id)
+
+        assert "[DATA]" in content
+        assert "ImageNet" in content
+
+    def test_no_badges_without_enrichment(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            paper = _make_paper("2401.00001v1", title="Plain Paper")
+            store.upsert_paper(paper)
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(run_id, [_make_score("2401.00001v1", 0.9)])
+            content = generate_digest(store, run_id)
+
+        assert "[CODE]" not in content
+        assert "[DATA]" not in content
+
+
 class TestDiffMode:
     def test_diff_with_two_runs(self, tmp_path: Path) -> None:
         """Papers in run 2 but not run 1 should be marked [NEW]."""
@@ -323,3 +380,125 @@ class TestWriteDigest:
 
         assert out.suffix == ".html"
         assert out.exists()
+
+    def test_write_digest_json(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="json")
+
+        assert out.suffix == ".json"
+        assert out.exists()
+
+    def test_write_digest_csv(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="csv")
+
+        assert out.suffix == ".csv"
+        assert out.exists()
+
+    def test_write_digest_rss(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="rss")
+
+        assert out.suffix == ".xml"
+        assert out.exists()
+
+
+class TestJsonExport:
+    def test_generates_valid_json(self, tmp_path: Path) -> None:
+        import json
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_json(store, run_id)
+
+        data = json.loads(content)
+        assert "generated_at" in data
+        assert "run_id" in data
+        assert "top_picks" in data
+        assert "maybe_relevant" in data
+        assert "muted" in data
+
+    def test_json_includes_all_tiers(self, tmp_path: Path) -> None:
+        import json
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_json(store, run_id)
+
+        data = json.loads(content)
+        # _seed_store creates: 0.85 (top), 0.45 (maybe), 0.15 (muted), 0.05 (muted)
+        assert len(data["top_picks"]) == 1
+        assert len(data["maybe_relevant"]) == 1
+        assert len(data["muted"]) == 2
+
+    def test_json_includes_scores(self, tmp_path: Path) -> None:
+        import json
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_json(store, run_id)
+
+        data = json.loads(content)
+        top = data["top_picks"][0]
+        assert "score_total" in top
+        assert "keyword_score" in top
+        assert "category_score" in top
+
+
+class TestCsvExport:
+    def test_generates_valid_csv(self, tmp_path: Path) -> None:
+        import csv
+        import io
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_csv(store, run_id)
+
+        reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+        assert len(rows) > 0
+        assert "arxiv_id" in reader.fieldnames
+        assert "title" in reader.fieldnames
+        assert "score_total" in reader.fieldnames
+        assert "tier" in reader.fieldnames
+
+    def test_csv_includes_all_papers(self, tmp_path: Path) -> None:
+        import csv
+        import io
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_csv(store, run_id)
+
+        reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+        assert len(rows) == 4  # _seed_store creates 4 papers
+
+
+class TestRssExport:
+    def test_generates_valid_xml(self, tmp_path: Path) -> None:
+        import xml.etree.ElementTree as ET
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_rss(store, run_id)
+
+        root = ET.fromstring(content)
+        assert root.tag == "rss"
+        channel = root.find("channel")
+        assert channel is not None
+        assert channel.find("title").text == "RepoRadar Digest"
+
+    def test_rss_includes_papers(self, tmp_path: Path) -> None:
+        import xml.etree.ElementTree as ET
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            content = generate_digest_rss(store, run_id)
+
+        root = ET.fromstring(content)
+        items = root.findall(".//item")
+        assert len(items) > 0

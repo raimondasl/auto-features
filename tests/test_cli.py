@@ -582,6 +582,64 @@ class TestQueriesCommand:
         assert "No queries generated" in result.output
 
 
+class TestGhIssuesCommand:
+    @patch("reporadar.gh_issues.check_gh_available", return_value=True)
+    @patch("reporadar.gh_issues.create_issue")
+    def test_dry_run_shows_preview(
+        self, mock_create: MagicMock, mock_gh: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["gh-issues", "--config", str(repo / ".reporadar.yml"), "--dry-run"],
+        )
+
+        assert result.exit_code == 0
+        assert "DRY RUN" in result.output
+        mock_create.assert_not_called()
+
+    @patch("reporadar.gh_issues.check_gh_available", return_value=True)
+    @patch("reporadar.gh_issues.create_issue")
+    def test_skips_already_exported(
+        self, mock_create: MagicMock, mock_gh: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        # Mark all papers as already exported
+        db_path = repo / ".reporadar" / "papers.db"
+        with PaperStore(db_path) as store:
+            store.record_export("2401.00001v1", "github_issue", "url1")
+            store.record_export("2401.00002v1", "github_issue", "url2")
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["gh-issues", "--config", str(repo / ".reporadar.yml")],
+        )
+
+        assert result.exit_code == 0
+        assert "already been exported" in result.output
+        mock_create.assert_not_called()
+
+    @patch("reporadar.gh_issues.check_gh_available", return_value=False)
+    def test_gh_not_available(self, mock_gh: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["gh-issues", "--config", str(repo / ".reporadar.yml")],
+        )
+
+        assert result.exit_code == 1
+        assert "gh" in result.output.lower()
+
+
 class TestFormatSize:
     def test_bytes(self) -> None:
         assert _format_size(500) == "500 B"

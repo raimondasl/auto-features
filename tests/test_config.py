@@ -8,6 +8,7 @@ import pytest
 
 from reporadar.config import (
     ArxivConfig,
+    OpenAlexConfig,
     OutputConfig,
     QueriesConfig,
     RankingConfig,
@@ -191,3 +192,41 @@ class TestDataclassDefaults:
         cfg = OutputConfig()
         assert cfg.digest_path == "./reporadar_digest.md"
         assert cfg.top_n == 15
+
+    def test_sources_defaults(self) -> None:
+        cfg = RepoRadarConfig()
+        assert cfg.sources == ["arxiv"]
+
+    def test_openalex_defaults(self) -> None:
+        cfg = OpenAlexConfig()
+        assert cfg.email == ""
+
+
+class TestSourcesConfig:
+    def test_load_sources(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(
+            "repo_path: .\nsources: [arxiv, semantic_scholar, openalex]\n",
+            encoding="utf-8",
+        )
+        cfg = load_config(config_file)
+        assert cfg.sources == ["arxiv", "semantic_scholar", "openalex"]
+
+    def test_unknown_source_warning(self) -> None:
+        cfg = RepoRadarConfig(sources=["arxiv", "unknown_source"])
+        warnings = validate_config(cfg)
+        assert any("Unknown source" in w for w in warnings)
+
+    def test_valid_sources_no_warning(self) -> None:
+        cfg = RepoRadarConfig(sources=["arxiv", "semantic_scholar", "openalex"])
+        warnings = validate_config(cfg)
+        assert not any("Unknown source" in w for w in warnings)
+
+    def test_load_openalex_config(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(
+            "repo_path: .\nopenalex:\n  email: user@example.com\n",
+            encoding="utf-8",
+        )
+        cfg = load_config(config_file)
+        assert cfg.openalex.email == "user@example.com"

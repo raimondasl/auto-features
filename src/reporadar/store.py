@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -46,6 +46,24 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     PRIMARY KEY (arxiv_id, run_id)
 );
 
+CREATE TABLE IF NOT EXISTS paper_enrichments (
+    arxiv_id    TEXT PRIMARY KEY REFERENCES papers(arxiv_id),
+    pwc_id      TEXT,
+    has_code    INTEGER NOT NULL DEFAULT 0,
+    code_urls   TEXT,
+    datasets    TEXT,
+    tasks       TEXT,
+    fetched_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS paper_exports (
+    arxiv_id    TEXT NOT NULL,
+    export_type TEXT NOT NULL,
+    export_ref  TEXT,
+    exported_at TEXT NOT NULL,
+    PRIMARY KEY (arxiv_id, export_type)
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -56,6 +74,26 @@ MIGRATIONS: dict[int, list[str]] = {
     2: [
         "ALTER TABLE paper_scores ADD COLUMN embedding_score REAL",
         "ALTER TABLE paper_scores ADD COLUMN citation_score REAL",
+    ],
+    3: [
+        """\
+        CREATE TABLE IF NOT EXISTS paper_enrichments (
+            arxiv_id    TEXT PRIMARY KEY REFERENCES papers(arxiv_id),
+            pwc_id      TEXT,
+            has_code    INTEGER NOT NULL DEFAULT 0,
+            code_urls   TEXT,
+            datasets    TEXT,
+            tasks       TEXT,
+            fetched_at  TEXT NOT NULL
+        )""",
+        """\
+        CREATE TABLE IF NOT EXISTS paper_exports (
+            arxiv_id    TEXT NOT NULL,
+            export_type TEXT NOT NULL,
+            export_ref  TEXT,
+            exported_at TEXT NOT NULL,
+            PRIMARY KEY (arxiv_id, export_type)
+        )""",
     ],
 }
 
@@ -357,9 +395,11 @@ class PaperStore:
         """Return scores for a given run, ordered by score descending."""
         rows = self._conn.execute(
             """\
-            SELECT ps.*, p.title, p.url, p.abstract, p.authors, p.categories, p.published
+            SELECT ps.*, p.title, p.url, p.abstract, p.authors, p.categories, p.published,
+                   pe.has_code, pe.datasets AS enrichment_datasets, pe.tasks AS enrichment_tasks
               FROM paper_scores ps
               JOIN papers p ON ps.arxiv_id = p.arxiv_id
+              LEFT JOIN paper_enrichments pe ON ps.arxiv_id = pe.arxiv_id
              WHERE ps.run_id = ?
              ORDER BY ps.score_total DESC""",
             (run_id,),
@@ -369,5 +409,92 @@ class PaperStore:
             d = dict(row)
             d["authors"] = json.loads(d["authors"])
             d["categories"] = json.loads(d["categories"])
+            # Unpack enrichment fields
+            d["has_code"] = bool(d.get("has_code"))
+            raw_datasets = d.pop("enrichment_datasets", None)
+            d["datasets"] = json.loads(raw_datasets) if raw_datasets else []
+            raw_tasks = d.pop("enrichment_tasks", None)
+            d["tasks"] = json.loads(raw_tasks) if raw_tasks else []
             result.append(d)
         return result
+
+    # ── Enrichment operations ─────────────────────────────────────────
+
+    def save_enrichment(self, enrichment: dict[str, Any]) -> None:
+        """Save a single paper enrichment from Papers With Code."""
+        self._conn.execute(
+            """\
+            INSERT OR REPLACE INTO paper_enrichments
+                   (arxiv_id, pwc_id, has_code, code_urls, datasets, tasks, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                enrichment["arxiv_id"],
+                enrichment.get("pwc_id"),
+                1 if enrichment.get("has_code") else 0,
+                json.dumps(enrichment.get("code_urls", [])),
+                json.dumps(enrichment.get("datasets", [])),
+                json.dumps(enrichment.get("tasks", [])),
+                _now_iso(),
+            ),
+        )
+        self._conn.commit()
+
+    def save_enrichments(self, enrichments: dict[str, dict[str, Any]]) -> None:
+        """Save multiple paper enrichments."""
+        for enrichment in enrichments.values():
+            self._conn.execute(
+                """\
+                INSERT OR REPLACE INTO paper_enrichments
+                       (arxiv_id, pwc_id, has_code, code_urls, datasets, tasks, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    enrichment["arxiv_id"],
+                    enrichment.get("pwc_id"),
+                    1 if enrichment.get("has_code") else 0,
+                    json.dumps(enrichment.get("code_urls", [])),
+                    json.dumps(enrichment.get("datasets", [])),
+                    json.dumps(enrichment.get("tasks", [])),
+                    _now_iso(),
+                ),
+            )
+        self._conn.commit()
+
+    def get_enrichments(self, arxiv_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Get enrichments for a list of arXiv IDs."""
+        if not arxiv_ids:
+            return {}
+        placeholders = ",".join("?" for _ in arxiv_ids)
+        rows = self._conn.execute(
+            f"SELECT * FROM paper_enrichments WHERE arxiv_id IN ({placeholders})",
+            arxiv_ids,
+        ).fetchall()
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            d = dict(row)
+            d["has_code"] = bool(d["has_code"])
+            d["code_urls"] = json.loads(d["code_urls"]) if d["code_urls"] else []
+            d["datasets"] = json.loads(d["datasets"]) if d["datasets"] else []
+            d["tasks"] = json.loads(d["tasks"]) if d["tasks"] else []
+            result[d["arxiv_id"]] = d
+        return result
+
+    # ── Export tracking ───────────────────────────────────────────────
+
+    def record_export(self, arxiv_id: str, export_type: str, export_ref: str | None) -> None:
+        """Record that a paper was exported (e.g. as a GitHub issue)."""
+        self._conn.execute(
+            """\
+            INSERT OR REPLACE INTO paper_exports
+                   (arxiv_id, export_type, export_ref, exported_at)
+            VALUES (?, ?, ?, ?)""",
+            (arxiv_id, export_type, export_ref, _now_iso()),
+        )
+        self._conn.commit()
+
+    def get_exported_ids(self, export_type: str) -> set[str]:
+        """Return the set of arxiv_ids that have been exported as *export_type*."""
+        rows = self._conn.execute(
+            "SELECT arxiv_id FROM paper_exports WHERE export_type = ?",
+            (export_type,),
+        ).fetchall()
+        return {row["arxiv_id"] for row in rows}
