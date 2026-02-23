@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     keyword_score   REAL,
     category_score  REAL,
     recency_score   REAL,
+    embedding_score REAL,
+    citation_score  REAL,
     matched_query   TEXT,
     PRIMARY KEY (arxiv_id, run_id)
 );
@@ -50,8 +52,12 @@ CREATE TABLE IF NOT EXISTS schema_version (
 """
 
 # Maps target_version -> list of SQL statements to upgrade from previous version.
-# Currently empty — version 1 is the baseline. Future migrations add entries here.
-MIGRATIONS: dict[int, list[str]] = {}
+MIGRATIONS: dict[int, list[str]] = {
+    2: [
+        "ALTER TABLE paper_scores ADD COLUMN embedding_score REAL",
+        "ALTER TABLE paper_scores ADD COLUMN citation_score REAL",
+    ],
+}
 
 
 def _now_iso() -> str:
@@ -330,8 +336,9 @@ class PaperStore:
                 INSERT OR REPLACE INTO paper_scores
                        (arxiv_id, run_id, score_total,
                         keyword_score, category_score, recency_score,
+                        embedding_score, citation_score,
                         matched_query)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     s["arxiv_id"],
                     run_id,
@@ -339,6 +346,8 @@ class PaperStore:
                     s.get("keyword_score"),
                     s.get("category_score"),
                     s.get("recency_score"),
+                    s.get("embedding_score"),
+                    s.get("citation_score"),
                     s.get("matched_query"),
                 ),
             )

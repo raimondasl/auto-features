@@ -222,6 +222,63 @@ class TestUpdateCommand:
         assert "Failed to fetch papers" in result.output
 
     @patch("reporadar.cli.collect_papers")
+    def test_explain_flag(self, mock_collect: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        now = datetime.now(UTC).isoformat()
+        mock_collect.return_value = [
+            {
+                "arxiv_id": "2401.99999v1",
+                "title": "Mock Paper on Retrieval",
+                "authors": ["Test Author"],
+                "abstract": "A test abstract about retrieval and transformers.",
+                "categories": ["cs.CL"],
+                "published": now,
+                "updated": None,
+                "url": "http://arxiv.org/abs/2401.99999v1",
+                "pdf_url": None,
+                "matched_query": "all:test",
+            },
+        ]
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["update", "--config", str(repo / ".reporadar.yml"), "--explain"]
+        )
+
+        assert result.exit_code == 0
+        assert "Score explanations:" in result.output
+        assert "keyword" in result.output
+        assert "category" in result.output
+        assert "recency" in result.output
+
+    @patch("reporadar.cli.collect_papers")
+    def test_score_distribution_shown(self, mock_collect: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        now = datetime.now(UTC).isoformat()
+        mock_collect.return_value = [
+            {
+                "arxiv_id": "2401.99999v1",
+                "title": "Mock Paper",
+                "authors": ["Test Author"],
+                "abstract": "A test abstract about retrieval.",
+                "categories": ["cs.CL"],
+                "published": now,
+                "updated": None,
+                "url": "http://arxiv.org/abs/2401.99999v1",
+                "pdf_url": None,
+                "matched_query": "all:test",
+            },
+        ]
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "Score stats:" in result.output
+        assert "mean=" in result.output
+        assert "median=" in result.output
+
+    @patch("reporadar.cli.collect_papers")
     def test_no_queries(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         # Empty repo with no README — profiler finds no keywords
         config_file = tmp_path / ".reporadar.yml"
@@ -499,6 +556,30 @@ class TestHistoryCommand:
         lines = [line for line in result.output.strip().split("\n") if line.strip()]
         # header + separator + 2 runs = 4 lines
         assert len(lines) == 4
+
+
+class TestQueriesCommand:
+    def test_shows_queries(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["queries", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert "queries" in result.output.lower()
+
+    def test_no_queries_message(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(
+            f"repo_path: {tmp_path}\narxiv:\n  categories: []\nqueries:\n  seed: []\n",
+            encoding="utf-8",
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["queries", "--config", str(config_file)])
+
+        assert result.exit_code == 0
+        assert "No queries generated" in result.output
 
 
 class TestFormatSize:

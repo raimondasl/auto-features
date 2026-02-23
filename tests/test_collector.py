@@ -11,6 +11,7 @@ import pytest
 from reporadar.collector import (
     CollectionError,
     _category_filter,
+    _generate_bigram_queries,
     _query_with_retry,
     _result_to_paper,
     build_queries,
@@ -141,7 +142,9 @@ class TestBuildQueries:
 
         queries = build_queries(profile, queries_cfg, arxiv_cfg, max_auto_queries=3)
 
-        assert len(queries) == 3
+        # Count only single-keyword queries (exclude bigram phrase queries)
+        keyword_queries = [q for q in queries if '"' not in q]
+        assert len(keyword_queries) == 3
 
 
 class TestResultToPaper:
@@ -321,3 +324,51 @@ class TestQueryWithRetry:
         calls = [c.args[0] for c in mock_sleep.call_args_list]
         assert calls[0] == 2.0  # base_delay * 2^0
         assert calls[1] == 4.0  # base_delay * 2^1
+
+
+class TestBigramQueries:
+    def test_bigrams_generated_from_top_keywords(self) -> None:
+        profile = _make_profile(
+            keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
+        )
+        bigrams = _generate_bigram_queries(profile)
+        assert len(bigrams) >= 1
+        assert '"retrieval augmented"' in bigrams
+
+    def test_bigrams_quoted_in_query(self) -> None:
+        profile = _make_profile(
+            keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
+        )
+        bigrams = _generate_bigram_queries(profile)
+        for b in bigrams:
+            assert b.startswith('"') and b.endswith('"')
+
+    def test_no_bigrams_from_single_keyword(self) -> None:
+        profile = _make_profile(keywords=[("retrieval", 0.9)])
+        bigrams = _generate_bigram_queries(profile)
+        assert bigrams == []
+
+    def test_bigrams_added_to_build_queries(self) -> None:
+        profile = _make_profile(
+            keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
+        )
+        queries_cfg = QueriesConfig()
+        arxiv_cfg = ArxivConfig(categories=["cs.CL"])
+
+        queries = build_queries(profile, queries_cfg, arxiv_cfg)
+
+        # Should have bigram queries (quoted phrases) in the query list
+        has_bigram = any('"retrieval augmented"' in q for q in queries)
+        assert has_bigram
+
+    def test_short_words_filtered(self) -> None:
+        profile = _make_profile(keywords=[("an", 0.9), ("to", 0.8), ("transformers", 0.7)])
+        bigrams = _generate_bigram_queries(profile)
+        # "an to" should be filtered (both < 4 chars)
+        assert '"an to"' not in bigrams
+
+    def test_max_bigrams_respected(self) -> None:
+        keywords = [(f"word{i:02d}", 0.9 - i * 0.05) for i in range(10)]
+        profile = _make_profile(keywords=keywords)
+        bigrams = _generate_bigram_queries(profile, max_bigrams=2)
+        assert len(bigrams) <= 2

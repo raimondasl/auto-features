@@ -347,3 +347,80 @@ class TestSchemaVersion:
 
         with PaperStore(db_path) as store:
             assert store.schema_version() == CURRENT_SCHEMA_VERSION
+
+
+class TestSchemaMigrationV2:
+    def test_v1_db_gets_migrated(self, tmp_path: Path) -> None:
+        import sqlite3
+
+        db_path = tmp_path / "v1.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""\
+            CREATE TABLE papers (
+                arxiv_id TEXT PRIMARY KEY, title TEXT NOT NULL,
+                authors TEXT NOT NULL, abstract TEXT NOT NULL,
+                categories TEXT NOT NULL, published TEXT NOT NULL,
+                updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
+                first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE runs (
+                run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_time TEXT NOT NULL, queries_used TEXT NOT NULL,
+                papers_new INTEGER NOT NULL, papers_seen INTEGER NOT NULL
+            );
+            CREATE TABLE paper_scores (
+                arxiv_id TEXT NOT NULL, run_id INTEGER NOT NULL,
+                score_total REAL NOT NULL, keyword_score REAL,
+                category_score REAL, recency_score REAL,
+                matched_query TEXT, PRIMARY KEY (arxiv_id, run_id)
+            );
+            CREATE TABLE schema_version (version INTEGER NOT NULL);
+            INSERT INTO schema_version (version) VALUES (1);
+        """)
+        conn.close()
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+            # Verify the new columns exist by inserting data with them
+            store.upsert_paper(_make_paper())
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.12345v1",
+                        "score_total": 0.8,
+                        "keyword_score": 0.5,
+                        "category_score": 0.2,
+                        "recency_score": 0.1,
+                        "embedding_score": 0.75,
+                        "citation_score": 0.3,
+                    },
+                ],
+            )
+            scores = store.get_scores_for_run(run_id)
+            assert scores[0]["embedding_score"] == 0.75
+            assert scores[0]["citation_score"] == 0.3
+
+    def test_save_scores_with_embedding_and_citation(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper())
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.12345v1",
+                        "score_total": 0.9,
+                        "keyword_score": 0.6,
+                        "category_score": 0.3,
+                        "recency_score": 0.1,
+                        "embedding_score": 0.85,
+                        "citation_score": None,
+                    },
+                ],
+            )
+            scores = store.get_scores_for_run(run_id)
+            assert len(scores) == 1
+            assert scores[0]["embedding_score"] == 0.85
+            assert scores[0]["citation_score"] is None

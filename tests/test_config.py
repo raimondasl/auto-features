@@ -145,6 +145,22 @@ class TestValidateConfig:
         assert any("Negative ranking weight" in w for w in warnings)
         assert any("w_keyword" in w for w in warnings)
 
+    def test_negative_embedding_weight(self) -> None:
+        cfg = RepoRadarConfig(ranking=RankingConfig(w_embedding=-0.5))
+        warnings = validate_config(cfg)
+        assert any("w_embedding" in w for w in warnings)
+
+    def test_negative_category_weight(self) -> None:
+        cfg = RepoRadarConfig(ranking=RankingConfig(category_weights={"cs.CL": -1.0}))
+        warnings = validate_config(cfg)
+        assert any("Negative category weight" in w for w in warnings)
+        assert any("cs.CL" in w for w in warnings)
+
+    def test_negative_citations_weight(self) -> None:
+        cfg = RepoRadarConfig(ranking=RankingConfig(w_citations=-0.5))
+        warnings = validate_config(cfg)
+        assert any("w_citations" in w for w in warnings)
+
     def test_top_n_too_low(self) -> None:
         cfg = RepoRadarConfig(output=OutputConfig(top_n=0))
         warnings = validate_config(cfg)
@@ -168,6 +184,8 @@ class TestDataclassDefaults:
         assert cfg.w_keyword == 1.0
         assert cfg.w_category == 0.5
         assert cfg.w_recency == 0.3
+        assert cfg.w_embedding == 0.0
+        assert cfg.w_citations == 0.0
 
     def test_output_defaults(self) -> None:
         cfg = OutputConfig()
