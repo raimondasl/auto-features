@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "reporadar"
-version = "0.2.0"
+version = "0.3.0"
 description = "Monitor arXiv for papers relevant to your repo and produce a weekly Markdown digest."
 readme = "README.md"
 license = "MIT"
@@ -21,6 +21,9 @@ dependencies = [
 rr = "reporadar.cli:cli"
 
 [project.optional-dependencies]
+embeddings = [
+    "sentence-transformers>=2.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",

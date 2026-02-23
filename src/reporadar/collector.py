@@ -19,6 +19,33 @@ class CollectionError(Exception):
     """Raised when arXiv collection fails after exhausting retries."""
 
 
+def _generate_bigram_queries(
+    profile: RepoProfile,
+    max_bigrams: int = 3,
+) -> list[str]:
+    """Generate bigram phrase queries from adjacent top keywords.
+
+    Takes the top keywords and generates adjacent pairs as quoted phrases.
+    Filters out bigrams where both words are short (< 4 chars).
+    """
+    if not profile.keywords or len(profile.keywords) < 2:
+        return []
+
+    terms = [term for term, _weight in profile.keywords]
+    bigrams: list[str] = []
+
+    for i in range(len(terms) - 1):
+        a, b = terms[i], terms[i + 1]
+        # Skip if both words are short/common
+        if len(a) < 4 and len(b) < 4:
+            continue
+        bigrams.append(f'"{a} {b}"')
+        if len(bigrams) >= max_bigrams:
+            break
+
+    return bigrams
+
+
 def build_queries(
     profile: RepoProfile,
     queries_cfg: QueriesConfig,
@@ -29,7 +56,8 @@ def build_queries(
 
     Strategy:
     1. Use all user-provided seed queries (scoped to configured categories).
-    2. Auto-generate queries from the top profile keywords.
+    2. Insert bigram phrase queries from adjacent top keywords.
+    3. Auto-generate queries from the top profile keywords.
 
     Returns a list of arXiv query strings ready for the API.
     """
@@ -42,6 +70,14 @@ def build_queries(
         if cat_filter:
             q = f"({q}) AND ({cat_filter})"
         queries.append(q)
+
+    # Bigram phrase queries (higher priority than single keywords)
+    for phrase in _generate_bigram_queries(profile):
+        q = f"all:{phrase}"
+        if cat_filter:
+            q = f"({q}) AND ({cat_filter})"
+        if q not in queries:
+            queries.append(q)
 
     # Auto-generated queries from top keywords
     if profile.keywords:

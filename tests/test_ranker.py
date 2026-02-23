@@ -10,8 +10,10 @@ from reporadar.config import QueriesConfig, RankingConfig
 from reporadar.profiler import RepoProfile
 from reporadar.ranker import (
     compute_exclude_penalty,
+    format_score_explanation,
     rank_papers,
     score_category_match,
+    score_distribution,
     score_keyword_overlap,
     score_paper,
     score_recency,
@@ -269,6 +271,63 @@ class TestEdgeCases:
         assert score == pytest.approx(1.0)
 
 
+class TestScoreNormalization:
+    def test_default_weights_normalized(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        result = score_paper(
+            paper,
+            profile,
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL", "cs.LG"],
+        )
+        assert result["score_total"] <= 1.0
+
+    def test_all_max_scores_equals_one(self) -> None:
+        # Paper matching all keywords, all categories, published now → 1.0
+        now = datetime.now(UTC)
+        paper = _make_paper(
+            title="retrieval transformers generation embeddings",
+            abstract="retrieval transformers generation embeddings",
+            categories=["cs.CL", "cs.LG"],
+            published=now.isoformat(),
+        )
+        profile = _make_profile()
+        result = score_paper(
+            paper,
+            profile,
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL", "cs.LG"],
+        )
+        assert result["score_total"] == pytest.approx(1.0, abs=0.02)
+
+    def test_custom_weights_still_normalized(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        result = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_keyword=5.0, w_category=3.0, w_recency=2.0),
+            QueriesConfig(),
+            ["cs.CL", "cs.LG"],
+        )
+        assert result["score_total"] <= 1.0
+
+    def test_zero_weights_returns_zero(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        result = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_keyword=0.0, w_category=0.0, w_recency=0.0),
+            QueriesConfig(),
+            ["cs.CL"],
+        )
+        assert result["score_total"] == 0.0
+
+
 class TestRankPapers:
     def test_returns_sorted_by_score(self) -> None:
         profile = _make_profile()
@@ -308,3 +367,182 @@ class TestRankPapers:
             ["cs.CL"],
         )
         assert scores == []
+
+
+class TestFormatScoreExplanation:
+    def test_contains_component_names(self) -> None:
+        score_dict = {
+            "arxiv_id": "2401.00001v1",
+            "score_total": 0.75,
+            "keyword_score": 0.8,
+            "category_score": 0.6,
+            "recency_score": 0.9,
+        }
+        result = format_score_explanation(score_dict, RankingConfig())
+        assert "keyword" in result
+        assert "category" in result
+        assert "recency" in result
+        assert "2401.00001v1" in result
+
+    def test_contains_weight_values(self) -> None:
+        score_dict = {
+            "arxiv_id": "2401.00001v1",
+            "score_total": 0.75,
+            "keyword_score": 0.8,
+            "category_score": 0.6,
+            "recency_score": 0.9,
+        }
+        result = format_score_explanation(score_dict, RankingConfig(w_keyword=2.0))
+        assert "2.00" in result
+
+    def test_contains_total(self) -> None:
+        score_dict = {
+            "arxiv_id": "2401.00001v1",
+            "score_total": 0.75,
+            "keyword_score": 0.8,
+            "category_score": 0.6,
+            "recency_score": 0.9,
+        }
+        result = format_score_explanation(score_dict, RankingConfig())
+        assert "total" in result
+        assert "0.7500" in result
+
+
+class TestScoreDistribution:
+    def test_known_inputs(self) -> None:
+        scores = [
+            {"score_total": 0.2},
+            {"score_total": 0.4},
+            {"score_total": 0.6},
+            {"score_total": 0.8},
+        ]
+        dist = score_distribution(scores)
+        assert dist["mean"] == pytest.approx(0.5)
+        assert dist["median"] == pytest.approx(0.5)
+        assert dist["min"] == pytest.approx(0.2)
+        assert dist["max"] == pytest.approx(0.8)
+        assert dist["count"] == 4
+
+    def test_empty_list(self) -> None:
+        dist = score_distribution([])
+        assert dist["mean"] == 0.0
+        assert dist["median"] == 0.0
+        assert dist["min"] == 0.0
+        assert dist["max"] == 0.0
+        assert dist["count"] == 0
+
+    def test_single_item(self) -> None:
+        dist = score_distribution([{"score_total": 0.5}])
+        assert dist["mean"] == pytest.approx(0.5)
+        assert dist["median"] == pytest.approx(0.5)
+        assert dist["count"] == 1
+
+
+class TestEmbeddingScoreIntegration:
+    def test_embedding_score_included_when_provided(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        result = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=0.3, w_embedding=1.5),
+            QueriesConfig(),
+            ["cs.CL", "cs.LG"],
+            embedding_score=0.8,
+        )
+        assert result["embedding_score"] == pytest.approx(0.8)
+        assert result["score_total"] > 0
+
+    def test_embedding_score_ignored_when_weight_zero(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        without = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_embedding=0.0),
+            QueriesConfig(),
+            ["cs.CL"],
+        )
+        with_emb = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_embedding=0.0),
+            QueriesConfig(),
+            ["cs.CL"],
+            embedding_score=0.9,
+        )
+        assert without["score_total"] == with_emb["score_total"]
+
+    def test_embedding_score_none_ignored(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        result = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_embedding=1.5),
+            QueriesConfig(),
+            ["cs.CL"],
+            embedding_score=None,
+        )
+        assert result["embedding_score"] is None
+        assert result["score_total"] <= 1.0
+
+    def test_rank_papers_with_repo_embedding(self) -> None:
+        from unittest.mock import patch
+
+        import numpy as np
+
+        papers = [
+            _make_paper(arxiv_id="2401.00001v1", title="Paper A"),
+            _make_paper(arxiv_id="2401.00002v1", title="Paper B"),
+        ]
+        profile = _make_profile()
+        repo_emb = np.array([1.0, 0.0, 0.0])
+
+        with (
+            patch("reporadar.embeddings.compute_paper_embedding") as mock_emb,
+            patch("reporadar.embeddings.cosine_similarity") as mock_cos,
+        ):
+            mock_emb.side_effect = [np.array([0.9, 0.1, 0.0]), np.array([0.0, 0.0, 1.0])]
+            mock_cos.side_effect = [0.99, 0.0]
+
+            scores = rank_papers(
+                papers,
+                profile,
+                RankingConfig(w_embedding=1.5),
+                QueriesConfig(),
+                ["cs.CL"],
+                repo_embedding=repo_emb,
+            )
+
+        assert len(scores) == 2
+        # Paper A should have embedding_score
+        paper_a = next(s for s in scores if s["arxiv_id"] == "2401.00001v1")
+        assert paper_a["embedding_score"] is not None
+
+
+class TestPerCategoryWeights:
+    def test_weighted_category_higher_score(self) -> None:
+        paper = _make_paper(categories=["cs.CL"])
+        # cs.CL weighted 2.0, cs.LG weighted 1.0
+        score_weighted = score_category_match(
+            paper, ["cs.CL", "cs.LG"], category_weights={"cs.CL": 2.0, "cs.LG": 1.0}
+        )
+        score_default = score_category_match(paper, ["cs.CL", "cs.LG"])
+        # With cs.CL weighted 2x, matching just cs.CL should give 2/3 vs 1/2
+        assert score_weighted > score_default
+
+    def test_equal_weights_matches_default(self) -> None:
+        paper = _make_paper(categories=["cs.CL"])
+        score_weighted = score_category_match(
+            paper, ["cs.CL", "cs.LG"], category_weights={"cs.CL": 1.0, "cs.LG": 1.0}
+        )
+        score_default = score_category_match(paper, ["cs.CL", "cs.LG"])
+        assert score_weighted == pytest.approx(score_default)
+
+    def test_unweighted_category_uses_default(self) -> None:
+        paper = _make_paper(categories=["cs.AI"])
+        # cs.AI not in weights dict → defaults to 1.0
+        score = score_category_match(paper, ["cs.CL", "cs.AI"], category_weights={"cs.CL": 2.0})
+        # cs.AI matches with weight 1.0, cs.CL doesn't match: 1.0 / (2.0 + 1.0) = 0.333
+        assert score == pytest.approx(1.0 / 3.0, abs=0.01)

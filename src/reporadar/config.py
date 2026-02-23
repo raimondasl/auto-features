@@ -29,6 +29,14 @@ class RankingConfig:
     w_keyword: float = 1.0
     w_category: float = 0.5
     w_recency: float = 0.3
+    w_embedding: float = 0.0
+    w_citations: float = 0.0
+    category_weights: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class SemanticScholarConfig:
+    api_key: str = ""
 
 
 @dataclass
@@ -44,14 +52,25 @@ class RepoRadarConfig:
     queries: QueriesConfig = field(default_factory=QueriesConfig)
     ranking: RankingConfig = field(default_factory=RankingConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
+    semantic_scholar: SemanticScholarConfig = field(default_factory=SemanticScholarConfig)
 
 
 def _dict_to_config(data: dict) -> RepoRadarConfig:
     """Build a RepoRadarConfig from a raw dict (parsed YAML)."""
     arxiv = ArxivConfig(**data["arxiv"]) if "arxiv" in data else ArxivConfig()
     queries = QueriesConfig(**data["queries"]) if "queries" in data else QueriesConfig()
-    ranking = RankingConfig(**data["ranking"]) if "ranking" in data else RankingConfig()
+    if "ranking" in data:
+        ranking_data = dict(data["ranking"])
+        cat_weights = ranking_data.pop("category_weights", {})
+        ranking = RankingConfig(**ranking_data, category_weights=cat_weights or {})
+    else:
+        ranking = RankingConfig()
     output = OutputConfig(**data["output"]) if "output" in data else OutputConfig()
+    semantic_scholar = (
+        SemanticScholarConfig(**data["semantic_scholar"])
+        if "semantic_scholar" in data
+        else SemanticScholarConfig()
+    )
 
     return RepoRadarConfig(
         repo_path=data.get("repo_path", "."),
@@ -59,6 +78,7 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
         queries=queries,
         ranking=ranking,
         output=output,
+        semantic_scholar=semantic_scholar,
     )
 
 
@@ -127,10 +147,15 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         warnings.append(f"lookback_days={cfg.arxiv.lookback_days} should be >= 1")
 
     # Negative ranking weights
-    for name in ("w_keyword", "w_category", "w_recency"):
+    for name in ("w_keyword", "w_category", "w_recency", "w_embedding", "w_citations"):
         val = getattr(cfg.ranking, name)
         if val < 0:
             warnings.append(f"Negative ranking weight: {name}={val}")
+
+    # Category weights
+    for cat, weight in cfg.ranking.category_weights.items():
+        if weight < 0:
+            warnings.append(f"Negative category weight: {cat}={weight}")
 
     # top_n
     if cfg.output.top_n < 1:
@@ -157,6 +182,7 @@ ranking:
   w_keyword: 1.0
   w_category: 0.5
   w_recency: 0.3
+  w_embedding: 1.5
 
 output:
   digest_path: ./reporadar_digest.md

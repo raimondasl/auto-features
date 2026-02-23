@@ -88,6 +88,9 @@ def generate_digest(
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
     enrich_papers_with_suggestions(top_picks)
 
+    has_embeddings = any(p.get("embedding_score") is not None for p in scored)
+    has_citations = any(p.get("citation_score") is not None for p in scored)
+
     template = _load_template()
     return template.render(
         generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
@@ -100,6 +103,8 @@ def generate_digest(
         maybe_relevant=maybe_relevant,
         muted=muted,
         diff_mode=diff_mode,
+        has_embeddings=has_embeddings,
+        has_citations=has_citations,
     )
 
 
