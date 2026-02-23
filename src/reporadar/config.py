@@ -46,13 +46,20 @@ class OutputConfig:
 
 
 @dataclass
+class OpenAlexConfig:
+    email: str = ""
+
+
+@dataclass
 class RepoRadarConfig:
     repo_path: str = "."
+    sources: list[str] = field(default_factory=lambda: ["arxiv"])
     arxiv: ArxivConfig = field(default_factory=ArxivConfig)
     queries: QueriesConfig = field(default_factory=QueriesConfig)
     ranking: RankingConfig = field(default_factory=RankingConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     semantic_scholar: SemanticScholarConfig = field(default_factory=SemanticScholarConfig)
+    openalex: OpenAlexConfig = field(default_factory=OpenAlexConfig)
 
 
 def _dict_to_config(data: dict) -> RepoRadarConfig:
@@ -71,14 +78,18 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
         if "semantic_scholar" in data
         else SemanticScholarConfig()
     )
+    openalex = OpenAlexConfig(**data["openalex"]) if "openalex" in data else OpenAlexConfig()
+    sources = data.get("sources", ["arxiv"])
 
     return RepoRadarConfig(
         repo_path=data.get("repo_path", "."),
+        sources=sources,
         arxiv=arxiv,
         queries=queries,
         ranking=ranking,
         output=output,
         semantic_scholar=semantic_scholar,
+        openalex=openalex,
     )
 
 
@@ -131,6 +142,13 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
     """Return a list of warning messages for suspicious config values."""
     warnings: list[str] = []
 
+    # Check sources
+    known_sources = {"arxiv", "semantic_scholar", "openalex"}
+    for src in cfg.sources:
+        if src not in known_sources:
+            known = ", ".join(sorted(known_sources))
+            warnings.append(f"Unknown source: {src!r}. Known sources: {known}")
+
     # Check arXiv category prefixes
     for cat in cfg.arxiv.categories:
         prefix = cat.split(".")[0]
@@ -168,6 +186,8 @@ def default_config_yaml() -> str:
     """Return the default .reporadar.yml content as a string."""
     return """\
 repo_path: .
+
+sources: [arxiv]
 
 arxiv:
   categories: [cs.LG, cs.CL]

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "reporadar"
-version = "0.3.0"
+version = "0.4.0"
 description = "Monitor arXiv for papers relevant to your repo and produce a weekly Markdown digest."
 readme = "README.md"
 license = "MIT"

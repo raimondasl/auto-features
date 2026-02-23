@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import json as json_mod
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -90,6 +93,7 @@ def generate_digest(
 
     has_embeddings = any(p.get("embedding_score") is not None for p in scored)
     has_citations = any(p.get("citation_score") is not None for p in scored)
+    has_enrichments = any(p.get("has_code") or p.get("datasets") for p in scored)
 
     template = _load_template()
     return template.render(
@@ -105,6 +109,7 @@ def generate_digest(
         diff_mode=diff_mode,
         has_embeddings=has_embeddings,
         has_citations=has_citations,
+        has_enrichments=has_enrichments,
     )
 
 
@@ -120,6 +125,115 @@ def markdown_to_html(md_content: str) -> str:
     return template.render(markdown_content=md_content)
 
 
+def generate_digest_json(
+    store: PaperStore,
+    run_id: int,
+    top_n: int = 15,
+    diff: bool = False,
+) -> str:
+    """Generate digest as a JSON string.
+
+    Returns a JSON string with top_picks, maybe_relevant, and muted tiers.
+    """
+    scored = store.get_scores_for_run(run_id)
+    run = store.get_last_run()
+
+    if diff:
+        prev_id = store.get_previous_run_id(run_id)
+        prev_ids = store.get_scored_paper_ids_for_run(prev_id) if prev_id is not None else set()
+        for paper in scored:
+            paper["is_new"] = paper["arxiv_id"] not in prev_ids
+
+    top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
+    enrich_papers_with_suggestions(top_picks)
+
+    return json_mod.dumps(
+        {
+            "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+            "run_id": run_id,
+            "papers_new": run["papers_new"] if run else 0,
+            "papers_seen": run["papers_seen"] if run else 0,
+            "top_picks": top_picks,
+            "maybe_relevant": maybe_relevant,
+            "muted": muted,
+        },
+        indent=2,
+        default=str,
+    )
+
+
+_CSV_FIELDS = [
+    "arxiv_id",
+    "title",
+    "score_total",
+    "keyword_score",
+    "category_score",
+    "recency_score",
+    "embedding_score",
+    "citation_score",
+    "tier",
+    "authors",
+    "categories",
+    "published",
+    "url",
+    "has_code",
+    "datasets",
+]
+
+
+def generate_digest_csv(
+    store: PaperStore,
+    run_id: int,
+    top_n: int = 15,
+    diff: bool = False,
+) -> str:
+    """Generate digest as a CSV string."""
+    scored = store.get_scores_for_run(run_id)
+    top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
+
+    # Tag each paper with its tier
+    for p in top_picks:
+        p["tier"] = "top_pick"
+    for p in maybe_relevant:
+        p["tier"] = "maybe_relevant"
+    for p in muted:
+        p["tier"] = "muted"
+
+    all_papers = top_picks + maybe_relevant + muted
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=_CSV_FIELDS, extrasaction="ignore")
+    writer.writeheader()
+    for p in all_papers:
+        row = dict(p)
+        # Flatten list fields
+        row["authors"] = "; ".join(p.get("authors", []))
+        row["categories"] = "; ".join(p.get("categories", []))
+        row["datasets"] = "; ".join(p.get("datasets", []))
+        writer.writerow(row)
+
+    return output.getvalue()
+
+
+def generate_digest_rss(
+    store: PaperStore,
+    run_id: int,
+    top_n: int = 15,
+    diff: bool = False,
+) -> str:
+    """Generate digest as an RSS 2.0 XML string."""
+    scored = store.get_scores_for_run(run_id)
+    top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
+    all_papers = top_picks + maybe_relevant + muted
+
+    template = _load_template("digest.rss.xml.j2")
+    return template.render(
+        generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+        run_id=run_id,
+        papers=all_papers,
+    )
+
+
 def write_digest(
     store: PaperStore,
     run_id: int,
@@ -130,16 +244,30 @@ def write_digest(
 ) -> Path:
     """Generate and write the digest to a file.
 
-    *fmt* can be ``"md"`` (default) or ``"html"``.
+    *fmt* can be ``"md"``, ``"html"``, ``"json"``, ``"csv"``, or ``"rss"``.
     Returns the output path.
     """
-    content = generate_digest(store, run_id, top_n=top_n, diff=diff)
-
     output_path = Path(output_path)
-    if fmt == "html":
+
+    if fmt == "json":
+        content = generate_digest_json(store, run_id, top_n=top_n, diff=diff)
+        if output_path.suffix in (".md", ".html"):
+            output_path = output_path.with_suffix(".json")
+    elif fmt == "csv":
+        content = generate_digest_csv(store, run_id, top_n=top_n, diff=diff)
+        if output_path.suffix in (".md", ".html"):
+            output_path = output_path.with_suffix(".csv")
+    elif fmt == "rss":
+        content = generate_digest_rss(store, run_id, top_n=top_n, diff=diff)
+        if output_path.suffix in (".md", ".html"):
+            output_path = output_path.with_suffix(".xml")
+    elif fmt == "html":
+        content = generate_digest(store, run_id, top_n=top_n, diff=diff)
         content = markdown_to_html(content)
         if output_path.suffix == ".md":
             output_path = output_path.with_suffix(".html")
+    else:
+        content = generate_digest(store, run_id, top_n=top_n, diff=diff)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")

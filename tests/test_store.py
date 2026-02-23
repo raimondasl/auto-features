@@ -349,6 +349,186 @@ class TestSchemaVersion:
             assert store.schema_version() == CURRENT_SCHEMA_VERSION
 
 
+class TestSchemaMigrationV3:
+    def test_v2_db_gets_migrated(self, tmp_path: Path) -> None:
+        import sqlite3
+
+        db_path = tmp_path / "v2.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""\
+            CREATE TABLE papers (
+                arxiv_id TEXT PRIMARY KEY, title TEXT NOT NULL,
+                authors TEXT NOT NULL, abstract TEXT NOT NULL,
+                categories TEXT NOT NULL, published TEXT NOT NULL,
+                updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
+                first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE runs (
+                run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_time TEXT NOT NULL, queries_used TEXT NOT NULL,
+                papers_new INTEGER NOT NULL, papers_seen INTEGER NOT NULL
+            );
+            CREATE TABLE paper_scores (
+                arxiv_id TEXT NOT NULL, run_id INTEGER NOT NULL,
+                score_total REAL NOT NULL, keyword_score REAL,
+                category_score REAL, recency_score REAL,
+                embedding_score REAL, citation_score REAL,
+                matched_query TEXT, PRIMARY KEY (arxiv_id, run_id)
+            );
+            CREATE TABLE schema_version (version INTEGER NOT NULL);
+            INSERT INTO schema_version (version) VALUES (2);
+        """)
+        conn.close()
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+            # Verify paper_enrichments table exists
+            tables = store._conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+            ).fetchall()
+            table_names = [t["name"] for t in tables]
+            assert "paper_enrichments" in table_names
+            assert "paper_exports" in table_names
+
+
+class TestEnrichments:
+    def test_save_and_get_enrichment(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "pwc_id": "test-paper",
+                    "has_code": True,
+                    "code_urls": ["https://github.com/foo/bar"],
+                    "datasets": ["ImageNet"],
+                    "tasks": ["Image Classification"],
+                }
+            )
+            enrichments = store.get_enrichments(["2401.00001v1"])
+            assert len(enrichments) == 1
+            e = enrichments["2401.00001v1"]
+            assert e["has_code"] is True
+            assert e["code_urls"] == ["https://github.com/foo/bar"]
+            assert e["datasets"] == ["ImageNet"]
+            assert e["tasks"] == ["Image Classification"]
+
+    def test_save_enrichments_batch(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.upsert_paper(_make_paper(arxiv_id="2401.00002v1"))
+            store.save_enrichments(
+                {
+                    "2401.00001v1": {
+                        "arxiv_id": "2401.00001v1",
+                        "pwc_id": "p1",
+                        "has_code": True,
+                        "code_urls": [],
+                        "datasets": [],
+                        "tasks": [],
+                    },
+                    "2401.00002v1": {
+                        "arxiv_id": "2401.00002v1",
+                        "pwc_id": "p2",
+                        "has_code": False,
+                        "code_urls": [],
+                        "datasets": ["CIFAR-10"],
+                        "tasks": [],
+                    },
+                }
+            )
+            enrichments = store.get_enrichments(["2401.00001v1", "2401.00002v1"])
+            assert len(enrichments) == 2
+
+    def test_get_enrichments_empty(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            result = store.get_enrichments([])
+            assert result == {}
+
+    def test_scores_include_enrichment_data(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "pwc_id": "test-paper",
+                    "has_code": True,
+                    "code_urls": ["https://github.com/foo/bar"],
+                    "datasets": ["ImageNet"],
+                    "tasks": ["Image Classification"],
+                }
+            )
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.00001v1",
+                        "score_total": 0.8,
+                        "keyword_score": 0.5,
+                        "category_score": 0.2,
+                        "recency_score": 0.1,
+                    }
+                ],
+            )
+            scores = store.get_scores_for_run(run_id)
+            assert scores[0]["has_code"] is True
+            assert scores[0]["datasets"] == ["ImageNet"]
+            assert scores[0]["tasks"] == ["Image Classification"]
+
+    def test_scores_without_enrichment(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.00001v1",
+                        "score_total": 0.8,
+                        "keyword_score": 0.5,
+                        "category_score": 0.2,
+                        "recency_score": 0.1,
+                    }
+                ],
+            )
+            scores = store.get_scores_for_run(run_id)
+            assert scores[0]["has_code"] is False
+            assert scores[0]["datasets"] == []
+            assert scores[0]["tasks"] == []
+
+
+class TestPaperExports:
+    def test_record_and_get_exported_ids(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.record_export(
+                "2401.00001v1", "github_issue", "https://github.com/foo/bar/issues/1"
+            )
+            exported = store.get_exported_ids("github_issue")
+            assert "2401.00001v1" in exported
+
+    def test_dedup_exports(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.record_export("2401.00001v1", "github_issue", "url1")
+            store.record_export("2401.00001v1", "github_issue", "url2")
+            exported = store.get_exported_ids("github_issue")
+            assert len(exported) == 1
+
+    def test_different_export_types(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.record_export("2401.00001v1", "github_issue", "url1")
+            store.record_export("2401.00001v1", "slack", "url2")
+            gh_exported = store.get_exported_ids("github_issue")
+            slack_exported = store.get_exported_ids("slack")
+            assert len(gh_exported) == 1
+            assert len(slack_exported) == 1
+
+    def test_empty_exports(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            exported = store.get_exported_ids("github_issue")
+            assert exported == set()
+
+
 class TestSchemaMigrationV2:
     def test_v1_db_gets_migrated(self, tmp_path: Path) -> None:
         import sqlite3

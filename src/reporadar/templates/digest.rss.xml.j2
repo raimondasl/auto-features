@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>RepoRadar Digest</title>
+    <description>Papers discovered by RepoRadar (run #{{ run_id }})</description>
+    <lastBuildDate>{{ generated_at }}</lastBuildDate>
+    {% for p in papers %}
+    <item>
+      <title>{{ p.title | e }}</title>
+      <link>{{ p.url }}</link>
+      <description>{{ p.abstract[:300] | e }}{% if p.abstract|length > 300 %}...{% endif %}</description>
+      <pubDate>{{ p.published[:10] }}</pubDate>
+      {% for cat in p.categories %}
+      <category>{{ cat }}</category>
+      {% endfor %}
+    </item>
+    {% endfor %}
+  </channel>
+</rss>
