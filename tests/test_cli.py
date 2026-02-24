@@ -640,6 +640,276 @@ class TestGhIssuesCommand:
         assert "gh" in result.output.lower()
 
 
+class TestNotifyCommand:
+    @patch("reporadar.notify.dispatch_notification", return_value=True)
+    def test_success(self, mock_dispatch: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+        )
+
+        assert result.exit_code == 0
+        assert "Notification sent" in result.output
+
+    def test_no_database(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+        )
+
+        assert result.exit_code == 1
+        assert "No database found" in result.output
+
+    def test_no_runs(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        db_path = repo / ".reporadar" / "papers.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with PaperStore(db_path):
+            pass
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+        )
+
+        assert result.exit_code == 1
+        assert "No runs found" in result.output
+
+    @patch("reporadar.notify.dispatch_notification", return_value=False)
+    def test_failure_exits_1(self, mock_dispatch: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(repo)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+        )
+
+        assert result.exit_code == 1
+        assert "failed" in result.output
+
+
+class TestScheduleCommand:
+    @patch("reporadar.scheduler.add_schedule", return_value=True)
+    def test_add_success(self, mock_add: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["schedule", "--config", str(repo / ".reporadar.yml"), "--cron", "0 9 * * 1"],
+        )
+        assert result.exit_code == 0
+        assert "Schedule registered" in result.output
+
+    @patch("reporadar.scheduler.add_schedule", return_value=False)
+    def test_add_failure(self, mock_add: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["schedule", "--config", str(repo / ".reporadar.yml"), "--cron", "0 9 * * 1"],
+        )
+        assert result.exit_code == 1
+        assert "Failed" in result.output
+
+    @patch("reporadar.scheduler.list_schedules", return_value=[])
+    def test_list_empty(self, mock_list: MagicMock) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["schedule", "--list"])
+        assert result.exit_code == 0
+        assert "No schedules" in result.output
+
+    @patch("reporadar.scheduler.list_schedules")
+    def test_list_with_tasks(self, mock_list: MagicMock) -> None:
+        from reporadar.scheduler import ScheduledTask
+
+        mock_list.return_value = [
+            ScheduledTask(cron_expr="0 9 * * 1", command="rr update", platform="unix")
+        ]
+        runner = CliRunner()
+        result = runner.invoke(cli, ["schedule", "--list"])
+        assert result.exit_code == 0
+        assert "0 9 * * 1" in result.output
+        assert "unix" in result.output
+
+    @patch("reporadar.scheduler.remove_schedule", return_value=True)
+    def test_remove_success(self, mock_rm: MagicMock) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["schedule", "--remove"])
+        assert result.exit_code == 0
+        assert "Schedule removed" in result.output
+
+    @patch("reporadar.scheduler.remove_schedule", return_value=False)
+    def test_remove_not_found(self, mock_rm: MagicMock) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["schedule", "--remove"])
+        assert result.exit_code == 0
+        assert "No schedule found" in result.output
+
+    def test_no_option_error(self) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["schedule"])
+        assert result.exit_code == 1
+
+    def test_invalid_cron(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["schedule", "--config", str(repo / ".reporadar.yml"), "--cron", "bad"],
+        )
+        assert result.exit_code == 1
+        assert "Invalid cron" in result.output
+
+
+class TestWorkspaceCommands:
+    @patch("reporadar.workspace.WORKSPACE_DIR")
+    @patch("reporadar.workspace.WORKSPACE_DB")
+    def test_init(self, mock_db: MagicMock, mock_dir: MagicMock, tmp_path: Path) -> None:
+        mock_dir.__truediv__ = lambda self, x: tmp_path / x
+        mock_db.__fspath__ = lambda self: str(tmp_path / "workspace.db")
+
+        # Directly test with a custom db_path to avoid home directory side effects
+        with (
+            patch(
+                "reporadar.workspace.open_workspace_store",
+                return_value=PaperStore(tmp_path / "workspace.db"),
+            ),
+            patch("reporadar.workspace.ensure_workspace_dir", return_value=tmp_path),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["workspace", "init"])
+
+        assert result.exit_code == 0
+        assert "Workspace initialized" in result.output
+
+    def test_add_list_remove(self, tmp_path: Path) -> None:
+        ws_db = tmp_path / "workspace.db"
+        repo_dir = tmp_path / "myrepo"
+        repo_dir.mkdir()
+
+        with patch(
+            "reporadar.workspace.open_workspace_store",
+            return_value=PaperStore(ws_db),
+        ):
+            runner = CliRunner()
+
+            # Add
+            result = runner.invoke(
+                cli,
+                ["workspace", "add", "myrepo", "--path", str(repo_dir)],
+            )
+            assert result.exit_code == 0
+            assert "Added repo" in result.output
+
+        with patch(
+            "reporadar.workspace.open_workspace_store",
+            return_value=PaperStore(ws_db),
+        ):
+            # List
+            result = runner.invoke(cli, ["workspace", "list"])
+            assert result.exit_code == 0
+            assert "myrepo" in result.output
+
+        with patch(
+            "reporadar.workspace.open_workspace_store",
+            return_value=PaperStore(ws_db),
+        ):
+            # Remove
+            result = runner.invoke(cli, ["workspace", "remove", "myrepo"])
+            assert result.exit_code == 0
+            assert "Removed" in result.output
+
+    def test_list_empty(self, tmp_path: Path) -> None:
+        ws_db = tmp_path / "workspace.db"
+        with patch(
+            "reporadar.workspace.open_workspace_store",
+            return_value=PaperStore(ws_db),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["workspace", "list"])
+        assert result.exit_code == 0
+        assert "No repos registered" in result.output
+
+    @patch("reporadar.cli.collect_papers")
+    def test_update_pipeline(self, mock_collect: MagicMock, tmp_path: Path) -> None:
+        ws_db = tmp_path / "workspace.db"
+        repo_dir = _setup_repo(tmp_path)
+
+        mock_collect.return_value = [
+            {
+                "arxiv_id": "2401.99999v1",
+                "title": "Mock Paper",
+                "authors": ["Test"],
+                "abstract": "Test abstract.",
+                "categories": ["cs.CL"],
+                "published": datetime.now(UTC).isoformat(),
+                "updated": None,
+                "url": "http://arxiv.org/abs/2401.99999v1",
+                "pdf_url": None,
+                "matched_query": "all:test",
+            },
+        ]
+
+        store = PaperStore(ws_db)
+        store.add_workspace_repo("testrepo", str(repo_dir), str(repo_dir / ".reporadar.yml"))
+        store.close()
+
+        with patch(
+            "reporadar.workspace.open_workspace_store",
+            return_value=PaperStore(ws_db),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["workspace", "update"])
+
+        assert result.exit_code == 0
+
+    def test_digest_no_runs(self, tmp_path: Path) -> None:
+        ws_db = tmp_path / "workspace.db"
+        with patch(
+            "reporadar.workspace.open_workspace_store",
+            return_value=PaperStore(ws_db),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["workspace", "digest"])
+        assert result.exit_code == 1
+        assert "No runs found" in result.output
+
+
+class TestWatchCommand:
+    @patch("reporadar.watcher.watch_loop")
+    def test_basic_invocation(self, mock_loop: MagicMock, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        mock_loop.side_effect = KeyboardInterrupt()
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["watch", "--config", str(repo / ".reporadar.yml"), "--interval", "1m"],
+        )
+        assert result.exit_code == 0
+        assert "Watch stopped" in result.output
+
+    def test_invalid_interval(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["watch", "--config", str(repo / ".reporadar.yml"), "--interval", "bad"],
+        )
+        assert result.exit_code == 1
+        assert "Invalid interval" in result.output
+
+
 class TestFormatSize:
     def test_bytes(self) -> None:
         assert _format_size(500) == "500 B"

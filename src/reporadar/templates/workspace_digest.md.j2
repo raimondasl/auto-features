@@ -1,0 +1,25 @@
+# RepoRadar Workspace Digest
+
+**Generated:** {{ generated_at }}
+**Run #{{ run_id }}** | {{ total_papers }} papers across {{ total_repos }} repos
+
+---
+{% if papers %}
+
+## Papers by Relevance
+{% for p in papers %}
+
+### {{ loop.index }}. {{ p.title }}
+
+- **Max Score:** {{ "%.2f"|format(p.max_score) }}
+- **Authors:** {{ p.authors | join(", ") }}
+- **Categories:** {{ p.categories | join(", ") }}
+- **Published:** {{ p.published[:10] }}
+- **Link:** [{{ p.arxiv_id }}]({{ p.url }})
+- **Relevant repos:** {% for r in p.relevant_repos %}{{ r.repo_id }} ({{ "%.2f"|format(r.score) }}){% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endfor %}
+{% else %}
+
+No scored papers found for this run.
+{% endif %}
