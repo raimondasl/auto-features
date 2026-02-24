@@ -8,6 +8,8 @@ import pytest
 
 from reporadar.config import (
     ArxivConfig,
+    EmailHookConfig,
+    HooksConfig,
     OpenAlexConfig,
     OutputConfig,
     QueriesConfig,
@@ -230,3 +232,71 @@ class TestSourcesConfig:
         )
         cfg = load_config(config_file)
         assert cfg.openalex.email == "user@example.com"
+
+
+class TestHooksConfig:
+    def test_hooks_defaults(self) -> None:
+        cfg = HooksConfig()
+        assert cfg.on_digest == ""
+        assert cfg.slack_webhook_url == ""
+        assert cfg.discord_webhook_url == ""
+        assert isinstance(cfg.email, EmailHookConfig)
+        assert cfg.email.smtp_port == 587
+        assert cfg.email.use_tls is True
+
+    def test_email_hook_defaults(self) -> None:
+        cfg = EmailHookConfig()
+        assert cfg.smtp_host == ""
+        assert cfg.smtp_port == 587
+        assert cfg.from_addr == ""
+        assert cfg.to == ""
+        assert cfg.username == ""
+        assert cfg.password == ""
+        assert cfg.use_tls is True
+
+    def test_reporadar_config_has_hooks(self) -> None:
+        cfg = RepoRadarConfig()
+        assert isinstance(cfg.hooks, HooksConfig)
+
+    def test_load_hooks_from_yaml(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(
+            "repo_path: .\n"
+            "hooks:\n"
+            "  on_digest: echo done\n"
+            "  slack_webhook_url: https://hooks.slack.com/test\n"
+            "  discord_webhook_url: https://discord.com/api/webhooks/test\n"
+            "  email:\n"
+            "    smtp_host: smtp.example.com\n"
+            "    smtp_port: 465\n"
+            "    from_addr: bot@example.com\n"
+            "    to: user@example.com\n"
+            "    username: myuser\n"
+            "    password: mypass\n"
+            "    use_tls: false\n",
+            encoding="utf-8",
+        )
+        cfg = load_config(config_file)
+        assert cfg.hooks.on_digest == "echo done"
+        assert cfg.hooks.slack_webhook_url == "https://hooks.slack.com/test"
+        assert cfg.hooks.discord_webhook_url == "https://discord.com/api/webhooks/test"
+        assert cfg.hooks.email.smtp_host == "smtp.example.com"
+        assert cfg.hooks.email.smtp_port == 465
+        assert cfg.hooks.email.from_addr == "bot@example.com"
+        assert cfg.hooks.email.to == "user@example.com"
+        assert cfg.hooks.email.username == "myuser"
+        assert cfg.hooks.email.password == "mypass"
+        assert cfg.hooks.email.use_tls is False
+
+    def test_hooks_missing_in_yaml_uses_defaults(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text("repo_path: .\n", encoding="utf-8")
+        cfg = load_config(config_file)
+        assert cfg.hooks.on_digest == ""
+        assert cfg.hooks.email.smtp_host == ""
+
+    def test_invalid_smtp_port_warning(self) -> None:
+        hooks = HooksConfig(email=EmailHookConfig(smtp_port=0))
+        cfg = RepoRadarConfig(hooks=hooks)
+        warnings = validate_config(cfg)
+        assert any("smtp_port" in w for w in warnings)

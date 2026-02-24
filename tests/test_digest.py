@@ -349,7 +349,7 @@ class TestWriteDigest:
     def test_writes_file(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "output" / "digest.md")
+            out, summary = write_digest(store, run_id, tmp_path / "output" / "digest.md")
 
         assert out.exists()
         content = out.read_text(encoding="utf-8")
@@ -358,14 +358,14 @@ class TestWriteDigest:
     def test_creates_parent_dirs(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "deep" / "nested" / "digest.md")
+            out, _ = write_digest(store, run_id, tmp_path / "deep" / "nested" / "digest.md")
 
         assert out.exists()
 
     def test_html_format(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="html")
+            out, _ = write_digest(store, run_id, tmp_path / "digest.md", fmt="html")
 
         assert out.suffix == ".html"
         assert out.exists()
@@ -376,7 +376,7 @@ class TestWriteDigest:
     def test_html_format_explicit_extension(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "output.html", fmt="html")
+            out, _ = write_digest(store, run_id, tmp_path / "output.html", fmt="html")
 
         assert out.suffix == ".html"
         assert out.exists()
@@ -384,7 +384,7 @@ class TestWriteDigest:
     def test_write_digest_json(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="json")
+            out, _ = write_digest(store, run_id, tmp_path / "digest.md", fmt="json")
 
         assert out.suffix == ".json"
         assert out.exists()
@@ -392,7 +392,7 @@ class TestWriteDigest:
     def test_write_digest_csv(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="csv")
+            out, _ = write_digest(store, run_id, tmp_path / "digest.md", fmt="csv")
 
         assert out.suffix == ".csv"
         assert out.exists()
@@ -400,10 +400,42 @@ class TestWriteDigest:
     def test_write_digest_rss(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
-            out = write_digest(store, run_id, tmp_path / "digest.md", fmt="rss")
+            out, _ = write_digest(store, run_id, tmp_path / "digest.md", fmt="rss")
 
         assert out.suffix == ".xml"
         assert out.exists()
+
+
+class TestWriteDigestSummary:
+    def test_returns_tuple(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            result = write_digest(store, run_id, tmp_path / "digest.md")
+
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+
+    def test_summary_has_correct_stats(self, tmp_path: Path) -> None:
+        from reporadar.notify import DigestSummary
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            _, summary = write_digest(store, run_id, tmp_path / "digest.md")
+
+        assert isinstance(summary, DigestSummary)
+        assert summary.run_id == run_id
+        assert summary.papers_new == 4
+        assert summary.papers_seen == 0
+        assert summary.total_scored == 4
+        assert summary.top_picks_count == 1  # only 0.85 >= 0.5
+        assert summary.fmt == "md"
+
+    def test_summary_digest_path(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            out, summary = write_digest(store, run_id, tmp_path / "digest.md")
+
+        assert summary.digest_path == str(out)
 
 
 class TestJsonExport:

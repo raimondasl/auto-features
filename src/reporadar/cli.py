@@ -399,9 +399,83 @@ def digest(
             run_id = last_run["run_id"]
 
         dest = output_path or cfg.output.digest_path
-        out = write_digest(store, run_id, dest, top_n=cfg.output.top_n, fmt=fmt, diff=diff)
+        out, summary = write_digest(store, run_id, dest, top_n=cfg.output.top_n, fmt=fmt, diff=diff)
 
     success(f"Digest written to {out}")
+
+    # Fire on_digest hook if configured
+    if summary and cfg.hooks.on_digest:
+        from reporadar.notify import run_shell_hook
+
+        info("Running on_digest hook...")
+        if run_shell_hook(cfg.hooks.on_digest, summary):
+            success("Hook completed.")
+        else:
+            warn("Hook failed.")
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+@click.option(
+    "--channel",
+    required=True,
+    type=click.Choice(["shell", "slack", "discord", "email"], case_sensitive=False),
+    help="Notification channel to use.",
+)
+@click.option(
+    "--run-id",
+    default=None,
+    type=int,
+    help="Which run to report on (default: latest).",
+)
+def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
+    """Send a notification about a digest run."""
+    from reporadar.digest import categorize_papers
+    from reporadar.notify import DigestSummary, dispatch_notification
+
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    with _open_store(db_path) as store:
+        if run_id is None:
+            last_run = store.get_last_run()
+            if last_run is None:
+                error("No runs found. Run `rr update` first.")
+                raise SystemExit(1)
+            run_id = last_run["run_id"]
+            run = last_run
+        else:
+            run = store.get_last_run()
+
+        scored = store.get_scores_for_run(run_id)
+        top_picks, _, _ = categorize_papers(scored, top_n=cfg.output.top_n)
+
+        summary = DigestSummary(
+            digest_path=cfg.output.digest_path,
+            run_id=run_id,
+            papers_new=run["papers_new"] if run else 0,
+            papers_seen=run["papers_seen"] if run else 0,
+            top_picks_count=len(top_picks),
+            total_scored=len(scored),
+            fmt="md",
+        )
+
+    if dispatch_notification(channel, cfg.hooks, summary):
+        success(f"Notification sent via {channel}.")
+    else:
+        error(f"Notification via {channel} failed.")
+        raise SystemExit(1)
 
 
 @cli.command(name="open")
@@ -716,3 +790,301 @@ def history(config_path: str | None, limit: int) -> None:
             f"  {run['papers_new']:>4}  {run['papers_seen']:>4}"
             f"  {len(run['queries_used']):>7}"
         )
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+@click.option("--cron", default=None, help='Cron expression to register (e.g. "0 9 * * 1").')
+@click.option("--list", "list_flag", is_flag=True, help="Show registered schedules.")
+@click.option("--remove", is_flag=True, help="Remove the registered schedule.")
+def schedule(config_path: str | None, cron: str | None, list_flag: bool, remove: bool) -> None:
+    """Manage scheduled runs (via crontab or schtasks)."""
+    from reporadar.scheduler import add_schedule, list_schedules, remove_schedule
+
+    if not cron and not list_flag and not remove:
+        error("Specify --cron EXPR, --list, or --remove.")
+        raise SystemExit(1)
+
+    if list_flag:
+        tasks = list_schedules()
+        if not tasks:
+            info("No schedules registered.")
+        else:
+            for t in tasks:
+                info(f"  [{t.platform}] {t.cron_expr}  {t.command}")
+        return
+
+    if remove:
+        if remove_schedule():
+            success("Schedule removed.")
+        else:
+            warn("No schedule found to remove.")
+        return
+
+    # --cron: register schedule
+    assert cron is not None
+    fields = cron.strip().split()
+    if len(fields) != 5:
+        error(f"Invalid cron expression: expected 5 fields, got {len(fields)}.")
+        raise SystemExit(1)
+
+    cfg = _load_and_validate(config_path)
+    config_file = config_path or str(Path(cfg.repo_path).resolve() / DEFAULT_CONFIG_NAME)
+
+    if add_schedule(cron, config_file):
+        success(f"Schedule registered: {cron}")
+    else:
+        error("Failed to register schedule.")
+        raise SystemExit(1)
+
+
+@cli.group()
+def workspace() -> None:
+    """Manage multi-repo workspaces."""
+
+
+@workspace.command(name="init")
+def workspace_init() -> None:
+    """Initialize the workspace directory and database."""
+    from reporadar.workspace import ensure_workspace_dir, open_workspace_store
+
+    ws_dir = ensure_workspace_dir()
+    store = open_workspace_store()
+    store.close()
+    success(f"Workspace initialized at {ws_dir}")
+
+
+@workspace.command(name="add")
+@click.argument("name")
+@click.option(
+    "--path",
+    required=True,
+    type=click.Path(exists=True, file_okay=False),
+    help="Path to the repository.",
+)
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml for this repo.",
+)
+def workspace_add(name: str, path: str, config_path: str | None) -> None:
+    """Register a repository in the workspace."""
+    from reporadar.workspace import open_workspace_store
+
+    resolved = str(Path(path).resolve())
+    store = open_workspace_store()
+    try:
+        store.add_workspace_repo(name, resolved, config_path)
+    finally:
+        store.close()
+    success(f"Added repo '{name}' at {resolved}")
+
+
+@workspace.command(name="list")
+def workspace_list() -> None:
+    """List registered repos in the workspace."""
+    from reporadar.workspace import open_workspace_store
+
+    store = open_workspace_store()
+    try:
+        repos = store.get_workspace_repos()
+    finally:
+        store.close()
+
+    if not repos:
+        info("No repos registered. Use `rr workspace add` to add one.")
+        return
+
+    for r in repos:
+        cfg_note = f" (config: {r['config_path']})" if r.get("config_path") else ""
+        info(f"  {r['repo_id']}: {r['repo_path']}{cfg_note}")
+
+
+@workspace.command(name="remove")
+@click.argument("name")
+def workspace_remove(name: str) -> None:
+    """Unregister a repository from the workspace."""
+    from reporadar.workspace import open_workspace_store
+
+    store = open_workspace_store()
+    try:
+        if store.remove_workspace_repo(name):
+            success(f"Removed repo '{name}'.")
+        else:
+            warn(f"Repo '{name}' not found.")
+    finally:
+        store.close()
+
+
+@workspace.command(name="update")
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
+def workspace_update(verbose: bool) -> None:
+    """Collect and score papers across all workspace repos."""
+    if verbose:
+        setup_verbose_logging()
+
+    from reporadar.workspace import open_workspace_store, score_papers_for_repo
+
+    store = open_workspace_store()
+    try:
+        repos = store.get_workspace_repos()
+        if not repos:
+            warn("No repos registered.")
+            return
+
+        # Gather all papers from each repo's config
+        all_papers: list[dict] = []
+        seen_ids: set[str] = set()
+
+        for repo in repos:
+            cfg_path = repo.get("config_path")
+            if not cfg_path:
+                info(f"  Skipping {repo['repo_id']} (no config)")
+                continue
+
+            cfg = _load_and_validate(cfg_path)
+            repo_path = Path(repo["repo_path"]).resolve()
+
+            info(f"Profiling {repo['repo_id']}...")
+            repo_profile = profile_repo(repo_path)
+            queries = build_queries(repo_profile, cfg.queries, cfg.arxiv)
+
+            if queries:
+                try:
+                    papers = collect_papers(queries, cfg.arxiv)
+                    for p in papers:
+                        if p["arxiv_id"] not in seen_ids:
+                            all_papers.append(p)
+                            seen_ids.add(p["arxiv_id"])
+                except CollectionError as exc:
+                    warn(f"  Collection failed for {repo['repo_id']}: {exc}")
+
+        if not all_papers:
+            warn("No papers collected.")
+            return
+
+        # Store papers and record run
+        new_count, seen_count = store.upsert_papers(all_papers)
+        run_id = store.record_run(
+            queries_used=[],
+            papers_new=new_count,
+            papers_seen=seen_count,
+        )
+
+        # Score per repo
+        for repo in repos:
+            cfg_path = repo.get("config_path")
+            if not cfg_path:
+                continue
+            cfg = _load_and_validate(cfg_path)
+            info(f"Scoring for {repo['repo_id']}...")
+            scores = score_papers_for_repo(repo["repo_id"], repo["repo_path"], all_papers, cfg)
+            store.save_repo_scores(repo["repo_id"], run_id, scores)
+
+        success(f"Run #{run_id}: {new_count} new, {seen_count} seen across {len(repos)} repos.")
+    finally:
+        store.close()
+
+
+@workspace.command(name="digest")
+@click.option("--run-id", default=None, type=int, help="Run ID (default: latest).")
+@click.option("-o", "--output", "output_path", default=None, help="Output file path.")
+@click.option(
+    "--format",
+    "fmt",
+    default="md",
+    type=click.Choice(["md"], case_sensitive=False),
+    help="Output format (md).",
+)
+def workspace_digest(run_id: int | None, output_path: str | None, fmt: str) -> None:
+    """Generate a combined workspace digest."""
+    from datetime import UTC, datetime
+
+    from jinja2 import Environment, PackageLoader
+
+    from reporadar.workspace import combined_digest_data, open_workspace_store
+
+    store = open_workspace_store()
+    try:
+        if run_id is None:
+            last_run = store.get_last_run()
+            if last_run is None:
+                error("No runs found. Run `rr workspace update` first.")
+                raise SystemExit(1)
+            run_id = last_run["run_id"]
+
+        repos = store.get_workspace_repos()
+        papers = combined_digest_data(store, run_id)
+
+        env = Environment(
+            loader=PackageLoader("reporadar", "templates"),
+            keep_trailing_newline=True,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        template = env.get_template("workspace_digest.md.j2")
+        content = template.render(
+            generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+            run_id=run_id,
+            total_papers=len(papers),
+            total_repos=len(repos),
+            papers=papers,
+        )
+
+        dest = Path(output_path or "workspace_digest.md")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+        success(f"Workspace digest written to {dest}")
+    finally:
+        store.close()
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+@click.option(
+    "--interval",
+    default="6h",
+    help="Update interval (e.g. 6h, 30m, 1d).",
+)
+@click.option(
+    "--no-notify",
+    is_flag=True,
+    help="Disable desktop notifications.",
+)
+def watch(config_path: str | None, interval: str, no_notify: bool) -> None:
+    """Continuously monitor for new papers.
+
+    Runs update+digest cycles at the specified interval.
+    Press Ctrl+C to stop.
+    """
+    from reporadar.watcher import parse_interval as _parse_interval
+    from reporadar.watcher import watch_loop
+
+    try:
+        seconds = _parse_interval(interval)
+    except ValueError:
+        error(f"Invalid interval: {interval!r}. Use format like '6h', '30m', or '1d'.")
+        raise SystemExit(1) from None
+
+    cfg = _load_and_validate(config_path)
+    cfg_path = config_path or str(Path(cfg.repo_path).resolve() / DEFAULT_CONFIG_NAME)
+
+    info(f"Watching every {interval} (Ctrl+C to stop)...")
+    try:
+        watch_loop(cfg_path, seconds, notify=not no_notify)
+    except KeyboardInterrupt:
+        info("\nWatch stopped.")

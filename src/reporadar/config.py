@@ -51,6 +51,25 @@ class OpenAlexConfig:
 
 
 @dataclass
+class EmailHookConfig:
+    smtp_host: str = ""
+    smtp_port: int = 587
+    from_addr: str = ""
+    to: str = ""
+    username: str = ""
+    password: str = ""
+    use_tls: bool = True
+
+
+@dataclass
+class HooksConfig:
+    on_digest: str = ""
+    slack_webhook_url: str = ""
+    discord_webhook_url: str = ""
+    email: EmailHookConfig = field(default_factory=EmailHookConfig)
+
+
+@dataclass
 class RepoRadarConfig:
     repo_path: str = "."
     sources: list[str] = field(default_factory=lambda: ["arxiv"])
@@ -60,6 +79,7 @@ class RepoRadarConfig:
     output: OutputConfig = field(default_factory=OutputConfig)
     semantic_scholar: SemanticScholarConfig = field(default_factory=SemanticScholarConfig)
     openalex: OpenAlexConfig = field(default_factory=OpenAlexConfig)
+    hooks: HooksConfig = field(default_factory=HooksConfig)
 
 
 def _dict_to_config(data: dict) -> RepoRadarConfig:
@@ -81,6 +101,14 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
     openalex = OpenAlexConfig(**data["openalex"]) if "openalex" in data else OpenAlexConfig()
     sources = data.get("sources", ["arxiv"])
 
+    if "hooks" in data:
+        hooks_data = dict(data["hooks"])
+        email_data = hooks_data.pop("email", {})
+        email_hook = EmailHookConfig(**email_data) if email_data else EmailHookConfig()
+        hooks = HooksConfig(**hooks_data, email=email_hook)
+    else:
+        hooks = HooksConfig()
+
     return RepoRadarConfig(
         repo_path=data.get("repo_path", "."),
         sources=sources,
@@ -90,6 +118,7 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
         output=output,
         semantic_scholar=semantic_scholar,
         openalex=openalex,
+        hooks=hooks,
     )
 
 
@@ -178,6 +207,12 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
     # top_n
     if cfg.output.top_n < 1:
         warnings.append(f"top_n={cfg.output.top_n} should be >= 1")
+
+    # Hooks
+    if cfg.hooks.email.smtp_port < 1 or cfg.hooks.email.smtp_port > 65535:
+        warnings.append(
+            f"hooks.email.smtp_port={cfg.hooks.email.smtp_port} is outside range [1, 65535]"
+        )
 
     return warnings
 

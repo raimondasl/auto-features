@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -64,6 +64,27 @@ CREATE TABLE IF NOT EXISTS paper_exports (
     PRIMARY KEY (arxiv_id, export_type)
 );
 
+CREATE TABLE IF NOT EXISTS workspace_repos (
+    repo_id     TEXT PRIMARY KEY,
+    repo_path   TEXT NOT NULL,
+    config_path TEXT,
+    added_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS repo_paper_scores (
+    repo_id         TEXT NOT NULL REFERENCES workspace_repos(repo_id),
+    arxiv_id        TEXT NOT NULL REFERENCES papers(arxiv_id),
+    run_id          INTEGER NOT NULL REFERENCES runs(run_id),
+    score_total     REAL NOT NULL,
+    keyword_score   REAL,
+    category_score  REAL,
+    recency_score   REAL,
+    embedding_score REAL,
+    citation_score  REAL,
+    matched_query   TEXT,
+    PRIMARY KEY (repo_id, arxiv_id, run_id)
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -93,6 +114,29 @@ MIGRATIONS: dict[int, list[str]] = {
             export_ref  TEXT,
             exported_at TEXT NOT NULL,
             PRIMARY KEY (arxiv_id, export_type)
+        )""",
+    ],
+    4: [
+        """\
+        CREATE TABLE IF NOT EXISTS workspace_repos (
+            repo_id     TEXT PRIMARY KEY,
+            repo_path   TEXT NOT NULL,
+            config_path TEXT,
+            added_at    TEXT NOT NULL
+        )""",
+        """\
+        CREATE TABLE IF NOT EXISTS repo_paper_scores (
+            repo_id         TEXT NOT NULL REFERENCES workspace_repos(repo_id),
+            arxiv_id        TEXT NOT NULL REFERENCES papers(arxiv_id),
+            run_id          INTEGER NOT NULL REFERENCES runs(run_id),
+            score_total     REAL NOT NULL,
+            keyword_score   REAL,
+            category_score  REAL,
+            recency_score   REAL,
+            embedding_score REAL,
+            citation_score  REAL,
+            matched_query   TEXT,
+            PRIMARY KEY (repo_id, arxiv_id, run_id)
         )""",
     ],
 }
@@ -498,3 +542,94 @@ class PaperStore:
             (export_type,),
         ).fetchall()
         return {row["arxiv_id"] for row in rows}
+
+    # ── Workspace operations ──────────────────────────────────────────
+
+    def add_workspace_repo(
+        self, repo_id: str, repo_path: str, config_path: str | None = None
+    ) -> None:
+        """Register a repo in the workspace."""
+        self._conn.execute(
+            """\
+            INSERT OR REPLACE INTO workspace_repos
+                   (repo_id, repo_path, config_path, added_at)
+            VALUES (?, ?, ?, ?)""",
+            (repo_id, repo_path, config_path, _now_iso()),
+        )
+        self._conn.commit()
+
+    def remove_workspace_repo(self, repo_id: str) -> bool:
+        """Unregister a repo. Returns True if it existed."""
+        cur = self._conn.execute(
+            "DELETE FROM workspace_repos WHERE repo_id = ?",
+            (repo_id,),
+        )
+        self._conn.commit()
+        return cur.rowcount > 0
+
+    def get_workspace_repos(self) -> list[dict[str, Any]]:
+        """Return all registered workspace repos."""
+        rows = self._conn.execute("SELECT * FROM workspace_repos ORDER BY added_at").fetchall()
+        return [dict(r) for r in rows]
+
+    def save_repo_scores(
+        self,
+        repo_id: str,
+        run_id: int,
+        scores: list[dict[str, Any]],
+    ) -> None:
+        """Save per-repo paper scores for a run."""
+        for s in scores:
+            self._conn.execute(
+                """\
+                INSERT OR REPLACE INTO repo_paper_scores
+                       (repo_id, arxiv_id, run_id, score_total,
+                        keyword_score, category_score, recency_score,
+                        embedding_score, citation_score, matched_query)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    repo_id,
+                    s["arxiv_id"],
+                    run_id,
+                    s["score_total"],
+                    s.get("keyword_score"),
+                    s.get("category_score"),
+                    s.get("recency_score"),
+                    s.get("embedding_score"),
+                    s.get("citation_score"),
+                    s.get("matched_query"),
+                ),
+            )
+        self._conn.commit()
+
+    def get_repo_scores_for_run(
+        self, run_id: int, repo_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Return per-repo scores for a run, optionally filtered by repo_id."""
+        if repo_id:
+            rows = self._conn.execute(
+                """\
+                SELECT rps.*, p.title, p.url, p.abstract, p.authors, p.categories, p.published
+                  FROM repo_paper_scores rps
+                  JOIN papers p ON rps.arxiv_id = p.arxiv_id
+                 WHERE rps.run_id = ? AND rps.repo_id = ?
+                 ORDER BY rps.score_total DESC""",
+                (run_id, repo_id),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """\
+                SELECT rps.*, p.title, p.url, p.abstract, p.authors, p.categories, p.published
+                  FROM repo_paper_scores rps
+                  JOIN papers p ON rps.arxiv_id = p.arxiv_id
+                 WHERE rps.run_id = ?
+                 ORDER BY rps.score_total DESC""",
+                (run_id,),
+            ).fetchall()
+        result = []
+        for row in rows:
+            d = dict(row)
+            d["authors"] = json.loads(d["authors"])
+            d["categories"] = json.loads(d["categories"])
+            result.append(d)
+        return result

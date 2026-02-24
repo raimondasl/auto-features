@@ -529,6 +529,114 @@ class TestPaperExports:
             assert exported == set()
 
 
+class TestSchemaMigrationV4:
+    def test_v3_db_gets_migrated(self, tmp_path: Path) -> None:
+        import sqlite3
+
+        db_path = tmp_path / "v3.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""\
+            CREATE TABLE papers (
+                arxiv_id TEXT PRIMARY KEY, title TEXT NOT NULL,
+                authors TEXT NOT NULL, abstract TEXT NOT NULL,
+                categories TEXT NOT NULL, published TEXT NOT NULL,
+                updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
+                first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE runs (
+                run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_time TEXT NOT NULL, queries_used TEXT NOT NULL,
+                papers_new INTEGER NOT NULL, papers_seen INTEGER NOT NULL
+            );
+            CREATE TABLE paper_scores (
+                arxiv_id TEXT NOT NULL, run_id INTEGER NOT NULL,
+                score_total REAL NOT NULL, keyword_score REAL,
+                category_score REAL, recency_score REAL,
+                embedding_score REAL, citation_score REAL,
+                matched_query TEXT, PRIMARY KEY (arxiv_id, run_id)
+            );
+            CREATE TABLE paper_enrichments (
+                arxiv_id TEXT PRIMARY KEY,
+                pwc_id TEXT, has_code INTEGER NOT NULL DEFAULT 0,
+                code_urls TEXT, datasets TEXT, tasks TEXT,
+                fetched_at TEXT NOT NULL
+            );
+            CREATE TABLE paper_exports (
+                arxiv_id TEXT NOT NULL, export_type TEXT NOT NULL,
+                export_ref TEXT, exported_at TEXT NOT NULL,
+                PRIMARY KEY (arxiv_id, export_type)
+            );
+            CREATE TABLE schema_version (version INTEGER NOT NULL);
+            INSERT INTO schema_version (version) VALUES (3);
+        """)
+        conn.close()
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+            tables = store._conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+            ).fetchall()
+            table_names = [t["name"] for t in tables]
+            assert "workspace_repos" in table_names
+            assert "repo_paper_scores" in table_names
+
+
+class TestWorkspaceRepoOps:
+    def test_add_and_list(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.add_workspace_repo("myrepo", "/path/to/repo", "/path/config.yml")
+            repos = store.get_workspace_repos()
+        assert len(repos) == 1
+        assert repos[0]["repo_id"] == "myrepo"
+        assert repos[0]["repo_path"] == "/path/to/repo"
+
+    def test_remove(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.add_workspace_repo("myrepo", "/path")
+            assert store.remove_workspace_repo("myrepo") is True
+            assert store.get_workspace_repos() == []
+
+    def test_remove_nonexistent(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            assert store.remove_workspace_repo("nope") is False
+
+
+class TestRepoScores:
+    def test_save_and_retrieve(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.add_workspace_repo("repo1", "/p1")
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_repo_scores(
+                "repo1",
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.00001v1",
+                        "score_total": 0.8,
+                        "keyword_score": 0.5,
+                        "category_score": 0.2,
+                        "recency_score": 0.1,
+                    },
+                ],
+            )
+            scores = store.get_repo_scores_for_run(run_id, repo_id="repo1")
+            assert len(scores) == 1
+            assert scores[0]["score_total"] == 0.8
+            assert scores[0]["title"] == "Test Paper on Retrieval Augmented Generation"
+
+    def test_multiple_repos(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.add_workspace_repo("r1", "/p1")
+            store.add_workspace_repo("r2", "/p2")
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_repo_scores("r1", run_id, [{"arxiv_id": "2401.00001v1", "score_total": 0.8}])
+            store.save_repo_scores("r2", run_id, [{"arxiv_id": "2401.00001v1", "score_total": 0.5}])
+            all_scores = store.get_repo_scores_for_run(run_id)
+            assert len(all_scores) == 2
+
+
 class TestSchemaMigrationV2:
     def test_v1_db_gets_migrated(self, tmp_path: Path) -> None:
         import sqlite3

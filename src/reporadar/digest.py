@@ -11,6 +11,7 @@ from typing import Any
 
 from jinja2 import Environment, PackageLoader
 
+from reporadar.notify import DigestSummary
 from reporadar.store import PaperStore
 from reporadar.suggestions import enrich_papers_with_suggestions
 
@@ -241,11 +242,11 @@ def write_digest(
     top_n: int = 15,
     fmt: str = "md",
     diff: bool = False,
-) -> Path:
+) -> tuple[Path, DigestSummary | None]:
     """Generate and write the digest to a file.
 
     *fmt* can be ``"md"``, ``"html"``, ``"json"``, ``"csv"``, or ``"rss"``.
-    Returns the output path.
+    Returns a tuple of (output_path, DigestSummary).
     """
     output_path = Path(output_path)
 
@@ -271,4 +272,19 @@ def write_digest(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")
-    return output_path
+
+    # Build digest summary
+    scored = store.get_scores_for_run(run_id)
+    run = store.get_last_run()
+    top_picks, _, _ = categorize_papers(scored, top_n=top_n)
+    summary = DigestSummary(
+        digest_path=str(output_path),
+        run_id=run_id,
+        papers_new=run["papers_new"] if run else 0,
+        papers_seen=run["papers_seen"] if run else 0,
+        top_picks_count=len(top_picks),
+        total_scored=len(scored),
+        fmt=fmt,
+    )
+
+    return output_path, summary
