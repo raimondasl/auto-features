@@ -96,8 +96,26 @@ def generate_suggestions(paper: dict[str, Any]) -> list[str]:
 
 def enrich_papers_with_suggestions(
     papers: list[dict[str, Any]],
+    config: Any | None = None,
+    profile: Any | None = None,
 ) -> list[dict[str, Any]]:
-    """Add a 'suggestions' key to each paper dict."""
+    """Add a 'suggestions' key to each paper dict.
+
+    When *config* has ``provider`` set to ``"ollama"`` or ``"claude"``
+    and a *profile* is given, uses LLM-powered suggestions. Falls back
+    to template-based suggestions on any error.
+    """
+    provider = getattr(config, "provider", "template") if config else "template"
+    use_llm = provider in ("ollama", "claude") and profile is not None
+
     for paper in papers:
+        if use_llm:
+            try:
+                from reporadar.llm_suggestions import generate_llm_suggestions
+
+                paper["suggestions"] = generate_llm_suggestions(paper, profile, config)
+                continue
+            except Exception:
+                pass  # Fall back to template-based
         paper["suggestions"] = generate_suggestions(paper)
     return papers

@@ -70,6 +70,33 @@ class HooksConfig:
 
 
 @dataclass
+class ProfilerConfig:
+    scan_source: bool = False
+    max_files: int = 100
+    source_extensions: list[str] = field(
+        default_factory=lambda: [".py", ".js", ".ts", ".tsx", ".jsx"]
+    )
+
+
+@dataclass
+class SuggestionsConfig:
+    provider: str = "template"  # "template" | "ollama" | "claude"
+    ollama_model: str = "llama3.2"
+    ollama_url: str = "http://localhost:11434"
+    claude_api_key: str = ""
+    claude_model: str = "claude-sonnet-4-20250514"
+    max_suggestions: int = 3
+    timeout: int = 30
+
+
+@dataclass
+class FeedbackConfig:
+    enabled: bool = False
+    min_ratings: int = 10
+    learning_rate: float = 0.1
+
+
+@dataclass
 class RepoRadarConfig:
     repo_path: str = "."
     sources: list[str] = field(default_factory=lambda: ["arxiv"])
@@ -80,6 +107,9 @@ class RepoRadarConfig:
     semantic_scholar: SemanticScholarConfig = field(default_factory=SemanticScholarConfig)
     openalex: OpenAlexConfig = field(default_factory=OpenAlexConfig)
     hooks: HooksConfig = field(default_factory=HooksConfig)
+    profiler: ProfilerConfig = field(default_factory=ProfilerConfig)
+    suggestions: SuggestionsConfig = field(default_factory=SuggestionsConfig)
+    feedback: FeedbackConfig = field(default_factory=FeedbackConfig)
 
 
 def _dict_to_config(data: dict) -> RepoRadarConfig:
@@ -109,6 +139,12 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
     else:
         hooks = HooksConfig()
 
+    profiler = ProfilerConfig(**data["profiler"]) if "profiler" in data else ProfilerConfig()
+    suggestions = (
+        SuggestionsConfig(**data["suggestions"]) if "suggestions" in data else SuggestionsConfig()
+    )
+    feedback = FeedbackConfig(**data["feedback"]) if "feedback" in data else FeedbackConfig()
+
     return RepoRadarConfig(
         repo_path=data.get("repo_path", "."),
         sources=sources,
@@ -119,6 +155,9 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
         semantic_scholar=semantic_scholar,
         openalex=openalex,
         hooks=hooks,
+        profiler=profiler,
+        suggestions=suggestions,
+        feedback=feedback,
     )
 
 
@@ -212,6 +251,32 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
     if cfg.hooks.email.smtp_port < 1 or cfg.hooks.email.smtp_port > 65535:
         warnings.append(
             f"hooks.email.smtp_port={cfg.hooks.email.smtp_port} is outside range [1, 65535]"
+        )
+
+    # Profiler
+    if cfg.profiler.max_files < 1:
+        warnings.append(f"profiler.max_files={cfg.profiler.max_files} should be >= 1")
+
+    # Suggestions
+    known_providers = {"template", "ollama", "claude"}
+    if cfg.suggestions.provider not in known_providers:
+        warnings.append(
+            f"Unknown suggestions provider: {cfg.suggestions.provider!r}. "
+            f"Known: {', '.join(sorted(known_providers))}"
+        )
+    if cfg.suggestions.max_suggestions < 1:
+        warnings.append(
+            f"suggestions.max_suggestions={cfg.suggestions.max_suggestions} should be >= 1"
+        )
+    if cfg.suggestions.timeout < 1:
+        warnings.append(f"suggestions.timeout={cfg.suggestions.timeout} should be >= 1")
+
+    # Feedback
+    if cfg.feedback.min_ratings < 1:
+        warnings.append(f"feedback.min_ratings={cfg.feedback.min_ratings} should be >= 1")
+    if not (0 < cfg.feedback.learning_rate <= 1.0):
+        warnings.append(
+            f"feedback.learning_rate={cfg.feedback.learning_rate} should be in (0, 1.0]"
         )
 
     return warnings

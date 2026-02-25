@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -85,6 +85,24 @@ CREATE TABLE IF NOT EXISTS repo_paper_scores (
     PRIMARY KEY (repo_id, arxiv_id, run_id)
 );
 
+CREATE TABLE IF NOT EXISTS keyword_frequencies (
+    run_id      INTEGER NOT NULL,
+    keyword     TEXT NOT NULL,
+    frequency   INTEGER NOT NULL,
+    PRIMARY KEY (run_id, keyword)
+);
+
+CREATE TABLE IF NOT EXISTS paper_stars (
+    arxiv_id    TEXT PRIMARY KEY,
+    starred_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS paper_ratings (
+    arxiv_id    TEXT PRIMARY KEY,
+    rating      INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    rated_at    TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -137,6 +155,26 @@ MIGRATIONS: dict[int, list[str]] = {
             citation_score  REAL,
             matched_query   TEXT,
             PRIMARY KEY (repo_id, arxiv_id, run_id)
+        )""",
+    ],
+    5: [
+        """\
+        CREATE TABLE IF NOT EXISTS keyword_frequencies (
+            run_id      INTEGER NOT NULL,
+            keyword     TEXT NOT NULL,
+            frequency   INTEGER NOT NULL,
+            PRIMARY KEY (run_id, keyword)
+        )""",
+        """\
+        CREATE TABLE IF NOT EXISTS paper_stars (
+            arxiv_id    TEXT PRIMARY KEY,
+            starred_at  TEXT NOT NULL
+        )""",
+        """\
+        CREATE TABLE IF NOT EXISTS paper_ratings (
+            arxiv_id    TEXT PRIMARY KEY,
+            rating      INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            rated_at    TEXT NOT NULL
         )""",
     ],
 }
@@ -633,3 +671,83 @@ class PaperStore:
             d["categories"] = json.loads(d["categories"])
             result.append(d)
         return result
+
+    # ── Keyword frequency operations ─────────────────────────────────
+
+    def save_keyword_frequencies(
+        self, run_id: int, frequencies: dict[str, int]
+    ) -> None:
+        """Save keyword frequency counts for a run."""
+        for keyword, freq in frequencies.items():
+            self._conn.execute(
+                """\
+                INSERT OR REPLACE INTO keyword_frequencies (run_id, keyword, frequency)
+                VALUES (?, ?, ?)""",
+                (run_id, keyword, freq),
+            )
+        self._conn.commit()
+
+    def get_keyword_frequencies(self, run_id: int) -> dict[str, int]:
+        """Return keyword frequencies for a given run."""
+        rows = self._conn.execute(
+            "SELECT keyword, frequency FROM keyword_frequencies WHERE run_id = ?",
+            (run_id,),
+        ).fetchall()
+        return {row["keyword"]: row["frequency"] for row in rows}
+
+    # ── Star operations ──────────────────────────────────────────────
+
+    def star_paper(self, arxiv_id: str) -> None:
+        """Star a paper."""
+        self._conn.execute(
+            "INSERT OR REPLACE INTO paper_stars (arxiv_id, starred_at) VALUES (?, ?)",
+            (arxiv_id, _now_iso()),
+        )
+        self._conn.commit()
+
+    def get_starred_papers(self) -> list[str]:
+        """Return list of starred arxiv_ids."""
+        rows = self._conn.execute(
+            "SELECT arxiv_id FROM paper_stars ORDER BY starred_at DESC"
+        ).fetchall()
+        return [row["arxiv_id"] for row in rows]
+
+    # ── Rating operations ────────────────────────────────────────────
+
+    def save_rating(self, arxiv_id: str, rating: int) -> None:
+        """Save a user rating (1-5) for a paper."""
+        self._conn.execute(
+            """\
+            INSERT OR REPLACE INTO paper_ratings (arxiv_id, rating, rated_at)
+            VALUES (?, ?, ?)""",
+            (arxiv_id, rating, _now_iso()),
+        )
+        self._conn.commit()
+
+    def get_rating(self, arxiv_id: str) -> int | None:
+        """Return the rating for a paper, or None if not rated."""
+        row = self._conn.execute(
+            "SELECT rating FROM paper_ratings WHERE arxiv_id = ?",
+            (arxiv_id,),
+        ).fetchone()
+        return row["rating"] if row else None
+
+    def get_all_ratings(self) -> dict[str, int]:
+        """Return all ratings as {arxiv_id: rating}."""
+        rows = self._conn.execute("SELECT arxiv_id, rating FROM paper_ratings").fetchall()
+        return {row["arxiv_id"]: row["rating"] for row in rows}
+
+    def get_rated_paper_scores(self) -> list[dict[str, Any]]:
+        """Return score dicts for all rated papers (from their most recent run)."""
+        rows = self._conn.execute(
+            """\
+            SELECT pr.arxiv_id, pr.rating,
+                   ps.score_total, ps.keyword_score, ps.category_score,
+                   ps.recency_score, ps.embedding_score, ps.citation_score
+              FROM paper_ratings pr
+              JOIN paper_scores ps ON pr.arxiv_id = ps.arxiv_id
+             WHERE ps.run_id = (
+                SELECT MAX(run_id) FROM paper_scores WHERE arxiv_id = pr.arxiv_id
+             )"""
+        ).fetchall()
+        return [dict(row) for row in rows]

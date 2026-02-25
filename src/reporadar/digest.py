@@ -69,6 +69,8 @@ def generate_digest(
     run_id: int,
     top_n: int = 15,
     diff: bool = False,
+    suggestions_config: Any | None = None,
+    profile: Any | None = None,
 ) -> str:
     """Generate digest Markdown content for a given run.
 
@@ -90,11 +92,37 @@ def generate_digest(
             paper["is_new"] = paper["arxiv_id"] not in prev_ids
 
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
-    enrich_papers_with_suggestions(top_picks)
+    enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
     has_embeddings = any(p.get("embedding_score") is not None for p in scored)
     has_citations = any(p.get("citation_score") is not None for p in scored)
     has_enrichments = any(p.get("has_code") or p.get("datasets") for p in scored)
+
+    # Trend detection
+    trends: list[dict] = []
+    try:
+        from reporadar.trends import detect_trends
+
+        trends = detect_trends(store, run_id)
+    except Exception:
+        pass
+
+    # Recommended papers (from feedback loop)
+    recommended: list[dict] = []
+    try:
+        from reporadar.feedback import find_similar_to_highly_rated
+
+        ratings = store.get_all_ratings()
+        if ratings:
+            rated_papers = {}
+            for arxiv_id, rating in ratings.items():
+                p = store.get_paper(arxiv_id)
+                if p:
+                    rated_papers[arxiv_id] = {**p, "rating": rating}
+            if rated_papers:
+                recommended = find_similar_to_highly_rated(scored, rated_papers)
+    except Exception:
+        pass
 
     template = _load_template()
     return template.render(
@@ -111,6 +139,8 @@ def generate_digest(
         has_embeddings=has_embeddings,
         has_citations=has_citations,
         has_enrichments=has_enrichments,
+        trends=trends,
+        recommended=recommended,
     )
 
 
@@ -242,6 +272,8 @@ def write_digest(
     top_n: int = 15,
     fmt: str = "md",
     diff: bool = False,
+    suggestions_config: Any | None = None,
+    profile: Any | None = None,
 ) -> tuple[Path, DigestSummary | None]:
     """Generate and write the digest to a file.
 
@@ -263,12 +295,18 @@ def write_digest(
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".xml")
     elif fmt == "html":
-        content = generate_digest(store, run_id, top_n=top_n, diff=diff)
+        content = generate_digest(
+            store, run_id, top_n=top_n, diff=diff,
+            suggestions_config=suggestions_config, profile=profile,
+        )
         content = markdown_to_html(content)
         if output_path.suffix == ".md":
             output_path = output_path.with_suffix(".html")
     else:
-        content = generate_digest(store, run_id, top_n=top_n, diff=diff)
+        content = generate_digest(
+            store, run_id, top_n=top_n, diff=diff,
+            suggestions_config=suggestions_config, profile=profile,
+        )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")
