@@ -102,7 +102,7 @@ def profile(config_path: str | None, verbose: bool) -> None:
 
     info(f"Profiling repo: {repo_path}\n")
 
-    result = profile_repo(repo_path)
+    result = profile_repo(repo_path, profiler_cfg=cfg.profiler)
 
     # Keywords
     info("Keywords (TF-IDF):")
@@ -118,6 +118,10 @@ def profile(config_path: str | None, verbose: bool) -> None:
 
     # Domains
     info(f"Inferred domains:   {', '.join(result.domains) if result.domains else '(none)'}")
+
+    # Source signals (only shown when source scanning is active)
+    if result.source_signals:
+        info(f"Source signals:     {', '.join(result.source_signals)}")
 
 
 @cli.command()
@@ -148,7 +152,7 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
 
     # 1. Profile
     info(f"Profiling repo: {repo_path}")
-    repo_profile = profile_repo(repo_path)
+    repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
     info(f"  Found {len(repo_profile.keywords)} keywords, {len(repo_profile.anchors)} anchors")
 
     # 2. Build queries
@@ -262,12 +266,48 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
             except Exception as exc:
                 info(f"  Citation lookup failed: {exc}")
 
-        # 7. Rank
+        # 7. Apply feedback-adjusted weights if enabled
+        ranking_cfg = cfg.ranking
+        if cfg.feedback.enabled:
+            try:
+                from reporadar.feedback import compute_adjusted_weights
+
+                rated_scores = store.get_rated_paper_scores()
+                if len(rated_scores) >= cfg.feedback.min_ratings:
+                    current_weights = {
+                        "w_keyword": ranking_cfg.w_keyword,
+                        "w_category": ranking_cfg.w_category,
+                        "w_recency": ranking_cfg.w_recency,
+                        "w_embedding": ranking_cfg.w_embedding,
+                        "w_citations": ranking_cfg.w_citations,
+                    }
+                    new_weights = compute_adjusted_weights(
+                        rated_scores, current_weights, cfg.feedback.learning_rate
+                    )
+                    from reporadar.config import RankingConfig
+
+                    ranking_cfg = RankingConfig(
+                        w_keyword=new_weights["w_keyword"],
+                        w_category=new_weights["w_category"],
+                        w_recency=new_weights["w_recency"],
+                        w_embedding=new_weights["w_embedding"],
+                        w_citations=new_weights["w_citations"],
+                        category_weights=cfg.ranking.category_weights,
+                    )
+                    if verbose:
+                        info("  Feedback: adjusted ranking weights from user ratings.")
+                        for k, v in new_weights.items():
+                            info(f"    {k}: {v:.4f}")
+            except Exception as exc:
+                if verbose:
+                    info(f"  Feedback weight adjustment skipped: {exc}")
+
+        # 8. Rank
         info("Scoring papers...")
         scores = rank_papers(
             papers,
             repo_profile,
-            cfg.ranking,
+            ranking_cfg,
             cfg.queries,
             cfg.arxiv.categories,
             cfg.arxiv.lookback_days,
@@ -276,7 +316,17 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
         )
         store.save_scores(run_id, scores)
 
-        # 8. PwC enrichments for top papers
+        # 8. Save keyword frequencies for trend detection
+        try:
+            from reporadar.trends import compute_keyword_frequencies
+
+            kw_freqs = compute_keyword_frequencies(papers, repo_profile)
+            if kw_freqs:
+                store.save_keyword_frequencies(run_id, kw_freqs)
+        except Exception:
+            pass  # Non-critical
+
+        # 9. PwC enrichments for top papers
         try:
             from reporadar.paperswithcode import fetch_enrichments_batch
 
@@ -516,14 +566,15 @@ def open_top(config_path: str | None, top_n: int, verbose: bool) -> None:
 
         scores = store.get_scores_for_run(last_run["run_id"])
 
-    if not scores:
-        warn("No scored papers found.")
-        return
+        if not scores:
+            warn("No scored papers found.")
+            return
 
-    for s in scores[:top_n]:
-        url = s["url"]
-        info(f"Opening: {s['title']}")
-        webbrowser.open(url)
+        for s in scores[:top_n]:
+            url = s["url"]
+            info(f"Opening: {s['title']}")
+            webbrowser.open(url)
+            store.star_paper(s["arxiv_id"])
 
     success(f"\nOpened {min(top_n, len(scores))} papers in browser.")
 
@@ -721,7 +772,7 @@ def gh_issues(
             return
 
         # Enrich with suggestions
-        enrich_papers_with_suggestions(candidates)
+        enrich_papers_with_suggestions(candidates, config=cfg.suggestions)
 
         # Get enrichments
         arxiv_ids = [p["arxiv_id"] for p in candidates]
@@ -749,6 +800,53 @@ def gh_issues(
         info(f"\nDry run complete. {len(results)} issues would be created.")
     elif created:
         success(f"\nCreated {created} GitHub issues.")
+
+
+@cli.command()
+@click.argument("arxiv_id")
+@click.argument("rating", type=click.IntRange(1, 5))
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+def rate(arxiv_id: str, rating: int, config_path: str | None) -> None:
+    """Rate a paper from 1 (not useful) to 5 (very useful).
+
+    These ratings are used to learn your preferences and improve
+    future paper recommendations when feedback.enabled is true.
+    """
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    with _open_store(db_path) as store:
+        paper = store.get_paper(arxiv_id)
+        if paper is None:
+            error(f"Paper {arxiv_id!r} not found in database.")
+            raise SystemExit(1)
+
+        store.save_rating(arxiv_id, rating)
+        all_ratings = store.get_all_ratings()
+
+    success(f"Rated {arxiv_id} = {rating}/5")
+    info(f"  Paper: {paper['title']}")
+    info(f"  Total ratings: {len(all_ratings)}")
+
+    if cfg.feedback.enabled:
+        needed = cfg.feedback.min_ratings - len(all_ratings)
+        if needed > 0:
+            info(f"  {needed} more ratings needed to enable weight adjustment.")
+        else:
+            info("  Weight adjustment active.")
+    else:
+        info("  Tip: set feedback.enabled: true in config to use ratings for ranking.")
 
 
 @cli.command()

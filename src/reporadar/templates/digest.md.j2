@@ -11,6 +11,31 @@
 {% endif %}
 
 ---
+{% if trends %}
+
+## Trending in Your Field
+{% for t in trends %}
+- **{{ t.keyword }}** — {{ t.current }} papers this run ({{ t.increase_pct }}% increase vs. avg {{ t.average }})
+{% endfor %}
+
+---
+{% endif %}
+{% if recommended %}
+
+## Recommended for You
+{% for p in recommended %}
+
+### {{ loop.index }}. {{ p.title }}
+
+- **Score:** {{ "%.2f"|format(p.score_total) }}
+- **Link:** [{{ p.arxiv_id }}]({{ p.url }})
+
+> {{ p.abstract[:200] }}{% if p.abstract|length > 200 %}...{% endif %}
+
+{% endfor %}
+
+---
+{% endif %}
 {% if top_picks %}
 
 ## Top Picks

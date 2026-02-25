@@ -208,7 +208,7 @@ class TestOpenWorkspaceStore:
     def test_creates_store(self, tmp_path: Path) -> None:
         store = open_workspace_store(tmp_path / "test.db")
         try:
-            assert store.schema_version() == 4
+            assert store.schema_version() == 5
         finally:
             store.close()
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -18,6 +18,7 @@ class RepoProfile:
     keywords: list[tuple[str, float]]  # (term, tfidf_weight) sorted desc
     anchors: list[str]  # library/package names found in manifests
     domains: list[str]  # inferred domain labels
+    source_signals: list[str] = field(default_factory=list)  # ML/domain patterns from source
 
 
 # Mapping from common package names to domain labels.
@@ -237,8 +238,16 @@ def _extract_keywords(
     return keywords
 
 
-def profile_repo(repo_path: str | Path) -> RepoProfile:
-    """Build a topic profile for the repository at *repo_path*."""
+def profile_repo(
+    repo_path: str | Path,
+    profiler_cfg: object | None = None,
+) -> RepoProfile:
+    """Build a topic profile for the repository at *repo_path*.
+
+    If *profiler_cfg* is a ProfilerConfig with ``scan_source=True``,
+    source code analysis is performed: extracted imports are merged into
+    anchors, ML patterns into domains, and identifiers into the TF-IDF corpus.
+    """
     repo_path = Path(repo_path).resolve()
 
     if not repo_path.is_dir():
@@ -247,6 +256,50 @@ def profile_repo(repo_path: str | Path) -> RepoProfile:
     anchors = _extract_anchors(repo_path)
     domains = _infer_domains(anchors)
     documents = _collect_text_corpus(repo_path)
+    source_signals: list[str] = []
+
+    # Source code analysis (optional)
+    scan_source = getattr(profiler_cfg, "scan_source", False)
+    if scan_source:
+        from reporadar.source_analysis import (
+            detect_ml_patterns,
+            extract_identifiers,
+            extract_imports,
+        )
+
+        max_files = getattr(profiler_cfg, "max_files", 100)
+        extensions = getattr(profiler_cfg, "source_extensions", None)
+
+        # Merge imports into anchors
+        src_imports = extract_imports(repo_path, extensions=extensions, max_files=max_files)
+        existing_anchors = set(anchors)
+        for imp in src_imports:
+            if imp not in existing_anchors:
+                anchors.append(imp)
+                existing_anchors.add(imp)
+
+        # Re-infer domains with expanded anchors
+        domains = _infer_domains(anchors)
+
+        # Detect ML patterns and merge into domains
+        ml_signals = detect_ml_patterns(repo_path, max_files=max_files)
+        source_signals = ml_signals
+        domain_set = set(domains)
+        for sig in ml_signals:
+            if sig not in domain_set:
+                domains.append(sig)
+                domain_set.add(sig)
+
+        # Add identifiers as an additional TF-IDF document
+        identifiers = extract_identifiers(repo_path, max_files=max_files)
+        if identifiers:
+            documents.append(" ".join(identifiers))
+
     keywords = _extract_keywords(documents, anchors)
 
-    return RepoProfile(keywords=keywords, anchors=anchors, domains=domains)
+    return RepoProfile(
+        keywords=keywords,
+        anchors=anchors,
+        domains=domains,
+        source_signals=source_signals,
+    )
