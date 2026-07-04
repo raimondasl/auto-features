@@ -7,6 +7,7 @@ paths — not a reimplementation.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from reporadar.profiler import RepoProfile, profile_repo
 from reporadar.ranker import rank_papers
 
 EVALS_DIR = Path(__file__).resolve().parent
+WORK_DIR = EVALS_DIR / ".work"
 
 
 def load_benchmark(path: str | Path | None = None) -> dict[str, Any]:
@@ -97,3 +99,111 @@ def rank_pool(
         lookback_days=3650,  # large; recency is zero-weighted anyway
         repo_embedding=repo_embedding,
     )
+
+
+# ── shared live helpers (used by both Tier A and Tier B live runs) ─────────
+
+
+def clone_repo(url: str, dest: Path, *, reuse: bool = False) -> Path | None:
+    """Shallow-clone *url* to *dest*. Reuse an existing clone if present."""
+    if dest.exists():
+        return dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        subprocess.run(
+            ["git", "clone", "--depth", "1", "--quiet", url, str(dest)],
+            check=True,
+            capture_output=True,
+            timeout=300,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        print(f"        ! clone failed: {exc}")
+        return None
+    return dest
+
+
+def collect_live_papers(
+    profile: RepoProfile,
+    categories: list[str],
+    *,
+    sources: list[str],
+    keys: dict[str, str],
+    lookback_days: int,
+) -> list[dict[str, Any]]:
+    """Build queries and fetch papers from the requested live sources."""
+    from reporadar.collector import CollectionError, build_queries, collect_papers
+    from reporadar.config import ArxivConfig
+
+    arxiv_cfg = ArxivConfig(
+        categories=categories or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"],
+        max_results_per_query=50,
+        lookback_days=lookback_days,
+    )
+    queries = build_queries(profile, QueriesConfig(), arxiv_cfg)
+
+    papers: list[dict[str, Any]] = []
+    try:
+        papers = collect_papers(queries, arxiv_cfg)
+    except CollectionError as exc:
+        print(f"        ! arXiv collection failed: {exc}")
+
+    seen = {p["arxiv_id"] for p in papers}
+    plain = [q.replace("all:", "").strip('"') for q in queries[:5]]
+
+    if "openalex" in sources:
+        from reporadar.sources.openalex import collect_papers as oa_collect
+
+        for p in oa_collect(
+            plain, lookback_days=lookback_days, api_key=keys.get("OPENALEX_API_KEY")
+        ):
+            if p["arxiv_id"] not in seen:
+                papers.append(p)
+                seen.add(p["arxiv_id"])
+
+    if "semantic_scholar" in sources:
+        from reporadar.sources.semantic_scholar import collect_papers as ss_collect
+
+        for p in ss_collect(
+            plain, api_key=keys.get("SEMANTIC_SCHOLAR_API_KEY"), lookback_days=lookback_days
+        ):
+            if p["arxiv_id"] not in seen:
+                papers.append(p)
+                seen.add(p["arxiv_id"])
+
+    return papers
+
+
+def assemble_repo_context(repo_dir: Path, *, max_readme: int = 3500) -> str:
+    """A compact text summary of a repo for grounding the LLM judge/baseline.
+
+    README excerpt + dependency manifests + a shallow file listing — enough to
+    judge whether a paper's method is applicable to *this* codebase.
+    """
+    parts: list[str] = [f"Repository: {repo_dir.name}", ""]
+
+    for readme in ("README.md", "README.rst", "README.txt", "readme.md"):
+        p = repo_dir / readme
+        if p.exists():
+            parts += [
+                "## README (excerpt)",
+                p.read_text(encoding="utf-8", errors="ignore")[:max_readme],
+                "",
+            ]
+            break
+
+    for manifest in ("requirements.txt", "pyproject.toml", "package.json", "setup.py"):
+        p = repo_dir / manifest
+        if p.exists():
+            parts += [f"## {manifest}", p.read_text(encoding="utf-8", errors="ignore")[:1200], ""]
+
+    # Shallow listing of source files (names only) for a sense of structure.
+    exts = {".py", ".js", ".ts", ".cpp", ".c", ".go", ".rs", ".java"}
+    files = [
+        str(f.relative_to(repo_dir))
+        for f in sorted(repo_dir.rglob("*"))[:2000]
+        if f.suffix in exts and ".git" not in f.parts
+    ]
+    if files:
+        parts += ["## Source files (sample)", "\n".join(files[:60]), ""]
+
+    return "\n".join(parts)

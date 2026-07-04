@@ -24,6 +24,10 @@ rr = "reporadar.cli:cli"
 embeddings = [
     "sentence-transformers>=2.0",
 ]
+evals = [
+    # Only needed for the Tier B LLM-judge benchmark (evals/run_judge_eval.py).
+    "openai>=1.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
