@@ -1,21 +1,31 @@
 # RepoRadar evaluation benchmark
 
-A **manually-run** benchmark that measures how well RepoRadar ranks papers for a
-repository. This is deliberately **not** wired into CI — it's a set of cases you
-run by hand when you change ranking, add a source, or want to sanity-check
-quality. It profiles real repos with the shipping profiler and ranks with the
-shipping ranker, so it measures the actual code paths.
+A **manually-run** benchmark (deliberately **not** in CI) that measures how well
+RepoRadar surfaces papers for a repository. It profiles real repos with the
+shipping profiler and ranks with the shipping ranker, so it measures the actual
+code paths. There are **two tiers** that answer very different questions:
 
-## Two modes
+| Tier | Question | Judge | Keys | Cost |
+|------|----------|-------|------|------|
+| **A — domain sanity** (`run_eval.py`) | Does ranking separate on-topic from off-topic papers? | keyword/category labels | none | free |
+| **B — actionable improvement** (`run_judge_eval.py`) | Would the returned papers *genuinely improve this code*, and does it correctly return **nothing** when there's nothing good? | a neutral LLM (GPT-5.5) | OpenAI + Claude Code | ~$10–30/run |
+
+**Tier A is a weak bar and we don't overstate it.** Topic-match ("is this a RAG
+paper for a RAG repo?") is easy and doesn't mean a paper is *useful*. Tier A is a
+fast, free, deterministic regression gate — nothing more. **Tier B is the real
+quality measure** (see [its section](#tier-b--actionable-improvement-llm-judged)).
+
+## Tier A — domain sanity
+
+Two modes:
 
 | Mode | What it does | Network | API keys |
 |------|--------------|---------|----------|
 | **offline** (default) | Profiles each case's mini-repo (`repos/<case>/`) and ranks a **frozen pool of real arXiv papers** (`fixtures/<case>.json`) with known gold/distractor labels. Deterministic. | none | **none** |
 | **live** | Clones each case's real GitHub repo and runs the full pipeline against **real sources** (arXiv, optionally OpenAlex / Semantic Scholar). | yes | optional (see below) |
 
-Offline is the regression benchmark: same inputs → same numbers, so you can
-compare a ranking change before/after. Live is the "does it actually work in the
-wild" check on real repos and fresh papers.
+Offline is the regression gate: same inputs → same numbers. Live is the "does it
+run in the wild" check. Both only measure *topic separation*, not usefulness.
 
 ## Quick start (no keys, no setup)
 
@@ -83,17 +93,82 @@ match a repo's keyword profile and recency is off — judge live runs by
 *purity* and by whether the top-3 titles are obviously on-topic, not by the raw
 score. For the `webdev` negative control, expect `top-tier=0`.
 
+## Tier B — actionable improvement (LLM-judged)
+
+This is the real quality measure: does a returned paper propose a method that
+would **genuinely improve this specific code**, and is the tool willing to
+**return nothing** rather than return noise? Run it with `run_judge_eval.py`.
+
+**How it works (per repo):**
+
+1. **RepoRadar** produces two views from its real ranking: its **Top Picks** tier
+   (score >= 0.5 — the abstention-respecting output, often empty) and its **Top-10**
+   (diagnostic — tells a too-conservative threshold apart from shallow ranking).
+2. **Baseline** = **Opus 4.8 via Claude Code headless** with web tools, run in the
+   repo dir with your exact prompt: *"fetch and summarize research papers that relate
+   to the code and propose methods to improve it."* A genuinely strong baseline.
+3. **Hallucination guard** — every proposed paper is resolved against the real arXiv;
+   unresolvable references count as hallucinations and score 0. (Opus tends to invent
+   plausible arXiv IDs; this keeps the comparison honest.)
+4. **Neutral judge** — a pooled, blind LLM judge (**GPT-5.5**, so an Anthropic model
+   isn't grading Anthropic output) scores the *union* of both lists 0-3 for whether
+   each paper could improve **this** repo. 2+ = "genuinely actionable".
+
+**Metrics (precision- and abstention-first):**
+
+- **net@lambda** — `(# actionable) - lambda*(# non-actionable)` over what a system
+  returned. With lambda > 1 a junk paper costs more than a good one earns, so
+  **returning nothing beats returning noise**. Headline metric; reported at 1, 2, 3.
+- **precision** — fraction of returned papers that are actionable (`n/a` when a system
+  abstains — an empty result is not a precision-0 failure).
+- **abstention_correct** — on repos whose pool has *no* actionable papers, returning
+  nothing scores 1.0; any returned paper scores 0.0.
+- **ndcg** (graded 0-3), **hallucination count**, and for the baseline a **recent-only**
+  net value (it may cite older seminal papers; RepoRadar only fetches recent ones).
+
+**Run it:**
+
+```bash
+# 1. Dry-run the whole pipeline with NO keys and NO spend (mock judge + baseline).
+#    Still clones repos + hits arXiv (free); validates wiring end-to-end.
+uv run python evals/run_judge_eval.py --mock --case rag
+
+# 2. Install the judge client + set your key (see Keys below), then run for real:
+uv pip install -e ".[evals]"
+uv run python evals/run_judge_eval.py --case rag     # one repo
+uv run python evals/run_judge_eval.py                # all repos
+uv run python evals/run_judge_eval.py --model o3     # cheaper judge
+```
+
+Requires **`OPENAI_API_KEY`** (the judge) and **Claude Code** installed and
+authenticated (the baseline — the harness shells out to `claude -p`). If your
+Claude Code version needs different headless flags, edit `CLAUDE_FLAGS` in
+`evals/baseline.py`.
+
+**Reproducibility & cost:** every judge verdict and baseline output is cached under
+`evals/cache/` keyed by (rubric version, model, repo, paper), so re-runs are near-free
+and stable. A full uncached run is roughly **$10-30** (pool of ~30-60 papers x 4 repos
+judged on GPT-5.5, plus 4 agentic Opus baseline runs). `evals/cache/` and
+`evals/results/` are gitignored. Bump `RUBRIC_VERSION` in `judge.py` to invalidate cache.
+
+**Expected finding:** RepoRadar's Top Picks tier abstains often on live data (its
+keyword scores rarely reach 0.5), and the Opus baseline will likely win on actionable
+papers. That's the point — it's the evidence base for the roadmap's LLM-triage
+(Feature 6) and retrieval upgrades, and gives us a number to move.
+
 ## Keys — what you need, how to get them, where to set them
 
-**You need nothing for offline mode, and nothing for live mode with arXiv only.**
-Keys only unlock the extra live sources. Every key is optional.
+**Tier A needs nothing** (offline, or live with arXiv only). **Tier B needs
+`OPENAI_API_KEY`** (the judge) and **Claude Code** installed (the baseline). Other
+keys only unlock extra live sources.
 
 | Env var | For | Cost | Get it from |
 |---------|-----|------|-------------|
+| `OPENAI_API_KEY` | **Tier B judge (GPT-5.5)** | **paid** (~$10–30/full run) | https://platform.openai.com/api-keys . Required for a real Tier B run; use `--mock` to dry-run without it. |
 | `OPENALEX_API_KEY` | live `openalex` source | **free** | https://openalex.org/ → sign in → **API key**. Recommended: since 2026-02-13 keyless callers are throttled to a tiny daily allowance. |
 | `SEMANTIC_SCHOLAR_API_KEY` | live `semantic_scholar` source | free | https://www.semanticscholar.org/product/api . Works **without** a key on a shared pool (best-effort); keys aren't granted to free-domain emails since 2024, so most people run keyless. |
 | `HF_TOKEN` | higher Hugging Face rate limits | free | https://huggingface.co/settings/tokens (a **read** token). Not used by the ranking eval — only enrichment — so usually unnecessary here. |
-| `ANTHROPIC_API_KEY` | future LLM-rerank eval | **paid** | https://console.anthropic.com/ |
+| Claude Code | **Tier B baseline (Opus 4.8)** | **paid** (subscription or API key) | Install from https://claude.com/claude-code and `claude` must be on PATH + authenticated. The harness shells out to `claude -p`. |
 | `GITHUB_TOKEN` | avoid clone rate limits | free | Only if `git clone` starts failing. Public repos clone with no token. |
 
 ### Where/how to set them
@@ -156,11 +231,16 @@ case's `gold_queries`; distractors from `distractor_queries` in `benchmark.yaml`
 evals/
   README.md          this file
   benchmark.yaml     case definitions (repos, queries, categories)
-  metrics.py         P@k, R@k, nDCG@k, MRR, MAP, separation
-  harness.py         profile a repo + rank a pool (uses the real reporadar code)
+  harness.py         profile a repo + rank a pool + shared live helpers
+  metrics.py         Tier A (P@k, nDCG, separation) + Tier B (net@lambda, abstention)
   build_fixtures.py  fetch real arXiv papers -> fixtures/ (run manually)
-  run_eval.py        the runner (--offline / --live)
+  run_eval.py        Tier A runner (--offline / --live)
+  run_judge_eval.py  Tier B runner (LLM judge vs Opus baseline; --mock to dry-run)
+  judge.py           neutral GPT-5.5 judge (rubric, caching, --mock scoring)
+  baseline.py        Opus 4.8 via Claude Code headless
+  verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
-  repos/<case>/      realistic mini-repos profiled in offline mode
+  repos/<case>/      realistic mini-repos profiled in Tier A offline mode
   fixtures/<case>.json   frozen labeled arXiv pools (committed)
+  cache/, results/   Tier B verdict cache + run outputs (gitignored)
 ```

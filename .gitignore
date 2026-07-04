@@ -194,6 +194,8 @@ cython_debug/
 # RepoRadar eval benchmark
 evals/.env
 evals/.work/
+evals/cache/
+evals/results/
 
 # PyPI configuration file
 .pypirc
