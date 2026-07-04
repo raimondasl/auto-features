@@ -1,0 +1,984 @@
+[
+  {
+    "arxiv_id": "2506.06962v3",
+    "title": "AR-RAG: Autoregressive Retrieval Augmentation for Image Generation",
+    "abstract": "We introduce Autoregressive Retrieval Augmentation (AR-RAG), a novel paradigm that enhances image generation by autoregressively incorporating knearest neighbor retrievals at the patch level. Unlike prior methods that perform a single, static retrieval before generation and condition the entire generation on fixed reference images, AR-RAG performs context-aware retrievals at each generation step, using prior-generated patches as queries to retrieve and incorporate the most relevant patch-level visual references, enabling the model to respond to evolving generation needs while avoiding limitations (e.g., over-copying, stylistic bias, etc.) prevalent in existing methods. To realize AR-RAG, we propose two parallel frameworks: (1) Distribution-Augmentation in Decoding (DAiD), a training-free plug-and-use decoding strategy that directly merges the distribution of model-predicted patches with the distribution of retrieved patches, and (2) Feature-Augmentation in Decoding (FAiD), a parameter-efficient fine-tuning method that progressively smooths the features of retrieved patches via multi-scale convolution operations and leverages them to augment the image generation process. We validate the effectiveness of AR-RAG on widely adopted benchmarks, including Midjourney-30K, GenEval and DPG-Bench, demonstrating significant performance gains over state-of-the-art image generation models.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2025-06-08T01:33:05+00:00",
+    "authors": [
+      "Jingyuan Qi",
+      "Zhiyang Xu",
+      "Qifan Wang",
+      "Lifu Huang"
+    ],
+    "url": "http://arxiv.org/abs/2506.06962v3",
+    "label": 1,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.13684v1",
+    "title": "Intelligent Interaction Strategies for Context-Aware Cognitive Augmentation",
+    "abstract": "Human cognition is constrained by processing limitations, leading to cognitive overload and inefficiencies in knowledge synthesis and decision-making. Large Language Models (LLMs) present an opportunity for cognitive augmentation, but their current reactive nature limits their real-world applicability. This position paper explores the potential of context-aware cognitive augmentation, where LLMs dynamically adapt to users' cognitive states and task environments to provide appropriate support. Through a think-aloud study in an exhibition setting, we examine how individuals interact with multi-modal information and identify key cognitive challenges in structuring, retrieving, and applying knowledge. Our findings highlight the need for AI-driven cognitive support systems that integrate real-time contextual awareness, personalized reasoning assistance, and socially adaptive interactions. We propose a framework for AI augmentation that seamlessly transitions between real-time cognitive support and post-experience knowledge organization, contributing to the design of more effective human-centered AI systems.",
+    "categories": [
+      "cs.HC"
+    ],
+    "published": "2025-04-18T13:35:21+00:00",
+    "authors": [
+      "Xiangrong",
+      "Zhu",
+      "Yuan Xu",
+      "Tianjian Liu",
+      "Jingwei Sun",
+      "Yu Zhang",
+      "Xin Tong"
+    ],
+    "url": "http://arxiv.org/abs/2504.13684v1",
+    "label": 1,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.17204v1",
+    "title": "Factually: Exploring Wearable Fact-Checking for Augmented Truth Discernment",
+    "abstract": "Wearable devices are transforming human capabilities by seamlessly augmenting cognitive functions. In this position paper, we propose a voice-based, interactive learning companion designed to amplify and extend cognitive abilities through informal learning. Our vision is threefold: (1) to enable users to discover new knowledge on-the-go through contextual interactive quizzes, fostering critical thinking and mindfulness, (2) to proactively detect misinformation, empowering users to critically assess information in real time, and (3) to provide spoken language correction and prompting hints for second language learning and effective communication. As an initial step toward this vision, we present Factually - a proactive, wearable fact-checking system integrated into devices like smartwatches or rings. Factually discreetly alerts users to potential falsehoods via vibrotactile feedback, helping them assess information critically. We demonstrate its utility through three illustrative scenarios, highlighting its potential to extend cognitive abilities for real-time misinformation detection. Early qualitative feedback suggests that Factually can enhance users' fact-checking capabilities, offering both practical and experiential benefits.",
+    "categories": [
+      "cs.HC",
+      "cs.ET"
+    ],
+    "published": "2025-04-24T02:29:50+00:00",
+    "authors": [
+      "Chitralekha Gupta",
+      "Hanjun Wu",
+      "Praveen Sasikumar",
+      "Shreyas Sridhar",
+      "Priambudi Bagaskara",
+      "Suranga Nanayakkara"
+    ],
+    "url": "http://arxiv.org/abs/2504.17204v1",
+    "label": 1,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.14689v1",
+    "title": "Designing AI Systems that Augment Human Performed vs. Demonstrated Critical Thinking",
+    "abstract": "The recent rapid advancement of LLM-based AI systems has accelerated our search and production of information. While the advantages brought by these systems seemingly improve the performance or efficiency of human activities, they do not necessarily enhance human capabilities. Recent research has started to examine the impact of generative AI on individuals' cognitive abilities, especially critical thinking. Based on definitions of critical thinking across psychology and education, this position paper proposes the distinction between demonstrated and performed critical thinking in the era of generative AI and discusses the implication of this distinction in research and development of AI systems that aim to augment human critical thinking.",
+    "categories": [
+      "cs.HC"
+    ],
+    "published": "2025-04-20T17:40:28+00:00",
+    "authors": [
+      "Katelyn Xiaoying Mei",
+      "Nic Weber"
+    ],
+    "url": "http://arxiv.org/abs/2504.14689v1",
+    "label": 1,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "1407.5416v1",
+    "title": "Privacy-Preserving Important Passage Retrieval",
+    "abstract": "State-of-the-art important passage retrieval methods obtain very good results, but do not take into account privacy issues. In this paper, we present a privacy preserving method that relies on creating secure representations of documents. Our approach allows for third parties to retrieve important passages from documents without learning anything regarding their content. We use a hashing scheme known as Secure Binary Embeddings to convert a key phrase and bag-of-words representation to bit strings in a way that allows the computation of approximate distances, instead of exact ones. Experiments show that our secure system yield similar results to its non-private counterpart on both clean text and noisy speech recognized text.",
+    "categories": [
+      "cs.IR",
+      "cs.CR"
+    ],
+    "published": "2014-07-21T08:56:09+00:00",
+    "authors": [
+      "Luis Marujo",
+      "José Portêlo",
+      "David Martins de Matos",
+      "João P. Neto",
+      "Anatole Gershman",
+      "Jaime Carbonell",
+      "Isabel Trancoso",
+      "Bhiksha Raj"
+    ],
+    "url": "http://arxiv.org/abs/1407.5416v1",
+    "label": 1,
+    "source_query": "dense passage retrieval"
+  },
+  {
+    "arxiv_id": "2108.06279v2",
+    "title": "On Single and Multiple Representations in Dense Passage Retrieval",
+    "abstract": "The advent of contextualised language models has brought gains in search effectiveness, not just when applied for re-ranking the output of classical weighting models such as BM25, but also when used directly for passage indexing and retrieval, a technique which is called dense retrieval. In the existing literature in neural ranking, two dense retrieval families have become apparent: single representation, where entire passages are represented by a single embedding (usually BERT's [CLS] token, as exemplified by the recent ANCE approach), or multiple representations, where each token in a passage is represented by its own embedding (as exemplified by the recent ColBERT approach). These two families have not been directly compared. However, because of the likely importance of dense retrieval moving forward, a clear understanding of their advantages and disadvantages is paramount. To this end, this paper contributes a direct study on their comparative effectiveness, noting situations where each method under/over performs w.r.t. each other, and w.r.t. a BM25 baseline. We observe that, while ANCE is more efficient than ColBERT in terms of response time and memory usage, multiple representations are statistically more effective than the single representations for MAP and MRR@10. We also show that multiple representations obtain better improvements than single representations for queries that are the hardest for BM25, as well as for definitional queries, and those with complex information needs.",
+    "categories": [
+      "cs.IR",
+      "cs.CL"
+    ],
+    "published": "2021-08-13T15:01:53+00:00",
+    "authors": [
+      "Craig Macdonald",
+      "Nicola Tonellotto",
+      "Iadh Ounis"
+    ],
+    "url": "http://arxiv.org/abs/2108.06279v2",
+    "label": 1,
+    "source_query": "dense passage retrieval"
+  },
+  {
+    "arxiv_id": "2210.15133v1",
+    "title": "Retrieval Oriented Masking Pre-training Language Model for Dense Passage Retrieval",
+    "abstract": "Pre-trained language model (PTM) has been shown to yield powerful text representations for dense passage retrieval task. The Masked Language Modeling (MLM) is a major sub-task of the pre-training process. However, we found that the conventional random masking strategy tend to select a large number of tokens that have limited effect on the passage retrieval task (e,g. stop-words and punctuation). By noticing the term importance weight can provide valuable information for passage retrieval, we hereby propose alternative retrieval oriented masking (dubbed as ROM) strategy where more important tokens will have a higher probability of being masked out, to capture this straightforward yet essential information to facilitate the language model pre-training process. Notably, the proposed new token masking method will not change the architecture and learning objective of original PTM. Our experiments verify that the proposed ROM enables term importance information to help language model pre-training thus achieving better performance on multiple passage retrieval benchmarks.",
+    "categories": [
+      "cs.CL",
+      "cs.IR"
+    ],
+    "published": "2022-10-27T02:43:48+00:00",
+    "authors": [
+      "Dingkun Long",
+      "Yanzhao Zhang",
+      "Guangwei Xu",
+      "Pengjun Xie"
+    ],
+    "url": "http://arxiv.org/abs/2210.15133v1",
+    "label": 1,
+    "source_query": "dense passage retrieval"
+  },
+  {
+    "arxiv_id": "2301.05508v1",
+    "title": "Do the Findings of Document and Passage Retrieval Generalize to the Retrieval of Responses for Dialogues?",
+    "abstract": "A number of learned sparse and dense retrieval approaches have recently been proposed and proven effective in tasks such as passage retrieval and document retrieval. In this paper we analyze with a replicability study if the lessons learned generalize to the retrieval of responses for dialogues, an important task for the increasingly popular field of conversational search. Unlike passage and document retrieval where documents are usually longer than queries, in response ranking for dialogues the queries (dialogue contexts) are often longer than the documents (responses). Additionally, dialogues have a particular structure, i.e. multiple utterances by different users. With these differences in mind, we here evaluate how generalizable the following major findings from previous works are: (F1) query expansion outperforms a no-expansion baseline; (F2) document expansion outperforms a no-expansion baseline; (F3) zero-shot dense retrieval underperforms sparse baselines; (F4) dense retrieval outperforms sparse baselines; (F5) hard negative sampling is better than random sampling for training dense models. Our experiments -- based on three different information-seeking dialogue datasets -- reveal that four out of five findings (F2-F5) generalize to our domain",
+    "categories": [
+      "cs.IR"
+    ],
+    "published": "2023-01-13T12:18:43+00:00",
+    "authors": [
+      "Gustavo Penha",
+      "Claudia Hauff"
+    ],
+    "url": "http://arxiv.org/abs/2301.05508v1",
+    "label": 1,
+    "source_query": "dense passage retrieval"
+  },
+  {
+    "arxiv_id": "2504.05181v2",
+    "title": "Lightweight and Direct Document Relevance Optimization for Generative Information Retrieval",
+    "abstract": "Generative information retrieval (GenIR) is a promising neural retrieval paradigm that formulates document retrieval as a document identifier (docid) generation task, allowing for end-to-end optimization toward a unified global retrieval objective. However, existing GenIR models suffer from token-level misalignment, where models trained to predict the next token often fail to capture document-level relevance effectively. While reinforcement learning-based methods, such as reinforcement learning from relevance feedback (RLRF), aim to address this misalignment through reward modeling, they introduce significant complexity, requiring the optimization of an auxiliary reward function followed by reinforcement fine-tuning, which is computationally expensive and often unstable. To address these challenges, we propose direct document relevance optimization (DDRO), which aligns token-level docid generation with document-level relevance estimation through direct optimization via pairwise ranking, eliminating the need for explicit reward modeling and reinforcement learning. Experimental results on benchmark datasets, including MS MARCO document and Natural Questions, show that DDRO outperforms reinforcement learning-based methods, achieving a 7.4% improvement in MRR@10 for MS MARCO and a 19.9% improvement for Natural Questions. These findings highlight DDRO's potential to enhance retrieval effectiveness with a simplified optimization approach. By framing alignment as a direct optimization problem, DDRO simplifies the ranking optimization pipeline of GenIR models while offering a viable alternative to reinforcement learning-based methods.",
+    "categories": [
+      "cs.IR",
+      "cs.AI",
+      "cs.DL",
+      "cs.LG"
+    ],
+    "published": "2025-04-07T15:27:37+00:00",
+    "authors": [
+      "Kidist Amde Mekonnen",
+      "Yubao Tang",
+      "Maarten de Rijke"
+    ],
+    "url": "http://arxiv.org/abs/2504.05181v2",
+    "label": 1,
+    "source_query": "neural information retrieval"
+  },
+  {
+    "arxiv_id": "1811.08772v1",
+    "title": "Overcoming low-utility facets for complex answer retrieval",
+    "abstract": "Many questions cannot be answered simply; their answers must include numerous nuanced details and additional context. Complex Answer Retrieval (CAR) is the retrieval of answers to such questions. In their simplest form, these questions are constructed from a topic entity (e.g., `cheese') and a facet (e.g., `health effects'). While topic matching has been thoroughly explored, we observe that some facets use general language that is unlikely to appear verbatim in answers. We call these low-utility facets. In this work, we present an approach to CAR that identifies and addresses low-utility facets. We propose two estimators of facet utility. These include exploiting the hierarchical structure of CAR queries and using facet frequency information from training data. To improve the retrieval performance on low-utility headings, we also include entity similarity scores using knowledge graph embeddings. We apply our approaches to a leading neural ranking technique, and evaluate using the TREC CAR dataset. We find that our approach perform significantly better than the unmodified neural ranker and other leading CAR techniques. We also provide a detailed analysis of our results, and verify that low-utility facets are indeed more difficult to match, and that our approach improves the performance for these difficult queries.",
+    "categories": [
+      "cs.IR"
+    ],
+    "published": "2018-11-21T15:09:00+00:00",
+    "authors": [
+      "Sean MacAvaney",
+      "Andrew Yates",
+      "Arman Cohan",
+      "Luca Soldaini",
+      "Kai Hui",
+      "Nazli Goharian",
+      "Ophir Frieder"
+    ],
+    "url": "http://arxiv.org/abs/1811.08772v1",
+    "label": 1,
+    "source_query": "neural information retrieval"
+  },
+  {
+    "arxiv_id": "1606.06137v1",
+    "title": "LSTM-Based Predictions for Proactive Information Retrieval",
+    "abstract": "We describe a method for proactive information retrieval targeted at retrieving relevant information during a writing task. In our method, the current task and the needs of the user are estimated, and the potential next steps are unobtrusively predicted based on the user's past actions. We focus on the task of writing, in which the user is coalescing previously collected information into a text. Our proactive system automatically recommends the user relevant background information. The proposed system incorporates text input prediction using a long short-term memory (LSTM) network. We present simulations, which show that the system is able to reach higher precision values in an exploratory search setting compared to both a baseline and a comparison system.",
+    "categories": [
+      "cs.IR",
+      "cs.CL",
+      "cs.NE"
+    ],
+    "published": "2016-06-20T14:26:33+00:00",
+    "authors": [
+      "Petri Luukkonen",
+      "Markus Koskela",
+      "Patrik Floréen"
+    ],
+    "url": "http://arxiv.org/abs/1606.06137v1",
+    "label": 1,
+    "source_query": "neural information retrieval"
+  },
+  {
+    "arxiv_id": "2112.05662v2",
+    "title": "Match Your Words! A Study of Lexical Matching in Neural Information Retrieval",
+    "abstract": "Neural Information Retrieval models hold the promise to replace lexical matching models, e.g. BM25, in modern search engines. While their capabilities have fully shone on in-domain datasets like MS MARCO, they have recently been challenged on out-of-domain zero-shot settings (BEIR benchmark), questioning their actual generalization capabilities compared to bag-of-words approaches. Particularly, we wonder if these shortcomings could (partly) be the consequence of the inability of neural IR models to perform lexical matching off-the-shelf. In this work, we propose a measure of discrepancy between the lexical matching performed by any (neural) model and an 'ideal' one. Based on this, we study the behavior of different state-of-the-art neural IR models, focusing on whether they are able to perform lexical matching when it's actually useful, i.e. for important terms. Overall, we show that neural IR models fail to properly generalize term importance on out-of-domain collections or terms almost unseen during training",
+    "categories": [
+      "cs.IR",
+      "cs.CL"
+    ],
+    "published": "2021-12-10T16:49:49+00:00",
+    "authors": [
+      "Thibault Formal",
+      "Benjamin Piwowarski",
+      "Stéphane Clinchant"
+    ],
+    "url": "http://arxiv.org/abs/2112.05662v2",
+    "label": 1,
+    "source_query": "neural information retrieval"
+  },
+  {
+    "arxiv_id": "1912.02145v1",
+    "title": "An Exploration of Data Augmentation and Sampling Techniques for Domain-Agnostic Question Answering",
+    "abstract": "To produce a domain-agnostic question answering model for the Machine Reading Question Answering (MRQA) 2019 Shared Task, we investigate the relative benefits of large pre-trained language models, various data sampling strategies, as well as query and context paraphrases generated by back-translation. We find a simple negative sampling technique to be particularly effective, even though it is typically used for datasets that include unanswerable questions, such as SQuAD 2.0. When applied in conjunction with per-domain sampling, our XLNet (Yang et al., 2019)-based submission achieved the second best Exact Match and F1 in the MRQA leaderboard competition.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2019-12-04T17:48:58+00:00",
+    "authors": [
+      "Shayne Longpre",
+      "Yi Lu",
+      "Zhucheng Tu",
+      "Chris DuBois"
+    ],
+    "url": "http://arxiv.org/abs/1912.02145v1",
+    "label": 1,
+    "source_query": "open domain question answering"
+  },
+  {
+    "arxiv_id": "2108.12898v1",
+    "title": "Generating Answer Candidates for Quizzes and Answer-Aware Question Generators",
+    "abstract": "In education, open-ended quiz questions have become an important tool for assessing the knowledge of students. Yet, manually preparing such questions is a tedious task, and thus automatic question generation has been proposed as a possible alternative. So far, the vast majority of research has focused on generating the question text, relying on question answering datasets with readily picked answers, and the problem of how to come up with answer candidates in the first place has been largely ignored. Here, we aim to bridge this gap. In particular, we propose a model that can generate a specified number of answer candidates for a given passage of text, which can then be used by instructors to write questions manually or can be passed as an input to automatic answer-aware question generators. Our experiments show that our proposed answer candidate generation model outperforms several baselines.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.CY",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2021-08-29T19:33:51+00:00",
+    "authors": [
+      "Kristiyan Vachev",
+      "Momchil Hardalov",
+      "Georgi Karadzhov",
+      "Georgi Georgiev",
+      "Ivan Koychev",
+      "Preslav Nakov"
+    ],
+    "url": "http://arxiv.org/abs/2108.12898v1",
+    "label": 1,
+    "source_query": "open domain question answering"
+  },
+  {
+    "arxiv_id": "1911.11403v1",
+    "title": "SemEval-2015 Task 3: Answer Selection in Community Question Answering",
+    "abstract": "Community Question Answering (cQA) provides new interesting research directions to the traditional Question Answering (QA) field, e.g., the exploitation of the interaction between users and the structure of related posts. In this context, we organized SemEval-2015 Task 3 on \"Answer Selection in cQA\", which included two subtasks: (a) classifying answers as \"good\", \"bad\", or \"potentially relevant\" with respect to the question, and (b) answering a YES/NO question with \"yes\", \"no\", or \"unsure\", based on the list of all answers. We set subtask A for Arabic and English on two relatively different cQA domains, i.e., the Qatar Living website for English, and a Quran-related website for Arabic. We used crowdsourcing on Amazon Mechanical Turk to label a large English training dataset, which we released to the research community. Thirteen teams participated in the challenge with a total of 61 submissions: 24 primary and 37 contrastive. The best systems achieved an official score (macro-averaged F1) of 57.19 and 63.7 for the English subtasks A and B, and 78.55 for the Arabic subtask A.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.IR"
+    ],
+    "published": "2019-11-26T08:40:49+00:00",
+    "authors": [
+      "Preslav Nakov",
+      "Lluís Màrquez",
+      "Walid Magdy",
+      "Alessandro Moschitti",
+      "James Glass",
+      "Bilal Randeree"
+    ],
+    "url": "http://arxiv.org/abs/1911.11403v1",
+    "label": 1,
+    "source_query": "open domain question answering"
+  },
+  {
+    "arxiv_id": "1912.00730v1",
+    "title": "SemEval-2017 Task 3: Community Question Answering",
+    "abstract": "We describe SemEval-2017 Task 3 on Community Question Answering. This year, we reran the four subtasks from SemEval-2016:(A) Question-Comment Similarity,(B) Question-Question Similarity,(C) Question-External Comment Similarity, and (D) Rerank the correct answers for a new question in Arabic, providing all the data from 2015 and 2016 for training, and fresh data for testing. Additionally, we added a new subtask E in order to enable experimentation with Multi-domain Question Duplicate Detection in a larger-scale scenario, using StackExchange subforums. A total of 23 teams participated in the task, and submitted a total of 85 runs (36 primary and 49 contrastive) for subtasks A-D. Unfortunately, no teams participated in subtask E. A variety of approaches and features were used by the participating systems to address the different subtasks. The best systems achieved an official score (MAP) of 88.43, 47.22, 15.46, and 61.16 in subtasks A, B, C, and D, respectively. These scores are better than the baselines, especially for subtasks A-C.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2019-12-02T12:57:52+00:00",
+    "authors": [
+      "Preslav Nakov",
+      "Doris Hoogeveen",
+      "Lluís Màrquez",
+      "Alessandro Moschitti",
+      "Hamdy Mubarak",
+      "Timothy Baldwin",
+      "Karin Verspoor"
+    ],
+    "url": "http://arxiv.org/abs/1912.00730v1",
+    "label": 1,
+    "source_query": "open domain question answering"
+  },
+  {
+    "arxiv_id": "2604.05253v1",
+    "title": "Spike Hijacking in Late-Interaction Retrieval",
+    "abstract": "Late-interaction retrieval models rely on hard maximum similarity (MaxSim) to aggregate token-level similarities. Although effective, this winner-take-all pooling rule may structurally bias training dynamics. We provide a mechanistic study of gradient routing and robustness in MaxSim-based retrieval. In a controlled synthetic environment with in-batch contrastive training, we demonstrate that MaxSim induces significantly higher patch-level gradient concentration than smoother alternatives such as Top-k pooling and softmax aggregation. While sparse routing can improve early discrimination, it also increases sensitivity to document length: as the number of document patches grows, MaxSim degrades more sharply than mild smoothing variants. We corroborate these findings on a real-world multi-vector retrieval benchmark, where controlled document-length sweeps reveal similar brittleness under hard max pooling. Together, our results isolate pooling-induced gradient concentration as a structural property of late-interaction retrieval and highlight a sparsity-robustness tradeoff. These findings motivate principled alternatives to hard max pooling in multi-vector retrieval systems.",
+    "categories": [
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2026-04-06T23:31:03+00:00",
+    "authors": [
+      "Karthik Suresh",
+      "Tushar Vatsa",
+      "Tracy King",
+      "Asim Kadav",
+      "Michael Friedrich"
+    ],
+    "url": "http://arxiv.org/abs/2604.05253v1",
+    "label": 1,
+    "source_query": "late interaction retrieval"
+  },
+  {
+    "arxiv_id": "2603.26259v2",
+    "title": "Working Notes on Late Interaction Dynamics: Analyzing Targeted Behaviors of Late Interaction Models",
+    "abstract": "While Late Interaction models exhibit strong retrieval performance, many of their underlying dynamics remain understudied, potentially hiding performance bottlenecks. In this work, we focus on two topics in Late Interaction retrieval: a length bias that arises when using multi-vector scoring, and the similarity distribution beyond the best scores pooled by the MaxSim operator. We analyze these behaviors for state-of-the-art models on the NanoBEIR benchmark. Results show that while the theoretical length bias of causal Late Interaction models holds in practice, bi-directional models can also suffer from it in extreme cases. We also note that no significant similarity trend lies beyond the top-1 document token, validating that the MaxSim operator efficiently exploits the token-level similarity scores.",
+    "categories": [
+      "cs.IR",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2026-03-27T10:29:15+00:00",
+    "authors": [
+      "Antoine Edy",
+      "Max Conti",
+      "Quentin Macé"
+    ],
+    "url": "http://arxiv.org/abs/2603.26259v2",
+    "label": 1,
+    "source_query": "late interaction retrieval"
+  },
+  {
+    "arxiv_id": "2602.03992v2",
+    "title": "Nemotron ColEmbed V2: Top-Performing Late Interaction Embedding Models for Visual Document Retrieval",
+    "abstract": "Retrieval-Augmented Generation (RAG) systems have been popular for generative applications, powering language models by injecting external knowledge. Companies have been trying to leverage their large catalog of documents (e.g. PDFs, presentation slides) in such RAG pipelines, whose first step is the retrieval component. Dense retrieval has been a popular approach, where embedding models are used to generate a dense representation of the user query that is closer to relevant content embeddings. More recently, VLM-based embedding models have become popular for visual document retrieval, as they preserve visual information and simplify the indexing pipeline compared to OCR text extraction.   Motivated by the growing demand for visual document retrieval, we introduce Nemotron ColEmbed V2, a family of models that achieve state-of-the-art performance on the ViDoRe benchmarks. We release three variants - with 3B, 4B, and 8B parameters - based on pre-trained VLMs: NVIDIA Eagle 2 with Llama 3.2 3B backbone, Qwen3-VL-4B-Instruct and Qwen3-VL-8B-Instruct, respectively. The 8B model ranks first on the ViDoRe V3 leaderboard as of February 03, 2026, achieving an average NDCG@10 of 63.42.   We describe the main techniques used across data processing, training, and post-training - such as cluster-based sampling, hard-negative mining, bidirectional attention, late interaction, and model merging - that helped us build our top-performing models. We also discuss compute and storage engineering challenges posed by the late interaction mechanism and present experiments on how to balance accuracy and storage with lower dimension embeddings.",
+    "categories": [
+      "cs.IR"
+    ],
+    "published": "2026-02-03T20:26:44+00:00",
+    "authors": [
+      "Gabriel de Souza P. Moreira",
+      "Ronay Ak",
+      "Mengyao Xu",
+      "Oliver Holworthy",
+      "Benedikt Schifferer",
+      "Zhiding Yu",
+      "Yauhen Babakhin",
+      "Radek Osmulski",
+      "Jiarui Cai",
+      "Ryan Chesler",
+      "Bo Liu",
+      "Even Oldridge"
+    ],
+    "url": "http://arxiv.org/abs/2602.03992v2",
+    "label": 1,
+    "source_query": "late interaction retrieval"
+  },
+  {
+    "arxiv_id": "1902.04262v1",
+    "title": "Reading Protocol: Understanding what has been Read in Interactive Information Retrieval Tasks",
+    "abstract": "In Interactive Information Retrieval (IIR) experiments the user's gaze motion on web pages is often recorded with eye tracking. The data is used to analyze gaze behavior or to identify Areas of Interest (AOI) the user has looked at. So far, tools for analyzing eye tracking data have certain limitations in supporting the analysis of gaze behavior in IIR experiments. Experiments often consist of a huge number of different visited web pages. In existing analysis tools the data can only be analyzed in videos or images and AOIs for every single web page have to be specified by hand, in a very time consuming process. In this work, we propose the reading protocol software which breaks eye tracking data down to the textual level by considering the HTML structure of the web pages. This has a lot of advantages for the analyst. First and foremost, it can easily be identified on a large scale what has actually been viewed and read on the stimuli pages by the subjects. Second, the web page structure can be used to filter to AOIs. Third, gaze data of multiple users can be presented on the same page, and fourth, fixation times on text can be exported and further processed in other tools. We present the software, its validation, and example use cases with data from three existing IIR experiments.",
+    "categories": [
+      "cs.IR",
+      "cs.HC"
+    ],
+    "published": "2019-02-12T07:22:17+00:00",
+    "authors": [
+      "Daniel Hienert",
+      "Dagmar Kern",
+      "Matthew Mitsui",
+      "Chirag Shah",
+      "Nicholas J. Belkin"
+    ],
+    "url": "http://arxiv.org/abs/1902.04262v1",
+    "label": 1,
+    "source_query": "late interaction retrieval"
+  },
+  {
+    "arxiv_id": "2302.10473v6",
+    "title": "Oriented object detection in optical remote sensing images using deep learning: a survey",
+    "abstract": "Oriented object detection is a fundamental yet challenging task in remote sensing (RS), aiming to locate and classify objects with arbitrary orientations. Recent advancements in deep learning have significantly enhanced the capabilities of oriented object detection methods. Given the rapid development of this field, a comprehensive survey of the recent advances in oriented object detection is presented in this paper. Specifically, we begin by tracing the technical evolution from horizontal object detection to oriented object detection and highlighting the specific related challenges, including feature misalignment, spatial misalignment, oriented bounding box (OBB) regression problems, and common issues encountered in RS. Subsequently, we further categorize the existing methods into detection frameworks, OBB regression techniques, feature representation approaches, and solutions to common issues and provide an in-depth discussion of how these methods address the above challenges. In addition, we cover several publicly available datasets and evaluation protocols. Furthermore, we provide a comprehensive comparison and analysis involving the state-of-the-art methods. Toward the end of this paper, we identify several future directions for oriented object detection research.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-21T06:31:53+00:00",
+    "authors": [
+      "Kun Wang",
+      "Zi Wang",
+      "Zhang Li",
+      "Ang Su",
+      "Xichao Teng",
+      "Erting Pan",
+      "Minhao Liu",
+      "Qifeng Yu"
+    ],
+    "url": "http://arxiv.org/abs/2302.10473v6",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "1904.13353v2",
+    "title": "Object Contour and Edge Detection with RefineContourNet",
+    "abstract": "A ResNet-based multi-path refinement CNN is used for object contour detection. For this task, we prioritise the effective utilization of the high-level abstraction capability of a ResNet, which leads to state-of-the-art results for edge detection. Keeping our focus in mind, we fuse the high, mid and low-level features in that specific order, which differs from many other approaches. It uses the tensor with the highest-levelled features as the starting point to combine it layer-by-layer with features of a lower abstraction level until it reaches the lowest level. We train this network on a modified PASCAL VOC 2012 dataset for object contour detection and evaluate on a refined PASCAL-val dataset reaching an excellent performance and an Optimal Dataset Scale (ODS) of 0.752. Furthermore, by fine-training on the BSDS500 dataset we reach state-of-the-art results for edge-detection with an ODS of 0.824.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2019-04-30T16:34:27+00:00",
+    "authors": [
+      "Andre Peter Kelm",
+      "Vijesh Soorya Rao",
+      "Udo Zoelzer"
+    ],
+    "url": "http://arxiv.org/abs/1904.13353v2",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2408.14600v1",
+    "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
+    "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-08-26T19:43:01+00:00",
+    "authors": [
+      "Yidi Li",
+      "Jiahao Wen",
+      "Bin Ren",
+      "Wenhao Li",
+      "Zhenhuan Xu",
+      "Hao Guo",
+      "Hong Liu",
+      "Nicu Sebe"
+    ],
+    "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2011.09170v1",
+    "title": "TJU-DHD: A Diverse High-Resolution Dataset for Object Detection",
+    "abstract": "Vehicles, pedestrians, and riders are the most important and interesting objects for the perception modules of self-driving vehicles and video surveillance. However, the state-of-the-art performance of detecting such important objects (esp. small objects) is far from satisfying the demand of practical systems. Large-scale, rich-diversity, and high-resolution datasets play an important role in developing better object detection methods to satisfy the demand. Existing public large-scale datasets such as MS COCO collected from websites do not focus on the specific scenarios. Moreover, the popular datasets (e.g., KITTI and Citypersons) collected from the specific scenarios are limited in the number of images and instances, the resolution, and the diversity. To attempt to solve the problem, we build a diverse high-resolution dataset (called TJU-DHD). The dataset contains 115,354 high-resolution images (52% images have a resolution of 1624$\\times$1200 pixels and 48% images have a resolution of at least 2,560$\\times$1,440 pixels) and 709,330 labeled objects in total with a large variance in scale and appearance. Meanwhile, the dataset has a rich diversity in season variance, illumination variance, and weather variance. In addition, a new diverse pedestrian dataset is further built. With the four different detectors (i.e., the one-stage RetinaNet, anchor-free FCOS, two-stage FPN, and Cascade R-CNN), experiments about object detection and pedestrian detection are conducted. We hope that the newly built dataset can help promote the research on object detection and pedestrian detection in these two scenes. The dataset is available at https://github.com/tjubiit/TJU-DHD.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-11-18T09:32:24+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Jiale Cao",
+      "Yazhao Li",
+      "Jin Xie",
+      "Hanqing Sun",
+      "Jinfeng Gong"
+    ],
+    "url": "http://arxiv.org/abs/2011.09170v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2110.14711v3",
+    "title": "A Survey of Self-Supervised and Few-Shot Object Detection",
+    "abstract": "Labeling data is often expensive and time-consuming, especially for tasks such as object detection and instance segmentation, which require dense labeling of the image. While few-shot object detection is about training a model on novel (unseen) object classes with little data, it still requires prior training on many labeled examples of base (seen) classes. On the other hand, self-supervised methods aim at learning representations from unlabeled data which transfer well to downstream tasks such as object detection. Combining few-shot and self-supervised object detection is a promising research direction. In this survey, we review and characterize the most recent approaches on few-shot and self-supervised object detection. Then, we give our main takeaways and discuss future research directions. Project page at https://gabrielhuang.github.io/fsod-survey/",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-10-27T18:55:47+00:00",
+    "authors": [
+      "Gabriel Huang",
+      "Issam Laradji",
+      "David Vazquez",
+      "Simon Lacoste-Julien",
+      "Pau Rodriguez"
+    ],
+    "url": "http://arxiv.org/abs/2110.14711v3",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2006.11692v1",
+    "title": "Semi-Supervised Object Detection with Sparsely Annotated Dataset",
+    "abstract": "In training object detector based on convolutional neural networks, selection of effective positive examples for training is an important factor. However, when training an anchor-based detectors with sparse annotations on an image, effort to find effective positive examples can hinder training performance. When using the anchor-based training for the ground truth bounding box to collect positive examples under given IoU, it is often possible to include objects from other classes in the current training class, or objects that are needed to be trained can only be sampled as negative examples. We used two approaches to solve this problem: 1) the use of an anchorless object detector and 2) a semi-supervised learning-based object detection using a single object tracker. The proposed technique performs single object tracking by using the sparsely annotated bounding box as an anchor in the temporal domain for successive frames. From the tracking results, dense annotations for training images were generated in an automated manner and used for training the object detector. We applied the proposed single object tracking-based semi-supervised learning to the Epic-Kitchens dataset. As a result, we were able to achieve \\textbf{runner-up} performance in the Unseen section while achieving the first place in the Seen section of the Epic-Kitchens 2020 object detection challenge under IoU > 0.5 evaluation",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-06-21T02:26:48+00:00",
+    "authors": [
+      "Jihun Yoon",
+      "Seungbum Hong",
+      "Sanha Jeong",
+      "Min-Kook Choi"
+    ],
+    "url": "http://arxiv.org/abs/2006.11692v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2301.02562v1",
+    "title": "Super Sparse 3D Object Detection",
+    "abstract": "As the perception range of LiDAR expands, LiDAR-based 3D object detection contributes ever-increasingly to the long-range perception in autonomous driving. Mainstream 3D object detectors often build dense feature maps, where the cost is quadratic to the perception range, making them hardly scale up to the long-range settings. To enable efficient long-range detection, we first propose a fully sparse object detector termed FSD. FSD is built upon the general sparse voxel encoder and a novel sparse instance recognition (SIR) module. SIR groups the points into instances and applies highly-efficient instance-wise feature extraction. The instance-wise grouping sidesteps the issue of the center feature missing, which hinders the design of the fully sparse architecture. To further enjoy the benefit of fully sparse characteristic, we leverage temporal information to remove data redundancy and propose a super sparse detector named FSD++. FSD++ first generates residual points, which indicate the point changes between consecutive frames. The residual points, along with a few previous foreground points, form the super sparse input data, greatly reducing data redundancy and computational overhead. We comprehensively analyze our method on the large-scale Waymo Open Dataset, and state-of-the-art performance is reported. To showcase the superiority of our method in long-range detection, we also conduct experiments on Argoverse 2 Dataset, where the perception range ($200m$) is much larger than Waymo Open Dataset ($75m$). Code is open-sourced at https://github.com/tusen-ai/SST.",
+    "categories": [
+      "cs.CV",
+      "cs.RO"
+    ],
+    "published": "2023-01-05T17:03:56+00:00",
+    "authors": [
+      "Lue Fan",
+      "Yuxue Yang",
+      "Feng Wang",
+      "Naiyan Wang",
+      "Zhaoxiang Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2301.02562v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2508.19294v2",
+    "title": "Object Detection with Multimodal Large Vision-Language Models: An In-depth Review",
+    "abstract": "The fusion of language and vision in large vision-language models (LVLMs) has revolutionized deep learning-based object detection by enhancing adaptability, contextual reasoning, and generalization beyond traditional architectures. This in-depth review presents a structured exploration of the state-of-the-art in LVLMs, systematically organized through a three-step research review process. First, we discuss the functioning of vision language models (VLMs) for object detection, describing how these models harness natural language processing (NLP) and computer vision (CV) techniques to revolutionize object detection and localization. We then explain the architectural innovations, training paradigms, and output flexibility of recent LVLMs for object detection, highlighting how they achieve advanced contextual understanding for object detection. The review thoroughly examines the approaches used in integration of visual and textual information, demonstrating the progress made in object detection using VLMs that facilitate more sophisticated object detection and localization strategies. This review presents comprehensive visualizations demonstrating LVLMs' effectiveness in diverse scenarios including localization and segmentation, and then compares their real-time performance, adaptability, and complexity to traditional deep learning systems. Based on the review, its is expected that LVLMs will soon meet or surpass the performance of conventional methods in object detection. The review also identifies a few major limitations of the current LVLM modes, proposes solutions to address those challenges, and presents a clear roadmap for the future advancement in this field. We conclude, based on this study, that the recent advancement in LVLMs have made and will continue to make a transformative impact on object detection and robotic applications in the future.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2025-08-25T17:21:00+00:00",
+    "authors": [
+      "Ranjan Sapkota",
+      "Manoj Karkee"
+    ],
+    "url": "http://arxiv.org/abs/2508.19294v2",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2411.02844v1",
+    "title": "Correlation of Object Detection Performance with Visual Saliency and Depth Estimation",
+    "abstract": "As object detection techniques continue to evolve, understanding their relationships with complementary visual tasks becomes crucial for optimising model architectures and computational resources. This paper investigates the correlations between object detection accuracy and two fundamental visual tasks: depth prediction and visual saliency prediction. Through comprehensive experiments using state-of-the-art models (DeepGaze IIE, Depth Anything, DPT-Large, and Itti's model) on COCO and Pascal VOC datasets, we find that visual saliency shows consistently stronger correlations with object detection accuracy (mA$ρ$ up to 0.459 on Pascal VOC) compared to depth prediction (mA$ρ$ up to 0.283). Our analysis reveals significant variations in these correlations across object categories, with larger objects showing correlation values up to three times higher than smaller objects. These findings suggest incorporating visual saliency features into object detection architectures could be more beneficial than depth information, particularly for specific object categories. The observed category-specific variations also provide insights for targeted feature engineering and dataset design improvements, potentially leading to more efficient and accurate object detection systems.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2024-11-05T06:34:19+00:00",
+    "authors": [
+      "Matthias Bartolo",
+      "Dylan Seychell"
+    ],
+    "url": "http://arxiv.org/abs/2411.02844v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "1711.10137v2",
+    "title": "One-Shot Reinforcement Learning for Robot Navigation with Interactive Replay",
+    "abstract": "Recently, model-free reinforcement learning algorithms have been shown to solve challenging problems by learning from extensive interaction with the environment. A significant issue with transferring this success to the robotics domain is that interaction with the real world is costly, but training on limited experience is prone to overfitting. We present a method for learning to navigate, to a fixed goal and in a known environment, on a mobile robot. The robot leverages an interactive world model built from a single traversal of the environment, a pre-trained visual feature encoder, and stochastic environmental augmentation, to demonstrate successful zero-shot transfer under real-world environmental variations without fine-tuning.",
+    "categories": [
+      "cs.AI",
+      "cs.LG",
+      "cs.RO"
+    ],
+    "published": "2017-11-28T06:03:14+00:00",
+    "authors": [
+      "Jake Bruce",
+      "Niko Suenderhauf",
+      "Piotr Mirowski",
+      "Raia Hadsell",
+      "Michael Milford"
+    ],
+    "url": "http://arxiv.org/abs/1711.10137v2",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "2602.12375v1",
+    "title": "Value Bonuses using Ensemble Errors for Exploration in Reinforcement Learning",
+    "abstract": "Optimistic value estimates provide one mechanism for directed exploration in reinforcement learning (RL). The agent acts greedily with respect to an estimate of the value plus what can be seen as a value bonus. The value bonus can be learned by estimating a value function on reward bonuses, propagating local uncertainties around rewards. However, this approach only increases the value bonus for an action retroactively, after seeing a higher reward bonus from that state and action. Such an approach does not encourage the agent to visit a state and action for the first time. In this work, we introduce an algorithm for exploration called Value Bonuses with Ensemble errors (VBE), that maintains an ensemble of random action-value functions (RQFs). VBE uses the errors in the estimation of these RQFs to design value bonuses that provide first-visit optimism and deep exploration. The key idea is to design the rewards for these RQFs in such a way that the value bonus can decrease to zero. We show that VBE outperforms Bootstrap DQN and two reward bonus approaches (RND and ACB) on several classic environments used to test exploration and provide demonstrative experiments that it can scale easily to more complex environments like Atari.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-12T20:12:17+00:00",
+    "authors": [
+      "Abdul Wahab",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2602.12375v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "2110.05457v1",
+    "title": "Legged Robots that Keep on Learning: Fine-Tuning Locomotion Policies in the Real World",
+    "abstract": "Legged robots are physically capable of traversing a wide range of challenging environments, but designing controllers that are sufficiently robust to handle this diversity has been a long-standing challenge in robotics. Reinforcement learning presents an appealing approach for automating the controller design process and has been able to produce remarkably robust controllers when trained in a suitable range of environments. However, it is difficult to predict all likely conditions the robot will encounter during deployment and enumerate them at training-time. What if instead of training controllers that are robust enough to handle any eventuality, we enable the robot to continually learn in any setting it finds itself in? This kind of real-world reinforcement learning poses a number of challenges, including efficiency, safety, and autonomy. To address these challenges, we propose a practical robot reinforcement learning system for fine-tuning locomotion policies in the real world. We demonstrate that a modest amount of real-world training can substantially improve performance during deployment, and this enables a real A1 quadrupedal robot to autonomously fine-tune multiple locomotion skills in a range of environments, including an outdoor lawn and a variety of indoor terrains.",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2021-10-11T17:48:18+00:00",
+    "authors": [
+      "Laura Smith",
+      "J. Chase Kew",
+      "Xue Bin Peng",
+      "Sehoon Ha",
+      "Jie Tan",
+      "Sergey Levine"
+    ],
+    "url": "http://arxiv.org/abs/2110.05457v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "2408.11339v1",
+    "title": "Deep Reinforcement Learning for Decentralized Multi-Robot Control: A DQN Approach to Robustness and Information Integration",
+    "abstract": "The superiority of Multi-Robot Systems (MRS) in various complex environments is unquestionable. However, in complex situations such as search and rescue, environmental monitoring, and automated production, robots are often required to work collaboratively without a central control unit. This necessitates an efficient and robust decentralized control mechanism to process local information and guide the robots' behavior. In this work, we propose a new decentralized controller design method that utilizes the Deep Q-Network (DQN) algorithm from deep reinforcement learning, aimed at improving the integration of local information and robustness of multi-robot systems. The designed controller allows each robot to make decisions independently based on its local observations while enhancing the overall system's collaborative efficiency and adaptability to dynamic environments through a shared learning mechanism. Through testing in simulated environments, we have demonstrated the effectiveness of this controller in improving task execution efficiency, strengthening system fault tolerance, and enhancing adaptability to the environment. Furthermore, we explored the impact of DQN parameter tuning on system performance, providing insights for further optimization of the controller design. Our research not only showcases the potential application of the DQN algorithm in the decentralized control of multi-robot systems but also offers a new perspective on how to enhance the overall performance and robustness of the system through the integration of local information.",
+    "categories": [
+      "cs.RO",
+      "cs.MA"
+    ],
+    "published": "2024-08-21T04:49:49+00:00",
+    "authors": [
+      "Bin Wu",
+      "C Steve Suh"
+    ],
+    "url": "http://arxiv.org/abs/2408.11339v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "2504.00614v2",
+    "title": "Learning Bipedal Locomotion on Gear-Driven Humanoid Robot Using Foot-Mounted IMUs",
+    "abstract": "Sim-to-real reinforcement learning (RL) for humanoid robots with high-gear ratio actuators remains challenging due to complex actuator dynamics and the absence of torque sensors. To address this, we propose a novel RL framework leveraging foot-mounted inertial measurement units (IMUs). Instead of pursuing detailed actuator modeling and system identification, we utilize foot-mounted IMU measurements to enhance rapid stabilization capabilities over challenging terrains. Additionally, we propose symmetric data augmentation dedicated to the proposed observation space and random network distillation to enhance bipedal locomotion learning over rough terrain. We validate our approach through hardware experiments on a miniature-sized humanoid EVAL-03 over a variety of environments. The experimental results demonstrate that our method improves rapid stabilization capabilities over non-rigid surfaces and sudden environmental transitions.",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2025-04-01T10:11:55+00:00",
+    "authors": [
+      "Sotaro Katayama",
+      "Yuta Koda",
+      "Norio Nagatsuka",
+      "Masaya Kinoshita"
+    ],
+    "url": "http://arxiv.org/abs/2504.00614v2",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "2511.06465v1",
+    "title": "Sim-to-Real Transfer in Deep Reinforcement Learning for Bipedal Locomotion",
+    "abstract": "This chapter addresses the critical challenge of simulation-to-reality (sim-to-real) transfer for deep reinforcement learning (DRL) in bipedal locomotion. After contextualizing the problem within various control architectures, we dissect the ``curse of simulation'' by analyzing the primary sources of sim-to-real gap: robot dynamics, contact modeling, state estimation, and numerical solvers. Building on this diagnosis, we structure the solutions around two complementary philosophies. The first is to shrink the gap through model-centric strategies that systematically improve the simulator's physical fidelity. The second is to harden the policy, a complementary approach that uses in-simulation robustness training and post-deployment adaptation to make the policy inherently resilient to model inaccuracies. The chapter concludes by synthesizing these philosophies into a strategic framework, providing a clear roadmap for developing and evaluating robust sim-to-real solutions.",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2025-11-09T17:20:04+00:00",
+    "authors": [
+      "Lingfan Bao",
+      "Tianhu Peng",
+      "Chengxu Zhou"
+    ],
+    "url": "http://arxiv.org/abs/2511.06465v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "1809.07731v1",
+    "title": "Benchmarking Reinforcement Learning Algorithms on Real-World Robots",
+    "abstract": "Through many recent successes in simulation, model-free reinforcement learning has emerged as a promising approach to solving continuous control robotic tasks. The research community is now able to reproduce, analyze and build quickly on these results due to open source implementations of learning algorithms and simulated benchmark tasks. To carry forward these successes to real-world applications, it is crucial to withhold utilizing the unique advantages of simulations that do not transfer to the real world and experiment directly with physical robots. However, reinforcement learning research with physical robots faces substantial resistance due to the lack of benchmark tasks and supporting source code. In this work, we introduce several reinforcement learning tasks with multiple commercially available robots that present varying levels of learning difficulty, setup, and repeatability. On these tasks, we test the learning performance of off-the-shelf implementations of four reinforcement learning algorithms and analyze sensitivity to their hyper-parameters to determine their readiness for applications in various real-world tasks. Our results show that with a careful setup of the task interface and computations, some of these implementations can be readily applicable to physical robots. We find that state-of-the-art learning algorithms are highly sensitive to their hyper-parameters and their relative ordering does not transfer across tasks, indicating the necessity of re-tuning them for each task for best performance. On the other hand, the best hyper-parameter configuration from one task may often result in effective learning on held-out tasks even with different robots, providing a reasonable default. We make the benchmark tasks publicly available to enhance reproducibility in real-world reinforcement learning.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.RO",
+      "stat.ML"
+    ],
+    "published": "2018-09-20T16:46:04+00:00",
+    "authors": [
+      "A. Rupam Mahmood",
+      "Dmytro Korenkevych",
+      "Gautham Vasan",
+      "William Ma",
+      "James Bergstra"
+    ],
+    "url": "http://arxiv.org/abs/1809.07731v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "2507.02910v1",
+    "title": "Causal-Paced Deep Reinforcement Learning",
+    "abstract": "Designing effective task sequences is crucial for curriculum reinforcement learning (CRL), where agents must gradually acquire skills by training on intermediate tasks. A key challenge in CRL is to identify tasks that promote exploration, yet are similar enough to support effective transfer. While recent approach suggests comparing tasks via their Structural Causal Models (SCMs), the method requires access to ground-truth causal structures, an unrealistic assumption in most RL settings. In this work, we propose Causal-Paced Deep Reinforcement Learning (CP-DRL), a curriculum learning framework aware of SCM differences between tasks based on interaction data approximation. This signal captures task novelty, which we combine with the agent's learnability, measured by reward gain, to form a unified objective. Empirically, CP-DRL outperforms existing curriculum methods on the Point Mass benchmark, achieving faster convergence and higher returns. CP-DRL demonstrates reduced variance with comparable final returns in the Bipedal Walker-Trivial setting, and achieves the highest average performance in the Infeasible variant. These results indicate that leveraging causal relationships between tasks can improve the structure-awareness and sample efficiency of curriculum reinforcement learning. We provide the full implementation of CP-DRL to facilitate the reproduction of our main results at https://github.com/Cho-Geonwoo/CP-DRL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2025-06-24T20:15:01+00:00",
+    "authors": [
+      "Geonwoo Cho",
+      "Jaegyun Im",
+      "Doyoon Kim",
+      "Sundong Kim"
+    ],
+    "url": "http://arxiv.org/abs/2507.02910v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "1907.03423v7",
+    "title": "On-Policy Robot Imitation Learning from a Converging Supervisor",
+    "abstract": "Existing on-policy imitation learning algorithms, such as DAgger, assume access to a fixed supervisor. However, there are many settings where the supervisor may evolve during policy learning, such as a human performing a novel task or an improving algorithmic controller. We formalize imitation learning from a \"converging supervisor\" and provide sublinear static and dynamic regret guarantees against the best policy in hindsight with labels from the converged supervisor, even when labels during learning are only from intermediate supervisors. We then show that this framework is closely connected to a class of reinforcement learning (RL) algorithms known as dual policy iteration (DPI), which alternate between training a reactive learner with imitation learning and a model-based supervisor with data from the learner. Experiments suggest that when this framework is applied with the state-of-the-art deep model-based RL algorithm PETS as an improving supervisor, it outperforms deep RL baselines on continuous control tasks and provides up to an 80-fold speedup in policy evaluation.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.RO"
+    ],
+    "published": "2019-07-08T07:02:57+00:00",
+    "authors": [
+      "Ashwin Balakrishna",
+      "Brijen Thananjeyan",
+      "Jonathan Lee",
+      "Felix Li",
+      "Arsh Zahed",
+      "Joseph E. Gonzalez",
+      "Ken Goldberg"
+    ],
+    "url": "http://arxiv.org/abs/1907.03423v7",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "1807.05037v1",
+    "title": "Exploring Hierarchy-Aware Inverse Reinforcement Learning",
+    "abstract": "We introduce a new generative model for human planning under the Bayesian Inverse Reinforcement Learning (BIRL) framework which takes into account the fact that humans often plan using hierarchical strategies. We describe the Bayesian Inverse Hierarchical RL (BIHRL) algorithm for inferring the values of hierarchical planners, and use an illustrative toy model to show that BIHRL retains accuracy where standard BIRL fails. Furthermore, BIHRL is able to accurately predict the goals of `Wikispeedia' game players, with inclusion of hierarchical structure in the model resulting in a large boost in accuracy. We show that BIHRL is able to significantly outperform BIRL even when we only have a weak prior on the hierarchical structure of the plans available to the agent, and discuss the significant challenges that remain for scaling up this framework to more realistic settings.",
+    "categories": [
+      "cs.AI",
+      "cs.HC"
+    ],
+    "published": "2018-07-13T12:33:07+00:00",
+    "authors": [
+      "Chris Cundy",
+      "Daniel Filan"
+    ],
+    "url": "http://arxiv.org/abs/1807.05037v1",
+    "label": 0,
+    "source_query": "reinforcement learning robot locomotion"
+  },
+  {
+    "arxiv_id": "1206.3509v1",
+    "title": "A Novel Approach for Protein Structure Prediction",
+    "abstract": "The idea of this project is to study the protein structure and sequence relationship using the hidden markov model and artificial neural network. In this context we have assumed two hidden markov models. In first model we have taken protein secondary structures as hidden and protein sequences as observed. In second model we have taken protein sequences as hidden and protein structures as observed. The efficiencies for both the hidden markov models have been calculated. The results show that the efficiencies of first model is greater that the second one .These efficiencies are cross validated using artificial neural network. This signifies the importance of protein secondary structures as the main hidden controlling factors due to which we observe a particular amino acid sequence. This also signifies that protein secondary structure is more conserved in comparison to amino acid sequence.",
+    "categories": [
+      "cs.LG",
+      "q-bio.BM"
+    ],
+    "published": "2012-06-15T16:31:45+00:00",
+    "authors": [
+      "Saurabh Sarkar",
+      "Prateek Malhotra",
+      "Virender Guman"
+    ],
+    "url": "http://arxiv.org/abs/1206.3509v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2207.07410v1",
+    "title": "AlphaFold predicts the most complex protein knot and composite protein knots",
+    "abstract": "The computer artificial intelligence system AlphaFold has recently predicted previously unknown three-dimensional structures of thousands of proteins. Focusing on the subset with high-confidence scores, we algorithmically analyze these predictions for cases where the protein backbone exhibits rare topological complexity, i.e. knotting. Amongst others, we discovered a $7_1$-knot, the most topologically complex knot ever found in a protein, as well several 6-crossing composite knots comprised of two methyltransferase or carbonic anhydrase domains, each containing a simple trefoil knot. These deeply embedded composite knots occur evidently by gene duplication and interconnection of knotted dimers. Finally, we report two new five-crossing knots including the first $5_1$-knot. Our list of analyzed structures forms the basis for future experimental studies to confirm these novel knotted topologies and to explore their complex folding mechanisms.",
+    "categories": [
+      "q-bio.BM",
+      "cond-mat.soft",
+      "physics.bio-ph"
+    ],
+    "published": "2022-07-15T11:38:45+00:00",
+    "authors": [
+      "Maarten A. Brems",
+      "Robert Runkel",
+      "Todd O. Yeates",
+      "Peter Virnau"
+    ],
+    "url": "http://arxiv.org/abs/2207.07410v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2504.06806v1",
+    "title": "Mass Balance Approximation of Unfolding Improves Potential-Like Methods for Protein Stability Predictions",
+    "abstract": "The prediction of protein stability changes following single-point mutations plays a pivotal role in computational biology, particularly in areas like drug discovery, enzyme reengineering, and genetic disease analysis. Although deep-learning strategies have pushed the field forward, their use in standard workflows remains limited due to resource demands. Conversely, potential-like methods are fast, intuitive, and efficient. Yet, these typically estimate Gibbs free energy shifts without considering the free-energy variations in the unfolded protein state, an omission that may breach mass balance and diminish accuracy. This study shows that incorporating a mass-balance correction (MBC) to account for the unfolded state significantly enhances these methods. While many machine learning models partially model this balance, our analysis suggests that a refined representation of the unfolded state may improve the predictive performance.",
+    "categories": [
+      "q-bio.QM",
+      "cs.LG",
+      "physics.bio-ph"
+    ],
+    "published": "2025-04-09T11:53:02+00:00",
+    "authors": [
+      "Ivan Rossi",
+      "Guido Barducci",
+      "Tiziana Sanavia",
+      "Paola Turina",
+      "Emidio Capriotti",
+      "Piero Fariselli"
+    ],
+    "url": "http://arxiv.org/abs/2504.06806v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1208.2680v2",
+    "title": "Atomic-accuracy prediction of protein loop structures through an RNA-inspired ansatz",
+    "abstract": "Consistently predicting biopolymer structure at atomic resolution from sequence alone remains a difficult problem, even for small sub-segments of large proteins. Such loop prediction challenges, which arise frequently in comparative modeling and protein design, can become intractable as loop lengths exceed 10 residues and if surrounding side-chain conformations are erased. This article introduces a modeling strategy based on a 'stepwise ansatz', recently developed for RNA modeling, which posits that any realistic all-atom molecular conformation can be built up by residue-by-residue stepwise enumeration. When harnessed to a dynamic-programming-like recursion in the Rosetta framework, the resulting stepwise assembly (SWA) protocol enables enumerative sampling of a 12 residue loop at a significant but achievable cost of thousands of CPU-hours. In a previously established benchmark, SWA recovers crystallographic conformations with sub-Angstrom accuracy for 19 of 20 loops, compared to 14 of 20 by KIC modeling with a comparable expenditure of computational power. Furthermore, SWA gives high accuracy results on an additional set of 15 loops highlighted in the biological literature for their irregularity or unusual length. Successes include cis-Pro touch turns, loops that pass through tunnels of other side-chains, and loops of lengths up to 24 residues. Remaining problem cases are traced to inaccuracies in the Rosetta all-atom energy function. In five additional blind tests, SWA achieves sub-Angstrom accuracy models, including the first such success in a protein/RNA binding interface, the YbxF/kink-turn interaction in the fourth RNA-puzzle competition. These results establish all-atom enumeration as a systematic approach to protein structure that can leverage high performance computing and physically realistic energy functions to more consistently achieve atomic resolution.",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2012-08-02T19:06:33+00:00",
+    "authors": [
+      "Rhiju Das"
+    ],
+    "url": "http://arxiv.org/abs/1208.2680v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1511.08097v2",
+    "title": "One-Dimensional Structural Properties of Proteins in the Coarse-Grained CABS Model",
+    "abstract": "Despite the significant increase in computational power, molecular modeling of protein structure using classical all-atom approaches remains inefficient, at least for most of the protein targets in the focus of biomedical research. Perhaps the most successful strategy to overcome the inefficiency problem is multiscale modeling to merge all-atom and coarse-grained models. This chapter describes a well-established CABS coarse-grained protein model. The CABS (C-Alpha, C-Beta and Side chains) model assumes a 2-4 united-atom representation of amino acids, knowledge-based force field (derived from the statistical regularities seen in known protein sequences and structures) and efficient Monte Carlo sampling schemes (MC dynamics, MC replica-exchange, and combinations). A particular emphasis is given to the unique design of the CABS force-field, which is largely defined using one-dimensional structural properties of proteins, including protein secondary structure. This chapter also presents CABS-based modeling methods, including multiscale tools for de novo structure prediction, modeling of protein dynamics and prediction of protein-peptide complexes. CABS-based tools are freely available at http://biocomp.chem.uw.edu.pl/tools",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2015-11-25T15:46:58+00:00",
+    "authors": [
+      "Sebastian Kmiecik",
+      "Andrzej Kolinski"
+    ],
+    "url": "http://arxiv.org/abs/1511.08097v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1711.10540v2",
+    "title": "ISLAND: In-Silico Prediction of Proteins Binding Affinity Using Sequence Descriptors",
+    "abstract": "Determination of binding affinity of proteins in the formation of protein complexes requires sophisticated, expensive and time-consuming experimentation which can be replaced with computational methods. Most computational prediction techniques require protein structures which limit their applicability to protein complexes with known structures. In this work, we explore sequence based protein binding affinity prediction using machine learning. Our paper highlights the fact that the generalization performance of even the state of the art sequence-only predictor of binding affinity is far from satisfactory and that the development of effective and practical methods in this domain is still an open problem. We also propose a novel sequence-only predictor of binding affinity called ISLAND which gives better accuracy than existing methods over the same validation set as well as on external independent test dataset. A cloud-based webserver implementation of ISLAND and its Python code are available at the URL: http://faculty.pieas.edu.pk/fayyaz/software.html#island.",
+    "categories": [
+      "q-bio.QM",
+      "cs.LG"
+    ],
+    "published": "2017-11-22T07:54:31+00:00",
+    "authors": [
+      "Wajid Arshad Abbasi",
+      "Fahad Ul Hassan",
+      "Adiba Yaseen",
+      "Fayyaz Ul Amir Afsar Minhas"
+    ],
+    "url": "http://arxiv.org/abs/1711.10540v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1310.2182v1",
+    "title": "New Approach for Prediction Pre-cancer via Detecting Mutated in Tumor Protein P53",
+    "abstract": "Tumor protein P53 is believed to be involved in over half of human cancers cases, the prediction of malignancies plays essential roles not only in advance detection for cancer, but also in discovering effective prevention and treatment of cancer, till now there isn't approach be able in prediction the mutated in tumor protein P53 which is caused high ratio of human cancers like breast, Blood, skin, liver, lung, bladder etc. This research proposed a new approach for prediction pre-cancer via detection malignant mutations in tumor protein P53 using bioinformatics tools like FASTA, BLAST, CLUSTALW and TP53 databases worldwide. Implement and apply this new approach of prediction pre-cancer through mutations at tumor protein P53 shows an effective result when used more specific parameters/features to extract the prediction result that means when the user increase the number of filters of the results which obtained from the database gives more specific diagnosis and classify, addition that the detecting pre-cancer via prediction mutated tumor protein P53 will reduces a person's cancers in the future by avoiding exposure to toxins, radiation or monitoring themselves at older ages by change their food, environment, even the pace of living. Also that new approach of prediction pre-cancer will help if there is any treatment can give for that person to therapy the mutated tumor protein P53. Index Terms (Normal Homology TP53 gene, Tumor Protein P53, Oncogene Labs, GC and AT content, FASTA, BLAST, ClustalW)",
+    "categories": [
+      "cs.CE",
+      "q-bio.OT"
+    ],
+    "published": "2013-10-08T15:43:25+00:00",
+    "authors": [
+      "Ayad Ghany Ismaeel"
+    ],
+    "url": "http://arxiv.org/abs/1310.2182v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1008.4006v3",
+    "title": "Potentials of Mean Force for Protein Structure Prediction Vindicated, Formalized and Generalized",
+    "abstract": "Understanding protein structure is of crucial importance in science, medicine and biotechnology. For about two decades, knowledge based potentials based on pairwise distances -- so-called \"potentials of mean force\" (PMFs) -- have been center stage in the prediction and design of protein structure and the simulation of protein folding. However, the validity, scope and limitations of these potentials are still vigorously debated and disputed, and the optimal choice of the reference state -- a necessary component of these potentials -- is an unsolved problem. PMFs are loosely justified by analogy to the reversible work theorem in statistical physics, or by a statistical argument based on a likelihood function. Both justifications are insightful but leave many questions unanswered. Here, we show for the first time that PMFs can be seen as approximations to quantities that do have a rigorous probabilistic justification: they naturally arise when probability distributions over different features of proteins need to be combined. We call these quantities reference ratio distributions deriving from the application of the reference ratio method. This new view is not only of theoretical relevance, but leads to many insights that are of direct practical use: the reference state is uniquely defined and does not require external physical insights; the approach can be generalized beyond pairwise distances to arbitrary features of protein structure; and it becomes clear for which purposes the use of these quantities is justified. We illustrate these insights with two applications, involving the radius of gyration and hydrogen bonding. In the latter case, we also show how the reference ratio method can be iteratively applied to sculpt an energy funnel. Our results considerably increase the understanding and scope of energy functions derived from known biomolecular structures.",
+    "categories": [
+      "q-bio.BM",
+      "cond-mat.stat-mech"
+    ],
+    "published": "2010-08-24T10:49:18+00:00",
+    "authors": [
+      "Thomas Hamelryck",
+      "Mikael Borg",
+      "Martin Paluszewski",
+      "Jonas Paulsen",
+      "Jes Frellsen",
+      "Christian Andreetta",
+      "Wouter Boomsma",
+      "Sandro Bottaro",
+      "Jesper Ferkinghoff-Borg"
+    ],
+    "url": "http://arxiv.org/abs/1008.4006v3",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2307.02169v2",
+    "title": "Introduction to Protein Structure",
+    "abstract": "While many good textbooks are available on Protein Structure, Molecular Simulations, Thermodynamics and Bioinformatics methods in general, there is no good introductory level book for the field of Structural Bioinformatics. This book aims to give an introduction into Structural Bioinformatics, which is where the previous topics meet to explore three dimensional protein structures through computational analysis. We provide an overview of existing computational techniques, to validate, simulate, predict and analyse protein structures. More importantly, it will aim to provide practical knowledge about how and when to use such techniques. We will consider proteins from three major vantage points: Protein structure quantification, Protein structure prediction, and Protein simulation & dynamics.   Within the living cell, protein molecules perform specific functions, typically by interacting with other proteins, DNA, RNA or small molecules. They take on a specific three dimensional structure, encoded by its amino acid sequence, which allows them to function within the cell. Hence, the understanding of a protein's function is tightly coupled to its sequence and its three dimensional structure. Before going into protein structure analysis and prediction, and protein folding and dynamics, here, we give a short and concise introduction into the basics of protein structures.",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2023-07-05T10:12:55+00:00",
+    "authors": [
+      "Annika Jacobsen",
+      "Erik van Dijk",
+      "Halima Mouhib",
+      "Bas Stringer",
+      "Olga Ivanova",
+      "Jose Gavaldá-Garciá",
+      "Laura Hoekstra",
+      "K. Anton Feenstra",
+      "Sanne Abeln"
+    ],
+    "url": "http://arxiv.org/abs/2307.02169v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2601.00656v1",
+    "title": "Quantum Simulation of Protein Fragment Electronic Structure Using Moment-based Adaptive Variational Quantum Algorithms",
+    "abstract": "Background: Understanding electronic interactions in protein active sites is fundamental to drug discovery and enzyme engineering, but remains computationally challenging due to exponential scaling of quantum mechanical calculations.   Results: We present a quantum-classical hybrid framework for simulating protein fragment electronic structure using variational quantum algorithms. We construct fermionic Hamiltonians from experimentally determined protein structures, map them to qubits via Jordan-Wigner transformation, and optimize ground state energies using the Variational Quantum Eigensolver implemented in pure Python. For a 4-orbital serine protease fragment, we achieve chemical accuracy (< 1.6 mHartree) with 95.3% correlation energy recovery. Systematic analysis reveals three-phase convergence behaviour with exponential decay (α = 0.95), power law optimization (γ = 1.21), and asymptotic approach. Application to SARS-CoV-2 protease inhibition demonstrates predictive accuracy (MAE=0.25 kcal/mol), while cytochrome P450 metabolism predictions achieve 85% site accuracy.   Conclusions: This work establishes a pathway for quantum-enhanced biomolecular simulations on near-term quantum hardware, bridging quantum algorithm development with practical biological applications.",
+    "categories": [
+      "q-bio.QM",
+      "cs.ET"
+    ],
+    "published": "2026-01-02T11:33:09+00:00",
+    "authors": [
+      "Biraja Ghoshal"
+    ],
+    "url": "http://arxiv.org/abs/2601.00656v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  }
+]

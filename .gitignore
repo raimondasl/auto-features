@@ -191,6 +191,10 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# RepoRadar eval benchmark
+evals/.env
+evals/.work/
+
 # PyPI configuration file
 .pypirc
 

@@ -1,0 +1,942 @@
+[
+  {
+    "arxiv_id": "2602.12375v1",
+    "title": "Value Bonuses using Ensemble Errors for Exploration in Reinforcement Learning",
+    "abstract": "Optimistic value estimates provide one mechanism for directed exploration in reinforcement learning (RL). The agent acts greedily with respect to an estimate of the value plus what can be seen as a value bonus. The value bonus can be learned by estimating a value function on reward bonuses, propagating local uncertainties around rewards. However, this approach only increases the value bonus for an action retroactively, after seeing a higher reward bonus from that state and action. Such an approach does not encourage the agent to visit a state and action for the first time. In this work, we introduce an algorithm for exploration called Value Bonuses with Ensemble errors (VBE), that maintains an ensemble of random action-value functions (RQFs). VBE uses the errors in the estimation of these RQFs to design value bonuses that provide first-visit optimism and deep exploration. The key idea is to design the rewards for these RQFs in such a way that the value bonus can decrease to zero. We show that VBE outperforms Bootstrap DQN and two reward bonus approaches (RND and ACB) on several classic environments used to test exploration and provide demonstrative experiments that it can scale easily to more complex environments like Atari.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-12T20:12:17+00:00",
+    "authors": [
+      "Abdul Wahab",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2602.12375v1",
+    "label": 1,
+    "source_query": "deep reinforcement learning"
+  },
+  {
+    "arxiv_id": "1712.00006v2",
+    "title": "Comparing Deep Reinforcement Learning and Evolutionary Methods in Continuous Control",
+    "abstract": "Reinforcement Learning and the Evolutionary Strategy are two major approaches in addressing complicated control problems. Both are strong contenders and have their own devotee communities. Both groups have been very active in developing new advances in their own domain and devising, in recent years, leading-edge techniques to address complex continuous control tasks. Here, in the context of Deep Reinforcement Learning, we formulate a parallelized version of the Proximal Policy Optimization method and a Deep Deterministic Policy Gradient method. Moreover, we conduct a thorough comparison between the state-of-the-art techniques in both camps fro continuous control; evolutionary methods and Deep Reinforcement Learning methods. The results show there is no consistent winner.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2017-11-30T03:40:06+00:00",
+    "authors": [
+      "Shangtong Zhang",
+      "Osmar R. Zaiane"
+    ],
+    "url": "http://arxiv.org/abs/1712.00006v2",
+    "label": 1,
+    "source_query": "deep reinforcement learning"
+  },
+  {
+    "arxiv_id": "1701.07274v6",
+    "title": "Deep Reinforcement Learning: An Overview",
+    "abstract": "We give an overview of recent exciting achievements of deep reinforcement learning (RL). We discuss six core elements, six important mechanisms, and twelve applications. We start with background of machine learning, deep learning and reinforcement learning. Next we discuss core RL elements, including value function, in particular, Deep Q-Network (DQN), policy, reward, model, planning, and exploration. After that, we discuss important mechanisms for RL, including attention and memory, unsupervised learning, transfer learning, multi-agent RL, hierarchical RL, and learning to learn. Then we discuss various applications of RL, including games, in particular, AlphaGo, robotics, natural language processing, including dialogue systems, machine translation, and text generation, computer vision, neural architecture design, business management, finance, healthcare, Industry 4.0, smart grid, intelligent transportation systems, and computer systems. We mention topics not reviewed yet, and list a collection of RL resources. After presenting a brief summary, we close with discussions.   Please see Deep Reinforcement Learning, arXiv:1810.06339, for a significant update.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2017-01-25T11:52:11+00:00",
+    "authors": [
+      "Yuxi Li"
+    ],
+    "url": "http://arxiv.org/abs/1701.07274v6",
+    "label": 1,
+    "source_query": "deep reinforcement learning"
+  },
+  {
+    "arxiv_id": "1604.08153v3",
+    "title": "Classifying Options for Deep Reinforcement Learning",
+    "abstract": "In this paper we combine one method for hierarchical reinforcement learning - the options framework - with deep Q-networks (DQNs) through the use of different \"option heads\" on the policy network, and a supervisory network for choosing between the different options. We utilise our setup to investigate the effects of architectural constraints in subtasks with positive and negative transfer, across a range of network capacities. We empirically show that our augmented DQN has lower sample complexity when simultaneously learning subtasks with negative transfer, without degrading performance when learning subtasks with positive transfer.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2016-04-27T17:48:39+00:00",
+    "authors": [
+      "Kai Arulkumaran",
+      "Nat Dilokthanakul",
+      "Murray Shanahan",
+      "Anil Anthony Bharath"
+    ],
+    "url": "http://arxiv.org/abs/1604.08153v3",
+    "label": 1,
+    "source_query": "deep reinforcement learning"
+  },
+  {
+    "arxiv_id": "1911.11285v1",
+    "title": "Biologically inspired architectures for sample-efficient deep reinforcement learning",
+    "abstract": "Deep reinforcement learning requires a heavy price in terms of sample efficiency and overparameterization in the neural networks used for function approximation. In this work, we use tensor factorization in order to learn more compact representation for reinforcement learning policies. We show empirically that in the low-data regime, it is possible to learn online policies with 2 to 10 times less total coefficients, with little to no loss of performance. We also leverage progress in second order optimization, and use the theory of wavelet scattering to further reduce the number of learned coefficients, by foregoing learning the topmost convolutional layer filters altogether. We evaluate our results on the Atari suite against recent baseline algorithms that represent the state-of-the-art in data efficiency, and get comparable results with an order of magnitude gain in weight parsimony.",
+    "categories": [
+      "cs.LG",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2019-11-25T23:59:22+00:00",
+    "authors": [
+      "Pierre H. Richemond",
+      "Arinbjörn Kolbeinsson",
+      "Yike Guo"
+    ],
+    "url": "http://arxiv.org/abs/1911.11285v1",
+    "label": 1,
+    "source_query": "deep reinforcement learning"
+  },
+  {
+    "arxiv_id": "2010.14374v3",
+    "title": "Explainable Machine Learning for Public Policy: Use Cases, Gaps, and Research Directions",
+    "abstract": "Explainability is highly-desired in Machine Learning (ML) systems supporting high-stakes policy decisions in areas such as health, criminal justice, education, and employment. While the field of explainable ML has expanded in recent years, much of this work has not taken real-world needs into account. A majority of proposed methods are designed with \\textit{generic} explainability goals without well-defined use-cases or intended end-users and evaluated on simplified tasks, benchmark problems/datasets, or with proxy users (e.g., AMT). We argue that these simplified evaluation settings do not capture the nuances and complexities of real-world applications. As a result, the applicability and effectiveness of this large body of theoretical and methodological work in real-world applications are unclear. In this work, we take steps toward addressing this gap for the domain of public policy. First, we identify the primary use-cases of explainable ML within public policy problems. For each use case, we define the end-users of explanations and the specific goals the explanations have to fulfill. Finally, we map existing work in explainable ML to these use-cases, identify gaps in established capabilities, and propose research directions to fill those gaps to have a practical societal impact through ML. The contribution is 1) a methodology for explainable ML researchers to identify use cases and develop methods targeted at them and 2) using that methodology for the domain of public policy and giving an example for the researchers on developing explainable ML methods that result in real-world impact.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2020-10-27T15:37:00+00:00",
+    "authors": [
+      "Kasun Amarasinghe",
+      "Kit Rodolfa",
+      "Hemank Lamba",
+      "Rayid Ghani"
+    ],
+    "url": "http://arxiv.org/abs/2010.14374v3",
+    "label": 1,
+    "source_query": "policy gradient methods"
+  },
+  {
+    "arxiv_id": "2006.08505v5",
+    "title": "Diversity Policy Gradient for Sample Efficient Quality-Diversity Optimization",
+    "abstract": "A fascinating aspect of nature lies in its ability to produce a large and diverse collection of organisms that are all high-performing in their niche. By contrast, most AI algorithms focus on finding a single efficient solution to a given problem. Aiming for diversity in addition to performance is a convenient way to deal with the exploration-exploitation trade-off that plays a central role in learning. It also allows for increased robustness when the returned collection contains several working solutions to the considered problem, making it well-suited for real applications such as robotics. Quality-Diversity (QD) methods are evolutionary algorithms designed for this purpose. This paper proposes a novel algorithm, QDPG, which combines the strength of Policy Gradient algorithms and Quality Diversity approaches to produce a collection of diverse and high-performing neural policies in continuous control environments. The main contribution of this work is the introduction of a Diversity Policy Gradient (DPG) that exploits information at the time-step level to drive policies towards more diversity in a sample-efficient manner. Specifically, QDPG selects neural controllers from a MAP-Elites grid and uses two gradient-based mutation operators to improve both quality and diversity. Our results demonstrate that QDPG is significantly more sample-efficient than its evolutionary competitors.",
+    "categories": [
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2020-06-15T16:04:06+00:00",
+    "authors": [
+      "Thomas Pierrot",
+      "Valentin Macé",
+      "Félix Chalumeau",
+      "Arthur Flajolet",
+      "Geoffrey Cideron",
+      "Karim Beguir",
+      "Antoine Cully",
+      "Olivier Sigaud",
+      "Nicolas Perrin-Gilbert"
+    ],
+    "url": "http://arxiv.org/abs/2006.08505v5",
+    "label": 1,
+    "source_query": "policy gradient methods"
+  },
+  {
+    "arxiv_id": "2606.11798v1",
+    "title": "Deterministic Policy Gradient for Learning Equilibrium in Time-Inconsistent Control Problems",
+    "abstract": "In this paper, we develop a continuous-time model-free reinforcement learning algorithm to learn deterministic equilibrium policies in general time-inconsistent control problems. Utilizing the extended Hamilton-Jacobi-Bellman system, we recast the original time-inconsistent problem into an equivalent two-stage problem. In the first stage, for given auxiliary functions, we employ the deterministic policy gradient approach to learn an optimal policy in an auxiliary time-consistent control problem. In the second stage, given the updated policy, we exploit the inner fixed point iterations and some martingale characterizations to learn the auxiliary functions. As a theoretical contribution, we provide some mild model assumptions and establish the convergence of inner fixed point iterations. By repeating this actor-critic style of iterations across two stages, our algorithm aims to learn the equilibrium under different sources of time-inconsistency in a unified manner. The superior effectiveness of the proposed algorithm are illustrated in two classical financial applications with time-inconsistency: mean-variance portfolio management and optimal tracking portfolio under non-exponential discounting.",
+    "categories": [
+      "q-fin.CP",
+      "cs.LG",
+      "math.OC"
+    ],
+    "published": "2026-06-10T08:31:54+00:00",
+    "authors": [
+      "Xin Guo",
+      "Yijie Huang",
+      "Xiang Yu"
+    ],
+    "url": "http://arxiv.org/abs/2606.11798v1",
+    "label": 1,
+    "source_query": "policy gradient methods"
+  },
+  {
+    "arxiv_id": "2209.03282v4",
+    "title": "Quadratic Gradient: A Unified Framework Bridging Gradient Descent and Newton-Type Methods by Synthesizing Hessians and Gradients",
+    "abstract": "Accelerating the convergence of second-order optimization, particularly Newton-type methods, remains a pivotal challenge in algorithmic research. In this paper, we extend previous work on the \\textbf{Quadratic Gradient (QG)} and rigorously validate its applicability to general convex numerical optimization problems. We introduce a novel variant of the Quadratic Gradient that departs from the conventional fixed Hessian Newton framework. We present a new way to build a new version of the quadratic gradient. This new quadratic gradient doesn't satisfy the convergence conditions of the fixed Hessian Newton's method. However, experimental results show that it sometimes has a better performance than the original one in convergence rate. While this variant relaxes certain classical convergence constraints, it maintains a positive-definite Hessian proxy and demonstrates comparable, or in some cases superior, empirical performance in convergence rates. Furthermore, we demonstrate that both the original and the proposed QG variants can be effectively applied to non-convex optimization landscapes. A key motivation of our work is the limitation of traditional scalar learning rates. We argue that a diagonal matrix can more effectively accelerate gradient elements at heterogeneous rates. Our findings establish the Quadratic Gradient as a versatile and potent framework for modern optimization. Furthermore, we integrate Hutchinson's Estimator to estimate the Hessian diagonal efficiently via Hessian-vector products. Notably, we demonstrate that the proposed Quadratic Gradient variant is highly effective for Deep Learning architectures, providing a robust second-order alternative to standard adaptive optimizers.",
+    "categories": [
+      "math.OC",
+      "cs.LG"
+    ],
+    "published": "2022-09-03T05:07:34+00:00",
+    "authors": [
+      "John Chiang"
+    ],
+    "url": "http://arxiv.org/abs/2209.03282v4",
+    "label": 1,
+    "source_query": "policy gradient methods"
+  },
+  {
+    "arxiv_id": "2406.15612v2",
+    "title": "Catastrophic-risk-aware reinforcement learning with extreme-value-theory-based policy gradients",
+    "abstract": "This paper tackles the problem of mitigating catastrophic risk (which is risk with very low frequency but very high severity) in the context of a sequential decision making process. This problem is particularly challenging due to the scarcity of observations in the far tail of the distribution of cumulative costs (negative rewards). A policy gradient algorithm is developed, that we call POTPG. It is based on approximations of the tail risk derived from extreme value theory. Numerical experiments highlight the out-performance of our method over common benchmarks, relying on the empirical distribution. An application to financial risk management, more precisely to the dynamic hedging of a financial option, is presented.",
+    "categories": [
+      "cs.LG",
+      "q-fin.RM"
+    ],
+    "published": "2024-06-21T19:27:46+00:00",
+    "authors": [
+      "Parisa Davar",
+      "Frédéric Godin",
+      "Jose Garrido"
+    ],
+    "url": "http://arxiv.org/abs/2406.15612v2",
+    "label": 1,
+    "source_query": "policy gradient methods"
+  },
+  {
+    "arxiv_id": "1801.01290v2",
+    "title": "Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor",
+    "abstract": "Model-free deep reinforcement learning (RL) algorithms have been demonstrated on a range of challenging decision making and control tasks. However, these methods typically suffer from two major challenges: very high sample complexity and brittle convergence properties, which necessitate meticulous hyperparameter tuning. Both of these challenges severely limit the applicability of such methods to complex, real-world domains. In this paper, we propose soft actor-critic, an off-policy actor-critic deep RL algorithm based on the maximum entropy reinforcement learning framework. In this framework, the actor aims to maximize expected reward while also maximizing entropy. That is, to succeed at the task while acting as randomly as possible. Prior deep RL methods based on this framework have been formulated as Q-learning methods. By combining off-policy updates with a stable stochastic actor-critic formulation, our method achieves state-of-the-art performance on a range of continuous control benchmark tasks, outperforming prior on-policy and off-policy methods. Furthermore, we demonstrate that, in contrast to other off-policy algorithms, our approach is very stable, achieving very similar performance across different random seeds.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2018-01-04T09:50:50+00:00",
+    "authors": [
+      "Tuomas Haarnoja",
+      "Aurick Zhou",
+      "Pieter Abbeel",
+      "Sergey Levine"
+    ],
+    "url": "http://arxiv.org/abs/1801.01290v2",
+    "label": 1,
+    "source_query": "off-policy actor critic"
+  },
+  {
+    "arxiv_id": "1905.06893v3",
+    "title": "Leveraging exploration in off-policy algorithms via normalizing flows",
+    "abstract": "The ability to discover approximately optimal policies in domains with sparse rewards is crucial to applying reinforcement learning (RL) in many real-world scenarios. Approaches such as neural density models and continuous exploration (e.g., Go-Explore) have been proposed to maintain the high exploration rate necessary to find high performing and generalizable policies. Soft actor-critic(SAC) is another method for improving exploration that aims to combine efficient learning via off-policy updates while maximizing the policy entropy. In this work, we extend SAC to a richer class of probability distributions (e.g., multimodal) through normalizing flows (NF) and show that this significantly improves performance by accelerating the discovery of good policies while using much smaller policy representations. Our approach, which we call SAC-NF, is a simple, efficient,easy-to-implement modification and improvement to SAC on continuous control baselines such as MuJoCo and PyBullet Roboschool domains. Finally, SAC-NF does this while being significantly parameter efficient, using as few as 5.5% the parameters for an equivalent SAC model.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2019-05-16T16:33:24+00:00",
+    "authors": [
+      "Bogdan Mazoure",
+      "Thang Doan",
+      "Audrey Durand",
+      "R Devon Hjelm",
+      "Joelle Pineau"
+    ],
+    "url": "http://arxiv.org/abs/1905.06893v3",
+    "label": 1,
+    "source_query": "off-policy actor critic"
+  },
+  {
+    "arxiv_id": "2003.05334v2",
+    "title": "Online Meta-Critic Learning for Off-Policy Actor-Critic Methods",
+    "abstract": "Off-Policy Actor-Critic (Off-PAC) methods have proven successful in a variety of continuous control tasks. Normally, the critic's action-value function is updated using temporal-difference, and the critic in turn provides a loss for the actor that trains it to take actions with higher expected return. In this paper, we introduce a novel and flexible meta-critic that observes the learning process and meta-learns an additional loss for the actor that accelerates and improves actor-critic learning. Compared to the vanilla critic, the meta-critic network is explicitly trained to accelerate the learning process; and compared to existing meta-learning algorithms, meta-critic is rapidly learned online for a single task, rather than slowly over a family of tasks. Crucially, our meta-critic framework is designed for off-policy based learners, which currently provide state-of-the-art reinforcement learning sample efficiency. We demonstrate that online meta-critic learning leads to improvements in avariety of continuous control environments when combined with contemporary Off-PAC methods DDPG, TD3 and the state-of-the-art SAC.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2020-03-11T14:39:49+00:00",
+    "authors": [
+      "Wei Zhou",
+      "Yiying Li",
+      "Yongxin Yang",
+      "Huaimin Wang",
+      "Timothy M. Hospedales"
+    ],
+    "url": "http://arxiv.org/abs/2003.05334v2",
+    "label": 1,
+    "source_query": "off-policy actor critic"
+  },
+  {
+    "arxiv_id": "2111.08172v3",
+    "title": "Off-Policy Actor-Critic with Emphatic Weightings",
+    "abstract": "A variety of theoretically-sound policy gradient algorithms exist for the on-policy setting due to the policy gradient theorem, which provides a simplified form for the gradient. The off-policy setting, however, has been less clear due to the existence of multiple objectives and the lack of an explicit off-policy policy gradient theorem. In this work, we unify these objectives into one off-policy objective, and provide a policy gradient theorem for this unified objective. The derivation involves emphatic weightings and interest functions. We show multiple strategies to approximate the gradients, in an algorithm called Actor Critic with Emphatic weightings (ACE). We prove in a counterexample that previous (semi-gradient) off-policy actor-critic methods--particularly Off-Policy Actor-Critic (OffPAC) and Deterministic Policy Gradient (DPG)--converge to the wrong solution whereas ACE finds the optimal solution. We also highlight why these semi-gradient approaches can still perform well in practice, suggesting strategies for variance reduction in ACE. We empirically study several variants of ACE on two classic control environments and an image-based environment designed to illustrate the tradeoffs made by each gradient approximation. We find that by approximating the emphatic weightings directly, ACE performs as well as or better than OffPAC in all settings tested.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2021-11-16T01:18:16+00:00",
+    "authors": [
+      "Eric Graves",
+      "Ehsan Imani",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2111.08172v3",
+    "label": 1,
+    "source_query": "off-policy actor critic"
+  },
+  {
+    "arxiv_id": "2404.16159v2",
+    "title": "AFU: Actor-Free critic Updates in off-policy RL for continuous control",
+    "abstract": "This paper presents AFU, an off-policy deep RL algorithm addressing in a new way the challenging \"max-Q problem\" in Q-learning for continuous action spaces, with a solution based on regression and conditional gradient scaling. AFU has an actor but its critic updates are entirely independent from it. As a consequence, the actor can be chosen freely. In the initial version, AFU-alpha, we employ the same stochastic actor as in Soft Actor-Critic (SAC), but we then study a simple failure mode of SAC and show how AFU can be modified to make actor updates less likely to become trapped in local optima, resulting in a second version of the algorithm, AFU-beta. Experimental results demonstrate the sample efficiency of both versions of AFU, marking it as the first model-free off-policy algorithm competitive with state-of-the-art actor-critic methods while departing from the actor-critic perspective.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2024-04-24T19:30:03+00:00",
+    "authors": [
+      "Nicolas Perrin-Gilbert"
+    ],
+    "url": "http://arxiv.org/abs/2404.16159v2",
+    "label": 1,
+    "source_query": "off-policy actor critic"
+  },
+  {
+    "arxiv_id": "2009.08438v2",
+    "title": "Competitiveness of MAP-Elites against Proximal Policy Optimization on locomotion tasks in deterministic simulations",
+    "abstract": "The increasing importance of robots and automation creates a demand for learnable controllers which can be obtained through various approaches such as Evolutionary Algorithms (EAs) or Reinforcement Learning (RL). Unfortunately, these two families of algorithms have mainly developed independently and there are only a few works comparing modern EAs with deep RL algorithms. We show that Multidimensional Archive of Phenotypic Elites (MAP-Elites), which is a modern EA, can deliver better-performing solutions than one of the state-of-the-art RL methods, Proximal Policy Optimization (PPO) in the generation of locomotion controllers for a simulated hexapod robot. Additionally, extensive hyper-parameter tuning shows that MAP-Elites displays greater robustness across seeds and hyper-parameter sets. Generally, this paper demonstrates that EAs combined with modern computational resources display promising characteristics and have the potential to contribute to the state-of-the-art in controller learning.",
+    "categories": [
+      "cs.AI"
+    ],
+    "published": "2020-09-17T17:41:46+00:00",
+    "authors": [
+      "Szymon Brych",
+      "Antoine Cully"
+    ],
+    "url": "http://arxiv.org/abs/2009.08438v2",
+    "label": 1,
+    "source_query": "proximal policy optimization"
+  },
+  {
+    "arxiv_id": "1810.05633v2",
+    "title": "Stochastic (Approximate) Proximal Point Methods: Convergence, Optimality, and Adaptivity",
+    "abstract": "We develop model-based methods for solving stochastic convex optimization problems, introducing the approximate-proximal point, or aProx, family, which includes stochastic subgradient, proximal point, and bundle methods. When the modeling approaches we propose are appropriately accurate, the methods enjoy stronger convergence and robustness guarantees than classical approaches, even though the model-based methods typically add little to no computational overhead over stochastic subgradient methods. For example, we show that improved models converge with probability 1 and enjoy optimal asymptotic normality results under weak assumptions; these methods are also adaptive to a natural class of what we term easy optimization problems, achieving linear convergence under appropriate strong growth conditions on the objective. Our substantial experimental investigation shows the advantages of more accurate modeling over standard subgradient methods across many smooth and non-smooth optimization problems.",
+    "categories": [
+      "math.OC",
+      "stat.ML"
+    ],
+    "published": "2018-10-12T17:56:08+00:00",
+    "authors": [
+      "Hilal Asi",
+      "John C. Duchi"
+    ],
+    "url": "http://arxiv.org/abs/1810.05633v2",
+    "label": 1,
+    "source_query": "proximal policy optimization"
+  },
+  {
+    "arxiv_id": "2005.11257v2",
+    "title": "Epidemiologically and Socio-economically Optimal Policies via Bayesian Optimization",
+    "abstract": "Mass public quarantining, colloquially known as a lock-down, is a non-pharmaceutical intervention to check spread of disease. This paper presents ESOP (Epidemiologically and Socio-economically Optimal Policies), a novel application of active machine learning techniques using Bayesian optimization, that interacts with an epidemiological model to arrive at lock-down schedules that optimally balance public health benefits and socio-economic downsides of reduced economic activity during lock-down periods. The utility of ESOP is demonstrated using case studies with VIPER (Virus-Individual-Policy-EnviRonment), a stochastic agent-based simulator that this paper also proposes. However, ESOP is flexible enough to interact with arbitrary epidemiological simulators in a black-box manner, and produce schedules that involve multiple phases of lock-downs.",
+    "categories": [
+      "q-bio.PE",
+      "cs.LG",
+      "math.OC",
+      "stat.ML"
+    ],
+    "published": "2020-05-22T16:11:33+00:00",
+    "authors": [
+      "Amit Chandak",
+      "Debojyoti Dey",
+      "Bhaskar Mukhoty",
+      "Purushottam Kar"
+    ],
+    "url": "http://arxiv.org/abs/2005.11257v2",
+    "label": 1,
+    "source_query": "proximal policy optimization"
+  },
+  {
+    "arxiv_id": "1808.06100v6",
+    "title": "On the solution existence and stability of polynomial optimization problems",
+    "abstract": "This paper introduces and investigates a regularity condition in the asymptotic sense for optimization problems whose objective functions are polynomial. Under this regularity condition, the normalization argument in asymptotic analysis enables us to see the solution existence as well as the solution stability of these problems. We prove a Frank-Wolfe type theorem for regular optimization problems and an Eaves type theorem for non-regular pseudoconvex optimization problems. Moreover, we show results on the stability such as upper semicontinuity and local upper-Hölder stability of the solution map of polynomial optimization problems. At the end of the paper, we discuss the genericity of the regularity condition.",
+    "categories": [
+      "math.OC"
+    ],
+    "published": "2018-08-18T16:27:40+00:00",
+    "authors": [
+      "Vu Trung Hieu"
+    ],
+    "url": "http://arxiv.org/abs/1808.06100v6",
+    "label": 1,
+    "source_query": "proximal policy optimization"
+  },
+  {
+    "arxiv_id": "2302.10473v6",
+    "title": "Oriented object detection in optical remote sensing images using deep learning: a survey",
+    "abstract": "Oriented object detection is a fundamental yet challenging task in remote sensing (RS), aiming to locate and classify objects with arbitrary orientations. Recent advancements in deep learning have significantly enhanced the capabilities of oriented object detection methods. Given the rapid development of this field, a comprehensive survey of the recent advances in oriented object detection is presented in this paper. Specifically, we begin by tracing the technical evolution from horizontal object detection to oriented object detection and highlighting the specific related challenges, including feature misalignment, spatial misalignment, oriented bounding box (OBB) regression problems, and common issues encountered in RS. Subsequently, we further categorize the existing methods into detection frameworks, OBB regression techniques, feature representation approaches, and solutions to common issues and provide an in-depth discussion of how these methods address the above challenges. In addition, we cover several publicly available datasets and evaluation protocols. Furthermore, we provide a comprehensive comparison and analysis involving the state-of-the-art methods. Toward the end of this paper, we identify several future directions for oriented object detection research.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-21T06:31:53+00:00",
+    "authors": [
+      "Kun Wang",
+      "Zi Wang",
+      "Zhang Li",
+      "Ang Su",
+      "Xichao Teng",
+      "Erting Pan",
+      "Minhao Liu",
+      "Qifeng Yu"
+    ],
+    "url": "http://arxiv.org/abs/2302.10473v6",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2011.09170v1",
+    "title": "TJU-DHD: A Diverse High-Resolution Dataset for Object Detection",
+    "abstract": "Vehicles, pedestrians, and riders are the most important and interesting objects for the perception modules of self-driving vehicles and video surveillance. However, the state-of-the-art performance of detecting such important objects (esp. small objects) is far from satisfying the demand of practical systems. Large-scale, rich-diversity, and high-resolution datasets play an important role in developing better object detection methods to satisfy the demand. Existing public large-scale datasets such as MS COCO collected from websites do not focus on the specific scenarios. Moreover, the popular datasets (e.g., KITTI and Citypersons) collected from the specific scenarios are limited in the number of images and instances, the resolution, and the diversity. To attempt to solve the problem, we build a diverse high-resolution dataset (called TJU-DHD). The dataset contains 115,354 high-resolution images (52% images have a resolution of 1624$\\times$1200 pixels and 48% images have a resolution of at least 2,560$\\times$1,440 pixels) and 709,330 labeled objects in total with a large variance in scale and appearance. Meanwhile, the dataset has a rich diversity in season variance, illumination variance, and weather variance. In addition, a new diverse pedestrian dataset is further built. With the four different detectors (i.e., the one-stage RetinaNet, anchor-free FCOS, two-stage FPN, and Cascade R-CNN), experiments about object detection and pedestrian detection are conducted. We hope that the newly built dataset can help promote the research on object detection and pedestrian detection in these two scenes. The dataset is available at https://github.com/tjubiit/TJU-DHD.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-11-18T09:32:24+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Jiale Cao",
+      "Yazhao Li",
+      "Jin Xie",
+      "Hanqing Sun",
+      "Jinfeng Gong"
+    ],
+    "url": "http://arxiv.org/abs/2011.09170v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "1809.00778v1",
+    "title": "PFDet: 2nd Place Solution to Open Images Challenge 2018 Object Detection Track",
+    "abstract": "We present a large-scale object detection system by team PFDet. Our system enables training with huge datasets using 512 GPUs, handles sparsely verified classes, and massive class imbalance. Using our method, we achieved 2nd place in the Google AI Open Images Object Detection Track 2018 on Kaggle.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2018-09-04T02:59:07+00:00",
+    "authors": [
+      "Takuya Akiba",
+      "Tommi Kerola",
+      "Yusuke Niitani",
+      "Toru Ogawa",
+      "Shotaro Sano",
+      "Shuji Suzuki"
+    ],
+    "url": "http://arxiv.org/abs/1809.00778v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "1904.13353v2",
+    "title": "Object Contour and Edge Detection with RefineContourNet",
+    "abstract": "A ResNet-based multi-path refinement CNN is used for object contour detection. For this task, we prioritise the effective utilization of the high-level abstraction capability of a ResNet, which leads to state-of-the-art results for edge detection. Keeping our focus in mind, we fuse the high, mid and low-level features in that specific order, which differs from many other approaches. It uses the tensor with the highest-levelled features as the starting point to combine it layer-by-layer with features of a lower abstraction level until it reaches the lowest level. We train this network on a modified PASCAL VOC 2012 dataset for object contour detection and evaluate on a refined PASCAL-val dataset reaching an excellent performance and an Optimal Dataset Scale (ODS) of 0.752. Furthermore, by fine-training on the BSDS500 dataset we reach state-of-the-art results for edge-detection with an ODS of 0.824.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2019-04-30T16:34:27+00:00",
+    "authors": [
+      "Andre Peter Kelm",
+      "Vijesh Soorya Rao",
+      "Udo Zoelzer"
+    ],
+    "url": "http://arxiv.org/abs/1904.13353v2",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2408.14600v1",
+    "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
+    "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-08-26T19:43:01+00:00",
+    "authors": [
+      "Yidi Li",
+      "Jiahao Wen",
+      "Bin Ren",
+      "Wenhao Li",
+      "Zhenhuan Xu",
+      "Hao Guo",
+      "Hong Liu",
+      "Nicu Sebe"
+    ],
+    "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2110.14711v3",
+    "title": "A Survey of Self-Supervised and Few-Shot Object Detection",
+    "abstract": "Labeling data is often expensive and time-consuming, especially for tasks such as object detection and instance segmentation, which require dense labeling of the image. While few-shot object detection is about training a model on novel (unseen) object classes with little data, it still requires prior training on many labeled examples of base (seen) classes. On the other hand, self-supervised methods aim at learning representations from unlabeled data which transfer well to downstream tasks such as object detection. Combining few-shot and self-supervised object detection is a promising research direction. In this survey, we review and characterize the most recent approaches on few-shot and self-supervised object detection. Then, we give our main takeaways and discuss future research directions. Project page at https://gabrielhuang.github.io/fsod-survey/",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-10-27T18:55:47+00:00",
+    "authors": [
+      "Gabriel Huang",
+      "Issam Laradji",
+      "David Vazquez",
+      "Simon Lacoste-Julien",
+      "Pau Rodriguez"
+    ],
+    "url": "http://arxiv.org/abs/2110.14711v3",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2007.03262v6",
+    "title": "RGBT Salient Object Detection: A Large-scale Dataset and Benchmark",
+    "abstract": "Salient object detection in complex scenes and environments is a challenging research topic. Most works focus on RGB-based salient object detection, which limits its performance of real-life applications when confronted with adverse conditions such as dark environments and complex backgrounds. Taking advantage of RGB and thermal infrared images becomes a new research direction for detecting salient object in complex scenes recently, as thermal infrared spectrum imaging provides the complementary information and has been applied to many computer vision tasks. However, current research for RGBT salient object detection is limited by the lack of a large-scale dataset and comprehensive benchmark. This work contributes such a RGBT image dataset named VT5000, including 5000 spatially aligned RGBT image pairs with ground truth annotations. VT5000 has 11 challenges collected in different scenes and environments for exploring the robustness of algorithms. With this dataset, we propose a powerful baseline approach, which extracts multi-level features within each modality and aggregates these features of all modalities with the attention mechanism, for accurate RGBT salient object detection. Extensive experiments show that the proposed baseline approach outperforms the state-of-the-art methods on VT5000 dataset and other two public datasets. In addition, we carry out a comprehensive analysis of different algorithms of RGBT salient object detection on VT5000 dataset, and then make several valuable conclusions and provide some potential research directions for RGBT salient object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-07-07T07:58:14+00:00",
+    "authors": [
+      "Zhengzheng Tu",
+      "Yan Ma",
+      "Zhun Li",
+      "Chenglong Li",
+      "Jieming Xu",
+      "Yongtao Liu"
+    ],
+    "url": "http://arxiv.org/abs/2007.03262v6",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2005.00031v1",
+    "title": "Unsupervised Lesion Detection via Image Restoration with a Normative Prior",
+    "abstract": "Unsupervised lesion detection is a challenging problem that requires accurately estimating normative distributions of healthy anatomy and detecting lesions as outliers without training examples. Recently, this problem has received increased attention from the research community following the advances in unsupervised learning with deep learning. Such advances allow the estimation of high-dimensional distributions, such as normative distributions, with higher accuracy than previous methods.The main approach of the recently proposed methods is to learn a latent-variable model parameterized with networks to approximate the normative distribution using example images showing healthy anatomy, perform prior-projection, i.e. reconstruct the image with lesions using the latent-variable model, and determine lesions based on the differences between the reconstructed and original images. While being promising, the prior-projection step often leads to a large number of false positives. In this work, we approach unsupervised lesion detection as an image restoration problem and propose a probabilistic model that uses a network-based prior as the normative distribution and detect lesions pixel-wise using MAP estimation. The probabilistic model punishes large deviations between restored and original images, reducing false positives in pixel-wise detections. Experiments with gliomas and stroke lesions in brain MRI using publicly available datasets show that the proposed approach outperforms the state-of-the-art unsupervised methods by a substantial margin, +0.13 (AUC), for both glioma and stroke detection. Extensive model analysis confirms the effectiveness of MAP-based image restoration.",
+    "categories": [
+      "eess.IV",
+      "cs.CV"
+    ],
+    "published": "2020-04-30T18:03:18+00:00",
+    "authors": [
+      "Xiaoran Chen",
+      "Suhang You",
+      "Kerem Can Tezcan",
+      "Ender Konukoglu"
+    ],
+    "url": "http://arxiv.org/abs/2005.00031v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2006.11692v1",
+    "title": "Semi-Supervised Object Detection with Sparsely Annotated Dataset",
+    "abstract": "In training object detector based on convolutional neural networks, selection of effective positive examples for training is an important factor. However, when training an anchor-based detectors with sparse annotations on an image, effort to find effective positive examples can hinder training performance. When using the anchor-based training for the ground truth bounding box to collect positive examples under given IoU, it is often possible to include objects from other classes in the current training class, or objects that are needed to be trained can only be sampled as negative examples. We used two approaches to solve this problem: 1) the use of an anchorless object detector and 2) a semi-supervised learning-based object detection using a single object tracker. The proposed technique performs single object tracking by using the sparsely annotated bounding box as an anchor in the temporal domain for successive frames. From the tracking results, dense annotations for training images were generated in an automated manner and used for training the object detector. We applied the proposed single object tracking-based semi-supervised learning to the Epic-Kitchens dataset. As a result, we were able to achieve \\textbf{runner-up} performance in the Unseen section while achieving the first place in the Seen section of the Epic-Kitchens 2020 object detection challenge under IoU > 0.5 evaluation",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-06-21T02:26:48+00:00",
+    "authors": [
+      "Jihun Yoon",
+      "Seungbum Hong",
+      "Sanha Jeong",
+      "Min-Kook Choi"
+    ],
+    "url": "http://arxiv.org/abs/2006.11692v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2506.06962v3",
+    "title": "AR-RAG: Autoregressive Retrieval Augmentation for Image Generation",
+    "abstract": "We introduce Autoregressive Retrieval Augmentation (AR-RAG), a novel paradigm that enhances image generation by autoregressively incorporating knearest neighbor retrievals at the patch level. Unlike prior methods that perform a single, static retrieval before generation and condition the entire generation on fixed reference images, AR-RAG performs context-aware retrievals at each generation step, using prior-generated patches as queries to retrieve and incorporate the most relevant patch-level visual references, enabling the model to respond to evolving generation needs while avoiding limitations (e.g., over-copying, stylistic bias, etc.) prevalent in existing methods. To realize AR-RAG, we propose two parallel frameworks: (1) Distribution-Augmentation in Decoding (DAiD), a training-free plug-and-use decoding strategy that directly merges the distribution of model-predicted patches with the distribution of retrieved patches, and (2) Feature-Augmentation in Decoding (FAiD), a parameter-efficient fine-tuning method that progressively smooths the features of retrieved patches via multi-scale convolution operations and leverages them to augment the image generation process. We validate the effectiveness of AR-RAG on widely adopted benchmarks, including Midjourney-30K, GenEval and DPG-Bench, demonstrating significant performance gains over state-of-the-art image generation models.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2025-06-08T01:33:05+00:00",
+    "authors": [
+      "Jingyuan Qi",
+      "Zhiyang Xu",
+      "Qifan Wang",
+      "Lifu Huang"
+    ],
+    "url": "http://arxiv.org/abs/2506.06962v3",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.13684v1",
+    "title": "Intelligent Interaction Strategies for Context-Aware Cognitive Augmentation",
+    "abstract": "Human cognition is constrained by processing limitations, leading to cognitive overload and inefficiencies in knowledge synthesis and decision-making. Large Language Models (LLMs) present an opportunity for cognitive augmentation, but their current reactive nature limits their real-world applicability. This position paper explores the potential of context-aware cognitive augmentation, where LLMs dynamically adapt to users' cognitive states and task environments to provide appropriate support. Through a think-aloud study in an exhibition setting, we examine how individuals interact with multi-modal information and identify key cognitive challenges in structuring, retrieving, and applying knowledge. Our findings highlight the need for AI-driven cognitive support systems that integrate real-time contextual awareness, personalized reasoning assistance, and socially adaptive interactions. We propose a framework for AI augmentation that seamlessly transitions between real-time cognitive support and post-experience knowledge organization, contributing to the design of more effective human-centered AI systems.",
+    "categories": [
+      "cs.HC"
+    ],
+    "published": "2025-04-18T13:35:21+00:00",
+    "authors": [
+      "Xiangrong",
+      "Zhu",
+      "Yuan Xu",
+      "Tianjian Liu",
+      "Jingwei Sun",
+      "Yu Zhang",
+      "Xin Tong"
+    ],
+    "url": "http://arxiv.org/abs/2504.13684v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.17204v1",
+    "title": "Factually: Exploring Wearable Fact-Checking for Augmented Truth Discernment",
+    "abstract": "Wearable devices are transforming human capabilities by seamlessly augmenting cognitive functions. In this position paper, we propose a voice-based, interactive learning companion designed to amplify and extend cognitive abilities through informal learning. Our vision is threefold: (1) to enable users to discover new knowledge on-the-go through contextual interactive quizzes, fostering critical thinking and mindfulness, (2) to proactively detect misinformation, empowering users to critically assess information in real time, and (3) to provide spoken language correction and prompting hints for second language learning and effective communication. As an initial step toward this vision, we present Factually - a proactive, wearable fact-checking system integrated into devices like smartwatches or rings. Factually discreetly alerts users to potential falsehoods via vibrotactile feedback, helping them assess information critically. We demonstrate its utility through three illustrative scenarios, highlighting its potential to extend cognitive abilities for real-time misinformation detection. Early qualitative feedback suggests that Factually can enhance users' fact-checking capabilities, offering both practical and experiential benefits.",
+    "categories": [
+      "cs.HC",
+      "cs.ET"
+    ],
+    "published": "2025-04-24T02:29:50+00:00",
+    "authors": [
+      "Chitralekha Gupta",
+      "Hanjun Wu",
+      "Praveen Sasikumar",
+      "Shreyas Sridhar",
+      "Priambudi Bagaskara",
+      "Suranga Nanayakkara"
+    ],
+    "url": "http://arxiv.org/abs/2504.17204v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.14689v1",
+    "title": "Designing AI Systems that Augment Human Performed vs. Demonstrated Critical Thinking",
+    "abstract": "The recent rapid advancement of LLM-based AI systems has accelerated our search and production of information. While the advantages brought by these systems seemingly improve the performance or efficiency of human activities, they do not necessarily enhance human capabilities. Recent research has started to examine the impact of generative AI on individuals' cognitive abilities, especially critical thinking. Based on definitions of critical thinking across psychology and education, this position paper proposes the distinction between demonstrated and performed critical thinking in the era of generative AI and discusses the implication of this distinction in research and development of AI systems that aim to augment human critical thinking.",
+    "categories": [
+      "cs.HC"
+    ],
+    "published": "2025-04-20T17:40:28+00:00",
+    "authors": [
+      "Katelyn Xiaoying Mei",
+      "Nic Weber"
+    ],
+    "url": "http://arxiv.org/abs/2504.14689v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2411.18583v1",
+    "title": "Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation",
+    "abstract": "This research presents and compares multiple approaches to automate the generation of literature reviews using several Natural Language Processing (NLP) techniques and retrieval-augmented generation (RAG) with a Large Language Model (LLM). The ever-increasing number of research articles provides a huge challenge for manual literature review. It has resulted in an increased demand for automation. Developing a system capable of automatically generating the literature reviews from only the PDF files as input is the primary objective of this research work. The effectiveness of several Natural Language Processing (NLP) strategies, such as the frequency-based method (spaCy), the transformer model (Simple T5), and retrieval-augmented generation (RAG) with Large Language Model (GPT-3.5-turbo), is evaluated to meet the primary objective. The SciTLDR dataset is chosen for this research experiment and three distinct techniques are utilized to implement three different systems for auto-generating the literature reviews. The ROUGE scores are used for the evaluation of all three systems. Based on the evaluation, the Large Language Model GPT-3.5-turbo achieved the highest ROUGE-1 score, 0.364. The transformer model comes in second place and spaCy is at the last position. Finally, a graphical user interface is created for the best system based on the large language model.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2024-11-27T18:27:07+00:00",
+    "authors": [
+      "Nurshat Fateh Ali",
+      "Md. Mahdi Mohtasim",
+      "Shakil Mosharrof",
+      "T. Gopi Krishna"
+    ],
+    "url": "http://arxiv.org/abs/2411.18583v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2605.12335v1",
+    "title": "EHR-RAGp: Retrieval-Augmented Prototype-Guided Foundation Model for Electronic Health Records",
+    "abstract": "Electronic Health Records (EHR) contain rich longitudinal patient information and are widely used in predictive modeling applications. However, effectively leveraging historical data remains challenging due to long trajectories, heterogeneous events, temporal irregularity, and the varying relevance of past clinical context. Existing approaches often rely on fixed windows or uniform aggregation, which can obscure clinically important signals. In this work, we introduce EHR-RAGp, a retrieval-augmented foundation model that dynamically integrates the most relevant patient history across diverse clinical event types. We propose a prototype-guided retrieval module that acts as an alignment mechanism and estimates the relevance of retrieved historical chunks with respect to a given prediction task, guiding the model towards the most informative context. Across multiple clinical prediction tasks, EHR-RAGp consistently outperforms state-of-the-art EHR foundation models and transformer-based baselines. Furthermore, integrating EHR-RAGp with existing clinical foundation models yields substantial performance gains. Overall, EHR-RAGp provides a scalable and efficient framework for leveraging long-range clinical context to improve downstream performance.",
+    "categories": [
+      "cs.IR",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2026-05-12T16:17:03+00:00",
+    "authors": [
+      "Saeed Shurrab",
+      "Mariam Al-Omari",
+      "Dana El Samad",
+      "Farah E. Shamout"
+    ],
+    "url": "http://arxiv.org/abs/2605.12335v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2402.12317v2",
+    "title": "EVOR: Evolving Retrieval for Code Generation",
+    "abstract": "Recently the retrieval-augmented generation (RAG) has been successfully applied in code generation. However, existing pipelines for retrieval-augmented code generation (RACG) employ static knowledge bases with a single source, limiting the adaptation capabilities of Large Language Models (LLMs) to domains they have insufficient knowledge of. In this work, we develop a novel pipeline, EVOR, that employs the synchronous evolution of both queries and diverse knowledge bases. On two realistic settings where the external knowledge is required to solve code generation tasks, we compile four new datasets associated with frequently updated libraries and long-tail programming languages, named EVOR-BENCH. Extensive experiments demonstrate that EVOR achieves two to four times of execution accuracy compared to other methods such as Reflexion (Shinn et al., 2024), DocPrompting (Zhou et al., 2023), etc. We demonstrate that EVOR is flexible and can be easily combined with them to achieve further improvement. Further analysis reveals that EVOR benefits from the synchronous evolution of queries and documents and the diverse information sources in the knowledge base. We hope that our studies will inspire more insights into the design of advanced RACG pipelines in future research. Our model, code, and data are available at https://arks-codegen.github.io.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2024-02-19T17:37:28+00:00",
+    "authors": [
+      "Hongjin Su",
+      "Shuyang Jiang",
+      "Yuhang Lai",
+      "Haoyuan Wu",
+      "Boao Shi",
+      "Che Liu",
+      "Qian Liu",
+      "Tao Yu"
+    ],
+    "url": "http://arxiv.org/abs/2402.12317v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2502.00306v2",
+    "title": "Riddle Me This! Stealthy Membership Inference for Retrieval-Augmented Generation",
+    "abstract": "Retrieval-Augmented Generation (RAG) enables Large Language Models (LLMs) to generate grounded responses by leveraging external knowledge databases without altering model parameters. Although the absence of weight tuning prevents leakage via model parameters, it introduces the risk of inference adversaries exploiting retrieved documents in the model's context. Existing methods for membership inference and data extraction often rely on jailbreaking or carefully crafted unnatural queries, which can be easily detected or thwarted with query rewriting techniques common in RAG systems. In this work, we present Interrogation Attack (IA), a membership inference technique targeting documents in the RAG datastore. By crafting natural-text queries that are answerable only with the target document's presence, our approach demonstrates successful inference with just 30 queries while remaining stealthy; straightforward detectors identify adversarial prompts from existing methods up to ~76x more frequently than those generated by our attack. We observe a 2x improvement in TPR@1%FPR over prior inference attacks across diverse RAG configurations, all while costing less than $0.02 per document inference.",
+    "categories": [
+      "cs.CR",
+      "cs.AI",
+      "cs.CL",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2025-02-01T04:01:18+00:00",
+    "authors": [
+      "Ali Naseh",
+      "Yuefeng Peng",
+      "Anshuman Suri",
+      "Harsh Chaudhari",
+      "Alina Oprea",
+      "Amir Houmansadr"
+    ],
+    "url": "http://arxiv.org/abs/2502.00306v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2309.15217v2",
+    "title": "Ragas: Automated Evaluation of Retrieval Augmented Generation",
+    "abstract": "We introduce Ragas (Retrieval Augmented Generation Assessment), a framework for reference-free evaluation of Retrieval Augmented Generation (RAG) pipelines. RAG systems are composed of a retrieval and an LLM based generation module, and provide LLMs with knowledge from a reference textual database, which enables them to act as a natural language layer between a user and textual databases, reducing the risk of hallucinations. Evaluating RAG architectures is, however, challenging because there are several dimensions to consider: the ability of the retrieval system to identify relevant and focused context passages, the ability of the LLM to exploit such passages in a faithful way, or the quality of the generation itself. With Ragas, we put forward a suite of metrics which can be used to evaluate these different dimensions \\textit{without having to rely on ground truth human annotations}. We posit that such a framework can crucially contribute to faster evaluation cycles of RAG architectures, which is especially important given the fast adoption of LLMs.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2023-09-26T19:23:54+00:00",
+    "authors": [
+      "Shahul Es",
+      "Jithin James",
+      "Luis Espinosa-Anke",
+      "Steven Schockaert"
+    ],
+    "url": "http://arxiv.org/abs/2309.15217v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2507.23334v2",
+    "title": "MUST-RAG: MUSical Text Question Answering with Retrieval Augmented Generation",
+    "abstract": "Recent advancements in Large language models (LLMs) have demonstrated remarkable capabilities across diverse domains. While they exhibit strong zero-shot performance on various tasks, LLMs' effectiveness in music-related applications remains limited due to the relatively small proportion of music-specific knowledge in their training data. To address this limitation, we propose MusT-RAG, a comprehensive framework based on Retrieval Augmented Generation (RAG) to adapt general-purpose LLMs for text-only music question answering (MQA) tasks. RAG is a technique that provides external knowledge to LLMs by retrieving relevant context information when generating answers to questions. To optimize RAG for the music domain, we (1) propose MusWikiDB, a music-specialized vector database for the retrieval stage, and (2) utilizes context information during both inference and fine-tuning processes to effectively transform general-purpose LLMs into music-specific models. Our experiment demonstrates that MusT-RAG significantly outperforms traditional fine-tuning approaches in enhancing LLMs' music domain adaptation capabilities, showing consistent improvements across both in-domain and out-of-domain MQA benchmarks. Additionally, our MusWikiDB proves substantially more effective than general Wikipedia corpora, delivering superior performance and computational efficiency.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2025-07-31T08:31:05+00:00",
+    "authors": [
+      "Daeyong Kwon",
+      "SeungHeon Doh",
+      "Juhan Nam"
+    ],
+    "url": "http://arxiv.org/abs/2507.23334v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "1702.01806v2",
+    "title": "Beam Search Strategies for Neural Machine Translation",
+    "abstract": "The basic concept in Neural Machine Translation (NMT) is to train a large Neural Network that maximizes the translation performance on a given parallel corpus. NMT is then using a simple left-to-right beam-search decoder to generate new translations that approximately maximize the trained conditional probability. The current beam search strategy generates the target sentence word by word from left-to- right while keeping a fixed amount of active candidates at each time step. First, this simple search is less adaptive as it also expands candidates whose scores are much worse than the current best. Secondly, it does not expand hypotheses if they are not within the best scoring candidates, even if their scores are close to the best one. The latter one can be avoided by increasing the beam size until no performance improvement can be observed. While you can reach better performance, this has the draw- back of a slower decoding speed. In this paper, we concentrate on speeding up the decoder by applying a more flexible beam search strategy whose candidate size may vary at each time step depending on the candidate scores. We speed up the original decoder by up to 43% for the two language pairs German-English and Chinese-English without losing any translation quality.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2017-02-06T22:08:46+00:00",
+    "authors": [
+      "Markus Freitag",
+      "Yaser Al-Onaizan"
+    ],
+    "url": "http://arxiv.org/abs/1702.01806v2",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1409.7085v1",
+    "title": "Semantically-Informed Syntactic Machine Translation: A Tree-Grafting Approach",
+    "abstract": "We describe a unified and coherent syntactic framework for supporting a semantically-informed syntactic approach to statistical machine translation. Semantically enriched syntactic tags assigned to the target-language training texts improved translation quality. The resulting system significantly outperformed a linguistically naive baseline model (Hiero), and reached the highest scores yet reported on the NIST 2009 Urdu-English translation task. This finding supports the hypothesis (posed by many researchers in the MT community, e.g., in DARPA GALE) that both syntactic and semantic information are critical for improving translation quality---and further demonstrates that large gains can be achieved for low-resource languages with different word order than English.",
+    "categories": [
+      "cs.CL",
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2014-09-24T20:16:49+00:00",
+    "authors": [
+      "Kathryn Baker",
+      "Michael Bloodgood",
+      "Chris Callison-Burch",
+      "Bonnie J. Dorr",
+      "Nathaniel W. Filardo",
+      "Lori Levin",
+      "Scott Miller",
+      "Christine Piatko"
+    ],
+    "url": "http://arxiv.org/abs/1409.7085v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1809.00357v1",
+    "title": "Trivial Transfer Learning for Low-Resource Neural Machine Translation",
+    "abstract": "Transfer learning has been proven as an effective technique for neural machine translation under low-resource conditions. Existing methods require a common target language, language relatedness, or specific training tricks and regimes. We present a simple transfer learning method, where we first train a \"parent\" model for a high-resource language pair and then continue the training on a lowresource pair only by replacing the training corpus. This \"child\" model performs significantly better than the baseline trained for lowresource pair only. We are the first to show this for targeting different languages, and we observe the improvements even for unrelated languages with different alphabets.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2018-09-02T15:24:15+00:00",
+    "authors": [
+      "Tom Kocmi",
+      "Ondřej Bojar"
+    ],
+    "url": "http://arxiv.org/abs/1809.00357v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1509.09097v1",
+    "title": "Polish - English Speech Statistical Machine Translation Systems for the IWSLT 2013",
+    "abstract": "This research explores the effects of various training settings from Polish to English Statistical Machine Translation system for spoken language. Various elements of the TED parallel text corpora for the IWSLT 2013 evaluation campaign were used as the basis for training of language models, and for development, tuning and testing of the translation system. The BLEU, NIST, METEOR and TER metrics were used to evaluate the effects of data preparations on translation results. Our experiments included systems, which use stems and morphological information on Polish words. We also conducted a deep analysis of provided Polish data as preparatory work for the automatic data correction and cleaning phase.",
+    "categories": [
+      "cs.CL",
+      "stat.ML"
+    ],
+    "published": "2015-09-30T09:35:38+00:00",
+    "authors": [
+      "Krzysztof Wołk",
+      "Krzysztof Marasek"
+    ],
+    "url": "http://arxiv.org/abs/1509.09097v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1707.09050v1",
+    "title": "A Shared Task on Bandit Learning for Machine Translation",
+    "abstract": "We introduce and describe the results of a novel shared task on bandit learning for machine translation. The task was organized jointly by Amazon and Heidelberg University for the first time at the Second Conference on Machine Translation (WMT 2017). The goal of the task is to encourage research on learning machine translation from weak user feedback instead of human references or post-edits. On each of a sequence of rounds, a machine translation system is required to propose a translation for an input, and receives a real-valued estimate of the quality of the proposed translation for learning. This paper describes the shared task's learning and evaluation setup, using services hosted on Amazon Web Services (AWS), the data and evaluation metrics, and the results of various machine translation architectures and learning protocols.",
+    "categories": [
+      "cs.CL",
+      "stat.ML"
+    ],
+    "published": "2017-07-27T21:16:41+00:00",
+    "authors": [
+      "Artem Sokolov",
+      "Julia Kreutzer",
+      "Kellen Sunderland",
+      "Pavel Danchenko",
+      "Witold Szymaniak",
+      "Hagen Fürstenau",
+      "Stefan Riezler"
+    ],
+    "url": "http://arxiv.org/abs/1707.09050v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1509.08644v1",
+    "title": "Neural-based machine translation for medical text domain. Based on European Medicines Agency leaflet texts",
+    "abstract": "The quality of machine translation is rapidly evolving. Today one can find several machine translation systems on the web that provide reasonable translations, although the systems are not perfect. In some specific domains, the quality may decrease. A recently proposed approach to this domain is neural machine translation. It aims at building a jointly-tuned single neural network that maximizes translation performance, a very different approach from traditional statistical machine translation. Recently proposed neural machine translation models often belong to the encoder-decoder family in which a source sentence is encoded into a fixed length vector that is, in turn, decoded to generate a translation. The present research examines the effects of different training methods on a Polish-English Machine Translation system used for medical data. The European Medicines Agency parallel text corpus was used as the basis for training of neural and statistical network-based translation systems. The main machine translation evaluation metrics have also been used in analysis of the systems. A comparison and implementation of a real-time medical translator is the main focus of our experiments.",
+    "categories": [
+      "cs.CL",
+      "cs.CY",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2015-09-29T08:54:48+00:00",
+    "authors": [
+      "Krzysztof Wołk",
+      "Krzysztof Marasek"
+    ],
+    "url": "http://arxiv.org/abs/1509.08644v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1710.01504v1",
+    "title": "Discourse Structure in Machine Translation Evaluation",
+    "abstract": "In this article, we explore the potential of using sentence-level discourse structure for machine translation evaluation. We first design discourse-aware similarity measures, which use all-subtree kernels to compare discourse parse trees in accordance with the Rhetorical Structure Theory (RST). Then, we show that a simple linear combination with these measures can help improve various existing machine translation evaluation metrics regarding correlation with human judgments both at the segment- and at the system-level. This suggests that discourse information is complementary to the information used by many of the existing evaluation metrics, and thus it could be taken into account when developing richer evaluation metrics, such as the WMT-14 winning combined metric DiscoTKparty. We also provide a detailed analysis of the relevance of various discourse elements and relations from the RST parse trees for machine translation evaluation. In particular we show that: (i) all aspects of the RST tree are relevant, (ii) nuclearity is more useful than relation type, and (iii) the similarity of the translation RST tree to the reference tree is positively correlated with translation quality.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2017-10-04T08:28:24+00:00",
+    "authors": [
+      "Shafiq Joty",
+      "Francisco Guzmán",
+      "Lluís Màrquez",
+      "Preslav Nakov"
+    ],
+    "url": "http://arxiv.org/abs/1710.01504v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1912.03135v1",
+    "title": "Pairwise Neural Machine Translation Evaluation",
+    "abstract": "We present a novel framework for machine translation evaluation using neural networks in a pairwise setting, where the goal is to select the better translation from a pair of hypotheses, given the reference translation. In this framework, lexical, syntactic and semantic information from the reference and the two hypotheses is compacted into relatively small distributed vector representations, and fed into a multi-layer neural network that models the interaction between each of the hypotheses and the reference, as well as between the two hypotheses. These compact representations are in turn based on word and sentence embeddings, which are learned using neural networks. The framework is flexible, allows for efficient learning and classification, and yields correlation with humans that rivals the state of the art.",
+    "categories": [
+      "cs.CL",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2019-12-05T05:17:05+00:00",
+    "authors": [
+      "Francisco Guzman",
+      "Shafiq Joty",
+      "Lluis Marquez",
+      "Preslav Nakov"
+    ],
+    "url": "http://arxiv.org/abs/1912.03135v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1802.01451v1",
+    "title": "Quantitative Fine-Grained Human Evaluation of Machine Translation Systems: a Case Study on English to Croatian",
+    "abstract": "This paper presents a quantitative fine-grained manual evaluation approach to comparing the performance of different machine translation (MT) systems. We build upon the well-established Multidimensional Quality Metrics (MQM) error taxonomy and implement a novel method that assesses whether the differences in performance for MQM error types between different MT systems are statistically significant. We conduct a case study for English-to-Croatian, a language direction that involves translating into a morphologically rich language, for which we compare three MT systems belonging to different paradigms: pure phrase-based, factored phrase-based and neural. First, we design an MQM-compliant error taxonomy tailored to the relevant linguistic phenomena of Slavic languages, which made the annotation process feasible and accurate. Errors in MT outputs were then annotated by two annotators following this taxonomy. Subsequently, we carried out a statistical analysis which showed that the best-performing system (neural) reduces the errors produced by the worst system (pure phrase-based) by more than half (54\\%). Moreover, we conducted an additional analysis of agreement errors in which we distinguished between short (phrase-level) and long distance (sentence-level) errors. We discovered that phrase-based MT approaches are of limited use for long distance agreement phenomena, for which neural MT was found to be especially effective.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2018-02-02T14:41:08+00:00",
+    "authors": [
+      "Filip Klubička",
+      "Antonio Toral",
+      "Víctor M. Sánchez-Cartagena"
+    ],
+    "url": "http://arxiv.org/abs/1802.01451v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  },
+  {
+    "arxiv_id": "1906.07286v1",
+    "title": "Generalizing Back-Translation in Neural Machine Translation",
+    "abstract": "Back-translation - data augmentation by translating target monolingual data - is a crucial component in modern neural machine translation (NMT). In this work, we reformulate back-translation in the scope of cross-entropy optimization of an NMT model, clarifying its underlying mathematical assumptions and approximations beyond its heuristic usage. Our formulation covers broader synthetic data generation schemes, including sampling from a target-to-source NMT model. With this formulation, we point out fundamental problems of the sampling-based approaches and propose to remedy them by (i) disabling label smoothing for the target-to-source model and (ii) sampling from a restricted search space. Our statements are investigated on the WMT 2018 German - English news translation task.",
+    "categories": [
+      "cs.CL",
+      "cs.LG"
+    ],
+    "published": "2019-06-17T22:13:24+00:00",
+    "authors": [
+      "Miguel Graça",
+      "Yunsu Kim",
+      "Julian Schamper",
+      "Shahram Khadivi",
+      "Hermann Ney"
+    ],
+    "url": "http://arxiv.org/abs/1906.07286v1",
+    "label": 0,
+    "source_query": "machine translation transformer"
+  }
+]

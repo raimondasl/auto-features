@@ -1,0 +1,699 @@
+[
+  {
+    "arxiv_id": "2501.05032v2",
+    "title": "Enhancing Human-Like Responses in Large Language Models",
+    "abstract": "This paper explores the advancements in making large language models (LLMs) more human-like. We focus on techniques that enhance natural language understanding, conversational coherence, and emotional intelligence in AI systems. The study evaluates various approaches, including fine-tuning with diverse datasets, incorporating psychological principles, and designing models that better mimic human reasoning patterns. Our findings demonstrate that these enhancements not only improve user interactions but also open new possibilities for AI applications across different domains. Future work will address the ethical implications and potential biases introduced by these human-like attributes.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2025-01-09T07:44:06+00:00",
+    "authors": [
+      "Ethem Yağız Çalık",
+      "Talha Rüzgar Akkuş"
+    ],
+    "url": "http://arxiv.org/abs/2501.05032v2",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2402.14679v2",
+    "title": "Is Self-knowledge and Action Consistent or Not: Investigating Large Language Model's Personality",
+    "abstract": "In this study, we delve into the validity of conventional personality questionnaires in capturing the human-like personality traits of Large Language Models (LLMs). Our objective is to assess the congruence between the personality traits LLMs claim to possess and their demonstrated tendencies in real-world scenarios. By conducting an extensive examination of LLM outputs against observed human response patterns, we aim to understand the disjunction between self-knowledge and action in LLMs.",
+    "categories": [
+      "cs.CL",
+      "cs.CY"
+    ],
+    "published": "2024-02-22T16:32:08+00:00",
+    "authors": [
+      "Yiming Ai",
+      "Zhiwei He",
+      "Ziyin Zhang",
+      "Wenhong Zhu",
+      "Hongkun Hao",
+      "Kai Yu",
+      "Lingjun Chen",
+      "Rui Wang"
+    ],
+    "url": "http://arxiv.org/abs/2402.14679v2",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2405.11357v3",
+    "title": "Large Language Models Lack Understanding of Character Composition of Words",
+    "abstract": "Large language models (LLMs) have demonstrated remarkable performances on a wide range of natural language tasks. Yet, LLMs' successes have been largely restricted to tasks concerning words, sentences, or documents, and it remains questionable how much they understand the minimal units of text, namely characters. In this paper, we examine contemporary LLMs regarding their ability to understand character composition of words, and show that most of them fail to reliably carry out even the simple tasks that can be handled by humans with perfection. We analyze their behaviors with comparison to token level performances, and discuss the potential directions for future research.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2024-05-18T18:08:58+00:00",
+    "authors": [
+      "Andrew Shin",
+      "Kunitake Kaneko"
+    ],
+    "url": "http://arxiv.org/abs/2405.11357v3",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2403.09676v1",
+    "title": "Unmasking the Shadows of AI: Investigating Deceptive Capabilities in Large Language Models",
+    "abstract": "This research critically navigates the intricate landscape of AI deception, concentrating on deceptive behaviours of Large Language Models (LLMs). My objective is to elucidate this issue, examine the discourse surrounding it, and subsequently delve into its categorization and ramifications. The essay initiates with an evaluation of the AI Safety Summit 2023 (ASS) and introduction of LLMs, emphasising multidimensional biases that underlie their deceptive behaviours.The literature review covers four types of deception categorised: Strategic deception, Imitation, Sycophancy, and Unfaithful Reasoning, along with the social implications and risks they entail. Lastly, I take an evaluative stance on various aspects related to navigating the persistent challenges of the deceptive AI. This encompasses considerations of international collaborative governance, the reconfigured engagement of individuals with AI, proposal of practical adjustments, and specific elements of digital education.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2024-02-07T00:21:46+00:00",
+    "authors": [
+      "Linge Guo"
+    ],
+    "url": "http://arxiv.org/abs/2403.09676v1",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2407.01505v1",
+    "title": "Self-Cognition in Large Language Models: An Exploratory Study",
+    "abstract": "While Large Language Models (LLMs) have achieved remarkable success across various applications, they also raise concerns regarding self-cognition. In this paper, we perform a pioneering study to explore self-cognition in LLMs. Specifically, we first construct a pool of self-cognition instruction prompts to evaluate where an LLM exhibits self-cognition and four well-designed principles to quantify LLMs' self-cognition. Our study reveals that 4 of the 48 models on Chatbot Arena--specifically Command R, Claude3-Opus, Llama-3-70b-Instruct, and Reka-core--demonstrate some level of detectable self-cognition. We observe a positive correlation between model size, training data quality, and self-cognition level. Additionally, we also explore the utility and trustworthiness of LLM in the self-cognition state, revealing that the self-cognition state enhances some specific tasks such as creative writing and exaggeration. We believe that our work can serve as an inspiration for further research to study the self-cognition in LLMs.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2024-07-01T17:52:05+00:00",
+    "authors": [
+      "Dongping Chen",
+      "Jiawen Shi",
+      "Yao Wan",
+      "Pan Zhou",
+      "Neil Zhenqiang Gong",
+      "Lichao Sun"
+    ],
+    "url": "http://arxiv.org/abs/2407.01505v1",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2309.02144v1",
+    "title": "Making Large Language Models Better Reasoners with Alignment",
+    "abstract": "Reasoning is a cognitive process of using evidence to reach a sound conclusion. The reasoning capability is essential for large language models (LLMs) to serve as the brain of the artificial general intelligence agent. Recent studies reveal that fine-tuning LLMs on data with the chain of thought (COT) reasoning process can significantly enhance their reasoning capabilities. However, we find that the fine-tuned LLMs suffer from an \\textit{Assessment Misalignment} problem, i.e., they frequently assign higher scores to subpar COTs, leading to potential limitations in their reasoning abilities. To address this problem, we introduce an \\textit{Alignment Fine-Tuning (AFT)} paradigm, which involves three steps: 1) fine-tuning LLMs with COT training data; 2) generating multiple COT responses for each question, and categorizing them into positive and negative ones based on whether they achieve the correct answer; 3) calibrating the scores of positive and negative responses given by LLMs with a novel constraint alignment loss. Specifically, the constraint alignment loss has two objectives: a) Alignment, which guarantees that positive scores surpass negative scores to encourage answers with high-quality COTs; b) Constraint, which keeps the negative scores confined to a reasonable range to prevent the model degradation. Beyond just the binary positive and negative feedback, the constraint alignment loss can be seamlessly adapted to the ranking situations when ranking feedback is accessible. Furthermore, we also delve deeply into recent ranking-based alignment methods, such as DPO, RRHF, and PRO, and discover that the constraint, which has been overlooked by these approaches, is also crucial for their performance. Extensive experiments on four reasoning benchmarks with both binary and ranking feedback demonstrate the effectiveness of AFT.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2023-09-05T11:32:48+00:00",
+    "authors": [
+      "Peiyi Wang",
+      "Lei Li",
+      "Liang Chen",
+      "Feifan Song",
+      "Binghuai Lin",
+      "Yunbo Cao",
+      "Tianyu Liu",
+      "Zhifang Sui"
+    ],
+    "url": "http://arxiv.org/abs/2309.02144v1",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2407.08029v1",
+    "title": "A Critical Review of Causal Reasoning Benchmarks for Large Language Models",
+    "abstract": "Numerous benchmarks aim to evaluate the capabilities of Large Language Models (LLMs) for causal inference and reasoning. However, many of them can likely be solved through the retrieval of domain knowledge, questioning whether they achieve their purpose. In this review, we present a comprehensive overview of LLM benchmarks for causality. We highlight how recent benchmarks move towards a more thorough definition of causal reasoning by incorporating interventional or counterfactual reasoning. We derive a set of criteria that a useful benchmark or set of benchmarks should aim to satisfy. We hope this work will pave the way towards a general framework for the assessment of causal understanding in LLMs and the design of novel benchmarks.",
+    "categories": [
+      "cs.LG",
+      "cs.CL"
+    ],
+    "published": "2024-07-10T20:11:51+00:00",
+    "authors": [
+      "Linying Yang",
+      "Vik Shirvaikar",
+      "Oscar Clivio",
+      "Fabian Falck"
+    ],
+    "url": "http://arxiv.org/abs/2407.08029v1",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2310.00905v2",
+    "title": "All Languages Matter: On the Multilingual Safety of Large Language Models",
+    "abstract": "Safety lies at the core of developing and deploying large language models (LLMs). However, previous safety benchmarks only concern the safety in one language, e.g. the majority language in the pretraining data such as English. In this work, we build the first multilingual safety benchmark for LLMs, XSafety, in response to the global deployment of LLMs in practice. XSafety covers 14 kinds of commonly used safety issues across 10 languages that span several language families. We utilize XSafety to empirically study the multilingual safety for 4 widely-used LLMs, including both close-API and open-source models. Experimental results show that all LLMs produce significantly more unsafe responses for non-English queries than English ones, indicating the necessity of developing safety alignment for non-English languages. In addition, we propose several simple and effective prompting methods to improve the multilingual safety of ChatGPT by evoking safety knowledge and improving cross-lingual generalization of safety alignment. Our prompting method can significantly reduce the ratio of unsafe responses from 19.1% to 9.7% for non-English queries. We release our data at https://github.com/Jarviswang94/Multilingual_safety_benchmark.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2023-10-02T05:23:34+00:00",
+    "authors": [
+      "Wenxuan Wang",
+      "Zhaopeng Tu",
+      "Chang Chen",
+      "Youliang Yuan",
+      "Jen-tse Huang",
+      "Wenxiang Jiao",
+      "Michael R. Lyu"
+    ],
+    "url": "http://arxiv.org/abs/2310.00905v2",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2312.05434v1",
+    "title": "Beneath the Surface: Unveiling Harmful Memes with Multimodal Reasoning Distilled from Large Language Models",
+    "abstract": "The age of social media is rife with memes. Understanding and detecting harmful memes pose a significant challenge due to their implicit meaning that is not explicitly conveyed through the surface text and image. However, existing harmful meme detection approaches only recognize superficial harm-indicative signals in an end-to-end classification manner but ignore in-depth cognition of the meme text and image. In this paper, we attempt to detect harmful memes based on advanced reasoning over the interplay of multimodal information in memes. Inspired by the success of Large Language Models (LLMs) on complex reasoning, we first conduct abductive reasoning with LLMs. Then we propose a novel generative framework to learn reasonable thoughts from LLMs for better multimodal fusion and lightweight fine-tuning, which consists of two training stages: 1) Distill multimodal reasoning knowledge from LLMs; and 2) Fine-tune the generative framework to infer harmfulness. Extensive experiments conducted on three meme datasets demonstrate that our proposed approach achieves superior performance than state-of-the-art methods on the harmful meme detection task.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2023-12-09T01:59:11+00:00",
+    "authors": [
+      "Hongzhan Lin",
+      "Ziyang Luo",
+      "Jing Ma",
+      "Long Chen"
+    ],
+    "url": "http://arxiv.org/abs/2312.05434v1",
+    "label": 0,
+    "source_query": "large language models"
+  },
+  {
+    "arxiv_id": "2302.10473v6",
+    "title": "Oriented object detection in optical remote sensing images using deep learning: a survey",
+    "abstract": "Oriented object detection is a fundamental yet challenging task in remote sensing (RS), aiming to locate and classify objects with arbitrary orientations. Recent advancements in deep learning have significantly enhanced the capabilities of oriented object detection methods. Given the rapid development of this field, a comprehensive survey of the recent advances in oriented object detection is presented in this paper. Specifically, we begin by tracing the technical evolution from horizontal object detection to oriented object detection and highlighting the specific related challenges, including feature misalignment, spatial misalignment, oriented bounding box (OBB) regression problems, and common issues encountered in RS. Subsequently, we further categorize the existing methods into detection frameworks, OBB regression techniques, feature representation approaches, and solutions to common issues and provide an in-depth discussion of how these methods address the above challenges. In addition, we cover several publicly available datasets and evaluation protocols. Furthermore, we provide a comprehensive comparison and analysis involving the state-of-the-art methods. Toward the end of this paper, we identify several future directions for oriented object detection research.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-21T06:31:53+00:00",
+    "authors": [
+      "Kun Wang",
+      "Zi Wang",
+      "Zhang Li",
+      "Ang Su",
+      "Xichao Teng",
+      "Erting Pan",
+      "Minhao Liu",
+      "Qifeng Yu"
+    ],
+    "url": "http://arxiv.org/abs/2302.10473v6",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "1904.13353v2",
+    "title": "Object Contour and Edge Detection with RefineContourNet",
+    "abstract": "A ResNet-based multi-path refinement CNN is used for object contour detection. For this task, we prioritise the effective utilization of the high-level abstraction capability of a ResNet, which leads to state-of-the-art results for edge detection. Keeping our focus in mind, we fuse the high, mid and low-level features in that specific order, which differs from many other approaches. It uses the tensor with the highest-levelled features as the starting point to combine it layer-by-layer with features of a lower abstraction level until it reaches the lowest level. We train this network on a modified PASCAL VOC 2012 dataset for object contour detection and evaluate on a refined PASCAL-val dataset reaching an excellent performance and an Optimal Dataset Scale (ODS) of 0.752. Furthermore, by fine-training on the BSDS500 dataset we reach state-of-the-art results for edge-detection with an ODS of 0.824.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2019-04-30T16:34:27+00:00",
+    "authors": [
+      "Andre Peter Kelm",
+      "Vijesh Soorya Rao",
+      "Udo Zoelzer"
+    ],
+    "url": "http://arxiv.org/abs/1904.13353v2",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2408.14600v1",
+    "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
+    "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-08-26T19:43:01+00:00",
+    "authors": [
+      "Yidi Li",
+      "Jiahao Wen",
+      "Bin Ren",
+      "Wenhao Li",
+      "Zhenhuan Xu",
+      "Hao Guo",
+      "Hong Liu",
+      "Nicu Sebe"
+    ],
+    "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2011.09170v1",
+    "title": "TJU-DHD: A Diverse High-Resolution Dataset for Object Detection",
+    "abstract": "Vehicles, pedestrians, and riders are the most important and interesting objects for the perception modules of self-driving vehicles and video surveillance. However, the state-of-the-art performance of detecting such important objects (esp. small objects) is far from satisfying the demand of practical systems. Large-scale, rich-diversity, and high-resolution datasets play an important role in developing better object detection methods to satisfy the demand. Existing public large-scale datasets such as MS COCO collected from websites do not focus on the specific scenarios. Moreover, the popular datasets (e.g., KITTI and Citypersons) collected from the specific scenarios are limited in the number of images and instances, the resolution, and the diversity. To attempt to solve the problem, we build a diverse high-resolution dataset (called TJU-DHD). The dataset contains 115,354 high-resolution images (52% images have a resolution of 1624$\\times$1200 pixels and 48% images have a resolution of at least 2,560$\\times$1,440 pixels) and 709,330 labeled objects in total with a large variance in scale and appearance. Meanwhile, the dataset has a rich diversity in season variance, illumination variance, and weather variance. In addition, a new diverse pedestrian dataset is further built. With the four different detectors (i.e., the one-stage RetinaNet, anchor-free FCOS, two-stage FPN, and Cascade R-CNN), experiments about object detection and pedestrian detection are conducted. We hope that the newly built dataset can help promote the research on object detection and pedestrian detection in these two scenes. The dataset is available at https://github.com/tjubiit/TJU-DHD.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-11-18T09:32:24+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Jiale Cao",
+      "Yazhao Li",
+      "Jin Xie",
+      "Hanqing Sun",
+      "Jinfeng Gong"
+    ],
+    "url": "http://arxiv.org/abs/2011.09170v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2110.14711v3",
+    "title": "A Survey of Self-Supervised and Few-Shot Object Detection",
+    "abstract": "Labeling data is often expensive and time-consuming, especially for tasks such as object detection and instance segmentation, which require dense labeling of the image. While few-shot object detection is about training a model on novel (unseen) object classes with little data, it still requires prior training on many labeled examples of base (seen) classes. On the other hand, self-supervised methods aim at learning representations from unlabeled data which transfer well to downstream tasks such as object detection. Combining few-shot and self-supervised object detection is a promising research direction. In this survey, we review and characterize the most recent approaches on few-shot and self-supervised object detection. Then, we give our main takeaways and discuss future research directions. Project page at https://gabrielhuang.github.io/fsod-survey/",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-10-27T18:55:47+00:00",
+    "authors": [
+      "Gabriel Huang",
+      "Issam Laradji",
+      "David Vazquez",
+      "Simon Lacoste-Julien",
+      "Pau Rodriguez"
+    ],
+    "url": "http://arxiv.org/abs/2110.14711v3",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2301.02562v1",
+    "title": "Super Sparse 3D Object Detection",
+    "abstract": "As the perception range of LiDAR expands, LiDAR-based 3D object detection contributes ever-increasingly to the long-range perception in autonomous driving. Mainstream 3D object detectors often build dense feature maps, where the cost is quadratic to the perception range, making them hardly scale up to the long-range settings. To enable efficient long-range detection, we first propose a fully sparse object detector termed FSD. FSD is built upon the general sparse voxel encoder and a novel sparse instance recognition (SIR) module. SIR groups the points into instances and applies highly-efficient instance-wise feature extraction. The instance-wise grouping sidesteps the issue of the center feature missing, which hinders the design of the fully sparse architecture. To further enjoy the benefit of fully sparse characteristic, we leverage temporal information to remove data redundancy and propose a super sparse detector named FSD++. FSD++ first generates residual points, which indicate the point changes between consecutive frames. The residual points, along with a few previous foreground points, form the super sparse input data, greatly reducing data redundancy and computational overhead. We comprehensively analyze our method on the large-scale Waymo Open Dataset, and state-of-the-art performance is reported. To showcase the superiority of our method in long-range detection, we also conduct experiments on Argoverse 2 Dataset, where the perception range ($200m$) is much larger than Waymo Open Dataset ($75m$). Code is open-sourced at https://github.com/tusen-ai/SST.",
+    "categories": [
+      "cs.CV",
+      "cs.RO"
+    ],
+    "published": "2023-01-05T17:03:56+00:00",
+    "authors": [
+      "Lue Fan",
+      "Yuxue Yang",
+      "Feng Wang",
+      "Naiyan Wang",
+      "Zhaoxiang Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2301.02562v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2508.19294v2",
+    "title": "Object Detection with Multimodal Large Vision-Language Models: An In-depth Review",
+    "abstract": "The fusion of language and vision in large vision-language models (LVLMs) has revolutionized deep learning-based object detection by enhancing adaptability, contextual reasoning, and generalization beyond traditional architectures. This in-depth review presents a structured exploration of the state-of-the-art in LVLMs, systematically organized through a three-step research review process. First, we discuss the functioning of vision language models (VLMs) for object detection, describing how these models harness natural language processing (NLP) and computer vision (CV) techniques to revolutionize object detection and localization. We then explain the architectural innovations, training paradigms, and output flexibility of recent LVLMs for object detection, highlighting how they achieve advanced contextual understanding for object detection. The review thoroughly examines the approaches used in integration of visual and textual information, demonstrating the progress made in object detection using VLMs that facilitate more sophisticated object detection and localization strategies. This review presents comprehensive visualizations demonstrating LVLMs' effectiveness in diverse scenarios including localization and segmentation, and then compares their real-time performance, adaptability, and complexity to traditional deep learning systems. Based on the review, its is expected that LVLMs will soon meet or surpass the performance of conventional methods in object detection. The review also identifies a few major limitations of the current LVLM modes, proposes solutions to address those challenges, and presents a clear roadmap for the future advancement in this field. We conclude, based on this study, that the recent advancement in LVLMs have made and will continue to make a transformative impact on object detection and robotic applications in the future.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2025-08-25T17:21:00+00:00",
+    "authors": [
+      "Ranjan Sapkota",
+      "Manoj Karkee"
+    ],
+    "url": "http://arxiv.org/abs/2508.19294v2",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2411.02844v1",
+    "title": "Correlation of Object Detection Performance with Visual Saliency and Depth Estimation",
+    "abstract": "As object detection techniques continue to evolve, understanding their relationships with complementary visual tasks becomes crucial for optimising model architectures and computational resources. This paper investigates the correlations between object detection accuracy and two fundamental visual tasks: depth prediction and visual saliency prediction. Through comprehensive experiments using state-of-the-art models (DeepGaze IIE, Depth Anything, DPT-Large, and Itti's model) on COCO and Pascal VOC datasets, we find that visual saliency shows consistently stronger correlations with object detection accuracy (mA$ρ$ up to 0.459 on Pascal VOC) compared to depth prediction (mA$ρ$ up to 0.283). Our analysis reveals significant variations in these correlations across object categories, with larger objects showing correlation values up to three times higher than smaller objects. These findings suggest incorporating visual saliency features into object detection architectures could be more beneficial than depth information, particularly for specific object categories. The observed category-specific variations also provide insights for targeted feature engineering and dataset design improvements, potentially leading to more efficient and accurate object detection systems.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2024-11-05T06:34:19+00:00",
+    "authors": [
+      "Matthias Bartolo",
+      "Dylan Seychell"
+    ],
+    "url": "http://arxiv.org/abs/2411.02844v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2602.12375v1",
+    "title": "Value Bonuses using Ensemble Errors for Exploration in Reinforcement Learning",
+    "abstract": "Optimistic value estimates provide one mechanism for directed exploration in reinforcement learning (RL). The agent acts greedily with respect to an estimate of the value plus what can be seen as a value bonus. The value bonus can be learned by estimating a value function on reward bonuses, propagating local uncertainties around rewards. However, this approach only increases the value bonus for an action retroactively, after seeing a higher reward bonus from that state and action. Such an approach does not encourage the agent to visit a state and action for the first time. In this work, we introduce an algorithm for exploration called Value Bonuses with Ensemble errors (VBE), that maintains an ensemble of random action-value functions (RQFs). VBE uses the errors in the estimation of these RQFs to design value bonuses that provide first-visit optimism and deep exploration. The key idea is to design the rewards for these RQFs in such a way that the value bonus can decrease to zero. We show that VBE outperforms Bootstrap DQN and two reward bonus approaches (RND and ACB) on several classic environments used to test exploration and provide demonstrative experiments that it can scale easily to more complex environments like Atari.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-12T20:12:17+00:00",
+    "authors": [
+      "Abdul Wahab",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2602.12375v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2507.02910v1",
+    "title": "Causal-Paced Deep Reinforcement Learning",
+    "abstract": "Designing effective task sequences is crucial for curriculum reinforcement learning (CRL), where agents must gradually acquire skills by training on intermediate tasks. A key challenge in CRL is to identify tasks that promote exploration, yet are similar enough to support effective transfer. While recent approach suggests comparing tasks via their Structural Causal Models (SCMs), the method requires access to ground-truth causal structures, an unrealistic assumption in most RL settings. In this work, we propose Causal-Paced Deep Reinforcement Learning (CP-DRL), a curriculum learning framework aware of SCM differences between tasks based on interaction data approximation. This signal captures task novelty, which we combine with the agent's learnability, measured by reward gain, to form a unified objective. Empirically, CP-DRL outperforms existing curriculum methods on the Point Mass benchmark, achieving faster convergence and higher returns. CP-DRL demonstrates reduced variance with comparable final returns in the Bipedal Walker-Trivial setting, and achieves the highest average performance in the Infeasible variant. These results indicate that leveraging causal relationships between tasks can improve the structure-awareness and sample efficiency of curriculum reinforcement learning. We provide the full implementation of CP-DRL to facilitate the reproduction of our main results at https://github.com/Cho-Geonwoo/CP-DRL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2025-06-24T20:15:01+00:00",
+    "authors": [
+      "Geonwoo Cho",
+      "Jaegyun Im",
+      "Doyoon Kim",
+      "Sundong Kim"
+    ],
+    "url": "http://arxiv.org/abs/2507.02910v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1807.05037v1",
+    "title": "Exploring Hierarchy-Aware Inverse Reinforcement Learning",
+    "abstract": "We introduce a new generative model for human planning under the Bayesian Inverse Reinforcement Learning (BIRL) framework which takes into account the fact that humans often plan using hierarchical strategies. We describe the Bayesian Inverse Hierarchical RL (BIHRL) algorithm for inferring the values of hierarchical planners, and use an illustrative toy model to show that BIHRL retains accuracy where standard BIRL fails. Furthermore, BIHRL is able to accurately predict the goals of `Wikispeedia' game players, with inclusion of hierarchical structure in the model resulting in a large boost in accuracy. We show that BIHRL is able to significantly outperform BIRL even when we only have a weak prior on the hierarchical structure of the plans available to the agent, and discuss the significant challenges that remain for scaling up this framework to more realistic settings.",
+    "categories": [
+      "cs.AI",
+      "cs.HC"
+    ],
+    "published": "2018-07-13T12:33:07+00:00",
+    "authors": [
+      "Chris Cundy",
+      "Daniel Filan"
+    ],
+    "url": "http://arxiv.org/abs/1807.05037v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1809.09501v1",
+    "title": "Anderson Acceleration for Reinforcement Learning",
+    "abstract": "Anderson acceleration is an old and simple method for accelerating the computation of a fixed point. However, as far as we know and quite surprisingly, it has never been applied to dynamic programming or reinforcement learning. In this paper, we explain briefly what Anderson acceleration is and how it can be applied to value iteration, this being supported by preliminary experiments showing a significant speed up of convergence, that we critically discuss. We also discuss how this idea could be applied more generally to (deep) reinforcement learning.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2018-09-25T14:04:25+00:00",
+    "authors": [
+      "Matthieu Geist",
+      "Bruno Scherrer"
+    ],
+    "url": "http://arxiv.org/abs/1809.09501v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2301.08028v4",
+    "title": "A Tutorial on Meta-Reinforcement Learning",
+    "abstract": "While deep reinforcement learning (RL) has fueled multiple high-profile successes in machine learning, it is held back from more widespread adoption by its often poor data efficiency and the limited generality of the policies it produces. A promising approach for alleviating these limitations is to cast the development of better RL algorithms as a machine learning problem itself in a process called meta-RL. Meta-RL is most commonly studied in a problem setting where, given a distribution of tasks, the goal is to learn a policy that is capable of adapting to any new task from the task distribution with as little data as possible. In this survey, we describe the meta-RL problem setting in detail as well as its major variations. We discuss how, at a high level, meta-RL research can be clustered based on the presence of a task distribution and the learning budget available for each individual task. Using these clusters, we then survey meta-RL algorithms and applications. We conclude by presenting the open problems on the path to making meta-RL part of the standard toolbox for a deep RL practitioner.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2023-01-19T12:01:41+00:00",
+    "authors": [
+      "Jacob Beck",
+      "Risto Vuorio",
+      "Evan Zheran Liu",
+      "Zheng Xiong",
+      "Luisa Zintgraf",
+      "Chelsea Finn",
+      "Shimon Whiteson"
+    ],
+    "url": "http://arxiv.org/abs/2301.08028v4",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2406.04896v2",
+    "title": "Stabilizing Extreme Q-learning by Maclaurin Expansion",
+    "abstract": "In offline reinforcement learning, in-sample learning methods have been widely used to prevent performance degradation caused by evaluating out-of-distribution actions from the dataset. Extreme Q-learning (XQL) employs a loss function based on the assumption that Bellman error follows a Gumbel distribution, enabling it to model the soft optimal value function in an in-sample manner. It has demonstrated strong performance in both offline and online reinforcement learning settings. However, issues remain, such as the instability caused by the exponential term in the loss function and the risk of the error distribution deviating from the Gumbel distribution. Therefore, we propose Maclaurin Expanded Extreme Q-learning to enhance stability. In this method, applying Maclaurin expansion to the loss function in XQL enhances stability against large errors. This approach involves adjusting the modeled value function between the value function under the behavior policy and the soft optimal value function, thus achieving a trade-off between stability and optimality depending on the order of expansion. It also enables adjustment of the error distribution assumption from a normal distribution to a Gumbel distribution. Our method significantly stabilizes learning in online RL tasks from DM Control, where XQL was previously unstable. Additionally, it improves performance in several offline RL tasks from D4RL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2024-06-07T12:43:17+00:00",
+    "authors": [
+      "Motoki Omura",
+      "Takayuki Osa",
+      "Yusuke Mukuta",
+      "Tatsuya Harada"
+    ],
+    "url": "http://arxiv.org/abs/2406.04896v2",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1909.11939v6",
+    "title": "MERL: Multi-Head Reinforcement Learning",
+    "abstract": "A common challenge in reinforcement learning is how to convert the agent's interactions with an environment into fast and robust learning. For instance, earlier work makes use of domain knowledge to improve existing reinforcement learning algorithms in complex tasks. While promising, previously acquired knowledge is often costly and challenging to scale up. Instead, we decide to consider problem knowledge with signals from quantities relevant to solve any task, e.g., self-performance assessment and accurate expectations. $\\mathcal{V}^{ex}$ is such a quantity. It is the fraction of variance explained by the value function $V$ and measures the discrepancy between $V$ and the returns. Taking advantage of $\\mathcal{V}^{ex}$, we propose MERL, a general framework for structuring reinforcement learning by injecting problem knowledge into policy gradient updates. As a result, the agent is not only optimized for a reward but learns using problem-focused quantities provided by MERL, applicable out-of-the-box to any task. In this paper: (a) We introduce and define MERL, the multi-head reinforcement learning framework we use throughout this work. (b) We conduct experiments across a variety of standard benchmark environments, including 9 continuous control tasks, where results show improved performance. (c) We demonstrate that MERL also improves transfer learning on a set of challenging pixel-based tasks. (d) We ponder how MERL tackles the problem of reward sparsity and better conditions the feature space of reinforcement learning agents.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-09-26T06:57:51+00:00",
+    "authors": [
+      "Yannis Flet-Berliac",
+      "Philippe Preux"
+    ],
+    "url": "http://arxiv.org/abs/1909.11939v6",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1904.09489v1",
+    "title": "Compression and Localization in Reinforcement Learning for ATARI Games",
+    "abstract": "Deep neural networks have become commonplace in the domain of reinforcement learning, but are often expensive in terms of the number of parameters needed. While compressing deep neural networks has of late assumed great importance to overcome this drawback, little work has been done to address this problem in the context of reinforcement learning agents. This work aims at making first steps towards model compression in an RL agent. In particular, we compress networks to drastically reduce the number of parameters in them (to sizes less than 3% of their original size), further facilitated by applying a global max pool after the final convolution layer, and propose using Actor-Mimic in the context of compression. Finally, we show that this global max-pool allows for weakly supervised object localization, improving the ability to identify the agent's points of focus.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-04-20T19:42:50+00:00",
+    "authors": [
+      "Joel Ruben Antony Moniz",
+      "Barun Patra",
+      "Sarthak Garg"
+    ],
+    "url": "http://arxiv.org/abs/1904.09489v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1911.04947v2",
+    "title": "Accelerating Training in Pommerman with Imitation and Reinforcement Learning",
+    "abstract": "The Pommerman simulation was recently developed to mimic the classic Japanese game Bomberman, and focuses on competitive gameplay in a multi-agent setting. We focus on the 2$\\times$2 team version of Pommerman, developed for a competition at NeurIPS 2018. Our methodology involves training an agent initially through imitation learning on a noisy expert policy, followed by a proximal-policy optimization (PPO) reinforcement learning algorithm. The basic PPO approach is modified for stable transition from the imitation learning phase through reward shaping, action filters based on heuristics, and curriculum learning. The proposed methodology is able to beat heuristic and pure reinforcement learning baselines with a combined 100,000 training games, significantly faster than other non-tree-search methods in literature. We present results against multiple agents provided by the developers of the simulation, including some that we have enhanced. We include a sensitivity analysis over different parameters, and highlight undesirable effects of some strategies that initially appear promising. Since Pommerman is a complex multi-agent competitive environment, the strategies developed here provide insights into several real-world problems with characteristics such as partial observability, decentralized execution (without communication), and very sparse and delayed rewards.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2019-11-12T15:50:18+00:00",
+    "authors": [
+      "Hardik Meisheri",
+      "Omkar Shelke",
+      "Richa Verma",
+      "Harshad Khadilkar"
+    ],
+    "url": "http://arxiv.org/abs/1911.04947v2",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2306.14753v1",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural Networks could benefit from Data-Driven Homogeneous Chaos Theory",
+    "abstract": "Artificial Intelligence and Machine learning have been widely used in various fields of mathematical computing, physical modeling, computational science, communication science, and stochastic analysis. Approaches based on Deep Artificial Neural Networks (DANN) are very popular in our days. Depending on the learning task, the exact form of DANNs is determined via their multi-layer architecture, activation functions and the so-called loss function. However, for a majority of deep learning approaches based on DANNs, the kernel structure of neural signal processing remains the same, where the node response is encoded as a linear superposition of neural activity, while the non-linearity is triggered by the activation functions. In the current paper, we suggest to analyze the neural signal processing in DANNs from the point of view of homogeneous chaos theory as known from polynomial chaos expansion (PCE). From the PCE perspective, the (linear) response on each node of a DANN could be seen as a $1^{st}$ degree multi-variate polynomial of single neurons from the previous layer, i.e. linear weighted sum of monomials. From this point of view, the conventional DANN structure relies implicitly (but erroneously) on a Gaussian distribution of neural signals. Additionally, this view revels that by design DANNs do not necessarily fulfill any orthogonality or orthonormality condition for a majority of data-driven applications. Therefore, the prevailing handling of neural signals in DANNs could lead to redundant representation as any neural signal could contain some partial information from other neural signals. To tackle that challenge, we suggest to employ the data-driven generalization of PCE theory known as arbitrary polynomial chaos (aPC) to construct a corresponding multi-variate orthonormal representations on each node of a DANN to obtain Deep arbitrary polynomial chaos neural networks.",
+    "categories": [
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2023-06-26T15:09:14+00:00",
+    "authors": [
+      "Sergey Oladyshkin",
+      "Timothy Praditia",
+      "Ilja Kröker",
+      "Farid Mohammadi",
+      "Wolfgang Nowak",
+      "Sebastian Otte"
+    ],
+    "url": "http://arxiv.org/abs/2306.14753v1",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "2307.05639v2",
+    "title": "Learning Active Subspaces and Discovering Important Features with Gaussian Radial Basis Functions Neural Networks",
+    "abstract": "Providing a model that achieves a strong predictive performance and is simultaneously interpretable by humans is one of the most difficult challenges in machine learning research due to the conflicting nature of these two objectives. To address this challenge, we propose a modification of the radial basis function neural network model by equipping its Gaussian kernel with a learnable precision matrix. We show that precious information is contained in the spectrum of the precision matrix that can be extracted once the training of the model is completed. In particular, the eigenvectors explain the directions of maximum sensitivity of the model revealing the active subspace and suggesting potential applications for supervised dimensionality reduction. At the same time, the eigenvectors highlight the relationship in terms of absolute variation between the input and the latent variables, thereby allowing us to extract a ranking of the input variables based on their importance to the prediction task enhancing the model interpretability. We conducted numerical experiments for regression, classification, and feature selection tasks, comparing our model against popular machine learning models, the state-of-the-art deep learning-based embedding feature selection techniques, and a transformer model for tabular data. Our results demonstrate that the proposed model does not only yield an attractive prediction performance compared to the competitors but also provides meaningful and interpretable results that potentially could assist the decision-making process in real-world applications. A PyTorch implementation of the model is available on GitHub at the following link. https://github.com/dannyzx/Gaussian-RBFNN",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2023-07-11T09:54:30+00:00",
+    "authors": [
+      "Danny D'Agostino",
+      "Ilija Ilievski",
+      "Christine Annette Shoemaker"
+    ],
+    "url": "http://arxiv.org/abs/2307.05639v2",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "2211.12792v2",
+    "title": "MECCH: Metapath Context Convolution-based Heterogeneous Graph Neural Networks",
+    "abstract": "Heterogeneous graph neural networks (HGNNs) were proposed for representation learning on structural data with multiple types of nodes and edges. To deal with the performance degradation issue when HGNNs become deep, researchers combine metapaths into HGNNs to associate nodes closely related in semantics but far apart in the graph. However, existing metapath-based models suffer from either information loss or high computation costs. To address these problems, we present a novel Metapath Context Convolution-based Heterogeneous Graph Neural Network (MECCH). MECCH leverages metapath contexts, a new kind of graph structure that facilitates lossless node information aggregation while avoiding any redundancy. Specifically, MECCH applies three novel components after feature preprocessing to extract comprehensive information from the input graph efficiently: (1) metapath context construction, (2) metapath context encoder, and (3) convolutional metapath fusion. Experiments on five real-world heterogeneous graph datasets for node classification and link prediction show that MECCH achieves superior prediction accuracy compared with state-of-the-art baselines with improved computational efficiency.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2022-11-23T09:13:33+00:00",
+    "authors": [
+      "Xinyu Fu",
+      "Irwin King"
+    ],
+    "url": "http://arxiv.org/abs/2211.12792v2",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1901.06610v2",
+    "title": "Hierarchical Attentional Hybrid Neural Networks for Document Classification",
+    "abstract": "Document classification is a challenging task with important applications. The deep learning approaches to the problem have gained much attention recently. Despite the progress, the proposed models do not incorporate the knowledge of the document structure in the architecture efficiently and not take into account the contexting importance of words and sentences. In this paper, we propose a new approach based on a combination of convolutional neural networks, gated recurrent units, and attention mechanisms for document classification tasks. The main contribution of this work is the use of convolution layers to extract more meaningful, generalizable and abstract features by the hierarchical representation. The proposed method in this paper improves the results of the current attention-based approaches for document classification.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.LG",
+      "cs.NE"
+    ],
+    "published": "2019-01-20T01:48:43+00:00",
+    "authors": [
+      "Jader Abreu",
+      "Luis Fred",
+      "David Macêdo",
+      "Cleber Zanchettin"
+    ],
+    "url": "http://arxiv.org/abs/1901.06610v2",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1905.05918v1",
+    "title": "A Neural Network-Evolutionary Computational Framework for Remaining Useful Life Estimation of Mechanical Systems",
+    "abstract": "This paper presents a framework for estimating the remaining useful life (RUL) of mechanical systems. The framework consists of a multi-layer perceptron and an evolutionary algorithm for optimizing the data-related parameters. The framework makes use of a strided time window to estimate the RUL for mechanical components. Tuning the data-related parameters can become a very time consuming task. The framework presented here automatically reshapes the data such that the efficiency of the model is increased. Furthermore, the complexity of the model is kept low, e.g. neural networks with few hidden layers and few neurons at each layer. Having simple models has several advantages like short training times and the capacity of being in environments with limited computational resources such as embedded systems. The proposed method is evaluated on the publicly available C-MAPSS dataset, its accuracy is compared against other state-of-the art methods for the same dataset.",
+    "categories": [
+      "cs.LG",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2019-05-15T02:31:45+00:00",
+    "authors": [
+      "David Laredo",
+      "Zhaoyin Chen",
+      "Oliver Schütze",
+      "Jian-Qiao Sun"
+    ],
+    "url": "http://arxiv.org/abs/1905.05918v1",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1906.10015v2",
+    "title": "A Review on Neural Network Models of Schizophrenia and Autism Spectrum Disorder",
+    "abstract": "This survey presents the most relevant neural network models of autism spectrum disorder and schizophrenia, from the first connectionist models to recent deep network architectures. We analyzed and compared the most representative symptoms with its neural model counterpart, detailing the alteration introduced in the network that generates each of the symptoms, and identifying their strengths and weaknesses. We additionally cross-compared Bayesian and free-energy approaches, as they are widely applied to modeling psychiatric disorders and share basic mechanisms with neural networks. Models of schizophrenia mainly focused on hallucinations and delusional thoughts using neural dysconnections or inhibitory imbalance as the predominating alteration. Models of autism rather focused on perceptual difficulties, mainly excessive attention to environment details, implemented as excessive inhibitory connections or increased sensory precision. We found an excessive tight view of the psychopathologies around one specific and simplified effect, usually constrained to the technical idiosyncrasy of the used network architecture. Recent theories and evidence on sensorimotor integration and body perception combined with modern neural network architectures could offer a broader and novel spectrum to approach these psychopathologies. This review emphasizes the power of artificial neural networks for modeling some symptoms of neurological disorders but also calls for further developing these techniques in the field of computational psychiatry.",
+    "categories": [
+      "q-bio.NC",
+      "cs.AI",
+      "cs.NE"
+    ],
+    "published": "2019-06-24T15:10:44+00:00",
+    "authors": [
+      "Pablo Lanillos",
+      "Daniel Oliva",
+      "Anja Philippsen",
+      "Yuichi Yamashita",
+      "Yukie Nagai",
+      "Gordon Cheng"
+    ],
+    "url": "http://arxiv.org/abs/1906.10015v2",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "2103.07492v4",
+    "title": "Continual Learning for Recurrent Neural Networks: an Empirical Evaluation",
+    "abstract": "Learning continuously during all model lifetime is fundamental to deploy machine learning solutions robust to drifts in the data distribution. Advances in Continual Learning (CL) with recurrent neural networks could pave the way to a large number of applications where incoming data is non stationary, like natural language processing and robotics. However, the existing body of work on the topic is still fragmented, with approaches which are application-specific and whose assessment is based on heterogeneous learning protocols and datasets. In this paper, we organize the literature on CL for sequential data processing by providing a categorization of the contributions and a review of the benchmarks. We propose two new benchmarks for CL with sequential data based on existing datasets, whose characteristics resemble real-world applications. We also provide a broad empirical evaluation of CL and Recurrent Neural Networks in class-incremental scenario, by testing their ability to mitigate forgetting with a number of different strategies which are not specific to sequential data processing. Our results highlight the key role played by the sequence length and the importance of a clear specification of the CL scenario.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2021-03-12T19:25:28+00:00",
+    "authors": [
+      "Andrea Cossu",
+      "Antonio Carta",
+      "Vincenzo Lomonaco",
+      "Davide Bacciu"
+    ],
+    "url": "http://arxiv.org/abs/2103.07492v4",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1512.00242v1",
+    "title": "Towards Dropout Training for Convolutional Neural Networks",
+    "abstract": "Recently, dropout has seen increasing use in deep learning. For deep convolutional neural networks, dropout is known to work well in fully-connected layers. However, its effect in convolutional and pooling layers is still not clear. This paper demonstrates that max-pooling dropout is equivalent to randomly picking activation based on a multinomial distribution at training time. In light of this insight, we advocate employing our proposed probabilistic weighted pooling, instead of commonly used max-pooling, to act as model averaging at test time. Empirical evidence validates the superiority of probabilistic weighted pooling. We also empirically show that the effect of convolutional dropout is not trivial, despite the dramatically reduced possibility of over-fitting due to the convolutional architecture. Elaborately designing dropout training simultaneously in max-pooling and fully-connected layers, we achieve state-of-the-art performance on MNIST, and very competitive results on CIFAR-10 and CIFAR-100, relative to other approaches without data augmentation. Finally, we compare max-pooling dropout and stochastic pooling, both of which introduce stochasticity based on multinomial distributions at pooling stage.",
+    "categories": [
+      "cs.LG",
+      "cs.CV",
+      "cs.NE"
+    ],
+    "published": "2015-12-01T12:46:11+00:00",
+    "authors": [
+      "Haibing Wu",
+      "Xiaodong Gu"
+    ],
+    "url": "http://arxiv.org/abs/1512.00242v1",
+    "label": 0,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1807.02477v1",
+    "title": "Development of a sensory-neural network for medical diagnosing",
+    "abstract": "Performance of a sensory-neural network developed for diagnosing of diseases is described. Information about patient's condition is provided by answers to the questionnaire. Questions correspond to sensors generating signals when patients acknowledge symptoms. These signals excite neurons in which characteristics of the diseases are represented by synaptic weights associated with indicators of symptoms. The disease corresponding to the most excited neuron is proposed as the result of diagnosing. Its reliability is estimated by the likelihood defined by the ratio of excitation of the most excited neuron and the complete neural network.",
+    "categories": [
+      "cs.NE"
+    ],
+    "published": "2018-07-06T16:30:53+00:00",
+    "authors": [
+      "Igor Grabec",
+      "Eva Švegl",
+      "Mihael Sok"
+    ],
+    "url": "http://arxiv.org/abs/1807.02477v1",
+    "label": 0,
+    "source_query": "graph neural networks"
+  }
+]

@@ -6,19 +6,26 @@ This document is the **next-generation roadmap (Roadmap 2.0)**, produced 2026-07
 
 ---
 
-## Tier 0 — Urgent repairs (broken today)
+## Tier 0 — Urgent repairs
 
-The research surfaced things that are silently failing **right now**. These are prerequisites, not features:
+The research surfaced things that were silently failing. **Most shipped in PR #13 (merged 2026-07-04)** — see status column.
 
-| Repair | What's wrong | Fixed by |
+| Repair | What was wrong | Status |
 |---|---|---|
-| **Papers With Code is dead** | paperswithcode.com was sunset July 2025 and redirects to Hugging Face; `paperswithcode.py` fails on every `rr update` | Feature 1 |
-| **OpenAlex now requires API keys** | Since 2026-02-13 keyless callers get a $0.10/day test allowance, then throttling; `sources/openalex.py` sends no key | Feature 12 |
-| **Retired Claude model default** | `config.py`'s default `claude_model` (`claude-sonnet-4-20250514`) was retired 2026-06-15 — any wired Claude call 404s | Feature 6 |
-| **LLM path unreachable** | `llm_suggestions.py` (Ollama/Claude) is fully implemented but `cli.digest` never passes `suggestions_config`/`profile`, so `provider: claude` silently falls back to templates | Feature 6 |
-| **Pipeline drift** | The collect→store→rank pipeline is duplicated across `cli.update` (~235 lines inline), `watcher.py`, and `workspace.py`; watch/workspace skip enrichment | Feature 14 (pipeline.py refactor) |
-| **Dead CLI option** | `rr digest --since` is accepted but unused | trivial fix |
-| **No CI** | `.github/workflows/` doesn't exist despite ruff/mypy config | Feature 4 (side effect) |
+| **Papers With Code is dead** | paperswithcode.com was sunset July 2025 and redirects to Hugging Face; `paperswithcode.py` failed on every `rr update` | ✅ **Shipped** — replaced with HF Papers enrichment (`sources/hf_papers.py`); adds `[MODEL]` badge + upvote signal; `paperswithcode.py` deleted (Feature 1 core) |
+| **OpenAlex now requires API keys** | Since 2026-02-13 keyless callers get a $0.10/day test allowance, then throttling; `sources/openalex.py` sent no key | ✅ **Shipped** — `openalex.api_key` config passed as `?api_key=`; `validate_config` warns when the source is enabled keyless (Feature 12 groundwork) |
+| **Retired Claude model default** | `config.py`'s default `claude_model` (`claude-sonnet-4-20250514`) was retired 2026-06-15 — any wired Claude call 404s | ✅ **Shipped** — bumped to `claude-haiku-4-5` |
+| **LLM path unreachable** | `llm_suggestions.py` (Ollama/Claude) is fully implemented but `cli.digest` never passed `suggestions_config`/`profile`, so `provider: claude` silently fell back to templates | ✅ **Shipped** — wired through `cli.digest` + the JSON path; failures are now logged, not swallowed (Feature 6 groundwork) |
+| **Dead CLI option** | `rr digest --since` was accepted but unused | ✅ **Shipped** — now filters by publication date; opt-in (default: no filter) so existing digests are unchanged |
+| **No CI** | `.github/workflows/` didn't exist despite ruff/mypy config | ✅ **Shipped** — `ci.yml`: pytest + ruff + `ruff format --check` + mypy on Python 3.11–3.13 |
+| **Run-ordering bug** *(found while repairing)* | `get_runs`/`get_last_run` ordered only by `run_time`; runs sharing a timestamp tied and `get_last_run()` could return the **wrong** run | ✅ **Shipped** — added a `run_id DESC` tiebreaker |
+| **Pipeline drift** | The collect→store→rank pipeline is duplicated across `cli.update` (~235 lines inline), `watcher.py`, and `workspace.py`; watch/workspace skip enrichment | ⏳ **Deferred** to Feature 14 (pipeline.py refactor) — duplication, not breakage; carries regression risk across three entry points |
+
+> PR #13 also normalized the whole repo (ran `ruff format`, cleared all `ruff` + `mypy --strict` findings) so CI is genuinely green. 519 tests pass.
+
+### Evaluation harness (`evals/`) — added 2026-07-04
+
+A manually-run **benchmark** (not CI) that scores RepoRadar's ranking quality on realistic repos. It has two modes: an **offline** mode over frozen, real-arXiv labeled fixtures (deterministic, no keys) and a **live** mode that clones real repos and runs the full pipeline against real sources. This is the practical, standalone counterpart to Feature 11 (`rr eval`, which scores against a user's own ratings) and de-risks every ranking change on this roadmap. See `evals/README.md`.
 
 ---
 
@@ -54,6 +61,8 @@ The research surfaced things that are silently failing **right now**. These are 
 Proven technology, verified-live dependencies, clear path. Days-to-weeks each.
 
 ### 1. Hugging Face Papers enrichment (replace dead Papers With Code)
+
+> **✅ Core shipped in PR #13** (`sources/hf_papers.py`, schema v6 with `models`/`upvotes`, `EnrichmentConfig`). Remaining: the `w_community` ranking component and the `pwc-archive` offline fallback.
 
 **Verification: confirmed** (endpoints live-tested 2026-07-03).
 
@@ -216,6 +225,8 @@ Every existing source assumes the arXiv-ML user, but RepoRadar's value propositi
 **Sources:** [bioRxiv API docs (via medrxivr)](https://docs.ropensci.org/medrxivr/) · [eprint.iacr.org](https://eprint.iacr.org/) · [dblp.org](https://dblp.org/)
 
 ### 11. `rr eval`: offline recommendation-quality harness and ranking regression gate
+
+> **Related:** the standalone `evals/` benchmark harness (added 2026-07-04) already scores ranking quality on realistic repos with labeled arXiv fixtures. This feature is the *in-CLI* version that scores against a user's own accumulated ratings/stars; the two share the same metrics (P@k, R@k, nDCG@k, MRR).
 
 **Verification: proposed by completeness critique; read-only over existing data.**
 
