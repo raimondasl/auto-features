@@ -11,9 +11,11 @@ Metrics reward precision and correct abstention and penalize false positives.
     # dry-run the whole pipeline with no keys/spend (mock judge + mock baseline):
     uv run python evals/run_judge_eval.py --mock
 
-    # the real thing (needs OPENAI_API_KEY and Claude Code installed):
-    uv run python evals/run_judge_eval.py --case rag
-    uv run python evals/run_judge_eval.py            # all cases
+    # the real thing (needs OPENAI_API_KEY for the judge):
+    #   baseline via the Anthropic API (no Claude Code CLI needed; needs ANTHROPIC_API_KEY):
+    uv run python evals/run_judge_eval.py --case rag --baseline api
+    #   baseline via Claude Code headless (needs `claude` on PATH):
+    uv run python evals/run_judge_eval.py --case rag --baseline cli
 
 See evals/README.md for keys and cost.
 """
@@ -49,7 +51,7 @@ from reporadar.digest import TOP_THRESHOLD  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 
 RESULTS_DIR = EVALS_DIR / "results"
-ENV_KEYS = ["OPENAI_API_KEY", "OPENALEX_API_KEY", "SEMANTIC_SCHOLAR_API_KEY"]
+ENV_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENALEX_API_KEY", "SEMANTIC_SCHOLAR_API_KEY"]
 RECENT_DAYS = 180  # baseline papers newer than this count as "recent"
 
 
@@ -117,53 +119,100 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     rr_toppicks = [p for p, s in rr_ranked if s >= TOP_THRESHOLD]
     print(f"        RepoRadar: {len(rr_topn)} ranked, {len(rr_toppicks)} in Top Picks tier (>=0.5)")
 
-    # 2. Baseline (Opus via Claude Code) -> verify against real arXiv
-    b = baseline_mod.run_baseline(dest, repo_name=name, mock=args.mock, use_cache=not args.no_cache)
-    b_papers, n_halluc = resolve_references(b["ids"], b["titles"])
+    # 2. Baseline (Opus, via Claude Code CLI or the Anthropic API) -> verify
+    b = baseline_mod.run_baseline(
+        dest,
+        repo_name=name,
+        repo_context=repo_context,
+        mode=args.baseline,
+        mock=args.mock,
+        use_cache=not args.no_cache,
+    )
+    baseline_status = b.get("status", "ok")
+    if baseline_status != "ok":
+        print(f"        !! BASELINE DID NOT RUN [{baseline_status}]: {b.get('raw', '')[:200]}")
+    b_papers, n_halluc, n_lookup_failed = resolve_references(b["ids"], b["titles"])
+    if n_lookup_failed:
+        # An arXiv outage can't be blamed on the baseline — mark it unverified
+        # rather than counting real papers as hallucinated.
+        baseline_status = "arxiv_unverified" if baseline_status == "ok" else baseline_status
+        print(f"        !! arXiv lookup failed for {n_lookup_failed} baseline ref(s) — unverified")
+    baseline_ok = baseline_status == "ok"
     print(
         f"        Baseline recommended {len(b['ids']) + len(b['titles'])} ref(s) -> "
         f"{len(b_papers)} real, {n_halluc} hallucinated (cost ${b.get('cost_usd', 0):.2f})"
     )
 
-    # 3. Pool = RepoRadar top-N ∪ baseline; judge each once, blind to source
+    # 3. Pool = RepoRadar top-N ∪ baseline; judge each once, blind to source.
+    #    A judge failure drops the paper from the pool — never fabricate a 0.
     pool: dict[str, dict[str, Any]] = {}
     for p in rr_topn + b_papers:
         pool.setdefault(p["arxiv_id"].split("v")[0], p)
     verdicts: dict[str, dict[str, Any]] = {}
-    for base_id, paper in pool.items():
-        verdicts[base_id] = judge_mod.judge_paper(
-            name, repo_context, paper, model=args.model, mock=args.mock, use_cache=not args.no_cache
-        )
+    n_judge_failed = 0
+    for base_id, paper in list(pool.items()):
+        try:
+            verdicts[base_id] = judge_mod.judge_paper(
+                name,
+                repo_context,
+                paper,
+                model=args.model,
+                mock=args.mock,
+                use_cache=not args.no_cache,
+            )
+        except Exception as exc:  # noqa: BLE001 — never score an unjudged paper as 0
+            n_judge_failed += 1
+            pool.pop(base_id, None)
+            print(f"        ! judge failed for {base_id} (dropped): {str(exc)[:120]}")
+    if n_judge_failed:
+        print(f"        ! {n_judge_failed} paper(s) dropped from the pool (judge errors)")
 
     def gains_for(papers: list[dict[str, Any]]) -> list[int]:
-        return [int(verdicts[p["arxiv_id"].split("v")[0]]["score"]) for p in papers]
+        return [
+            int(verdicts[bid]["score"])
+            for p in papers
+            if (bid := p["arxiv_id"].split("v")[0]) in verdicts
+        ]
 
     pool_gains = [int(v["score"]) for v in verdicts.values()]
     rr_pick_metrics = summarize_system(gains_for(rr_toppicks), pool_gains, n_hallucinated=0)
     rr_topn_metrics = summarize_system(gains_for(rr_topn), pool_gains, n_hallucinated=0)
-    b_gains = gains_for(b_papers)
-    b_metrics = summarize_system(b_gains, pool_gains, n_hallucinated=n_halluc)
 
-    # Baseline age: recent-only net value (apples-to-apples with RepoRadar).
-    recent_gains = [
-        g for p, g in zip(b_papers, b_gains, strict=True) if is_recent(p.get("published", ""))
-    ]
-    b_metrics["n_recent"] = len(recent_gains)
-    b_metrics["net_value_recent@2"] = summarize_system(recent_gains, pool_gains)["net_value@2"]
+    if baseline_ok:
+        # Restrict to papers still in the pool (a dropped one has no gain).
+        b_present = [p for p in b_papers if p["arxiv_id"].split("v")[0] in verdicts]
+        b_gains = gains_for(b_papers)
+        b_metrics = summarize_system(b_gains, pool_gains, n_hallucinated=n_halluc)
+        recent_gains = [
+            g for p, g in zip(b_present, b_gains, strict=True) if is_recent(p.get("published", ""))
+        ]
+        b_metrics["n_recent"] = len(recent_gains)
+        b_metrics["net_value_recent@2"] = summarize_system(recent_gains, pool_gains)["net_value@2"]
+    else:
+        # Failed/unverified: emit NO real metric numbers, so no aggregation can
+        # read the crash as a legitimate 0.0 net-value / 1.0 abstention.
+        b_metrics = {
+            "failed": True,
+            "n_returned": len(b_papers),
+            "n_hallucinated": n_halluc,
+            "n_lookup_failed": n_lookup_failed,
+        }
+    b_metrics["status"] = baseline_status
 
     n_relevant = sum(1 for g in pool_gains if g >= 2)
     print(f"        pool judged: {len(pool_gains)} papers, {n_relevant} genuinely actionable (>=2)")
     _print_system("RepoRadar[TopPicks]", rr_pick_metrics)
     _print_system("RepoRadar[Top10]   ", rr_topn_metrics)
-    _print_system(
-        "Baseline           ", b_metrics, extra=f"recent={b_metrics['n_recent']}/{len(b_papers)}"
-    )
+    b_extra = "" if not baseline_ok else f"recent={b_metrics['n_recent']}/{len(b_papers)}"
+    _print_system("Baseline           ", b_metrics, extra=b_extra)
 
     return {
         "case": name,
         "repo": case["live_repo"],
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,
+        "n_judge_failed": n_judge_failed,
+        "baseline_status": baseline_status,
         "reporadar_toppicks": rr_pick_metrics,
         "reporadar_top10": rr_topn_metrics,
         "baseline": b_metrics,
@@ -171,6 +220,12 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
 
 
 def _print_system(label: str, m: dict[str, Any], extra: str = "") -> None:
+    if m.get("failed"):
+        print(
+            f"          {label}: ** FAILED ({m.get('status')}) — no metrics **  "
+            f"(returned={m.get('n_returned', 0)}, halluc={m.get('n_hallucinated', 0)})"
+        )
+        return
     prec = m["precision"]
     prec_s = "n/a(abstained)" if prec != prec else f"{prec:.2f}"  # NaN check
     print(
@@ -192,6 +247,13 @@ def main() -> int:
         "--model", default=judge_mod.DEFAULT_JUDGE_MODEL, help="OpenAI judge model."
     )
     parser.add_argument("--sources", default="arxiv", help="RepoRadar sources (comma-separated).")
+    parser.add_argument(
+        "--baseline",
+        choices=["cli", "api"],
+        default="cli",
+        help="Opus baseline mode: 'cli' = Claude Code headless (needs `claude` on PATH); "
+        "'api' = Anthropic Messages API + web_search (needs ANTHROPIC_API_KEY, no CLI).",
+    )
     parser.add_argument("--no-cache", action="store_true", help="Ignore cached verdicts/baseline.")
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
@@ -200,11 +262,15 @@ def main() -> int:
     keys = {k: os.environ[k] for k in ENV_KEYS if os.environ.get(k)}
 
     judge_label = "mock" if args.mock else args.model
-    baseline_label = "mock" if args.mock else "claude-opus-4-8"
+    baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
     print(f"judge={judge_label}  baseline={baseline_label}")
+    print(f"keys present: {', '.join(keys) or 'none'}")
     if not args.mock and "OPENAI_API_KEY" not in keys:
         print("\n! OPENAI_API_KEY not set. Set it (see evals/README.md) or use --mock.")
+        return 1
+    if not args.mock and args.baseline == "api" and "ANTHROPIC_API_KEY" not in keys:
+        print("\n! --baseline api needs ANTHROPIC_API_KEY. Set it (see evals/README.md).")
         return 1
 
     bench = load_benchmark()

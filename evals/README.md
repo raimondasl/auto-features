@@ -104,9 +104,12 @@ would **genuinely improve this specific code**, and is the tool willing to
 1. **RepoRadar** produces two views from its real ranking: its **Top Picks** tier
    (score >= 0.5 — the abstention-respecting output, often empty) and its **Top-10**
    (diagnostic — tells a too-conservative threshold apart from shallow ranking).
-2. **Baseline** = **Opus 4.8 via Claude Code headless** with web tools, run in the
-   repo dir with your exact prompt: *"fetch and summarize research papers that relate
-   to the code and propose methods to improve it."* A genuinely strong baseline.
+2. **Baseline** = **Opus 4.8**, prompted with *"fetch and summarize research papers
+   that relate to the code and propose methods to improve it."* Two modes:
+   - `--baseline api` (recommended) — the Anthropic Messages API with the server-side
+     `web_search` tool. Needs `ANTHROPIC_API_KEY`; **no Claude Code CLI required**.
+   - `--baseline cli` — Claude Code headless (`claude -p`) with web tools, run in the
+     repo dir. Needs `claude` on PATH (set `RR_EVAL_CLAUDE_BIN` if it's elsewhere).
 3. **Hallucination guard** — every proposed paper is resolved against the real arXiv;
    unresolvable references count as hallucinations and score 0. (Opus tends to invent
    plausible arXiv IDs; this keeps the comparison honest.)
@@ -133,23 +136,40 @@ would **genuinely improve this specific code**, and is the tool willing to
 #    Still clones repos + hits arXiv (free); validates wiring end-to-end.
 uv run python evals/run_judge_eval.py --mock --case rag
 
-# 2. Install the judge client + set your key (see Keys below), then run for real:
+# 2. Install the clients + set your keys (see Keys below), then run for real:
 uv pip install -e ".[evals]"
-uv run python evals/run_judge_eval.py --case rag     # one repo
-uv run python evals/run_judge_eval.py                # all repos
-uv run python evals/run_judge_eval.py --model o3     # cheaper judge
+uv run python evals/run_judge_eval.py --case rag --baseline api   # one repo, API baseline
+uv run python evals/run_judge_eval.py --baseline api              # all repos
+uv run python evals/run_judge_eval.py --case rag --baseline cli   # Claude Code CLI baseline
+uv run python evals/run_judge_eval.py --model o3 --baseline api   # cheaper judge
 ```
 
-Requires **`OPENAI_API_KEY`** (the judge) and **Claude Code** installed and
-authenticated (the baseline — the harness shells out to `claude -p`). If your
-Claude Code version needs different headless flags, edit `CLAUDE_FLAGS` in
-`evals/baseline.py`.
+Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either
+**`ANTHROPIC_API_KEY`** (`--baseline api`) or **Claude Code** on PATH (`--baseline cli`).
+For the CLI baseline, if your Claude Code version needs different headless flags, edit
+`CLAUDE_FLAGS` in `evals/baseline.py` or set `RR_EVAL_CLAUDE_FLAGS`.
 
-**Reproducibility & cost:** every judge verdict and baseline output is cached under
-`evals/cache/` keyed by (rubric version, model, repo, paper), so re-runs are near-free
-and stable. A full uncached run is roughly **$10-30** (pool of ~30-60 papers x 4 repos
-judged on GPT-5.5, plus 4 agentic Opus baseline runs). `evals/cache/` and
-`evals/results/` are gitignored. Bump `RUBRIC_VERSION` in `judge.py` to invalidate cache.
+**Debugging a baseline that "recommended 0 papers":** the runner distinguishes a real
+abstention from a failure. A failed baseline prints `!! BASELINE DID NOT RUN [status]`
+(status is `missing_cli` / `no_key` / `error` / `timeout`) and its metrics row is marked
+`** FAILED — did not run **`. The raw output of every run is cached at
+`evals/cache/baseline/<mode>/<repo>.json` — inspect `raw` and `status` there. Caches are
+**per-mode** (`api` / `cli` / `mock`), so a `--mock` run can never be served to a real
+one, and **failures are never cached** (they retry next run).
+
+**Honesty guarantees** (so infra hiccups can't silently favor a system): an arXiv
+outage marks the baseline `arxiv_unverified` rather than counting real papers as
+hallucinated; a judge error (empty/malformed/out-of-range score) **drops that paper
+from the pool** instead of scoring it 0; a failed baseline emits **no metric numbers**
+(so no aggregate can read a crash as a legitimate 0.0 net-value / 1.0 abstention); and
+caches are invalidated when the model, prompt, rubric, or repo context changes.
+
+**Reproducibility & cost:** successful judge verdicts and baseline outputs are cached
+under `evals/cache/` keyed by (rubric version, model, repo, paper) / (mode, repo), so
+re-runs are near-free and stable. A full uncached run is roughly **$10-30** (pool of
+~30-60 papers x 4 repos judged on GPT-5.5, plus 4 Opus baseline runs). `evals/cache/`
+and `evals/results/` are gitignored. Bump `RUBRIC_VERSION` in `judge.py` to invalidate
+the judge cache; delete `evals/cache/baseline/<mode>/` to force baseline re-runs.
 
 **Expected finding:** RepoRadar's Top Picks tier abstains often on live data (its
 keyword scores rarely reach 0.5), and the Opus baseline will likely win on actionable
@@ -159,16 +179,18 @@ papers. That's the point — it's the evidence base for the roadmap's LLM-triage
 ## Keys — what you need, how to get them, where to set them
 
 **Tier A needs nothing** (offline, or live with arXiv only). **Tier B needs
-`OPENAI_API_KEY`** (the judge) and **Claude Code** installed (the baseline). Other
+`OPENAI_API_KEY`** (the judge) plus a baseline credential: `ANTHROPIC_API_KEY` for
+`--baseline api` (recommended) **or** Claude Code on PATH for `--baseline cli`. Other
 keys only unlock extra live sources.
 
 | Env var | For | Cost | Get it from |
 |---------|-----|------|-------------|
 | `OPENAI_API_KEY` | **Tier B judge (GPT-5.5)** | **paid** (~$10–30/full run) | https://platform.openai.com/api-keys . Required for a real Tier B run; use `--mock` to dry-run without it. |
+| `ANTHROPIC_API_KEY` | **Tier B `--baseline api`** (Opus 4.8 + web_search) | **paid** | https://console.anthropic.com/ . The no-CLI baseline path. |
 | `OPENALEX_API_KEY` | live `openalex` source | **free** | https://openalex.org/ → sign in → **API key**. Recommended: since 2026-02-13 keyless callers are throttled to a tiny daily allowance. |
 | `SEMANTIC_SCHOLAR_API_KEY` | live `semantic_scholar` source | free | https://www.semanticscholar.org/product/api . Works **without** a key on a shared pool (best-effort); keys aren't granted to free-domain emails since 2024, so most people run keyless. |
 | `HF_TOKEN` | higher Hugging Face rate limits | free | https://huggingface.co/settings/tokens (a **read** token). Not used by the ranking eval — only enrichment — so usually unnecessary here. |
-| Claude Code | **Tier B baseline (Opus 4.8)** | **paid** (subscription or API key) | Install from https://claude.com/claude-code and `claude` must be on PATH + authenticated. The harness shells out to `claude -p`. |
+| Claude Code | **Tier B `--baseline cli`** (Opus 4.8) | **paid** (subscription or API key) | Only for the CLI baseline. Install from https://claude.com/claude-code ; `claude` must be on PATH (or set `RR_EVAL_CLAUDE_BIN`). Prefer `--baseline api` if you don't have it. |
 | `GITHUB_TOKEN` | avoid clone rate limits | free | Only if `git clone` starts failing. Public repos clone with no token. |
 
 ### Where/how to set them
@@ -237,7 +259,7 @@ evals/
   run_eval.py        Tier A runner (--offline / --live)
   run_judge_eval.py  Tier B runner (LLM judge vs Opus baseline; --mock to dry-run)
   judge.py           neutral GPT-5.5 judge (rubric, caching, --mock scoring)
-  baseline.py        Opus 4.8 via Claude Code headless
+  baseline.py        Opus 4.8 baseline — --baseline api (Anthropic + web_search) or cli (Claude Code)
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode
