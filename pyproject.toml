@@ -26,7 +26,8 @@ embeddings = [
 ]
 evals = [
     # Only needed for the Tier B LLM-judge benchmark (evals/run_judge_eval.py).
-    "openai>=1.0",
+    "openai>=1.0",  # the neutral judge
+    "anthropic>=0.40",  # the --baseline api Opus + web_search baseline
 ]
 dev = [
     "pytest>=7.0",

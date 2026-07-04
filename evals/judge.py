@@ -11,6 +11,7 @@ pipeline can be wired and tested offline.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -111,10 +112,23 @@ def _call_openai(model: str, repo_context: str, paper: dict[str, Any]) -> dict[s
         # Some reasoning models reject non-default temperature — retry without.
         resp = client.chat.completions.create(**kwargs)
 
-    raw = resp.choices[0].message.content or "{}"
-    data = json.loads(raw)
+    # Do NOT coerce a degenerate response into a valid score-0 verdict — that
+    # would silently penalize whichever system proposed the paper and get cached
+    # forever. Raise instead, so the caller can skip the paper (never fabricate).
+    choice = resp.choices[0]
+    content = choice.message.content
+    if not content:
+        raise RuntimeError(
+            f"empty judge response (finish_reason={getattr(choice, 'finish_reason', '?')})"
+        )
+    data = json.loads(content)
+    if "score" not in data:
+        raise RuntimeError(f"judge response missing 'score': {content[:200]}")
+    score = int(data["score"])
+    if score not in (0, 1, 2, 3):
+        raise RuntimeError(f"judge score out of range 0-3: {score}")
     return {
-        "score": int(data.get("score", 0)),
+        "score": score,
         "justification": str(data.get("justification", "")),
         "proposed_change": str(data.get("proposed_change", "")),
     }
@@ -129,15 +143,26 @@ def judge_paper(
     mock: bool = False,
     use_cache: bool = True,
 ) -> dict[str, Any]:
-    """Return {score, justification, proposed_change} for one paper, cached."""
+    """Return {score, justification, proposed_change} for one paper, cached.
+
+    Raises on a judge failure (empty/malformed/out-of-range response) so the
+    caller can skip the paper — a failure is never cached or scored as 0. A
+    cache hit is only honored when the rubric + repo-context hash still matches,
+    so a rubric edit or a changed repo re-judges instead of serving stale.
+    """
     paper_id = paper.get("arxiv_id", paper.get("title", "unknown"))
     model_tag = "mock" if mock else model
     cache_file = _cache_path(model_tag, repo, paper_id)
+    prompt_hash = hashlib.sha256(f"{RUBRIC}\0{repo_context}".encode()).hexdigest()[:12]
 
     if use_cache and cache_file.exists():
-        return json.loads(cache_file.read_text(encoding="utf-8"))
+        cached = json.loads(cache_file.read_text(encoding="utf-8"))
+        if cached.get("_prompt_hash") == prompt_hash:
+            return cached
+        # else: rubric or repo context changed -> stale, re-judge
 
     verdict = _mock_score(repo_context, paper) if mock else _call_openai(model, repo_context, paper)
+    verdict["_prompt_hash"] = prompt_hash
 
     if use_cache:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
