@@ -35,8 +35,7 @@ class TestExtractImports:
 
     def test_js_imports(self, tmp_path: Path) -> None:
         (tmp_path / "app.js").write_text(
-            'import React from "react";\n'
-            'const express = require("express");\n',
+            'import React from "react";\nconst express = require("express");\n',
             encoding="utf-8",
         )
         imports = extract_imports(tmp_path, extensions=[".js"])

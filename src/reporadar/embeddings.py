@@ -38,7 +38,7 @@ def compute_embedding(text: str) -> np.ndarray:
     """Encode a text string and return a 1D numpy array."""
     _check_available()
     model = _get_model()
-    return model.encode(text, convert_to_numpy=True)
+    return np.asarray(model.encode(text, convert_to_numpy=True))
 
 
 def compute_repo_embedding(repo_path: Path) -> np.ndarray | None:

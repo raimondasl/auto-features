@@ -29,9 +29,7 @@ def compute_keyword_frequencies(
             continue
         count = 0
         for paper in papers:
-            paper_tokens = _tokenize(
-                paper.get("title", "") + " " + paper.get("abstract", "")
-            )
+            paper_tokens = _tokenize(paper.get("title", "") + " " + paper.get("abstract", ""))
             if keyword_tokens & paper_tokens:
                 count += 1
         frequencies[keyword] = count
@@ -76,21 +74,25 @@ def detect_trends(
         avg = sum(prev_values) / len(prev_values)
         if avg == 0:
             if current > 0:
-                trends.append({
-                    "keyword": keyword,
-                    "current": current,
-                    "average": 0.0,
-                    "increase_pct": float("inf"),
-                })
+                trends.append(
+                    {
+                        "keyword": keyword,
+                        "current": current,
+                        "average": 0.0,
+                        "increase_pct": float("inf"),
+                    }
+                )
             continue
         increase_pct = (current - avg) / avg * 100
         if increase_pct > 50:
-            trends.append({
-                "keyword": keyword,
-                "current": current,
-                "average": round(avg, 1),
-                "increase_pct": round(increase_pct, 1),
-            })
+            trends.append(
+                {
+                    "keyword": keyword,
+                    "current": current,
+                    "average": round(avg, 1),
+                    "increase_pct": round(increase_pct, 1),
+                }
+            )
 
     trends.sort(key=lambda t: t["increase_pct"], reverse=True)
     return trends

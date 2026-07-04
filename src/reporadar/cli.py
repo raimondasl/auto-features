@@ -6,6 +6,7 @@ import contextlib
 import webbrowser
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -209,6 +210,7 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
                 oa_queries,
                 email=cfg.openalex.email or None,
                 lookback_days=cfg.arxiv.lookback_days,
+                api_key=cfg.openalex.api_key or None,
             )
             existing_ids = {p["arxiv_id"] for p in papers}
             new_from_oa = [p for p in oa_papers if p["arxiv_id"] not in existing_ids]
@@ -326,21 +328,26 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
         except Exception:
             pass  # Non-critical
 
-        # 9. PwC enrichments for top papers
-        try:
-            from reporadar.paperswithcode import fetch_enrichments_batch
+        # 9. Hugging Face Papers enrichment for top papers
+        if cfg.enrichment.provider != "off":
+            try:
+                from reporadar.sources.hf_papers import fetch_enrichments_batch
 
-            top_ids = [s["arxiv_id"] for s in scores[: cfg.output.top_n]]
-            if top_ids:
-                info("Enriching top papers with Papers With Code data...")
-                enrichments = fetch_enrichments_batch(top_ids, rate_limit=1.0)
-                if enrichments:
-                    store.save_enrichments(enrichments)
-                    info(f"  Enrichment data for {len(enrichments)} papers.")
-                else:
-                    info("  No enrichment data found.")
-        except Exception as exc:
-            info(f"  PwC enrichment failed: {exc}")
+                # Only real arXiv IDs resolve on HF; skip synthetic ss:/oa: IDs.
+                top_ids = [
+                    s["arxiv_id"] for s in scores[: cfg.output.top_n] if ":" not in s["arxiv_id"]
+                ]
+                if top_ids:
+                    info("Enriching top papers with Hugging Face Papers data...")
+                    token = cfg.enrichment.hf_token or None
+                    enrichments = fetch_enrichments_batch(top_ids, token=token)
+                    if enrichments:
+                        store.save_enrichments(enrichments)
+                        info(f"  Enrichment data for {len(enrichments)} papers.")
+                    else:
+                        info("  No enrichment data found.")
+            except Exception as exc:
+                info(f"  Enrichment failed: {exc}")
 
         # Distribution stats
         dist = score_distribution(scores)
@@ -390,8 +397,9 @@ def _parse_since(since: str) -> int:
 )
 @click.option(
     "--since",
-    default="7d",
-    help="Only include papers from the last N days (e.g. 7d, 14d).",
+    default=None,
+    help="Only include papers published in the last N days (e.g. 7d, 14d). "
+    "Default: include all scored papers in the run.",
 )
 @click.option(
     "--run-id",
@@ -417,7 +425,7 @@ def _parse_since(since: str) -> int:
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
 def digest(
     config_path: str | None,
-    since: str,
+    since: str | None,
     run_id: int | None,
     output_path: str | None,
     fmt: str,
@@ -449,7 +457,26 @@ def digest(
             run_id = last_run["run_id"]
 
         dest = output_path or cfg.output.digest_path
-        out, summary = write_digest(store, run_id, dest, top_n=cfg.output.top_n, fmt=fmt, diff=diff)
+
+        # LLM-powered suggestions need the repo profile; only pay to compute it
+        # when an LLM provider is actually configured (templates don't need it).
+        repo_profile = None
+        if cfg.suggestions.provider in ("ollama", "claude"):
+            info(f"Using LLM suggestions provider: {cfg.suggestions.provider}")
+            repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
+
+        since_days = _parse_since(since) if since else None
+        out, summary = write_digest(
+            store,
+            run_id,
+            dest,
+            top_n=cfg.output.top_n,
+            fmt=fmt,
+            diff=diff,
+            since_days=since_days,
+            suggestions_config=cfg.suggestions,
+            profile=repo_profile,
+        )
 
     success(f"Digest written to {out}")
 
@@ -504,7 +531,7 @@ def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
                 error("No runs found. Run `rr update` first.")
                 raise SystemExit(1)
             run_id = last_run["run_id"]
-            run = last_run
+            run: dict[str, Any] | None = last_run
         else:
             run = store.get_last_run()
 
@@ -1039,7 +1066,7 @@ def workspace_update(verbose: bool) -> None:
             return
 
         # Gather all papers from each repo's config
-        all_papers: list[dict] = []
+        all_papers: list[dict[str, Any]] = []
         seen_ids: set[str] = set()
 
         for repo in repos:

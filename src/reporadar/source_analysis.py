@@ -12,31 +12,120 @@ _SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", ".tox", ".
 # Python stdlib top-level modules (subset — covers the most common ones).
 _PYTHON_STDLIB = frozenset(
     {
-        "abc", "argparse", "ast", "asyncio", "base64", "bisect", "builtins",
-        "calendar", "cmath", "codecs", "collections", "colorsys", "concurrent",
-        "configparser", "contextlib", "copy", "csv", "ctypes", "dataclasses",
-        "datetime", "decimal", "difflib", "email", "enum", "errno",
-        "filecmp", "fnmatch", "fractions", "ftplib", "functools", "gc",
-        "getpass", "gettext", "glob", "gzip", "hashlib", "heapq", "hmac",
-        "html", "http", "imaplib", "importlib", "inspect", "io", "ipaddress",
-        "itertools", "json", "keyword", "locale", "logging", "lzma", "math",
-        "mimetypes", "multiprocessing", "netrc", "numbers", "operator", "os",
-        "pathlib", "pickle", "platform", "pprint", "profile", "queue",
-        "random", "re", "secrets", "select", "shelve", "shlex", "shutil",
-        "signal", "site", "smtplib", "socket", "sqlite3", "ssl",
-        "stat", "statistics", "string", "struct", "subprocess", "sys",
-        "sysconfig", "tempfile", "textwrap", "threading", "time", "timeit",
-        "token", "tokenize", "tomllib", "traceback", "types", "typing",
-        "unicodedata", "unittest", "urllib", "uuid", "venv", "warnings",
-        "weakref", "webbrowser", "xml", "xmlrpc", "zipfile", "zipimport",
-        "zlib", "_thread",
+        "abc",
+        "argparse",
+        "ast",
+        "asyncio",
+        "base64",
+        "bisect",
+        "builtins",
+        "calendar",
+        "cmath",
+        "codecs",
+        "collections",
+        "colorsys",
+        "concurrent",
+        "configparser",
+        "contextlib",
+        "copy",
+        "csv",
+        "ctypes",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "difflib",
+        "email",
+        "enum",
+        "errno",
+        "filecmp",
+        "fnmatch",
+        "fractions",
+        "ftplib",
+        "functools",
+        "gc",
+        "getpass",
+        "gettext",
+        "glob",
+        "gzip",
+        "hashlib",
+        "heapq",
+        "hmac",
+        "html",
+        "http",
+        "imaplib",
+        "importlib",
+        "inspect",
+        "io",
+        "ipaddress",
+        "itertools",
+        "json",
+        "keyword",
+        "locale",
+        "logging",
+        "lzma",
+        "math",
+        "mimetypes",
+        "multiprocessing",
+        "netrc",
+        "numbers",
+        "operator",
+        "os",
+        "pathlib",
+        "pickle",
+        "platform",
+        "pprint",
+        "profile",
+        "queue",
+        "random",
+        "re",
+        "secrets",
+        "select",
+        "shelve",
+        "shlex",
+        "shutil",
+        "signal",
+        "site",
+        "smtplib",
+        "socket",
+        "sqlite3",
+        "ssl",
+        "stat",
+        "statistics",
+        "string",
+        "struct",
+        "subprocess",
+        "sys",
+        "sysconfig",
+        "tempfile",
+        "textwrap",
+        "threading",
+        "time",
+        "timeit",
+        "token",
+        "tokenize",
+        "tomllib",
+        "traceback",
+        "types",
+        "typing",
+        "unicodedata",
+        "unittest",
+        "urllib",
+        "uuid",
+        "venv",
+        "warnings",
+        "weakref",
+        "webbrowser",
+        "xml",
+        "xmlrpc",
+        "zipfile",
+        "zipimport",
+        "zlib",
+        "_thread",
     }
 )
 
 # Regex patterns for Python imports.
-_PY_IMPORT_RE = re.compile(
-    r"^\s*(?:import|from)\s+([\w.]+)", re.MULTILINE
-)
+_PY_IMPORT_RE = re.compile(r"^\s*(?:import|from)\s+([\w.]+)", re.MULTILINE)
 
 # Regex patterns for JS/TS imports.
 _JS_IMPORT_RE = re.compile(
@@ -63,9 +152,7 @@ _ML_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def _iter_source_files(
-    repo_path: Path, extensions: list[str], max_files: int
-) -> list[Path]:
+def _iter_source_files(repo_path: Path, extensions: list[str], max_files: int) -> list[Path]:
     """Collect source files up to *max_files*, skipping ignored dirs."""
     files: list[Path] = []
     for ext in extensions:
@@ -162,9 +249,7 @@ def extract_identifiers(repo_path: Path, max_files: int = 100) -> list[str]:
             continue
 
         for node in ast.iter_child_nodes(tree):
-            if isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
-                identifiers.add(node.name)
-            elif isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
+            if isinstance(node, ast.ClassDef | ast.FunctionDef) and not node.name.startswith("_"):
                 identifiers.add(node.name)
 
     return sorted(identifiers)

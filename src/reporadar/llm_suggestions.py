@@ -59,11 +59,13 @@ def _call_ollama(
     timeout: int,
 ) -> str:
     """Call the Ollama /api/generate endpoint."""
-    payload = json.dumps({
-        "model": model,
-        "prompt": prompt,
-        "stream": False,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         f"{url.rstrip('/')}/api/generate",
@@ -74,7 +76,7 @@ def _call_ollama(
 
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-    return data.get("response", "")
+    return str(data.get("response", ""))
 
 
 def _call_claude(
@@ -84,11 +86,13 @@ def _call_claude(
     timeout: int,
 ) -> str:
     """Call the Anthropic Messages API."""
-    payload = json.dumps({
-        "model": model,
-        "max_tokens": 300,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": model,
+            "max_tokens": 300,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -129,10 +133,11 @@ def generate_llm_suggestions(
         api_key = getattr(config, "claude_api_key", "")
         if not api_key:
             import os
+
             api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
             raise ValueError("No Claude API key configured")
-        model = getattr(config, "claude_model", "claude-sonnet-4-20250514")
+        model = getattr(config, "claude_model", "claude-haiku-4-5")
         raw = _call_claude(prompt, api_key, model, timeout)
     else:
         # Default: Ollama

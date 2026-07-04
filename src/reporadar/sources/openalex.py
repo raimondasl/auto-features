@@ -98,7 +98,7 @@ def _extract_arxiv_id(work: dict[str, Any]) -> str:
         # e.g., https://doi.org/10.48550/arXiv.2401.12345
         parts = doi.split("arXiv.")
         if len(parts) > 1:
-            return parts[-1]
+            return str(parts[-1])
 
     # Synthetic ID
     if openalex_id:
@@ -164,10 +164,13 @@ def search_papers(
     query: str,
     limit: int = 50,
     email: str | None = None,
+    api_key: str | None = None,
 ) -> list[dict[str, Any]]:
     """Search OpenAlex for papers matching a query.
 
-    If *email* is provided, uses the polite pool for faster rate limits.
+    If *api_key* is provided it is sent as the ``api_key`` query parameter
+    (OpenAlex requires a key for its full free allowance since 2026-02-13).
+    If *email* is provided, uses the legacy polite pool.
     """
     params: dict[str, str] = {
         "search": query,
@@ -178,6 +181,8 @@ def search_papers(
             "primary_topic,publication_date,open_access,ids,display_name"
         ),
     }
+    if api_key:
+        params["api_key"] = api_key
     if email:
         params["mailto"] = email
 
@@ -201,6 +206,7 @@ def collect_papers(
     email: str | None = None,
     lookback_days: int = 14,
     rate_limit: float = 1.0,
+    api_key: str | None = None,
 ) -> list[dict[str, Any]]:
     """Collect papers from OpenAlex for multiple queries.
 
@@ -211,7 +217,7 @@ def collect_papers(
     cutoff_iso = cutoff.strftime("%Y-%m-%d")
 
     for i, query in enumerate(queries):
-        papers = search_papers(query, email=email)
+        papers = search_papers(query, email=email, api_key=api_key)
         for paper in papers:
             aid = paper["arxiv_id"]
             if aid in seen:

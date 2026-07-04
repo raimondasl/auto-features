@@ -90,7 +90,7 @@ def send_slack_webhook(url: str, summary: DigestSummary) -> bool:
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            return 200 <= resp.status < 300
+            return bool(200 <= resp.status < 300)
     except Exception as exc:
         logger.warning("Slack webhook failed: %s", exc)
         return False
@@ -107,7 +107,7 @@ def send_discord_webhook(url: str, summary: DigestSummary) -> bool:
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            return 200 <= resp.status < 300
+            return bool(200 <= resp.status < 300)
     except Exception as exc:
         logger.warning("Discord webhook failed: %s", exc)
         return False

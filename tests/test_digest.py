@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from reporadar.digest import (
     categorize_papers,
+    filter_since,
     generate_digest,
     generate_digest_csv,
     generate_digest_json,
@@ -14,6 +16,10 @@ from reporadar.digest import (
     write_digest,
 )
 from reporadar.store import PaperStore
+
+
+def _days_ago(n: int) -> str:
+    return (datetime.now(UTC) - timedelta(days=n)).strftime("%Y-%m-%dT00:00:00+00:00")
 
 
 def _make_paper(arxiv_id: str = "2401.12345v1", **overrides) -> dict:
@@ -64,6 +70,44 @@ def _seed_store(store: PaperStore) -> int:
     ]
     store.save_scores(run_id, scores)
     return run_id
+
+
+class TestFilterSince:
+    def test_none_returns_all(self) -> None:
+        papers = [{"published": _days_ago(100)}, {"published": _days_ago(1)}]
+        assert filter_since(papers, None) == papers
+        assert filter_since(papers, 0) == papers
+
+    def test_drops_old_papers(self) -> None:
+        papers = [
+            {"arxiv_id": "old", "published": _days_ago(30)},
+            {"arxiv_id": "new", "published": _days_ago(2)},
+        ]
+        kept = filter_since(papers, 7)
+        ids = [p["arxiv_id"] for p in kept]
+        assert ids == ["new"]
+
+    def test_keeps_papers_with_missing_date(self) -> None:
+        papers = [{"arxiv_id": "x", "published": ""}, {"arxiv_id": "y"}]
+        kept = filter_since(papers, 7)
+        assert len(kept) == 2
+
+    def test_generate_digest_applies_since(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_papers(
+                [
+                    _make_paper("2401.00001v1", published=_days_ago(2)),
+                    _make_paper("2401.00002v1", published=_days_ago(40)),
+                ]
+            )
+            run_id = store.record_run(["q1"], 2, 0)
+            store.save_scores(
+                run_id,
+                [_make_score("2401.00001v1", 0.9), _make_score("2401.00002v1", 0.8)],
+            )
+            md = generate_digest(store, run_id, since_days=7)
+            assert "2401.00001v1" in md
+            assert "2401.00002v1" not in md
 
 
 class TestCategorizePapers:
@@ -233,6 +277,37 @@ class TestGenerateDigestSuggestions:
             content = generate_digest(store, run_id)
 
         assert "auto-generated" in content
+
+    def test_json_path_enriches_and_filters(self, tmp_path: Path) -> None:
+        import json as json_mod
+
+        class _Cfg:
+            provider = "template"
+
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_papers(
+                [
+                    _make_paper(
+                        "2401.00001v1",
+                        published=_days_ago(2),
+                        abstract="We evaluate on GLUE benchmark and outperforms BERT.",
+                    ),
+                    _make_paper("2401.00002v1", published=_days_ago(40)),
+                ]
+            )
+            run_id = store.record_run(["q1"], 2, 0)
+            store.save_scores(
+                run_id,
+                [_make_score("2401.00001v1", 0.9), _make_score("2401.00002v1", 0.8)],
+            )
+            # suggestions_config + since_days now flow through the JSON path.
+            out = generate_digest_json(store, run_id, suggestions_config=_Cfg(), since_days=7)
+            data = json_mod.loads(out)
+
+        ids = [p["arxiv_id"] for p in data["top_picks"]]
+        assert "2401.00001v1" in ids
+        assert "2401.00002v1" not in ids  # filtered out by since_days
+        assert "suggestions" in data["top_picks"][0]
 
 
 class TestEnrichmentBadges:

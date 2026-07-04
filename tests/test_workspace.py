@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from reporadar.store import PaperStore
+from reporadar.store import CURRENT_SCHEMA_VERSION, PaperStore
 from reporadar.workspace import (
     combined_digest_data,
     open_workspace_store,
@@ -208,7 +208,7 @@ class TestOpenWorkspaceStore:
     def test_creates_store(self, tmp_path: Path) -> None:
         store = open_workspace_store(tmp_path / "test.db")
         try:
-            assert store.schema_version() == 5
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
         finally:
             store.close()
 

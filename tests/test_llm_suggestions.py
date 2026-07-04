@@ -42,7 +42,7 @@ class MockConfig:
     ollama_model: str = "llama3.2"
     ollama_url: str = "http://localhost:11434"
     claude_api_key: str = "test-key"
-    claude_model: str = "claude-sonnet-4-20250514"
+    claude_model: str = "claude-haiku-4-5"
     max_suggestions: int = 3
     timeout: int = 30
 
@@ -98,9 +98,9 @@ class TestGenerateLlmSuggestions:
         profile = _make_profile()
 
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "response": "1. Try fine-tuning.\n2. Use attention.\n3. Add training."
-        }).encode()
+        mock_response.read.return_value = json.dumps(
+            {"response": "1. Try fine-tuning.\n2. Use attention.\n3. Add training."}
+        ).encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
 
@@ -116,14 +116,16 @@ class TestGenerateLlmSuggestions:
         profile = _make_profile()
 
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "content": [
-                {
-                    "type": "text",
-                    "text": "1. Integrate transformer.\n2. Add attention.\n3. Try training.",
-                }
-            ]
-        }).encode()
+        mock_response.read.return_value = json.dumps(
+            {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "1. Integrate transformer.\n2. Add attention.\n3. Try training.",
+                    }
+                ]
+            }
+        ).encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
 
@@ -137,9 +139,11 @@ class TestGenerateLlmSuggestions:
         paper = _make_paper()
         profile = _make_profile()
 
-        with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises(ValueError, match="No Claude API key"):
-                generate_llm_suggestions(paper, profile, config)
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            pytest.raises(ValueError, match="No Claude API key"),
+        ):
+            generate_llm_suggestions(paper, profile, config)
 
     def test_network_error_propagates(self) -> None:
         import urllib.error
@@ -148,12 +152,14 @@ class TestGenerateLlmSuggestions:
         paper = _make_paper()
         profile = _make_profile()
 
-        with patch(
-            "urllib.request.urlopen",
-            side_effect=urllib.error.URLError("Connection refused"),
+        with (
+            patch(
+                "urllib.request.urlopen",
+                side_effect=urllib.error.URLError("Connection refused"),
+            ),
+            pytest.raises(urllib.error.URLError),
         ):
-            with pytest.raises(urllib.error.URLError):
-                generate_llm_suggestions(paper, profile, config)
+            generate_llm_suggestions(paper, profile, config)
 
 
 class TestEnrichWithLlmFallback:

@@ -106,7 +106,7 @@ def find_similar_to_highly_rated(
     """
     # Collect tokens from highly-rated papers (rating >= 4)
     positive_tokens: set[str] = set()
-    for arxiv_id, rp in rated_papers.items():
+    for rp in rated_papers.values():
         if rp.get("rating", 0) >= 4:
             text = (rp.get("title", "") + " " + rp.get("abstract", "")).lower()
             tokens = set(re.findall(r"[a-z][a-z0-9_-]+", text))
@@ -117,13 +117,61 @@ def find_similar_to_highly_rated(
 
     # Common English stop words to filter out
     stop_words = {
-        "the", "and", "for", "that", "this", "with", "from", "are", "was",
-        "were", "been", "have", "has", "had", "will", "would", "can", "could",
-        "which", "their", "our", "its", "also", "than", "into", "these",
-        "those", "such", "when", "where", "each", "both", "more", "most",
-        "some", "other", "about", "between", "through", "during", "before",
-        "after", "above", "below", "not", "but", "they", "them", "then",
-        "what", "how", "all", "any", "over", "only",
+        "the",
+        "and",
+        "for",
+        "that",
+        "this",
+        "with",
+        "from",
+        "are",
+        "was",
+        "were",
+        "been",
+        "have",
+        "has",
+        "had",
+        "will",
+        "would",
+        "can",
+        "could",
+        "which",
+        "their",
+        "our",
+        "its",
+        "also",
+        "than",
+        "into",
+        "these",
+        "those",
+        "such",
+        "when",
+        "where",
+        "each",
+        "both",
+        "more",
+        "most",
+        "some",
+        "other",
+        "about",
+        "between",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "not",
+        "but",
+        "they",
+        "them",
+        "then",
+        "what",
+        "how",
+        "all",
+        "any",
+        "over",
+        "only",
     }
     positive_tokens -= stop_words
 

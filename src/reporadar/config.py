@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -47,7 +48,19 @@ class OutputConfig:
 
 @dataclass
 class OpenAlexConfig:
+    # OpenAlex requires an API key for real use since 2026-02-13 (keyless
+    # callers get only a ~$0.10/day test allowance, then throttling). ``email``
+    # is the legacy polite-pool mailto, superseded by keys but still accepted.
     email: str = ""
+    api_key: str = ""
+
+
+@dataclass
+class EnrichmentConfig:
+    # "huggingface" queries the free HF Papers API for code/model/dataset links
+    # and community upvotes; "off" disables enrichment entirely.
+    provider: str = "huggingface"  # "huggingface" | "off"
+    hf_token: str = ""  # optional; raises the anonymous HF rate limit
 
 
 @dataclass
@@ -84,7 +97,7 @@ class SuggestionsConfig:
     ollama_model: str = "llama3.2"
     ollama_url: str = "http://localhost:11434"
     claude_api_key: str = ""
-    claude_model: str = "claude-sonnet-4-20250514"
+    claude_model: str = "claude-haiku-4-5"
     max_suggestions: int = 3
     timeout: int = 30
 
@@ -106,13 +119,14 @@ class RepoRadarConfig:
     output: OutputConfig = field(default_factory=OutputConfig)
     semantic_scholar: SemanticScholarConfig = field(default_factory=SemanticScholarConfig)
     openalex: OpenAlexConfig = field(default_factory=OpenAlexConfig)
+    enrichment: EnrichmentConfig = field(default_factory=EnrichmentConfig)
     hooks: HooksConfig = field(default_factory=HooksConfig)
     profiler: ProfilerConfig = field(default_factory=ProfilerConfig)
     suggestions: SuggestionsConfig = field(default_factory=SuggestionsConfig)
     feedback: FeedbackConfig = field(default_factory=FeedbackConfig)
 
 
-def _dict_to_config(data: dict) -> RepoRadarConfig:
+def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     """Build a RepoRadarConfig from a raw dict (parsed YAML)."""
     arxiv = ArxivConfig(**data["arxiv"]) if "arxiv" in data else ArxivConfig()
     queries = QueriesConfig(**data["queries"]) if "queries" in data else QueriesConfig()
@@ -129,6 +143,9 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
         else SemanticScholarConfig()
     )
     openalex = OpenAlexConfig(**data["openalex"]) if "openalex" in data else OpenAlexConfig()
+    enrichment = (
+        EnrichmentConfig(**data["enrichment"]) if "enrichment" in data else EnrichmentConfig()
+    )
     sources = data.get("sources", ["arxiv"])
 
     if "hooks" in data:
@@ -154,6 +171,7 @@ def _dict_to_config(data: dict) -> RepoRadarConfig:
         output=output,
         semantic_scholar=semantic_scholar,
         openalex=openalex,
+        enrichment=enrichment,
         hooks=hooks,
         profiler=profiler,
         suggestions=suggestions,
@@ -217,6 +235,15 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
             known = ", ".join(sorted(known_sources))
             warnings.append(f"Unknown source: {src!r}. Known sources: {known}")
 
+    # OpenAlex now requires an API key for its full free allowance; warn if the
+    # source is enabled without one (keyless callers get throttled to ~$0.10/day).
+    if "openalex" in cfg.sources and not cfg.openalex.api_key:
+        warnings.append(
+            "openalex source enabled without an api_key. Since 2026-02-13 OpenAlex "
+            "throttles keyless requests to a small daily test allowance. Get a free "
+            "key at https://openalex.org/ and set openalex.api_key in .reporadar.yml."
+        )
+
     # Check arXiv category prefixes
     for cat in cfg.arxiv.categories:
         prefix = cat.split(".")[0]
@@ -256,6 +283,14 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
     # Profiler
     if cfg.profiler.max_files < 1:
         warnings.append(f"profiler.max_files={cfg.profiler.max_files} should be >= 1")
+
+    # Enrichment
+    known_enrichment = {"huggingface", "off"}
+    if cfg.enrichment.provider not in known_enrichment:
+        warnings.append(
+            f"Unknown enrichment provider: {cfg.enrichment.provider!r}. "
+            f"Known: {', '.join(sorted(known_enrichment))}"
+        )
 
     # Suggestions
     known_providers = {"template", "ollama", "claude"}
