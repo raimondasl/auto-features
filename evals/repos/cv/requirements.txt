@@ -1,0 +1,7 @@
+torch>=2.1
+torchvision>=0.16
+opencv-python>=4.8
+pillow>=10.0
+numpy>=1.24
+pycocotools>=2.0
+onnx>=1.15
