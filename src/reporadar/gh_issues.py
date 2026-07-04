@@ -55,10 +55,14 @@ def format_issue(
                 lines.append(f"**Code:** {', '.join(code_urls)}")
             else:
                 lines.append("**Code:** Available (check paper)")
+        if enrichment.get("models"):
+            lines.append(f"**Models:** {', '.join(enrichment['models'])}")
         if enrichment.get("datasets"):
             lines.append(f"**Datasets:** {', '.join(enrichment['datasets'])}")
         if enrichment.get("tasks"):
             lines.append(f"**Tasks:** {', '.join(enrichment['tasks'])}")
+        if enrichment.get("upvotes"):
+            lines.append(f"**HF upvotes:** {enrichment['upvotes']}")
         lines.append("")
 
     # Suggestions

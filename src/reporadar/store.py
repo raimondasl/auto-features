@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS paper_enrichments (
     code_urls   TEXT,
     datasets    TEXT,
     tasks       TEXT,
+    models      TEXT,
+    upvotes     INTEGER NOT NULL DEFAULT 0,
     fetched_at  TEXT NOT NULL
 );
 
@@ -176,6 +178,12 @@ MIGRATIONS: dict[int, list[str]] = {
             rating      INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
             rated_at    TEXT NOT NULL
         )""",
+    ],
+    6: [
+        # Hugging Face Papers enrichment adds linked models and community
+        # upvotes alongside the existing code/dataset links.
+        "ALTER TABLE paper_enrichments ADD COLUMN models TEXT",
+        "ALTER TABLE paper_enrichments ADD COLUMN upvotes INTEGER NOT NULL DEFAULT 0",
     ],
 }
 
@@ -370,7 +378,7 @@ class PaperStore:
 
     def paper_count(self) -> int:
         row = self._conn.execute("SELECT COUNT(*) FROM papers").fetchone()
-        return row[0]
+        return int(row[0])
 
     @staticmethod
     def _row_to_paper(row: sqlite3.Row) -> dict[str, Any]:
@@ -402,7 +410,9 @@ class PaperStore:
 
         If *limit* is given, return at most that many runs.
         """
-        sql = "SELECT * FROM runs ORDER BY run_time DESC"
+        # Tiebreak by run_id so runs recorded within the same clock tick
+        # (identical run_time) still order deterministically newest-first.
+        sql = "SELECT * FROM runs ORDER BY run_time DESC, run_id DESC"
         if limit is not None:
             sql += f" LIMIT {int(limit)}"
         rows = self._conn.execute(sql).fetchall()
@@ -415,7 +425,9 @@ class PaperStore:
 
     def get_last_run(self) -> dict[str, Any] | None:
         """Return the most recent run, or None."""
-        row = self._conn.execute("SELECT * FROM runs ORDER BY run_time DESC LIMIT 1").fetchone()
+        row = self._conn.execute(
+            "SELECT * FROM runs ORDER BY run_time DESC, run_id DESC LIMIT 1"
+        ).fetchone()
         if row is None:
             return None
         d = dict(row)
@@ -478,7 +490,9 @@ class PaperStore:
         rows = self._conn.execute(
             """\
             SELECT ps.*, p.title, p.url, p.abstract, p.authors, p.categories, p.published,
-                   pe.has_code, pe.datasets AS enrichment_datasets, pe.tasks AS enrichment_tasks
+                   pe.has_code, pe.code_urls AS enrichment_code_urls,
+                   pe.datasets AS enrichment_datasets, pe.tasks AS enrichment_tasks,
+                   pe.models AS enrichment_models, pe.upvotes AS enrichment_upvotes
               FROM paper_scores ps
               JOIN papers p ON ps.arxiv_id = p.arxiv_id
               LEFT JOIN paper_enrichments pe ON ps.arxiv_id = pe.arxiv_id
@@ -493,29 +507,38 @@ class PaperStore:
             d["categories"] = json.loads(d["categories"])
             # Unpack enrichment fields
             d["has_code"] = bool(d.get("has_code"))
+            raw_code_urls = d.pop("enrichment_code_urls", None)
+            d["code_urls"] = json.loads(raw_code_urls) if raw_code_urls else []
             raw_datasets = d.pop("enrichment_datasets", None)
             d["datasets"] = json.loads(raw_datasets) if raw_datasets else []
             raw_tasks = d.pop("enrichment_tasks", None)
             d["tasks"] = json.loads(raw_tasks) if raw_tasks else []
+            raw_models = d.pop("enrichment_models", None)
+            d["models"] = json.loads(raw_models) if raw_models else []
+            d["upvotes"] = d.get("enrichment_upvotes") or 0
+            d.pop("enrichment_upvotes", None)
             result.append(d)
         return result
 
     # ── Enrichment operations ─────────────────────────────────────────
 
     def save_enrichment(self, enrichment: dict[str, Any]) -> None:
-        """Save a single paper enrichment from Papers With Code."""
+        """Save a single paper enrichment (Hugging Face Papers or legacy PwC)."""
         self._conn.execute(
             """\
             INSERT OR REPLACE INTO paper_enrichments
-                   (arxiv_id, pwc_id, has_code, code_urls, datasets, tasks, fetched_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (arxiv_id, pwc_id, has_code, code_urls, datasets, tasks,
+                    models, upvotes, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 enrichment["arxiv_id"],
-                enrichment.get("pwc_id"),
+                enrichment.get("pwc_id") or enrichment.get("hf_id"),
                 1 if enrichment.get("has_code") else 0,
                 json.dumps(enrichment.get("code_urls", [])),
                 json.dumps(enrichment.get("datasets", [])),
                 json.dumps(enrichment.get("tasks", [])),
+                json.dumps(enrichment.get("models", [])),
+                int(enrichment.get("upvotes") or 0),
                 _now_iso(),
             ),
         )
@@ -527,15 +550,18 @@ class PaperStore:
             self._conn.execute(
                 """\
                 INSERT OR REPLACE INTO paper_enrichments
-                       (arxiv_id, pwc_id, has_code, code_urls, datasets, tasks, fetched_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                       (arxiv_id, pwc_id, has_code, code_urls, datasets, tasks,
+                        models, upvotes, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     enrichment["arxiv_id"],
-                    enrichment.get("pwc_id"),
+                    enrichment.get("pwc_id") or enrichment.get("hf_id"),
                     1 if enrichment.get("has_code") else 0,
                     json.dumps(enrichment.get("code_urls", [])),
                     json.dumps(enrichment.get("datasets", [])),
                     json.dumps(enrichment.get("tasks", [])),
+                    json.dumps(enrichment.get("models", [])),
+                    int(enrichment.get("upvotes") or 0),
                     _now_iso(),
                 ),
             )
@@ -557,6 +583,8 @@ class PaperStore:
             d["code_urls"] = json.loads(d["code_urls"]) if d["code_urls"] else []
             d["datasets"] = json.loads(d["datasets"]) if d["datasets"] else []
             d["tasks"] = json.loads(d["tasks"]) if d["tasks"] else []
+            d["models"] = json.loads(d["models"]) if d.get("models") else []
+            d["upvotes"] = d.get("upvotes") or 0
             result[d["arxiv_id"]] = d
         return result
 
@@ -674,9 +702,7 @@ class PaperStore:
 
     # ── Keyword frequency operations ─────────────────────────────────
 
-    def save_keyword_frequencies(
-        self, run_id: int, frequencies: dict[str, int]
-    ) -> None:
+    def save_keyword_frequencies(self, run_id: int, frequencies: dict[str, int]) -> None:
         """Save keyword frequency counts for a run."""
         for keyword, freq in frequencies.items():
             self._conn.execute(

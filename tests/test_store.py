@@ -445,6 +445,26 @@ class TestEnrichments:
             result = store.get_enrichments([])
             assert result == {}
 
+    def test_hf_enrichment_models_and_upvotes_round_trip(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "hf_id": "2401.00001",
+                    "has_code": True,
+                    "code_urls": ["https://github.com/foo/bar"],
+                    "datasets": ["ImageNet"],
+                    "tasks": [],
+                    "models": ["org/model-a", "org/model-b"],
+                    "upvotes": 42,
+                }
+            )
+            e = store.get_enrichments(["2401.00001v1"])["2401.00001v1"]
+            assert e["models"] == ["org/model-a", "org/model-b"]
+            assert e["upvotes"] == 42
+            assert e["pwc_id"] == "2401.00001"  # hf_id stored in the pwc_id column
+
     def test_scores_include_enrichment_data(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
@@ -473,8 +493,41 @@ class TestEnrichments:
             )
             scores = store.get_scores_for_run(run_id)
             assert scores[0]["has_code"] is True
+            assert scores[0]["code_urls"] == ["https://github.com/foo/bar"]
             assert scores[0]["datasets"] == ["ImageNet"]
             assert scores[0]["tasks"] == ["Image Classification"]
+
+    def test_scores_include_hf_models_and_upvotes(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "hf_id": "2401.00001",
+                    "has_code": False,
+                    "code_urls": [],
+                    "datasets": [],
+                    "tasks": [],
+                    "models": ["org/model-a"],
+                    "upvotes": 7,
+                }
+            )
+            run_id = store.record_run(["q1"], 1, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {
+                        "arxiv_id": "2401.00001v1",
+                        "score_total": 0.8,
+                        "keyword_score": 0.5,
+                        "category_score": 0.2,
+                        "recency_score": 0.1,
+                    }
+                ],
+            )
+            scores = store.get_scores_for_run(run_id)
+            assert scores[0]["models"] == ["org/model-a"]
+            assert scores[0]["upvotes"] == 7
 
     def test_scores_without_enrichment(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
@@ -579,6 +632,55 @@ class TestSchemaMigrationV4:
             table_names = [t["name"] for t in tables]
             assert "workspace_repos" in table_names
             assert "repo_paper_scores" in table_names
+
+
+class TestSchemaMigrationV6:
+    def test_v5_db_gains_models_and_upvotes(self, tmp_path: Path) -> None:
+        import sqlite3
+
+        db_path = tmp_path / "v5.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""\
+            CREATE TABLE papers (
+                arxiv_id TEXT PRIMARY KEY, title TEXT NOT NULL,
+                authors TEXT NOT NULL, abstract TEXT NOT NULL,
+                categories TEXT NOT NULL, published TEXT NOT NULL,
+                updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
+                first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE paper_enrichments (
+                arxiv_id TEXT PRIMARY KEY,
+                pwc_id TEXT, has_code INTEGER NOT NULL DEFAULT 0,
+                code_urls TEXT, datasets TEXT, tasks TEXT,
+                fetched_at TEXT NOT NULL
+            );
+            CREATE TABLE schema_version (version INTEGER NOT NULL);
+            INSERT INTO schema_version (version) VALUES (5);
+        """)
+        conn.close()
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+            cols = {
+                r["name"]
+                for r in store._conn.execute("PRAGMA table_info(paper_enrichments)").fetchall()
+            }
+            assert "models" in cols
+            assert "upvotes" in cols
+
+            # Enrichment writes/reads work after migration.
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.save_enrichment(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "has_code": False,
+                    "models": ["org/m"],
+                    "upvotes": 3,
+                }
+            )
+            e = store.get_enrichments(["2401.00001v1"])["2401.00001v1"]
+            assert e["models"] == ["org/m"]
+            assert e["upvotes"] == 3
 
 
 class TestWorkspaceRepoOps:

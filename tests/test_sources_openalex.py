@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from reporadar.sources.openalex import (
@@ -108,6 +109,24 @@ class TestSearchPapers:
         assert "search=test+query" in req.full_url
 
     @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    def test_api_key_in_url(self, mock_urlopen: MagicMock) -> None:
+        mock_urlopen.return_value = _mock_response({"results": []})
+
+        search_papers("test query", api_key="secret-key")
+
+        req = mock_urlopen.call_args[0][0]
+        assert "api_key=secret-key" in req.full_url
+
+    @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    def test_no_api_key_when_absent(self, mock_urlopen: MagicMock) -> None:
+        mock_urlopen.return_value = _mock_response({"results": []})
+
+        search_papers("test query")
+
+        req = mock_urlopen.call_args[0][0]
+        assert "api_key=" not in req.full_url
+
+    @patch("reporadar.sources.openalex.urllib.request.urlopen")
     def test_abstract_reconstruction(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"results": [_make_oa_work()]})
 
@@ -137,13 +156,16 @@ class TestCollectPapers:
     @patch("reporadar.sources.openalex.time.sleep")
     @patch("reporadar.sources.openalex.search_papers")
     def test_dedup_across_queries(self, mock_search: MagicMock, mock_sleep: MagicMock) -> None:
+        # Use a recent date (relative to now) so the paper stays inside the
+        # default lookback window regardless of when the suite runs.
+        recent = (datetime.now(UTC) - timedelta(days=3)).strftime("%Y-%m-%d")
         paper = {
             "arxiv_id": "2401.12345",
             "title": "Test Paper",
             "authors": ["Alice"],
             "abstract": "abstract",
             "categories": [],
-            "published": "2026-02-20T00:00:00+00:00",
+            "published": f"{recent}T00:00:00+00:00",
             "updated": None,
             "url": "http://arxiv.org/abs/2401.12345",
             "pdf_url": None,
@@ -167,13 +189,14 @@ class TestCollectPapers:
             "url": "",
             "pdf_url": None,
         }
+        recent = (datetime.now(UTC) - timedelta(days=5)).strftime("%Y-%m-%d")
         new_paper = {
             "arxiv_id": "new",
             "title": "New",
             "authors": [],
             "abstract": "",
             "categories": [],
-            "published": "2026-02-20T00:00:00+00:00",
+            "published": f"{recent}T00:00:00+00:00",
             "updated": None,
             "url": "",
             "pdf_url": None,

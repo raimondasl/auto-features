@@ -128,6 +128,25 @@ class TestValidateConfig:
         assert "Unknown arXiv category prefix" in warnings[0]
         assert "xx" in warnings[0]
 
+    def test_openalex_enabled_without_api_key_warns(self) -> None:
+        cfg = RepoRadarConfig(sources=["arxiv", "openalex"])
+        warnings = validate_config(cfg)
+        assert any("openalex" in w and "api_key" in w for w in warnings)
+
+    def test_openalex_with_api_key_no_warning(self) -> None:
+        cfg = RepoRadarConfig(
+            sources=["arxiv", "openalex"],
+            openalex=OpenAlexConfig(api_key="k"),
+        )
+        warnings = validate_config(cfg)
+        assert not any("openalex" in w and "api_key" in w for w in warnings)
+
+    def test_openalex_not_enabled_no_key_warning(self) -> None:
+        # Default sources is [arxiv] only; no OpenAlex key warning expected.
+        cfg = RepoRadarConfig()
+        warnings = validate_config(cfg)
+        assert not any("api_key" in w for w in warnings)
+
     def test_max_results_out_of_range(self) -> None:
         cfg = RepoRadarConfig(arxiv=ArxivConfig(max_results_per_query=0))
         warnings = validate_config(cfg)

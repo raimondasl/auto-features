@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Each pattern maps a regex (applied to the abstract) to a suggestion template.
 # The template can use {match} to interpolate the captured text.
@@ -108,14 +111,31 @@ def enrich_papers_with_suggestions(
     provider = getattr(config, "provider", "template") if config else "template"
     use_llm = provider in ("ollama", "claude") and profile is not None
 
+    if provider in ("ollama", "claude") and profile is None:
+        logger.warning(
+            "suggestions.provider is %r but no repo profile was supplied; "
+            "falling back to template suggestions.",
+            provider,
+        )
+
+    llm_failed = False
     for paper in papers:
-        if use_llm:
+        if use_llm and not llm_failed:
             try:
                 from reporadar.llm_suggestions import generate_llm_suggestions
 
+                assert profile is not None  # guaranteed by use_llm
                 paper["suggestions"] = generate_llm_suggestions(paper, profile, config)
                 continue
-            except Exception:
-                pass  # Fall back to template-based
+            except Exception as exc:
+                # Surface the failure once (don't spam per-paper), then fall
+                # back to templates for the rest of this batch.
+                logger.warning(
+                    "LLM suggestions (provider=%r) failed: %s. "
+                    "Falling back to template suggestions.",
+                    provider,
+                    exc,
+                )
+                llm_failed = True
         paper["suggestions"] = generate_suggestions(paper)
     return papers

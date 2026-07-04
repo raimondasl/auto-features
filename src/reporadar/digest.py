@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json as json_mod
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +33,26 @@ def _load_template(template_name: str = "digest.md.j2") -> Any:
         lstrip_blocks=True,
     )
     return env.get_template(template_name)
+
+
+def filter_since(
+    scored_papers: list[dict[str, Any]], since_days: int | None
+) -> list[dict[str, Any]]:
+    """Keep only papers published within the last *since_days* days.
+
+    A falsy or non-positive *since_days* means no filtering (returns the input
+    unchanged). Papers with a missing/unparseable ``published`` date are kept.
+    """
+    if not since_days or since_days <= 0:
+        return scored_papers
+    cutoff = (datetime.now(UTC) - timedelta(days=since_days)).strftime("%Y-%m-%d")
+    kept: list[dict[str, Any]] = []
+    for p in scored_papers:
+        pub = (p.get("published") or "")[:10]
+        # Keep papers with an unknown date rather than silently hiding them.
+        if not pub or pub >= cutoff:
+            kept.append(p)
+    return kept
 
 
 def categorize_papers(
@@ -71,15 +91,17 @@ def generate_digest(
     diff: bool = False,
     suggestions_config: Any | None = None,
     profile: Any | None = None,
+    since_days: int | None = None,
 ) -> str:
     """Generate digest Markdown content for a given run.
 
     If *diff* is True, marks each paper as new or carried over from the
-    previous run by setting ``is_new`` on each paper dict.
+    previous run by setting ``is_new`` on each paper dict. If *since_days*
+    is given, only papers published within that window are included.
 
     Returns the rendered Markdown string.
     """
-    scored = store.get_scores_for_run(run_id)
+    scored = filter_since(store.get_scores_for_run(run_id), since_days)
     run = store.get_last_run()
 
     # Diff mode: determine which papers are new vs. carried over
@@ -99,7 +121,7 @@ def generate_digest(
     has_enrichments = any(p.get("has_code") or p.get("datasets") for p in scored)
 
     # Trend detection
-    trends: list[dict] = []
+    trends: list[dict[str, Any]] = []
     try:
         from reporadar.trends import detect_trends
 
@@ -108,7 +130,7 @@ def generate_digest(
         pass
 
     # Recommended papers (from feedback loop)
-    recommended: list[dict] = []
+    recommended: list[dict[str, Any]] = []
     try:
         from reporadar.feedback import find_similar_to_highly_rated
 
@@ -125,7 +147,7 @@ def generate_digest(
         pass
 
     template = _load_template()
-    return template.render(
+    rendered: str = template.render(
         generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         run_id=run_id,
         papers_new=run["papers_new"] if run else 0,
@@ -142,6 +164,7 @@ def generate_digest(
         trends=trends,
         recommended=recommended,
     )
+    return rendered
 
 
 def markdown_to_html(md_content: str) -> str:
@@ -153,7 +176,8 @@ def markdown_to_html(md_content: str) -> str:
     users can pipe the .md through any Markdown renderer.
     """
     template = _load_template("digest.html.j2")
-    return template.render(markdown_content=md_content)
+    rendered: str = template.render(markdown_content=md_content)
+    return rendered
 
 
 def generate_digest_json(
@@ -161,12 +185,15 @@ def generate_digest_json(
     run_id: int,
     top_n: int = 15,
     diff: bool = False,
+    suggestions_config: Any | None = None,
+    profile: Any | None = None,
+    since_days: int | None = None,
 ) -> str:
     """Generate digest as a JSON string.
 
     Returns a JSON string with top_picks, maybe_relevant, and muted tiers.
     """
-    scored = store.get_scores_for_run(run_id)
+    scored = filter_since(store.get_scores_for_run(run_id), since_days)
     run = store.get_last_run()
 
     if diff:
@@ -176,9 +203,9 @@ def generate_digest_json(
             paper["is_new"] = paper["arxiv_id"] not in prev_ids
 
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
-    enrich_papers_with_suggestions(top_picks)
+    enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
-    return json_mod.dumps(
+    payload: str = json_mod.dumps(
         {
             "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
             "run_id": run_id,
@@ -191,6 +218,7 @@ def generate_digest_json(
         indent=2,
         default=str,
     )
+    return payload
 
 
 _CSV_FIELDS = [
@@ -209,6 +237,8 @@ _CSV_FIELDS = [
     "url",
     "has_code",
     "datasets",
+    "models",
+    "upvotes",
 ]
 
 
@@ -217,9 +247,10 @@ def generate_digest_csv(
     run_id: int,
     top_n: int = 15,
     diff: bool = False,
+    since_days: int | None = None,
 ) -> str:
     """Generate digest as a CSV string."""
-    scored = store.get_scores_for_run(run_id)
+    scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
 
     # Tag each paper with its tier
@@ -241,6 +272,7 @@ def generate_digest_csv(
         row["authors"] = "; ".join(p.get("authors", []))
         row["categories"] = "; ".join(p.get("categories", []))
         row["datasets"] = "; ".join(p.get("datasets", []))
+        row["models"] = "; ".join(p.get("models", []))
         writer.writerow(row)
 
     return output.getvalue()
@@ -251,18 +283,20 @@ def generate_digest_rss(
     run_id: int,
     top_n: int = 15,
     diff: bool = False,
+    since_days: int | None = None,
 ) -> str:
     """Generate digest as an RSS 2.0 XML string."""
-    scored = store.get_scores_for_run(run_id)
+    scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, maybe_relevant, muted = categorize_papers(scored, top_n=top_n)
     all_papers = top_picks + maybe_relevant + muted
 
     template = _load_template("digest.rss.xml.j2")
-    return template.render(
+    rendered: str = template.render(
         generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         run_id=run_id,
         papers=all_papers,
     )
+    return rendered
 
 
 def write_digest(
@@ -274,45 +308,65 @@ def write_digest(
     diff: bool = False,
     suggestions_config: Any | None = None,
     profile: Any | None = None,
+    since_days: int | None = None,
 ) -> tuple[Path, DigestSummary | None]:
     """Generate and write the digest to a file.
 
     *fmt* can be ``"md"``, ``"html"``, ``"json"``, ``"csv"``, or ``"rss"``.
+    *since_days*, when given, limits output to papers published in that window.
     Returns a tuple of (output_path, DigestSummary).
     """
     output_path = Path(output_path)
 
     if fmt == "json":
-        content = generate_digest_json(store, run_id, top_n=top_n, diff=diff)
+        content = generate_digest_json(
+            store,
+            run_id,
+            top_n=top_n,
+            diff=diff,
+            suggestions_config=suggestions_config,
+            profile=profile,
+            since_days=since_days,
+        )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".json")
     elif fmt == "csv":
-        content = generate_digest_csv(store, run_id, top_n=top_n, diff=diff)
+        content = generate_digest_csv(store, run_id, top_n=top_n, diff=diff, since_days=since_days)
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".csv")
     elif fmt == "rss":
-        content = generate_digest_rss(store, run_id, top_n=top_n, diff=diff)
+        content = generate_digest_rss(store, run_id, top_n=top_n, diff=diff, since_days=since_days)
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".xml")
     elif fmt == "html":
         content = generate_digest(
-            store, run_id, top_n=top_n, diff=diff,
-            suggestions_config=suggestions_config, profile=profile,
+            store,
+            run_id,
+            top_n=top_n,
+            diff=diff,
+            suggestions_config=suggestions_config,
+            profile=profile,
+            since_days=since_days,
         )
         content = markdown_to_html(content)
         if output_path.suffix == ".md":
             output_path = output_path.with_suffix(".html")
     else:
         content = generate_digest(
-            store, run_id, top_n=top_n, diff=diff,
-            suggestions_config=suggestions_config, profile=profile,
+            store,
+            run_id,
+            top_n=top_n,
+            diff=diff,
+            suggestions_config=suggestions_config,
+            profile=profile,
+            since_days=since_days,
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(content, encoding="utf-8")
 
-    # Build digest summary
-    scored = store.get_scores_for_run(run_id)
+    # Build digest summary (reflects the same since_days filtering as the output)
+    scored = filter_since(store.get_scores_for_run(run_id), since_days)
     run = store.get_last_run()
     top_picks, _, _ = categorize_papers(scored, top_n=top_n)
     summary = DigestSummary(
