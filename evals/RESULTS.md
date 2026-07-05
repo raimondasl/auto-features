@@ -1,15 +1,16 @@
-# Tier B benchmark — baseline snapshot
+# Tier B benchmark — results
 
-**Run:** 2026-07-04, on `main` @ PR #16 · judge = **GPT-5.5** · baseline = **Opus 4.8**
-(`--baseline cli`, Claude Code headless + web search). Command:
+**Baseline run:** 2026-07-04, `main` @ PR #16 · judge = **GPT-5.5** · baseline = **Opus 4.8**
+(`--baseline cli`). **Feature 6 run:** 2026-07-05, `main` @ PR #18 (`--rr-triage`, triage
+model **claude-haiku-4-5**). Commands:
 
 ```bash
-uv run python evals/run_judge_eval.py --baseline cli
+uv run python evals/run_judge_eval.py --baseline cli               # baseline (heuristic 0.5 gate)
+uv run python evals/run_judge_eval.py --baseline cli --rr-triage   # Feature 6 (LLM triage gate)
 ```
 
-This is the **pre-Feature-6 baseline** — the number to beat. Re-run the same command
-after a ranking change and compare. (LLM-judged runs are non-deterministic; treat ±1
-net@2 as noise. Judge verdicts are cached, so a re-run only re-judges changed pools.)
+Re-run and compare after a ranking change. (LLM-judged runs are non-deterministic; treat
+±1 net@2 as noise. Judge verdicts and baselines are cached, so a re-run mostly re-uses them.)
 
 ## Results
 
@@ -40,8 +41,42 @@ is `n/a` when a system abstains. RepoRadar is shown two ways: its **Top Picks** 
 
 5. **Honesty guards fired in production.** On `webdev`, one arXiv lookup failed and the harness printed `arxiv_unverified` and emitted **no baseline metrics** — no fabricated result. (PR #16.)
 
-## Target for Feature 6 (repo-aware LLM triage + threshold recalibration)
+## Feature 6 result — LLM triage gating Top Picks (2026-07-05)
 
-- RepoRadar Top-10 net@2: **−17 → ~0** (filter non-actionable papers).
-- Top Picks: abstain unless genuinely actionable (fix calibration); `webdev` should return nothing.
-- Full parity with the baseline is **not** a ranking goal — it requires a foundational-corpus capability beyond the recency-windowed monitor.
+`--rr-triage` replaces the miscalibrated 0.5 "Top Picks" threshold with an LLM
+actionability gate (triage model **claude-haiku-4-5**): a paper is a Top Pick only if
+the LLM judges it genuinely applicable (score ≥ 2). This changes RepoRadar's
+**user-facing returned set**; the raw **Top-10** diagnostic (ungated ranking) is
+unchanged by design — triage gates, it does not rerank.
+
+**RepoRadar Top Picks — net@2, before vs after:**
+
+| Case | Before (0.5 gate) | After (LLM triage) |
+|---|---|---|
+| **rag** | abstained · net 0 | **1/1 actionable · precision 1.00 · net +1.0** |
+| **cv** | 0/2 · net **−4** | **abstained · net 0.0** |
+| **rl** | 0/10 · net **−20** | **abstained · net 0.0** |
+| **webdev** (negative control) | 0/10 · net **−20** | **abstained · net 0.0** |
+| **mean** | **−11.0** | **+0.25** |
+
+**What moved:**
+
+1. **User-facing Top Picks: mean net@2 −11.0 → +0.25.** The gate eliminated the
+   catastrophic false-positive dumps — `rl` and `webdev` went from **−20** (all 10
+   confidently returned, 0 actionable) to a **correct abstention**.
+2. **Calibration fixed.** The three repos with nothing genuinely applicable in-window now
+   **abstain** instead of returning junk; precision on what RepoRadar *does* return is **1.00**.
+3. **The negative control passes.** `webdev` (Flask) now returns nothing — as it should.
+4. **Cost:** the judge pool is unchanged, so GPT-5.5 verdicts and the Opus baselines are all
+   cache hits — the only new spend is ~10 Haiku triage calls per case (pennies).
+
+**Caveats / next levers:**
+
+- **Recall cost (Haiku is conservative).** On `rag` the judge found 2 actionable papers in
+  the Top-10 but triage surfaced 1; on `cv` the judge found 1 but triage abstained. The gate
+  never emits a false positive, but it leaves some defensible papers in "Maybe". Levers: a
+  stronger triage model (`--rr-triage-model claude-sonnet-5`) or `triage.min_actionable: 1`.
+- **Top-10 is unchanged** (−14/−17/−20) because triage only gates the returned set. Reranking
+  the Top-10 by `llm_score` (the deferred half of Feature 6) would also lift the diagnostic.
+- **The baseline still returns more actionable papers**, but all older/seminal (`recent=0/N`) —
+  the foundational-corpus gap, which is a scope change, not a ranking fix.
