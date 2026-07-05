@@ -142,6 +142,11 @@ uv run python evals/run_judge_eval.py --case rag --baseline api   # one repo, AP
 uv run python evals/run_judge_eval.py --baseline api              # all repos
 uv run python evals/run_judge_eval.py --case rag --baseline cli   # Claude Code CLI baseline
 uv run python evals/run_judge_eval.py --model o3 --baseline api   # cheaper judge
+
+# Measure Feature 6: gate RepoRadar's Top Picks on LLM actionability triage
+# (needs ANTHROPIC_API_KEY) instead of the heuristic 0.5 threshold. Compare the
+# RepoRadar[TopPicks] net@2 against evals/RESULTS.md.
+uv run python evals/run_judge_eval.py --case rag --baseline api --rr-triage
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either

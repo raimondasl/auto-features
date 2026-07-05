@@ -283,6 +283,8 @@ Proven elsewhere; moderate integration risk or degraded-dependency caveats.
 
 ### 6. Repo-aware LLM triage and reranking (and actually wiring the LLM path)
 
+> **✅ Core shipped.** `llm_client.py` (shared transport), `triage.py` (0–3 LLM actionability scoring), `TriageConfig`, schema v7 `paper_llm_scores`, `cli.update` triage stage, and digest tiering that **gates Top Picks on the LLM score** (abstains unless genuinely actionable) — directly targeting the precision/calibration gap the Tier B baseline exposed (`evals/RESULTS.md`). The `evals/run_judge_eval.py --rr-triage` flag measures the movement. Remaining: listwise reranking, storing scores to avoid re-paying inference across re-digests, and a HyDE query path.
+
 **Verification: feasible-with-caveats** — and it fixes two live bugs.
 
 `llm_suggestions.py`'s Ollama/Claude transports are fully implemented but unreachable: `cli.digest` never passes `profile`/`suggestions_config` (the profile-is-None guard at `suggestions.py:109` silently falls back to templates), and the default `claude_model` in `config.py` is **retired** (`claude-sonnet-4-20250514`, gone since 2026-06-15 — fixing the wiring without bumping it converts a silent fallback into a hard 404). Fix the plumbing, extract a shared `llm_client.py`, then use it for the proven pattern (gpt_paper_assistant, RankLLM): the LLM scores each candidate's relevance/novelty against a repo-derived interest statement and listwise-reranks the digest top ~20 with repo-aware instructions no embedding can express.

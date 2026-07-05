@@ -131,6 +131,24 @@ class TestCategorizePapers:
         total = len(top) + len(maybe) + len(muted)
         assert total == 5
 
+    def test_triage_threshold_gates_top_picks(self) -> None:
+        # All heuristically Top Pick (0.9), but tiered by llm_score when set.
+        scored = [
+            {"arxiv_id": "a", "score_total": 0.9, "llm_score": 2},  # actionable -> top
+            {"arxiv_id": "b", "score_total": 0.9, "llm_score": 1},  # related -> maybe
+            {"arxiv_id": "c", "score_total": 0.9, "llm_score": 0},  # unrelated -> muted
+            {"arxiv_id": "d", "score_total": 0.9},  # untriaged -> heuristic fallback (top)
+        ]
+        top, maybe, muted = categorize_papers(scored, triage_threshold=2)
+        assert [p["arxiv_id"] for p in top] == ["a", "d"]
+        assert [p["arxiv_id"] for p in maybe] == ["b"]
+        assert [p["arxiv_id"] for p in muted] == ["c"]
+
+    def test_no_triage_threshold_ignores_llm_score(self) -> None:
+        scored = [{"arxiv_id": "a", "score_total": 0.9, "llm_score": 0}]
+        top, _, _ = categorize_papers(scored)  # no threshold -> heuristic wins
+        assert [p["arxiv_id"] for p in top] == ["a"]
+
     def test_empty_input(self) -> None:
         top, maybe, muted = categorize_papers([])
         assert top == []
@@ -170,6 +188,34 @@ class TestGenerateDigest:
         assert "# RepoRadar Digest" in content
         assert "Top Picks" in content
         assert "High Relevance RAG Paper" in content
+
+    def test_triage_gates_and_badges(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_papers(
+                [
+                    _make_paper("2401.00001v1", title="Actionable Paper"),
+                    _make_paper("2401.00002v1", title="Vague Paper"),
+                ]
+            )
+            run_id = store.record_run(["q1"], 2, 0)
+            # Both heuristically high (0.9), so without triage both are Top Picks.
+            store.save_scores(
+                run_id, [_make_score("2401.00001v1", 0.9), _make_score("2401.00002v1", 0.9)]
+            )
+            store.save_llm_scores(
+                run_id,
+                {
+                    "2401.00001v1": {"llm_score": 3, "llm_reason": "direct fit"},
+                    "2401.00002v1": {"llm_score": 0, "llm_reason": "unrelated"},
+                },
+            )
+            md = generate_digest(store, run_id, triage_threshold=2)
+
+        # Actionable paper carries the badge + justification and is a Top Pick.
+        assert "[ACTIONABLE 3/3]" in md
+        assert "direct fit" in md
+        # The vague paper (llm 0) is gated out of Top Picks — no actionable badge.
+        assert "[ACTIONABLE 0/3]" not in md
 
     def test_includes_maybe_section(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:

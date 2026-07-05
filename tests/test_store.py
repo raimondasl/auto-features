@@ -683,6 +683,71 @@ class TestSchemaMigrationV6:
             assert e["upvotes"] == 3
 
 
+class TestSchemaMigrationV7:
+    def test_v6_db_gains_paper_llm_scores(self, tmp_path: Path) -> None:
+        import sqlite3
+
+        db_path = tmp_path / "v6.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""\
+            CREATE TABLE papers (
+                arxiv_id TEXT PRIMARY KEY, title TEXT NOT NULL,
+                authors TEXT NOT NULL, abstract TEXT NOT NULL,
+                categories TEXT NOT NULL, published TEXT NOT NULL,
+                updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
+                first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE schema_version (version INTEGER NOT NULL);
+            INSERT INTO schema_version (version) VALUES (6);
+        """)
+        conn.close()
+
+        with PaperStore(db_path) as store:
+            assert store.schema_version() == CURRENT_SCHEMA_VERSION
+            tables = {
+                r["name"]
+                for r in store._conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            assert "paper_llm_scores" in tables
+
+
+class TestLLMScores:
+    def test_save_and_join_llm_scores(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.00001v1"))
+            store.upsert_paper(_make_paper(arxiv_id="2401.00002v1"))
+            run_id = store.record_run(["q1"], 2, 0)
+            store.save_scores(
+                run_id,
+                [
+                    _score("2401.00001v1", 0.4),
+                    _score("2401.00002v1", 0.3),
+                ],
+            )
+            # Only the first paper is triaged.
+            store.save_llm_scores(
+                run_id, {"2401.00001v1": {"llm_score": 3, "llm_reason": "great fit"}}
+            )
+
+            scores = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+            assert scores["2401.00001v1"]["llm_score"] == 3
+            assert scores["2401.00001v1"]["llm_reason"] == "great fit"
+            # Untriaged paper carries no LLM score.
+            assert scores["2401.00002v1"]["llm_score"] is None
+
+
+def _score(arxiv_id: str, total: float) -> dict:
+    return {
+        "arxiv_id": arxiv_id,
+        "score_total": total,
+        "keyword_score": total,
+        "category_score": 0.0,
+        "recency_score": 0.0,
+    }
+
+
 class TestWorkspaceRepoOps:
     def test_add_and_list(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:

@@ -93,6 +93,20 @@ def reporadar_ranked(
     return out
 
 
+def _triage_reporadar(
+    repo_dir: Path, papers: list[dict[str, Any]], keys: dict[str, str], model: str
+) -> dict[str, dict[str, Any]]:
+    """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic)."""
+    from reporadar.config import SuggestionsConfig
+    from reporadar.triage import triage_papers
+
+    profile = profile_case_repo(repo_dir)
+    llm_cfg = SuggestionsConfig(
+        provider="claude", claude_api_key=keys.get("ANTHROPIC_API_KEY", ""), claude_model=model
+    )
+    return triage_papers(papers, profile, llm_cfg, top_k=len(papers))
+
+
 def is_recent(published: str) -> bool:
     if not published:
         return False
@@ -113,11 +127,27 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     repo_context = assemble_repo_context(dest)
     categories = case["expected_categories"]
 
-    # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (>=0.5, headline)
+    # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (headline).
     rr_ranked = reporadar_ranked(dest, categories, args.sources, keys)
     rr_topn = [p for p, _ in rr_ranked]
-    rr_toppicks = [p for p, s in rr_ranked if s >= TOP_THRESHOLD]
-    print(f"        RepoRadar: {len(rr_topn)} ranked, {len(rr_toppicks)} in Top Picks tier (>=0.5)")
+    if args.rr_triage:
+        # Feature 6: gate Top Picks on the LLM actionability score instead of the
+        # heuristic 0.5 threshold, so the benchmark measures triage's effect.
+        triaged = _triage_reporadar(dest, rr_topn, keys, args.rr_triage_model)
+        for p in rr_topn:
+            p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
+        rr_toppicks = [p for p in rr_topn if (p.get("llm_score") or 0) >= 2]
+        n_scored = sum(1 for p in rr_topn if p.get("llm_score") is not None)
+        print(
+            f"        RepoRadar[triaged]: {n_scored}/{len(rr_topn)} scored, "
+            f"{len(rr_toppicks)} actionable (Top Picks)"
+        )
+    else:
+        rr_toppicks = [p for p, s in rr_ranked if s >= TOP_THRESHOLD]
+        print(
+            f"        RepoRadar: {len(rr_topn)} ranked, "
+            f"{len(rr_toppicks)} in Top Picks tier (>=0.5)"
+        )
 
     # 2. Baseline (Opus, via Claude Code CLI or the Anthropic API) -> verify
     b = baseline_mod.run_baseline(
@@ -255,6 +285,14 @@ def main() -> int:
         "'api' = Anthropic Messages API + web_search (needs ANTHROPIC_API_KEY, no CLI).",
     )
     parser.add_argument("--no-cache", action="store_true", help="Ignore cached verdicts/baseline.")
+    parser.add_argument(
+        "--rr-triage",
+        action="store_true",
+        help="Gate RepoRadar Top Picks on Feature 6 LLM triage (needs ANTHROPIC_API_KEY).",
+    )
+    parser.add_argument(
+        "--rr-triage-model", default="claude-haiku-4-5", help="Model for RepoRadar triage."
+    )
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
 
@@ -263,14 +301,18 @@ def main() -> int:
 
     judge_label = "mock" if args.mock else args.model
     baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"
+    rr_label = f"triage({args.rr_triage_model})" if args.rr_triage else "heuristic 0.5"
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
-    print(f"judge={judge_label}  baseline={baseline_label}")
+    print(f"judge={judge_label}  baseline={baseline_label}  reporadar_gate={rr_label}")
     print(f"keys present: {', '.join(keys) or 'none'}")
     if not args.mock and "OPENAI_API_KEY" not in keys:
         print("\n! OPENAI_API_KEY not set. Set it (see evals/README.md) or use --mock.")
         return 1
     if not args.mock and args.baseline == "api" and "ANTHROPIC_API_KEY" not in keys:
         print("\n! --baseline api needs ANTHROPIC_API_KEY. Set it (see evals/README.md).")
+        return 1
+    if args.rr_triage and "ANTHROPIC_API_KEY" not in keys:
+        print("\n! --rr-triage needs ANTHROPIC_API_KEY (RepoRadar triage uses Claude).")
         return 1
 
     bench = load_benchmark()
