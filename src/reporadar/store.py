@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -43,6 +43,14 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     embedding_score REAL,
     citation_score  REAL,
     matched_query   TEXT,
+    PRIMARY KEY (arxiv_id, run_id)
+);
+
+CREATE TABLE IF NOT EXISTS paper_llm_scores (
+    arxiv_id    TEXT NOT NULL,
+    run_id      INTEGER NOT NULL,
+    llm_score   INTEGER NOT NULL,
+    llm_reason  TEXT,
     PRIMARY KEY (arxiv_id, run_id)
 );
 
@@ -184,6 +192,17 @@ MIGRATIONS: dict[int, list[str]] = {
         # upvotes alongside the existing code/dataset links.
         "ALTER TABLE paper_enrichments ADD COLUMN models TEXT",
         "ALTER TABLE paper_enrichments ADD COLUMN upvotes INTEGER NOT NULL DEFAULT 0",
+    ],
+    7: [
+        # Feature 6: per-run LLM actionability scores for repo-aware triage.
+        """\
+        CREATE TABLE IF NOT EXISTS paper_llm_scores (
+            arxiv_id    TEXT NOT NULL,
+            run_id      INTEGER NOT NULL,
+            llm_score   INTEGER NOT NULL,
+            llm_reason  TEXT,
+            PRIMARY KEY (arxiv_id, run_id)
+        )""",
     ],
 }
 
@@ -492,10 +511,13 @@ class PaperStore:
             SELECT ps.*, p.title, p.url, p.abstract, p.authors, p.categories, p.published,
                    pe.has_code, pe.code_urls AS enrichment_code_urls,
                    pe.datasets AS enrichment_datasets, pe.tasks AS enrichment_tasks,
-                   pe.models AS enrichment_models, pe.upvotes AS enrichment_upvotes
+                   pe.models AS enrichment_models, pe.upvotes AS enrichment_upvotes,
+                   pls.llm_score, pls.llm_reason
               FROM paper_scores ps
               JOIN papers p ON ps.arxiv_id = p.arxiv_id
               LEFT JOIN paper_enrichments pe ON ps.arxiv_id = pe.arxiv_id
+              LEFT JOIN paper_llm_scores pls
+                     ON ps.arxiv_id = pls.arxiv_id AND ps.run_id = pls.run_id
              WHERE ps.run_id = ?
              ORDER BY ps.score_total DESC""",
             (run_id,),
@@ -517,8 +539,20 @@ class PaperStore:
             d["models"] = json.loads(raw_models) if raw_models else []
             d["upvotes"] = d.get("enrichment_upvotes") or 0
             d.pop("enrichment_upvotes", None)
+            # llm_score/llm_reason are left as-is (None when the paper wasn't triaged)
             result.append(d)
         return result
+
+    def save_llm_scores(self, run_id: int, llm_scores: dict[str, dict[str, Any]]) -> None:
+        """Persist LLM triage scores for a run: ``{arxiv_id: {llm_score, llm_reason}}``."""
+        for arxiv_id, v in llm_scores.items():
+            self._conn.execute(
+                """\
+                INSERT OR REPLACE INTO paper_llm_scores (arxiv_id, run_id, llm_score, llm_reason)
+                VALUES (?, ?, ?, ?)""",
+                (arxiv_id, run_id, int(v["llm_score"]), v.get("llm_reason", "")),
+            )
+        self._conn.commit()
 
     # ── Enrichment operations ─────────────────────────────────────────
 

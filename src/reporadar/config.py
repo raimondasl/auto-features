@@ -103,6 +103,15 @@ class SuggestionsConfig:
 
 
 @dataclass
+class TriageConfig:
+    # LLM actionability triage. Uses the `suggestions` provider/model for the LLM
+    # call, so it only runs when suggestions.provider is "ollama" or "claude".
+    enabled: bool = False
+    top_k: int = 15  # how many top-ranked papers to triage per run
+    min_actionable: int = 2  # llm_score >= this qualifies as a Top Pick
+
+
+@dataclass
 class FeedbackConfig:
     enabled: bool = False
     min_ratings: int = 10
@@ -123,6 +132,7 @@ class RepoRadarConfig:
     hooks: HooksConfig = field(default_factory=HooksConfig)
     profiler: ProfilerConfig = field(default_factory=ProfilerConfig)
     suggestions: SuggestionsConfig = field(default_factory=SuggestionsConfig)
+    triage: TriageConfig = field(default_factory=TriageConfig)
     feedback: FeedbackConfig = field(default_factory=FeedbackConfig)
 
 
@@ -160,6 +170,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     suggestions = (
         SuggestionsConfig(**data["suggestions"]) if "suggestions" in data else SuggestionsConfig()
     )
+    triage = TriageConfig(**data["triage"]) if "triage" in data else TriageConfig()
     feedback = FeedbackConfig(**data["feedback"]) if "feedback" in data else FeedbackConfig()
 
     return RepoRadarConfig(
@@ -175,6 +186,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         hooks=hooks,
         profiler=profiler,
         suggestions=suggestions,
+        triage=triage,
         feedback=feedback,
     )
 
@@ -305,6 +317,18 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         )
     if cfg.suggestions.timeout < 1:
         warnings.append(f"suggestions.timeout={cfg.suggestions.timeout} should be >= 1")
+
+    # Triage
+    if cfg.triage.enabled and cfg.suggestions.provider not in ("ollama", "claude"):
+        warnings.append(
+            "triage.enabled is true but suggestions.provider is "
+            f"{cfg.suggestions.provider!r} — triage needs an LLM provider "
+            "(set suggestions.provider to 'ollama' or 'claude'); it will be skipped."
+        )
+    if cfg.triage.top_k < 1:
+        warnings.append(f"triage.top_k={cfg.triage.top_k} should be >= 1")
+    if cfg.triage.min_actionable not in (1, 2, 3):
+        warnings.append(f"triage.min_actionable={cfg.triage.min_actionable} should be 1, 2, or 3")
 
     # Feedback
     if cfg.feedback.min_ratings < 1:

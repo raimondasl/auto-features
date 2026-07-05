@@ -15,6 +15,8 @@ from reporadar.config import (
     QueriesConfig,
     RankingConfig,
     RepoRadarConfig,
+    SuggestionsConfig,
+    TriageConfig,
     default_config_yaml,
     load_config,
     validate_config,
@@ -127,6 +129,20 @@ class TestValidateConfig:
         assert len(warnings) == 1
         assert "Unknown arXiv category prefix" in warnings[0]
         assert "xx" in warnings[0]
+
+    def test_triage_enabled_without_llm_provider_warns(self) -> None:
+        # Default suggestions.provider is "template" — triage needs an LLM.
+        cfg = RepoRadarConfig(triage=TriageConfig(enabled=True))
+        warnings = validate_config(cfg)
+        assert any("triage.enabled" in w and "LLM provider" in w for w in warnings)
+
+    def test_triage_enabled_with_llm_provider_no_warning(self) -> None:
+        cfg = RepoRadarConfig(
+            triage=TriageConfig(enabled=True),
+            suggestions=SuggestionsConfig(provider="claude", claude_api_key="k"),
+        )
+        warnings = validate_config(cfg)
+        assert not any("triage.enabled" in w for w in warnings)
 
     def test_openalex_enabled_without_api_key_warns(self) -> None:
         cfg = RepoRadarConfig(sources=["arxiv", "openalex"])

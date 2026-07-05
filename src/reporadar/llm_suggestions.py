@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
-import urllib.error
-import urllib.request
 from typing import Any
 
+from reporadar.llm_client import complete
 from reporadar.profiler import RepoProfile
 
 
@@ -52,68 +50,6 @@ def _parse_suggestions(text: str, max_suggestions: int = 3) -> list[str]:
     return suggestions[:max_suggestions]
 
 
-def _call_ollama(
-    prompt: str,
-    model: str,
-    url: str,
-    timeout: int,
-) -> str:
-    """Call the Ollama /api/generate endpoint."""
-    payload = json.dumps(
-        {
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-        }
-    ).encode("utf-8")
-
-    req = urllib.request.Request(
-        f"{url.rstrip('/')}/api/generate",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    return str(data.get("response", ""))
-
-
-def _call_claude(
-    prompt: str,
-    api_key: str,
-    model: str,
-    timeout: int,
-) -> str:
-    """Call the Anthropic Messages API."""
-    payload = json.dumps(
-        {
-            "model": model,
-            "max_tokens": 300,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-    ).encode("utf-8")
-
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
-
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-
-    # Extract text from content blocks
-    content = data.get("content", [])
-    parts = [block.get("text", "") for block in content if block.get("type") == "text"]
-    return "\n".join(parts)
-
-
 def generate_llm_suggestions(
     paper: dict[str, Any],
     profile: RepoProfile,
@@ -121,28 +57,10 @@ def generate_llm_suggestions(
 ) -> list[str]:
     """Generate suggestions using an LLM (Ollama or Claude).
 
-    *config* should be a SuggestionsConfig instance.
-    Raises on any error (caller should handle fallback).
+    *config* should be a SuggestionsConfig instance. Raises ``LLMError`` on any
+    failure (caller should handle fallback).
     """
     prompt = _build_prompt(paper, profile)
     max_suggestions = getattr(config, "max_suggestions", 3)
-    timeout = getattr(config, "timeout", 30)
-    provider = getattr(config, "provider", "ollama")
-
-    if provider == "claude":
-        api_key = getattr(config, "claude_api_key", "")
-        if not api_key:
-            import os
-
-            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if not api_key:
-            raise ValueError("No Claude API key configured")
-        model = getattr(config, "claude_model", "claude-haiku-4-5")
-        raw = _call_claude(prompt, api_key, model, timeout)
-    else:
-        # Default: Ollama
-        ollama_url = getattr(config, "ollama_url", "http://localhost:11434")
-        ollama_model = getattr(config, "ollama_model", "llama3.2")
-        raw = _call_ollama(prompt, ollama_model, ollama_url, timeout)
-
+    raw = complete(prompt, config, max_tokens=300)
     return _parse_suggestions(raw, max_suggestions)

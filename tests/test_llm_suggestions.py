@@ -135,29 +135,35 @@ class TestGenerateLlmSuggestions:
         assert len(result) == 3
 
     def test_claude_no_api_key_raises(self) -> None:
+        from reporadar.llm_client import LLMError
+
         config = MockConfig(provider="claude", claude_api_key="")
         paper = _make_paper()
         profile = _make_profile()
 
         with (
             patch.dict("os.environ", {}, clear=True),
-            pytest.raises(ValueError, match="No Claude API key"),
+            pytest.raises(LLMError, match="No Claude API key"),
         ):
             generate_llm_suggestions(paper, profile, config)
 
     def test_network_error_propagates(self) -> None:
         import urllib.error
 
+        from reporadar.llm_client import LLMError
+
         config = MockConfig(provider="ollama")
         paper = _make_paper()
         profile = _make_profile()
 
+        # After exhausting retries, a network failure surfaces as a typed LLMError.
         with (
+            patch("reporadar.llm_client.time.sleep"),
             patch(
                 "urllib.request.urlopen",
                 side_effect=urllib.error.URLError("Connection refused"),
             ),
-            pytest.raises(urllib.error.URLError),
+            pytest.raises(LLMError),
         ):
             generate_llm_suggestions(paper, profile, config)
 

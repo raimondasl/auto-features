@@ -318,6 +318,41 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
         )
         store.save_scores(run_id, scores)
 
+        # 8b. LLM actionability triage (Feature 6) — score the top papers for
+        # whether they could genuinely improve THIS repo, so the digest can gate
+        # its Top Picks on applicability instead of the raw heuristic score.
+        if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude"):
+            info(f"Triaging top {cfg.triage.top_k} papers for actionable relevance...")
+            try:
+                from reporadar.triage import triage_papers
+
+                papers_by_id = {p["arxiv_id"]: p for p in papers}
+                top_papers = [
+                    papers_by_id[s["arxiv_id"]]
+                    for s in scores[: cfg.triage.top_k]
+                    if s["arxiv_id"] in papers_by_id
+                ]
+                llm_scores = triage_papers(
+                    top_papers, repo_profile, cfg.suggestions, top_k=cfg.triage.top_k
+                )
+                if llm_scores:
+                    store.save_llm_scores(run_id, llm_scores)
+                    n_act = sum(
+                        1
+                        for v in llm_scores.values()
+                        if v["llm_score"] >= cfg.triage.min_actionable
+                    )
+                    info(
+                        f"  Triaged {len(llm_scores)} papers; {n_act} actionable "
+                        f"(score >= {cfg.triage.min_actionable})."
+                    )
+                else:
+                    info("  Triage produced no scores (all calls failed).")
+            except Exception as exc:
+                info(f"  Triage failed: {exc}")
+        elif cfg.triage.enabled:
+            info("  Triage enabled but suggestions.provider is not an LLM — skipping.")
+
         # 8. Save keyword frequencies for trend detection
         try:
             from reporadar.trends import compute_keyword_frequencies
@@ -476,6 +511,7 @@ def digest(
             since_days=since_days,
             suggestions_config=cfg.suggestions,
             profile=repo_profile,
+            triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
         )
 
     success(f"Digest written to {out}")
