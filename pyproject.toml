@@ -41,6 +41,9 @@ packages = ["src/reporadar"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The eval harness (evals/) imports its own modules top-level (script-dir style),
+# so put it on the path to let tests import baseline/verify directly.
+pythonpath = ["evals"]
 
 [tool.ruff]
 target-version = "py311"

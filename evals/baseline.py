@@ -58,16 +58,23 @@ BASELINE_PROMPT = (
 def _parse_recommendations(text: str) -> tuple[list[str], list[str]]:
     """Extract (arxiv_ids, titles) from the baseline's answer.
 
-    Prefers the final ```json block; unions in any arXiv IDs found in prose.
+    The ```json recommendation block is authoritative: when the baseline emits
+    one (even an empty ``[]`` — an explicit abstention), those are its only
+    recommendations. Prose is *discussion*, and scraping IDs out of it credits
+    the baseline for papers it explicitly reviewed-and-rejected (or, worse, for
+    a stray non-arXiv URL path). We only fall back to prose-scraping when the
+    baseline emitted no structured block at all.
     """
     ids: list[str] = []
     titles: list[str] = []
+    saw_json_block = False
 
     for block in re.findall(r"```(?:json)?\s*(\[.*?\])\s*```", text, re.DOTALL):
         try:
             items = json.loads(block)
         except json.JSONDecodeError:
             continue
+        saw_json_block = True
         for it in items:
             if not isinstance(it, dict):
                 continue
@@ -76,9 +83,10 @@ def _parse_recommendations(text: str) -> tuple[list[str], list[str]]:
             elif it.get("title"):
                 titles.append(str(it["title"]))
 
-    for rid in extract_arxiv_ids(text):
-        if rid not in ids:
-            ids.append(rid)
+    if not saw_json_block:
+        for rid in extract_arxiv_ids(text):
+            if rid not in ids:
+                ids.append(rid)
 
     return ids, titles
 
@@ -259,6 +267,11 @@ def run_baseline(
     if use_cache and cache_file.exists():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
         if cached.get("_disc") == disc:
+            # Re-derive refs from the cached `raw` so a parser fix applies to
+            # already-cached runs. The model's answer (the expensive artifact)
+            # is what we cache; parsing it is cheap and must not be frozen.
+            if cached.get("status") == "ok" and cached.get("raw"):
+                cached["ids"], cached["titles"] = _parse_recommendations(cached["raw"])
             return cached
         # else: model/prompt/flags/context changed -> stale, re-run
 

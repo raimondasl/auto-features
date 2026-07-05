@@ -26,8 +26,16 @@ def _norm_title(t: str) -> str:
 
 
 # arXiv IDs: new style 2401.12345 (optionally vN), old style hep-th/9901001.
+# The old-style alternative is restricted to real arXiv archive prefixes so a
+# stray URL path (e.g. researchgate.net/publication/2256929...) is not mistaken
+# for an old-style ID. "math-ph" precedes "math" so the longer stem wins.
+_ARCHIVES = (
+    "astro-ph|cond-mat|gr-qc|hep-ex|hep-lat|hep-ph|hep-th|math-ph|math|nlin|"
+    "nucl-ex|nucl-th|quant-ph|q-bio|q-fin|cs|econ|eess|physics|stat|"
+    "alg-geom|funct-an|dg-ga|chao-dyn|solv-int|patt-sol|adap-org|cmp-lg|mtrl-th|supr-con"
+)
 _ID_RE = re.compile(
-    r"(?:arxiv[:\s/]*)?(\d{4}\.\d{4,5}(?:v\d+)?)|([a-z-]+(?:\.[A-Z]{2})?/\d{7})",
+    rf"(?:arxiv[:\s/]*)?(\d{{4}}\.\d{{4,5}}(?:v\d+)?)|((?:{_ARCHIVES})(?:\.[A-Z]{{2}})?/\d{{7}})",
     re.IGNORECASE,
 )
 
