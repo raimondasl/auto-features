@@ -69,21 +69,42 @@ def load_dotenv(path: Path) -> None:
 
 
 def reporadar_ranked(
-    repo_dir: Path, categories: list[str], sources: list[str], keys: dict[str, str], top_n: int = 10
+    repo_dir: Path,
+    categories: list[str],
+    sources: list[str],
+    keys: dict[str, str],
+    top_n: int = 10,
+    *,
+    all_time: bool = False,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
 
     Top Picks (the abstention-respecting output) = those with score >= 0.5.
     Returning the top-N regardless lets us tell a conservative threshold apart
     from genuinely shallow ranking.
+
+    ``all_time=True`` switches discovery from the 90-day recency window to an
+    all-time, relevance-sorted fetch and drops the recency weight from ranking,
+    so seminal older papers can surface and compete on relevance alone. This
+    tests whether the baseline's edge is a discovery-window artifact.
     """
     profile = profile_case_repo(repo_dir)
-    papers = collect_live_papers(profile, categories, sources=sources, keys=keys, lookback_days=90)
+    lookback = 36500 if all_time else 90  # ~100 years = effectively no date cutoff
+    sort_by = "relevance" if all_time else "submitted"
+    w_recency = 0.0 if all_time else 0.3
+    papers = collect_live_papers(
+        profile, categories, sources=sources, keys=keys, lookback_days=lookback, sort_by=sort_by
+    )
     if not papers:
         return []
-    ranking_cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=0.3)
+    ranking_cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=w_recency)
     ranked = rank_papers(
-        papers, profile, ranking_cfg, QueriesConfig(), categories or ["cs.LG"], lookback_days=90
+        papers,
+        profile,
+        ranking_cfg,
+        QueriesConfig(),
+        categories or ["cs.LG"],
+        lookback_days=lookback,
     )
     by_id = {p["arxiv_id"]: p for p in papers}
     out: list[tuple[dict[str, Any], float]] = []
@@ -128,7 +149,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     categories = case["expected_categories"]
 
     # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (headline).
-    rr_ranked = reporadar_ranked(dest, categories, args.sources, keys)
+    rr_ranked = reporadar_ranked(dest, categories, args.sources, keys, all_time=args.rr_all_time)
     rr_topn = [p for p, _ in rr_ranked]
     if args.rr_triage:
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
@@ -293,6 +314,14 @@ def main() -> int:
     parser.add_argument(
         "--rr-triage-model", default="claude-haiku-4-5", help="Model for RepoRadar triage."
     )
+    parser.add_argument(
+        "--rr-all-time",
+        action="store_true",
+        help="RepoRadar discovery: all-time relevance-sorted fetch (no 90-day window, "
+        "recency weight dropped) so seminal older papers can surface. Tests whether the "
+        "baseline's edge is a discovery-window artifact. NOTE: surfaces new papers not in "
+        "the judge cache, so this incurs fresh OpenAI judge (and triage) spend.",
+    )
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
 
@@ -302,8 +331,10 @@ def main() -> int:
     judge_label = "mock" if args.mock else args.model
     baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"
     rr_label = f"triage({args.rr_triage_model})" if args.rr_triage else "heuristic 0.5"
+    disco_label = "all-time/relevance" if args.rr_all_time else "90-day/recency"
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
     print(f"judge={judge_label}  baseline={baseline_label}  reporadar_gate={rr_label}")
+    print(f"reporadar_discovery={disco_label}")
     print(f"keys present: {', '.join(keys) or 'none'}")
     if not args.mock and "OPENAI_API_KEY" not in keys:
         print("\n! OPENAI_API_KEY not set. Set it (see evals/README.md) or use --mock.")

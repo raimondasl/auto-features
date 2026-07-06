@@ -17,6 +17,10 @@ class ArxivConfig:
     categories: list[str] = field(default_factory=lambda: ["cs.LG", "cs.CL"])
     max_results_per_query: int = 50
     lookback_days: int = 14
+    # "submitted" = newest-first (default, for a recency digest); "relevance" =
+    # best-match-first, which (with a large lookback_days) surfaces seminal older
+    # papers instead of only recent ones.
+    sort_by: str = "submitted"
 
 
 @dataclass

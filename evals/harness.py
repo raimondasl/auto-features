@@ -129,8 +129,13 @@ def collect_live_papers(
     sources: list[str],
     keys: dict[str, str],
     lookback_days: int,
+    sort_by: str = "submitted",
 ) -> list[dict[str, Any]]:
-    """Build queries and fetch papers from the requested live sources."""
+    """Build queries and fetch papers from the requested live sources.
+
+    ``sort_by="relevance"`` with a large ``lookback_days`` lets RepoRadar reach
+    seminal older papers instead of only the recent fetch window.
+    """
     from reporadar.collector import CollectionError, build_queries, collect_papers
     from reporadar.config import ArxivConfig
 
@@ -138,6 +143,7 @@ def collect_live_papers(
         categories=categories or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"],
         max_results_per_query=50,
         lookback_days=lookback_days,
+        sort_by=sort_by,
     )
     queries = build_queries(profile, QueriesConfig(), arxiv_cfg)
 

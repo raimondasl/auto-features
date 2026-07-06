@@ -179,10 +179,15 @@ def collect_papers(
             on_query_start(idx, total, query_str)
 
         logger.info("Querying arXiv: %s", query_str)
+        sort_criterion = (
+            arxiv.SortCriterion.Relevance
+            if arxiv_cfg.sort_by == "relevance"
+            else arxiv.SortCriterion.SubmittedDate
+        )
         search = arxiv.Search(
             query=query_str,
             max_results=arxiv_cfg.max_results_per_query,
-            sort_by=arxiv.SortCriterion.SubmittedDate,
+            sort_by=sort_criterion,
             sort_order=arxiv.SortOrder.Descending,
         )
 
