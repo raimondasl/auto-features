@@ -120,3 +120,67 @@ tests in [`tests/test_eval_parsing.py`](../tests/test_eval_parsing.py).
 (drops the 2 rejected refs), `cv`/`rl` unchanged (**+3**), `webdev` **`arxiv_unverified` →
 abstained (0 refs · net 0)** — the strong baseline *also* correctly recommends nothing for
 Flask. Mean (rag/cv/rl) **+3.7 → +3.0**.
+
+## All-time discovery experiment — is the baseline's edge a paper-age artifact? (2026-07-06)
+
+Finding #2 argued the baseline wins largely because it cites **seminal older work** that
+RepoRadar's 90-day fetch window structurally can't see (`recent=0/N` on every baseline pick).
+`--rr-all-time` tests that directly: RepoRadar discovers from **all of arXiv, relevance-sorted,
+recency weight dropped**, so old seminal papers can surface and compete.
+
+```bash
+uv run python evals/run_judge_eval.py --baseline api --rr-triage --rr-all-time
+```
+
+> **Baseline caveat:** this run used `--baseline api` (Anthropic API + web_search), a *different,
+> noisier* baseline than the `--baseline cli` used in the tables above (it re-searches live, so
+> `rl` landed **+3 → −3** and `cv` **+3 → +2**). So the baseline column here is this run's own
+> reference, **not** comparable to the headline cli baseline. The clean comparison below is
+> RepoRadar-vs-RepoRadar (triage = claude-haiku-4-5 in both; only discovery changed).
+
+**RepoRadar, 90-day recency vs. all-time/relevance (both haiku triage):**
+
+| Case | Top Picks 90-day | Top Picks all-time | Top-10 90-day | Top-10 all-time | api baseline (ref) |
+|---|---|---|---|---|---|
+| **rag** | 1/1 · net **+1.0** | 2/3 · prec 0.67 · net **0.0** | 2/10 · net −14 | 4/10 · net **−8** | 4/4 · net +4 |
+| **cv** | abstained · net 0 | 2/3 · prec 0.67 · net **0.0** | 1/10 · net −17 | 5/10 · net **−5** | 2/2 · net +2 |
+| **rl** | abstained · net 0 | abstained · net 0 | 0/10 · net −20 | 0/10 · net −20 | 1/3 · net **−3** |
+| **webdev** | abstained · net 0 | 0/1 · net **−2** | 0/10 · net −20 | 0/10 · net −20 | abstained · net 0 |
+| **mean** | **+0.25** | **−0.5** | −17.0 (rag/cv/rl) | **−11.0** (rag/cv/rl) | — |
+
+**Findings:**
+
+1. **Discovery hypothesis: confirmed.** All-time/relevance surfaced substantially more
+   *genuinely actionable* papers into RepoRadar's candidate pool and Top-10 — actionable-in-Top-10
+   went **rag 2 → 4, cv 1 → 5**, and Top-10 mean net@2 improved **−17.0 → −11.0**. The seminal
+   older papers RepoRadar structurally couldn't see are now in the pool and the ranker floats
+   several into the top-10. (The pre-merge live check had already shown it resurfacing
+   `1511.05952`, one of Opus's own `rl` cites.) **The paper-age artifact is real and now
+   addressable.**
+
+2. **But the headline (abstention-aware Top Picks net@2) did *not* improve — it slightly
+   regressed, +0.25 → −0.5.** The bottleneck moved from **discovery to precision**. On the larger,
+   older, more on-topic pool the haiku gate (`min_actionable=2`) admits more borderline papers:
+   Top-Picks precision fell **1.00 → 0.67** on `rag`/`cv`, and the negative control leaked its
+   **first false positive** (`webdev`: 1 Top Pick, 0 actionable → net −2).
+   - It is a recall/precision *retrade*, not a pure loss: `rag` Top Picks found **more** actionable
+     papers (1 → 2) — discovery helped — but also admitted 1 non-actionable, so net went +1 → 0.
+
+3. **`rl` stays hard, and RepoRadar's abstention was the correct call.** Only **1** paper in the
+   entire `rl` pool was judged actionable; RepoRadar abstained (net 0) while the api baseline
+   recommended 3 (1 actionable) for net **−3**. Here the conservative gate **beat** the baseline.
+
+4. **`webdev` confirms all-time has a cost on out-of-domain repos.** More candidates → more chances
+   to fool the gate. On a framework with nothing actionable on arXiv, all-time turned a correct
+   abstention into a false positive. A discovery widening should probably be paired with a
+   *stricter* gate, not a looser one, on low-signal repos.
+
+**Conclusion / next lever.** All-time/relevance discovery is a genuine win at the *candidate* and
+*Top-10* level (more actionable papers found, Top-10 net −17 → −11) and it validates the paper-age
+hypothesis — but it does **not** yet convert into a Top-Picks headline win, because the
+keyword-TF-IDF ranker + haiku gate can't cleanly separate the genuinely-actionable seminal papers
+from the merely-relevant ones. The two deferred Feature-6 levers now matter most: **(a) rerank the
+Top-10 by `llm_score`** so the actionable papers rise and the gate sees a cleaner head, and **(b)
+calibrate the gate** (precision fell, so tighten the rubric / hold `min_actionable=2` — a *stronger*
+triage model already showed no benefit). Discovery is solved; **precision on the enriched pool is
+the remaining gap.**
