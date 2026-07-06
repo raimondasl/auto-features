@@ -184,3 +184,65 @@ Top-10 by `llm_score`** so the actionable papers rise and the gate sees a cleane
 calibrate the gate** (precision fell, so tighten the rubric / hold `min_actionable=2` — a *stronger*
 triage model already showed no benefit). Discovery is solved; **precision on the enriched pool is
 the remaining gap.**
+
+## Listwise rerank — does ordering by actionability convert discovery into Top Picks? (2026-07-06)
+
+The all-time run above surfaced actionable papers into the *pool* but not the *returned set*: the
+heuristic `score_total` order still decided who entered the Top-N window before the gate saw them.
+`--rr-rerank` (PR #23) closes that — it triages a deeper pool (20 candidates) and reorders by
+`llm_score` before the Top-10 cut, so a buried-but-actionable paper can reach Top Picks.
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time
+```
+
+(cli baseline this time — the strong one, mean net@2 **+3** on the three verifiable cases.
+RepoRadar's own columns don't depend on baseline mode, so they compare directly to the run above.)
+
+**RepoRadar Top Picks — all-time, rerank off → on (both haiku triage):**
+
+| Case | rerank off | rerank on |
+|---|---|---|
+| **rag** | 2/3 · prec 0.67 · net 0.0 | 2/3 · prec 0.67 · net 0.0 |
+| **cv** | 2/3 · prec 0.67 · net 0.0 | **3/4 · prec 0.75 · net +1.0** |
+| **rl** | abstained · net 0 | abstained · net 0 |
+| **webdev** | 0/1 · net −2 | 0/1 · net −2 |
+| **mean** (rag/cv/rl) | 0.0 | **+0.33** |
+| **mean** (4 cases) | −0.5 | −0.25 |
+
+**Findings:**
+
+1. **Reranking does exactly what it's for — where discovery left an actionable paper below the
+   window, it surfaces it into the returned set.** `cv` went **net 0.0 → +1.0** (2 → 3 actionable
+   Top Picks, precision 0.67 → 0.75): a third actionable paper, one that sat below the `score_total`
+   top-10, was reordered into Top Picks by its `llm_score`. Mechanism confirmed.
+
+2. **The remaining cap is gate *precision*, not ordering.** `rag` stayed at **net 0.0**: its
+   actionable papers were already inside the window, so reranking had nothing to lift — its ceiling
+   is the *one non-actionable paper the haiku gate admits* (a triage false positive: haiku scores it
+   ≥2, GPT-5.5 scores it <2). Reranking can reorder papers but cannot un-admit one the gate wrongly
+   passed. `webdev` is the same story (still −2).
+
+3. **All-time discovery *needs* reranking to not be a headline regression.** Verifiable-case Top
+   Picks mean net@2 traces **90-day +0.33 → all-time-no-rerank 0.0 → all-time+rerank +0.33**.
+   Widening discovery alone diluted precision (more candidates, same window → the gate saw a noisier
+   head); reranking recovered it by putting the actionable papers first. Together they **match the
+   90-day headline while sourcing genuinely better picks** — seminal papers the 90-day window
+   couldn't see (`cv` surfaced **4** actionable papers into its Top-10 this run vs **1** under the
+   90-day window).
+
+4. **The strong (cli) baseline still leads on net@2** — mean **+3** vs RepoRadar's **+0.33** on the
+   three verifiable cases; on `rl` the baseline scored +3 while RepoRadar (correctly, given only 3
+   actionable in a 13-paper pool and a conservative gate) abstained. Every baseline pick remains
+   `recent=0/N` foundational work, so the residual gap is still part foundational-corpus scope, part
+   gate precision.
+
+**Conclusion — discovery and ordering are done; gate precision is the last lever.** All-time
+discovery + listwise rerank close the discovery and ordering gaps: RepoRadar now *finds* seminal
+papers and *floats them into Top Picks* (`cv` net 0 → +1 on foundational work), recovering the
+90-day headline via strictly better picks. What's left is the **triage gate's own precision** — the
+residual `rag`/`webdev` false positives are haiku scoring a paper ≥2 that the GPT-5.5 judge scores
+<2. A stronger triage model already showed no benefit, so the final lever is the **rubric /
+threshold**: tighten the actionability rubric, or raise `min_actionable` to 3 on low-signal repos
+(which would also close the `webdev` negative-control leak). That is the single highest-impact
+change left in this arc.
