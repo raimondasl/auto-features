@@ -149,6 +149,30 @@ class TestCategorizePapers:
         top, _, _ = categorize_papers(scored)  # no threshold -> heuristic wins
         assert [p["arxiv_id"] for p in top] == ["a"]
 
+    def test_rerank_surfaces_buried_actionable_paper(self) -> None:
+        # In score_total order the actionable paper (c) is beyond top_n=2, so
+        # without rerank it never enters the window. Rerank floats it into Top Picks.
+        scored = [
+            {"arxiv_id": "a", "score_total": 0.9, "llm_score": 0},
+            {"arxiv_id": "b", "score_total": 0.8, "llm_score": 1},
+            {"arxiv_id": "c", "score_total": 0.3, "llm_score": 3},  # buried but actionable
+        ]
+        top_no, _, _ = categorize_papers(scored, top_n=2, triage_threshold=2, rerank=False)
+        assert [p["arxiv_id"] for p in top_no] == []  # c is cut before the window
+
+        top_yes, maybe_yes, _ = categorize_papers(scored, top_n=2, triage_threshold=2, rerank=True)
+        assert [p["arxiv_id"] for p in top_yes] == ["c"]  # reranked into the window + gate
+        assert [p["arxiv_id"] for p in maybe_yes] == ["b"]
+
+    def test_rerank_without_triage_threshold_is_noop(self) -> None:
+        # Rerank only fires with triage scoring; otherwise heuristic order stands.
+        scored = [
+            {"arxiv_id": "a", "score_total": 0.9, "llm_score": 0},
+            {"arxiv_id": "b", "score_total": 0.1, "llm_score": 3},
+        ]
+        top, _, _ = categorize_papers(scored, top_n=1, rerank=True)  # no triage_threshold
+        assert [p["arxiv_id"] for p in top] == ["a"]
+
     def test_empty_input(self) -> None:
         top, maybe, muted = categorize_papers([])
         assert top == []

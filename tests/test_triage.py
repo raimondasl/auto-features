@@ -11,6 +11,7 @@ from reporadar.llm_client import LLMError
 from reporadar.triage import (
     _parse_verdict,
     build_triage_prompt,
+    rerank_by_actionability,
     score_actionability,
     triage_papers,
 )
@@ -92,3 +93,42 @@ class TestTriagePapers:
         with patch("reporadar.triage.complete", return_value='{"score": 2, "reason": "x"}'):
             out = triage_papers(papers, _PROFILE, SimpleNamespace(), top_k=3)
         assert len(out) == 3
+
+
+class TestRerankByActionability:
+    def test_orders_by_llm_score_desc(self) -> None:
+        papers = [
+            {"arxiv_id": "a", "llm_score": 1, "score_total": 0.9},
+            {"arxiv_id": "b", "llm_score": 3, "score_total": 0.1},
+            {"arxiv_id": "c", "llm_score": 2, "score_total": 0.5},
+        ]
+        assert [p["arxiv_id"] for p in rerank_by_actionability(papers)] == ["b", "c", "a"]
+
+    def test_score_total_breaks_ties(self) -> None:
+        papers = [
+            {"arxiv_id": "a", "llm_score": 2, "score_total": 0.3},
+            {"arxiv_id": "b", "llm_score": 2, "score_total": 0.8},
+        ]
+        assert [p["arxiv_id"] for p in rerank_by_actionability(papers)] == ["b", "a"]
+
+    def test_untriaged_sink_below_scored(self) -> None:
+        # A paper with no llm_score sorts below every scored paper — even below a 0 —
+        # but still ahead by score_total among other untriaged papers.
+        papers = [
+            {"arxiv_id": "untriaged_hi", "score_total": 0.99},
+            {"arxiv_id": "scored_zero", "llm_score": 0, "score_total": 0.01},
+            {"arxiv_id": "scored_two", "llm_score": 2, "score_total": 0.2},
+        ]
+        assert [p["arxiv_id"] for p in rerank_by_actionability(papers)] == [
+            "scored_two",
+            "scored_zero",
+            "untriaged_hi",
+        ]
+
+    def test_does_not_mutate_input(self) -> None:
+        papers = [
+            {"arxiv_id": "a", "llm_score": 1, "score_total": 0.9},
+            {"arxiv_id": "b", "llm_score": 3, "score_total": 0.1},
+        ]
+        rerank_by_actionability(papers)
+        assert [p["arxiv_id"] for p in papers] == ["a", "b"]  # original order intact

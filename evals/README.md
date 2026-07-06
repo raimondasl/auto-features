@@ -153,6 +153,12 @@ uv run python evals/run_judge_eval.py --case rag --baseline api --rr-triage
 # older papers can surface and compete. NOTE: this surfaces papers not in the
 # judge cache, so it incurs fresh OpenAI judge (+ triage) spend.
 uv run python evals/run_judge_eval.py --baseline api --rr-triage --rr-all-time
+
+# Listwise rerank: triage a deeper candidate pool (20) and reorder Top Picks by
+# llm_score before the Top-10 cut, so a buried-but-actionable paper can surface.
+# Implies --rr-triage. Combine with --rr-all-time for the full "closed both gaps"
+# run. Incurs more triage (and, if new papers surface, judge) spend.
+uv run python evals/run_judge_eval.py --baseline api --rr-rerank --rr-all-time
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either

@@ -85,6 +85,25 @@ def score_actionability(
     return _parse_verdict(raw)
 
 
+def rerank_by_actionability(papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Reorder papers so higher LLM actionability (``llm_score``) comes first.
+
+    The listwise half of triage: the heuristic ranker decides the initial order,
+    but a paper it buried can still be the most *actionable* one. Sorting by
+    ``llm_score`` (with ``score_total`` as the tiebreak) floats those to the head
+    so the Top-Picks window/gate sees them instead of cutting them off. Untriaged
+    papers (``llm_score`` missing/None) sort after every scored paper, keeping
+    their relative ``score_total`` order. Returns a new list; input is untouched.
+    """
+
+    def key(paper: dict[str, Any]) -> tuple[int, float]:
+        llm = paper.get("llm_score")
+        primary = llm if isinstance(llm, int) else -1
+        return (primary, float(paper.get("score_total", 0.0)))
+
+    return sorted(papers, key=key, reverse=True)
+
+
 def triage_papers(
     papers: list[dict[str, Any]],
     profile: RepoProfile,
