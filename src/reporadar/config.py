@@ -113,6 +113,9 @@ class TriageConfig:
     enabled: bool = False
     top_k: int = 15  # how many top-ranked papers to triage per run
     min_actionable: int = 2  # llm_score >= this qualifies as a Top Pick
+    # Reorder papers by llm_score before the Top-N digest window, so an actionable
+    # paper the heuristic ranker buried isn't cut off before it can be a Top Pick.
+    rerank: bool = True
 
 
 @dataclass

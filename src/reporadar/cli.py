@@ -512,6 +512,7 @@ def digest(
             suggestions_config=cfg.suggestions,
             profile=repo_profile,
             triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
+            rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
         )
 
     success(f"Digest written to {out}")
@@ -572,7 +573,12 @@ def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
             run = store.get_last_run()
 
         scored = store.get_scores_for_run(run_id)
-        top_picks, _, _ = categorize_papers(scored, top_n=cfg.output.top_n)
+        top_picks, _, _ = categorize_papers(
+            scored,
+            top_n=cfg.output.top_n,
+            triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
+            rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
+        )
 
         summary = DigestSummary(
             digest_path=cfg.output.digest_path,

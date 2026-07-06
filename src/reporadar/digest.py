@@ -61,6 +61,7 @@ def categorize_papers(
     top_threshold: float = TOP_THRESHOLD,
     maybe_threshold: float = MAYBE_THRESHOLD,
     triage_threshold: int | None = None,
+    rerank: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Split scored papers into three tiers: top_picks, maybe_relevant, muted.
 
@@ -72,7 +73,15 @@ def categorize_papers(
     = Maybe, ``0`` = Muted — so the digest abstains from "Top Picks" unless a
     paper is judged genuinely applicable. Papers without an ``llm_score`` fall
     back to the heuristic ``score_total`` thresholds.
+
+    When *rerank* is set (and triage scores are present), papers are reordered by
+    ``llm_score`` *before* the *top_n* cut, so an actionable paper the heuristic
+    ranker buried below the window isn't dropped before it can be a Top Pick.
     """
+    if rerank and triage_threshold is not None:
+        from reporadar.triage import rerank_by_actionability
+
+        scored_papers = rerank_by_actionability(scored_papers)
     limited = scored_papers[:top_n]
 
     top_picks = []
@@ -109,6 +118,7 @@ def generate_digest(
     profile: Any | None = None,
     since_days: int | None = None,
     triage_threshold: int | None = None,
+    rerank: bool = False,
 ) -> str:
     """Generate digest Markdown content for a given run.
 
@@ -131,7 +141,7 @@ def generate_digest(
             paper["is_new"] = paper["arxiv_id"] not in prev_ids
 
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold
+        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
     )
     enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
@@ -208,6 +218,7 @@ def generate_digest_json(
     profile: Any | None = None,
     since_days: int | None = None,
     triage_threshold: int | None = None,
+    rerank: bool = False,
 ) -> str:
     """Generate digest as a JSON string.
 
@@ -223,7 +234,7 @@ def generate_digest_json(
             paper["is_new"] = paper["arxiv_id"] not in prev_ids
 
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold
+        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
     )
     enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
@@ -271,11 +282,12 @@ def generate_digest_csv(
     diff: bool = False,
     since_days: int | None = None,
     triage_threshold: int | None = None,
+    rerank: bool = False,
 ) -> str:
     """Generate digest as a CSV string."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold
+        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
     )
 
     # Tag each paper with its tier
@@ -310,11 +322,12 @@ def generate_digest_rss(
     diff: bool = False,
     since_days: int | None = None,
     triage_threshold: int | None = None,
+    rerank: bool = False,
 ) -> str:
     """Generate digest as an RSS 2.0 XML string."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold
+        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
     )
     all_papers = top_picks + maybe_relevant + muted
 
@@ -338,6 +351,7 @@ def write_digest(
     profile: Any | None = None,
     since_days: int | None = None,
     triage_threshold: int | None = None,
+    rerank: bool = False,
 ) -> tuple[Path, DigestSummary | None]:
     """Generate and write the digest to a file.
 
@@ -358,6 +372,7 @@ def write_digest(
             profile=profile,
             since_days=since_days,
             triage_threshold=triage_threshold,
+            rerank=rerank,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".json")
@@ -369,6 +384,7 @@ def write_digest(
             diff=diff,
             since_days=since_days,
             triage_threshold=triage_threshold,
+            rerank=rerank,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".csv")
@@ -380,6 +396,7 @@ def write_digest(
             diff=diff,
             since_days=since_days,
             triage_threshold=triage_threshold,
+            rerank=rerank,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".xml")
@@ -393,6 +410,7 @@ def write_digest(
             profile=profile,
             since_days=since_days,
             triage_threshold=triage_threshold,
+            rerank=rerank,
         )
         content = markdown_to_html(content)
         if output_path.suffix == ".md":
@@ -407,6 +425,7 @@ def write_digest(
             profile=profile,
             since_days=since_days,
             triage_threshold=triage_threshold,
+            rerank=rerank,
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -415,7 +434,9 @@ def write_digest(
     # Build digest summary (reflects the same since_days filtering as the output)
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     run = store.get_last_run()
-    top_picks, _, _ = categorize_papers(scored, top_n=top_n, triage_threshold=triage_threshold)
+    top_picks, _, _ = categorize_papers(
+        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+    )
     summary = DigestSummary(
         digest_path=str(output_path),
         run_id=run_id,

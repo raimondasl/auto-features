@@ -49,10 +49,14 @@ from verify import resolve_references  # noqa: E402
 from reporadar.config import QueriesConfig, RankingConfig  # noqa: E402
 from reporadar.digest import TOP_THRESHOLD  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
+from reporadar.triage import rerank_by_actionability  # noqa: E402
 
 RESULTS_DIR = EVALS_DIR / "results"
 ENV_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENALEX_API_KEY", "SEMANTIC_SCHOLAR_API_KEY"]
 RECENT_DAYS = 180  # baseline papers newer than this count as "recent"
+# --rr-rerank triages this many candidates (vs the top-10) so the llm_score
+# reorder can pull a buried-but-actionable paper up into the returned Top-10.
+RERANK_POOL = 20
 
 
 def load_dotenv(path: Path) -> None:
@@ -149,22 +153,31 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     categories = case["expected_categories"]
 
     # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (headline).
-    rr_ranked = reporadar_ranked(dest, categories, args.sources, keys, all_time=args.rr_all_time)
-    rr_topn = [p for p, _ in rr_ranked]
+    #    --rr-rerank triages a deeper candidate pool (RERANK_POOL) and reorders it
+    #    by llm_score before the Top-10 cut, so an actionable paper the heuristic
+    #    ranker buried below rank 10 can still rise into the returned set.
+    candidate_n = RERANK_POOL if args.rr_rerank else 10
+    rr_ranked = reporadar_ranked(
+        dest, categories, args.sources, keys, top_n=candidate_n, all_time=args.rr_all_time
+    )
+    rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
         # heuristic 0.5 threshold, so the benchmark measures triage's effect.
-        triaged = _triage_reporadar(dest, rr_topn, keys, args.rr_triage_model)
-        for p in rr_topn:
+        triaged = _triage_reporadar(dest, rr_candidates, keys, args.rr_triage_model)
+        for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
+        ordered = rerank_by_actionability(rr_candidates) if args.rr_rerank else rr_candidates
+        rr_topn = ordered[:10]
         rr_toppicks = [p for p in rr_topn if (p.get("llm_score") or 0) >= 2]
         n_scored = sum(1 for p in rr_topn if p.get("llm_score") is not None)
         print(
-            f"        RepoRadar[triaged]: {n_scored}/{len(rr_topn)} scored, "
-            f"{len(rr_toppicks)} actionable (Top Picks)"
+            f"        RepoRadar[triaged{'+rerank' if args.rr_rerank else ''}]: "
+            f"{n_scored}/{len(rr_topn)} scored, {len(rr_toppicks)} actionable (Top Picks)"
         )
     else:
-        rr_toppicks = [p for p, s in rr_ranked if s >= TOP_THRESHOLD]
+        rr_topn = rr_candidates[:10]
+        rr_toppicks = [p for p, s in rr_ranked[:10] if s >= TOP_THRESHOLD]
         print(
             f"        RepoRadar: {len(rr_topn)} ranked, "
             f"{len(rr_toppicks)} in Top Picks tier (>=0.5)"
@@ -315,6 +328,13 @@ def main() -> int:
         "--rr-triage-model", default="claude-haiku-4-5", help="Model for RepoRadar triage."
     )
     parser.add_argument(
+        "--rr-rerank",
+        action="store_true",
+        help=f"Listwise-rerank RepoRadar's Top Picks by LLM actionability: triage a deeper "
+        f"pool of {RERANK_POOL} candidates and reorder by llm_score before the Top-10 cut, so a "
+        f"buried-but-actionable paper can surface. Implies --rr-triage. Incurs more triage spend.",
+    )
+    parser.add_argument(
         "--rr-all-time",
         action="store_true",
         help="RepoRadar discovery: all-time relevance-sorted fetch (no 90-day window, "
@@ -324,13 +344,16 @@ def main() -> int:
     )
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
+    if args.rr_rerank:
+        args.rr_triage = True  # reranking needs llm_scores
 
     load_dotenv(EVALS_DIR / ".env")
     keys = {k: os.environ[k] for k in ENV_KEYS if os.environ.get(k)}
 
     judge_label = "mock" if args.mock else args.model
     baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"
-    rr_label = f"triage({args.rr_triage_model})" if args.rr_triage else "heuristic 0.5"
+    rr_gate = f"triage{'+rerank' if args.rr_rerank else ''}({args.rr_triage_model})"
+    rr_label = rr_gate if args.rr_triage else "heuristic 0.5"
     disco_label = "all-time/relevance" if args.rr_all_time else "90-day/recency"
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
     print(f"judge={judge_label}  baseline={baseline_label}  reporadar_gate={rr_label}")
