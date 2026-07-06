@@ -147,6 +147,12 @@ uv run python evals/run_judge_eval.py --model o3 --baseline api   # cheaper judg
 # (needs ANTHROPIC_API_KEY) instead of the heuristic 0.5 threshold. Compare the
 # RepoRadar[TopPicks] net@2 against evals/RESULTS.md.
 uv run python evals/run_judge_eval.py --case rag --baseline api --rr-triage
+
+# Test the "paper-age artifact" hypothesis: let RepoRadar discover from ALL of
+# arXiv (relevance-sorted, no 90-day window, recency weight dropped) so seminal
+# older papers can surface and compete. NOTE: this surfaces papers not in the
+# judge cache, so it incurs fresh OpenAI judge (+ triage) spend.
+uv run python evals/run_judge_eval.py --baseline api --rr-triage --rr-all-time
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either

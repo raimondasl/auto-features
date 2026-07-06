@@ -214,6 +214,26 @@ class TestCollectPapers:
         assert len(papers) == 1
         assert papers[0]["title"] == "New Paper"
 
+    @patch("reporadar.collector.arxiv.Search")
+    @patch("reporadar.collector.arxiv.Client")
+    def test_sort_by_defaults_to_submitted_date(
+        self, MockClient: MagicMock, MockSearch: MagicMock
+    ) -> None:
+        MockClient.return_value.results.return_value = iter([])
+        collect_papers(["q1"], ArxivConfig(max_results_per_query=50, lookback_days=14))
+        assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.SubmittedDate
+
+    @patch("reporadar.collector.arxiv.Search")
+    @patch("reporadar.collector.arxiv.Client")
+    def test_sort_by_relevance_uses_relevance_criterion(
+        self, MockClient: MagicMock, MockSearch: MagicMock
+    ) -> None:
+        # all-time discovery mode: relevance-sorted so seminal older papers surface.
+        MockClient.return_value.results.return_value = iter([])
+        cfg = ArxivConfig(max_results_per_query=50, lookback_days=36500, sort_by="relevance")
+        collect_papers(["q1"], cfg)
+        assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.Relevance
+
     @patch("reporadar.collector.arxiv.Client")
     def test_matched_query_recorded(self, MockClient: MagicMock) -> None:
         now = datetime.now(UTC)
