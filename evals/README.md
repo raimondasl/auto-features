@@ -8,7 +8,7 @@ code paths. There are **two tiers** that answer very different questions:
 | Tier | Question | Judge | Keys | Cost |
 |------|----------|-------|------|------|
 | **A — domain sanity** (`run_eval.py`) | Does ranking separate on-topic from off-topic papers? | keyword/category labels | none | free |
-| **B — actionable improvement** (`run_judge_eval.py`) | Would the returned papers *genuinely improve this code*, and does it correctly return **nothing** when there's nothing good? | a neutral LLM (GPT-5.5) | OpenAI + Claude Code | ~$10–30/run |
+| **B — actionable improvement** (`run_judge_eval.py`) | Would the returned papers *genuinely improve this code*, and does it correctly return **nothing** when there's nothing good? | a neutral LLM (GPT-5.5) | OpenAI + Claude Code | ~$1–2 per case; ~$15–30 for a full 12-case run (baselines + judge verdicts cache, so re-runs are far cheaper). Use `--case <name>` to run one. |
 
 **Tier A is a weak bar and we don't overstate it.** Topic-match ("is this a RAG
 paper for a RAG repo?") is easy and doesn't mean a paper is *useful*. Tier A is a
@@ -65,16 +65,32 @@ For the `--embeddings` flag, install the optional model once:
 
 ## The cases
 
-| Case | Domain | Offline mini-repo | Live repo |
-|------|--------|-------------------|-----------|
-| `rag` | Retrieval-augmented generation / neural IR | `repos/rag` | `stanford-futuredata/ColBERT` |
-| `cv` | Computer vision / object detection | `repos/cv` | `facebookresearch/detectron2` |
-| `rl` | Deep reinforcement learning | `repos/rl` | `DLR-RM/stable-baselines3` |
-| `webdev` | Web framework — **negative control** | `repos/webdev` | `pallets/flask` |
+| Case | Domain | Bucket | Live repo |
+|------|--------|--------|-----------|
+| `rag` | Retrieval-augmented generation / neural IR | ML | `stanford-futuredata/ColBERT` |
+| `cv` | Computer vision / object detection | ML | `facebookresearch/detectron2` |
+| `rl` | Deep reinforcement learning | ML | `DLR-RM/stable-baselines3` |
+| `peft` | Parameter-efficient fine-tuning (LoRA) | ML | `huggingface/peft` |
+| `diffusion` | Diffusion / generative models | ML | `huggingface/diffusers` |
+| `graph` | Graph neural networks | ML | `pyg-team/pytorch_geometric` |
+| `speech` | Automatic speech recognition | ML | `openai/whisper` |
+| `crypto` | Cryptography — research on **IACR, not arXiv** | Research-adjacent | `pyca/cryptography` |
+| `systems` | In-memory store — research at **VLDB/OSDI** | Research-adjacent | `redis/redis` |
+| `webdev` | Web framework — **negative control** | Control | `pallets/flask` |
+| `cli` | CLI framework — **negative control** | Control | `pallets/click` |
+| `http` | HTTP client — **negative control** | Control | `psf/requests` |
 
-The **negative control** matters: a web framework has almost no arXiv research
-overlap, so a healthy ranker should flag *nothing* as highly relevant to it. If
-`webdev` ever starts scoring ML papers above 0.5, the ranker is over-firing.
+Three buckets probe different behaviors:
+- **ML** — arXiv-rich; RepoRadar should surface genuinely-actionable work here.
+- **Research-adjacent** — real fields whose literature is *not* on arXiv (IACR /
+  VLDB / OSDI). A healthy RepoRadar should mostly abstain, like a control.
+- **Negative controls** — pure-engineering repos with no research to apply. If any
+  starts scoring ML papers above 0.5 / passing the triage gate, the tool is
+  over-firing.
+
+The original 4 (`rag`/`cv`/`rl`/`webdev`) have offline Tier A fixtures in
+`fixtures/`; the 8 added 2026-07-12 are **Tier B (live) only** until their
+fixtures are built (`build_fixtures.py`).
 
 ## Interpreting the metrics
 
