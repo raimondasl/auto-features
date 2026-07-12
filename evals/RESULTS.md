@@ -246,3 +246,66 @@ residual `rag`/`webdev` false positives are haiku scoring a paper ≥2 that the 
 threshold**: tighten the actionability rubric, or raise `min_actionable` to 3 on low-signal repos
 (which would also close the `webdev` negative-control leak). That is the single highest-impact
 change left in this arc.
+
+## Gate-precision sweep — which `min_actionable` threshold? (2026-07-12)
+
+The last lever, measured directly. `--rr-sweep` re-gates the same triaged Top-10 at each threshold
+in one run (free — triage scores are computed once), over all-time discovery + rerank + cli baseline.
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-sweep
+```
+
+**Cross-case rollup (4 cases):**
+
+| `min_actionable` | mean net@2 | abstained | false-positive | mean precision |
+|---|---|---|---|---|
+| **≥1** (≈ungated) | −8.75 | 0/4 | 2/4 | 0.23 |
+| **≥2** (current default) | −0.25 | 1/4 | 1/4 | 0.47 |
+| **≥3** | **+0.25** | 3/4 | **0/4** | **1.00** |
+
+**Per-case net@2 at each threshold** (returned · actionable in parens):
+
+| Case | ≥1 | ≥2 | ≥3 |
+|---|---|---|---|
+| **rag** | −8 (10·4) | 0.0 (3·2) | 0.0 (abstain) |
+| **cv** | −5 (10·5) | +1.0 (4·3) | +1.0 (1·1) |
+| **rl** | −4 (2·0) | 0.0 (abstain) | 0.0 (abstain) |
+| **webdev** | −18 (9·0) | −2.0 (1·0) | 0.0 (abstain) |
+
+**Findings:**
+
+1. **`min>=3` is the net@2-maximizing gate — perfect precision (1.00), zero false positives.** It
+   **closes the `webdev` negative-control leak** (webdev abstains) and every paper it *does* return
+   is genuinely actionable. This is the abstention-first ideal: never show a dud.
+
+2. **But the win is narrow — it is entirely `webdev`.** The +0.5 mean gain from `≥2 → ≥3` is *only*
+   webdev going −2 → 0. `rag` stays net 0, `cv` stays +1, `rl` stays 0. Raising the bar didn't make
+   the good cases better; it silenced the one leak.
+
+3. **The cost is recall, and net@2 hides it.** At `≥3`, **3/4 cases abstain** — `rag` returns
+   **nothing** despite having **2 genuinely-actionable Top Picks at `≥2`** (and 7 actionable in its
+   pool), because haiku scored them a confident **2, not 3**. net@2's λ=2 penalty makes `rag`'s "2
+   actionable + 1 dud" (`≥2`, net 0) *tie* "abstain" (`≥3`, net 0) — so the metric is indifferent
+   where a user, who would rather see 2 useful papers than nothing, is not.
+
+4. **`min>=1` confirms the gate is essential** — precision 0.23, net −8.75, 2 false-positive cases.
+   Without the actionability gate RepoRadar dumps noise; the gate is doing real work at any `≥2`/`≥3`.
+
+5. **The residual driver is haiku's calibration, not the threshold.** It scored `webdev`'s dud a 2
+   (should be 0–1) and `rag`'s real actionable papers a 2 (not 3). `min>=3` is a blunt-but-effective
+   workaround; a better-calibrated rubric would let `≥2` keep `rag`/`cv` recall *without* the webdev
+   leak. A stronger triage *model* already showed no benefit — so the lever is the **rubric**, not
+   model size or threshold alone.
+
+**Conclusion — the sweep maps a clean precision/recall frontier, and the choice is a product call:**
+
+- **`min_actionable = 3`** — maximum precision (1.00), best net@2 (+0.25), no negative-control leak;
+  aligned with the project's stated *"better to return nothing than papers that aren't genuinely
+  relevant."* **Cost:** abstains even when genuinely-actionable papers exist (`rag` returns nothing).
+- **`min_actionable = 2`** — more recall (surfaces `rag`'s 2 and `cv`'s 3 actionable papers) at the
+  cost of occasional duds (precision 0.47) and the `webdev` leak.
+
+Both are defensible; net@2 and the stated abstention-first philosophy both favor **3**. The deeper
+fix that would beat *both* — recovering `≥2`'s recall *and* `≥3`'s precision — is tightening the
+triage **rubric** so haiku stops scoring non-actionable papers a 2.
