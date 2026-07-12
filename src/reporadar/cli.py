@@ -343,9 +343,17 @@ def update(config_path: str | None, explain: bool, foundational: bool, verbose: 
             repo_embedding=repo_embedding,
             citation_scores=citation_scores,
         )
+        # 8b. Hybrid retrieval (roadmap #4): fuse the heuristic order with a BM25
+        #     lexical order via RRF, so a paper buried on vocabulary mismatch can
+        #     surface. Sets rrf_score (persisted); the digest orders by it.
+        if cfg.ranking.hybrid:
+            from reporadar.retrieval import hybrid_reorder
+
+            scores = hybrid_reorder(scores, papers, repo_profile)
+            info("  Hybrid retrieval: fused heuristic + BM25 ranking (RRF).")
         store.save_scores(run_id, scores)
 
-        # 8b. LLM actionability triage (Feature 6) — score the top papers for
+        # 8c. LLM actionability triage (Feature 6) — score the top papers for
         # whether they could genuinely improve THIS repo, so the digest can gate
         # its Top Picks on applicability instead of the raw heuristic score.
         if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude"):

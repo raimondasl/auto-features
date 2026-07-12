@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 8
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     recency_score   REAL,
     embedding_score REAL,
     citation_score  REAL,
+    rrf_score       REAL,
     matched_query   TEXT,
     PRIMARY KEY (arxiv_id, run_id)
 );
@@ -203,6 +204,11 @@ MIGRATIONS: dict[int, list[str]] = {
             llm_reason  TEXT,
             PRIMARY KEY (arxiv_id, run_id)
         )""",
+    ],
+    8: [
+        # Hybrid retrieval (roadmap #4): RRF-fused rank of the heuristic + BM25
+        # lexical orderings. When set, the digest orders by it instead of score_total.
+        "ALTER TABLE paper_scores ADD COLUMN rrf_score REAL",
     ],
 }
 
@@ -487,9 +493,9 @@ class PaperStore:
                 INSERT OR REPLACE INTO paper_scores
                        (arxiv_id, run_id, score_total,
                         keyword_score, category_score, recency_score,
-                        embedding_score, citation_score,
+                        embedding_score, citation_score, rrf_score,
                         matched_query)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     s["arxiv_id"],
                     run_id,
@@ -499,6 +505,7 @@ class PaperStore:
                     s.get("recency_score"),
                     s.get("embedding_score"),
                     s.get("citation_score"),
+                    s.get("rrf_score"),
                     s.get("matched_query"),
                 ),
             )
@@ -519,7 +526,7 @@ class PaperStore:
               LEFT JOIN paper_llm_scores pls
                      ON ps.arxiv_id = pls.arxiv_id AND ps.run_id = pls.run_id
              WHERE ps.run_id = ?
-             ORDER BY ps.score_total DESC""",
+             ORDER BY COALESCE(ps.rrf_score, ps.score_total) DESC""",
             (run_id,),
         ).fetchall()
         result = []
