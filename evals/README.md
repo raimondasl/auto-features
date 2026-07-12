@@ -167,6 +167,11 @@ uv run python evals/run_judge_eval.py --baseline api --rr-rerank --rr-all-time
 uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-sweep
 # Then lock in the winner for a normal run, e.g. the stricter gate:
 uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-min-actionable 3
+
+# Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
+# ranking via RRF before the Top-N cut, so a paper buried on vocabulary mismatch
+# can surface. Measure-first — compare the RepoRadar columns with/without it.
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-hybrid
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either
