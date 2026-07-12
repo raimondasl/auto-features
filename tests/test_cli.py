@@ -11,7 +11,14 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from reporadar.cli import _format_size, _parse_since, cli
+from reporadar.cli import (
+    _FOUNDATIONAL_LOOKBACK,
+    _apply_foundational,
+    _format_size,
+    _parse_since,
+    cli,
+)
+from reporadar.config import ArxivConfig, RankingConfig
 from reporadar.store import PaperStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -112,6 +119,27 @@ class TestParseSince:
             _parse_since("7w")
         with pytest.raises(click.BadParameter):
             _parse_since("xd")
+
+
+class TestFoundational:
+    def test_sets_relevance_alltime_and_drops_recency(self) -> None:
+        arxiv, ranking = _apply_foundational(
+            ArxivConfig(sort_by="submitted", lookback_days=14),
+            RankingConfig(w_recency=0.3, w_keyword=1.0, w_category=0.5),
+        )
+        assert arxiv.sort_by == "relevance"
+        assert arxiv.lookback_days == _FOUNDATIONAL_LOOKBACK
+        assert ranking.w_recency == 0.0
+        # other ranking weights are preserved
+        assert ranking.w_keyword == 1.0
+        assert ranking.w_category == 0.5
+
+    def test_does_not_mutate_inputs(self) -> None:
+        arxiv_in = ArxivConfig(sort_by="submitted", lookback_days=14)
+        ranking_in = RankingConfig(w_recency=0.3)
+        _apply_foundational(arxiv_in, ranking_in)
+        assert arxiv_in.sort_by == "submitted" and arxiv_in.lookback_days == 14
+        assert ranking_in.w_recency == 0.3
 
 
 class TestInitCommand:
