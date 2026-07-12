@@ -309,3 +309,47 @@ uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time -
 Both are defensible; net@2 and the stated abstention-first philosophy both favor **3**. The deeper
 fix that would beat *both* — recovering `≥2`'s recall *and* `≥3`'s precision — is tightening the
 triage **rubric** so haiku stops scoring non-actionable papers a 2.
+
+## Triage-rubric calibration attempt — the haiku ceiling (2026-07-12)
+
+The rubric fix (PR #27): rewrite the triage rubric to encode the exact failure modes that fool a
+lenient "2" (measurement-not-method, wrong-layer, application-level, general-tooling, wholesale-
+replacement — the reasons the Opus baseline itself rejected the webdev papers) plus a **grounding
+test** (to score 2+, name the concrete component of *this* repo the method changes). Goal: close the
+`webdev` leak at `≥2` while keeping `rag`/`cv`'s genuine score-2 papers.
+
+**Outcome — it missed** (`--rr-rerank --rr-all-time --rr-sweep`, `min>=2`, before → after):
+
+| Case | before rubric | after rubric | verdict |
+|---|---|---|---|
+| **rag** | 3 · 2 act · net 0.0 | 3 · 2 act · net 0.0 | unchanged — dud persists |
+| **cv** | 4 · 3 act · net +1.0 · prec 0.75 | 1 · 1 act · net +1.0 · prec 1.00 | **lost 2 genuine actionable papers** |
+| **rl** | abstain | abstain | unchanged |
+| **webdev** | 1 · 0 act · **net −2** | 1 · 0 act · **net −2** | **leak NOT closed** (its primary target) |
+| **mean** | net −0.25 · prec 0.47 | net −0.25 · prec 0.56 | headline net unchanged |
+
+It **did not close the `webdev` leak** — haiku still confidently scores one Flask paper ≥2 that the
+judge scores 0. It **over-tightened `cv`** (dropped 2 genuinely-actionable papers to keep 1), and it
+**flattened the score distribution so nothing scores a 3 anymore** — `min>=3` now abstains on **4/4**
+cases (was 3/4), killing the high-precision tier. The only net effect was a marginal `cv` precision
+bump; the actual defect is untouched.
+
+**Conclusion — the gate levers are exhausted; this is haiku's capability floor.** Three independent
+levers have now been tried on the triage gate and none closes the last-mile false positive:
+
+1. **Threshold** (the sweep) — `min>=3` buys precision only by over-abstaining (silences real papers).
+2. **Stronger model** (`--rr-triage-model claude-sonnet-5`, earlier) — metric-identical, no help.
+3. **Rubric** (this attempt) — missed `webdev`, cost `cv` recall.
+
+The `webdev` misjudgment needs domain reasoning haiku doesn't reliably have even when the rubric
+spells it out — recognizing that a session-security paper doesn't apply to Flask *core* because Flask
+*delegates* auth to extensions (the exact distinction Opus and GPT-5.5 make). Rubric/threshold/model
+tuning on a small gate model has reached diminishing returns.
+
+**Where the arc landed.** Triage + rerank + all-time discovery took RepoRadar's user-facing Top Picks
+from a **mean net@2 of −11** (the pre-triage 0.5 gate) to **≈0** (−0.25 at `≥2`, +0.25 at `≥3`), with
+precision **0.47–1.00** depending on the gate — a large, real improvement. The residual (one `webdev`
+false positive, one `rag` dud, ~1 haiku-vs-judge disagreement per case) is a **model-capability
+floor**, not a tuning target. The next genuine levers are **structural, not gate-side**: better
+candidate quality via hybrid retrieval (roadmap #4) / SPECTER2 + cross-encoder (#7), or domain source
+adapters (#10) for `webdev`'s real problem — its literature isn't on arXiv at all.
