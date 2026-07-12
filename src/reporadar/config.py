@@ -37,6 +37,9 @@ class RankingConfig:
     w_embedding: float = 0.0
     w_citations: float = 0.0
     category_weights: dict[str, float] = field(default_factory=dict)
+    # Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
+    # ranking via RRF, so a paper buried on vocabulary mismatch can still surface.
+    hybrid: bool = False
 
 
 @dataclass

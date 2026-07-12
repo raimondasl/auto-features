@@ -302,6 +302,38 @@ class TestScores:
             assert "title" in retrieved[0]
             assert "authors" in retrieved[0]
 
+    def test_rrf_score_drives_order_when_present(self, tmp_path: Path) -> None:
+        # Hybrid retrieval: rrf_score is stored and get_scores_for_run orders by it
+        # (COALESCE), so it can invert the score_total order.
+        with PaperStore(tmp_path / "papers.db") as store:
+            for aid in ("a", "b", "c"):
+                store.upsert_paper(_make_paper(arxiv_id=aid))
+            run_id = store.record_run(["q1"], 3, 0)
+            # a is top by score_total but bottom by rrf; c is the reverse.
+            store.save_scores(
+                run_id,
+                [
+                    {"arxiv_id": "a", "score_total": 0.9, "rrf_score": 0.01},
+                    {"arxiv_id": "b", "score_total": 0.8, "rrf_score": 0.02},
+                    {"arxiv_id": "c", "score_total": 0.7, "rrf_score": 0.03},
+                ],
+            )
+            assert [s["arxiv_id"] for s in store.get_scores_for_run(run_id)] == ["c", "b", "a"]
+
+    def test_falls_back_to_score_total_without_rrf(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            for aid in ("a", "b"):
+                store.upsert_paper(_make_paper(arxiv_id=aid))
+            run_id = store.record_run(["q1"], 2, 0)
+            store.save_scores(
+                run_id,
+                [
+                    {"arxiv_id": "a", "score_total": 0.3},
+                    {"arxiv_id": "b", "score_total": 0.9},
+                ],
+            )
+            assert [s["arxiv_id"] for s in store.get_scores_for_run(run_id)] == ["b", "a"]
+
 
 class TestSchemaVersion:
     def test_fresh_db_has_correct_version(self, tmp_path: Path) -> None:
@@ -654,6 +686,12 @@ class TestSchemaMigrationV6:
                 code_urls TEXT, datasets TEXT, tasks TEXT,
                 fetched_at TEXT NOT NULL
             );
+            CREATE TABLE paper_scores (
+                arxiv_id TEXT NOT NULL, run_id INTEGER NOT NULL,
+                score_total REAL NOT NULL, keyword_score REAL, category_score REAL,
+                recency_score REAL, embedding_score REAL, citation_score REAL,
+                matched_query TEXT, PRIMARY KEY (arxiv_id, run_id)
+            );
             CREATE TABLE schema_version (version INTEGER NOT NULL);
             INSERT INTO schema_version (version) VALUES (5);
         """)
@@ -696,6 +734,12 @@ class TestSchemaMigrationV7:
                 categories TEXT NOT NULL, published TEXT NOT NULL,
                 updated TEXT, url TEXT NOT NULL, pdf_url TEXT,
                 first_seen TEXT NOT NULL, last_seen TEXT NOT NULL
+            );
+            CREATE TABLE paper_scores (
+                arxiv_id TEXT NOT NULL, run_id INTEGER NOT NULL,
+                score_total REAL NOT NULL, keyword_score REAL, category_score REAL,
+                recency_score REAL, embedding_score REAL, citation_score REAL,
+                matched_query TEXT, PRIMARY KEY (arxiv_id, run_id)
             );
             CREATE TABLE schema_version (version INTEGER NOT NULL);
             INSERT INTO schema_version (version) VALUES (6);
