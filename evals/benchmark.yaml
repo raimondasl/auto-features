@@ -82,3 +82,155 @@ cases:
       - graph neural networks
     gold_n: 0
     distractor_n: 30
+
+  # ── Expansion set (added 2026-07-12) ──────────────────────────────────────
+  # Broadens beyond the original 3-ML-plus-control set for statistical power and
+  # domain coverage. These are wired for Tier B (live, LLM-judged) immediately —
+  # it only needs `live_repo` + `expected_categories`. Tier A (offline) fixtures
+  # are NOT generated yet; run `build_fixtures.py` before using these offline.
+
+  # More ML — arXiv-rich domains where RepoRadar should surface actionable work.
+  - name: peft
+    description: Parameter-efficient fine-tuning library (LoRA, adapters, prompt tuning)
+    repo_dir: repos/peft
+    live_repo: https://github.com/huggingface/peft
+    expected_categories: [cs.LG, cs.CL]
+    gold_queries:
+      - parameter efficient fine-tuning
+      - low-rank adaptation LoRA
+      - prompt tuning language models
+      - quantized low-rank fine-tuning
+      - adapter modules transfer learning
+    distractor_queries:
+      - object detection convolutional
+      - reinforcement learning locomotion
+      - protein structure prediction
+    gold_n: 12
+    distractor_n: 24
+
+  - name: diffusion
+    description: Diffusion models library for image and audio generation
+    repo_dir: repos/diffusion
+    live_repo: https://github.com/huggingface/diffusers
+    expected_categories: [cs.CV, cs.LG]
+    gold_queries:
+      - denoising diffusion probabilistic models
+      - latent diffusion text to image
+      - score-based generative models
+      - classifier-free guidance
+      - diffusion model sampling schedulers
+    distractor_queries:
+      - reinforcement learning policy gradient
+      - retrieval augmented generation
+      - named entity recognition
+    gold_n: 12
+    distractor_n: 24
+
+  - name: graph
+    description: Graph neural network library
+    repo_dir: repos/graph
+    live_repo: https://github.com/pyg-team/pytorch_geometric
+    expected_categories: [cs.LG]
+    gold_queries:
+      - graph neural networks
+      - graph convolutional networks
+      - message passing neural networks
+      - graph attention networks
+      - node classification link prediction
+    distractor_queries:
+      - object detection image
+      - speech recognition transformer
+      - machine translation
+    gold_n: 12
+    distractor_n: 24
+
+  - name: speech
+    description: Automatic speech recognition (Whisper)
+    repo_dir: repos/speech
+    live_repo: https://github.com/openai/whisper
+    expected_categories: [eess.AS, cs.CL, cs.SD]
+    gold_queries:
+      - automatic speech recognition
+      - end-to-end speech transcription
+      - self-supervised speech representation learning
+      - multilingual speech recognition
+      - audio encoder transformer
+    distractor_queries:
+      - object detection
+      - graph neural network
+      - reinforcement learning
+    gold_n: 12
+    distractor_n: 24
+
+  # Research-adjacent but NOT on arXiv — real fields whose literature lives on
+  # IACR ePrint / VLDB / OSDI. A well-behaved RepoRadar should mostly abstain
+  # here (like webdev, but with adjacent research that genuinely exists).
+  - name: crypto
+    description: Cryptography library (research lives on IACR ePrint, thin on arXiv)
+    repo_dir: repos/crypto
+    live_repo: https://github.com/pyca/cryptography
+    expected_categories: [cs.CR]
+    gold_queries:
+      - authenticated encryption
+      - elliptic curve cryptography
+      - post-quantum cryptography
+      - constant-time side-channel resistant implementation
+      - key derivation functions
+    distractor_queries:
+      - object detection
+      - reinforcement learning
+      - retrieval augmented generation
+    gold_n: 8
+    distractor_n: 24
+
+  - name: systems
+    description: In-memory data store (systems research lives at VLDB/OSDI, thin on arXiv)
+    repo_dir: repos/systems
+    live_repo: https://github.com/redis/redis
+    expected_categories: [cs.DB, cs.DC]
+    gold_queries:
+      - in-memory key-value store
+      - log-structured storage engine
+      - distributed consensus replication
+      - concurrent lock-free data structures
+      - cache eviction policies
+    distractor_queries:
+      - object detection
+      - language model fine-tuning
+      - reinforcement learning
+    gold_n: 8
+    distractor_n: 24
+
+  # More negative controls — pure-engineering repos with no research to apply.
+  # Tests abstention robustness beyond the single webdev control.
+  - name: cli
+    description: Command-line interface framework (negative control — pure engineering)
+    repo_dir: repos/cli
+    live_repo: https://github.com/pallets/click
+    expected_categories: []
+    negative_control: true
+    max_score_threshold: 0.5
+    gold_queries: []
+    distractor_queries:
+      - large language models
+      - object detection
+      - reinforcement learning
+      - graph neural networks
+    gold_n: 0
+    distractor_n: 30
+
+  - name: http
+    description: HTTP client library (negative control — pure engineering)
+    repo_dir: repos/http
+    live_repo: https://github.com/psf/requests
+    expected_categories: []
+    negative_control: true
+    max_score_threshold: 0.5
+    gold_queries: []
+    distractor_queries:
+      - large language models
+      - object detection
+      - reinforcement learning
+      - diffusion models
+    gold_n: 0
+    distractor_n: 30
