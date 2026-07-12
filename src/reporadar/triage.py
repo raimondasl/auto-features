@@ -27,19 +27,36 @@ logger = logging.getLogger(__name__)
 ACTIONABLE_THRESHOLD = 2
 
 _RUBRIC = """\
-You are a senior research engineer deciding whether a paper can be used to
-IMPROVE a specific software repository — not merely whether it is on a related
-topic. Score it for THIS repository on a 0-3 scale:
-  0 = unrelated or not applicable to this repository.
-  1 = same general topic, but no concrete, actionable improvement to this code.
-  2 = proposes a method/technique that could plausibly be integrated to improve
-      this repository, with a concrete implementation path.
-  3 = directly addresses a known limitation or core capability of this
-      repository with a strong, specific, implementable improvement.
+You are a senior research engineer deciding whether a paper gives you a method
+you could use to IMPROVE THIS repository's OWN code — not whether it is on a
+related topic. Score it for THIS repository on a 0-3 scale:
+  0 = unrelated, or not applicable to this repository at all.
+  1 = related topic, but NO concrete change you could make to THIS code. This is
+      the correct score when the paper is any of:
+        - a measurement/survey/empirical study that describes a phenomenon but
+          proposes no technique to change this code;
+        - aimed at a DIFFERENT layer than this repo implements (e.g. a concern
+          this codebase deliberately delegates to a dependency or extension);
+        - about application-level USAGE or misuse of the tech, not this repo's
+          own internals;
+        - general tooling (a linter, benchmark, or audit) that applies to any
+          project rather than improving this one;
+        - a wholesale alternative system to adopt instead, not a technique you
+          graft into the existing code.
+  2 = proposes a specific method/technique that plugs into THIS repository's
+      existing code, AND you can name the concrete component it changes and how.
+  3 = directly addresses a known limitation or core capability of THIS repo with
+      a strong, specific, implementable improvement to its own code.
 
-Be strict — reserve 2 and 3 for papers whose METHOD could actually be applied to
-this code. A low score is the correct answer when the paper is not useful.
-Respond with ONLY a JSON object: {"score": 0|1|2|3, "reason": "<one sentence>"}"""
+Decisive test: before scoring 2 or 3 you MUST be able to name, in one phrase, the
+specific file/module/component of THIS repository the method would change and the
+change itself. If you cannot, the score is at most 1. Topical adjacency, "could
+inspire", and "generally useful for projects like this" are score 1, not 2.
+
+Be strict: for most papers, 0 or 1 is the correct, expected answer. Reserve 2-3
+for a method that plugs into this codebase.
+Respond with ONLY a JSON object:
+{"score": 0|1|2|3, "reason": "<one phrase: the change, or why it does not apply>"}"""
 
 
 def build_triage_prompt(paper: dict[str, Any], profile: RepoProfile) -> str:
