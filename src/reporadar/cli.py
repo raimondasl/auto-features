@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import webbrowser
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,8 @@ import click
 from reporadar.collector import CollectionError, build_queries, collect_papers
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
+    ArxivConfig,
+    RankingConfig,
     RepoRadarConfig,
     default_config_yaml,
     load_config,
@@ -23,6 +26,21 @@ from reporadar.output import error, info, muted, setup_verbose_logging, success,
 from reporadar.profiler import profile_repo
 from reporadar.ranker import format_score_explanation, rank_papers, score_distribution
 from reporadar.store import PaperStore, StoreError
+
+# Foundational/seed discovery: reach back over all of arXiv, relevance-first, with
+# recency weight dropped — surfaces seminal work instead of only the recent fetch
+# window (the baseline's edge on the Tier B benchmark). ~100 years ≈ no cutoff.
+_FOUNDATIONAL_LOOKBACK = 36500
+
+
+def _apply_foundational(
+    arxiv_cfg: ArxivConfig, ranking_cfg: RankingConfig
+) -> tuple[ArxivConfig, RankingConfig]:
+    """Return (arxiv, ranking) configs adjusted for foundational discovery."""
+    return (
+        replace(arxiv_cfg, sort_by="relevance", lookback_days=_FOUNDATIONAL_LOOKBACK),
+        replace(ranking_cfg, w_recency=0.0),
+    )
 
 
 @contextlib.contextmanager
@@ -134,8 +152,14 @@ def profile(config_path: str | None, verbose: bool) -> None:
     help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
 )
 @click.option("--explain", is_flag=True, help="Show detailed score breakdown for top papers.")
+@click.option(
+    "--foundational",
+    is_flag=True,
+    help="Seed-corpus mode: fetch all-time, relevance-first (no recency window), so seminal "
+    "foundational papers surface. Use for a one-time deep sweep; the default is the recent digest.",
+)
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
-def update(config_path: str | None, explain: bool, verbose: bool) -> None:
+def update(config_path: str | None, explain: bool, foundational: bool, verbose: bool) -> None:
     """Fetch new papers from arXiv and store them.
 
     Profiles the repo, builds queries, fetches papers, and stores
@@ -145,6 +169,9 @@ def update(config_path: str | None, explain: bool, verbose: bool) -> None:
         setup_verbose_logging()
 
     cfg = _load_and_validate(config_path)
+    if foundational:
+        cfg.arxiv, cfg.ranking = _apply_foundational(cfg.arxiv, cfg.ranking)
+        info("Foundational mode: all-time relevance discovery (recency weight dropped).")
     repo_path = Path(cfg.repo_path).resolve()
     db_path = repo_path / ".reporadar" / "papers.db"
 
