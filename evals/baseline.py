@@ -199,9 +199,14 @@ def _run_cli(repo_dir: Path, *, flags: list[str] | None, timeout: int) -> dict[s
                 last_err = _empty("error", reason)
             else:
                 stderr = (proc.stderr or "").strip()
-                last_err = _empty(
-                    "error", f"claude exited {proc.returncode}. stderr: {stderr[:500]}"
-                )
+                stdout = (proc.stdout or "").strip()
+                # Surface stdout too: a refusal or turn-limit error is often printed
+                # there while exiting non-zero with empty stderr. Without it a
+                # cybersecurity-guardrail decline is indistinguishable from a crash.
+                detail = f"stderr: {stderr[:400]}"
+                if stdout:
+                    detail += f" | stdout: {stdout[:400]}"
+                last_err = _empty("error", f"claude exited {proc.returncode}. {detail}")
                 if not strip_api_key and any(m in stderr for m in _CLI_AUTH_CONFLICT_MARKERS):
                     strip_api_key = True  # retry without the shadowing key
 
