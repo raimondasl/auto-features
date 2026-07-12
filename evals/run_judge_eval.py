@@ -50,6 +50,7 @@ from verify import resolve_references  # noqa: E402
 from reporadar.config import QueriesConfig, RankingConfig  # noqa: E402
 from reporadar.digest import TOP_THRESHOLD  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
+from reporadar.retrieval import hybrid_reorder  # noqa: E402
 from reporadar.triage import rerank_by_actionability  # noqa: E402
 
 RESULTS_DIR = EVALS_DIR / "results"
@@ -84,6 +85,7 @@ def reporadar_ranked(
     top_n: int = 10,
     *,
     all_time: bool = False,
+    hybrid: bool = False,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
 
@@ -95,6 +97,10 @@ def reporadar_ranked(
     all-time, relevance-sorted fetch and drops the recency weight from ranking,
     so seminal older papers can surface and compete on relevance alone. This
     tests whether the baseline's edge is a discovery-window artifact.
+
+    ``hybrid=True`` fuses the heuristic ranking with a BM25 lexical ranking via
+    RRF before the top-N cut, so a paper the keyword ranker buried on vocabulary
+    mismatch can still surface (roadmap #4).
     """
     profile = profile_case_repo(repo_dir)
     lookback = 36500 if all_time else 90  # ~100 years = effectively no date cutoff
@@ -114,6 +120,8 @@ def reporadar_ranked(
         categories or ["cs.LG"],
         lookback_days=lookback,
     )
+    if hybrid:
+        ranked = hybrid_reorder(ranked, papers, profile)
     by_id = {p["arxiv_id"]: p for p in papers}
     out: list[tuple[dict[str, Any], float]] = []
     for s in ranked[:top_n]:
@@ -206,7 +214,13 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     #    ranker buried below rank 10 can still rise into the returned set.
     candidate_n = RERANK_POOL if args.rr_rerank else 10
     rr_ranked = reporadar_ranked(
-        dest, categories, args.sources, keys, top_n=candidate_n, all_time=args.rr_all_time
+        dest,
+        categories,
+        args.sources,
+        keys,
+        top_n=candidate_n,
+        all_time=args.rr_all_time,
+        hybrid=args.rr_hybrid,
     )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
@@ -417,6 +431,13 @@ def main() -> int:
         "baseline's edge is a discovery-window artifact. NOTE: surfaces new papers not in "
         "the judge cache, so this incurs fresh OpenAI judge (and triage) spend.",
     )
+    parser.add_argument(
+        "--rr-hybrid",
+        action="store_true",
+        help="Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical "
+        "ranking via RRF before the Top-N cut, so a paper buried on vocabulary mismatch can "
+        "surface. Changes the candidate order (may shift which papers are judged/triaged).",
+    )
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
     if args.rr_rerank or args.rr_sweep:
@@ -433,6 +454,7 @@ def main() -> int:
     )
     rr_label = rr_gate if args.rr_triage else "heuristic 0.5"
     disco_label = "all-time/relevance" if args.rr_all_time else "90-day/recency"
+    disco_label += "+hybrid(bm25+rrf)" if args.rr_hybrid else ""
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
     print(f"judge={judge_label}  baseline={baseline_label}  reporadar_gate={rr_label}")
     print(f"reporadar_discovery={disco_label}")
