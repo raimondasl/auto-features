@@ -20,12 +20,23 @@ import json
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
 from verify import extract_arxiv_ids
 
 CACHE_DIR = Path(__file__).resolve().parent / "cache" / "baseline"
+
+# The cli baseline retries transient `claude` failures (and, on the specific
+# ANTHROPIC_API_KEY-shadows-claude.ai-login conflict, retries with that key
+# stripped from the subprocess so the CLI authenticates via its own login).
+_CLI_MAX_RETRIES = 2
+_CLI_BACKOFF = 3.0
+_CLI_AUTH_CONFLICT_MARKERS = (
+    "takes precedence over your claude.ai login",
+    "connectors are disabled because ANTHROPIC_API_KEY",
+)
 
 BASELINE_MODEL = "claude-opus-4-8"
 # Opus 4.8 pricing ($/1M tokens) for a rough cost estimate (excludes web-search fees).
@@ -128,53 +139,75 @@ def _run_mock() -> dict[str, Any]:
 # ── mode: cli (Claude Code headless) ───────────────────────────────────────
 
 
+def _parse_cli_payload(stdout: str) -> tuple[dict[str, Any] | None, str]:
+    """Parse `claude -p --output-format json` stdout into an ok baseline dict.
+
+    Returns (ok_dict, "") on success or (None, reason). `claude` reports internal
+    failures (turn-limit, execution errors) via is_error / subtype while still
+    exiting 0; a non-JSON stdout means it printed a raw error. All of these are
+    failures — never parse them for "recommendations".
+    """
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None, f"non-JSON output from claude: {stdout.strip()[:400]}"
+    if payload.get("is_error") or payload.get("subtype") not in (None, "success"):
+        return None, (
+            f"claude reported failure (subtype={payload.get('subtype')}, "
+            f"is_error={payload.get('is_error')})"
+        )
+    raw_text = payload.get("result", "")
+    if not raw_text.strip():
+        return None, "claude returned an empty result"
+    cost = float(payload.get("total_cost_usd", 0.0) or 0.0)
+    ids, titles = _parse_recommendations(raw_text)
+    return {"ids": ids, "titles": titles, "raw": raw_text, "cost_usd": cost, "status": "ok"}, ""
+
+
 def _run_cli(repo_dir: Path, *, flags: list[str] | None, timeout: int) -> dict[str, Any]:
     claude_bin = os.environ.get("RR_EVAL_CLAUDE_BIN", "claude")
     env_flags = os.environ.get("RR_EVAL_CLAUDE_FLAGS")
     flag_list = flags or (env_flags.split() if env_flags else CLAUDE_FLAGS)
     cmd = [claude_bin, "-p", *flag_list, BASELINE_PROMPT]
 
-    try:
-        proc = subprocess.run(
-            cmd, cwd=str(repo_dir), capture_output=True, text=True, timeout=timeout
-        )
-    except FileNotFoundError:
-        return _empty(
-            "missing_cli",
-            f"`{claude_bin}` not found on PATH. Install Claude Code, set RR_EVAL_CLAUDE_BIN "
-            "to its full path, or use --baseline api.",
-        )
-    except subprocess.TimeoutExpired:
-        return _empty("timeout", f"claude timed out after {timeout}s")
+    strip_api_key = False  # flipped once we see the API-key-vs-claude.ai-login conflict
+    last_err = _empty("error", "claude did not produce a result")
+    for attempt in range(_CLI_MAX_RETRIES + 1):
+        env = os.environ.copy()
+        if strip_api_key:
+            # The CLI warned ANTHROPIC_API_KEY shadows its claude.ai login and
+            # disabled connectors; drop it here so the CLI uses that login. Only
+            # the subprocess env is touched — the judge/triage keys are intact.
+            env.pop("ANTHROPIC_API_KEY", None)
+        try:
+            proc = subprocess.run(
+                cmd, cwd=str(repo_dir), capture_output=True, text=True, timeout=timeout, env=env
+            )
+        except FileNotFoundError:
+            return _empty(
+                "missing_cli",
+                f"`{claude_bin}` not found on PATH. Install Claude Code, set RR_EVAL_CLAUDE_BIN "
+                "to its full path, or use --baseline api.",
+            )
+        except subprocess.TimeoutExpired:
+            last_err = _empty("timeout", f"claude timed out after {timeout}s")
+        else:
+            if proc.returncode == 0:
+                ok, reason = _parse_cli_payload(proc.stdout)
+                if ok is not None:
+                    return ok
+                last_err = _empty("error", reason)
+            else:
+                stderr = (proc.stderr or "").strip()
+                last_err = _empty(
+                    "error", f"claude exited {proc.returncode}. stderr: {stderr[:500]}"
+                )
+                if not strip_api_key and any(m in stderr for m in _CLI_AUTH_CONFLICT_MARKERS):
+                    strip_api_key = True  # retry without the shadowing key
 
-    if proc.returncode != 0:
-        return _empty(
-            "error",
-            f"claude exited {proc.returncode}. stderr: {(proc.stderr or '').strip()[:500]}",
-        )
-
-    # `claude -p --output-format json` reports internal failures (turn-limit,
-    # execution errors) via is_error / subtype while still exiting 0. A non-JSON
-    # stdout means it printed a raw error instead of the expected result. Treat
-    # all of these as failures rather than parsing them for "recommendations".
-    try:
-        payload = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return _empty("error", f"non-JSON output from claude: {proc.stdout.strip()[:400]}")
-
-    if payload.get("is_error") or payload.get("subtype") not in (None, "success"):
-        return _empty(
-            "error",
-            f"claude reported failure (subtype={payload.get('subtype')}, "
-            f"is_error={payload.get('is_error')})",
-        )
-    raw_text = payload.get("result", "")
-    if not raw_text.strip():
-        return _empty("error", "claude returned an empty result")
-    cost = float(payload.get("total_cost_usd", 0.0) or 0.0)
-
-    ids, titles = _parse_recommendations(raw_text)
-    return {"ids": ids, "titles": titles, "raw": raw_text, "cost_usd": cost, "status": "ok"}
+        if attempt < _CLI_MAX_RETRIES:
+            time.sleep(_CLI_BACKOFF * (2**attempt))
+    return last_err
 
 
 # ── mode: api (Anthropic Messages API + web_search) ────────────────────────
