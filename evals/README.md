@@ -159,6 +159,14 @@ uv run python evals/run_judge_eval.py --baseline api --rr-triage --rr-all-time
 # Implies --rr-triage. Combine with --rr-all-time for the full "closed both gaps"
 # run. Incurs more triage (and, if new papers surface, judge) spend.
 uv run python evals/run_judge_eval.py --baseline api --rr-rerank --rr-all-time
+
+# Gate-precision sweep: report Top Picks metrics at every min_actionable threshold
+# (1/2/3) in one run. FREE — triage scores are computed once, so re-gating is
+# post-processing. Prints a cross-case rollup showing which threshold maximizes
+# net@2 and eliminates false positives (e.g. the webdev negative-control leak).
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-sweep
+# Then lock in the winner for a normal run, e.g. the stricter gate:
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-min-actionable 3
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either

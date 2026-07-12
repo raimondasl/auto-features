@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,9 @@ RECENT_DAYS = 180  # baseline papers newer than this count as "recent"
 # --rr-rerank triages this many candidates (vs the top-10) so the llm_score
 # reorder can pull a buried-but-actionable paper up into the returned Top-10.
 RERANK_POOL = 20
+# --rr-sweep re-gates Top Picks at each of these min_actionable thresholds. Triage
+# scores are computed once, so every threshold is free (no extra model calls).
+SWEEP_THRESHOLDS = (1, 2, 3)
 
 
 def load_dotenv(path: Path) -> None:
@@ -118,6 +122,50 @@ def reporadar_ranked(
     return out
 
 
+def sweep_top_picks(
+    ranked: list[dict[str, Any]],
+    gains_of: Callable[[list[dict[str, Any]]], list[int]],
+    pool_gains: list[int],
+    thresholds: tuple[int, ...] = SWEEP_THRESHOLDS,
+) -> dict[int, dict[str, Any]]:
+    """Top Picks metrics at each ``min_actionable`` threshold, from one triaged run.
+
+    Triage scores (0-3) are computed once, so re-gating the returned set at each
+    threshold is free — this exposes the precision/recall trade of raising the
+    Top-Pick bar without any extra model calls.
+    """
+    out: dict[int, dict[str, Any]] = {}
+    for t in thresholds:
+        picks = [p for p in ranked if (p.get("llm_score") or 0) >= t]
+        out[t] = summarize_system(gains_of(picks), pool_gains, n_hallucinated=0)
+    return out
+
+
+def aggregate_sweep(
+    per_case: list[dict[int, dict[str, Any]]],
+    thresholds: tuple[int, ...] = SWEEP_THRESHOLDS,
+) -> dict[int, dict[str, Any]]:
+    """Cross-case rollup of a threshold sweep. Per threshold: mean net@2, how many
+    cases abstain (returned=0), and how many emit a *false positive* (returned>0
+    but 0 actionable — e.g. the webdev negative control leaking a Top Pick)."""
+    summary: dict[int, dict[str, Any]] = {}
+    for t in thresholds:
+        ms = [c[t] for c in per_case if t in c]
+        n = len(ms)
+        nets = [m["net_value@2"] for m in ms]
+        precs = [m["precision"] for m in ms if m["n_returned"] > 0]
+        summary[t] = {
+            "n_cases": n,
+            "mean_net@2": sum(nets) / n if n else 0.0,
+            "n_abstained": sum(1 for m in ms if m["n_returned"] == 0),
+            "n_false_positive": sum(
+                1 for m in ms if m["n_returned"] > 0 and m["n_actionable"] == 0
+            ),
+            "mean_precision": sum(precs) / len(precs) if precs else float("nan"),
+        }
+    return summary
+
+
 def _triage_reporadar(
     repo_dir: Path, papers: list[dict[str, Any]], keys: dict[str, str], model: str
 ) -> dict[str, dict[str, Any]]:
@@ -169,11 +217,12 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
         ordered = rerank_by_actionability(rr_candidates) if args.rr_rerank else rr_candidates
         rr_topn = ordered[:10]
-        rr_toppicks = [p for p in rr_topn if (p.get("llm_score") or 0) >= 2]
+        rr_toppicks = [p for p in rr_topn if (p.get("llm_score") or 0) >= args.rr_min_actionable]
         n_scored = sum(1 for p in rr_topn if p.get("llm_score") is not None)
         print(
             f"        RepoRadar[triaged{'+rerank' if args.rr_rerank else ''}]: "
-            f"{n_scored}/{len(rr_topn)} scored, {len(rr_toppicks)} actionable (Top Picks)"
+            f"{n_scored}/{len(rr_topn)} scored, {len(rr_toppicks)} actionable "
+            f"(Top Picks, min>={args.rr_min_actionable})"
         )
     else:
         rr_topn = rr_candidates[:10]
@@ -270,7 +319,15 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     b_extra = "" if not baseline_ok else f"recent={b_metrics['n_recent']}/{len(b_papers)}"
     _print_system("Baseline           ", b_metrics, extra=b_extra)
 
-    return {
+    sweep: dict[int, dict[str, Any]] | None = None
+    if args.rr_sweep:
+        # Free: re-gate the same triaged Top-10 at every threshold, no new calls.
+        sweep = sweep_top_picks(rr_topn, gains_for, pool_gains)
+        print("        Top Picks sweep (min_actionable):")
+        for t in SWEEP_THRESHOLDS:
+            _print_system(f"  min>={t}          ", sweep[t])
+
+    result: dict[str, Any] = {
         "case": name,
         "repo": case["live_repo"],
         "pool_size": len(pool_gains),
@@ -281,6 +338,9 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         "reporadar_top10": rr_topn_metrics,
         "baseline": b_metrics,
     }
+    if sweep is not None:
+        result["reporadar_toppicks_sweep"] = sweep
+    return result
 
 
 def _print_system(label: str, m: dict[str, Any], extra: str = "") -> None:
@@ -328,6 +388,21 @@ def main() -> int:
         "--rr-triage-model", default="claude-haiku-4-5", help="Model for RepoRadar triage."
     )
     parser.add_argument(
+        "--rr-min-actionable",
+        type=int,
+        default=2,
+        choices=(1, 2, 3),
+        help="Top-Pick gate: a paper is returned only if its triage llm_score is >= this "
+        "(default 2). Raising it trades recall for precision. Implies --rr-triage.",
+    )
+    parser.add_argument(
+        "--rr-sweep",
+        action="store_true",
+        help="Report Top Picks metrics at every min_actionable threshold (1/2/3) in one run — "
+        "free, since triage scores are computed once. Directly shows which gate maximizes net@2 "
+        "and eliminates false positives. Implies --rr-triage.",
+    )
+    parser.add_argument(
         "--rr-rerank",
         action="store_true",
         help=f"Listwise-rerank RepoRadar's Top Picks by LLM actionability: triage a deeper "
@@ -344,15 +419,18 @@ def main() -> int:
     )
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
-    if args.rr_rerank:
-        args.rr_triage = True  # reranking needs llm_scores
+    if args.rr_rerank or args.rr_sweep:
+        args.rr_triage = True  # reranking and the threshold sweep both need llm_scores
 
     load_dotenv(EVALS_DIR / ".env")
     keys = {k: os.environ[k] for k in ENV_KEYS if os.environ.get(k)}
 
     judge_label = "mock" if args.mock else args.model
     baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"
-    rr_gate = f"triage{'+rerank' if args.rr_rerank else ''}({args.rr_triage_model})"
+    rr_gate = (
+        f"triage{'+rerank' if args.rr_rerank else ''}({args.rr_triage_model}, "
+        f"min>={args.rr_min_actionable}{'+sweep' if args.rr_sweep else ''})"
+    )
     rr_label = rr_gate if args.rr_triage else "heuristic 0.5"
     disco_label = "all-time/relevance" if args.rr_all_time else "90-day/recency"
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
@@ -378,6 +456,23 @@ def main() -> int:
         r = run(case, keys, args)
         if r:
             results.append(r)
+
+    if args.rr_sweep and results:
+        key = "reporadar_toppicks_sweep"
+        per_case = [r[key] for r in results if key in r]
+        agg = aggregate_sweep(per_case)
+        print(f"\n=== Top Picks threshold sweep — cross-case ({len(per_case)} cases) ===")
+        print("  (higher min_actionable = stricter gate: trades recall for precision)")
+        for t in SWEEP_THRESHOLDS:
+            s = agg[t]
+            prec = s["mean_precision"]
+            prec_s = "n/a" if prec != prec else f"{prec:.2f}"  # NaN check
+            print(
+                f"  min>={t}:  mean net@2={s['mean_net@2']:+.2f}   "
+                f"abstained={s['n_abstained']}/{s['n_cases']}   "
+                f"false-positive={s['n_false_positive']}/{s['n_cases']}   "
+                f"mean precision={prec_s}"
+            )
 
     if results and not args.mock:
         RESULTS_DIR.mkdir(exist_ok=True)
