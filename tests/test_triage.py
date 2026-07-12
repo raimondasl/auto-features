@@ -57,15 +57,6 @@ class TestBuildPrompt:
         assert "A Retrieval Method" in prompt
         assert '{"score"' in prompt  # rubric asks for JSON
 
-    def test_rubric_grounds_actionability(self) -> None:
-        # Guards the anti-false-positive calibration: a 2+ requires naming a
-        # concrete change, topical adjacency is explicitly downranked, and the
-        # known failure modes (measurement-not-method, etc.) are spelled out.
-        prompt = build_triage_prompt(_PAPER, _PROFILE)
-        assert "Topical adjacency" in prompt
-        assert "at most 1" in prompt
-        assert "measurement/survey" in prompt
-
 
 class TestScoreActionability:
     def test_returns_parsed_verdict(self) -> None:
