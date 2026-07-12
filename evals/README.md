@@ -126,6 +126,12 @@ would **genuinely improve this specific code**, and is the tool willing to
      `web_search` tool. Needs `ANTHROPIC_API_KEY`; **no Claude Code CLI required**.
    - `--baseline cli` — Claude Code headless (`claude -p`) with web tools, run in the
      repo dir. Needs `claude` on PATH (set `RR_EVAL_CLAUDE_BIN` if it's elsewhere).
+     Transient `claude` failures are retried; if `ANTHROPIC_API_KEY` is set it can
+     shadow the CLI's claude.ai login and disable connectors — on that specific error
+     the retry drops the key from the subprocess so the CLI uses its own login. **If
+     `ANTHROPIC_API_KEY` is set, prefer `--baseline api`** (it's deterministic and
+     avoids the CLI auth conflict entirely). Only successful baselines are cached, so a
+     re-run reuses the ones that worked and retries the failures.
 3. **Hallucination guard** — every proposed paper is resolved against the real arXiv;
    unresolvable references count as hallucinations and score 0. (Opus tends to invent
    plausible arXiv IDs; this keeps the comparison honest.)

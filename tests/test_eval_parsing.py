@@ -10,8 +10,21 @@ bogus ID then 400'd against arXiv and nuked the baseline's metrics as
 
 from __future__ import annotations
 
-from baseline import _parse_recommendations
+import json
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import baseline
+from baseline import _parse_cli_payload, _parse_recommendations, _run_cli
 from verify import extract_arxiv_ids
+
+
+def _proc(returncode: int, stdout: str = "", stderr: str = "") -> SimpleNamespace:
+    return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+
+def _ok_stdout(result: str, cost: float = 0.5) -> str:
+    return json.dumps({"subtype": "success", "result": result, "total_cost_usd": cost})
 
 
 class TestExtractArxivIds:
@@ -67,3 +80,68 @@ class TestParseRecommendations:
         )
         assert ids == []
         assert titles == ["Some Paper Without An Arxiv Id"]
+
+
+class TestParseCliPayload:
+    def test_ok(self) -> None:
+        ok, reason = _parse_cli_payload(_ok_stdout("```json\n[]\n```", cost=0.7))
+        assert reason == ""
+        assert ok is not None and ok["status"] == "ok" and ok["cost_usd"] == 0.7
+
+    def test_non_json(self) -> None:
+        ok, reason = _parse_cli_payload("not json at all")
+        assert ok is None and "non-JSON" in reason
+
+    def test_is_error_flag(self) -> None:
+        ok, reason = _parse_cli_payload(json.dumps({"is_error": True, "result": "x"}))
+        assert ok is None and "reported failure" in reason
+
+    def test_empty_result(self) -> None:
+        ok, reason = _parse_cli_payload(json.dumps({"subtype": "success", "result": "   "}))
+        assert ok is None and "empty result" in reason
+
+
+class TestRunCliRetry:
+    def test_transient_failure_then_success(self) -> None:
+        # First call fails (exit 1), retry succeeds — the eval should not lose the baseline.
+        calls = [_proc(1, stderr="segfault"), _proc(0, stdout=_ok_stdout("```json\n[]\n```"))]
+        with (
+            patch("baseline.subprocess.run", side_effect=calls) as run,
+            patch("baseline.time.sleep"),
+        ):
+            out = _run_cli(SimpleNamespace(), flags=[], timeout=10)
+        assert out["status"] == "ok"
+        assert run.call_count == 2
+
+    def test_strips_api_key_on_auth_conflict(self) -> None:
+        # The claude.ai-login-vs-ANTHROPIC_API_KEY conflict: retry drops the key
+        # from the subprocess env so the CLI uses its own login.
+        warn = (
+            "connectors are disabled because ANTHROPIC_API_KEY takes precedence over "
+            "your claude.ai login"
+        )
+        calls = [_proc(1, stderr=warn), _proc(0, stdout=_ok_stdout("```json\n[]\n```"))]
+        seen_envs = []
+
+        def record(cmd, **kw):
+            seen_envs.append(kw.get("env") or {})
+            return calls[len(seen_envs) - 1]
+
+        with (
+            patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test"}, clear=False),
+            patch("baseline.subprocess.run", side_effect=record),
+            patch("baseline.time.sleep"),
+        ):
+            out = _run_cli(SimpleNamespace(), flags=[], timeout=10)
+        assert out["status"] == "ok"
+        assert "ANTHROPIC_API_KEY" in seen_envs[0]  # first attempt keeps the key
+        assert "ANTHROPIC_API_KEY" not in seen_envs[1]  # retry drops it
+
+    def test_gives_up_after_max_retries(self) -> None:
+        with (
+            patch("baseline.subprocess.run", return_value=_proc(1, stderr="boom")) as run,
+            patch("baseline.time.sleep"),
+        ):
+            out = _run_cli(SimpleNamespace(), flags=[], timeout=10)
+        assert out["status"] == "error"
+        assert run.call_count == baseline._CLI_MAX_RETRIES + 1
