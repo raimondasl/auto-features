@@ -353,3 +353,42 @@ false positive, one `rag` dud, ~1 haiku-vs-judge disagreement per case) is a **m
 floor**, not a tuning target. The next genuine levers are **structural, not gate-side**: better
 candidate quality via hybrid retrieval (roadmap #4) / SPECTER2 + cross-encoder (#7), or domain source
 adapters (#10) for `webdev`'s real problem — its literature isn't on arXiv at all.
+
+## Hybrid retrieval — BM25 + RRF fusion (2026-07-12)
+
+`--rr-hybrid` (PR #30) fuses the heuristic ranking with a BM25 lexical ranking via RRF before the
+Top-N cut, targeting papers the TF-IDF ranker buries on vocabulary mismatch. Run with vs without,
+on top of all-time + rerank + cli baseline:
+
+| Case | metric | without | with hybrid |
+|---|---|---|---|
+| **rag** | Top-10 | 4 act · net −8 · ndcg 0.48 | **6 act · net −2 · ndcg 0.73** |
+| **rag** | Top Picks | 3 · 2 act · net 0.0 | 9 · 5 act · net **−3.0** |
+| **cv** | Top-10 | 4 act · ndcg 0.64 | 4 act · ndcg 0.68 |
+| **rl** | Top-10 | 0 act · ndcg 0.07 | 0 act · ndcg 0.10 |
+| **webdev** | Top Picks | 1 · 0 act · net −2 (leak) | **0 · abstain · net 0** |
+| **mean** | Top-10 net (rag/cv/rl) | −12.0 | **−10.0** |
+| **mean** | Top Picks net (4) | −0.25 | **−0.5** |
+
+**Findings:**
+
+1. **Hybrid improves ranking — this is a real retrieval win.** `rag`'s Top-10 actionable count rose
+   **4 → 6** and its nDCG **0.48 → 0.73**; nDCG improved on **all four** cases. BM25 surfaced
+   genuinely-actionable papers the keyword ranker had buried (`rag`'s pool actionable count rose
+   7 → 9). Top-10 mean net@2 improved **−12 → −10**.
+
+2. **But it runs straight back into the gate ceiling, and slightly worsens the headline.** A richer
+   candidate set feeds the imperfect haiku gate *more* borderline papers: `rag` Top Picks went from
+   3 returned / 2 actionable (net 0.0) to **9 returned / 5 actionable / 4 duds (net −3.0)**. That one
+   swing drags the Top Picks mean **−0.25 → −0.5**. More good candidates ⇒ the gate also passes more
+   duds — the same precision ceiling, now fed a bigger pool.
+
+3. **`webdev` leak closed as a side effect** (the reorder pushed its dud out of the Top-10), and
+   **`rl` stayed stuck** (0 actionable in Top-10 — BM25 didn't surface its 3 pool-actionable papers).
+
+**Takeaway — the pattern is now unmistakable, and 4 cases is too few.** Discovery ↑, ordering ↑, and
+retrieval ↑ each improve the *candidate pool* (nDCG and Top-10 recall keep rising), but the
+user-facing **Top Picks net@2 is pinned by the haiku gate's precision**, not by retrieval. And with
+only four cases, a single case's swing (`rag` −3) flips the headline sign — the eval set lacks the
+statistical power to separate a real ranking gain from per-case noise. **Expanding the benchmark set
+is the prerequisite for trusting any further ranking comparison.**
