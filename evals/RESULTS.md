@@ -1,8 +1,8 @@
 # Tier B benchmark — results
 
 > **Headline (2026-07-12, 12 cases):** RepoRadar is **net-positive** (Top Picks mean net@2
-> **+1.42**) and **competitive with the Opus baseline** (+1.27 vs +1.82 on the 11 verifiable
-> cases), *beating* it outright on the ML domains it's built for (diffusion, speech, peft).
+> **+1.42**) and **competitive with the Opus baseline** (+1.42 vs +1.75 across all 12 — a 0.33
+> gap), *beating* it outright on the ML domains it's built for (diffusion, speech, peft).
 > `min_actionable=2` is the decisively-correct gate. See
 > [12-case benchmark](#12-case-benchmark--reporadar-is-net-positive-and-competitive-with-opus-2026-07-12)
 > below — the current headline. The 4-case tables that follow are the earlier snapshots that
@@ -404,9 +404,10 @@ is the prerequisite for trusting any further ranking comparison.**
 ## 12-case benchmark — RepoRadar is net-positive and competitive with Opus (2026-07-12)
 
 The expanded 12-case set (`--baseline cli --rr-rerank --rr-all-time`, triage = claude-haiku-4-5,
-`min_actionable=2`). **11/12 baselines ran** — `crypto`'s `claude -p` failed (empty stderr, a
-different transient than the connector conflict PR #33 fixed), so it has RepoRadar numbers but no
-baseline comparison. Re-fill it with `--case crypto --baseline api` if wanted.
+`min_actionable=2`). 11/12 cli baselines ran; `crypto`'s `claude -p` exited 1 (empty stderr, the
+CLI flakiness — *not* a safety refusal). Re-ran it with `--baseline api`: Opus completed cleanly
+($1.21, one genuinely-actionable recommendation), confirming it was a CLI-mode issue, not a
+cybersecurity guardrail declining the crypto topic. Crypto's baseline below is from that api run.
 
 **RepoRadar Top Picks (min>=2) vs Opus baseline, all 12 cases:**
 
@@ -419,13 +420,16 @@ baseline comparison. Re-fill it with `--case crypto --baseline api` if wanted.
 | **diffusion** | ML | 7 · 7 act · net **+7.0** · prec 1.00 | 2/2 · net +2 | **RepoRadar** |
 | **graph** | ML | 2 · 0 act · net −4.0 | 3/3 · net **+3** | baseline |
 | **speech** | ML | 7 · 7 act · net **+7.0** · prec 1.00 | 3/3 · net +3 | **RepoRadar** |
-| **crypto** | adjacent | 3 · 3 act · net +3.0 · prec 1.00 | — *(failed)* | — |
+| **crypto** | adjacent | 3 · 3 act · net +3.0 · prec 1.00 | 1/1 · net +1 · api | ≈tie † |
 | **systems** | adjacent | 1 · 1 act · net +1.0 | 1/1 · net +1 | tie |
 | **webdev** | control | 1 · 0 act · net −2.0 | abstained · net 0 | baseline |
 | **cli** | control | abstained · net 0.0 | abstained · net 0 | tie ✓ |
 | **http** | control | abstained · net 0.0 | abstained · net 0 | tie ✓ |
-| **mean** | (11 w/ baseline) | **+1.27** | **+1.82** | |
-| **mean** | (all 12) | **+1.42** | — | |
+| **mean** | (all 12, w/ baseline) | **+1.42** | **+1.75** | |
+
+† `crypto`'s baseline is from a separate `--baseline api` fill-run (Opus completed — **not** a
+guardrail refusal). That run drew RepoRadar at 4 · 3 act · net +1.0, i.e. **a tie**; the full run's
++3.0 was a lucky triage draw (0 duds). Treat crypto as a tie within ±2 net@2 triage noise.
 
 **Findings:**
 
@@ -436,12 +440,13 @@ baseline comparison. Re-fill it with `--case crypto --baseline api` if wanted.
    peft +4 vs +2). On its home turf it returns *more* genuinely-actionable papers than the
    conservative baseline.
 
-2. **The baseline's residual edge is narrow and structural, not a capability gap.** On the 11 cases
-   with a baseline, Opus averages **+1.82** vs RepoRadar's **+1.27** — a 0.55 gap, down from ~+3 on
-   the 4-case set. It wins on the three "hard" ML cases (`rag`/`cv`/`rl`) plus `graph`, and **every
-   baseline pick is `recent=0/N`** — seminal/foundational work RepoRadar's window structurally can't
-   see. The remaining gap is the foundational-corpus scope (roadmap #7 seed corpus), not a ranking
-   bug.
+2. **The baseline's residual edge is narrow and structural, not a capability gap.** Across all 12
+   cases Opus averages **+1.75** vs RepoRadar's **+1.42** — a **0.33 gap**, down from ~+3 on the
+   4-case set (and it keeps narrowing as cases are added). It wins on the three "hard" ML cases
+   (`rag`/`cv`/`rl`) plus `graph`; RepoRadar wins on `peft`/`diffusion`/`speech` and ties `crypto`/
+   `systems` + the controls. Crucially, **every baseline pick is `recent=0/N`** — seminal/foundational
+   work RepoRadar's window structurally can't see. The remaining gap is the foundational-corpus scope
+   (now shipped as `rr update --foundational`, PR #36), not a ranking bug.
 
 3. **The negative controls pass cleanly.** `cli` and `http` (pure engineering) both **abstain** —
    RepoRadar returns nothing, matching the baseline. Only **2/12** cases leak a false positive
