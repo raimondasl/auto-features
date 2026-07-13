@@ -29,6 +29,10 @@ evals = [
     "openai>=1.0",  # the neutral judge
     "anthropic>=0.40",  # the --baseline api Opus + web_search baseline
 ]
+mcp = [
+    # Only needed for `rr mcp` (RepoRadar as an MCP server for coding agents).
+    "mcp>=1.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -58,5 +62,12 @@ warn_return_any = true
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["arxiv", "sklearn.*", "yaml", "sentence_transformers"]
+module = ["arxiv", "sklearn.*", "yaml", "sentence_transformers", "mcp.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# FastMCP's `@server.tool()` decorator is untyped (external SDK), which trips
+# strict's untyped-decorator check on the tool bodies; the bodies just delegate
+# to already-typed helpers in this module.
+module = ["reporadar.mcp_server"]
+disallow_untyped_decorators = false

@@ -61,9 +61,11 @@ Creates `.reporadar.yml` config and `.reporadar/` storage directory. Safe to run
 
 Prints the inferred topic profile: TF-IDF keywords with weights, detected packages (anchors), and inferred domains.
 
-### `rr update [--config PATH] [-v]`
+### `rr update [--config PATH] [--foundational] [-v]`
 
 Runs the full pipeline: profile repo, build queries, fetch papers from arXiv, store in SQLite, score, and display top 5 results. Use `-v` for verbose logging.
+
+`--foundational` runs a one-time **seed-corpus sweep**: all-time, relevance-first (no recency window, recency weight dropped), so seminal foundational papers surface instead of only recent ones. Use it to seed the corpus; the default is the recent digest.
 
 ### `rr digest [--config PATH] [--since 7d] [--run-id N] [-o PATH] [--format md|html]`
 
@@ -77,6 +79,21 @@ Generates a digest from the latest (or specified) run. Options:
 ### `rr open [--config PATH] [-n N | --top N]`
 
 Opens the top N papers from the latest run in your default browser. Defaults to 5.
+
+### `rr mcp [--config PATH]`
+
+Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cursor, VS Code, Windsurf — can query your repo-aware paper store conversationally. Unlike generic arXiv MCP servers, its tools are grounded in *this repository's* profile and ranking. Tools exposed:
+
+- `get_repo_profile` — the repo's keywords / libraries / domains
+- `get_ranked_papers(limit)` — top papers from the latest `rr update`, best-first
+- `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason
+- `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
+
+Requires the optional extra: `uv pip install -e ".[mcp]"`. Register it with your agent, e.g. Claude Code:
+
+```bash
+claude mcp add reporadar -- rr mcp --config /abs/path/.reporadar.yml
+```
 
 ## Configuration
 
