@@ -959,6 +959,34 @@ def rate(arxiv_id: str, rating: int, config_path: str | None) -> None:
     "config_path",
     default=None,
     type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+def mcp(config_path: str | None) -> None:
+    """Run RepoRadar as an MCP server (stdio) for coding agents.
+
+    Exposes repo-aware tools — get_repo_profile, get_ranked_papers,
+    explain_relevance, rate_paper — to Claude Code / Cursor / VS Code / Windsurf.
+    Requires the optional MCP extra:  uv pip install -e ".[mcp]"
+    """
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    from reporadar.mcp_server import run_stdio
+
+    try:
+        run_stdio(repo_path, db_path, profiler_cfg=cfg.profiler, ranking_cfg=cfg.ranking)
+    except ImportError:
+        error('MCP support not installed. Run: uv pip install -e ".[mcp]"')
+        raise SystemExit(1) from None
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
     help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
 )
 @click.option(
