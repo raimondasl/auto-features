@@ -31,28 +31,66 @@ A manually-run **benchmark** (not CI) that scores RepoRadar's ranking quality on
 
 ## Feature overview
 
-| # | Feature | Tier | One-line impact |
-|---|---------|------|-----------------|
-| 1 | Hugging Face Papers enrichment | Certainly achievable | Repairs the dead PwC integration, adds live code/model/dataset links + community-buzz signal |
-| 2 | RepoRadar MCP server | Certainly achievable | Puts repo-aware paper search inside Claude Code, Cursor, VS Code — the biggest 2026 distribution channel |
-| 3 | GitHub Action + Pages digests | Certainly achievable | Turns a single-dev CLI into team-visible infrastructure with zero hosting |
-| 4 | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
-| 5 | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
-| 6 | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
-| 7 | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
-| 8 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
-| 9 | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
-| 10 | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
-| 11 | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
-| 12 | OpenAlex 2026 upgrade (keys, semantic search, Topics) | High confidence | Un-breaks the source; classifier-backed field watching instead of keyword guessing |
-| 13 | Privacy guard (audit, redaction, local-only mode) | High confidence | Unlocks proprietary/enterprise codebases — currently an unexamined blocker |
-| 14 | `rr deepscan` — agentic iterative search | Ambitious | Multi-round query-refine-expand loops, the flagship pattern of $12–20/mo commercial tools, free and repo-aware |
-| 15 | `rr ask` — citation-grounded Q&A over your corpus | Ambitious | From alerting tool to research assistant, local-first |
-| 16 | Technique fingerprinting ("supersedes what you import") | Ambitious | The category-defining alert: *did research just obsolete part of my codebase?* |
-| 17 | Zotero / BibTeX bridge | Certainly achievable | Starred papers flow into the citation manager academics actually live in |
-| 18 | Implementability & reproducibility scoring | Experimental | Answers "can I actually use this?" — a signal no free tool scores |
-| 19 | Research-gap radar | Experimental | "Nobody has applied X to your Y" — from reading what exists to seeing what's missing |
-| 20 | `rr apply` — paper-to-branch | Moonshot | One command from digest entry to a reviewable draft PR implementing the paper's technique |
+**Status legend** (as of 2026-07-12): ✅ shipped · 🟡 partial (core shipped, extensions pending) · ⬜ planned.
+See [Implementation status](#implementation-status-2026-07-12) below for the shipped-vs-remaining breakdown.
+
+| # | Status | Feature | Tier | One-line impact |
+|---|--------|---------|------|-----------------|
+| 1 | 🟡 | Hugging Face Papers enrichment | Certainly achievable | Repairs the dead PwC integration, adds live code/model/dataset links + community-buzz signal |
+| 2 | ⬜ | RepoRadar MCP server | Certainly achievable | Puts repo-aware paper search inside Claude Code, Cursor, VS Code — the biggest 2026 distribution channel |
+| 3 | ⬜ | GitHub Action + Pages digests | Certainly achievable | Turns a single-dev CLI into team-visible infrastructure with zero hosting |
+| 4 | 🟡 | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
+| 5 | ⬜ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
+| 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
+| 7 | ⬜ | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
+| 8 | ⬜ | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
+| 9 | ⬜ | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
+| 10 | ⬜ | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
+| 11 | 🟡 | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
+| 12 | 🟡 | OpenAlex 2026 upgrade (keys, semantic search, Topics) | High confidence | Un-breaks the source; classifier-backed field watching instead of keyword guessing |
+| 13 | ⬜ | Privacy guard (audit, redaction, local-only mode) | High confidence | Unlocks proprietary/enterprise codebases — currently an unexamined blocker |
+| 14 | ⬜ | `rr deepscan` — agentic iterative search | Ambitious | Multi-round query-refine-expand loops, the flagship pattern of $12–20/mo commercial tools, free and repo-aware |
+| 15 | ⬜ | `rr ask` — citation-grounded Q&A over your corpus | Ambitious | From alerting tool to research assistant, local-first |
+| 16 | ⬜ | Technique fingerprinting ("supersedes what you import") | Ambitious | The category-defining alert: *did research just obsolete part of my codebase?* |
+| 17 | ⬜ | Zotero / BibTeX bridge | Certainly achievable | Starred papers flow into the citation manager academics actually live in |
+| 18 | ⬜ | Implementability & reproducibility scoring | Experimental | Answers "can I actually use this?" — a signal no free tool scores |
+| 19 | ⬜ | Research-gap radar | Experimental | "Nobody has applied X to your Y" — from reading what exists to seeing what's missing |
+| 20 | ⬜ | `rr apply` — paper-to-branch | Moonshot | One command from digest entry to a reviewable draft PR implementing the paper's technique |
+
+---
+
+## Implementation status (2026-07-12)
+
+A benchmark-driven arc (Tier B eval → Feature 6 triage/rerank → all-time discovery → hybrid retrieval)
+shipped the ranking-and-precision core. The 12-case Tier B benchmark now shows RepoRadar **net-positive
+and competitive with an agentic Opus 4.8 baseline** (Top Picks mean net@2 **+1.42** vs **+1.75**, a 0.33
+gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md).
+
+**✅ Shipped**
+- **Tier 0 repairs** (PR #13): HF Papers (dead PwC), OpenAlex key support, retired model default, wired the
+  LLM path, `--since` filter, CI, run-ordering fix. *(Pipeline-drift refactor still deferred → Feature 14.)*
+- **Feature 6 — repo-aware LLM triage & reranking**: `triage.py` (0–3 actionability), shared `llm_client.py`,
+  `TriageConfig`, store v7 `paper_llm_scores`, digest gating (abstains unless genuinely applicable), and
+  **listwise rerank** by `llm_score`. The benchmark validated `min_actionable=2` as the default.
+- **Feature 4 (core)** — **hybrid retrieval BM25 + RRF** in the production ranker (PR #37, `ranking.hybrid`):
+  fuses the heuristic order with a lexical BM25 order via Reciprocal Rank Fusion; store v8 `rrf_score`.
+- **Foundational / seed-corpus discovery** (`rr update --foundational`, PR #36) — the eval-validated all-time,
+  relevance-first sweep that surfaces seminal work the recent window misses. (Realizes the "seed corpus"
+  idea from Finding #2; closes most of the baseline's remaining benchmark edge.)
+- **Two-tier evaluation harness** (`evals/`) — Tier A offline fixtures + **Tier B LLM-judged actionable-
+  improvement benchmark** (12 cases, GPT-5.5 judge, Opus baseline). The standalone counterpart to Feature 11.
+
+**🟡 Partial**
+- **Feature 1** — HF Papers enrichment shipped; remaining: the `w_community` ranking component + `pwc-archive`
+  offline fallback.
+- **Feature 4** — BM25+RRF fusion shipped; remaining: the **`sqlite-vec` embedding cache** and a local
+  **`rr search`** command over the whole stored corpus.
+- **Feature 11** — the standalone `evals/` harness exists; the **in-CLI `rr eval`** over a user's own
+  ratings/stars is not built.
+- **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
+
+**⬜ Not started**
+- Features 2, 3, 5, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20.
 
 ---
 
@@ -146,6 +184,11 @@ The dominant open-source paper-alert pattern is a fork-and-configure GitHub Acti
 **Sources:** [zotero-arxiv-daily](https://github.com/TideDra/zotero-arxiv-daily) · [gpt_paper_assistant](https://github.com/tatsu-lab/gpt_paper_assistant) · [schedule trigger docs](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
 
 ### 4. Hybrid retrieval core: BM25 + RRF fusion with a sqlite-vec embedding cache
+
+> **🟡 Core shipped (PR #37):** dependency-free BM25 + Reciprocal Rank Fusion in the production ranker
+> (`ranking.hybrid`, `reporadar.retrieval`), persisted via store v8 `rrf_score`; validated on the Tier B
+> benchmark (lifted Top-10 nDCG on every case). **Remaining:** the `sqlite-vec` embedding cache (one-time
+> vectors instead of per-run recompute) and the local **`rr search`** command over the whole corpus.
 
 **Verification: confirmed** (all libraries alive, MIT/Apache, Windows wheels checked).
 
