@@ -39,7 +39,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 1 | 🟡 | Hugging Face Papers enrichment | Certainly achievable | Repairs the dead PwC integration, adds live code/model/dataset links + community-buzz signal |
 | 2 | ✅ | RepoRadar MCP server | Certainly achievable | Puts repo-aware paper search inside Claude Code, Cursor, VS Code — the biggest 2026 distribution channel |
 | 3 | ✅ | GitHub Action + Pages digests | Certainly achievable | Turns a single-dev CLI into team-visible infrastructure with zero hosting |
-| 4 | 🟡 | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
+| 4 | ✅ | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
 | 5 | ⬜ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
 | 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
 | 7 | ⬜ | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
@@ -72,8 +72,11 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 - **Feature 6 — repo-aware LLM triage & reranking**: `triage.py` (0–3 actionability), shared `llm_client.py`,
   `TriageConfig`, store v7 `paper_llm_scores`, digest gating (abstains unless genuinely applicable), and
   **listwise rerank** by `llm_score`. The benchmark validated `min_actionable=2` as the default.
-- **Feature 4 (core)** — **hybrid retrieval BM25 + RRF** in the production ranker (PR #37, `ranking.hybrid`):
-  fuses the heuristic order with a lexical BM25 order via Reciprocal Rank Fusion; store v8 `rrf_score`.
+- **Feature 4 — hybrid retrieval + local corpus search** (PRs #37, #43, + sqlite-vec cache): BM25+RRF fusion
+  in the ranker (`ranking.hybrid`, store v8 `rrf_score`); **`rr search`** free-text BM25 over the whole corpus
+  + a `search_papers` MCP tool; a **persistent per-paper embedding cache** (store v9, compute-once instead of
+  per-run) that also powers **`rr search --semantic/--hybrid`**, KNN-accelerated by the optional `sqlite-vec`
+  extra (numpy fallback).
 - **Foundational / seed-corpus discovery** (`rr update --foundational`, PR #36) — the eval-validated all-time,
   relevance-first sweep that surfaces seminal work the recent window misses. (Realizes the "seed corpus"
   idea from Finding #2; closes most of the baseline's remaining benchmark edge.)
@@ -89,8 +92,6 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 **🟡 Partial**
 - **Feature 1** — HF Papers enrichment shipped; remaining: the `w_community` ranking component + `pwc-archive`
   offline fallback.
-- **Feature 4** — BM25+RRF fusion shipped; remaining: the **`sqlite-vec` embedding cache** and a local
-  **`rr search`** command over the whole stored corpus.
 - **Feature 11** — the standalone `evals/` harness exists; the **in-CLI `rr eval`** over a user's own
   ratings/stars is not built.
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
@@ -195,10 +196,11 @@ The dominant open-source paper-alert pattern is a fork-and-configure GitHub Acti
 
 ### 4. Hybrid retrieval core: BM25 + RRF fusion with a sqlite-vec embedding cache
 
-> **🟡 Core shipped (PR #37):** dependency-free BM25 + Reciprocal Rank Fusion in the production ranker
-> (`ranking.hybrid`, `reporadar.retrieval`), persisted via store v8 `rrf_score`; validated on the Tier B
-> benchmark (lifted Top-10 nDCG on every case). **Remaining:** the `sqlite-vec` embedding cache (one-time
-> vectors instead of per-run recompute) and the local **`rr search`** command over the whole corpus.
+> **✅ Shipped.** BM25 + Reciprocal Rank Fusion in the production ranker (PR #37, `ranking.hybrid`, store v8
+> `rrf_score`); the local **`rr search`** command + `search_papers` MCP tool (PR #43); and a **persistent
+> per-paper embedding cache** (store v9 `paper_embeddings`, `reporadar.embedding_cache`) that computes each
+> vector once instead of per run and powers **`rr search --semantic/--hybrid`** — KNN-accelerated by the
+> optional `sqlite-vec` extra (`reporadar.vec_index`), with an identical numpy fallback.
 
 **Verification: confirmed** (all libraries alive, MIT/Apache, Windows wheels checked).
 

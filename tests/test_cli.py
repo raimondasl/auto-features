@@ -150,6 +150,16 @@ class TestSearchCommand:
         )
         assert result.exit_code == 2  # click IntRange rejects 0 as a usage error
 
+    def test_semantic_without_embeddings_errors(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(tmp_path)
+        with patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", False):
+            result = CliRunner().invoke(
+                cli, ["search", "x", "--config", str(repo / ".reporadar.yml"), "--semantic"]
+            )
+        assert result.exit_code == 1
+        assert "embeddings extra" in result.output
+
 
 class TestParseSince:
     def test_valid_days(self) -> None:

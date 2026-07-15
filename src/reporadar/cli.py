@@ -158,8 +158,19 @@ def profile(config_path: str | None, verbose: bool) -> None:
     help="Seed-corpus mode: fetch all-time, relevance-first (no recency window), so seminal "
     "foundational papers surface. Use for a one-time deep sweep; the default is the recent digest.",
 )
+@click.option(
+    "--rebuild-embeddings",
+    is_flag=True,
+    help="Clear and recompute the cached paper embeddings for this run's model.",
+)
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
-def update(config_path: str | None, explain: bool, foundational: bool, verbose: bool) -> None:
+def update(
+    config_path: str | None,
+    explain: bool,
+    foundational: bool,
+    rebuild_embeddings: bool,
+    verbose: bool,
+) -> None:
     """Fetch new papers from arXiv and store them.
 
     Profiles the repo, builds queries, fetches papers, and stores
@@ -277,6 +288,24 @@ def update(config_path: str | None, explain: bool, foundational: bool, verbose: 
             except ImportError:
                 info("  Embedding similarity not available (install sentence-transformers).")
 
+        # 5b. Per-paper embeddings, cached across runs (compute once, not per run).
+        paper_embeddings = None
+        if repo_embedding is not None:
+            try:
+                from reporadar.embedding_cache import default_model, embed_papers_cached
+
+                if rebuild_embeddings:
+                    cleared = store.clear_embeddings(default_model())
+                    info(f"  Rebuilding embedding cache ({cleared} cleared).")
+                before = store.embedding_count(default_model())
+                paper_embeddings = embed_papers_cached(store, papers)
+                newly = store.embedding_count(default_model()) - before
+                info(f"  Embedding cache: {newly} encoded, {len(paper_embeddings) - newly} reused.")
+            except Exception as exc:
+                if verbose:
+                    info(f"  Embedding cache skipped: {exc}")
+                paper_embeddings = None
+
         # 6. Citation counts (optional)
         citation_scores = None
         if cfg.ranking.w_citations > 0:
@@ -342,6 +371,7 @@ def update(config_path: str | None, explain: bool, foundational: bool, verbose: 
             cfg.arxiv.lookback_days,
             repo_embedding=repo_embedding,
             citation_scores=citation_scores,
+            paper_embeddings=paper_embeddings,
         )
         # 8b. Hybrid retrieval (roadmap #4): fuse the heuristic order with a BM25
         #     lexical order via RRF, so a paper buried on vocabulary mismatch can
@@ -673,6 +703,16 @@ def archive(
     help="Only search papers published in the last N days (e.g. 7d).",
 )
 @click.option(
+    "--semantic",
+    is_flag=True,
+    help="Rank by embedding similarity instead of BM25 (needs the 'embeddings' extra).",
+)
+@click.option(
+    "--hybrid",
+    is_flag=True,
+    help="Fuse semantic + BM25 rankings via RRF (implies --semantic).",
+)
+@click.option(
     "--format",
     "fmt",
     default="text",
@@ -685,13 +725,16 @@ def search(
     config_path: str | None,
     limit: int,
     since: str | None,
+    semantic: bool,
+    hybrid: bool,
     fmt: str,
     verbose: bool,
 ) -> None:
-    """Search every stored paper by free-text QUERY (local BM25 over the corpus).
+    """Search every stored paper by free-text QUERY (over the whole local corpus).
 
-    The store accumulates every paper `rr update` has ever fetched; this searches
-    that whole corpus offline — no network, no embeddings.
+    The store accumulates every paper `rr update` has ever fetched. Default search
+    is offline BM25; `--semantic` ranks by embedding similarity and `--hybrid`
+    fuses both (both need the `embeddings` extra and encode uncached papers once).
     """
     if verbose:
         setup_verbose_logging()
@@ -704,14 +747,31 @@ def search(
         error("No database found. Run `rr update` first.")
         raise SystemExit(1)
 
+    use_semantic = semantic or hybrid
+    if use_semantic:
+        from reporadar.embeddings import EMBEDDINGS_AVAILABLE
+
+        if not EMBEDDINGS_AVAILABLE:
+            error("Semantic search needs the embeddings extra: pip install 'reporadar[embeddings]'")
+            raise SystemExit(1)
+
     from reporadar.digest import filter_since
-    from reporadar.search import search_corpus
 
     since_days = _parse_since(since) if since else None
 
     with _open_store(db_path) as store:
         papers = filter_since(store.get_all_papers(), since_days)
-        results = search_corpus(papers, query, limit=limit)
+        if use_semantic:
+            from reporadar.embedding_cache import default_model
+            from reporadar.semantic import semantic_search
+
+            if store.embedding_count(default_model()) < len(papers):
+                info("Encoding uncached papers (first run may be slow)...")
+            results = semantic_search(store, query, limit=limit, hybrid=hybrid, papers=papers)
+        else:
+            from reporadar.search import search_corpus
+
+            results = search_corpus(papers, query, limit=limit)
 
     if fmt == "json":
         import json

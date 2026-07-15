@@ -13,7 +13,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Markdown digest** — three-tier output (Top Picks / Maybe Relevant / Muted) with score breakdowns and arXiv links
 - **HTML output** — optional `--format html` renders a real digest page (paper cards, score breakdowns, badges), not raw Markdown
 - **GitHub Action + Pages** — a first-party action publishes a dated, ranked digest to GitHub Pages on a schedule; `rr archive` builds the browsable site
-- **Local corpus search** — `rr search "<query>"` runs offline BM25 over every paper ever fetched (also exposed as an MCP tool)
+- **Local corpus search** — `rr search "<query>"` over every paper ever fetched: offline BM25, or `--semantic`/`--hybrid` embedding search backed by a cached, optionally sqlite-vec-accelerated index (also an MCP tool)
 - **Action suggestions** — template-based ideas grounded in paper abstracts (benchmarks, baselines, datasets, modules)
 - **No API keys required** — uses only free, public APIs
 
@@ -89,15 +89,20 @@ Publishes the latest run's digest as a rendered HTML page into a dated archive
 listing every edition newest-first. Re-running on the same date replaces that
 edition. This is the content GitHub Pages serves for the [GitHub Action](#github-action-scheduled-digests--github-pages).
 
-### `rr search QUERY [--config PATH] [-n LIMIT] [--format text|json]`
+### `rr search QUERY [--config PATH] [-n LIMIT] [--since 7d] [--semantic] [--hybrid] [--format text|json]`
 
 Free-text search across **every paper RepoRadar has ever fetched** — the store
-accumulates into a personal corpus, and this queries all of it offline with Okapi
-BM25 (no network, no embeddings). Ranked best-first with a relevance score.
+accumulates into a personal corpus, and this queries all of it offline. The
+default is Okapi BM25 (no network, no embeddings). `--semantic` ranks by embedding
+similarity and `--hybrid` fuses both via Reciprocal Rank Fusion; both need the
+`embeddings` extra and encode + **cache** each paper's vector once (reused across
+runs and by `rr update`). Install the optional `vectors` extra to back semantic
+KNN with a sqlite-vec index on large corpora — it works without it (numpy fallback).
 
 ```bash
 rr search "low-rank adaptation quantization"
-rr search "retrieval augmented generation" -n 5 --format json
+rr search "efficient attention" --semantic
+rr search "retrieval augmented generation" --hybrid -n 5 --format json
 ```
 
 ### `rr mcp [--config PATH]`
