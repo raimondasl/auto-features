@@ -204,6 +204,25 @@ def _build_digest_context(
     except Exception:
         pass
 
+    # "Extends work you starred" (Feature 8): papers in this run that cite a
+    # starred/highly-rated paper (re-checked against the CURRENT seed set).
+    extends_starred: list[dict[str, Any]] = []
+    try:
+        from reporadar.citation_graph import build_seed_set
+
+        seeds = build_seed_set(store)
+        if seeds:
+            edges = store.get_citations_for([p["arxiv_id"] for p in scored])
+            for paper in scored:  # scored is sorted by score, best-first
+                cites = sorted(c for c in edges.get(paper["arxiv_id"], []) if c in seeds)
+                if cites:
+                    paper["cites_starred"] = cites
+                    extends_starred.append(
+                        {"title": paper["title"], "url": paper["url"], "cites": cites}
+                    )
+    except Exception:
+        pass
+
     return {
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "run_id": run_id,
@@ -220,6 +239,7 @@ def _build_digest_context(
         "has_enrichments": has_enrichments,
         "trends": trends,
         "recommended": recommended,
+        "extends_starred": extends_starred,
     }
 
 

@@ -8,7 +8,52 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar.citations import fetch_citation_counts, normalize_citations
+from reporadar.citations import fetch_citation_counts, fetch_references, normalize_citations
+
+
+class TestFetchReferences:
+    @patch("reporadar.citations.urllib.request.urlopen")
+    def test_extracts_arxiv_references(self, mock_urlopen: MagicMock) -> None:
+        response_data = [
+            {
+                "references": [
+                    {"externalIds": {"ArXiv": "2401.00099", "DOI": "d"}},
+                    {"externalIds": {"ArXiv": "2401.00042v2"}},  # version-stripped
+                    {"externalIds": {"DOI": "no-arxiv"}},  # skipped
+                    {"externalIds": None},  # skipped
+                    None,  # skipped
+                ]
+            },
+            None,  # this paper not found → absent from result
+        ]
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(response_data).encode()
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
+
+        out = fetch_references(["2402.11111v1", "2402.22222v1"])
+
+        assert out == {"2402.11111v1": ["2401.00099", "2401.00042"]}
+        assert "references.externalIds" in mock_urlopen.call_args[0][0].full_url
+
+    def test_empty_input(self) -> None:
+        assert fetch_references([]) == {}
+
+    @patch("reporadar.citations.urllib.request.urlopen")
+    def test_api_failure_returns_empty(self, mock_urlopen: MagicMock) -> None:
+        import urllib.error
+
+        mock_urlopen.side_effect = urllib.error.URLError("network error")
+        assert fetch_references(["2401.00001v1"]) == {}
+
+    @patch("reporadar.citations._s2_batch_post")
+    def test_chunks_large_id_sets(self, mock_post: MagicMock) -> None:
+        mock_post.return_value = []  # empty per-chunk result; we assert the chunking
+        ids = [f"2401.{i:05d}v1" for i in range(1100)]  # > 2 * 500
+        fetch_references(ids)
+        assert mock_post.call_count == 3  # 500 + 500 + 100
+        assert all(len(call.args[0]) <= 500 for call in mock_post.call_args_list)
 
 
 class TestFetchCitationCounts:

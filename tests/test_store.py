@@ -93,6 +93,22 @@ class TestEmbeddingCache:
             assert store.embedding_count() == 0
 
 
+class TestCitationEdges:
+    def test_save_and_get(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.save_citations([("A", "s1"), ("A", "s2"), ("B", "s1")])
+            got = store.get_citations_for(["A", "B", "C"])
+            assert sorted(got["A"]) == ["s1", "s2"]
+            assert got["B"] == ["s1"]
+            assert "C" not in got
+
+    def test_empty(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.save_citations([])  # no-op
+            assert store.get_citations_for([]) == {}
+            assert store.get_citations_for(["X"]) == {}
+
+
 class TestPaperStoreInit:
     def test_creates_db_file(self, tmp_path: Path) -> None:
         db_path = tmp_path / "sub" / "papers.db"

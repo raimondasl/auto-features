@@ -206,6 +206,42 @@ class TestCachedEmbeddingsEquivalence:
         assert u["2401.1v1"] is not None and u["2401.1v1"] > 0
 
 
+class TestCitationProximity:
+    def _low_scoring_paper(self) -> dict:
+        # No keyword/category overlap and old → a low base score, so a proximity
+        # boost is unambiguously visible.
+        return _make_paper(
+            title="An unrelated topic entirely",
+            abstract="nothing here matches the repo profile at all",
+            categories=["cs.CV"],
+            published=datetime(2020, 1, 1, tzinfo=UTC).isoformat(),
+        )
+
+    def test_boost_raises_score(self) -> None:
+        paper = self._low_scoring_paper()
+        profile = _make_profile()
+        cfg = RankingConfig(w_citation_proximity=1.0)
+        base = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"])
+        boosted = score_paper(
+            paper, profile, cfg, QueriesConfig(), ["cs.CL"], citation_proximity_score=1.0
+        )
+        assert boosted["score_total"] > base["score_total"]
+
+    def test_no_boost_when_weight_zero(self) -> None:
+        paper = self._low_scoring_paper()
+        profile = _make_profile()
+        with_score = score_paper(
+            paper,
+            profile,
+            RankingConfig(w_citation_proximity=0.0),
+            QueriesConfig(),
+            ["cs.CL"],
+            citation_proximity_score=1.0,
+        )
+        without = score_paper(paper, profile, RankingConfig(), QueriesConfig(), ["cs.CL"])
+        assert with_score["score_total"] == without["score_total"]
+
+
 class TestScorePaper:
     def test_returns_expected_keys(self) -> None:
         paper = _make_paper()

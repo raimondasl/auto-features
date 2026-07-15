@@ -364,6 +364,35 @@ class TestGenerateDigestHtml:
         assert "https://arxiv.org/abs/2401.88888" in html
 
 
+class TestExtendsStarred:
+    def test_section_and_badge_when_paper_cites_starred(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2402.00001v1", title="New Extending Paper"))
+            store.upsert_paper(_make_paper("2401.00099v1", title="Starred Seed"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(run_id, [_make_score("2402.00001v1", 0.9)])
+            store.star_paper("2401.00099v1")
+            store.save_citations([("2402.00001v1", "2401.00099")])
+
+            md = generate_digest(store, run_id)
+            html = generate_digest_html(store, run_id)
+
+        assert "Extends work you starred" in md
+        assert "[EXTENDS STARRED]" in md
+        assert "New Extending Paper" in md
+        assert "Extends work you starred" in html and "Extends starred" in html
+
+    def test_no_section_when_cited_paper_not_starred(self, tmp_path: Path) -> None:
+        # An edge exists but the cited paper is not (any longer) a seed → no section.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2402.00001v1"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(run_id, [_make_score("2402.00001v1", 0.9)])
+            store.save_citations([("2402.00001v1", "2401.00099")])
+            md = generate_digest(store, run_id)
+        assert "Extends work you starred" not in md
+
+
 class TestDigestRunMetadata:
     def test_header_uses_requested_run_not_latest(self, tmp_path: Path) -> None:
         # A digest for an older run must show THAT run's stats, not the newest run's.
