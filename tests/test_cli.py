@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
@@ -101,6 +102,53 @@ def _seed_db(tmp_path: Path) -> None:
                 },
             ],
         )
+
+
+class TestSearchCommand:
+    def test_text_output_finds_matching_paper(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(tmp_path)
+        result = CliRunner().invoke(
+            cli,
+            ["search", "retrieval augmented generation", "--config", str(repo / ".reporadar.yml")],
+        )
+        assert result.exit_code == 0
+        assert "Test Paper on RAG" in result.output
+        assert "2401.00001v1" in result.output
+
+    def test_json_output(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(tmp_path)
+        result = CliRunner().invoke(
+            cli,
+            ["search", "retrieval", "--config", str(repo / ".reporadar.yml"), "--format", "json"],
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert any(p["arxiv_id"] == "2401.00001v1" for p in data)
+        assert all({"arxiv_id", "title", "search_score"} <= set(p) for p in data)
+
+    def test_no_match_message(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(tmp_path)
+        result = CliRunner().invoke(
+            cli, ["search", "zzzznomatchxyz", "--config", str(repo / ".reporadar.yml")]
+        )
+        assert result.exit_code == 0
+        assert "No matches" in result.output
+
+    def test_missing_db_errors(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)  # no _seed_db → no papers.db
+        result = CliRunner().invoke(cli, ["search", "x", "--config", str(repo / ".reporadar.yml")])
+        assert result.exit_code == 1
+
+    def test_rejects_non_positive_limit(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(tmp_path)
+        result = CliRunner().invoke(
+            cli, ["search", "retrieval", "--config", str(repo / ".reporadar.yml"), "-n", "0"]
+        )
+        assert result.exit_code == 2  # click IntRange rejects 0 as a usage error
 
 
 class TestParseSince:
