@@ -13,6 +13,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Markdown digest** — three-tier output (Top Picks / Maybe Relevant / Muted) with score breakdowns and arXiv links
 - **HTML output** — optional `--format html` renders a real digest page (paper cards, score breakdowns, badges), not raw Markdown
 - **GitHub Action + Pages** — a first-party action publishes a dated, ranked digest to GitHub Pages on a schedule; `rr archive` builds the browsable site
+- **Local corpus search** — `rr search "<query>"` runs offline BM25 over every paper ever fetched (also exposed as an MCP tool)
 - **Action suggestions** — template-based ideas grounded in paper abstracts (benchmarks, baselines, datasets, modules)
 - **No API keys required** — uses only free, public APIs
 
@@ -88,6 +89,17 @@ Publishes the latest run's digest as a rendered HTML page into a dated archive
 listing every edition newest-first. Re-running on the same date replaces that
 edition. This is the content GitHub Pages serves for the [GitHub Action](#github-action-scheduled-digests--github-pages).
 
+### `rr search QUERY [--config PATH] [-n LIMIT] [--format text|json]`
+
+Free-text search across **every paper RepoRadar has ever fetched** — the store
+accumulates into a personal corpus, and this queries all of it offline with Okapi
+BM25 (no network, no embeddings). Ranked best-first with a relevance score.
+
+```bash
+rr search "low-rank adaptation quantization"
+rr search "retrieval augmented generation" -n 5 --format json
+```
+
 ### `rr mcp [--config PATH]`
 
 Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cursor, VS Code, Windsurf — can query your repo-aware paper store conversationally. Unlike generic arXiv MCP servers, its tools are grounded in *this repository's* profile and ranking. Tools exposed:
@@ -96,6 +108,7 @@ Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cu
 - `get_ranked_papers(limit)` — top papers from the latest `rr update`, best-first
 - `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
+- `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
 
 Requires the optional extra: `uv pip install -e ".[mcp]"`. Register it with your agent, e.g. Claude Code:
 

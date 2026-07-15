@@ -652,6 +652,102 @@ def archive(
 
 
 @cli.command()
+@click.argument("query")
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
+)
+@click.option(
+    "-n",
+    "--limit",
+    default=20,
+    type=click.IntRange(min=1),
+    help="Max results to show (default: 20).",
+)
+@click.option(
+    "--since",
+    default=None,
+    help="Only search papers published in the last N days (e.g. 7d).",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="text",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    help="Output format: text (default) or json.",
+)
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
+def search(
+    query: str,
+    config_path: str | None,
+    limit: int,
+    since: str | None,
+    fmt: str,
+    verbose: bool,
+) -> None:
+    """Search every stored paper by free-text QUERY (local BM25 over the corpus).
+
+    The store accumulates every paper `rr update` has ever fetched; this searches
+    that whole corpus offline — no network, no embeddings.
+    """
+    if verbose:
+        setup_verbose_logging()
+
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    from reporadar.digest import filter_since
+    from reporadar.search import search_corpus
+
+    since_days = _parse_since(since) if since else None
+
+    with _open_store(db_path) as store:
+        papers = filter_since(store.get_all_papers(), since_days)
+        results = search_corpus(papers, query, limit=limit)
+
+    if fmt == "json":
+        import json
+
+        payload = [
+            {
+                "arxiv_id": p["arxiv_id"],
+                "title": p["title"],
+                "search_score": p["search_score"],
+                "url": p.get("url"),
+                "published": (p.get("published") or "")[:10],
+                "authors": p.get("authors", []),
+                "categories": p.get("categories", []),
+            }
+            for p in results
+        ]
+        click.echo(json.dumps(payload, indent=2, default=str))
+        return
+
+    if not results:
+        warn(f"No matches for {query!r} across {len(papers)} stored papers.")
+        return
+
+    info(f"{len(results)} result(s) for {query!r} (of {len(papers)} stored papers):\n")
+    for i, p in enumerate(results, 1):
+        published = (p.get("published") or "")[:10]
+        click.echo(f"{i:>2}. [{p['search_score']:.3f}] {p['title']}")
+        click.echo(f"    {p['arxiv_id']}  {published}  {p.get('url', '')}")
+        abstract = (p.get("abstract") or "").strip().replace("\n", " ")
+        if abstract:
+            snippet = abstract[:160] + ("..." if len(abstract) > 160 else "")
+            click.echo(f"    {snippet}")
+        click.echo("")
+
+
+@cli.command()
 @click.option(
     "--config",
     "config_path",

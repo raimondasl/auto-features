@@ -18,6 +18,7 @@ from typing import Any
 from reporadar.config import ProfilerConfig, RankingConfig
 from reporadar.profiler import profile_repo
 from reporadar.ranker import format_score_explanation
+from reporadar.search import search_corpus
 from reporadar.store import PaperStore
 
 # ── Pure helpers (no MCP SDK) — the tool bodies, unit-testable directly ──────
@@ -87,6 +88,26 @@ def rate_paper_action(store: PaperStore, arxiv_id: str, rating: int) -> dict[str
     return {"ok": True, "arxiv_id": arxiv_id, "rating": rating}
 
 
+def search_corpus_payload(store: PaperStore, query: str, limit: int = 10) -> dict[str, Any]:
+    """Free-text BM25 search over every paper ever fetched (not just the latest run)."""
+    results = search_corpus(store.get_all_papers(), query, limit=max(0, limit))
+    return {
+        "query": query,
+        "count": len(results),
+        "papers": [
+            {
+                "arxiv_id": p["arxiv_id"],
+                "title": p.get("title"),
+                "url": p.get("url"),
+                "published": (p.get("published") or "")[:10],
+                "search_score": p.get("search_score"),
+                "abstract": (p.get("abstract") or "")[:500],
+            }
+            for p in results
+        ],
+    }
+
+
 # ── MCP server (needs the optional `mcp` SDK) ───────────────────────────────
 
 
@@ -129,6 +150,13 @@ def build_server(
         ranking weights over time."""
         with PaperStore(db_path) as store:
             return rate_paper_action(store, arxiv_id, rating)
+
+    @server.tool()
+    def search_papers(query: str, limit: int = 10) -> dict[str, Any]:
+        """Free-text search across EVERY paper RepoRadar has fetched for this repo
+        (the whole local corpus, not just the latest run), ranked by BM25."""
+        with PaperStore(db_path) as store:
+            return search_corpus_payload(store, query, limit)
 
     return server
 

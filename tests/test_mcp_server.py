@@ -14,6 +14,7 @@ from reporadar.mcp_server import (
     profile_payload,
     ranked_papers_payload,
     rate_paper_action,
+    search_corpus_payload,
 )
 from reporadar.store import PaperStore
 
@@ -100,6 +101,25 @@ class TestRatePaper:
             store.upsert_paper(_paper("2401.00001v1"))
             assert "error" in rate_paper_action(store, "2401.00001v1", 9)
             assert not store.get_all_ratings()  # nothing persisted
+
+
+class TestSearchPapers:
+    def test_searches_the_whole_corpus(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)  # two papers, both abstracts contain "concrete method"
+            out = search_corpus_payload(store, "concrete method", limit=5)
+
+        assert out["query"] == "concrete method"
+        assert out["count"] >= 1
+        for p in out["papers"]:
+            assert {"arxiv_id", "title", "search_score"} <= set(p)
+            assert p["search_score"] is not None
+
+    def test_no_match_is_empty(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            out = search_corpus_payload(store, "zzzznomatch", limit=5)
+        assert out["count"] == 0 and out["papers"] == []
 
 
 class TestProfilePayload:
