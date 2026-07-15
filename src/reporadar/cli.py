@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import re
 import webbrowser
 from collections.abc import Iterator
 from dataclasses import replace
@@ -31,6 +32,15 @@ from reporadar.store import PaperStore, StoreError
 # recency weight dropped — surfaces seminal work instead of only the recent fetch
 # window (the baseline's edge on the Tier B benchmark). ~100 years ≈ no cutoff.
 _FOUNDATIONAL_LOOKBACK = 36500
+
+# Modern arXiv id with a version suffix, for version-insensitive cross-source dedup.
+_ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
+
+
+def _dedup_id(arxiv_id: str) -> str:
+    """Version-strip a modern arXiv id for cross-source dedup; leave others as-is."""
+    match = _ARXIV_VER_RE.match(arxiv_id)
+    return match.group(1) if match else arxiv_id
 
 
 def _apply_foundational(
@@ -256,6 +266,38 @@ def update(
             info(f"  {len(new_from_oa)} additional papers from OpenAlex")
         except Exception as exc:
             info(f"  OpenAlex collection failed: {exc}")
+
+    # 3d. bioRxiv/medRxiv source (biology repos)
+    if "biorxiv" in cfg.sources:
+        try:
+            from reporadar.sources.biorxiv import collect_papers as bx_collect
+
+            info("Fetching papers from bioRxiv...")
+            bx_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            bx_papers = bx_collect(bx_queries, lookback_days=cfg.arxiv.lookback_days)
+            existing_ids = {p["arxiv_id"] for p in papers}
+            new_from_bx = [p for p in bx_papers if p["arxiv_id"] not in existing_ids]
+            papers.extend(new_from_bx)
+            info(f"  {len(new_from_bx)} additional papers from bioRxiv")
+        except Exception as exc:
+            info(f"  bioRxiv collection failed: {exc}")
+
+    # 3e. DBLP source (systems / PL / DB / theory repos)
+    if "dblp" in cfg.sources:
+        try:
+            from reporadar.sources.dblp import collect_papers as dblp_collect
+
+            info("Fetching papers from DBLP...")
+            dblp_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            dblp_papers = dblp_collect(dblp_queries, lookback_days=cfg.arxiv.lookback_days)
+            # Version-insensitive dedup so a DBLP CoRR paper collapses onto its
+            # arXiv copy (which carries a version suffix).
+            existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
+            new_from_dblp = [p for p in dblp_papers if _dedup_id(p["arxiv_id"]) not in existing_ids]
+            papers.extend(new_from_dblp)
+            info(f"  {len(new_from_dblp)} additional papers from DBLP")
+        except Exception as exc:
+            info(f"  DBLP collection failed: {exc}")
 
     if not papers:
         warn("No new papers found.")

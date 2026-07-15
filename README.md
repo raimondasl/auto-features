@@ -8,6 +8,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 
 - **Repo profiling** — extracts keywords via TF-IDF from README, docs, and dependency manifests (`requirements.txt`, `pyproject.toml`, `package.json`)
 - **arXiv collection** — queries the arXiv API with auto-generated and user-defined seed queries
+- **Multi-source** — opt into Semantic Scholar, OpenAlex, **bioRxiv** (biology), and **DBLP** (systems/PL/DB) alongside arXiv via `sources:` — serves repos whose literature isn't on arXiv
 - **SQLite storage** — deduplicates papers across runs, tracks collection history
 - **Heuristic ranking** — scores papers by keyword overlap, category match, and recency with configurable weights
 - **Markdown digest** — three-tier output (Top Picks / Maybe Relevant / Muted) with score breakdowns and arXiv links
