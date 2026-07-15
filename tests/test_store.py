@@ -27,6 +27,24 @@ def _make_paper(**overrides) -> dict:
     return base
 
 
+class TestGetRun:
+    def test_returns_matching_run_and_none_for_missing(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            r1 = store.record_run(["all:alpha"], papers_new=3, papers_seen=1)
+            r2 = store.record_run(["all:beta"], papers_new=9, papers_seen=2)
+
+            got1 = store.get_run(r1)
+            assert got1 is not None
+            assert got1["queries_used"] == ["all:alpha"]
+            assert got1["papers_new"] == 3
+
+            got2 = store.get_run(r2)
+            assert got2 is not None
+            assert got2["queries_used"] == ["all:beta"]
+
+            assert store.get_run(9999) is None
+
+
 class TestPaperStoreInit:
     def test_creates_db_file(self, tmp_path: Path) -> None:
         db_path = tmp_path / "sub" / "papers.db"

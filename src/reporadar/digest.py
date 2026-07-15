@@ -25,13 +25,47 @@ MAYBE_THRESHOLD = 0.2
 
 
 def _load_template(template_name: str = "digest.md.j2") -> Any:
-    """Load a Jinja2 template from the templates directory."""
+    """Load a Jinja2 template from the templates directory (no autoescaping).
+
+    Used for the text formats (Markdown, RSS) and the legacy markdown-in-<pre>
+    HTML wrapper, where autoescaping would corrupt the intended output.
+    """
     env = Environment(
         loader=PackageLoader("reporadar", "templates"),
         keep_trailing_newline=True,
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    return env.get_template(template_name)
+
+
+def _safe_url(url: Any) -> str:
+    """Return *url* only if it is an ``http(s)`` link, else ``#``.
+
+    Paper URLs come from external source APIs; autoescaping neutralizes markup
+    but not a ``javascript:``/``data:`` scheme (no ``<>&"`` to escape). Since the
+    digest is published to GitHub Pages, allow-list the scheme so a hostile URL
+    can't become an executable link.
+    """
+    s = str(url or "")
+    return s if s.startswith(("http://", "https://")) else "#"
+
+
+def _load_html_template(template_name: str) -> Any:
+    """Load an HTML template with autoescaping on.
+
+    The rendered-HTML digest and the Pages archive index interpolate live paper
+    text (titles, abstracts, author names) into markup, so autoescaping is
+    required to stay correct and safe on ``<``/``&`` in that content.
+    """
+    env = Environment(
+        loader=PackageLoader("reporadar", "templates"),
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=True,
+    )
+    env.filters["safe_url"] = _safe_url
     return env.get_template(template_name)
 
 
@@ -109,7 +143,7 @@ def categorize_papers(
     return top_picks, maybe_relevant, muted
 
 
-def generate_digest(
+def _build_digest_context(
     store: PaperStore,
     run_id: int,
     top_n: int = 15,
@@ -119,17 +153,12 @@ def generate_digest(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
-) -> str:
-    """Generate digest Markdown content for a given run.
-
-    If *diff* is True, marks each paper as new or carried over from the
-    previous run by setting ``is_new`` on each paper dict. If *since_days*
-    is given, only papers published within that window are included.
-
-    Returns the rendered Markdown string.
-    """
+) -> dict[str, Any]:
+    """Build the shared template context for a run (Markdown and HTML render it)."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
-    run = store.get_last_run()
+    # Resolve the run being rendered (not necessarily the latest — `--run-id N`),
+    # so the header stats match the papers below them.
+    run = store.get_run(run_id)
 
     # Diff mode: determine which papers are new vs. carried over
     diff_mode = False
@@ -175,24 +204,87 @@ def generate_digest(
     except Exception:
         pass
 
-    template = _load_template()
-    rendered: str = template.render(
-        generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
-        run_id=run_id,
-        papers_new=run["papers_new"] if run else 0,
-        papers_seen=run["papers_seen"] if run else 0,
-        total_scored=len(scored),
-        queries_used=run["queries_used"] if run else [],
-        top_picks=top_picks,
-        maybe_relevant=maybe_relevant,
-        muted=muted,
-        diff_mode=diff_mode,
-        has_embeddings=has_embeddings,
-        has_citations=has_citations,
-        has_enrichments=has_enrichments,
-        trends=trends,
-        recommended=recommended,
+    return {
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+        "run_id": run_id,
+        "papers_new": run["papers_new"] if run else 0,
+        "papers_seen": run["papers_seen"] if run else 0,
+        "total_scored": len(scored),
+        "queries_used": run["queries_used"] if run else [],
+        "top_picks": top_picks,
+        "maybe_relevant": maybe_relevant,
+        "muted": muted,
+        "diff_mode": diff_mode,
+        "has_embeddings": has_embeddings,
+        "has_citations": has_citations,
+        "has_enrichments": has_enrichments,
+        "trends": trends,
+        "recommended": recommended,
+    }
+
+
+def generate_digest(
+    store: PaperStore,
+    run_id: int,
+    top_n: int = 15,
+    diff: bool = False,
+    suggestions_config: Any | None = None,
+    profile: Any | None = None,
+    since_days: int | None = None,
+    triage_threshold: int | None = None,
+    rerank: bool = False,
+) -> str:
+    """Generate digest Markdown content for a given run.
+
+    If *diff* is True, marks each paper as new or carried over from the
+    previous run by setting ``is_new`` on each paper dict. If *since_days*
+    is given, only papers published within that window are included.
+
+    Returns the rendered Markdown string.
+    """
+    context = _build_digest_context(
+        store,
+        run_id,
+        top_n=top_n,
+        diff=diff,
+        suggestions_config=suggestions_config,
+        profile=profile,
+        since_days=since_days,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
     )
+    rendered: str = _load_template().render(**context)
+    return rendered
+
+
+def generate_digest_html(
+    store: PaperStore,
+    run_id: int,
+    top_n: int = 15,
+    diff: bool = False,
+    suggestions_config: Any | None = None,
+    profile: Any | None = None,
+    since_days: int | None = None,
+    triage_threshold: int | None = None,
+    rerank: bool = False,
+) -> str:
+    """Generate a fully rendered HTML digest page (not markdown-in-<pre>).
+
+    Renders the same context as :func:`generate_digest` through an autoescaped
+    HTML template, producing a browser-ready page suitable for GitHub Pages.
+    """
+    context = _build_digest_context(
+        store,
+        run_id,
+        top_n=top_n,
+        diff=diff,
+        suggestions_config=suggestions_config,
+        profile=profile,
+        since_days=since_days,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+    )
+    rendered: str = _load_html_template("digest_page.html.j2").render(**context)
     return rendered
 
 
@@ -225,7 +317,7 @@ def generate_digest_json(
     Returns a JSON string with top_picks, maybe_relevant, and muted tiers.
     """
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
-    run = store.get_last_run()
+    run = store.get_run(run_id)
 
     if diff:
         prev_id = store.get_previous_run_id(run_id)
@@ -401,7 +493,7 @@ def write_digest(
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".xml")
     elif fmt == "html":
-        content = generate_digest(
+        content = generate_digest_html(
             store,
             run_id,
             top_n=top_n,
@@ -412,7 +504,6 @@ def write_digest(
             triage_threshold=triage_threshold,
             rerank=rerank,
         )
-        content = markdown_to_html(content)
         if output_path.suffix == ".md":
             output_path = output_path.with_suffix(".html")
     else:

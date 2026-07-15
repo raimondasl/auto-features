@@ -1,0 +1,172 @@
+name: 'RepoRadar'
+description: 'Profile this repository and publish a ranked arXiv digest, with a browsable GitHub Pages archive.'
+author: 'raimondasl'
+branding:
+  icon: 'radio'
+  color: 'purple'
+
+inputs:
+  config:
+    description: 'Path to .reporadar.yml. If it is missing, a default is created (with `rr init`) at this path.'
+    required: false
+    default: '.reporadar.yml'
+  python-version:
+    description: 'Python version RepoRadar runs on.'
+    required: false
+    default: '3.12'
+  cache-path:
+    description: 'Path to cache between runs so history/ratings persist. Must equal <repo_path>/.reporadar — the default is correct when repo_path is "." (the usual case).'
+    required: false
+    default: '.reporadar'
+  cache-db:
+    description: 'Cache the paper DB across runs via actions/cache.'
+    required: false
+    default: 'true'
+  archive:
+    description: 'Publish a dated HTML digest + index into archive-dir (for GitHub Pages). If you set this false, also remove the upload-pages-artifact/deploy-pages steps from your workflow.'
+    required: false
+    default: 'true'
+  archive-dir:
+    description: 'Directory for the published digest archive.'
+    required: false
+    default: 'digests'
+  formats:
+    description: 'Comma-separated EXTRA loose digest files to also write next to the config (md, json, csv, rss). Empty (default) publishes only the HTML archive; loose files are ephemeral in CI unless you commit or upload them yourself.'
+    required: false
+    default: ''
+  notify:
+    description: 'Comma-separated notification channels to send (slack, discord, email). Configure them in .reporadar.yml (secrets via ${ENV}).'
+    required: false
+    default: ''
+  github-issues:
+    description: 'Open a GitHub Issue per new top pick. Requires GH_TOKEN in env and issues: write permission in the workflow.'
+    required: false
+    default: 'false'
+  issue-labels:
+    description: 'Comma-separated labels applied to created issues.'
+    required: false
+    default: 'reporadar'
+  issue-top:
+    description: 'How many top papers to open issues for.'
+    required: false
+    default: '5'
+  verbose:
+    description: 'Verbose logging.'
+    required: false
+    default: 'false'
+
+outputs:
+  archive-dir:
+    description: 'Directory containing the published archive and index.html (feed this to upload-pages-artifact).'
+    value: ${{ inputs.archive-dir }}
+  top-picks:
+    description: 'Number of Top Picks in the latest run.'
+    value: ${{ steps.digest.outputs.top-picks }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Restore paper DB cache
+      if: ${{ inputs.cache-db == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.cache-path }}
+        # A fresh key each run (so the DB is always re-saved), restored from the
+        # most recent prior run via the prefix. Note: caches unused for 7 days are
+        # evicted — for durable history, commit the DB dir instead (see README).
+        key: reporadar-db-${{ github.repository }}-${{ github.run_id }}
+        restore-keys: |
+          reporadar-db-${{ github.repository }}-
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install RepoRadar
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        # Install into a dedicated venv and put it on PATH for later steps, so the
+        # `rr` console script is guaranteed resolvable (setup-uv does not add its
+        # interpreter's script dir to PATH on its own).
+        uv venv "$RUNNER_TEMP/rr-venv"
+        uv pip install --python "$RUNNER_TEMP/rr-venv/bin/python" "$ACTION_PATH"
+        echo "$RUNNER_TEMP/rr-venv/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/rr-venv/bin/rr" --version
+
+    - name: Ensure config
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+      run: |
+        if [ ! -f "$CONFIG" ]; then
+          echo "No $CONFIG found — creating a default with 'rr init'."
+          rr init
+          # `rr init` always writes ./.reporadar.yml; move it to the requested path.
+          if [ "$CONFIG" != ".reporadar.yml" ]; then
+            mkdir -p "$(dirname "$CONFIG")"
+            mv .reporadar.yml "$CONFIG"
+          fi
+        fi
+
+    - name: Update (fetch + score papers)
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+        VERBOSE: ${{ inputs.verbose }}
+      run: |
+        flag=""; [ "$VERBOSE" = "true" ] && flag="-v"
+        rr update --config "$CONFIG" $flag
+
+    - name: Digest
+      id: digest
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+        FORMATS: ${{ inputs.formats }}
+      run: |
+        IFS=',' read -ra FMTS <<< "$FORMATS"
+        for fmt in "${FMTS[@]}"; do
+          fmt="$(echo "$fmt" | xargs)"
+          [ -z "$fmt" ] && continue
+          echo "Writing $fmt digest..."
+          rr digest --config "$CONFIG" --format "$fmt"
+        done
+        # Emit the Top Picks count as a step output (from a throwaway JSON digest).
+        rr digest --config "$CONFIG" --format json -o "$RUNNER_TEMP/rr-digest.json"
+        picks=$(python3 -c "import json; print(len(json.load(open(r'$RUNNER_TEMP/rr-digest.json'))['top_picks']))")
+        echo "top-picks=$picks" >> "$GITHUB_OUTPUT"
+        echo "RepoRadar: $picks top picks this run."
+
+    - name: Archive for GitHub Pages
+      if: ${{ inputs.archive == 'true' }}
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+        ARCHIVE_DIR: ${{ inputs.archive-dir }}
+      run: rr archive --config "$CONFIG" --archive-dir "$ARCHIVE_DIR"
+
+    - name: Notify
+      if: ${{ inputs.notify != '' }}
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+        CHANNELS: ${{ inputs.notify }}
+      run: |
+        IFS=',' read -ra CHS <<< "$CHANNELS"
+        for ch in "${CHS[@]}"; do
+          ch="$(echo "$ch" | xargs)"
+          [ -z "$ch" ] && continue
+          rr notify --config "$CONFIG" --channel "$ch" || echo "notify $ch failed (continuing)"
+        done
+
+    - name: Open GitHub issues
+      if: ${{ inputs.github-issues == 'true' }}
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+        ISSUE_LABELS: ${{ inputs.issue-labels }}
+        ISSUE_TOP: ${{ inputs.issue-top }}
+      run: rr gh-issues --config "$CONFIG" --labels "$ISSUE_LABELS" --top "$ISSUE_TOP"

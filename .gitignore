@@ -197,6 +197,10 @@ evals/.work/
 evals/cache/
 evals/results/
 
+# RepoRadar generated output (local runs)
+/reporadar_digest.*
+/digests/
+
 # PyPI configuration file
 .pypirc
 

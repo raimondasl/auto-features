@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepoRadar Digest</title>
+<style>
+  :root {
+    --bg: #f6f8fa; --card: #ffffff; --fg: #1f2328; --muted: #656d76;
+    --border: #d0d7de; --accent: #0969da; --accent-soft: #ddf4ff;
+    --badge-bg: #eef2f5; --badge-fg: #40484f; --good: #1a7f37;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --card: #161b22; --fg: #e6edf3; --muted: #8b949e;
+      --border: #30363d; --accent: #4493f8; --accent-soft: #12283f;
+      --badge-bg: #21262d; --badge-fg: #adbac7; --good: #3fb950;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 860px; margin: 0 auto; padding: 2rem 1rem 4rem;
+    line-height: 1.6; color: var(--fg); background: var(--bg);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header.masthead { margin-bottom: 2rem; }
+  header.masthead h1 { font-size: 1.9rem; margin: 0 0 .25rem; }
+  .meta { color: var(--muted); font-size: .95rem; }
+  .meta strong { color: var(--fg); }
+  h2.section { font-size: 1.25rem; margin: 2.2rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 1px solid var(--border); }
+  details.queries { margin: .5rem 0 0; color: var(--muted); font-size: .9rem; }
+  details.queries code { background: var(--badge-bg); padding: .1rem .35rem; border-radius: 4px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1.1rem 1.25rem; margin: .9rem 0;
+  }
+  .card h3 { margin: 0 0 .5rem; font-size: 1.12rem; line-height: 1.35; }
+  .rank { color: var(--muted); font-weight: 600; }
+  .badges { display: inline-flex; flex-wrap: wrap; gap: .3rem; vertical-align: middle; }
+  .badge {
+    display: inline-block; font-size: .68rem; font-weight: 700; letter-spacing: .02em;
+    text-transform: uppercase; padding: .12rem .4rem; border-radius: 5px;
+    background: var(--badge-bg); color: var(--badge-fg);
+  }
+  .badge.new { background: var(--accent-soft); color: var(--accent); }
+  .badge.action { background: var(--accent-soft); color: var(--accent); }
+  .score { font-size: .9rem; color: var(--muted); margin: .1rem 0 .5rem; }
+  .score .total { color: var(--good); font-weight: 700; }
+  .facts { font-size: .9rem; color: var(--muted); margin: .35rem 0; }
+  .facts .label { color: var(--fg); font-weight: 600; }
+  blockquote {
+    margin: .7rem 0; padding: .1rem 0 .1rem 1rem; border-left: 3px solid var(--border);
+    color: var(--muted); font-size: .95rem;
+  }
+  .actions { margin: .6rem 0 0; font-size: .9rem; }
+  .actions .actions-label { color: var(--muted); font-style: italic; }
+  .actions ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+  .muted-list { padding-left: 1.2rem; }
+  .muted-list li { margin: .2rem 0; color: var(--muted); }
+  .empty { color: var(--muted); font-style: italic; padding: 1.5rem 0; }
+  footer { margin-top: 3rem; text-align: center; color: var(--muted); font-size: .85rem;
+    border-top: 1px solid var(--border); padding-top: 1.2rem; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <h1>RepoRadar Digest</h1>
+  <div class="meta">
+    <strong>Run #{{ run_id }}</strong> &middot; {{ generated_at }}<br>
+    {{ papers_new }} new &middot; {{ papers_seen }} seen &middot; {{ total_scored }} scored
+  </div>
+  {% if queries_used %}
+  <details class="queries">
+    <summary>{{ queries_used | length }} queries used</summary>
+    <ul>
+      {% for q in queries_used %}
+      <li><code>{{ q }}</code></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</header>
+
+{% if trends %}
+<h2 class="section">Trending in your field</h2>
+<ul>
+  {% for t in trends %}
+  <li><strong>{{ t.keyword }}</strong> &mdash; {{ t.current }} papers this run
+    ({{ t.increase_pct }}% vs. avg {{ t.average }})</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if recommended %}
+<h2 class="section">Recommended for you</h2>
+{% for p in recommended %}
+<div class="card">
+  <h3><span class="rank">{{ loop.index }}.</span>
+    <a href="{{ p.url|safe_url }}">{{ p.title }}</a></h3>
+  <div class="score">Score <span class="total">{{ "%.2f"|format(p.score_total) }}</span>
+    &middot; <a href="{{ p.url|safe_url }}">{{ p.arxiv_id }}</a></div>
+  {% if p.abstract %}<blockquote>{{ p.abstract[:200] }}{% if p.abstract|length > 200 %}&hellip;{% endif %}</blockquote>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if top_picks %}
+<h2 class="section">Top picks</h2>
+{% for p in top_picks %}
+<div class="card">
+  <h3>
+    <span class="rank">{{ loop.index }}.</span>
+    <a href="{{ p.url|safe_url }}">{{ p.title }}</a>
+    <span class="badges">
+      {% if diff_mode and p.is_new %}<span class="badge new">New</span>{% endif %}
+      {% if p.llm_score is not none %}<span class="badge action">Actionable {{ p.llm_score }}/3</span>{% endif %}
+      {% if p.has_code %}<span class="badge">Code</span>{% endif %}
+      {% if p.models %}<span class="badge">Model</span>{% endif %}
+      {% if p.datasets %}<span class="badge">Data</span>{% endif %}
+    </span>
+  </h3>
+  <div class="score">
+    Score <span class="total">{{ "%.2f"|format(p.score_total) }}</span>
+    (keyword {{ "%.2f"|format(p.keyword_score) }}, category {{ "%.2f"|format(p.category_score) }}, recency {{ "%.2f"|format(p.recency_score) }}{% if has_embeddings and p.embedding_score is not none %}, embedding {{ "%.2f"|format(p.embedding_score) }}{% endif %}{% if has_citations and p.citation_score is not none %}, citation {{ "%.2f"|format(p.citation_score) }}{% endif %})
+  </div>
+  {% if p.llm_score is not none and p.llm_reason %}
+  <div class="facts"><span class="label">Actionability:</span> {{ p.llm_score }}/3 &mdash; {{ p.llm_reason }}</div>
+  {% endif %}
+  <div class="facts"><span class="label">Authors:</span> {{ p.authors | join(", ") }}</div>
+  <div class="facts"><span class="label">Categories:</span> {{ p.categories | join(", ") }}
+    &middot; <span class="label">Published:</span> {{ p.published[:10] }}
+    &middot; <a href="{{ p.url|safe_url }}">{{ p.arxiv_id }}</a></div>
+  {% if p.code_urls %}<div class="facts"><span class="label">Code:</span> {% for u in p.code_urls %}<a href="{{ u|safe_url }}">{{ u }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+  {% if p.models %}<div class="facts"><span class="label">Models:</span> {{ p.models | join(", ") }}</div>{% endif %}
+  {% if p.datasets %}<div class="facts"><span class="label">Datasets:</span> {{ p.datasets | join(", ") }}</div>{% endif %}
+  {% if p.upvotes %}<div class="facts"><span class="label">HF upvotes:</span> {{ p.upvotes }}</div>{% endif %}
+  {% if p.abstract %}<blockquote>{{ p.abstract[:300] }}{% if p.abstract|length > 300 %}&hellip;{% endif %}</blockquote>{% endif %}
+  {% if p.suggestions %}
+  <div class="actions">
+    <span class="actions-label">Action ideas (auto-generated, treat as starting points):</span>
+    <ul>{% for s in p.suggestions %}<li>{{ s }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if maybe_relevant %}
+<h2 class="section">Maybe relevant</h2>
+{% for p in maybe_relevant %}
+<div class="card">
+  <h3><span class="rank">{{ loop.index }}.</span>
+    {% if diff_mode and p.is_new %}<span class="badge new">New</span> {% endif %}
+    <a href="{{ p.url|safe_url }}">{{ p.title }}</a></h3>
+  <div class="score">Score <span class="total">{{ "%.2f"|format(p.score_total) }}</span>
+    &middot; {{ p.published[:10] }} &middot; <a href="{{ p.url|safe_url }}">{{ p.arxiv_id }}</a></div>
+  {% if p.abstract %}<blockquote>{{ p.abstract[:200] }}{% if p.abstract|length > 200 %}&hellip;{% endif %}</blockquote>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if muted %}
+<h2 class="section">Muted</h2>
+<ul class="muted-list">
+  {% for p in muted %}
+  <li>{% if diff_mode and p.is_new %}<span class="badge new">New</span> {% endif %}<a href="{{ p.url|safe_url }}">{{ p.title }}</a> &mdash; score {{ "%.2f"|format(p.score_total) }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if not top_picks and not maybe_relevant and not muted %}
+<p class="empty">No scored papers found for this period.</p>
+{% endif %}
+
+<footer>
+  Generated by <strong><a href="https://github.com/raimondasl/auto-features">RepoRadar</a></strong>
+</footer>
+</body>
+</html>

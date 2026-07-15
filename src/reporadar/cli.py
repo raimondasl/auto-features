@@ -569,6 +569,94 @@ def digest(
     "config_path",
     default=None,
     type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
+)
+@click.option(
+    "--archive-dir",
+    "archive_dir",
+    default="digests",
+    help="Directory for the published digest archive (default: digests).",
+)
+@click.option(
+    "--run-id",
+    default=None,
+    type=int,
+    help="Archive a specific run ID (default: latest run).",
+)
+@click.option(
+    "--date",
+    "date_str",
+    default=None,
+    help="Date label for this edition, YYYY-MM-DD (default: today, UTC).",
+)
+@click.option(
+    "--since",
+    default=None,
+    help="Only include papers published in the last N days (e.g. 7d).",
+)
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
+def archive(
+    config_path: str | None,
+    archive_dir: str,
+    run_id: int | None,
+    date_str: str | None,
+    since: str | None,
+    verbose: bool,
+) -> None:
+    """Publish the latest digest into a dated HTML archive (for GitHub Pages).
+
+    Writes ``<archive-dir>/<date>.html`` and regenerates ``index.html`` listing
+    every archived edition. Re-running on the same date replaces that edition.
+    """
+    if verbose:
+        setup_verbose_logging()
+
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    from reporadar.archive import archive_digest
+
+    with _open_store(db_path) as store:
+        if run_id is None:
+            last_run = store.get_last_run()
+            if last_run is None:
+                error("No runs found. Run `rr update` first.")
+                raise SystemExit(1)
+            run_id = last_run["run_id"]
+
+        repo_profile = None
+        if cfg.suggestions.provider in ("ollama", "claude"):
+            repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
+
+        since_days = _parse_since(since) if since else None
+        entry_path, index_path = archive_digest(
+            store,
+            run_id,
+            archive_dir,
+            date_str=date_str,
+            top_n=cfg.output.top_n,
+            suggestions_config=cfg.suggestions,
+            profile=repo_profile,
+            since_days=since_days,
+            triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
+            rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
+        )
+
+    success(f"Archived digest -> {entry_path}")
+    info(f"Index: {index_path}")
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
     help="Path to .reporadar.yml.",
 )
 @click.option(

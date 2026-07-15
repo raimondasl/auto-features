@@ -23,6 +23,51 @@ from reporadar.config import (
 )
 
 
+class TestEnvExpansion:
+    def test_expands_braced_env_var(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setenv("RR_TEST_SLACK", "https://hooks.example/abc")
+        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file.write_text("hooks:\n  slack_webhook_url: ${RR_TEST_SLACK}\n", encoding="utf-8")
+        cfg = load_config(cfg_file)
+        assert cfg.hooks.slack_webhook_url == "https://hooks.example/abc"
+
+    def test_unset_var_becomes_empty(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.delenv("RR_TEST_MISSING", raising=False)
+        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file.write_text("openalex:\n  api_key: ${RR_TEST_MISSING}\n", encoding="utf-8")
+        cfg = load_config(cfg_file)
+        assert cfg.openalex.api_key == ""
+
+    def test_leaves_bare_dollar_and_plain_text_untouched(self, tmp_path: Path, monkeypatch) -> None:
+        # A bare $HOME (no braces) and a lone $ must be left exactly as written.
+        monkeypatch.setenv("HOME", "/wherever")
+        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file.write_text('queries:\n  seed:\n    - "cost is $5 for $HOME"\n', encoding="utf-8")
+        cfg = load_config(cfg_file)
+        assert cfg.queries.seed == ["cost is $5 for $HOME"]
+
+    def test_expands_inside_list_items(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setenv("RR_TERM", "diffusion")
+        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file.write_text('queries:\n  seed:\n    - "${RR_TERM} models"\n', encoding="utf-8")
+        cfg = load_config(cfg_file)
+        assert cfg.queries.seed == ["diffusion models"]
+
+    def test_non_string_leaves_round_trip(self, tmp_path: Path, monkeypatch) -> None:
+        # Ints/bools must pass through untouched while a sibling ${VAR} still expands.
+        monkeypatch.setenv("RR_CAT", "cs.AI")
+        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file.write_text(
+            'arxiv:\n  categories: ["${RR_CAT}"]\n'
+            "  max_results_per_query: 42\n  lookback_days: 7\n",
+            encoding="utf-8",
+        )
+        cfg = load_config(cfg_file)
+        assert cfg.arxiv.categories == ["cs.AI"]
+        assert cfg.arxiv.max_results_per_query == 42
+        assert cfg.arxiv.lookback_days == 7
+
+
 class TestLoadConfig:
     def test_load_full_config(self, tmp_path: Path) -> None:
         config_file = tmp_path / ".reporadar.yml"

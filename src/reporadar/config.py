@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,28 @@ from typing import Any
 import yaml
 
 DEFAULT_CONFIG_NAME = ".reporadar.yml"
+
+# Matches ``${VAR}`` (braced form only — a bare ``$VAR`` or a lone ``$`` is left
+# untouched, so ordinary config values containing ``$`` are never mangled).
+_ENV_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+def _expand_env(value: Any) -> Any:
+    """Recursively expand ``${VAR}`` references in string values from os.environ.
+
+    Lets a committed ``.reporadar.yml`` reference secrets by name
+    (``slack_webhook_url: ${SLACK_WEBHOOK}``) that a runner (e.g. the GitHub
+    Action) injects as environment variables — so secrets never live in the file.
+    An unset variable expands to the empty string, which the consumers already
+    treat as "not configured".
+    """
+    if isinstance(value, str):
+        return _ENV_REF.sub(lambda m: os.environ.get(m.group(1), ""), value)
+    if isinstance(value, dict):
+        return {k: _expand_env(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_expand_env(v) for v in value]
+    return value
 
 
 @dataclass
@@ -217,6 +240,7 @@ def load_config(config_path: str | Path | None = None) -> RepoRadarConfig:
     with open(config_path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
+    data = _expand_env(data)
     return _dict_to_config(data)
 
 
