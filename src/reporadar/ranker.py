@@ -135,6 +135,7 @@ def score_paper(
     lookback_days: int = 14,
     embedding_score: float | None = None,
     citation_score: float | None = None,
+    citation_proximity_score: float | None = None,
 ) -> dict[str, Any]:
     """Compute a combined score for a single paper.
 
@@ -160,6 +161,11 @@ def score_paper(
     if citation_score is not None and w_citations > 0:
         raw_total += w_citations * citation_score
         weight_sum += w_citations
+
+    w_prox = getattr(ranking_cfg, "w_citation_proximity", 0.0)
+    if citation_proximity_score is not None and w_prox > 0:
+        raw_total += w_prox * citation_proximity_score
+        weight_sum += w_prox
 
     normalized = raw_total / weight_sum if weight_sum > 0 else 0.0
 
@@ -232,11 +238,13 @@ def rank_papers(
     repo_embedding: Any = None,
     citation_scores: dict[str, float] | None = None,
     paper_embeddings: dict[str, Any] | None = None,
+    citation_proximity: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """Score and rank a list of papers. Returns score dicts sorted by score descending.
 
     *paper_embeddings*, when given, supplies each paper's vector (keyed by arxiv_id)
     from the persistent cache, so vectors are not re-encoded on every run.
+    *citation_proximity* rewards papers that cite a starred/highly-rated paper.
     """
     scores = []
     for paper in papers:
@@ -260,6 +268,10 @@ def rank_papers(
         if citation_scores is not None:
             cit_score = citation_scores.get(paper["arxiv_id"])
 
+        prox_score = None
+        if citation_proximity is not None:
+            prox_score = citation_proximity.get(paper["arxiv_id"])
+
         scores.append(
             score_paper(
                 paper,
@@ -270,6 +282,7 @@ def rank_papers(
                 lookback_days,
                 embedding_score=emb_score,
                 citation_score=cit_score,
+                citation_proximity_score=prox_score,
             )
         )
     scores.sort(key=lambda s: s["score_total"], reverse=True)

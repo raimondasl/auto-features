@@ -284,6 +284,49 @@ class TestUpdateCommand:
         assert (repo / ".reporadar" / "papers.db").exists()
 
     @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.citations.fetch_references")
+    def test_citation_proximity_wiring(
+        self, mock_refs: MagicMock, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        # Pins the versioned(citing)-vs-base(cited) id contract end-to-end through
+        # the update -> fetch_references -> find_citation_links -> save_citations chain.
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "  w_recency: 0.3\n", "  w_recency: 0.3\n  w_citation_proximity: 5.0\n"
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        with PaperStore(db) as store:
+            store.star_paper("2401.00099v1")  # the seed
+
+        mock_collect.return_value = [
+            {
+                "arxiv_id": "2402.00001v1",
+                "title": "Extends It",
+                "authors": ["A"],
+                "abstract": "builds on prior work",
+                "categories": ["cs.CL"],
+                "published": datetime.now(UTC).isoformat(),
+                "updated": None,
+                "url": "http://arxiv.org/abs/2402.00001v1",
+                "pdf_url": None,
+                "matched_query": "all:test",
+            }
+        ]
+        mock_refs.return_value = {"2402.00001v1": ["2401.00099"]}
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "cite work you starred" in result.output
+        with PaperStore(db) as store:
+            assert store.get_citations_for(["2402.00001v1"]) == {"2402.00001v1": ["2401.00099"]}
+
+    @patch("reporadar.cli.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []

@@ -15,6 +15,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **GitHub Action + Pages** — a first-party action publishes a dated, ranked digest to GitHub Pages on a schedule; `rr archive` builds the browsable site
 - **Local corpus search** — `rr search "<query>"` over every paper ever fetched: offline BM25, or `--semantic`/`--hybrid` embedding search backed by a cached, optionally sqlite-vec-accelerated index (also an MCP tool)
 - **Action suggestions** — template-based ideas grounded in paper abstracts (benchmarks, baselines, datasets, modules)
+- **Extends work you starred** — flags and boosts new papers that cite a paper you starred or rated highly (`ranking.w_citation_proximity`)
 - **No API keys required** — uses only free, public APIs
 
 ## Installation
@@ -197,6 +198,7 @@ ranking:
   w_keyword: 1.0                      # Weight for keyword overlap score
   w_category: 0.5                     # Weight for category match score
   w_recency: 0.3                      # Weight for recency score
+  w_citation_proximity: 0.0          # >0: fetch references + boost papers that cite work you starred/rated
 
 output:
   digest_path: ./reporadar_digest.md  # Default output path

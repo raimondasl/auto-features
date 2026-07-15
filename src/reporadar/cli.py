@@ -324,6 +324,32 @@ def update(
             except Exception as exc:
                 info(f"  Citation lookup failed: {exc}")
 
+        # 6b. Citation proximity — "extends work you starred" (Feature 8, optional)
+        citation_proximity = None
+        if cfg.ranking.w_citation_proximity > 0:
+            try:
+                from reporadar.citation_graph import build_seed_set, find_citation_links
+                from reporadar.citations import fetch_references
+
+                seeds = build_seed_set(store)
+                if seeds:
+                    info("Checking which papers extend your starred/rated work...")
+                    refs = fetch_references(
+                        [p["arxiv_id"] for p in papers],
+                        api_key=cfg.semantic_scholar.api_key or None,
+                    )
+                    links = find_citation_links(refs, seeds)
+                    if links:
+                        store.save_citations(
+                            [(citing, cited) for citing, cs in links.items() for cited in cs]
+                        )
+                        citation_proximity = {citing: 1.0 for citing in links}
+                        info(f"  {len(links)} paper(s) cite work you starred.")
+                    else:
+                        info("  None of this run's papers cite your starred work.")
+            except Exception as exc:
+                info(f"  Citation-proximity check failed: {exc}")
+
         # 7. Apply feedback-adjusted weights if enabled
         ranking_cfg = cfg.ranking
         if cfg.feedback.enabled:
@@ -350,7 +376,11 @@ def update(
                         w_recency=new_weights["w_recency"],
                         w_embedding=new_weights["w_embedding"],
                         w_citations=new_weights["w_citations"],
+                        # Preserve non-learned weights/flags through the rebuild so
+                        # the proximity boost + hybrid mode survive feedback tuning.
+                        w_citation_proximity=cfg.ranking.w_citation_proximity,
                         category_weights=cfg.ranking.category_weights,
+                        hybrid=cfg.ranking.hybrid,
                     )
                     if verbose:
                         info("  Feedback: adjusted ranking weights from user ratings.")
@@ -372,6 +402,7 @@ def update(
             repo_embedding=repo_embedding,
             citation_scores=citation_scores,
             paper_embeddings=paper_embeddings,
+            citation_proximity=citation_proximity,
         )
         # 8b. Hybrid retrieval (roadmap #4): fuse the heuristic order with a BM25
         #     lexical order via RRF, so a paper buried on vocabulary mismatch can

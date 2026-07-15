@@ -107,6 +107,15 @@
 {% endfor %}
 {% endif %}
 
+{% if extends_starred %}
+<h2 class="section">Extends work you starred</h2>
+<ul>
+  {% for e in extends_starred %}
+  <li><a href="{{ e.url|safe_url }}">{{ e.title }}</a> &mdash; cites {{ e.cites | join(", ") }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
 {% if top_picks %}
 <h2 class="section">Top picks</h2>
 {% for p in top_picks %}
@@ -116,6 +125,7 @@
     <a href="{{ p.url|safe_url }}">{{ p.title }}</a>
     <span class="badges">
       {% if diff_mode and p.is_new %}<span class="badge new">New</span>{% endif %}
+      {% if p.cites_starred %}<span class="badge action">Extends starred</span>{% endif %}
       {% if p.llm_score is not none %}<span class="badge action">Actionable {{ p.llm_score }}/3</span>{% endif %}
       {% if p.has_code %}<span class="badge">Code</span>{% endif %}
       {% if p.models %}<span class="badge">Model</span>{% endif %}

@@ -59,6 +59,10 @@ class RankingConfig:
     w_recency: float = 0.3
     w_embedding: float = 0.0
     w_citations: float = 0.0
+    # Boost (and gate) for "extends work you starred": when > 0, RepoRadar fetches
+    # each candidate's references and rewards papers that cite a starred/highly-rated
+    # paper. 0 disables the feature (no reference lookups).
+    w_citation_proximity: float = 0.0
     category_weights: dict[str, float] = field(default_factory=dict)
     # Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
     # ranking via RRF, so a paper buried on vocabulary mismatch can still surface.
@@ -306,7 +310,14 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         warnings.append(f"lookback_days={cfg.arxiv.lookback_days} should be >= 1")
 
     # Negative ranking weights
-    for name in ("w_keyword", "w_category", "w_recency", "w_embedding", "w_citations"):
+    for name in (
+        "w_keyword",
+        "w_category",
+        "w_recency",
+        "w_embedding",
+        "w_citations",
+        "w_citation_proximity",
+    ):
         val = getattr(cfg.ranking, name)
         if val < 0:
             warnings.append(f"Negative ranking weight: {name}={val}")

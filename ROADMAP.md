@@ -43,7 +43,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 5 | ⬜ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
 | 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
 | 7 | ⬜ | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
-| 8 | ⬜ | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
+| 8 | 🟡 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
 | 9 | ⬜ | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
 | 10 | ⬜ | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
 | 11 | 🟡 | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
@@ -92,6 +92,11 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 **🟡 Partial**
 - **Feature 1** — HF Papers enrichment shipped; remaining: the `w_community` ranking component + `pwc-archive`
   offline fallback.
+- **Feature 8 — citation alerts** ("extends work you starred"): store v10 `paper_citations`, a Semantic Scholar
+  references fetch (`citations.fetch_references`), `citation_graph` (seed set from stars/high ratings +
+  link-finding), a `w_citation_proximity` ranking boost, and a digest "Extends work you starred" section +
+  badge. *Remaining:* the OpenAlex `cites:` fallback, a co-citation-graph SVG, one-hop citation expansion, and
+  a dedicated notification.
 - **Feature 11** — the standalone `evals/` harness exists; the **in-CLI `rr eval`** over a user's own
   ratings/stars is not built.
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
@@ -395,6 +400,8 @@ all-MiniLM is a generic sentence model; SPECTER2 is the de-facto scientific-pape
 **Sources:** [specter2_base](https://huggingface.co/allenai/specter2_base) · [SciRerankBench](https://arxiv.org/abs/2508.08742) · [HyDE critique](https://arxiv.org/abs/2504.14175)
 
 ### 8. Citation alerts for starred papers + citation-graph digest section
+
+> **🟡 Core shipped.** Store v10 `paper_citations`; `citations.fetch_references` (S2 batch `references.externalIds`, graceful); `citation_graph` (seed set from stars + ratings ≥4, version-insensitive link-finding); a `w_citation_proximity` ranking boost (opt-in, gates the reference lookups); and a digest **"Extends work you starred"** section + `[EXTENDS STARRED]` badge. **Remaining:** OpenAlex `cites:` fallback, an inline co-citation-graph SVG, one-hop citation expansion, and a dedicated `notify` alert.
 
 **Verification: feasible-with-caveats** (core mechanism proven by live API calls).
 

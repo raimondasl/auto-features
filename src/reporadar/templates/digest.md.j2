@@ -36,12 +36,21 @@
 
 ---
 {% endif %}
+{% if extends_starred %}
+
+## Extends work you starred
+{% for e in extends_starred %}
+- **[{{ e.title }}]({{ e.url }})** — cites {{ e.cites | join(", ") }}
+{% endfor %}
+
+---
+{% endif %}
 {% if top_picks %}
 
 ## Top Picks
 {% for p in top_picks %}
 
-### {{ loop.index }}. {% if diff_mode and p.is_new %}[NEW] {% endif %}{% if p.llm_score is not none %}[ACTIONABLE {{ p.llm_score }}/3] {% endif %}{% if p.has_code %}[CODE] {% endif %}{% if p.models %}[MODEL] {% endif %}{% if p.datasets %}[DATA] {% endif %}{{ p.title }}
+### {{ loop.index }}. {% if diff_mode and p.is_new %}[NEW] {% endif %}{% if p.cites_starred %}[EXTENDS STARRED] {% endif %}{% if p.llm_score is not none %}[ACTIONABLE {{ p.llm_score }}/3] {% endif %}{% if p.has_code %}[CODE] {% endif %}{% if p.models %}[MODEL] {% endif %}{% if p.datasets %}[DATA] {% endif %}{{ p.title }}
 
 - **Score:** {{ "%.2f"|format(p.score_total) }} (keyword: {{ "%.2f"|format(p.keyword_score) }}, category: {{ "%.2f"|format(p.category_score) }}, recency: {{ "%.2f"|format(p.recency_score) }}{% if has_embeddings and p.embedding_score is not none %}, embedding: {{ "%.2f"|format(p.embedding_score) }}{% endif %}{% if has_citations and p.citation_score is not none %}, citation: {{ "%.2f"|format(p.citation_score) }}{% endif %})
 {% if p.llm_score is not none %}- **Actionability (LLM):** {{ p.llm_score }}/3{% if p.llm_reason %} — {{ p.llm_reason }}{% endif %}{% endif %}

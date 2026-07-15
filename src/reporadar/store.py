@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -123,6 +123,13 @@ CREATE TABLE IF NOT EXISTS paper_embeddings (
     PRIMARY KEY (arxiv_id, model)
 );
 
+CREATE TABLE IF NOT EXISTS paper_citations (
+    citing_id     TEXT NOT NULL,
+    cited_id      TEXT NOT NULL,
+    discovered_at TEXT NOT NULL,
+    PRIMARY KEY (citing_id, cited_id)
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -232,6 +239,18 @@ MIGRATIONS: dict[int, list[str]] = {
             vec         BLOB NOT NULL,
             created_at  TEXT NOT NULL,
             PRIMARY KEY (arxiv_id, model)
+        )
+        """,
+    ],
+    10: [
+        # Citation edges for "extends work you starred" (Feature 8): a candidate
+        # paper (citing_id) references a starred/highly-rated paper (cited_id).
+        """\
+        CREATE TABLE IF NOT EXISTS paper_citations (
+            citing_id     TEXT NOT NULL,
+            cited_id      TEXT NOT NULL,
+            discovered_at TEXT NOT NULL,
+            PRIMARY KEY (citing_id, cited_id)
         )
         """,
     ],
@@ -877,6 +896,39 @@ class PaperStore:
             "SELECT arxiv_id FROM paper_stars ORDER BY starred_at DESC"
         ).fetchall()
         return [row["arxiv_id"] for row in rows]
+
+    # ── Citation edges (Feature 8: "extends work you starred") ───────────
+
+    def save_citations(self, edges: list[tuple[str, str]]) -> None:
+        """Persist ``(citing_id, cited_id)`` citation edges in one commit."""
+        if not edges:
+            return
+        now = _now_iso()
+        self._conn.executemany(
+            "INSERT OR REPLACE INTO paper_citations (citing_id, cited_id, discovered_at) "
+            "VALUES (?, ?, ?)",
+            [(citing, cited, now) for (citing, cited) in edges],
+        )
+        self._conn.commit()
+
+    def get_citations_for(self, citing_ids: list[str]) -> dict[str, list[str]]:
+        """Return ``{citing_id: [cited_id, ...]}`` for the given citing papers."""
+        ids = list(citing_ids)
+        if not ids:
+            return {}
+        out: dict[str, list[str]] = {}
+        # Chunk to stay under SQLite's bound-parameter limit (999 on old builds).
+        for start in range(0, len(ids), 900):
+            chunk = ids[start : start + 900]
+            placeholders = ",".join("?" * len(chunk))
+            rows = self._conn.execute(
+                "SELECT citing_id, cited_id FROM paper_citations "
+                f"WHERE citing_id IN ({placeholders})",
+                chunk,
+            ).fetchall()
+            for row in rows:
+                out.setdefault(row["citing_id"], []).append(row["cited_id"])
+        return out
 
     # ── Rating operations ────────────────────────────────────────────
 
