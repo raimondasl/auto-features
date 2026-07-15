@@ -459,6 +459,15 @@ class PaperStore:
         d["queries_used"] = json.loads(d["queries_used"])
         return d
 
+    def get_run(self, run_id: int) -> dict[str, Any] | None:
+        """Return the run with *run_id* (queries_used decoded), or None."""
+        row = self._conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+        if row is None:
+            return None
+        d = dict(row)
+        d["queries_used"] = json.loads(d["queries_used"])
+        return d
+
     def get_previous_run_id(self, run_id: int) -> int | None:
         """Find the run immediately before *run_id*, or None."""
         row = self._conn.execute(

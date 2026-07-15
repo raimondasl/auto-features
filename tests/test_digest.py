@@ -10,6 +10,7 @@ from reporadar.digest import (
     filter_since,
     generate_digest,
     generate_digest_csv,
+    generate_digest_html,
     generate_digest_json,
     generate_digest_rss,
     markdown_to_html,
@@ -314,6 +315,71 @@ class TestMarkdownToHtml:
         html = markdown_to_html(md)
         assert "Section" in html
         assert "item 1" in html
+
+
+class TestGenerateDigestHtml:
+    def test_renders_real_html_not_pre_wrapped_markdown(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            html = generate_digest_html(store, run_id)
+
+        assert "<!DOCTYPE html>" in html
+        assert "<title>RepoRadar Digest</title>" in html
+        # A real rendered page, not the legacy markdown-in-<pre> wrapper.
+        assert "<pre>" not in html
+        assert "High Relevance RAG Paper" in html
+        assert 'class="total"' in html  # score styling → structured markup
+
+    def test_autoescapes_paper_text(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.55555v1", title="Attention <script> & Beyond"))
+            run_id = store.record_run(["all:test"], papers_new=1, papers_seen=0)
+            store.save_scores(run_id, [_make_score("2401.55555v1", 0.9)])
+            html = generate_digest_html(store, run_id)
+
+        # The angle brackets and ampersand from the title must be escaped, so no
+        # raw <script> tag ends up in the published page.
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+        assert "Attention" in html
+
+    def test_drops_non_http_url_scheme(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.77777v1", url="javascript:alert(1)"))
+            run_id = store.record_run(["all:test"], papers_new=1, papers_seen=0)
+            store.save_scores(run_id, [_make_score("2401.77777v1", 0.9)])
+            html = generate_digest_html(store, run_id)
+
+        # A javascript: URL from an upstream source must not become a live link.
+        assert "javascript:alert" not in html
+        assert 'href="#"' in html
+
+    def test_keeps_https_url(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.88888v1", url="https://arxiv.org/abs/2401.88888"))
+            run_id = store.record_run(["all:test"], papers_new=1, papers_seen=0)
+            store.save_scores(run_id, [_make_score("2401.88888v1", 0.9)])
+            html = generate_digest_html(store, run_id)
+
+        assert "https://arxiv.org/abs/2401.88888" in html
+
+
+class TestDigestRunMetadata:
+    def test_header_uses_requested_run_not_latest(self, tmp_path: Path) -> None:
+        # A digest for an older run must show THAT run's stats, not the newest run's.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.00001v1"))
+            run1 = store.record_run(["all:oldquery"], papers_new=7, papers_seen=1)
+            store.save_scores(run1, [_make_score("2401.00001v1", 0.9)])
+            # A newer run with unrelated metadata.
+            store.record_run(["all:newquery"], papers_new=99, papers_seen=99)
+
+            md = generate_digest(store, run1)
+
+        assert "all:oldquery" in md
+        assert "all:newquery" not in md
+        assert "7 new" in md
+        assert "99" not in md
 
 
 class TestGenerateDigestSuggestions:

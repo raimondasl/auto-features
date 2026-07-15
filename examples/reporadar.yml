@@ -1,0 +1,58 @@
+# RepoRadar — scheduled research radar for your repo, published to GitHub Pages.
+#
+# Copy this file to .github/workflows/reporadar.yml in your repository.
+# One-time setup: Settings → Pages → "Build and deployment" → Source: "GitHub Actions".
+# Optional secrets: add SLACK_WEBHOOK (Settings → Secrets and variables → Actions)
+# and reference it from .reporadar.yml as `slack_webhook_url: ${SLACK_WEBHOOK}`.
+
+name: RepoRadar
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'      # every Monday at 06:00 UTC
+  workflow_dispatch:          # ...and on-demand from the Actions tab
+
+# Least-privilege: read the repo, write the Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  # issues: write            # uncomment together with `github-issues: 'true'` below
+
+# Avoid overlapping publishes.
+concurrency:
+  group: reporadar-pages
+  cancel-in-progress: true
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run RepoRadar
+        id: radar
+        uses: raimondasl/auto-features@main   # pin to a tag/SHA once released
+        with:
+          config: .reporadar.yml               # created automatically if absent
+          archive-dir: digests
+          # formats: md,json                   # extra loose files (ephemeral unless you commit them)
+          # notify: slack                      # uncomment to send a Slack summary
+          # github-issues: 'true'              # ...also uncomment `issues: write` above
+        env:
+          # Secrets referenced from .reporadar.yml as ${SLACK_WEBHOOK}, etc.
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          # Needed only when github-issues is enabled:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.radar.outputs.archive-dir }}
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
