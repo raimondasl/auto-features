@@ -45,6 +45,54 @@ class TestGetRun:
             assert store.get_run(9999) is None
 
 
+class TestEmbeddingCache:
+    def test_save_get_blobs_and_count(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.upsert_paper(_make_paper(arxiv_id="2401.2v1"))
+            store.save_paper_embedding("2401.1v1", "m", 4, b"\x00\x01\x02\x03")
+            store.save_paper_embedding("2401.2v1", "m", 4, b"\x04\x05\x06\x07")
+
+            blobs = store.get_embedding_blobs("m")
+            assert blobs["2401.1v1"] == b"\x00\x01\x02\x03"
+            assert store.embedding_count("m") == 2
+            assert set(store.get_embedding_blobs("m", ["2401.1v1"])) == {"2401.1v1"}
+            # model isolation
+            assert store.get_embedding_blobs("other") == {}
+            assert store.embedding_count("other") == 0
+            assert store.embedding_count() == 2  # total across models
+
+    def test_replace_on_conflict(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_paper_embedding("2401.1v1", "m", 2, b"\x00\x01")
+            store.save_paper_embedding("2401.1v1", "m", 2, b"\x02\x03")  # same (id, model)
+            assert store.get_embedding_blobs("m")["2401.1v1"] == b"\x02\x03"
+            assert store.embedding_count("m") == 1
+
+    def test_batch_save(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.upsert_paper(_make_paper(arxiv_id="2401.2v1"))
+            store.save_paper_embeddings(
+                [("2401.1v1", "m", 2, b"\x00\x01"), ("2401.2v1", "m", 2, b"\x02\x03")]
+            )
+            assert store.embedding_count("m") == 2
+            store.save_paper_embeddings([])  # no-op
+            assert store.embedding_count("m") == 2
+
+    def test_clear_embeddings(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_paper_embedding("2401.1v1", "m1", 2, b"\x00\x01")
+            store.save_paper_embedding("2401.1v1", "m2", 2, b"\x02\x03")
+            assert store.embedding_count() == 2
+            assert store.clear_embeddings("m1") == 1  # only m1 removed
+            assert store.embedding_count("m1") == 0 and store.embedding_count("m2") == 1
+            assert store.clear_embeddings() == 1  # clears the rest
+            assert store.embedding_count() == 0
+
+
 class TestPaperStoreInit:
     def test_creates_db_file(self, tmp_path: Path) -> None:
         db_path = tmp_path / "sub" / "papers.db"

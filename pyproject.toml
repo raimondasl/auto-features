@@ -33,6 +33,11 @@ mcp = [
     # Only needed for `rr mcp` (RepoRadar as an MCP server for coding agents).
     "mcp>=1.0",
 ]
+vectors = [
+    # Optional acceleration for `rr search --semantic` on large corpora. The
+    # feature works without it (numpy fallback); this backs KNN with a vec0 index.
+    "sqlite-vec>=0.1",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -62,7 +67,7 @@ warn_return_any = true
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["arxiv", "sklearn.*", "yaml", "sentence_transformers", "mcp.*"]
+module = ["arxiv", "sklearn.*", "yaml", "sentence_transformers", "mcp.*", "sqlite_vec"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

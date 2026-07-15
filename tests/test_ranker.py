@@ -165,6 +165,47 @@ class TestExcludePenalty:
         assert penalty == 1.0
 
 
+class TestCachedEmbeddingsEquivalence:
+    def test_cached_dict_matches_uncached_compute(self) -> None:
+        from unittest.mock import patch
+
+        import numpy as np
+
+        p1 = _make_paper(arxiv_id="2401.1v1")
+        p2 = _make_paper(arxiv_id="2401.2v1")
+        profile = _make_profile()
+        repo_emb = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+        vecs = {
+            "2401.1v1": np.array([1.0, 0.5, 0.0], dtype=np.float32),
+            "2401.2v1": np.array([0.0, 1.0, 0.0], dtype=np.float32),
+        }
+        cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=0.3, w_embedding=1.0)
+
+        # Uncached path: rank_papers calls compute_paper_embedding per paper.
+        with patch(
+            "reporadar.embeddings.compute_paper_embedding",
+            side_effect=lambda p: vecs[p["arxiv_id"]],
+        ):
+            uncached = rank_papers(
+                [p1, p2], profile, cfg, QueriesConfig(), ["cs.CL"], repo_embedding=repo_emb
+            )
+        # Cached path: the same vectors supplied as a dict (no encoding).
+        cached = rank_papers(
+            [p1, p2],
+            profile,
+            cfg,
+            QueriesConfig(),
+            ["cs.CL"],
+            repo_embedding=repo_emb,
+            paper_embeddings=vecs,
+        )
+
+        u = {s["arxiv_id"]: s["embedding_score"] for s in uncached}
+        c = {s["arxiv_id"]: s["embedding_score"] for s in cached}
+        assert u == c
+        assert u["2401.1v1"] is not None and u["2401.1v1"] > 0
+
+
 class TestScorePaper:
     def test_returns_expected_keys(self) -> None:
         paper = _make_paper()

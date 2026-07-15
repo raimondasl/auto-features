@@ -231,17 +231,28 @@ def rank_papers(
     lookback_days: int = 14,
     repo_embedding: Any = None,
     citation_scores: dict[str, float] | None = None,
+    paper_embeddings: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Score and rank a list of papers. Returns score dicts sorted by score descending."""
+    """Score and rank a list of papers. Returns score dicts sorted by score descending.
+
+    *paper_embeddings*, when given, supplies each paper's vector (keyed by arxiv_id)
+    from the persistent cache, so vectors are not re-encoded on every run.
+    """
     scores = []
     for paper in papers:
         emb_score = None
         if repo_embedding is not None:
             try:
-                from reporadar.embeddings import compute_paper_embedding, cosine_similarity
+                from reporadar.embeddings import cosine_similarity
 
-                paper_emb = compute_paper_embedding(paper)
-                emb_score = max(0.0, cosine_similarity(repo_embedding, paper_emb))
+                if paper_embeddings is not None:
+                    paper_emb = paper_embeddings.get(paper["arxiv_id"])
+                else:
+                    from reporadar.embeddings import compute_paper_embedding
+
+                    paper_emb = compute_paper_embedding(paper)
+                if paper_emb is not None:
+                    emb_score = max(0.0, cosine_similarity(repo_embedding, paper_emb))
             except (RuntimeError, ImportError):
                 pass
 

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 9
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -114,6 +114,15 @@ CREATE TABLE IF NOT EXISTS paper_ratings (
     rated_at    TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS paper_embeddings (
+    arxiv_id    TEXT NOT NULL REFERENCES papers(arxiv_id),
+    model       TEXT NOT NULL,
+    dim         INTEGER NOT NULL,
+    vec         BLOB NOT NULL,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (arxiv_id, model)
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -209,6 +218,22 @@ MIGRATIONS: dict[int, list[str]] = {
         # Hybrid retrieval (roadmap #4): RRF-fused rank of the heuristic + BM25
         # lexical orderings. When set, the digest orders by it instead of score_total.
         "ALTER TABLE paper_scores ADD COLUMN rrf_score REAL",
+    ],
+    9: [
+        # Persistent per-paper embedding cache: compute a paper's vector once and
+        # reuse it across runs (instead of re-encoding every paper every run).
+        # A plain BLOB table — no native extension needed to read the cache; the
+        # optional sqlite-vec index (reporadar.vec_index) is built lazily on top.
+        """\
+        CREATE TABLE IF NOT EXISTS paper_embeddings (
+            arxiv_id    TEXT NOT NULL REFERENCES papers(arxiv_id),
+            model       TEXT NOT NULL,
+            dim         INTEGER NOT NULL,
+            vec         BLOB NOT NULL,
+            created_at  TEXT NOT NULL,
+            PRIMARY KEY (arxiv_id, model)
+        )
+        """,
     ],
 }
 
@@ -403,6 +428,71 @@ class PaperStore:
 
     def paper_count(self) -> int:
         row = self._conn.execute("SELECT COUNT(*) FROM papers").fetchone()
+        return int(row[0])
+
+    def save_paper_embedding(self, arxiv_id: str, model: str, dim: int, vec_bytes: bytes) -> None:
+        """Cache a paper's embedding vector (raw little-endian float32 bytes)."""
+        self._conn.execute(
+            "INSERT OR REPLACE INTO paper_embeddings (arxiv_id, model, dim, vec, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (arxiv_id, model, dim, vec_bytes, _now_iso()),
+        )
+        self._conn.commit()
+
+    def get_embedding_blobs(
+        self, model: str, arxiv_ids: list[str] | None = None
+    ) -> dict[str, bytes]:
+        """Return cached embedding blobs ``{arxiv_id: vec_bytes}`` for *model*.
+
+        With *arxiv_ids*, restrict to those ids; otherwise return the whole cache
+        for the model. Callers that would exceed SQLite's parameter limit should
+        pass ``None`` and filter in Python.
+        """
+        if arxiv_ids is None:
+            rows = self._conn.execute(
+                "SELECT arxiv_id, vec FROM paper_embeddings WHERE model = ?", (model,)
+            ).fetchall()
+        else:
+            ids = list(arxiv_ids)
+            if not ids:
+                return {}
+            placeholders = ",".join("?" * len(ids))
+            rows = self._conn.execute(
+                "SELECT arxiv_id, vec FROM paper_embeddings "
+                f"WHERE model = ? AND arxiv_id IN ({placeholders})",
+                (model, *ids),
+            ).fetchall()
+        return {r["arxiv_id"]: r["vec"] for r in rows}
+
+    def save_paper_embeddings(self, rows: list[tuple[str, str, int, bytes]]) -> None:
+        """Batch-cache embeddings ``(arxiv_id, model, dim, vec_bytes)`` in one commit."""
+        if not rows:
+            return
+        now = _now_iso()
+        self._conn.executemany(
+            "INSERT OR REPLACE INTO paper_embeddings (arxiv_id, model, dim, vec, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            [(arxiv_id, model, dim, vec, now) for (arxiv_id, model, dim, vec) in rows],
+        )
+        self._conn.commit()
+
+    def clear_embeddings(self, model: str | None = None) -> int:
+        """Delete cached embeddings (all, or one *model*). Returns the row count deleted."""
+        if model is None:
+            cur = self._conn.execute("DELETE FROM paper_embeddings")
+        else:
+            cur = self._conn.execute("DELETE FROM paper_embeddings WHERE model = ?", (model,))
+        self._conn.commit()
+        return int(cur.rowcount)
+
+    def embedding_count(self, model: str | None = None) -> int:
+        """Number of cached embeddings (optionally for a single model)."""
+        if model is None:
+            row = self._conn.execute("SELECT COUNT(*) FROM paper_embeddings").fetchone()
+        else:
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM paper_embeddings WHERE model = ?", (model,)
+            ).fetchone()
         return int(row[0])
 
     @staticmethod
