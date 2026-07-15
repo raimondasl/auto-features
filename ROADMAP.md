@@ -31,14 +31,14 @@ A manually-run **benchmark** (not CI) that scores RepoRadar's ranking quality on
 
 ## Feature overview
 
-**Status legend** (as of 2026-07-12): ✅ shipped · 🟡 partial (core shipped, extensions pending) · ⬜ planned.
-See [Implementation status](#implementation-status-2026-07-12) below for the shipped-vs-remaining breakdown.
+**Status legend** (as of 2026-07-15): ✅ shipped · 🟡 partial (core shipped, extensions pending) · ⬜ planned.
+See [Implementation status](#implementation-status-2026-07-15) below for the shipped-vs-remaining breakdown.
 
 | # | Status | Feature | Tier | One-line impact |
 |---|--------|---------|------|-----------------|
 | 1 | 🟡 | Hugging Face Papers enrichment | Certainly achievable | Repairs the dead PwC integration, adds live code/model/dataset links + community-buzz signal |
-| 2 | ⬜ | RepoRadar MCP server | Certainly achievable | Puts repo-aware paper search inside Claude Code, Cursor, VS Code — the biggest 2026 distribution channel |
-| 3 | ⬜ | GitHub Action + Pages digests | Certainly achievable | Turns a single-dev CLI into team-visible infrastructure with zero hosting |
+| 2 | ✅ | RepoRadar MCP server | Certainly achievable | Puts repo-aware paper search inside Claude Code, Cursor, VS Code — the biggest 2026 distribution channel |
+| 3 | ✅ | GitHub Action + Pages digests | Certainly achievable | Turns a single-dev CLI into team-visible infrastructure with zero hosting |
 | 4 | 🟡 | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
 | 5 | ⬜ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
 | 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
@@ -59,7 +59,7 @@ See [Implementation status](#implementation-status-2026-07-12) below for the shi
 
 ---
 
-## Implementation status (2026-07-12)
+## Implementation status (2026-07-15)
 
 A benchmark-driven arc (Tier B eval → Feature 6 triage/rerank → all-time discovery → hybrid retrieval)
 shipped the ranking-and-precision core. The 12-case Tier B benchmark now shows RepoRadar **net-positive
@@ -79,6 +79,12 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   idea from Finding #2; closes most of the baseline's remaining benchmark edge.)
 - **Two-tier evaluation harness** (`evals/`) — Tier A offline fixtures + **Tier B LLM-judged actionable-
   improvement benchmark** (12 cases, GPT-5.5 judge, Opus baseline). The standalone counterpart to Feature 11.
+- **Feature 2 — RepoRadar MCP server** (PR #40): `rr mcp` (stdio) exposes `get_repo_profile`,
+  `get_ranked_papers`, `explain_relevance`, `rate_paper` to coding agents; optional `[mcp]` extra.
+  *(Remaining: MCP-registry publish + a Claude Code plugin — the distribution half.)*
+- **Feature 3 — GitHub Action + Pages** (PR #41, released as `v1`): composite `action.yml` + `rr archive`
+  publish a dated, ranked digest to GitHub Pages; a rendered HTML digest (replacing markdown-in-`<pre>`)
+  and `${ENV}` config expansion landed with it.
 
 **🟡 Partial**
 - **Feature 1** — HF Papers enrichment shipped; remaining: the `w_community` ranking component + `pwc-archive`
@@ -90,7 +96,7 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
 
 **⬜ Not started**
-- Features 2, 3, 5, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20.
+- Features 5, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20.
 
 ---
 
@@ -130,6 +136,8 @@ Papers With Code was sunset in July 2025; `paperswithcode.py` fails on every run
 
 ### 2. RepoRadar MCP server: repo-aware paper search inside coding agents
 
+> **✅ Shipped in PR #40** — `rr mcp` (stdio) exposes `get_repo_profile`, `get_ranked_papers`, `explain_relevance`, `rate_paper`; optional `[mcp]` extra. Remaining: MCP-registry `server.json` publish + a Claude Code plugin (the distribution half).
+
 **Verification: confirmed** (SDK, registry, and precedents checked live).
 
 MCP is the dominant 2025–2026 integration standard (~10,000 registered servers). Many arXiv MCP servers exist, but **none profiles a local repository and ranks papers against it** — exactly RepoRadar's differentiator. An `rr mcp` command exposing `profile_repo`, `get_ranked_papers`, `explain_relevance`, and `rate_paper` puts RepoRadar inside Claude Code, Cursor, VS Code, and Windsurf sessions.
@@ -156,6 +164,8 @@ MCP is the dominant 2025–2026 integration standard (~10,000 registered servers
 **Sources:** [MCP release blog](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/) · [registry](https://github.com/modelcontextprotocol/registry) · [adoption stats](https://www.digitalapplied.com/blog/mcp-adoption-statistics-2026-model-context-protocol) · [nearest competitor (search-only)](https://github.com/blazickjp/arxiv-mcp-server)
 
 ### 3. `reporadar-action`: GitHub Action + GitHub Pages published digests
+
+> **✅ Shipped in PR #41 (released as `v1`)** — composite `action.yml` + `rr archive` publish a dated, ranked digest to GitHub Pages; a rendered HTML digest and `${ENV}` config expansion landed with it. Use `uses: raimondasl/auto-features@v1`.
 
 **Verification: confirmed.**
 

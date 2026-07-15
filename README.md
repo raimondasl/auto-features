@@ -129,7 +129,7 @@ jobs:
     environment: github-pages
     steps:
       - uses: actions/checkout@v4
-      - uses: raimondasl/auto-features@main   # pin to a tag/SHA once released
+      - uses: raimondasl/auto-features@v1   # moving major tag (or pin @v1.0.0 / a SHA)
         id: radar
         with:
           archive-dir: digests
