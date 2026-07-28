@@ -161,6 +161,16 @@ class TestSearchCommand:
         assert "embeddings extra" in result.output
 
 
+class TestDedupId:
+    def test_version_strips_only_arxiv_ids(self) -> None:
+        from reporadar.cli import _dedup_id
+
+        assert _dedup_id("2401.12345v3") == "2401.12345"
+        assert _dedup_id("2401.12345") == "2401.12345"
+        # a 'v' inside a DBLP key must NOT be treated as a version suffix
+        assert _dedup_id("dblp:conf/vldb/Smith25") == "dblp:conf/vldb/Smith25"
+
+
 class TestParseSince:
     def test_valid_days(self) -> None:
         assert _parse_since("7d") == 7

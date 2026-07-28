@@ -45,7 +45,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 7 | ⬜ | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
 | 8 | 🟡 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
 | 9 | ⬜ | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
-| 10 | ⬜ | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
+| 10 | 🟡 | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
 | 11 | 🟡 | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
 | 12 | 🟡 | OpenAlex 2026 upgrade (keys, semantic search, Topics) | High confidence | Un-breaks the source; classifier-backed field watching instead of keyword guessing |
 | 13 | ⬜ | Privacy guard (audit, redaction, local-only mode) | High confidence | Unlocks proprietary/enterprise codebases — currently an unexamined blocker |
@@ -97,12 +97,16 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   link-finding), a `w_citation_proximity` ranking boost, and a digest "Extends work you starred" section +
   badge. *Remaining:* the OpenAlex `cites:` fallback, a co-citation-graph SVG, one-hop citation expansion, and
   a dedicated notification.
+- **Feature 10 — domain source adapters**: `sources/dblp.py` (keyword-search JSON, systems/PL/DB, title-only)
+  and `sources/biorxiv.py` (date-interval listing + local query filter, biology) — opt in via `sources:`,
+  merged with arXiv priority. *Remaining:* the IACR ePrint adapter, DOI abstract-backfill for DBLP,
+  medRxiv/category config, and profile-driven auto-activation.
 - **Feature 11** — the standalone `evals/` harness exists; the **in-CLI `rr eval`** over a user's own
   ratings/stars is not built.
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
 
 **⬜ Not started**
-- Features 5, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20.
+- Features 5, 7, 9, 13, 14, 15, 16, 17, 18, 19, 20.
 
 ---
 
@@ -260,6 +264,8 @@ Ranking is currently a heuristic weighted sum, and embeddings are recomputed for
 **Sources:** [API docs](https://api.semanticscholar.org/api-docs/recommendations) · [release notes (limits/key policy)](https://github.com/allenai/s2-folks/blob/main/API_RELEASE_NOTES.md)
 
 ### 10. Domain source adapters: IACR ePrint, bioRxiv/medRxiv, DBLP
+
+> **🟡 Core shipped.** The source-adapter contract is documented (`sources/__init__.py`), and two adapters ship: `sources/dblp.py` (keyword-search JSON, systems/PL/DB — title-only, `abstract=""`) and `sources/biorxiv.py` (date-interval listing bounded + locally query-filtered, biology). Both opt in via `sources:` and merge with arXiv priority; both degrade gracefully. **Remaining:** the IACR ePrint adapter (RSS/HTML), DOI abstract-backfill for DBLP, medRxiv + per-adapter category config, and profile-driven auto-activation.
 
 **Verification: proposed by completeness critique; APIs confirmed free.**
 

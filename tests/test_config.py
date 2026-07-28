@@ -189,6 +189,15 @@ class TestValidateConfig:
         warnings = validate_config(cfg)
         assert not any("triage.enabled" in w for w in warnings)
 
+    def test_biorxiv_dblp_are_known_sources(self) -> None:
+        cfg = RepoRadarConfig(sources=["arxiv", "biorxiv", "dblp"])
+        assert not any("Unknown source" in w for w in validate_config(cfg))
+
+    def test_unknown_source_warns(self) -> None:
+        cfg = RepoRadarConfig(sources=["arxiv", "bogus"])
+        warnings = validate_config(cfg)
+        assert any("Unknown source" in w and "bogus" in w for w in warnings)
+
     def test_openalex_enabled_without_api_key_warns(self) -> None:
         cfg = RepoRadarConfig(sources=["arxiv", "openalex"])
         warnings = validate_config(cfg)
