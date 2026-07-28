@@ -337,6 +337,68 @@ class TestUpdateCommand:
             assert store.get_citations_for(["2402.00001v1"]) == {"2402.00001v1": ["2401.00099"]}
 
     @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.sources.s2_recommendations.fetch_recommendations")
+    def test_recommendations_wiring(
+        self, mock_recs: MagicMock, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        # Pins the seed contract: stars/high ratings are positives, low ratings are
+        # negatives, and a low rating beats an implicit star for the same paper.
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8") + "recommendations:\n  enabled: true\n",
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        with PaperStore(db) as store:
+            store.save_rating("2401.00010v1", 5)  # positive
+            store.save_rating("2401.00011v1", 1)  # negative
+            store.star_paper("2401.00012v1")  # positive (starred)
+            store.star_paper("2401.00011v1")  # starred AND disliked -> negative wins
+
+        mock_collect.return_value = [
+            {
+                "arxiv_id": "2402.00001v1",
+                "title": "Fetched",
+                "authors": ["A"],
+                "abstract": "retrieval",
+                "categories": ["cs.CL"],
+                "published": datetime.now(UTC).isoformat(),
+                "updated": None,
+                "url": "http://arxiv.org/abs/2402.00001v1",
+                "pdf_url": None,
+                "matched_query": "all:test",
+            }
+        ]
+        mock_recs.return_value = [
+            {
+                "arxiv_id": "2403.00002v1",
+                "title": "Recommended",
+                "authors": ["B"],
+                "abstract": "retrieval augmented generation",
+                "categories": [],
+                "published": datetime.now(UTC).isoformat(),
+                "updated": None,
+                "url": "http://arxiv.org/abs/2403.00002v1",
+                "pdf_url": None,
+                "matched_query": "recommendation",
+            }
+        ]
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        mock_recs.assert_called_once()
+        positives, negatives = mock_recs.call_args[0][0], mock_recs.call_args[0][1]
+        assert "2401.00010v1" in positives and "2401.00012v1" in positives
+        assert "2401.00011v1" in negatives
+        assert "2401.00011v1" not in positives  # low rating beats the star
+        # The recommended paper is stored and scored alongside the fetched one.
+        with PaperStore(db) as store:
+            assert store.get_paper("2403.00002v1") is not None
+
+    @patch("reporadar.cli.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []

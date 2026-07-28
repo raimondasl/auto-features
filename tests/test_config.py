@@ -14,6 +14,7 @@ from reporadar.config import (
     OutputConfig,
     QueriesConfig,
     RankingConfig,
+    RecommendationsConfig,
     RepoRadarConfig,
     SuggestionsConfig,
     TriageConfig,
@@ -188,6 +189,26 @@ class TestValidateConfig:
         )
         warnings = validate_config(cfg)
         assert not any("triage.enabled" in w for w in warnings)
+
+    def test_recommendations_defaults_and_bounds(self) -> None:
+        cfg = RepoRadarConfig()
+        assert cfg.recommendations.enabled is False  # opt-in
+        assert validate_config(cfg) == []
+
+        bad = RepoRadarConfig(recommendations=RecommendationsConfig(limit=0, max_seeds=0))
+        warnings = validate_config(bad)
+        assert any("recommendations.limit" in w for w in warnings)
+        assert any("recommendations.max_seeds" in w for w in warnings)
+
+    def test_recommendations_loaded_from_yaml(self, tmp_path: Path) -> None:
+        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file.write_text(
+            "recommendations:\n  enabled: true\n  limit: 5\n  max_seeds: 3\n", encoding="utf-8"
+        )
+        cfg = load_config(cfg_file)
+        assert cfg.recommendations.enabled is True
+        assert cfg.recommendations.limit == 5
+        assert cfg.recommendations.max_seeds == 3
 
     def test_biorxiv_dblp_are_known_sources(self) -> None:
         cfg = RepoRadarConfig(sources=["arxiv", "biorxiv", "dblp"])

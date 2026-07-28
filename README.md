@@ -17,6 +17,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Local corpus search** — `rr search "<query>"` over every paper ever fetched: offline BM25, or `--semantic`/`--hybrid` embedding search backed by a cached, optionally sqlite-vec-accelerated index (also an MCP tool)
 - **Action suggestions** — template-based ideas grounded in paper abstracts (benchmarks, baselines, datasets, modules)
 - **Extends work you starred** — flags and boosts new papers that cite a paper you starred or rated highly (`ranking.w_citation_proximity`)
+- **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
 - **No API keys required** — uses only free, public APIs
 
 ## Installation
@@ -201,10 +202,22 @@ ranking:
   w_recency: 0.3                      # Weight for recency score
   w_citation_proximity: 0.0          # >0: fetch references + boost papers that cite work you starred/rated
 
+recommendations:
+  enabled: false                      # true: seed the free S2 recommender with your stars/ratings
+  limit: 20                           # how many recommendations to request per run
+  max_seeds: 50                       # cap on example papers sent
+
 output:
   digest_path: ./reporadar_digest.md  # Default output path
   top_n: 15                           # Max papers in digest
 ```
+
+Recommendations need at least one **starred or 4–5-star** paper (low-rated papers
+become negative examples that suppress similar results; an explicit low rating
+beats an implicit star from `rr open`). They're merged into the normal candidate
+pool and **re-scored by RepoRadar**, and only those clearing the relevance bar are
+shown — the API is repo-agnostic, so off-topic suggestions are dropped rather than
+displayed, falling back to the local keyword recommender.
 
 ## How It Works
 

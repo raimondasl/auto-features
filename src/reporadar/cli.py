@@ -299,6 +299,49 @@ def update(
         except Exception as exc:
             info(f"  DBLP collection failed: {exc}")
 
+    # 3f. Learned recommendations from your ratings/stars (Feature 5, optional).
+    #     Merged into the candidate pool so the local ranker re-filters them — the
+    #     API is repo-agnostic and can return off-topic results for a niche seed.
+    if cfg.recommendations.enabled:
+        try:
+            from reporadar.sources.s2_recommendations import fetch_recommendations
+
+            with _open_store(db_path) as rec_store:
+                ratings = rec_store.get_all_ratings()
+                negatives = [aid for aid, r in ratings.items() if r <= 2]
+                disliked = set(negatives)
+                # Stars first (newest-first, and the most explicit signal) so they
+                # survive the max_seeds cap; then highly-rated papers. An explicit
+                # low rating beats an implicit star from `rr open`, which stars
+                # every paper it opens — otherwise the same id lands in both lists.
+                positives = [a for a in rec_store.get_starred_papers() if a not in disliked]
+                positives += [
+                    aid
+                    for aid, r in ratings.items()
+                    if r >= 4 and aid not in disliked and aid not in positives
+                ]
+
+            if positives:
+                info("Fetching learned recommendations from your ratings...")
+                recs = fetch_recommendations(
+                    positives,
+                    negatives,
+                    limit=cfg.recommendations.limit,
+                    max_seeds=cfg.recommendations.max_seeds,
+                    api_key=cfg.semantic_scholar.api_key or None,
+                )
+                if recs is None:
+                    warn("  Recommendations unavailable (Semantic Scholar error) — skipping.")
+                else:
+                    existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
+                    new_recs = [p for p in recs if _dedup_id(p["arxiv_id"]) not in existing_ids]
+                    papers.extend(new_recs)
+                    info(f"  {len(new_recs)} recommended papers (re-ranked locally)")
+            else:
+                info("  No rated/starred papers yet — skipping recommendations.")
+        except Exception as exc:
+            info(f"  Recommendations failed: {exc}")
+
     if not papers:
         warn("No new papers found.")
         return
@@ -355,7 +398,9 @@ def update(
             try:
                 from reporadar.citations import fetch_citation_counts, normalize_citations
 
-                arxiv_ids = [p["arxiv_id"] for p in papers]
+                # Only real arXiv ids resolve at S2; synthetic ones (ss:/dblp:/
+                # biorxiv:/oa:) would just burn slots in the 500-id batch.
+                arxiv_ids = [p["arxiv_id"] for p in papers if ":" not in p["arxiv_id"]]
                 api_key = cfg.semantic_scholar.api_key or None
                 raw_counts = fetch_citation_counts(arxiv_ids, api_key=api_key)
                 if raw_counts:
@@ -377,7 +422,7 @@ def update(
                 if seeds:
                     info("Checking which papers extend your starred/rated work...")
                     refs = fetch_references(
-                        [p["arxiv_id"] for p in papers],
+                        [p["arxiv_id"] for p in papers if ":" not in p["arxiv_id"]],
                         api_key=cfg.semantic_scholar.api_key or None,
                     )
                     links = find_citation_links(refs, seeds)

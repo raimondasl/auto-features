@@ -951,8 +951,14 @@ class PaperStore:
         return row["rating"] if row else None
 
     def get_all_ratings(self) -> dict[str, int]:
-        """Return all ratings as {arxiv_id: rating}."""
-        rows = self._conn.execute("SELECT arxiv_id, rating FROM paper_ratings").fetchall()
+        """Return all ratings as {arxiv_id: rating}, most recently rated first.
+
+        The ordering matters for consumers that cap how many they use (e.g. the
+        recommendation seeds) — newest ratings reflect current interests.
+        """
+        rows = self._conn.execute(
+            "SELECT arxiv_id, rating FROM paper_ratings ORDER BY rated_at DESC, rowid DESC"
+        ).fetchall()
         return {row["arxiv_id"]: row["rating"] for row in rows}
 
     def get_rated_paper_scores(self) -> list[dict[str, Any]]:

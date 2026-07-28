@@ -40,7 +40,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 2 | ✅ | RepoRadar MCP server | Certainly achievable | Puts repo-aware paper search inside Claude Code, Cursor, VS Code — the biggest 2026 distribution channel |
 | 3 | ✅ | GitHub Action + Pages digests | Certainly achievable | Turns a single-dev CLI into team-visible infrastructure with zero hosting |
 | 4 | ✅ | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
-| 5 | ⬜ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
+| 5 | ✅ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
 | 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
 | 7 | ⬜ | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
 | 8 | 🟡 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
@@ -89,6 +89,11 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   publish a dated, ranked digest to GitHub Pages; a rendered HTML digest (replacing markdown-in-`<pre>`)
   and `${ENV}` config expansion landed with it.
 
+- **Feature 5 — learned recommendations** (`sources/s2_recommendations.py`, opt-in `recommendations` config):
+  starred/highly-rated papers seed the free Semantic Scholar recommender (low-rated ones become negative
+  examples); results are merged as `matched_query="recommendation"` and **re-ranked locally**, and the digest's
+  "Recommended for You" prefers them over the keyword recommender.
+
 **🟡 Partial**
 - **Feature 1** — HF Papers enrichment shipped; remaining: the `w_community` ranking component + `pwc-archive`
   offline fallback.
@@ -106,7 +111,7 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
 
 **⬜ Not started**
-- Features 5, 7, 9, 13, 14, 15, 16, 17, 18, 19, 20.
+- Features 7, 9, 13, 14, 15, 16, 17, 18, 19, 20.
 
 ---
 
@@ -238,6 +243,8 @@ Ranking is currently a heuristic weighted sum, and embeddings are recomputed for
 **Sources:** [bm25s](https://github.com/xhluca/bm25s) · [sqlite-vec](https://github.com/asg017/sqlite-vec) · [RRF primer](https://opensearch.org/blog/introducing-reciprocal-rank-fusion-hybrid-search/) · [Model2Vec](https://github.com/MinishLab/model2vec)
 
 ### 5. Server-side learned recommendations via Semantic Scholar Recommendations API
+
+> **✅ Shipped.** `sources/s2_recommendations.py` + a `recommendations` config block (opt-in). Positive seeds = starred + rated ≥4 (stars first, so they survive the cap; an explicit low rating beats an implicit star), negative = rated ≤2; seeds accept real arXiv ids **and bare S2 paperIds** (so `ss:` papers found *via* recommendations can seed later runs) while unresolvable ids are dropped — one bad seed would 400 the whole call — and a call without positives is skipped rather than sent. Retries with backoff on 429/5xx (keyless pool throttles) and returns `None` on failure so the CLI reports *unavailable* rather than *no results*. Results merge as `matched_query="recommendation"` and are **re-scored locally, then held to the "maybe" tier bar** before the digest shows them (the API is repo-agnostic), with the keyword recommender as fallback; the section is exempt from `--since` since it's a user-seeded feed. *Inherent API limits (not gaps):* the recommender draws from a recent pool, so classic literature never surfaces via this path.
 
 **Verification: feasible-with-caveats** (API live-tested unauthenticated, HTTP 200).
 

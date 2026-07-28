@@ -149,6 +149,16 @@ class TriageConfig:
 
 
 @dataclass
+class RecommendationsConfig:
+    # Learned recommendations from the free Semantic Scholar Recommendations API,
+    # seeded by your starred/highly-rated papers (and suppressed by low-rated ones).
+    # Off by default: it only helps once you have ratings/stars.
+    enabled: bool = False
+    limit: int = 20  # how many recommendations to request per run
+    max_seeds: int = 50  # cap on positive/negative example papers sent
+
+
+@dataclass
 class FeedbackConfig:
     enabled: bool = False
     min_ratings: int = 10
@@ -171,6 +181,7 @@ class RepoRadarConfig:
     suggestions: SuggestionsConfig = field(default_factory=SuggestionsConfig)
     triage: TriageConfig = field(default_factory=TriageConfig)
     feedback: FeedbackConfig = field(default_factory=FeedbackConfig)
+    recommendations: RecommendationsConfig = field(default_factory=RecommendationsConfig)
 
 
 def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
@@ -209,6 +220,11 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     )
     triage = TriageConfig(**data["triage"]) if "triage" in data else TriageConfig()
     feedback = FeedbackConfig(**data["feedback"]) if "feedback" in data else FeedbackConfig()
+    recommendations = (
+        RecommendationsConfig(**data["recommendations"])
+        if "recommendations" in data
+        else RecommendationsConfig()
+    )
 
     return RepoRadarConfig(
         repo_path=data.get("repo_path", "."),
@@ -225,6 +241,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         suggestions=suggestions,
         triage=triage,
         feedback=feedback,
+        recommendations=recommendations,
     )
 
 
@@ -374,6 +391,12 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         warnings.append(f"triage.top_k={cfg.triage.top_k} should be >= 1")
     if cfg.triage.min_actionable not in (1, 2, 3):
         warnings.append(f"triage.min_actionable={cfg.triage.min_actionable} should be 1, 2, or 3")
+
+    # Recommendations
+    if cfg.recommendations.limit < 1:
+        warnings.append(f"recommendations.limit={cfg.recommendations.limit} should be >= 1")
+    if cfg.recommendations.max_seeds < 1:
+        warnings.append(f"recommendations.max_seeds={cfg.recommendations.max_seeds} should be >= 1")
 
     # Feedback
     if cfg.feedback.min_ratings < 1:
