@@ -18,6 +18,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Action suggestions** — template-based ideas grounded in paper abstracts (benchmarks, baselines, datasets, modules)
 - **Extends work you starred** — flags and boosts new papers that cite a paper you starred or rated highly (`ranking.w_citation_proximity`)
 - **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
+- **SPECTER2 similarity** — citation-trained scientific embeddings (served free by Semantic Scholar, no local model) score how close each paper is to the work you starred/rated (`ranking.w_specter`)
 - **No API keys required** — uses only free, public APIs
 
 ## Installation
@@ -201,6 +202,7 @@ ranking:
   w_category: 0.5                     # Weight for category match score
   w_recency: 0.3                      # Weight for recency score
   w_citation_proximity: 0.0          # >0: fetch references + boost papers that cite work you starred/rated
+  w_specter: 0.0                     # >0: SPECTER2 similarity to the papers you starred/rated highly
 
 recommendations:
   enabled: false                      # true: seed the free S2 recommender with your stars/ratings
@@ -211,6 +213,12 @@ output:
   digest_path: ./reporadar_digest.md  # Default output path
   top_n: 15                           # Max papers in digest
 ```
+
+`w_specter` also needs at least one **starred or 4–5-star** paper (it scores how close
+each candidate is to that work, in citation-trained space). Vectors are fetched once
+from Semantic Scholar and cached (~3 KB per paper); `rr update --rebuild-embeddings`
+clears every cached vector. The component is skipped when a run's papers are too few
+or too similar to rank meaningfully.
 
 Recommendations need at least one **starred or 4–5-star** paper (low-rated papers
 become negative examples that suppress similar results; an explicit low rating

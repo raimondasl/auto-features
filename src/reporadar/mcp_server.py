@@ -84,8 +84,22 @@ def rate_paper_action(store: PaperStore, arxiv_id: str, rating: int) -> dict[str
     """Record a 1–5 usefulness rating (feeds the ranking feedback loop)."""
     if not isinstance(rating, int) or not 1 <= rating <= 5:
         return {"error": "rating must be an integer from 1 (not useful) to 5 (very useful)."}
-    store.save_rating(arxiv_id, rating)
-    return {"ok": True, "arxiv_id": arxiv_id, "rating": rating}
+    # Resolve against the stored corpus (version-insensitively, since agents pass
+    # unversioned ids) like `rr rate` does. Rating an unknown id would otherwise
+    # create an orphan row that other features seed from — e.g. SPECTER2 would
+    # then try to cache a vector for a paper that doesn't exist and hit the
+    # paper_embeddings foreign key.
+    want = arxiv_id.split("v")[0]
+    stored = store.get_paper(arxiv_id)
+    if stored is None:
+        stored = next(
+            (p for p in store.get_all_papers() if p["arxiv_id"].split("v")[0] == want), None
+        )
+    if stored is None:
+        return {"error": f"{arxiv_id} is not in this repo's paper store — nothing to rate."}
+    resolved = str(stored["arxiv_id"])
+    store.save_rating(resolved, rating)
+    return {"ok": True, "arxiv_id": resolved, "rating": rating}
 
 
 def search_corpus_payload(store: PaperStore, query: str, limit: int = 10) -> dict[str, Any]:

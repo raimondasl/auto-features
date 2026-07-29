@@ -399,6 +399,71 @@ class TestUpdateCommand:
             assert store.get_paper("2403.00002v1") is not None
 
     @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.specter.fetch_specter_vectors")
+    def test_specter_wiring(
+        self, mock_vectors: MagicMock, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        import numpy as np
+
+        from reporadar.specter import SPECTER_DIM
+
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "  w_recency: 0.3\n", "  w_recency: 0.3\n  w_specter: 5.0\n"
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        seed_paper = {
+            "arxiv_id": "2401.00050v1",
+            "title": "Seed",
+            "authors": ["A"],
+            "abstract": "seed",
+            "categories": ["cs.CL"],
+            "published": datetime.now(UTC).isoformat(),
+            "updated": None,
+            "url": "http://arxiv.org/abs/2401.00050v1",
+            "pdf_url": None,
+        }
+        with PaperStore(db) as store:
+            store.upsert_paper(seed_paper)
+            store.star_paper("2401.00050v1")  # the liked paper -> query centroid
+
+        def _vec(first: float, second: float) -> np.ndarray:
+            out = np.zeros(SPECTER_DIM, dtype=np.float32)
+            out[0], out[1] = first, second
+            return out
+
+        # At least _MIN_POOL papers with a real spread — below that the component
+        # is intentionally dropped rather than amplifying noise.
+        near = {**seed_paper, "arxiv_id": "2402.00001v1", "title": "Near"}
+        mid = {**seed_paper, "arxiv_id": "2402.00003v1", "title": "Mid"}
+        far = {**seed_paper, "arxiv_id": "2402.00002v1", "title": "Far"}
+        mock_collect.return_value = [near, mid, far]
+        shapes = {
+            "2402.00001v1": _vec(1.0, 0.0),
+            "2402.00003v1": _vec(1.0, 0.6),
+            "2402.00002v1": _vec(0.0, 1.0),
+        }
+        mock_vectors.side_effect = lambda ids, api_key=None: {
+            aid: shapes.get(aid, _vec(1.0, 0.0)) for aid in ids
+        }
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "SPECTER2" in result.output
+        with PaperStore(db) as store:
+            run_id = store.get_last_run()["run_id"]
+            by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+            # The paper aligned with the starred seed scores 1.0; the other 0.0.
+            assert by_id["2402.00001v1"]["specter_score"] == 1.0
+            assert by_id["2402.00002v1"]["specter_score"] == 0.0
+
+    @patch("reporadar.cli.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []
