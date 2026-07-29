@@ -1,11 +1,13 @@
 # Tier B benchmark — results
 
-> **Headline (2026-07-12, 12 cases):** RepoRadar is **net-positive** (Top Picks mean net@2
-> **+1.42**) and **competitive with the Opus baseline** (+1.42 vs +1.75 across all 12 — a 0.33
-> gap), *beating* it outright on the ML domains it's built for (diffusion, speech, peft).
-> `min_actionable=2` is the decisively-correct gate. See
-> [12-case benchmark](#12-case-benchmark--reporadar-is-net-positive-and-competitive-with-opus-2026-07-12)
-> below — the current headline. The 4-case tables that follow are the earlier snapshots that
+> **Headline (re-confirmed 2026-07-29, 12 cases):** RepoRadar is **net-positive** (Top Picks mean
+> net@2 **+1.50**) and **competitive with the Opus baseline** (+1.50 vs +1.83 — a **0.33 gap,
+> unchanged** from 2026-07-12), *beating* it outright on the ML domains it's built for (diffusion,
+> speech, peft). `min_actionable=2` is the decisively-correct gate. **Nine features shipped between
+> the two runs and the validated configuration did not regress** — see
+> [Re-benchmark](#re-benchmark-after-features-1-8-and-10--no-regression-2026-07-29) below.
+> The [12-case benchmark](#12-case-benchmark--reporadar-is-net-positive-and-competitive-with-opus-2026-07-12)
+> is the original of that measurement; the 4-case tables that follow are the earlier snapshots that
 > got us there.
 
 **Baseline run:** 2026-07-04, `main` @ PR #16 · judge = **GPT-5.5** · baseline = **Opus 4.8**
@@ -400,6 +402,108 @@ user-facing **Top Picks net@2 is pinned by the haiku gate's precision**, not by 
 only four cases, a single case's swing (`rag` −3) flips the headline sign — the eval set lacks the
 statistical power to separate a real ranking gain from per-case noise. **Expanding the benchmark set
 is the prerequisite for trusting any further ranking comparison.**
+
+## Re-benchmark after Features 1–8 and 10 — no regression (2026-07-29)
+
+Nine features shipped after the 12-case benchmark (MCP server, GitHub Action, `rr search` +
+sqlite-vec, citation alerts, domain sources, learned recommendations, SPECTER2 — plus a ranker
+change that treats a *missing* category as absent rather than zero). None of it had been
+re-measured. Four runs, same 12 cases, judge = GPT-5.5, baseline = Opus 4.8 (`--baseline cli`).
+
+### 1. The validated configuration did not regress
+
+Replicating the 2026-07-12 flags exactly (`--rr-triage --rr-min-actionable 2 --rr-rerank
+--rr-all-time`):
+
+| Case | 2026-07-12 | 2026-07-29 | Δ |
+|---|---|---|---|
+| rag | 0.0 | 0.0 | — |
+| cv | +1.0 | +1.0 | — |
+| rl | 0.0 | 0.0 | — |
+| webdev | −2.0 | −2.0 | — |
+| peft | +4.0 | +4.0 | — |
+| diffusion | +7.0 | +6.0 | −1.0 |
+| graph | −4.0 | −4.0 | — |
+| speech | +7.0 | **+8.0** | +1.0 |
+| crypto | +3.0 | +3.0 | — |
+| systems | +1.0 | **+2.0** | +1.0 |
+| cli | 0.0 | 0.0 | — |
+| http | 0.0 | 0.0 | — |
+| **mean** | **+1.42** | **+1.50** | **+0.08** |
+
+**9/12 cases identical; the 3 that moved moved by exactly ±1.0 — inside the measured noise floor
+(below).** Against Opus: **+1.50 vs +1.83**, a 0.33 gap — *identical* to the 0.33 gap on 2026-07-12.
+All 12 baselines ran this time (crypto's `claude -p` succeeded), and RepoRadar hallucinated **0**
+references across all four runs.
+
+### 2. Noise floor, measured rather than assumed
+
+Two runs were executed with the *same effective configuration* (see finding 4 — the second
+intended to add DBLP but silently did not). Treating them as a repeat measurement:
+
+- **mean net@2 moved 0.08**; **exactly one case moved, by 1.0**.
+
+This independently confirms the "±1 net@2 is noise" convention this file has used since the start,
+and it is the yardstick for reading everything above: a per-case Δ of ±1 means nothing; the `rl`
+regression in finding 3 (−2.0) is outside it.
+
+### 3. Adding Semantic Scholar as a source did not help
+
+A clean A/B — same day, identical flags (`--rr-triage --rr-hybrid`), only `--sources` differs:
+
+| | arXiv | arXiv + Semantic Scholar |
+|---|---|---|
+| mean net@2 | **+0.83** | **+0.58** |
+| precision (non-abstained) | **0.91** | **0.76** |
+| abstained | 7/12 | 6/12 |
+
+Only two cases moved and **both got worse** (`rl` −2.0, `diffusion` −1.0); **none improved**. The
+mean shift (−0.25) is inside the noise floor, but `rl`'s −2.0 is not, and the precision drop is
+consistent with it: S2 papers carry no arXiv categories, and the new
+*absent-category-is-not-a-zero* ranker rule (correctly) stops penalising them — which makes them
+more competitive and puts more weight on the triage gate to reject the non-actionable ones. Here
+one got through. **Recommendation: leave `sources: [arxiv]` as the default for ML repos.**
+
+### 4. A benchmark-integrity bug: `--sources arxiv,dblp` was silently a no-op
+
+The third run was intended to measure the Feature 10 DBLP adapter. It measured nothing:
+`harness.collect_live_papers` only implemented `openalex` and `semantic_scholar` branches, so
+`dblp` was **silently dropped** and the run was arXiv-only — a result that *looked* like a valid
+DBLP evaluation. Fixed: `dblp`/`biorxiv` branches added, plus a `ValueError` on any unrecognised
+source so a typo or unsupported adapter can never again masquerade as a measurement.
+
+**DBLP is still unmeasured** — `dblp.org` fails TLS verification on the machine used here (a local
+CA-bundle gap; `api.biorxiv.org` verifies fine from the same host), so the run must be taken
+elsewhere:
+
+```bash
+uv run python evals/run_judge_eval.py --sources arxiv,dblp --rr-triage --rr-hybrid
+```
+
+### 5. Rerank + all-time discovery are worth ~+0.67
+
+Falling out of runs 1 and 4, same day, same 12 cases:
+
+| Configuration | mean net@2 |
+|---|---|
+| `--rr-triage --rr-hybrid` | +0.83 |
+| `--rr-triage --rr-rerank --rr-all-time` | **+1.50** |
+
+The listwise rerank over a deeper candidate pool plus all-time (foundational) discovery are
+carrying **~+0.67** of the headline — worth more than any source addition tested here, and a
+reminder that `rr update --foundational` is not a nicety.
+
+### 6. What still cannot be measured
+
+Three shipped features are **structurally unmeasurable** by this harness: **SPECTER2** (F7),
+**citation proximity** (F8) and **learned recommendations** (F5) all key off the user's
+starred/highly-rated papers, and the harness ranks a pool directly with `rank_papers` — it never
+builds a store, so there are no stars or ratings and those components never fire. Measuring them
+needs seeded preferences; the clean design (no leakage) is to star a few of the Tier A *labeled*
+fixtures per case and score the lift on the held-out relevant ones.
+
+Until then, the honest statement is that F5/F7/F8 are **tested** (unit + integration) but **not
+benchmarked**.
 
 ## 12-case benchmark — RepoRadar is net-positive and competitive with Opus (2026-07-12)
 
