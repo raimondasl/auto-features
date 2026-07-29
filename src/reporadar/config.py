@@ -63,6 +63,10 @@ class RankingConfig:
     # each candidate's references and rewards papers that cite a starred/highly-rated
     # paper. 0 disables the feature (no reference lookups).
     w_citation_proximity: float = 0.0
+    # SPECTER2 (citation-trained scientific embeddings, served free by Semantic
+    # Scholar) similarity to the papers you starred/rated highly. 0 disables the
+    # feature entirely (no vector fetches).
+    w_specter: float = 0.0
     category_weights: dict[str, float] = field(default_factory=dict)
     # Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
     # ranking via RRF, so a paper buried on vocabulary mismatch can still surface.
@@ -334,6 +338,7 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         "w_embedding",
         "w_citations",
         "w_citation_proximity",
+        "w_specter",
     ):
         val = getattr(cfg.ranking, name)
         if val < 0:

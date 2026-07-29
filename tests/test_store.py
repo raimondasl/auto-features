@@ -93,6 +93,19 @@ class TestEmbeddingCache:
             assert store.embedding_count() == 0
 
 
+class TestSpecterScorePersistence:
+    def test_round_trips(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(
+                run_id,
+                [{"arxiv_id": "2401.1v1", "score_total": 0.7, "specter_score": 0.42}],
+            )
+            got = store.get_scores_for_run(run_id)[0]
+        assert got["specter_score"] == 0.42
+
+
 class TestCitationEdges:
     def test_save_and_get(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:

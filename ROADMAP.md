@@ -42,7 +42,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 4 | ✅ | Hybrid retrieval core (BM25 + vectors + RRF) | Certainly achievable | Measurably better ranking, cached embeddings, and a local `rr search` over everything ever fetched |
 | 5 | ✅ | Semantic Scholar learned recommendations | Certainly achievable | Turns dormant ratings/stars into a server-side learned recommender at zero local ML cost |
 | 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
-| 7 | ⬜ | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
+| 7 | 🟡 | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
 | 8 | 🟡 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
 | 9 | ⬜ | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
 | 10 | 🟡 | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
@@ -106,12 +106,16 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   and `sources/biorxiv.py` (date-interval listing + local query filter, biology) — opt in via `sources:`,
   merged with arXiv priority. *Remaining:* the IACR ePrint adapter, DOI abstract-backfill for DBLP,
   medRxiv/category config, and profile-driven auto-activation.
+- **Feature 7 — SPECTER2 similarity** (`specter.py`, `ranking.w_specter`): citation-trained vectors served free
+  by S2, cached under a distinct `specter_v2` key in `paper_embeddings`, queried by the centroid of your
+  starred/highly-rated papers (no local model), pool-normalized, persisted via store v11 `specter_score`.
+  *Remaining:* the CPU cross-encoder rerank, local SPECTER2 for a profile query, and HyDE.
 - **Feature 11** — the standalone `evals/` harness exists; the **in-CLI `rr eval`** over a user's own
   ratings/stars is not built.
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
 
 **⬜ Not started**
-- Features 7, 9, 13, 14, 15, 16, 17, 18, 19, 20.
+- Features 9, 13, 14, 15, 16, 17, 18, 19, 20.
 
 ---
 
@@ -386,9 +390,11 @@ Proven elsewhere; moderate integration risk or degraded-dependency caveats.
 
 ### 7. Scientific embeddings upgrade: SPECTER2 + CPU cross-encoder rerank
 
+> **🟡 Core shipped.** `specter.py` + `ranking.w_specter` (opt-in). **Re-probed live: S2 still serves `embedding.specter_v2` free and keyless (768-dim)** — the risk this feature hinged on. Vectors are fetched via the shared `_s2_batch_post` (500-chunked, retry/backoff, real arXiv ids only) and cached in the existing store `paper_embeddings` table under a distinct `specter_v2` model key, so **no schema change and no possible 768/384 mixing** with MiniLM. **The query side needs no local model** (so no `adapters`/transformers pin): it's the *centroid of the papers you starred or rated ≥4* in the same citation-trained space. Scores are **min-max normalized across the run's pool** — raw SPECTER2 cosines cluster ~0.87–0.93 even between unrelated papers, so unnormalized they'd carry almost no signal (verified on live vectors). Persisted via store v11 `paper_scores.specter_score` so stored explanations stay complete. **Remaining:** the CPU cross-encoder rerank (note F6's LLM triage already reranks the top tier, so this is partly redundant), local SPECTER2 for a profile-derived query, and the HyDE query path.
+
 **Verification: feasible-with-caveats** (S2 free tier degraded; design around it).
 
-all-MiniLM is a generic sentence model; SPECTER2 is the de-facto scientific-paper embedder (citation-trained, beats SPECTER/SciNCL on SciRepEval). Semantic Scholar serves **precomputed SPECTER2 vectors** through the API — piggyback `fields=embedding.specter_v2` onto the existing `/paper/batch` call in `citations.py` at **zero extra requests** (500 papers/call, ~4MB, under the 10MB cap). Add a small cross-encoder rerank over the top ~50 candidates.
+all-MiniLM is a generic sentence model; SPECTER2 is the de-facto scientific-paper embedder (citation-trained, beats SPECTER/SciNCL on SciRepEval). Semantic Scholar serves **precomputed SPECTER2 vectors** through the API via `fields=embedding.specter_v2`. *(As shipped this is a **separate** batch sweep reusing the shared `_s2_batch_post` helper, chunked at 100 ids because each entry carries 768 floats — not piggybacked onto the citation-count call as originally planned. Merging the fields into one POST when several weights are enabled would restore the zero-extra-request idea and is a worthwhile follow-up. Vectors are cached, so the cost is one-time per paper.)* Add a small cross-encoder rerank over the top ~50 candidates.
 
 **Capabilities**
 - Domain-tuned paper similarity without local paper-side inference (when S2 is reachable — see risks)

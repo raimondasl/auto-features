@@ -380,7 +380,9 @@ def update(
                 from reporadar.embedding_cache import default_model, embed_papers_cached
 
                 if rebuild_embeddings:
-                    cleared = store.clear_embeddings(default_model())
+                    # Clear every cached vector (MiniLM + SPECTER2 + miss markers)
+                    # so unresolvable papers get retried too.
+                    cleared = store.clear_embeddings()
                     info(f"  Rebuilding embedding cache ({cleared} cleared).")
                 before = store.embedding_count(default_model())
                 paper_embeddings = embed_papers_cached(store, papers)
@@ -437,6 +439,38 @@ def update(
             except Exception as exc:
                 info(f"  Citation-proximity check failed: {exc}")
 
+        # 6c. SPECTER2 similarity to the work you liked (Feature 7, optional).
+        #     Citation-trained scientific embeddings, served free by Semantic
+        #     Scholar — no local model. Needs at least one starred/highly-rated
+        #     paper to form the query centroid.
+        specter = None
+        if cfg.ranking.w_specter > 0:
+            try:
+                from reporadar.specter import SPECTER_MODEL
+                from reporadar.specter import score_papers as specter_score_papers
+
+                liked = set(store.get_starred_papers()) | {
+                    a for a, r in store.get_all_ratings().items() if r >= 4
+                }
+                resolvable = [a for a in liked if ":" not in a]
+                if not liked:
+                    info("  No starred or highly-rated papers yet — skipping SPECTER2.")
+                elif not resolvable:
+                    info("  Your liked papers are all non-arXiv — SPECTER2 has nothing to seed on.")
+                else:
+                    info("Scoring SPECTER2 similarity to your starred/rated papers...")
+                    specter = specter_score_papers(
+                        store, papers, api_key=cfg.semantic_scholar.api_key or None
+                    )
+                    if specter:
+                        cached = store.embedding_count(SPECTER_MODEL)
+                        info(f"  SPECTER2 scored {len(specter)} papers ({cached} vectors cached).")
+                    else:
+                        info("  No usable SPECTER2 signal for this run's papers.")
+            except Exception as exc:
+                info(f"  SPECTER2 scoring failed: {exc}")
+                specter = None
+
         # 7. Apply feedback-adjusted weights if enabled
         ranking_cfg = cfg.ranking
         if cfg.feedback.enabled:
@@ -466,6 +500,7 @@ def update(
                         # Preserve non-learned weights/flags through the rebuild so
                         # the proximity boost + hybrid mode survive feedback tuning.
                         w_citation_proximity=cfg.ranking.w_citation_proximity,
+                        w_specter=cfg.ranking.w_specter,
                         category_weights=cfg.ranking.category_weights,
                         hybrid=cfg.ranking.hybrid,
                     )
@@ -490,6 +525,7 @@ def update(
             citation_scores=citation_scores,
             paper_embeddings=paper_embeddings,
             citation_proximity=citation_proximity,
+            specter=specter,
         )
         # 8b. Hybrid retrieval (roadmap #4): fuse the heuristic order with a BM25
         #     lexical order via RRF, so a paper buried on vocabulary mismatch can

@@ -136,6 +136,7 @@ def score_paper(
     embedding_score: float | None = None,
     citation_score: float | None = None,
     citation_proximity_score: float | None = None,
+    specter_score: float | None = None,
 ) -> dict[str, Any]:
     """Compute a combined score for a single paper.
 
@@ -173,6 +174,11 @@ def score_paper(
         raw_total += w_prox * citation_proximity_score
         weight_sum += w_prox
 
+    w_specter = getattr(ranking_cfg, "w_specter", 0.0)
+    if specter_score is not None and w_specter > 0:
+        raw_total += w_specter * specter_score
+        weight_sum += w_specter
+
     normalized = raw_total / weight_sum if weight_sum > 0 else 0.0
 
     penalty = compute_exclude_penalty(paper, queries_cfg.exclude)
@@ -186,6 +192,7 @@ def score_paper(
         "recency_score": round(rec, 4),
         "embedding_score": round(embedding_score, 4) if embedding_score is not None else None,
         "citation_score": round(citation_score, 4) if citation_score is not None else None,
+        "specter_score": round(specter_score, 4) if specter_score is not None else None,
         "matched_query": paper.get("matched_query"),
     }
 
@@ -202,6 +209,8 @@ def format_score_explanation(score_dict: dict[str, Any], ranking_cfg: RankingCon
         components.append(("embedding", "embedding_score", getattr(ranking_cfg, "w_embedding", 0)))
     if "citation_score" in score_dict and score_dict["citation_score"] is not None:
         components.append(("citation", "citation_score", getattr(ranking_cfg, "w_citations", 0)))
+    if "specter_score" in score_dict and score_dict["specter_score"] is not None:
+        components.append(("specter", "specter_score", getattr(ranking_cfg, "w_specter", 0)))
 
     for name, key, weight in components:
         val = score_dict.get(key, 0) or 0
@@ -245,6 +254,7 @@ def rank_papers(
     citation_scores: dict[str, float] | None = None,
     paper_embeddings: dict[str, Any] | None = None,
     citation_proximity: dict[str, float] | None = None,
+    specter: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """Score and rank a list of papers. Returns score dicts sorted by score descending.
 
@@ -278,6 +288,10 @@ def rank_papers(
         if citation_proximity is not None:
             prox_score = citation_proximity.get(paper["arxiv_id"])
 
+        spec_score = None
+        if specter is not None:
+            spec_score = specter.get(paper["arxiv_id"])
+
         scores.append(
             score_paper(
                 paper,
@@ -289,6 +303,7 @@ def rank_papers(
                 embedding_score=emb_score,
                 citation_score=cit_score,
                 citation_proximity_score=prox_score,
+                specter_score=spec_score,
             )
         )
     scores.sort(key=lambda s: s["score_total"], reverse=True)
