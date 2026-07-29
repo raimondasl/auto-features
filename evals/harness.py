@@ -176,6 +176,32 @@ def collect_live_papers(
                 papers.append(p)
                 seen.add(p["arxiv_id"])
 
+    if "dblp" in sources:
+        from reporadar.sources.dblp import collect_papers as dblp_collect
+
+        for p in dblp_collect(plain, lookback_days=lookback_days):
+            if p["arxiv_id"] not in seen:
+                papers.append(p)
+                seen.add(p["arxiv_id"])
+
+    if "biorxiv" in sources:
+        from reporadar.sources.biorxiv import collect_papers as bx_collect
+
+        for p in bx_collect(plain, lookback_days=lookback_days):
+            if p["arxiv_id"] not in seen:
+                papers.append(p)
+                seen.add(p["arxiv_id"])
+
+    # Fail loudly on a source the harness can't fetch: silently ignoring it makes
+    # a benchmark run look like a valid measurement of that source when it is a
+    # no-op (exactly what happened the first time `--sources arxiv,dblp` was run).
+    unknown = set(sources) - {"arxiv", "openalex", "semantic_scholar", "dblp", "biorxiv"}
+    if unknown:
+        raise ValueError(
+            f"Unknown eval source(s): {', '.join(sorted(unknown))}. "
+            "Add a branch in collect_live_papers or fix --sources."
+        )
+
     return papers
 
 
