@@ -306,5 +306,10 @@ def rank_papers(
                 specter_score=spec_score,
             )
         )
-    scores.sort(key=lambda s: s["score_total"], reverse=True)
+    # Tie-break on arxiv_id so the order never depends on the order papers were
+    # fetched in. Scores are rounded to 4dp and ties are common (many papers share
+    # a keyword/category profile), so a stable sort would otherwise silently
+    # inherit the input order — which in the eval fixtures means "gold first",
+    # flattering every measurement.
+    scores.sort(key=lambda s: (-s["score_total"], s["arxiv_id"]))
     return scores

@@ -403,6 +403,79 @@ only four cases, a single case's swing (`rag` −3) flips the headline sign — 
 statistical power to separate a real ranking gain from per-case noise. **Expanding the benchmark set
 is the prerequisite for trusting any further ranking comparison.**
 
+## Tier S — personalization measured for the first time (2026-07-29)
+
+The [re-benchmark](#re-benchmark-after-features-18-and-10--no-regression-2026-07-29) below closed by
+admitting F5/F7/F8 were **tested but not benchmarked** — they key off the user's starred/rated
+papers and no harness had a store. `run_seeded_eval.py` closes that: per case, seeds are drawn
+round-robin across the fixture's `source_query` strata, **removed from the candidate pool**, and each
+component is scored on how well it ranks the *held-out* gold.
+
+> **A ranker bug was found while building this and it changed every number below.** `rank_papers`
+> sorted stably on `score_total` alone, and `build_fixtures.py` writes all gold papers before all
+> distractors — so every score tie silently resolved in gold's favour and **every Tier A/S baseline
+> was a best-case ordering** (`cv` baseline nDCG@10 measured 0.931 in fixture order vs 0.842
+> reversed). `ranker.py` now tie-breaks on `arxiv_id`. This is a shipping-code fix, not just an eval
+> one: production ranking was fetch-order-dependent too.
+
+**5 seeds, real mini-repo profiles, k=10 and at the honest depth k=n_heldout:**
+
+| Case | baseline nDCG@10 | SPECTER2 w=0.25 | w≥0.5 | deep nDCG@n | proximity w≥0.5 |
+|---|---|---|---|---|---|
+| rag | **1.000** (ceiling) | +0.000 | +0.000 | — | inactive |
+| cv | 0.915 | **+0.085** | +0.085 | 0.914 (+0.024) | inactive |
+| rl | 0.599 | +0.000 | **+0.401** | 0.908 (+0.232) | **+0.128** |
+
+**Reference rankings on the same pools** (what the task is actually worth):
+
+| Case | id-order (≈random) | category-only | keyword-only | full baseline |
+|---|---|---|---|---|
+| cv | 0.224 | 0.826 | 0.915 | 0.915 |
+| rl | 0.244 | 0.517 | 0.483 | 0.599 |
+
+**Findings:**
+
+1. **Both personalization components help, and the effect is weight-dependent — report the sweep,
+   never a point.** SPECTER2's response is step-shaped: mean ΔnDCG@10 is **+0.028 at w=0.25** and
+   **+0.162 at w≥0.5**, saturating thereafter. A single number would have been an arbitrary pick on
+   a plateau. Note `w_specter == w_keyword` does **not** mean equal influence: `keyword_score` spans
+   a narrow band over a pool (~0.10–0.17) while a min-max-normalized component spans all of [0, 1],
+   so equal nominal weights give the component several times the score *range*.
+
+2. **The mean is concentrated and partly censored — don't read it as three measurements.** `rag` sits
+   at the ceiling (baseline 1.000) so its delta is structurally bounded at ≤ 0; of the remaining two,
+   **`rl` supplies 82%** of the mean. n_informative = 2 of 3.
+
+3. **nDCG@10 = 1.000 is not "perfect ranking".** With 14–15 held-out gold and k=10, recall@10 is
+   capped by construction (0.667–0.714), so several gold papers sit below the cut in *every*
+   configuration. At the honest depth k=n_heldout, SPECTER2 scores **0.914 / 0.908**, not 1.000 —
+   and what it pushes below the cut are exactly the fixture's homonym false-golds
+   (*"Proximal Point Methods"*, *"polynomial optimization"*), i.e. it is **more right than the
+   labels**. (An earlier draft of this section claimed the opposite; that was wrong.)
+
+4. **Citation proximity (F8) is measurable after all — the earlier "unmeasurable" call was my bug.**
+   With seeds taken as a fixture-order prefix, no candidate cited a seed and F8 looked structurally
+   untestable. Stratifying the seeds pulled in *Soft Actor-Critic* — a heavily-cited paper — and F8
+   immediately scored **+0.128 nDCG@10** on `rl` (1449 reference edges over 44 candidates). The
+   cause was the **seed-selection policy, not the fixtures**.
+
+5. **The task is non-trivial, but less discriminating than the headline suggests.** An arbitrary
+   (id-order) ranking scores ~0.23, so the baseline's 0.60–0.92 is real signal. But `category-only`
+   reaches 0.826 on `cv`: a meaningful share of what these fixtures test is *"does the arXiv category
+   match"*, a direct consequence of `benchmark.yaml` drawing distractors from clearly different
+   fields.
+
+6. **Read all of it as topical discrimination, not actionability** — and a *coarse* bar at that.
+   Tier S inherits Tier A's construction. A component scoring well here has shown it generalizes
+   from a handful of liked papers to same-domain papers: necessary, not sufficient. Tier B remains
+   the quality measure. **Feature 5 stays out of scope** — it *adds* papers rather than re-ranking a
+   fixed pool, so a labeled pool cannot score it.
+
+**Honesty notes:** results are deterministic (no LLM judge; vectors/references cached in
+`evals/.work/seeded/<case>.db`, `--fresh` to discard). Component helpers now return diagnostics, so
+"no signal" is distinguishable from "Semantic Scholar was unreachable" — the F8 conclusion above
+rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fixtures.
+
 ## Re-benchmark after Features 1–8 and 10 — no regression (2026-07-29)
 
 Nine features shipped after the 12-case benchmark (MCP server, GitHub Action, `rr search` +
@@ -472,9 +545,13 @@ The third run was intended to measure the Feature 10 DBLP adapter. It measured n
 DBLP evaluation. Fixed: `dblp`/`biorxiv` branches added, plus a `ValueError` on any unrecognised
 source so a typo or unsupported adapter can never again masquerade as a measurement.
 
-**DBLP is still unmeasured** — `dblp.org` fails TLS verification on the machine used here (a local
-CA-bundle gap; `api.biorxiv.org` verifies fine from the same host), so the run must be taken
-elsewhere:
+**DBLP was still unmeasured** at the time of this run because `dblp.org` failed TLS verification.
+**Correction (2026-07-29):** that was *not* a local CA quirk as first written here — it reproduced on
+a second machine. dblp.org chains to GEANT / Hellenic Academic and Research Institutions CA, which
+ships in `certifi` but is absent from the Windows system trust store Python's default SSL context
+uses, so **the `dblp` source was non-functional for every Windows user**. Fixed by giving the adapter
+a certifi-backed context; `collect_papers` now returns papers where it returned 0. The run is
+therefore unblocked:
 
 ```bash
 uv run python evals/run_judge_eval.py --sources arxiv,dblp --rr-triage --rr-hybrid
@@ -504,6 +581,12 @@ fixtures per case and score the lift on the held-out relevant ones.
 
 Until then, the honest statement is that F5/F7/F8 are **tested** (unit + integration) but **not
 benchmarked**.
+
+**Update (same day):** this gap is now closed for **Feature 7** — `run_seeded_eval.py` implements
+exactly that design and SPECTER2 measures **+0.147 mean nDCG@10** (see
+[Tier S](#tier-s--specter2-measured-for-the-first-time-2026-07-29) above). Feature 8 remains
+unmeasured (fixtures aren't citation-linked) and Feature 5 needs the Tier B judge rather than a
+labeled pool.
 
 ## 12-case benchmark — RepoRadar is net-positive and competitive with Opus (2026-07-12)
 

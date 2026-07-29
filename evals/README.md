@@ -9,6 +9,7 @@ code paths. There are **two tiers** that answer very different questions:
 |------|----------|-------|------|------|
 | **A — domain sanity** (`run_eval.py`) | Does ranking separate on-topic from off-topic papers? | keyword/category labels | none | free |
 | **B — actionable improvement** (`run_judge_eval.py`) | Would the returned papers *genuinely improve this code*, and does it correctly return **nothing** when there's nothing good? | a neutral LLM (GPT-5.5) | OpenAI + Claude Code | ~$1–2 per case; ~$15–30 for a full 12-case run (baselines + judge verdicts cache, so re-runs are far cheaper). Use `--case <name>` to run one. |
+| **S — seeded preference** (`run_seeded_eval.py`) | Do the components that key off *your own* starred/rated papers actually improve ranking? | Tier A labels, train/test split | none (S2 is keyless) | free |
 
 **Tier A is a weak bar and we don't overstate it.** Topic-match ("is this a RAG
 paper for a RAG repo?") is easy and doesn't mean a paper is *useful*. Tier A is a
@@ -108,6 +109,74 @@ tier. Absolute scores run lower than offline because fresh papers only partially
 match a repo's keyword profile and recency is off — judge live runs by
 *purity* and by whether the top-3 titles are obviously on-topic, not by the raw
 score. For the `webdev` negative control, expect `top-tier=0`.
+
+## Tier S — seeded preference (personalization)
+
+Three shipped ranking signals key off the user's **own** starred / highly-rated
+papers — SPECTER2 similarity (Feature 7), citation proximity (Feature 8) and
+learned recommendations (Feature 5). Neither Tier A nor Tier B can measure them:
+both rank a candidate pool directly and **never build a store**, so there are no
+stars or ratings and those components never fire. They shipped *tested but not
+benchmarked*.
+
+Tier S supplies the missing ingredient with a **train/test split** over the Tier A
+labeled fixtures:
+
+1. `--seeds` gold papers become "papers the user starred" (training). They are taken
+   **round-robin across the fixture's `source_query` strata**, not as a file-order
+   prefix — fixture order *is* query order, so a prefix draws every seed from one
+   query, and if that query is a keyword homonym the whole "liked" signal is
+   off-domain. (This is not hypothetical: it is what made Feature 8 look
+   unmeasurable until the policy was fixed.)
+2. Those seeds are **removed from the candidate pool**, so a component can't win
+   by matching the very papers it was handed.
+3. The remaining gold papers are **held out**, and each component is scored on how
+   well it ranks *those* — at `k` and at the honest depth `k = n_heldout`.
+
+```bash
+uv run python evals/run_seeded_eval.py                       # all labeled cases
+uv run python evals/run_seeded_eval.py --case rl --seeds 5
+uv run python evals/run_seeded_eval.py --component specter --weight 0.5 -o out.json
+uv run python evals/run_seeded_eval.py --fresh               # discard cached stores
+```
+
+**Deterministic** — no LLM judge, so unlike Tier B there is no noise floor to
+fight. Vectors and reference lists come from Semantic Scholar (free, keyless) and
+are cached in `evals/.work/seeded/<case>.db`, so re-runs are offline and identical.
+
+Every run also prints **reference rankings** (id-order ≈ random, category-only,
+keyword-only) and the **seed titles + categories**. Both exist so a reader can see
+how hard the task really is and what "liked" actually meant, rather than taking a
+delta on faith.
+
+**What it does and does not prove.** Tier S inherits Tier A's bar: fixture
+distractors come from *clearly different fields*, so this measures **topical
+discrimination**, not actionability — and a coarse version of it (`category-only`
+reaches nDCG@10 = 0.826 on `cv`, so a good share of the task is "does the arXiv
+category match"). A component scoring well here has shown it generalizes from a few
+liked papers to same-domain papers: necessary, not sufficient. Tier B remains the
+quality measure.
+
+Caveats worth knowing before reading results:
+
+- **Report the weight sweep, not a point.** Component response is step-shaped
+  (~0 below w≈0.25, saturated by w≈0.5), so a single weight is an arbitrary pick on
+  a plateau. Note `w_specter == w_keyword` is *not* equal influence: `keyword_score`
+  spans ~0.10–0.17 over a pool while a min-max-normalized component spans all of
+  [0, 1].
+- **Ceiling effects and concentration.** `rag` sits at nDCG@10 = 1.000 with no
+  headroom, and one case can supply most of the mean — read per-case deltas.
+- **nDCG@10 = 1.000 ≠ perfect ranking.** With 14–15 held-out gold, recall@10 is
+  capped at ~0.7 by construction, so gold papers sit below the cut in every
+  configuration. The runner reports `k = n_heldout` alongside for that reason.
+- **The gold labels are noisy.** Fixtures come from keyword `gold_queries`, so some
+  "gold" papers are homonyms (an RL case labels *"Explainable ML for Public
+  Policy"* and *"Proximal Point Methods"* as gold). Deltas remain meaningful —
+  both arms are scored against identical labels — but a component can be *more
+  right than the labels*.
+- **Learned recommendations (F5) are out of scope here.** That feature *adds*
+  papers to the pool rather than re-ranking a fixed one, so a labeled pool can't
+  score it — it needs the Tier B judge.
 
 ## Tier B — actionable improvement (LLM-judged)
 
