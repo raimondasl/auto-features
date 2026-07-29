@@ -11,16 +11,38 @@ from __future__ import annotations
 import json as json_mod
 import logging
 import re
+import ssl
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 DBLP_SEARCH_URL = "https://dblp.org/search/publ/api"
+
+
+@lru_cache(maxsize=1)
+def _ssl_context() -> ssl.SSLContext | None:
+    """TLS context that trusts dblp.org's research-network CA.
+
+    dblp.org's certificate chains to GEANT / Hellenic Academic and Research
+    Institutions CA. That root ships in the ``certifi`` bundle but is *not* in the
+    Windows system trust store Python's default context uses, so verification
+    fails there with CERTIFICATE_VERIFY_FAILED. Prefer certifi when it's available
+    (it is, transitively via ``arxiv``→``requests``) and fall back to the default.
+    """
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:  # pragma: no cover - certifi absent or unreadable
+        return None
+
+
 # DBLP CoRR keys mirror arXiv: journals/corr/abs-2401-12345 -> 2401.12345
 _CORR_KEY_RE = re.compile(r"corr/abs-(\d{4})-(\d{4,5})")
 
@@ -61,7 +83,7 @@ def _request_json(url: str, max_retries: int = 3, base_delay: float = 2.0) -> An
     for attempt in range(max_retries):
         try:
             req = urllib.request.Request(url, headers={"Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as resp:
                 return json_mod.loads(resp.read())
         except urllib.error.HTTPError as exc:
             if exc.code == 429 or exc.code >= 500:
