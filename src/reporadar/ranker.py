@@ -147,10 +147,16 @@ def score_paper(
     )
     rec = score_recency(paper, lookback_days)
 
-    raw_total = (
-        ranking_cfg.w_keyword * kw + ranking_cfg.w_category * cat + ranking_cfg.w_recency * rec
-    )
-    weight_sum = ranking_cfg.w_keyword + ranking_cfg.w_category + ranking_cfg.w_recency
+    raw_total = ranking_cfg.w_keyword * kw + ranking_cfg.w_recency * rec
+    weight_sum = ranking_cfg.w_keyword + ranking_cfg.w_recency
+
+    # Only count the category component when the paper actually has categories.
+    # Non-arXiv sources (Semantic Scholar, DBLP, bioRxiv, recommendations) carry
+    # none, and scoring a *missing* signal as a zero would silently handicap them
+    # against arXiv papers — same treatment as the optional components below.
+    if paper.get("categories"):
+        raw_total += ranking_cfg.w_category * cat
+        weight_sum += ranking_cfg.w_category
 
     w_embedding = getattr(ranking_cfg, "w_embedding", 0.0)
     if embedding_score is not None and w_embedding > 0:

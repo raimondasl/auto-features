@@ -364,6 +364,68 @@ class TestGenerateDigestHtml:
         assert "https://arxiv.org/abs/2401.88888" in html
 
 
+class TestRecommendedSource:
+    def test_prefers_api_recommendations_in_score_order(self, tmp_path: Path) -> None:
+        # Papers fetched via the S2 recommender carry matched_query="recommendation";
+        # the digest shows them (already re-ranked locally) over the keyword recommender.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2402.00001v1", title="Rec High"))
+            store.upsert_paper(_make_paper("2402.00002v1", title="Rec Low"))
+            store.upsert_paper(_make_paper("2402.00003v1", title="Not A Rec"))
+            run_id = store.record_run(["q"], 3, 0)
+            store.save_scores(
+                run_id,
+                [
+                    _make_score("2402.00001v1", 0.9, matched_query="recommendation"),
+                    _make_score("2402.00002v1", 0.4, matched_query="recommendation"),
+                    _make_score("2402.00003v1", 0.8, matched_query="all:test"),
+                ],
+            )
+            md = generate_digest(store, run_id)
+
+        assert "Recommended for You" in md
+        # Best-scoring recommendation first; the non-recommendation isn't in the section.
+        rec_section = md.split("## Recommended for You")[1].split("\n## ")[0]
+        assert "Rec High" in rec_section
+        assert "Not A Rec" not in rec_section
+        assert rec_section.index("Rec High") < rec_section.index("Rec Low")
+
+    def test_drops_low_scoring_recommendations(self, tmp_path: Path) -> None:
+        # The S2 recommender is repo-agnostic; anything the local ranker scored
+        # below the "maybe" tier must not be shown as a recommendation.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2402.00009v1", title="Off Topic Rec"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(
+                run_id, [_make_score("2402.00009v1", 0.05, matched_query="recommendation")]
+            )
+            md = generate_digest(store, run_id)
+        # It may still appear in the Muted tier, but never as a recommendation.
+        assert "Recommended for You" not in md
+
+    def test_recommendations_survive_since_filter(self, tmp_path: Path) -> None:
+        # Recommendations are a user-seeded feed, not a publication window, so
+        # `--since` must not silently empty the section.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(
+                _make_paper("2402.00007v1", title="Older Rec", published=_days_ago(90))
+            )
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(
+                run_id, [_make_score("2402.00007v1", 0.9, matched_query="recommendation")]
+            )
+            md = generate_digest(store, run_id, since_days=7)
+        assert "Recommended for You" in md
+        assert "Older Rec" in md
+
+    def test_falls_back_to_local_recommender(self, tmp_path: Path) -> None:
+        # With no API recommendations in the run, the keyword recommender still runs.
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            md = generate_digest(store, run_id)
+        assert "Recommended for You" not in md  # no ratings seeded → nothing to recommend
+
+
 class TestExtendsStarred:
     def test_section_and_badge_when_paper_cites_starred(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:

@@ -155,7 +155,8 @@ def _build_digest_context(
     rerank: bool = False,
 ) -> dict[str, Any]:
     """Build the shared template context for a run (Markdown and HTML render it)."""
-    scored = filter_since(store.get_scores_for_run(run_id), since_days)
+    all_scored = store.get_scores_for_run(run_id)
+    scored = filter_since(all_scored, since_days)
     # Resolve the run being rendered (not necessarily the latest — `--run-id N`),
     # so the header stats match the papers below them.
     run = store.get_run(run_id)
@@ -187,13 +188,23 @@ def _build_digest_context(
     except Exception:
         pass
 
-    # Recommended papers (from feedback loop)
-    recommended: list[dict[str, Any]] = []
+    # Recommended papers. Prefer the learned S2 recommendations, but hold them to
+    # a real relevance bar: the API is repo-agnostic and happily returns off-topic
+    # papers, so anything the local ranker scored below the "maybe" tier is dropped
+    # and the keyword-overlap recommender takes over instead. Drawn from the
+    # unfiltered scores because recommendations are a user-seeded feed, not a
+    # publication-window one (`--since` shouldn't silently empty the section).
+    recommended: list[dict[str, Any]] = [
+        p
+        for p in all_scored
+        if p.get("matched_query") == "recommendation"
+        and (p.get("score_total") or 0.0) >= MAYBE_THRESHOLD
+    ][:3]
     try:
         from reporadar.feedback import find_similar_to_highly_rated
 
         ratings = store.get_all_ratings()
-        if ratings:
+        if not recommended and ratings:
             rated_papers = {}
             for arxiv_id, rating in ratings.items():
                 p = store.get_paper(arxiv_id)

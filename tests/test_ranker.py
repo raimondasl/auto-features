@@ -206,6 +206,35 @@ class TestCachedEmbeddingsEquivalence:
         assert u["2401.1v1"] is not None and u["2401.1v1"] > 0
 
 
+class TestMissingCategories:
+    def test_absent_categories_do_not_dilute_the_score(self) -> None:
+        # Non-arXiv sources (S2 recommendations, DBLP, bioRxiv) carry no
+        # categories. Scoring that *missing* signal as a zero would silently
+        # handicap them against arXiv papers, so the weight is dropped instead.
+        profile = _make_profile()
+        cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=0.3)
+        no_cats = score_paper(_make_paper(categories=[]), profile, cfg, QueriesConfig(), ["cs.CL"])
+        # Same paper, same keyword/recency signal, but category present and matching.
+        with_cats = score_paper(
+            _make_paper(categories=["cs.CL"]), profile, cfg, QueriesConfig(), ["cs.CL"]
+        )
+        assert no_cats["category_score"] == 0.0  # still reported as 0
+        # A full category match should score at least as well, and the
+        # category-less paper must not be dragged below its own keyword+recency mix.
+        assert no_cats["score_total"] > 0.0
+        assert with_cats["score_total"] >= no_cats["score_total"]
+
+    def test_category_still_counts_when_present_but_unmatched(self) -> None:
+        profile = _make_profile()
+        cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=0.3)
+        mismatch = score_paper(
+            _make_paper(categories=["q-bio.NC"]), profile, cfg, QueriesConfig(), ["cs.CL"]
+        )
+        absent = score_paper(_make_paper(categories=[]), profile, cfg, QueriesConfig(), ["cs.CL"])
+        # A real non-match is penalized; an absent signal is not.
+        assert mismatch["score_total"] < absent["score_total"]
+
+
 class TestCitationProximity:
     def _low_scoring_paper(self) -> dict:
         # No keyword/category overlap and old → a low base score, so a proximity
