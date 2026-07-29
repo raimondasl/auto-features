@@ -4,6 +4,19 @@ DBLP is a bibliography (no abstracts), but its publication search API is a clean
 keyword-search JSON endpoint — a good fit for RepoRadar's query model. Papers are
 returned title-only (``abstract=""``); relevance ranking is therefore title-based
 until DOI abstract-backfill lands. Non-arXiv papers get a synthetic ``dblp:<key>`` id.
+
+Two properties to know before enabling this source:
+
+- **DBLP rate-limits hard.** Bursts get connections dropped ("Remote end closed
+  connection"); measured, 1 of 6 rapid requests succeeded. Every request therefore
+  goes through a process-wide minimum interval, and once refused it needs a long
+  cool-off — so a run that sweeps many repos will be slow and may still degrade.
+- **DBLP only exposes a publication YEAR.** ``collect_papers`` can therefore only
+  filter to ``year >= cutoff_year``, which makes it a poor match for short recency
+  windows: with a 14- or 90-day lookback only the *current calendar year* survives,
+  and the effective window swings with the date. DBLP is best paired with a wide
+  lookback (``rr update --foundational``), where its coverage of non-arXiv
+  systems/PL/DB literature is the point.
 """
 
 from __future__ import annotations
@@ -23,6 +36,22 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 DBLP_SEARCH_URL = "https://dblp.org/search/publ/api"
+
+# DBLP drops connections under bursts (measured: 1 of 6 rapid requests succeeded,
+# the rest RemoteDisconnected), so every request goes through a process-wide
+# minimum interval. Spacing queries only *within* collect_papers is not enough —
+# callers that loop over repos (the eval sweeps 12 cases) issue dozens of calls.
+_MIN_REQUEST_INTERVAL_S = 1.5
+_last_request_at = 0.0
+
+
+def _throttle() -> None:
+    """Block until at least ``_MIN_REQUEST_INTERVAL_S`` since the last request."""
+    global _last_request_at
+    wait = _MIN_REQUEST_INTERVAL_S - (time.monotonic() - _last_request_at)
+    if wait > 0:
+        time.sleep(wait)
+    _last_request_at = time.monotonic()
 
 
 @lru_cache(maxsize=1)
@@ -78,11 +107,21 @@ def _arxiv_id(info: dict[str, Any]) -> str | None:
     return f"{match.group(1)}.{match.group(2)}" if match else None
 
 
-def _request_json(url: str, max_retries: int = 3, base_delay: float = 2.0) -> Any | None:
-    """GET a JSON endpoint with retry/backoff; None on failure (graceful)."""
+def _request_json(url: str, max_retries: int = 3, base_delay: float = 5.0) -> Any | None:
+    """GET a JSON endpoint with throttling + retry/backoff; None on failure.
+
+    ``base_delay`` is deliberately longer than the other adapters': once DBLP has
+    started refusing, a 2s pause is not enough to get back in.
+    """
+    headers = {
+        "Accept": "application/json",
+        # Identify the client rather than sending the default python-urllib agent.
+        "User-Agent": "RepoRadar/1.0 (+https://github.com/raimondasl/auto-features)",
+    }
     for attempt in range(max_retries):
         try:
-            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            _throttle()
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as resp:
                 return json_mod.loads(resp.read())
         except urllib.error.HTTPError as exc:

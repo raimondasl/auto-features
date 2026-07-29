@@ -545,7 +545,36 @@ The third run was intended to measure the Feature 10 DBLP adapter. It measured n
 DBLP evaluation. Fixed: `dblp`/`biorxiv` branches added, plus a `ValueError` on any unrecognised
 source so a typo or unsupported adapter can never again masquerade as a measurement.
 
-**DBLP was still unmeasured** at the time of this run because `dblp.org` failed TLS verification.
+### DBLP: still unmeasured after four attempts — and now we know why (2026-07-29)
+
+The DBLP arm of this comparison has never produced a number. Each attempt hit a *different*
+blocker, and all four were real:
+
+| Attempt | Blocker | Status |
+|---|---|---|
+| 1 | `harness.collect_live_papers` had no `dblp` branch — the flag was silently dropped | fixed (this PR's harness change) |
+| 2 | `dblp.org` failed TLS verification (GEANT CA absent from the Windows trust store) | fixed (PR #50) |
+| 3 | **Rate limiting** — DBLP dropped connections under the sweep's ~60 queries (47 failures in one run; measured 1/6 rapid requests succeeding) | mitigated: process-wide request throttle + a real User-Agent |
+| 4 | **Year granularity** — DBLP exposes only a publication *year*, so a 90-day lookback filters to `year >= 2026` | *structural, not fixable by retrying* |
+
+Attempt 4 is the interesting one, and it is a **design conclusion rather than a bug**: because DBLP
+has no publication date, `collect_papers` can only filter `year >= cutoff_year`. With Tier B's
+90-day window that keeps only the current calendar year — a thin slice of DBLP — and the effective
+window swings with the calendar (the same filter run in January would also admit the prior year).
+
+**So DBLP is structurally mismatched to recency-windowed discovery.** Its value is the non-arXiv
+systems/PL/DB literature, which is mostly *not* from the last 90 days. The honest recommendation:
+pair `sources: [arxiv, dblp]` with **`rr update --foundational`** (all-time, relevance-first), where
+`cutoff_year` stops filtering anything — and don't expect it to move a recency benchmark. Measuring
+it properly needs a Tier B variant run in all-time mode.
+
+Arm 1 of the comparison did complete on current `main` (arXiv only, post-tie-break):
+**mean net@2 +0.83, precision 0.91, 0 hallucinations, all 12 baselines valid** — per-case identical
+to the pre-tie-break run, confirming that the tie-break leak was specific to the *label-ordered*
+Tier A/S fixtures and never touched Tier B's live, fetch-ordered pools.
+
+**Original note (superseded above):** DBLP was unmeasured at the time of this run because
+`dblp.org` failed TLS verification.
 **Correction (2026-07-29):** that was *not* a local CA quirk as first written here — it reproduced on
 a second machine. dblp.org chains to GEANT / Hellenic Academic and Research Institutions CA, which
 ships in `certifi` but is absent from the Windows system trust store Python's default SSL context
