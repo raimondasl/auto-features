@@ -41,14 +41,14 @@ Example output:
 === RepoRadar offline benchmark ===
 (k=10, embeddings=off, recency weight=0 for determinism)
 
-  [rag] P@10=1.000  R@10=0.500  nDCG@10=1.000  MRR=1.000  MAP=0.909  sep=+0.148  (20 gold / 50)
-  [cv]  P@10=1.000  R@10=0.500  nDCG@10=1.000  MRR=1.000  MAP=0.970  sep=+0.347  (20 gold / 50)
-  [rl]  P@10=0.700  R@10=0.368  nDCG@10=0.801  MRR=1.000  MAP=0.784  sep=+0.141  (19 gold / 49)
+  [rag] P@10=1.000  R@10=0.500  nDCG@10=1.000  MRR=1.000  MAP=0.882  sep=+0.148  (20 gold / 50)
+  [cv]  P@10=0.900  R@10=0.450  nDCG@10=0.922  MRR=1.000  MAP=0.928  sep=+0.347  (20 gold / 50)
+  [rl]  P@10=0.700  R@10=0.368  nDCG@10=0.801  MRR=1.000  MAP=0.759  sep=+0.141  (19 gold / 49)
   [webdev] negative control: PASS
         max_score=0.030 (threshold 0.5), top-tier papers=0, mean_top10=0.009
 
   --- mean over labeled cases ---
-  P@10=0.900  R@10=0.456  nDCG@10=0.934  MRR=1.000  MAP=0.887  sep=+0.212
+  P@10=0.867  R@10=0.439  nDCG@10=0.907  MRR=1.000  MAP=0.856  sep=+0.212
 ```
 
 More commands:
@@ -375,7 +375,12 @@ evals/
   README.md          this file
   benchmark.yaml     case definitions (repos, queries, categories)
   harness.py         profile a repo + rank a pool + shared live helpers
-  metrics.py         Tier A (P@k, nDCG, separation) + Tier B (net@lambda, abstention)
+  metrics.py         Tier B only (net@lambda, abstention, graded nDCG). The shared IR
+                     metrics (P@k, R@k, nDCG, MRR, MAP, separation) moved to
+                     src/reporadar/metrics.py and are re-exported here, so this
+                     benchmark and the in-CLI `rr eval` cannot drift apart
+  seeded.py          Tier S: stratified seed/hold-out split + component builders
+  run_seeded_eval.py Tier S runner
   build_fixtures.py  fetch real arXiv papers -> fixtures/ (run manually)
   run_eval.py        Tier A runner (--offline / --live)
   run_judge_eval.py  Tier B runner (LLM judge vs Opus baseline; --mock to dry-run)

@@ -1664,7 +1664,8 @@ def mcp(config_path: str | None) -> None:
     """Run RepoRadar as an MCP server (stdio) for coding agents.
 
     Exposes repo-aware tools — get_repo_profile, get_ranked_papers,
-    explain_relevance, rate_paper — to Claude Code / Cursor / VS Code / Windsurf.
+    explain_relevance, rate_paper, search_papers — to Claude Code / Cursor / VS Code
+    / Windsurf.
     Requires the optional MCP extra:  uv pip install -e ".[mcp]"
     """
     cfg = _load_and_validate(config_path)

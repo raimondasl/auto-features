@@ -599,6 +599,35 @@ The listwise rerank over a deeper candidate pool plus all-time (foundational) di
 carrying **~+0.67** of the headline — worth more than any source addition tested here, and a
 reminder that `rr update --foundational` is not a nicety.
 
+### Features 1, 9 and 11 shipped since — no number above moves, and the benchmark is blind to one of them (2026-07-30)
+
+PRs #53, #54 and #55 added `ranking.w_community` (HF upvotes), `ranking.w_attention`
+(Hacker News), the Feature 9 integrity signal, and `rr eval`. Checked rather than
+assumed, so the next audit does not have to redo it:
+
+| Change | Effect on the numbers above |
+|---|---|
+| `ranking.w_community` | **None.** Defaults to `0.0` and no runner sets it. |
+| `ranking.w_attention` | **None.** Defaults to `0.0` and no runner sets it. |
+| `score_recency(now=)` | **None.** Optional; the harness does not pass it, so behaviour is unchanged. |
+| `signals.integrity` | **None on these numbers — but the default ranking did change.** See below. |
+
+The integrity signal is the one worth writing down. `signals.integrity` defaults to
+**True**, so a real `rr update` now applies a hard multiplicative `withdrawn_penalty`
+(0.1) and `categorize_papers` pulls withdrawn papers out of the digest tiers. The
+recorded numbers do not move because the benchmark cannot see any of that:
+`harness.py` calls `rank_papers` without `withdrawn=`, computes tiers from
+`score_total` directly, and none of the 185 fixture papers is withdrawn.
+
+**So the shipped default ranking changed while the benchmark stayed structurally blind
+to it.** That is not a stale number, it is a coverage gap: measuring the integrity
+signal needs a harness change plus a fixture containing a withdrawn paper, not a re-run.
+Recorded here so nobody reads the unchanged numbers as evidence the change was neutral.
+
+`rr eval` (Feature 11) is the in-CLI counterpart to this benchmark and shares its
+metrics via `src/reporadar/metrics.py`. It scores against a user's own ratings rather
+than fixtures, so it produces no number for this file.
+
 ### 6. What still cannot be measured
 
 Three shipped features are **structurally unmeasurable** by this harness: **SPECTER2** (F7),

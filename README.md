@@ -23,7 +23,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
 - **Ranking eval** — `rr eval` scores the ranker against your own ratings, and `--compare a.yml b.yml` A/Bs two configs with a bootstrap interval, so "did that change help?" has an answer
-- **No API keys required** — uses only free, public APIs
+- **No API keys required** for the default arXiv pipeline — every core source is free and keyless (OpenAlex is the one exception: since 2026-02-13 it throttles keyless callers, so set `openalex.api_key` if you enable that source)
 
 ## Installation
 
@@ -73,13 +73,15 @@ Prints the inferred topic profile: TF-IDF keywords with weights, detected packag
 
 It also flags paper sources that match the repo but aren't in `sources:` — a repo built on `scanpy`/`anndata` gets pointed at bioRxiv, one built on `duckdb`/`rocksdb` at DBLP (`rr update` prints the same hint). Suggestions only: nothing is auto-enabled, since each source has costs worth opting into knowingly, and the hint says what they are.
 
-### `rr update [--config PATH] [--foundational] [-v]`
+### `rr update [--config PATH] [--explain] [--foundational] [--rebuild-embeddings] [-v]`
 
 Runs the full pipeline: profile repo, build queries, fetch papers from arXiv, store in SQLite, score, and display top 5 results. Use `-v` for verbose logging.
 
+`--explain` prints a per-component score breakdown for the top papers, which is the only way to see why a paper ranked where it did.
+
 `--foundational` runs a one-time **seed-corpus sweep**: all-time, relevance-first (no recency window, recency weight dropped), so seminal foundational papers surface instead of only recent ones. Use it to seed the corpus; the default is the recent digest.
 
-### `rr digest [--config PATH] [--since 7d] [--run-id N] [-o PATH] [--format md|html]`
+### `rr digest [--config PATH] [--since 7d] [--run-id N] [-o PATH] [--format md|html|json|csv|rss] [--diff]`
 
 Generates a digest from the latest (or specified) run. Options:
 
@@ -87,10 +89,25 @@ Generates a digest from the latest (or specified) run. Options:
 - `--run-id N` — use scores from a specific run instead of the latest
 - `-o PATH` — custom output file path
 - `--format html` — a fully rendered HTML page (paper cards, score breakdowns, badges — not raw Markdown; auto-converts the `.md` extension to `.html`)
+- `--format json|csv|rss` — machine-readable output for downstream tooling; the extension is rewritten to `.json` / `.csv` / `.xml` automatically
+- `--diff` — mark papers `[NEW]` versus carried over from the previous run
 
 ### `rr open [--config PATH] [-n N | --top N]`
 
-Opens the top N papers from the latest run in your default browser. Defaults to 5.
+Opens the top N papers from the latest run in your default browser. Defaults to 5. Opening a paper also stars it, which counts as a weak positive signal.
+
+### `rr rate ARXIV_ID RATING [--config PATH]`
+
+Rates a paper from 1 (not useful) to 5 (very useful). This is the input everything
+adaptive is built on: 4–5 seeds the [learned recommender](#configuration) and the
+SPECTER2 query, 1–2 suppresses similar results, and both become the labels
+[`rr eval`](#rr-eval---config-path--k-10---compare-ayml-byml---baseline---against-latest---history---format-textjson)
+scores the ranker against. An explicit rating always outranks the implicit star from
+`rr open`.
+
+```bash
+rr rate 2501.12948 5
+```
 
 ### `rr archive [--config PATH] [--archive-dir DIR] [--date YYYY-MM-DD] [--since 7d]`
 
@@ -131,7 +148,7 @@ the digest. Shell hooks additionally get the whole summary as environment
 variables: `RR_DIGEST_PATH`, `RR_RUN_ID`, `RR_PAPERS_NEW`, `RR_PAPERS_SEEN`,
 `RR_TOP_PICKS_COUNT`, `RR_TOTAL_SCORED`, `RR_EXTENDS_STARRED_COUNT`, `RR_FORMAT`.
 
-### `rr eval [--config PATH] [-k 10] [--compare A.yml B.yml] [--baseline] [--history]`
+### `rr eval [--config PATH] [-k 10] [--compare A.yml B.yml] [--baseline] [--against latest] [--history] [--format text|json]`
 
 Scores the ranker against the ratings you have already given, so a ranking change is
 falsifiable instead of taken on faith:
@@ -169,8 +186,8 @@ ndcg@k difference (B - A): -0.445  90% interval [-0.729, -0.199]
 
 When the interval contains zero it says **NOT SHOWN** rather than inviting a decision
 the data cannot support. If the two configs differ only in something the harness cannot
-reproduce (`hybrid` RRF reorders using a corpus-wide BM25 index built at digest time),
-it says that too — otherwise "cannot tell them apart" would be indistinguishable from a
+reproduce (`w_embedding` needs the optional embeddings extra; `w_citations` needs counts
+fetched at digest time), it says that too — otherwise "cannot tell them apart" would be indistinguishable from a
 genuine null result.
 
 **As a CI gate.** `--baseline [--label NAME]` records a measurement together with the
@@ -227,6 +244,20 @@ Requires the optional extra: `uv pip install -e ".[mcp]"`. Register it with your
 ```bash
 claude mcp add reporadar -- rr mcp --config /abs/path/.reporadar.yml
 ```
+
+### Other commands
+
+| Command | What it does |
+|---|---|
+| `rr status` | Corpus size, last run, ratings/stars recorded |
+| `rr history` | Past collection runs with counts |
+| `rr queries` | The auto-generated queries `rr update` would run, without running them |
+| `rr watch --interval 6h` | Continuous update+digest cycles with a desktop notification |
+| `rr schedule` | Install/remove an OS-level scheduled run (crontab or schtasks) |
+| `rr gh-issues` | Open a GitHub issue per top paper (needs the `gh` CLI) |
+| `rr workspace` | Multi-repo workspaces: `init`, `add`, `list`, `remove`, `update`, `digest` |
+
+Run any of them with `--help` for the full flag list.
 
 ## GitHub Action (scheduled digests + GitHub Pages)
 
@@ -300,15 +331,39 @@ queries:
     - "survey"
     - "benchmark"
 
+sources: [arxiv]                      # add: semantic_scholar, openalex, biorxiv, dblp
+
 ranking:
   w_keyword: 1.0                      # Weight for keyword overlap score
   w_category: 0.5                     # Weight for category match score
   w_recency: 0.3                      # Weight for recency score
-  w_citation_proximity: 0.0          # >0: fetch references + boost papers that cite work you starred/rated
-  w_specter: 0.0                     # >0: SPECTER2 similarity to the papers you starred/rated highly
-  w_community: 0.0                   # >0: rank on Hugging Face Papers upvotes (from cached enrichments)
-  w_attention: 0.0                   # >0: rank on Hacker News points (needs signals.hackernews)
-  withdrawn_penalty: 0.1             # multiplier for a withdrawn paper's score (1.0 disables)
+  w_embedding: 0.0                    # `rr init` writes 1.5; needs the `embeddings` extra or it does nothing
+  w_citations: 0.0                    # >0: rank on citation counts (fetched at digest time)
+  w_citation_proximity: 0.0           # >0: fetch references + boost papers that cite work you starred/rated
+  w_specter: 0.0                      # >0: SPECTER2 similarity to the papers you starred/rated highly
+  w_community: 0.0                    # >0: rank on Hugging Face Papers upvotes (from cached enrichments)
+  w_attention: 0.0                    # >0: rank on Hacker News points (needs signals.hackernews)
+  withdrawn_penalty: 0.1              # multiplier for a withdrawn paper's score (1.0 disables)
+  hybrid: false                       # true: fuse the heuristic order with BM25 via RRF
+  category_weights: {}                # per-category multipliers, e.g. {cs.CL: 2.0}
+
+triage:
+  enabled: false                      # true: LLM-score each top paper 0-3 for actionability
+  min_actionable: 2                   # llm_score >= this qualifies as a Top Pick
+  rerank: true                        # reorder by llm_score before the top-N cut
+
+suggestions:
+  provider: template                  # template | ollama | claude (triage needs ollama or claude)
+
+feedback:
+  enabled: false                      # true: learn ranking weights from your ratings
+  min_ratings: 10                     # don't tune until this many ratings exist
+
+profiler:
+  scan_source: false                  # true: also scan source files for imports/ML patterns
+
+openalex:
+  api_key: ""                         # required for real use since 2026-02-13; ${ENV} refs work
 
 enrichment:
   provider: huggingface               # or `off` to skip the HF Papers lookup entirely
@@ -407,16 +462,31 @@ All queries are scoped to your configured arXiv categories (e.g., `cat:cs.LG OR 
 
 ### Scoring
 
-Each paper gets a combined score from three components:
+Each paper gets a **weighted average** of whichever components have data:
 
 ```
-score = (w_keyword * keyword_score + w_category * category_score + w_recency * recency_score) * exclude_penalty
+score = (Σ wᵢ · componentᵢ / Σ wᵢ) · exclude_penalty · withdrawn_penalty
 ```
+
+Always present:
 
 - **Keyword score** (0–1) — fraction of profile keywords found in paper title + abstract, weighted by TF-IDF weight
-- **Category score** (0–1) — fraction of target categories that appear in the paper's categories
 - **Recency score** (0–1) — linear decay from 1.0 (today) to 0.0 at the lookback boundary
-- **Exclude penalty** — each matched exclude term multiplies the score by 0.5 (e.g., two matches → 0.25x)
+- **Category score** (0–1) — fraction of target categories that appear in the paper's categories
+
+Optional, each contributing only when its weight is above zero *and* the signal exists:
+`w_embedding`, `w_citations`, `w_citation_proximity`, `w_specter`, `w_community`, `w_attention`.
+
+Two properties follow from that formula and are easy to get wrong:
+
+- **A missing signal is not a zero.** A component with no data is left out of *both* the numerator and the
+  denominator, so a paper SPECTER2 has never seen is not handicapped against one it has. The same rule drops
+  the category term for non-arXiv sources (Semantic Scholar, DBLP, bioRxiv) that carry no categories at all.
+- **The score is normalized, so scaling every weight changes nothing.** Only the *ratios* matter. This also
+  means the digest tier thresholds (0.5 / 0.2) live on the normalized 0–1 scale, not on the raw weighted sum.
+
+Multipliers apply after normalization: **exclude penalty** (each matched exclude term halves the score) and
+**withdrawn penalty** (`ranking.withdrawn_penalty`, default 0.1 — see withdrawal detection above).
 
 ### Digest Tiers
 
@@ -460,27 +530,56 @@ uv run pytest tests/ --cov=reporadar --cov-report=term-missing
 
 ```
 src/reporadar/
-  cli.py              # Click CLI entry points
+  cli.py              # Click CLI entry points (every `rr` command)
   config.py           # YAML config loading/validation
+  store.py            # SQLite storage, dedup, and the versioned migration chain
+
   profiler.py         # Repo topic profiling (TF-IDF)
-  collector.py        # arXiv API querying
-  store.py            # SQLite storage + dedup
-  ranker.py           # Heuristic paper scoring
-  digest.py           # Markdown/HTML digest generation
+  source_analysis.py  # Optional import/ML-pattern scan of the repo's source
+  collector.py        # arXiv API querying + query building
+  sources/            # Adapters that FIND papers, opt-in via `sources:`
+    semantic_scholar.py  openalex.py  biorxiv.py  dblp.py
+    hf_papers.py         # HF Papers enrichment (code/model/dataset links, upvotes)
+    s2_recommendations.py# learned recommendations seeded by your stars/ratings
+    suggest.py           # suggests a domain source from the repo profile
+  signals/            # Adapters that say something ABOUT a paper you already have
+    integrity.py         # withdrawal detection (on by default, hard penalty)
+    hn.py                # Hacker News attention (opt-in badge + w_attention)
+
+  ranker.py           # Weighted-average scoring across all components
+  retrieval.py        # BM25 + RRF hybrid fusion
+  embeddings.py       # Sentence-transformer encoding (optional extra)
+  embedding_cache.py  # Compute-once vector cache
+  vec_index.py        # sqlite-vec KNN with a numpy fallback
+  semantic.py         # Semantic/hybrid search over the stored corpus
+  search.py           # Offline BM25 corpus search (`rr search`)
+  specter.py          # SPECTER2 vectors + centroid query (served by S2)
+  citations.py        # Citation counts and reference fetching
+  citation_graph.py   # "extends work you starred" link finding
+  triage.py           # LLM actionability scoring + listwise rerank
+  llm_client.py       # Shared LLM transport (Ollama / Claude)
+  llm_suggestions.py  # LLM-generated action ideas
   suggestions.py      # Template-based action suggestions
-  templates/
-    digest.md.j2      # Jinja2 Markdown template
-    digest.html.j2    # Jinja2 HTML wrapper template
-tests/
-  test_cli.py         # CLI integration tests
-  test_config.py
-  test_profiler.py
-  test_collector.py
-  test_store.py
-  test_ranker.py
-  test_digest.py
-  test_suggestions.py
-  fixtures/           # Sample READMEs, manifests for tests
+  feedback.py         # Learns ranking weights from your ratings
+  trends.py           # Keyword-frequency trend detection
+
+  evaluation.py       # `rr eval` — scores the ranker against your own ratings
+  metrics.py          # Shared IR metrics (also re-exported by evals/)
+
+  digest.py           # Digest generation: md / html / json / csv / rss
+  archive.py          # Dated GitHub Pages archive + index
+  notify.py           # Shell / Slack / Discord / email notifications
+  gh_issues.py        # Opens GitHub issues for top papers
+  watcher.py          # `rr watch` polling loop
+  scheduler.py        # OS-level scheduling helpers
+  workspace.py        # Multi-repo workspaces
+  mcp_server.py       # MCP server (`rr mcp`) for coding agents
+  output.py           # Console output helpers
+  templates/          # Jinja2: digest.md, digest_page.html (the rendered page),
+                      # digest.html (legacy wrapper), digest.rss.xml,
+                      # archive_index.html, workspace_digest.md
+tests/                # 46 test modules; fixtures/ holds sample repos + frozen arXiv data
+evals/                # Standalone benchmark (Tier A/B/S) — see evals/README.md
 ```
 
 ## License
