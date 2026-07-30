@@ -268,8 +268,10 @@ def find_withdrawn(papers: list[dict[str, Any]], comments: dict[str, str]) -> di
     """Return ``{arxiv_id: field}`` for every paper that looks withdrawn.
 
     *comments* comes from :func:`fetch_comments`; papers missing from it are still
-    checked against their stored title/abstract, which catches roughly half of real
-    withdrawals on its own and costs nothing.
+    checked against their stored title/abstract, which costs nothing but is **not**
+    reliable alone — two differently-drawn samples put that path at 46% and 0% recall
+    (see the module docstring). The comment fetch is what makes the check trustworthy,
+    so do not disable it (in CI, say) on the strength of the local fallback.
     """
     flagged: dict[str, str] = {}
     for paper in papers:

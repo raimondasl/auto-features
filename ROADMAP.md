@@ -31,8 +31,8 @@ A manually-run **benchmark** (not CI) that scores RepoRadar's ranking quality on
 
 ## Feature overview
 
-**Status legend** (as of 2026-07-15): ✅ shipped · 🟡 partial (core shipped, extensions pending) · ⬜ planned.
-See [Implementation status](#implementation-status-2026-07-15) below for the shipped-vs-remaining breakdown.
+**Status legend** (as of 2026-07-30): ✅ shipped · 🟡 partial (core shipped, extensions pending) · ⬜ planned.
+See [Implementation status](#implementation-status-2026-07-30) below for the shipped-vs-remaining breakdown.
 
 | # | Status | Feature | Tier | One-line impact |
 |---|--------|---------|------|-----------------|
@@ -59,7 +59,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 
 ---
 
-## Implementation status (2026-07-15)
+## Implementation status (2026-07-30)
 
 A benchmark-driven arc (Tier B eval → Feature 6 triage/rerank → all-time discovery → hybrid retrieval)
 shipped the ranking-and-precision core. The 12-case Tier B benchmark now shows RepoRadar **net-positive
@@ -102,7 +102,8 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 
 **🟡 Partial**
 - **Feature 9 — attention & integrity signals**: a new `signals/` package. `signals/integrity.py` flags papers
-  withdrawn by their authors (300/300 recall, no confirmed false positive over 500 ordinary papers) and applies a
+  withdrawn by their authors (100% recall on notices phrased "withdrawn", 83-85% on "withdrew"/"retracted",
+  no confirmed false positive over 600 ordinary papers) and applies a
   hard multiplicative `withdrawn_penalty`, so a withdrawn paper cannot reach Top Picks on other strengths;
   `signals/hn.py` badges Hacker News discussion behind an opt-in `w_attention`. Store v13 (`paper_signals` +
   `attention_score`). **Two of the four planned signals were disproven, not deferred for effort:** OpenReview's
@@ -131,7 +132,7 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
 
 **⬜ Not started**
-- Features 9, 13, 14, 15, 16, 17, 18, 19, 20.
+- Features 13, 14, 15, 16, 17, 18, 19, 20.
 
 ---
 
@@ -380,7 +381,7 @@ Every existing source assumes the arXiv-ML user, but RepoRadar's value propositi
 > differencing incomparable numbers, and flagging when the judged set itself changed.
 >
 > **Remaining:** per-repo and pooled reporting in workspaces; wiring `rr eval --against` into the Feature 3
-> GitHub Action; and modelling `hybrid` RRF, `w_embedding`, `w_citations` and LLM triage, which a condensed list
+> GitHub Action; and modelling `w_embedding`, `w_citations` and LLM triage, which a condensed list
 > of judged papers cannot currently reproduce (`--compare` warns when a difference is confined to those rather
 > than reporting a misleading null).
 
@@ -441,7 +442,7 @@ Proven elsewhere; moderate integration risk or degraded-dependency caveats.
 
 ### 6. Repo-aware LLM triage and reranking (and actually wiring the LLM path)
 
-> **✅ Core shipped.** `llm_client.py` (shared transport), `triage.py` (0–3 LLM actionability scoring), `TriageConfig`, schema v7 `paper_llm_scores`, `cli.update` triage stage, and digest tiering that **gates Top Picks on the LLM score** (abstains unless genuinely actionable) — directly targeting the precision/calibration gap the Tier B baseline exposed (`evals/RESULTS.md`). The `evals/run_judge_eval.py --rr-triage` flag measures the movement. Remaining: listwise reranking, storing scores to avoid re-paying inference across re-digests, and a HyDE query path.
+> **✅ Core shipped.** `llm_client.py` (shared transport), `triage.py` (0–3 LLM actionability scoring), `TriageConfig`, schema v7 `paper_llm_scores`, `cli.update` triage stage, and digest tiering that **gates Top Picks on the LLM score** (abstains unless genuinely actionable) — directly targeting the precision/calibration gap the Tier B baseline exposed (`evals/RESULTS.md`). The `evals/run_judge_eval.py --rr-triage` flag measures the movement. Remaining: a HyDE query path. (Listwise reranking shipped as `triage.rerank_by_actionability` behind `TriageConfig.rerank`; per-run scores already persist in v7 `paper_llm_scores`, so re-digests do not re-pay inference.)
 
 **Verification: feasible-with-caveats** — and it fixes two live bugs.
 
@@ -584,7 +585,7 @@ all-MiniLM is a generic sentence model; SPECTER2 is the de-facto scientific-pape
 > resolves DeepSeek-R1 → Nature, Attention → NeurIPS on a call `citations.py` already makes) is deferred rather
 > than shipped.
 >
-> **Remaining:** the venue annotation above; storing `<arxiv:comment>` at collect time (v14) so ingest-time
+> **Remaining:** the venue annotation above; storing `<arxiv:comment>` at collect time (v15 — v14 is `metric_snapshots`) so ingest-time
 > detection is free and the network re-check becomes a top-up; excluding withdrawn papers from `trends.py`.
 
 **Verification: feasible-with-caveats** (all four sources confirmed free; two plan corrections applied).
@@ -782,7 +783,7 @@ PaperBench established rubric-decomposition for judging implementability; RECAP-
 - Abstract-only LLM rubric answers are shallow; PDF-level checks need the full-text pipeline
 - A wrong composite weighting quietly buries good papers — keep it a separate badge/sort before folding into default ranking
 
-**Dependencies:** features 1, 9 (both unshipped — this stacks on them), `llm_client` (feature 6).
+**Dependencies:** features 1 and 9 (both shipped — HF enrichment and `paper_signals`), `llm_client` (feature 6). Note feature 9 dropped OpenReview, so an acceptance sub-score is no longer reachable.
 **Sources:** [PaperBench](https://arxiv.org/abs/2504.01848) · [SciCoQA](https://arxiv.org/abs/2601.12910) · [RECAP](https://arxiv.org/abs/2602.07059)
 
 ### 19. Research-gap radar: "nobody has applied X to your Y" alerts
@@ -855,7 +856,7 @@ Differentiation (corrected after verification): Paper2Agent turns papers into MC
 
 - **`llm_client.py`** — extract from `llm_suggestions.py` (features 6, 7, 14, 15, 16, 18, 19 all need it)
 - **`pipeline.py`** — de-duplicate the collect→store→rank orchestration from `cli.update`/`watcher.py`/`workspace.py` (feature 14 prerequisite; fixes Tier-0 drift)
-- **v6 schema migration batch** — `paper_llm_scores`, `paper_citations`, `paper_signals`, `paper_gaps`, `paper_technique_matches`, `metric_snapshots`, enrichment `upvotes` (the vec0 virtual table stays **outside** the migration chain — see feature 4)
+- **Schema migrations** — enrichment `upvotes` (v6), `paper_llm_scores` (v7), `paper_embeddings` (v9), `paper_citations` (v10), `paper_signals` + `attention_score` (v13), `metric_snapshots` (v14). `paper_gaps` / `paper_technique_matches` unbuilt; **next free version is 15**. The sqlite-vec `vec0` table sits outside the migration chain (see feature 4) (the vec0 virtual table stays **outside** the migration chain — see feature 4)
 - **Vector store** (feature 4) — consumed by features 7, 15, 19
 
 ## Suggested sequencing
