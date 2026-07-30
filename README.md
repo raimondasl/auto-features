@@ -22,6 +22,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Community attention** — optionally rank on Hugging Face Papers upvotes, log-scaled against the run's own maximum (`ranking.w_community`)
 - **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
+- **Ranking eval** — `rr eval` scores the ranker against your own ratings, and `--compare a.yml b.yml` A/Bs two configs with a bootstrap interval, so "did that change help?" has an answer
 - **No API keys required** — uses only free, public APIs
 
 ## Installation
@@ -129,6 +130,87 @@ or rated 4–5, so a citation alert reaches you instead of waiting to be noticed
 the digest. Shell hooks additionally get the whole summary as environment
 variables: `RR_DIGEST_PATH`, `RR_RUN_ID`, `RR_PAPERS_NEW`, `RR_PAPERS_SEEN`,
 `RR_TOP_PICKS_COUNT`, `RR_TOTAL_SCORED`, `RR_EXTENDS_STARRED_COUNT`, `RR_FORMAT`.
+
+### `rr eval [--config PATH] [-k 10] [--compare A.yml B.yml] [--baseline] [--history]`
+
+Scores the ranker against the ratings you have already given, so a ranking change is
+falsifiable instead of taken on faith:
+
+```
+Judged papers: 34 (30 rated, 4 starred-only, 2 neutral 3-star ignored)
+Relevant:      18
+
+  precision@10: 1.000
+  recall@10:    0.556
+  nDCG@10:      1.000
+  MRR:          1.000
+```
+
+4–5 stars (and stars) count as relevant, 1–2 as not, and 3 is ignored — the same
+convention the feedback loop uses to tune weights, so the thing measured and the thing
+tuned agree. An explicit rating always beats an implicit star, since `rr open` stars
+papers as a side effect.
+
+`--compare` re-scores the identical papers under two configs and bounds the difference,
+because with a few dozen labels a small gap is noise:
+
+```bash
+rr eval --compare .reporadar.yml experiment.yml
+```
+
+```
+metric                 A         B     delta
+--------------------------------------------
+nDCG@10            1.000     0.555    -0.445
+
+ndcg@k difference (B - A): -0.445  90% interval [-0.729, -0.199]
+  -> A is better on this data (interval excludes zero).
+```
+
+When the interval contains zero it says **NOT SHOWN** rather than inviting a decision
+the data cannot support. If the two configs differ only in something the harness cannot
+reproduce (`hybrid` RRF reorders using a corpus-wide BM25 index built at digest time),
+it says that too — otherwise "cannot tell them apart" would be indistinguishable from a
+genuine null result.
+
+**As a CI gate.** `--baseline [--label NAME]` records a measurement together with the
+weights that produced it; `--against latest` (or a snapshot id) compares a fresh run to
+it and **exits 1 on a regression**:
+
+```bash
+rr eval --baseline --label before-change   # once, on a good config
+rr eval --against latest                   # in CI, after any ranking change
+```
+
+Movement smaller than 0.02 is tolerated, since metrics shift whenever a new rating
+lands — an exact-equality gate would fail constantly and get switched off. A baseline
+taken at a different `-k` is refused rather than differenced, and a changed judged-set
+size is flagged, because part of that movement is new ratings rather than a ranking
+change. `--history` lists recorded baselines with the `k` each used.
+
+**What it does and does not measure.** It measures whether the ranker *orders the
+papers you judged* well. It cannot measure papers it never showed you, and your
+ratings only exist for papers an earlier ranking surfaced — real selection bias that
+no offline metric can correct. Treat it as a regression check on changes, not an
+absolute quality score. Below ~20 judgments the output says so.
+
+Papers unrated by you are **removed** from the ranking rather than counted as
+irrelevant: with tens of labels against thousands of stored papers, counting the
+unjudged as bad would drown every metric in papers you never looked at.
+
+The optional components are measurable too. Citation proximity, SPECTER2, HF upvotes,
+Hacker News points, withdrawal flags and hybrid RRF are rebuilt from what your own runs
+already stored — **entirely offline, no network calls** — so `--compare` can tell you
+whether `w_specter` or `w_attention` earns its weight on your corpus. A signal your runs
+never fetched stays absent rather than becoming a zero, so the eval measures only the
+components you actually populated. `w_embedding` and `w_citations` cannot be reproduced
+offline; a comparison that turns on one of those says so rather than reporting a null.
+
+SPECTER2 gets special handling: its query is the centroid of the papers you starred or
+rated highly, which are *exactly* the relevant labels — so it is scored leave-one-out,
+with each paper excluded from its own query. Without that, every relevant paper's score
+is inflated by construction and the harness confidently recommends turning the weight
+up even when the vectors are pure noise.
 
 ### `rr mcp [--config PATH]`
 

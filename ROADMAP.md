@@ -46,7 +46,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 8 | 🟡 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
 | 9 | 🟡 | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
 | 10 | 🟡 | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
-| 11 | 🟡 | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
+| 11 | ✅ | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
 | 12 | 🟡 | OpenAlex 2026 upgrade (keys, semantic search, Topics) | High confidence | Un-breaks the source; classifier-backed field watching instead of keyword guessing |
 | 13 | ⬜ | Privacy guard (audit, redaction, local-only mode) | High confidence | Unlocks proprietary/enterprise codebases — currently an unexamined blocker |
 | 14 | ⬜ | `rr deepscan` — agentic iterative search | Ambitious | Multi-round query-refine-expand loops, the flagship pattern of $12–20/mo commercial tools, free and repo-aware |
@@ -94,6 +94,12 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   examples); results are merged as `matched_query="recommendation"` and **re-ranked locally**, and the digest's
   "Recommended for You" prefers them over the keyword recommender.
 
+- **Feature 11 — `rr eval`** (`evaluation.py`, store v14 `metric_snapshots`): scores the ranker against your own
+  ratings, with `--compare A.yml B.yml` re-scoring identical papers under two configs and bounding the
+  difference by a bootstrap interval — so a change that the data cannot justify reads "NOT SHOWN" instead of
+  looking like an improvement. Unjudged papers are removed rather than counted irrelevant, recency is scored as
+  of each paper's `first_seen`, and the selection bias in rating-derived labels is printed on every run.
+
 **🟡 Partial**
 - **Feature 9 — attention & integrity signals**: a new `signals/` package. `signals/integrity.py` flags papers
   withdrawn by their authors (300/300 recall, no confirmed false positive over 500 ordinary papers) and applies a
@@ -122,8 +128,6 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   by S2, cached under a distinct `specter_v2` key in `paper_embeddings`, queried by the centroid of your
   starred/highly-rated papers (no local model), pool-normalized, persisted via store v11 `specter_score`.
   *Remaining:* the CPU cross-encoder rerank, local SPECTER2 for a profile query, and HyDE.
-- **Feature 11** — the standalone `evals/` harness exists; the **in-CLI `rr eval`** over a user's own
-  ratings/stars is not built.
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
 
 **⬜ Not started**
@@ -314,6 +318,71 @@ Every existing source assumes the arXiv-ML user, but RepoRadar's value propositi
 **Sources:** [bioRxiv API docs (via medrxivr)](https://docs.ropensci.org/medrxivr/) · [eprint.iacr.org](https://eprint.iacr.org/) · [dblp.org](https://dblp.org/)
 
 ### 11. `rr eval`: offline recommendation-quality harness and ranking regression gate
+
+> **✅ Shipped.** `evaluation.py` + `rr eval` (`-k`, `--compare A.yml B.yml`, `--baseline --label`, `--history`,
+> `--format json`), store v14 `metric_snapshots`. The shared IR metrics moved into the installed package as
+> `reporadar/metrics.py`, with `evals/metrics.py` re-exporting them — two copies of a metric definition drift,
+> and the roadmap explicitly wanted the in-CLI and benchmark harnesses to agree.
+>
+> **Three methodological choices decide whether the numbers mean anything, and each is printed rather than
+> buried in a docstring.** (1) Judgments are *incomplete* — tens of labels against thousands of stored papers —
+> so unjudged papers are **removed** from the ranking (a condensed list), not counted as irrelevant; counting
+> them would drown precision@10 in papers the user never looked at and a perfect ranker would score near zero.
+> (2) The judged set is **not a random sample**: you can only rate what a digest showed you, and that digest was
+> chosen by an earlier version of this ranker, so the metrics are conditioned on that selection and cannot be
+> corrected offline. (3) Recency is scored **as of each paper's `first_seen`**, because against today's clock
+> every stored paper is old, recency collapses to 0 for all of them, and the component silently disappears from
+> every comparison (`score_recency` gained an optional `now=`).
+>
+> **`--compare` reports a bootstrap interval, not two point estimates.** With a few dozen labels a 0.05 nDCG gap
+> is inside the noise; an interval straddling zero prints **NOT SHOWN** instead of inviting a decision the data
+> cannot support. Worth recording *how* this nearly shipped broken: the first implementation resampled rank
+> *positions*, which scrambles the ordering, so both configs collapsed to their base rate and every interval
+> straddled zero — a statistical no-op that reads as rigor. A perfect ranking versus its exact reverse came back
+> "cannot tell them apart". It now resamples judged *papers* and re-derives each config's order over the sample;
+> a test pins that perfect-vs-reversed stays distinguishable.
+>
+> **The harness recommended a weight change on the strength of noise, and the review caught it.** SPECTER2's
+> query is the centroid of the papers you starred or rated 4-5 — which is exactly the set `load_judgments` marks
+> *relevant*. Scoring a judged paper against it puts that paper's own vector inside its own query, inflating
+> every relevant paper by construction. Measured with purely random 768-d vectors: mean score **0.81 relevant vs
+> 0.20 irrelevant**, and `rr eval --compare` duly reported nDCG 0.555 -> 1.000, 90% interval [+0.180, +0.751],
+> "B is better (interval excludes zero)" — a *confident* false positive, in exactly the workflow the README tells
+> you to use. Fixed by leave-one-out scoring (the centroid is a mean of unit vectors, so removing one is
+> arithmetic, not a rebuild): 0/4 corpora now claim a win from noise, down from 4/4. The lesson is general — a
+> feature derived from the same user signals the labels come from will leak unless something explicitly stops it.
+>
+> Also from the review: a stars-only user (no negative labels) got 1.000 on every metric — the most flattering
+> output from the least informative data — and now gets a **DEGENERATE** headline instead; `hybrid` RRF turned
+> out to be reproducible offline after all and is now measured rather than declared unmeasurable; and
+> `--compare` warns when the two config files also differ outside the `ranking:` block, which it does not apply.
+>
+> **The optional components are measurable, which nearly did not happen.** The first cut passed no optional
+> signals into `rank_papers`, so every one arrived as `None`, absent-is-not-zero (correctly) dropped it from the
+> weighted sum, and a `--compare` differing only in `w_specter` reported "NOT SHOWN" on *every* corpus — a
+> harness that looks like it works and answers nothing. `stored_signals` now rebuilds citation proximity,
+> SPECTER2, HF upvotes, HN points and withdrawal flags from SQLite, with **no network** (`specter` gained an
+> `offline=` flag rather than duplicating its centroid math), so a signal the user's runs never fetched stays
+> absent instead of becoming a zero.
+>
+> Two acceptance tests for the whole feature. On a corpus where only keyword matching separates relevant from
+> irrelevant, disabling `w_keyword` moves nDCG@10 from 1.000 to 0.555, interval [-0.729, -0.199]. And with all
+> the Hacker News buzz placed on papers the user rated *badly*, `w_attention: 25` moves nDCG@10 from 1.000 to
+> 0.000 — the harness reads the stored signal and reports that trusting it hurts. Interval calibration measured
+> directly: two equal-quality random orderings are wrongly called different 7-10% of the time against a 10%
+> nominal rate.
+>
+> **The CI gate is real, not just a stored number.** The review caught that `--baseline` recorded snapshots
+> that nothing ever read back, while the README claimed "CI can catch a regression" — a capability asserted in
+> docs and absent from the code. `--against latest|<id>` now compares a fresh run to a snapshot and exits 1 on a
+> regression, tolerating movement under 0.02 (metrics shift whenever a new rating lands, and an exact-equality
+> gate would be switched off within a week), refusing a baseline taken at a different `k` rather than
+> differencing incomparable numbers, and flagging when the judged set itself changed.
+>
+> **Remaining:** per-repo and pooled reporting in workspaces; wiring `rr eval --against` into the Feature 3
+> GitHub Action; and modelling `hybrid` RRF, `w_embedding`, `w_citations` and LLM triage, which a condensed list
+> of judged papers cannot currently reproduce (`--compare` warns when a difference is confined to those rather
+> than reporting a misleading null).
 
 > **Related:** the standalone `evals/` benchmark harness (added 2026-07-04) already scores ranking quality on realistic repos with labeled arXiv fixtures. This feature is the *in-CLI* version that scores against a user's own accumulated ratings/stars; the two share the same metrics (P@k, R@k, nDCG@k, MRR).
 
