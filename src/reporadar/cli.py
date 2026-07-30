@@ -74,11 +74,21 @@ def _open_store(db_path: Path) -> Iterator[PaperStore]:
         store.close()
 
 
-def _load_and_validate(config_path: str | Path | None) -> RepoRadarConfig:
-    """Load config and print any validation warnings."""
+def _load_and_validate(
+    config_path: str | Path | None, warnings_to_stderr: bool = False
+) -> RepoRadarConfig:
+    """Load config and print any validation warnings.
+
+    *warnings_to_stderr* is for commands whose stdout is machine-readable: a validation
+    warning printed above a JSON document makes that document unparseable, so callers
+    emitting JSON route the prose to stderr where it is still seen but not swallowed.
+    """
     cfg = load_config(config_path)
     for warning in validate_config(cfg):
-        warn(warning)
+        if warnings_to_stderr:
+            click.echo(click.style(warning, fg="yellow"), err=True)
+        else:
+            warn(warning)
     return cfg
 
 
@@ -233,9 +243,18 @@ def update(
     info(f"  Built {len(queries)} queries")
 
     if not queries:
-        warn(
-            "No queries to run. Add seed queries to .reporadar.yml or ensure the repo has a README."
-        )
+        if cfg.queries.redact:
+            # Redaction can empty the query set outright, and blaming a missing README
+            # for it would send the user looking in the wrong place entirely.
+            warn(
+                "No queries to run: `privacy.redact` removed every search term. "
+                "Run `rr audit` to see what is left, or narrow the redaction list."
+            )
+        else:
+            warn(
+                "No queries to run. Add seed queries to .reporadar.yml or ensure "
+                "the repo has a README."
+            )
         return
 
     # 3. Collect
@@ -1276,7 +1295,9 @@ def queries(config_path: str | None, verbose: bool) -> None:
     cfg = _load_and_validate(config_path)
     repo_path = Path(cfg.repo_path).resolve()
 
-    repo_profile = profile_repo(repo_path)
+    # Same reason as `rr audit`: this command claims to show the queries `update` would
+    # run, and omitting profiler_cfg silently makes that untrue whenever scan_source is on.
+    repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
     query_list = build_queries(repo_profile, cfg.queries, cfg.arxiv)
 
     if not query_list:
@@ -1320,6 +1341,125 @@ def queries(config_path: str | None, verbose: bool) -> None:
             idx += 1
 
     info(f"\nTotal: {len(query_list)} queries")
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
+)
+@click.option("--json", "as_json", is_flag=True, help="Emit the audit as JSON.")
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
+def audit(config_path: str | None, as_json: bool, verbose: bool) -> None:
+    """Show every network destination and query string this profile would send.
+
+    Nothing here contacts the network: the report is derived from your config and a
+    local repo profile, and the query strings come from the same `build_queries` call
+    `update` uses, so they are the strings that would genuinely be transmitted.
+    """
+    if verbose:
+        setup_verbose_logging()
+
+    import json
+
+    from reporadar.privacy import REPO_AND_CONTENT, audit_plan
+
+    cfg = _load_and_validate(config_path, warnings_to_stderr=as_json)
+    repo_path = Path(cfg.repo_path).resolve()
+    # `profiler_cfg` is not optional here. Without it `scan_source` is off regardless of
+    # config, so with `profiler.scan_source: true` the audit would report a docs-only
+    # query set while `update` transmitted a different one built from source identifiers
+    # — the report would omit the very strings a proprietary codebase cares about, while
+    # printing "scan_source is on" underneath. Under-reporting is the one failure this
+    # command must never have.
+    repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
+
+    query_list = build_queries(repo_profile, cfg.queries, cfg.arxiv)
+    # The same build, with redaction switched off — the only honest way to show what
+    # the filter removed now that redaction happens inside build_queries itself.
+    unredacted = build_queries(repo_profile, replace(cfg.queries, redact=[]), cfg.arxiv)
+    plan = audit_plan(cfg, repo_profile, query_list, queries_unredacted=unredacted)
+
+    if as_json:
+
+        def _dest(d: Any) -> dict[str, Any]:
+            # `active` is a predicate lambda, not data — drop it rather than let
+            # json fall back to str() and emit "<function <lambda> at 0x...>".
+            return {
+                "module": d.module,
+                "service": d.service,
+                "endpoint": d.endpoint,
+                "sends": d.sends,
+                "sensitivity": d.sensitivity,
+                "enabled_by": d.enabled_by,
+            }
+
+        payload = {
+            **{k: v for k, v in plan.items() if k not in ("destinations", "on_demand")},
+            "destinations": [_dest(d) for d in plan["destinations"]],
+            "on_demand": [_dest(d) for d in plan["on_demand"]],
+        }
+        click.echo(json.dumps(payload, indent=2))
+        return
+
+    info(f"Repo: {repo_path}\n")
+
+    dests = plan["destinations"]
+    if dests:
+        info(f"Reached by every `rr update` ({len(dests)}):")
+        for d in dests:
+            info(f"  [{d.sensitivity}] {d.service} - {d.endpoint}")
+            muted(f"      sends: {d.sends}")
+            muted(f"      enabled by: {d.enabled_by}")
+    else:
+        info("Reached by every `rr update`: nothing — no network source is enabled.")
+
+    on_demand = plan["on_demand"]
+    if on_demand:
+        info(f"\nReached only by an explicit command ({len(on_demand)}):")
+        for d in on_demand:
+            info(f"  [{d.sensitivity}] {d.service} - {d.endpoint}")
+            muted(f"      sends: {d.sends}")
+            muted(f"      enabled by: {d.enabled_by}")
+
+    info(f"\nQuery strings that would be transmitted ({len(plan['queries'])}):")
+    for i, q in enumerate(plan["queries"], 1):
+        info(f"  {i}. {q}")
+
+    n_patterns = plan["n_patterns"]
+    if not n_patterns:
+        info("\nRedaction: not configured (`privacy.redact` is empty).")
+    elif plan["redaction_changed_anything"]:
+        before, after = len(plan["queries_before_redaction"]), len(plan["queries"])
+        success(f"\nRedaction: {n_patterns} pattern(s) active - queries above are filtered.")
+        if before != after:
+            muted(f"      {before - after} quer(y/ies) dropped entirely by redaction.")
+    else:
+        warn(
+            f"\nRedaction: {n_patterns} pattern(s) configured but nothing matched. "
+            "Check the terms: literal unless prefixed with `re:`."
+        )
+
+    # The honest part. A redaction list is a filter on literal strings; it does not
+    # make the rest of the payload anonymous, and saying so is the point of `audit`.
+    info("\nWhat leaves regardless of redaction:")
+    kw = plan["keywords"][:8]
+    if kw:
+        muted(f"  Profile keywords, which encode your domain: {', '.join(kw)}")
+    if plan["anchors"]:
+        muted(f"  Anchor terms: {', '.join(plan['anchors'][:8])}")
+    if plan["scans_source"]:
+        muted("  profiler.scan_source is on - keywords are drawn from source, not just docs.")
+    # Name the destinations rather than inferring "LLM" from the sensitivity tier: the
+    # shell hook is rated at that tier too, and calling it an LLM would be a plain lie
+    # in the one section of this report whose whole job is not to overstate.
+    worst = [d.service for d in dests + on_demand if d.sensitivity == REPO_AND_CONTENT]
+    if worst:
+        muted(f"  Full paper abstracts and your profile, to: {', '.join(worst)}")
+    muted("  Paper IDs you rate, star or open, wherever a destination takes them.")
 
 
 @cli.command(name="gh-issues")

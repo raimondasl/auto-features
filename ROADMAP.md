@@ -48,7 +48,7 @@ See [Implementation status](#implementation-status-2026-07-30) below for the shi
 | 10 | 🟡 | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
 | 11 | ✅ | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
 | 12 | 🟡 | OpenAlex 2026 upgrade (keys, semantic search, Topics) | High confidence | Un-breaks the source; classifier-backed field watching instead of keyword guessing |
-| 13 | ⬜ | Privacy guard (audit, redaction, local-only mode) | High confidence | Unlocks proprietary/enterprise codebases — currently an unexamined blocker |
+| 13 | 🟡 | Privacy guard (audit, redaction, local-only mode) | High confidence | Unlocks proprietary/enterprise codebases — currently an unexamined blocker |
 | 14 | ⬜ | `rr deepscan` — agentic iterative search | Ambitious | Multi-round query-refine-expand loops, the flagship pattern of $12–20/mo commercial tools, free and repo-aware |
 | 15 | ⬜ | `rr ask` — citation-grounded Q&A over your corpus | Ambitious | From alerting tool to research assistant, local-first |
 | 16 | ⬜ | Technique fingerprinting ("supersedes what you import") | Ambitious | The category-defining alert: *did research just obsolete part of my codebase?* |
@@ -641,6 +641,44 @@ OpenAlex made API keys effectively mandatory (since 2026-02-13; keyless = $0.10/
 **Sources:** [pricing announcement](https://blog.openalex.org/openalex-api-new-features-and-usage-based-pricing/) · [developers.openalex.org](https://developers.openalex.org/) · [topic classifier (MIT)](https://github.com/ourresearch/openalex-topic-classification)
 
 ### 13. Privacy guard: query audit, term redaction, and fully-local mode
+
+> **🟡 Layers 1–2 shipped.** `privacy.py` (a 16-entry destination registry + redaction) and `rr audit`
+> (`--json`), plus `privacy.redact` wired into query building and LLM prompts. **Layer 3 (`--local-only`
+> against a bulk arXiv snapshot) is deliberately deferred** — see below.
+>
+> **What makes the audit worth trusting is that neither half is hand-maintained.** The query strings come from
+> the real `build_queries` call, so there is no second implementation to drift from the first. And the
+> destination list is *enforced*: a test walks the package for modules making outbound calls and fails CI if
+> any is undeclared. A privacy feature that rots is worse than none, because people act on it — so adding a
+> source without documenting what it sends is a build error, not a quietly stale page. The detector is static
+> and the test states its reach rather than implying completeness: it knows a list of request shapes and
+> propagates through private helpers imported from an already-outbound module. Strengthening it during review
+> immediately surfaced two undeclared destinations — `specter` (borrows `citations._s2_batch_post`, so it
+> matches no request shape at all) and `embeddings` (downloads MiniLM weights from huggingface.co, outbound
+> without being an API call).
+>
+> **Redaction is applied by construction, not per call site.** `privacy.redact` is mirrored onto `QueriesConfig`
+> and `SuggestionsConfig` at config-load time, so it takes effect inside `build_queries` (which all four call
+> sites and every text-search source share) and inside `llm_client.complete` (the last step before a prompt
+> leaves the process). Threading a parameter through instead would have given four existing call sites — and
+> every future one — a chance to forget. Two details were found by building it: terms are redacted *before*
+> assembly into arXiv syntax, since filtering the finished string leaves `(all: ) AND (cat:cs.IR)` behind,
+> which is a broken query rather than a private one; and entries are **literal unless prefixed with `re:`**,
+> because `C++` is a valid Python regex (`++` is a possessive quantifier) that would compile happily and redact
+> only the letter `C`.
+>
+> **The risk this section anticipated is real, so the tool states it rather than papering over it.** Redaction
+> removes literal terms; TF-IDF keywords still encode your domain. `rr audit` prints a "what leaves regardless
+> of redaction" section, and warns when configured patterns matched nothing — a user who configures redaction
+> and gets silence would otherwise assume it worked.
+>
+> **Why layer 3 is deferred rather than attempted:** this section already rates it "the moderately hard part",
+> and the two halves have different shapes. Layers 1–2 are honest reporting plus a filter — self-contained,
+> and correct or not on their own terms. `--local-only` is an ingestion subsystem: an OAI-PMH harvest measured
+> in hours, a sync scheduler, snapshot-freshness semantics that fight the tool's "what's new this week"
+> promise, and a Kaggle mirror whose licensing and reliability are outside our control. Shipping it inside the
+> same change would put a multi-hour data pipeline behind the same review as a print-what-leaves command.
+> The audit is also the prerequisite: it is what tells you *whether* you need local-only mode.
 
 **Verification: proposed by completeness critique; local half already exists in the codebase.**
 
