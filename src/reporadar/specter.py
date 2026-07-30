@@ -114,12 +114,18 @@ def _persist(store: PaperStore, rows: list[tuple[str, str, int, bytes]]) -> None
 
 
 def load_or_fetch_vectors(
-    store: PaperStore, arxiv_ids: list[str], api_key: str | None = None
+    store: PaperStore,
+    arxiv_ids: list[str],
+    api_key: str | None = None,
+    offline: bool = False,
 ) -> dict[str, np.ndarray]:
     """Return cached SPECTER2 vectors, fetching (and caching) any that are missing.
 
     Papers S2 has no vector for are recorded as misses so they aren't re-requested
     every run; `rr update --rebuild-embeddings` clears both caches to retry them.
+
+    With *offline* set, only the cache is read and nothing is fetched — ``rr eval``
+    re-scores historical papers and must not make network calls to do it.
     """
     wanted = list(dict.fromkeys(arxiv_ids))
     if not wanted:
@@ -136,7 +142,7 @@ def load_or_fetch_vectors(
         elif arxiv_id not in known_misses:
             missing.append(arxiv_id)
 
-    if missing:
+    if missing and not offline:
         fetched = fetch_specter_vectors(missing, api_key=api_key)
         rows = [
             (arxiv_id, SPECTER_MODEL, int(vec.shape[0]), vec_to_bytes(vec))
@@ -150,7 +156,10 @@ def load_or_fetch_vectors(
 
 
 def build_query_vector(
-    store: PaperStore, api_key: str | None = None, min_rating: int = 4
+    store: PaperStore,
+    api_key: str | None = None,
+    min_rating: int = 4,
+    offline: bool = False,
 ) -> np.ndarray | None:
     """Centroid of the SPECTER2 vectors of papers the user starred / rated highly.
 
@@ -164,7 +173,7 @@ def build_query_vector(
     if not seeds:
         return None
 
-    vectors = load_or_fetch_vectors(store, seeds, api_key=api_key)
+    vectors = load_or_fetch_vectors(store, seeds, api_key=api_key, offline=offline)
     # L2-normalize before averaging: only the centroid's *direction* matters
     # downstream (everything is cosine), and averaging raw vectors would let a
     # seed with a larger norm dominate the mean direction.
@@ -222,6 +231,7 @@ def score_papers(
     store: PaperStore,
     papers: list[dict[str, Any]],
     api_key: str | None = None,
+    offline: bool = False,
 ) -> dict[str, float]:
     """End-to-end: seeds -> query centroid -> cached/fetched vectors -> scores.
 
@@ -234,11 +244,11 @@ def score_papers(
     some real paper at 0.0 — would systematically favour papers S2 knows nothing
     about over papers it does. A neutral fill keeps every paper on the same scale.
     """
-    query = build_query_vector(store, api_key=api_key)
+    query = build_query_vector(store, api_key=api_key, offline=offline)
     if query is None:
         return {}
     ids = [p["arxiv_id"] for p in papers]
-    vectors = load_or_fetch_vectors(store, ids, api_key=api_key)
+    vectors = load_or_fetch_vectors(store, ids, api_key=api_key, offline=offline)
     scores = specter_scores(query, vectors)
     if not scores:
         return {}

@@ -6,7 +6,7 @@ import contextlib
 import re
 import webbrowser
 from collections.abc import Iterator
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,9 @@ _ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
 # The only ranking weights feedback.compute_adjusted_weights learns; every other
 # RankingConfig field is passed through untouched (see stage 7 in `update`).
 _LEARNED_WEIGHTS = ("w_keyword", "w_category", "w_recency", "w_embedding", "w_citations")
+
+# How many baselines `rr eval --history` lists before it says there are more.
+_HISTORY_LIMIT = 10
 
 
 def _dedup_id(arxiv_id: str) -> str:
@@ -1430,6 +1433,158 @@ def gh_issues(
         info(f"\nDry run complete. {len(results)} issues would be created.")
     elif created:
         success(f"\nCreated {created} GitHub issues.")
+
+
+@cli.command(name="eval")
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+@click.option("-k", "top_k", default=10, type=click.IntRange(min=1), help="Cut-off for @k metrics.")
+@click.option(
+    "--compare",
+    nargs=2,
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Two config files to A/B on identical data, with a bootstrap interval.",
+)
+@click.option(
+    "--baseline",
+    is_flag=True,
+    help="Record this measurement so a later run (or CI) can detect a regression.",
+)
+@click.option("--label", default=None, help="Name for the recorded baseline.")
+@click.option(
+    "--against",
+    default=None,
+    help="Compare this run to a recorded baseline ('latest' or a snapshot id); "
+    "exits 1 on a regression, so CI can gate on it.",
+)
+@click.option("--history", is_flag=True, help="Show previously recorded baselines and exit.")
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
+def eval_cmd(
+    config_path: str | None,
+    top_k: int,
+    compare: tuple[str, str] | None,
+    baseline: bool,
+    label: str | None,
+    against: str | None,
+    history: bool,
+    fmt: str,
+) -> None:
+    """Score the ranker against the ratings you have already given.
+
+    Treats your 4-5 star ratings (and stars) as relevant and 1-2 as not, then measures
+    how well the current ranking config orders them. Use `--compare a.yml b.yml` to
+    A/B two configs on identical data before trusting a ranking change.
+
+    These metrics answer "does it order what I judged well", not "does it find
+    everything good": your ratings only cover papers an earlier ranking surfaced.
+    """
+    import json as json_mod
+
+    from reporadar.evaluation import (
+        compare_configs,
+        compare_to_baseline,
+        evaluate,
+        format_baseline_check,
+        format_comparison,
+        format_report,
+        load_judgments,
+    )
+
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    with _open_store(db_path) as store:
+        if history:
+            snapshots = store.get_metric_snapshots(limit=_HISTORY_LIMIT)
+            if not snapshots:
+                info("No baselines recorded yet. Run `rr eval --baseline` to record one.")
+                return
+            if fmt == "json":
+                click.echo(json_mod.dumps(snapshots, indent=2, default=str))
+                return
+            # `k` is shown because snapshots taken at different cut-offs are not
+            # comparable, and a column of bare nDCG values hides that.
+            info(f"{'id':>4}  {'when':<20} {'label':<18} {'k':>3} {'nDCG':>7} {'judged':>7}")
+            for snap in snapshots:
+                nd = snap["metrics"].get("ndcg@k", 0.0)
+                info(
+                    f"{snap['snapshot_id']:>4}  {snap['taken_at'][:19]:<20} "
+                    f"{(snap['label'] or '-'):<18} {snap['k']:>3} {nd:>7.3f} "
+                    f"{snap['n_judged']:>7}"
+                )
+            if len(snapshots) == _HISTORY_LIMIT:
+                info(f"  (showing the most recent {_HISTORY_LIMIT}; older baselines exist)")
+            return
+
+        judgments = load_judgments(store)
+        if not judgments.labels:
+            error("No ratings or stars yet - nothing to evaluate.")
+            info("Rate papers with `rr rate <arxiv_id> <1-5>`, then run this again.")
+            raise SystemExit(1)
+
+        profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
+
+        if compare:
+            cfg_a, cfg_b = (_load_and_validate(path) for path in compare)
+            comparison = compare_configs(
+                store, judgments, profile, cfg, cfg_a.ranking, cfg_b.ranking, k=top_k
+            )
+            if fmt == "json":
+                click.echo(json_mod.dumps(comparison, indent=2, default=str))
+            else:
+                info(f"A = {compare[0]}")
+                info(f"B = {compare[1]}\n")
+                info(format_comparison(comparison, judgments))
+            if baseline or against:
+                # Say so rather than returning past them: a CI job that passed
+                # --against and got exit 0 would read that as "no regression".
+                warn("  --baseline/--against do nothing with --compare; nothing recorded.")
+            return
+
+        result = evaluate(store, judgments, profile, cfg, k=top_k)
+        public = {m: v for m, v in result.items() if not m.startswith("_")}
+        if fmt == "json":
+            click.echo(json_mod.dumps(public, indent=2, default=str))
+        else:
+            info(format_report(result, judgments))
+
+        if against:
+            snapshots = store.get_metric_snapshots(limit=100)
+            if against == "latest":
+                snapshot = snapshots[0] if snapshots else None
+            else:
+                snapshot = next((s for s in snapshots if str(s["snapshot_id"]) == against), None)
+            if snapshot is None:
+                error(f"No recorded baseline matching {against!r}. Run `rr eval --baseline` first.")
+                raise SystemExit(1)
+            check = compare_to_baseline(public, snapshot)
+            info("")
+            info(format_baseline_check(check))
+            if check.get("regressed"):
+                # Non-zero exit is the whole point: this is what a CI job gates on.
+                raise SystemExit(1)
+
+        if baseline:
+            snapshot_id = store.save_metric_snapshot(
+                public,
+                k=top_k,
+                n_judged=judgments.n_judged,
+                n_relevant=judgments.n_relevant,
+                label=label,
+                config=asdict(cfg.ranking),
+            )
+            info("")
+            success(f"Recorded baseline #{snapshot_id}" + (f" ({label})" if label else ""))
 
 
 @cli.command()

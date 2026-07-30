@@ -79,11 +79,19 @@ def score_category_match(
     return min(overlap / len(target_set), 1.0)
 
 
-def score_recency(paper: dict[str, Any], lookback_days: int = 14) -> float:
+def score_recency(
+    paper: dict[str, Any], lookback_days: int = 14, now: datetime | None = None
+) -> float:
     """Score based on how recent the paper is.
 
     Returns 1.0 for papers published today, decaying linearly to 0.0
     at *lookback_days* ago. Papers older than the lookback window get 0.0.
+
+    *now* overrides the reference instant. ``rr eval`` re-scores papers collected
+    weeks or months ago, and against today's clock every one of them would score 0
+    recency — making the component invisible and the scores unlike anything the user
+    actually saw. Passing the paper's first-seen time reproduces the score the ranker
+    would have produced at digest time.
     """
     try:
         published = datetime.fromisoformat(paper["published"])
@@ -93,8 +101,10 @@ def score_recency(paper: dict[str, Any], lookback_days: int = 14) -> float:
     if published.tzinfo is None:
         published = published.replace(tzinfo=UTC)
 
-    now = datetime.now(UTC)
-    age_days = (now - published).total_seconds() / 86400
+    reference = now or datetime.now(UTC)
+    if reference.tzinfo is None:
+        reference = reference.replace(tzinfo=UTC)
+    age_days = (reference - published).total_seconds() / 86400
 
     if age_days < 0:
         return 1.0
@@ -140,6 +150,7 @@ def score_paper(
     community_score: float | None = None,
     attention_score: float | None = None,
     withdrawn: bool = False,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Compute a combined score for a single paper.
 
@@ -149,7 +160,7 @@ def score_paper(
     cat = score_category_match(
         paper, arxiv_categories, category_weights=ranking_cfg.category_weights or None
     )
-    rec = score_recency(paper, lookback_days)
+    rec = score_recency(paper, lookback_days, now=now)
 
     raw_total = ranking_cfg.w_keyword * kw + ranking_cfg.w_recency * rec
     weight_sum = ranking_cfg.w_keyword + ranking_cfg.w_recency
@@ -285,6 +296,7 @@ def rank_papers(
     community: dict[str, float] | None = None,
     attention: dict[str, float] | None = None,
     withdrawn: set[str] | None = None,
+    now_by_id: dict[str, datetime] | None = None,
 ) -> list[dict[str, Any]]:
     """Score and rank a list of papers. Returns score dicts sorted by score descending.
 
@@ -345,6 +357,7 @@ def rank_papers(
                 community_score=comm_score,
                 attention_score=att_score,
                 withdrawn=bool(withdrawn and paper["arxiv_id"] in withdrawn),
+                now=(now_by_id or {}).get(paper["arxiv_id"]),
             )
         )
     # Tie-break on arxiv_id so the order never depends on the order papers were

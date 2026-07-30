@@ -1615,3 +1615,199 @@ class TestFormatSize:
     def test_megabytes(self) -> None:
         result = _format_size(5 * 1024 * 1024)
         assert "MB" in result
+
+
+class TestEvalCommand:
+    def _repo_with_ratings(self, tmp_path: Path, n: int = 24) -> Path:
+        repo = _setup_repo(tmp_path)
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        on_topic = "retrieval augmented generation with transformers"
+        off_topic = "combinatorial scheduling heuristics on graphs"
+        with PaperStore(db) as store:
+            for i in range(n):
+                arxiv_id = f"2607.{i:05d}v1"
+                on = i % 2 == 0
+                store.upsert_paper(
+                    {
+                        "arxiv_id": arxiv_id,
+                        "title": f"Paper {i}",
+                        "authors": ["A"],
+                        "abstract": on_topic if on else off_topic,
+                        "categories": ["cs.CL"],
+                        "published": datetime.now(UTC).isoformat(),
+                        "updated": None,
+                        "url": f"http://arxiv.org/abs/{arxiv_id}",
+                        "pdf_url": None,
+                    }
+                )
+                store.save_rating(arxiv_id, 5 if on else 1)
+        return repo
+
+    def test_reports_metrics(self, tmp_path: Path) -> None:
+        repo = self._repo_with_ratings(tmp_path)
+        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml")])
+        assert result.exit_code == 0
+        assert "nDCG@10" in result.output
+        assert "Judged papers: 24" in result.output
+
+    def test_json_output_is_machine_readable(self, tmp_path: Path) -> None:
+        repo = self._repo_with_ratings(tmp_path)
+        result = CliRunner().invoke(
+            cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--format", "json"]
+        )
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert {"ndcg@k", "precision@k", "recall@k", "mrr", "n_judged"} <= set(payload)
+        # Internal keys must not leak into the machine-readable contract.
+        assert not any(key.startswith("_") for key in payload)
+
+    def test_no_ratings_explains_what_to_do(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        _seed_db(tmp_path)  # papers and scores, but no ratings or stars
+        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml")])
+        assert result.exit_code == 1
+        assert "rr rate" in result.output
+
+    def test_missing_db_errors(self, tmp_path: Path) -> None:
+        repo = _setup_repo(tmp_path)
+        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml")])
+        assert result.exit_code == 1
+        assert "rr update" in result.output
+
+    def test_compare_detects_a_regression(self, tmp_path: Path) -> None:
+        repo = self._repo_with_ratings(tmp_path, n=30)
+        good = repo / ".reporadar.yml"
+        bad = repo / "bad.yml"
+        bad.write_text(
+            good.read_text(encoding="utf-8").replace("  w_keyword: 1.0\n", "  w_keyword: 0.0\n"),
+            encoding="utf-8",
+        )
+        result = CliRunner().invoke(
+            cli, ["eval", "--config", str(good), "--compare", str(good), str(bad)]
+        )
+        assert result.exit_code == 0
+        assert "interval excludes zero" in result.output
+        assert "A is better" in result.output
+
+    def test_baseline_is_recorded_and_listed(self, tmp_path: Path) -> None:
+        repo = self._repo_with_ratings(tmp_path)
+        cfg_path = str(repo / ".reporadar.yml")
+        recorded = CliRunner().invoke(
+            cli, ["eval", "--config", cfg_path, "--baseline", "--label", "before"]
+        )
+        assert recorded.exit_code == 0
+        assert "Recorded baseline #1 (before)" in recorded.output
+
+        listed = CliRunner().invoke(cli, ["eval", "--config", cfg_path, "--history"])
+        assert listed.exit_code == 0
+        assert "before" in listed.output
+
+    def test_history_without_snapshots_is_not_an_error(self, tmp_path: Path) -> None:
+        repo = self._repo_with_ratings(tmp_path)
+        result = CliRunner().invoke(
+            cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--history"]
+        )
+        assert result.exit_code == 0
+        assert "No baselines recorded yet" in result.output
+
+    def test_baseline_stores_the_weights_that_produced_it(self, tmp_path: Path) -> None:
+        # A snapshot without its config cannot be compared to anything later.
+        repo = self._repo_with_ratings(tmp_path)
+        CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--baseline"])
+        with PaperStore(repo / ".reporadar" / "papers.db") as store:
+            snapshot = store.get_metric_snapshots()[0]
+        assert snapshot["config"]["w_keyword"] == 1.0
+        assert snapshot["metrics"]["ndcg@k"] > 0
+
+
+class TestEvalRegressionGate:
+    """`--against` is what makes --baseline a CI gate rather than a diary."""
+
+    def _repo(self, tmp_path: Path, n: int = 30) -> Path:
+        repo = _setup_repo(tmp_path)
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        on_topic = "retrieval augmented generation with transformers"
+        off_topic = "combinatorial scheduling heuristics on graphs"
+        with PaperStore(db) as store:
+            for i in range(n):
+                arxiv_id = f"2607.{i:05d}v1"
+                on = i % 2 == 0
+                store.upsert_paper(
+                    {
+                        "arxiv_id": arxiv_id,
+                        "title": f"Paper {i}",
+                        "authors": ["A"],
+                        "abstract": on_topic if on else off_topic,
+                        "categories": ["cs.CL"],
+                        "published": datetime.now(UTC).isoformat(),
+                        "updated": None,
+                        "url": f"http://arxiv.org/abs/{arxiv_id}",
+                        "pdf_url": None,
+                    }
+                )
+                store.save_rating(arxiv_id, 5 if on else 1)
+        return repo
+
+    def test_a_regression_exits_nonzero(self, tmp_path: Path) -> None:
+        # Exit status is the whole point: a CI job gates the build on it.
+        repo = self._repo(tmp_path)
+        good = repo / ".reporadar.yml"
+        bad = repo / "bad.yml"
+        bad.write_text(
+            good.read_text(encoding="utf-8").replace("  w_keyword: 1.0\n", "  w_keyword: 0.0\n"),
+            encoding="utf-8",
+        )
+        runner = CliRunner()
+        runner.invoke(cli, ["eval", "--config", str(good), "--baseline", "--label", "good"])
+        result = runner.invoke(cli, ["eval", "--config", str(bad), "--against", "latest"])
+        assert result.exit_code == 1
+        assert "REGRESSION" in result.output
+
+    def test_an_unchanged_config_passes(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        cfg_path = str(repo / ".reporadar.yml")
+        runner = CliRunner()
+        runner.invoke(cli, ["eval", "--config", cfg_path, "--baseline"])
+        result = runner.invoke(cli, ["eval", "--config", cfg_path, "--against", "latest"])
+        assert result.exit_code == 0
+        assert "no regression" in result.output
+
+    def test_against_a_specific_snapshot_id(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        cfg_path = str(repo / ".reporadar.yml")
+        runner = CliRunner()
+        runner.invoke(cli, ["eval", "--config", cfg_path, "--baseline", "--label", "first"])
+        result = runner.invoke(cli, ["eval", "--config", cfg_path, "--against", "1"])
+        assert result.exit_code == 0
+        assert "first" in result.output
+
+    def test_missing_baseline_is_an_error_not_a_silent_pass(self, tmp_path: Path) -> None:
+        # A CI job gating on exit 0 must not be told "fine" when nothing was compared.
+        repo = self._repo(tmp_path)
+        result = CliRunner().invoke(
+            cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--against", "latest"]
+        )
+        assert result.exit_code == 1
+        assert "No recorded baseline" in result.output
+
+    def test_compare_plus_against_warns_rather_than_ignoring(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        cfg_path = str(repo / ".reporadar.yml")
+        result = CliRunner().invoke(
+            cli,
+            ["eval", "--config", cfg_path, "--compare", cfg_path, cfg_path, "--against", "latest"],
+        )
+        assert result.exit_code == 0
+        assert "do nothing with --compare" in result.output
+
+    def test_history_shows_the_cutoff_each_snapshot_used(self, tmp_path: Path) -> None:
+        # Snapshots taken at different k are not comparable; hiding k hides that.
+        repo = self._repo(tmp_path)
+        cfg_path = str(repo / ".reporadar.yml")
+        runner = CliRunner()
+        runner.invoke(cli, ["eval", "--config", cfg_path, "-k", "5", "--baseline"])
+        result = runner.invoke(cli, ["eval", "--config", cfg_path, "--history"])
+        assert result.exit_code == 0
+        assert " k " in result.output or "k " in result.output.splitlines()[0]

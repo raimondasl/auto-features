@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 13
+CURRENT_SCHEMA_VERSION = 14
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -146,6 +146,19 @@ CREATE TABLE IF NOT EXISTS paper_citations (
     PRIMARY KEY (citing_id, cited_id)
 );
 
+-- Ranking-quality snapshots from `rr eval --baseline` (Feature 11), so CI can
+-- catch a ranking regression after a weight change or a new component.
+CREATE TABLE IF NOT EXISTS metric_snapshots (
+    snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    taken_at    TEXT NOT NULL,
+    label       TEXT,
+    k           INTEGER NOT NULL,
+    n_judged    INTEGER NOT NULL,
+    n_relevant  INTEGER NOT NULL,
+    metrics     TEXT NOT NULL,
+    config      TEXT
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -279,6 +292,19 @@ MIGRATIONS: dict[int, list[str]] = {
         # Community-attention component (Feature 1): HF Papers upvotes, persisted so
         # stored score explanations stay complete.
         "ALTER TABLE paper_scores ADD COLUMN community_score REAL",
+    ],
+    14: [
+        # `rr eval --baseline` snapshots (Feature 11).
+        """        CREATE TABLE IF NOT EXISTS metric_snapshots (
+            snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            taken_at    TEXT NOT NULL,
+            label       TEXT,
+            k           INTEGER NOT NULL,
+            n_judged    INTEGER NOT NULL,
+            n_relevant  INTEGER NOT NULL,
+            metrics     TEXT NOT NULL,
+            config      TEXT
+        )""",
     ],
     13: [
         # Attention & integrity signals (Feature 9).
@@ -979,6 +1005,54 @@ class PaperStore:
             ).fetchall()
             for row in rows:
                 out.setdefault(row["citing_id"], []).append(row["cited_id"])
+        return out
+
+    # ── Metric snapshots (Feature 11) ────────────────────────────────
+
+    def save_metric_snapshot(
+        self,
+        metrics: dict[str, Any],
+        k: int,
+        n_judged: int,
+        n_relevant: int,
+        label: str | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> int:
+        """Record one ranking-quality measurement; returns its snapshot id.
+
+        The ranking config is stored alongside the numbers because a snapshot without
+        the weights that produced it cannot be compared to anything later.
+        """
+        cur = self._conn.execute(
+            """\
+            INSERT INTO metric_snapshots
+                   (taken_at, label, k, n_judged, n_relevant, metrics, config)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                datetime.now(UTC).isoformat(),
+                label,
+                k,
+                n_judged,
+                n_relevant,
+                json.dumps(metrics),
+                json.dumps(config) if config is not None else None,
+            ),
+        )
+        self._conn.commit()
+        return int(cur.lastrowid or 0)
+
+    def get_metric_snapshots(self, limit: int = 10) -> list[dict[str, Any]]:
+        """Most recent snapshots first, with ``metrics``/``config`` decoded."""
+        rows = self._conn.execute(
+            "SELECT * FROM metric_snapshots ORDER BY snapshot_id DESC LIMIT ?",
+            (max(0, limit),),
+        ).fetchall()
+        out = []
+        for row in rows:
+            d = dict(row)
+            d["metrics"] = json.loads(d["metrics"]) if d["metrics"] else {}
+            d["config"] = json.loads(d["config"]) if d["config"] else None
+            out.append(d)
         return out
 
     # ── Signal operations (Feature 9) ────────────────────────────────
