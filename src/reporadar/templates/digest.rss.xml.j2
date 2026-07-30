@@ -6,9 +6,9 @@
     <lastBuildDate>{{ generated_at }}</lastBuildDate>
     {% for p in papers %}
     <item>
-      <title>{{ p.title | e }}</title>
+      <title>{% if p.withdrawn_in %}[WITHDRAWN] {% endif %}{{ p.title | e }}</title>
       <link>{{ p.url }}</link>
-      <description>{{ p.abstract[:300] | e }}{% if p.abstract|length > 300 %}...{% endif %}</description>
+      <description>{% if p.withdrawn_in %}The authors withdrew this paper (notice in its {{ p.withdrawn_in | e }}) - treat its claims as retracted. {% endif %}{{ p.abstract[:300] | e }}{% if p.abstract|length > 300 %}...{% endif %}</description>
       <pubDate>{{ p.published[:10] }}</pubDate>
       {% for cat in p.categories %}
       <category>{{ cat }}</category>

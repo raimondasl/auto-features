@@ -143,6 +143,40 @@ def run_update_cycle(
         new_count, seen_count = store.upsert_papers(papers)
         run_id = store.record_run(queries, new_count, seen_count)
 
+        # The watch loop is a reduced pipeline (no embeddings, citations, SPECTER2 or
+        # triage), but the integrity check is not an enhancement to skip: `rr watch`
+        # is the *unattended* path, so a withdrawn paper here reaches a digest nobody
+        # is watching for it. Same bounded shape as cli.update stage 6e.
+        withdrawn: set[str] = set()
+        if cfg.signals.integrity:
+            try:
+                from reporadar.signals.integrity import (
+                    fetch_comments,
+                    find_withdrawn,
+                    stale_ids,
+                )
+
+                flags = find_withdrawn(papers, {})
+                previous = store.get_signals([p["arxiv_id"] for p in papers], "withdrawn")
+                to_check = stale_ids(
+                    [p["arxiv_id"] for p in papers if ":" not in p["arxiv_id"]],
+                    {aid: row["checked_at"] for aid, row in previous.items()},
+                )
+                comments = fetch_comments(to_check) if to_check else {}
+                flags.update(find_withdrawn(papers, comments))
+                if to_check and comments:
+                    store.save_signals(
+                        [(aid, "withdrawn", flags.get(aid), None) for aid in to_check]
+                    )
+                for aid, row in previous.items():
+                    if row["value"] and aid not in comments:
+                        flags.setdefault(aid, row["value"])
+                withdrawn = set(flags)
+                if withdrawn:
+                    logger.warning("%d withdrawn paper(s) demoted this cycle", len(withdrawn))
+            except Exception as exc:
+                logger.warning("Integrity check skipped: %s", exc)
+
         scores = rank_papers(
             papers,
             repo_profile,
@@ -150,10 +184,15 @@ def run_update_cycle(
             cfg.queries,
             cfg.arxiv.categories,
             cfg.arxiv.lookback_days,
+            withdrawn=withdrawn,
         )
         store.save_scores(run_id, scores)
 
-        top_picks, _, _ = categorize_papers(scores, top_n=cfg.output.top_n)
+        # Re-read through the store so the withdrawal flag is joined in, exactly as
+        # every other consumer sees it; `scores` here are bare score dicts.
+        top_picks, _, _ = categorize_papers(
+            store.get_scores_for_run(run_id), top_n=cfg.output.top_n
+        )
 
         out, summary = write_digest(store, run_id, cfg.output.digest_path, top_n=cfg.output.top_n)
 

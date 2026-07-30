@@ -335,6 +335,122 @@ class TestCommunityComponent:
         assert "community" in format_score_explanation(score, cfg)
 
 
+class TestAttentionComponent:
+    def test_boost_and_gate(self) -> None:
+        paper = _make_paper()
+        profile = _make_profile()
+        on = RankingConfig(w_attention=1.0)
+        base = score_paper(paper, profile, on, QueriesConfig(), ["cs.CL"])
+        boosted = score_paper(paper, profile, on, QueriesConfig(), ["cs.CL"], attention_score=1.0)
+        assert boosted["score_total"] > base["score_total"]
+        assert boosted["attention_score"] == 1.0
+
+        off = score_paper(
+            paper, profile, RankingConfig(), QueriesConfig(), ["cs.CL"], attention_score=1.0
+        )
+        assert off["score_total"] == base["score_total"]
+
+    def test_never_discussed_is_absent_not_zero(self) -> None:
+        # HN discusses a handful of papers a week, so ~every paper lacks this signal.
+        # If absence read as 0.0, enabling w_attention would penalize the whole corpus.
+        paper, profile = _make_paper(), _make_profile()
+        cfg = RankingConfig(w_attention=2.0)
+        absent = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"])
+        low = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"], attention_score=0.2)
+        assert absent["attention_score"] is None
+        assert absent["score_total"] > low["score_total"]
+
+    def test_rank_papers_maps_scores_by_id(self) -> None:
+        p1, p2 = _make_paper(arxiv_id="2401.1v1"), _make_paper(arxiv_id="2401.2v1")
+        scores = rank_papers(
+            [p1, p2],
+            _make_profile(),
+            RankingConfig(w_attention=5.0),
+            QueriesConfig(),
+            ["cs.CL"],
+            attention={"2401.1v1": 1.0},
+        )
+        by_id = {s["arxiv_id"]: s for s in scores}
+        assert by_id["2401.1v1"]["attention_score"] == 1.0
+        assert by_id["2401.2v1"]["attention_score"] is None
+
+    def test_explanation_includes_attention(self) -> None:
+        cfg = RankingConfig(w_attention=2.0)
+        score = score_paper(
+            _make_paper(), _make_profile(), cfg, QueriesConfig(), ["cs.CL"], attention_score=0.5
+        )
+        assert "attention" in format_score_explanation(score, cfg)
+
+
+class TestWithdrawnPenalty:
+    def test_withdrawn_paper_is_demoted(self) -> None:
+        paper, profile = _make_paper(), _make_profile()
+        cfg = RankingConfig()
+        clean = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"])
+        flagged = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"], withdrawn=True)
+        assert flagged["score_total"] < clean["score_total"]
+
+    def test_penalty_is_multiplicative_so_strength_elsewhere_cannot_escape_it(self) -> None:
+        """A withdrawn paper must not reach Top Picks by scoring well on every signal.
+
+        This is why withdrawal is a multiplier rather than one more weighted
+        component: as a component it would be outvoted by keyword + category +
+        recency + attention all firing at once.
+        """
+        perfect = _make_paper()  # matches the profile, current, right category
+        cfg = RankingConfig(w_attention=1.0, w_specter=1.0, w_community=1.0)
+        kwargs: dict[str, float] = {
+            "attention_score": 1.0,
+            "specter_score": 1.0,
+            "community_score": 1.0,
+        }
+        clean = score_paper(perfect, _make_profile(), cfg, QueriesConfig(), ["cs.CL"], **kwargs)
+        flagged = score_paper(
+            perfect, _make_profile(), cfg, QueriesConfig(), ["cs.CL"], withdrawn=True, **kwargs
+        )
+        assert clean["score_total"] > 0.5  # would be a Top Pick
+        assert flagged["score_total"] < 0.2  # below MAYBE_THRESHOLD -> Muted
+
+    def test_penalty_leaves_the_paper_visible(self) -> None:
+        # Not zero: the reader is better served by "this was withdrawn" than by a
+        # paper silently vanishing from a digest they may have seen elsewhere.
+        flagged = score_paper(
+            _make_paper(),
+            _make_profile(),
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL"],
+            withdrawn=True,
+        )
+        assert flagged["score_total"] > 0.0
+
+    def test_configurable_and_disableable(self) -> None:
+        paper, profile = _make_paper(), _make_profile()
+        clean = score_paper(paper, profile, RankingConfig(), QueriesConfig(), ["cs.CL"])
+        disabled = score_paper(
+            paper,
+            profile,
+            RankingConfig(withdrawn_penalty=1.0),
+            QueriesConfig(),
+            ["cs.CL"],
+            withdrawn=True,
+        )
+        assert disabled["score_total"] == clean["score_total"]
+
+    def test_rank_papers_applies_it_by_id(self) -> None:
+        p1, p2 = _make_paper(arxiv_id="2401.1v1"), _make_paper(arxiv_id="2401.2v1")
+        scores = rank_papers(
+            [p1, p2],
+            _make_profile(),
+            RankingConfig(),
+            QueriesConfig(),
+            ["cs.CL"],
+            withdrawn={"2401.1v1"},
+        )
+        by_id = {s["arxiv_id"]: s for s in scores}
+        assert by_id["2401.1v1"]["score_total"] < by_id["2401.2v1"]["score_total"]
+
+
 class TestCitationProximity:
     def _low_scoring_paper(self) -> dict:
         # No keyword/category overlap and old → a low base score, so a proximity

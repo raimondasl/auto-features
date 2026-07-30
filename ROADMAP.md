@@ -44,7 +44,7 @@ See [Implementation status](#implementation-status-2026-07-15) below for the shi
 | 6 | ✅ | Repo-aware LLM triage & reranking | High confidence | Wires the dormant LLM path; repo-conditioned relevance judgments no embedding can express |
 | 7 | 🟡 | Scientific embeddings (SPECTER2) + CPU rerank | High confidence | The 2026-grade retrieval stack: citation-trained paper vectors + cross-encoder polish |
 | 8 | 🟡 | Citation alerts + citation-graph digest section | High confidence | "A new paper extends work you starred" — finally makes starring do something |
-| 9 | ⬜ | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
+| 9 | 🟡 | Attention & integrity signals (HN, OpenReview, Retraction Watch, Bluesky) | High confidence | "Is this paper real, reviewed, and talked about?" — a trust layer no paper tool ships |
 | 10 | 🟡 | Domain source adapters (IACR ePrint, bioRxiv/medRxiv, DBLP) | Certainly achievable | Serves security/bio/systems repos whose literature is *not* on arXiv — biggest unserved segment |
 | 11 | 🟡 | `rr eval` — recommendation-quality harness | Certainly achievable | Makes every other ranking upgrade falsifiable using ratings already collected |
 | 12 | 🟡 | OpenAlex 2026 upgrade (keys, semantic search, Topics) | High confidence | Un-breaks the source; classifier-backed field watching instead of keyword guessing |
@@ -95,6 +95,15 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   "Recommended for You" prefers them over the keyword recommender.
 
 **🟡 Partial**
+- **Feature 9 — attention & integrity signals**: a new `signals/` package. `signals/integrity.py` flags papers
+  withdrawn by their authors (300/300 recall, no confirmed false positive over 500 ordinary papers) and applies a
+  hard multiplicative `withdrawn_penalty`, so a withdrawn paper cannot reach Top Picks on other strengths;
+  `signals/hn.py` badges Hacker News discussion behind an opt-in `w_attention`. Store v13 (`paper_signals` +
+  `attention_score`). **Two of the four planned signals were disproven, not deferred for effort:** OpenReview's
+  per-paper endpoint is 403-challenge-gated for anonymous clients (and 0.5% coverage of a 14-day run even via a
+  local index), and Crossref indexes zero arXiv works, so the Retraction Watch layer cannot apply. Bluesky works
+  keyless only through an undocumented host that bypasses a deliberate block. *Remaining:* the S2
+  `publicationVenue` annotation, storing the arXiv comment at collect time, trends exclusion.
 - **Feature 1** — HF Papers enrichment shipped, plus the `w_community` ranking component (opt-in, store v12
   `community_score`) scoring log-normalized upvotes from *previously cached* enrichments, since enrichment
   runs after ranking. *Remaining:* the `pwc-archive` offline fallback.
@@ -451,6 +460,63 @@ all-MiniLM is a generic sentence model; SPECTER2 is the de-facto scientific-pape
 **Sources:** [S2 API](https://api.semanticscholar.org/api-docs/) · [OpenAlex pricing blog](https://blog.openalex.org/openalex-api-new-features-and-usage-based-pricing/)
 
 ### 9. Composite attention & integrity signals: HN, OpenReview, Retraction Watch, Bluesky
+
+> **🟡 Core shipped — and two of the four planned signals were disproven by probing them.**
+>
+> **Shipped.** A `signals/` package (sibling to `sources/`: those *find* papers, these say something *about* one).
+> `signals/integrity.py` detects papers withdrawn by their authors and applies a **hard multiplicative penalty**
+> (`ranking.withdrawn_penalty`, default 0.1) rather than another weighted component — so a withdrawn paper cannot
+> reach Top Picks on other strengths: 1.0 × 0.1 = 0.1, below the 0.2 Maybe threshold. `signals/hn.py` badges
+> Hacker News discussion and feeds an opt-in `ranking.w_attention`. Store v13 adds a key-value `paper_signals`
+> table plus `paper_scores.attention_score`. Digest gets a tier-independent "Withdrawn by their authors" section
+> and `[WITHDRAWN]` / `[HN n]` badges.
+>
+> **The withdrawal matcher is the whole feature, because arXiv has no withdrawal field.** The notice is
+> hand-written free text in `<arxiv:comment>`; a withdrawn paper's title is unchanged and its abstract is often
+> the complete original. Measured over 300 real withdrawal comments sampled by the bare token (sampling by
+> *phrase* biases toward whatever the regex already handles — an error worth avoiding): the phrasing arXiv's own
+> help pages suggest catches **29%**, and the most common real comment is the single word "Withdrawn". The
+> shipped field-aware matcher — liberal in the short comment, anchored in prose, so a pharmacology abstract about
+> drugs withdrawn from the market is not flagged — measures **100% recall** on notices phrased "withdrawn" and
+> **83–85%** on the "withdrew"/"retracted" phrasings, with **no confirmed false positive over 600 ordinary
+> papers**. Those other two verbs are the lesson of this feature: the first two rounds of validation sampled by
+> searching for the token *withdrawn*, so they structurally could not contain a paper that only ever says
+> "retracted" — and reported 300/300 while missing that phrasing entirely. The adversarial review caught it by
+> sampling independently. How the sample is drawn mattered more than how big it was.
+>
+> **Dropped: OpenReview.** The headline capability ("Accepted at ICLR 2026 (avg score 7.2)") is unreachable.
+> `GET /notes` returns **403 ChallengeRequiredError** for anonymous clients on every documented form, on both
+> `api2` and `api.openreview.net` — a browser challenge, not a rate limit, and solving it would be bot-detection
+> circumvention. The roadmap's named risk (fuzzy preprint-vs-camera-ready titles) turned out to be a non-issue
+> (29/29 titles matched byte-identically after normalization); the real blockers are the challenge gate and a
+> structural 4–8 month lag between preprint and review. Even via a locally built 33k-note venue index, coverage
+> of a default 14-day run is **0.5%** (47% for papers from a conference-deadline week — so revisit only as a
+> backfill pass over already-stored papers).
+>
+> **Dropped: Retraction Watch via Crossref, outright rather than deferred.** Crossref indexes **zero** arXiv
+> works (`filter=prefix:10.48550` → 0 results; `/works/10.48550/arXiv.*` → 404) because arXiv DOIs are DataCite.
+> Reaching it needs an arXiv-id → S2-DOI → Crossref bridge, whose own ceiling measured 9/60 (15%) papers with a
+> Crossref-resolvable DOI — and top ML venues (NeurIPS/ICLR/ICML) deposit no DOI at all, so coverage is worst
+> exactly where this tool's corpus is. Two roadmap claims were also wrong: the prescribed `filter=updates:{DOI}`
+> direction is the wrong one (batched `filter=doi:a,doi:b&select=updated-by` is one request for 100 DOIs), and
+> the Labs bulk endpoint is *not* retired — it serves a 65.6 MB, 71,448-row CSV, 12 days fresh. Irrelevant
+> anyway: 4 of those 71,448 rows reference arXiv at all.
+>
+> **Dropped: Bluesky.** It *does* work keyless — but only via undocumented `api.bsky.app`, while the documented
+> `public.api.bsky.app` deliberately 403s that one method at its CDN. Shipping an apparent bypass of an
+> intentional block is not a dependency worth having. Its coverage is also an artefact: per-category arXiv mirror
+> bots post nearly every paper, so raw hit counts said 9/9 papers had "buzz" and 4/12 survived bot filtering. It
+> throttles with **403 and no Retry-After**, which every existing adapter here would read as a dead endpoint.
+>
+> **Also measured, contradicting Feature 12:** keyless OpenAlex is *not* degraded today — it returns 200 with
+> self-describing quota headers (`X-RateLimit-Limit-USD: 0.1`, `Cost-USD: 0.0001/call`). And keyless Semantic
+> Scholar `/paper/batch` **is** degraded: it 429'd continuously for ~15 minutes of probing and defeated 8 backed-off
+> retries, which is why the S2 `publicationVenue` venue annotation (the natural OpenReview replacement — it
+> resolves DeepSeek-R1 → Nature, Attention → NeurIPS on a call `citations.py` already makes) is deferred rather
+> than shipped.
+>
+> **Remaining:** the venue annotation above; storing `<arxiv:comment>` at collect time (v14) so ingest-time
+> detection is free and the network re-check becomes a top-up; excluding withdrawn papers from `trends.py`.
 
 **Verification: feasible-with-caveats** (all four sources confirmed free; two plan corrections applied).
 

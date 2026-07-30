@@ -87,6 +87,14 @@ class RankingConfig:
     # enrichment happens after ranking (see cli.update) — so a brand-new paper has
     # no community signal on its first run and is simply not scored on it.
     w_community: float = 0.0
+    # Hacker News attention (Feature 9). Opt-in and deliberately sparse: measured at
+    # 0/340 for random papers from the last two weeks, so it is a badge that
+    # occasionally becomes a ranking signal, not a dependable component.
+    w_attention: float = 0.0
+    # Multiplier applied to a withdrawn paper's total. Not a weighted component: a
+    # withdrawn paper must not be able to rank into Top Picks on other strengths.
+    # Kept above 0 so it still appears (flagged) in Muted rather than vanishing.
+    withdrawn_penalty: float = 0.1
     category_weights: dict[str, float] = field(default_factory=dict)
     # Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
     # ranking via RRF, so a paper buried on vocabulary mismatch can still surface.
@@ -119,6 +127,19 @@ class EnrichmentConfig:
     # and community upvotes; "off" disables enrichment entirely.
     provider: str = "huggingface"  # "huggingface" | "off"
     hf_token: str = ""  # optional; raises the anonymous HF rate limit
+
+
+@dataclass
+class SignalsConfig:
+    """Attention and integrity signals about papers already collected (Feature 9)."""
+
+    # Withdrawal detection. Costs a handful of throttled arXiv requests per run and
+    # protects against the worst ranking failure — recommending retracted work — so
+    # it defaults ON, unlike every other optional integration.
+    integrity: bool = True
+    # Hacker News discussion lookup (keyless). Off by default: measured coverage is
+    # ~0% for papers from the last two weeks, so most runs pay requests for nothing.
+    hackernews: bool = False
 
 
 @dataclass
@@ -206,6 +227,7 @@ class RepoRadarConfig:
     triage: TriageConfig = field(default_factory=TriageConfig)
     feedback: FeedbackConfig = field(default_factory=FeedbackConfig)
     recommendations: RecommendationsConfig = field(default_factory=RecommendationsConfig)
+    signals: SignalsConfig = field(default_factory=SignalsConfig)
 
 
 def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
@@ -229,6 +251,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         EnrichmentConfig(**data["enrichment"]) if "enrichment" in data else EnrichmentConfig()
     )
     enrichment.provider = _normalize_off(enrichment.provider)
+    signals = SignalsConfig(**data["signals"]) if "signals" in data else SignalsConfig()
     sources = data.get("sources", ["arxiv"])
 
     if "hooks" in data:
@@ -267,6 +290,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         triage=triage,
         feedback=feedback,
         recommendations=recommendations,
+        signals=signals,
     )
 
 
@@ -361,10 +385,26 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         "w_citation_proximity",
         "w_specter",
         "w_community",
+        "w_attention",
     ):
         val = getattr(cfg.ranking, name)
         if val < 0:
             warnings.append(f"Negative ranking weight: {name}={val}")
+
+    # The withdrawal penalty is a multiplier, so out-of-range values silently invert
+    # the feature: > 1 would *promote* withdrawn papers, < 0 would flip the sign.
+    if not 0.0 <= cfg.ranking.withdrawn_penalty <= 1.0:
+        warnings.append(
+            f"ranking.withdrawn_penalty={cfg.ranking.withdrawn_penalty} should be "
+            "between 0 and 1 (it multiplies a withdrawn paper's score; 1 disables "
+            "the penalty)"
+        )
+
+    if cfg.ranking.w_attention > 0 and not cfg.signals.hackernews:
+        warnings.append(
+            "ranking.w_attention > 0 but signals.hackernews is false, so no "
+            "attention data is ever fetched and the weight does nothing."
+        )
 
     # Category weights
     for cat, weight in cfg.ranking.category_weights.items():

@@ -116,11 +116,17 @@ def categorize_papers(
         from reporadar.triage import rerank_by_actionability
 
         scored_papers = rerank_by_actionability(scored_papers)
-    limited = scored_papers[:top_n]
+
+    # Withdrawn papers are separated out *before* the top_n cut. Two reasons: the
+    # triage branch below tiers by llm_score and never reads score_total, so the
+    # ranking penalty alone would not stop a withdrawn paper reaching Top Picks; and
+    # letting one occupy a slot would evict a good paper from the digest entirely.
+    withdrawn = [p for p in scored_papers if p.get("withdrawn_in")]
+    limited = [p for p in scored_papers if not p.get("withdrawn_in")][:top_n]
 
     top_picks = []
     maybe_relevant = []
-    muted = []
+    muted = list(withdrawn)
 
     for paper in limited:
         llm = paper.get("llm_score")
@@ -141,6 +147,28 @@ def categorize_papers(
             muted.append(paper)
 
     return top_picks, maybe_relevant, muted
+
+
+def annotate_signals(store: PaperStore, papers: list[dict[str, Any]]) -> None:
+    """Attach the Hacker News signal to *papers* in place, for badging.
+
+    ``withdrawn_in`` deliberately does **not** come from here — ``get_scores_for_run``
+    joins it, so every consumer of a run's scores has it without remembering to
+    annotate. Annotating in one caller is what left json/csv/rss, ``rr open`` and
+    ``rr gh-issues`` emitting withdrawn papers as recommendations.
+
+    A paper with no signal row simply gains no key, which renders as no badge — never
+    as an "unpopular" claim.
+    """
+    try:
+        signals = store.get_signals([p["arxiv_id"] for p in papers], "hn")
+    except Exception:
+        return
+    for paper in papers:
+        entry = signals.get(paper["arxiv_id"])
+        if entry and entry["value"]:
+            paper["hn_points"] = int(entry["value"] or 0)
+            paper["hn_url"] = entry["detail"] or ""
 
 
 def find_extends_starred(store: PaperStore, scored: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -199,6 +227,10 @@ def _build_digest_context(
         for paper in scored:
             paper["is_new"] = paper["arxiv_id"] not in prev_ids
 
+    # Before tiering: categorize_papers needs the withdrawal flag, since the LLM
+    # triage branch decides a paper's tier without consulting score_total.
+    annotate_signals(store, scored)
+
     top_picks, maybe_relevant, muted = categorize_papers(
         scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
     )
@@ -246,6 +278,15 @@ def _build_digest_context(
 
     extends_starred = find_extends_starred(store, scored)
 
+    # Withdrawn papers get their own section rather than relying on a per-card badge:
+    # the ranking penalty deliberately demotes them, and the Muted tier renders no
+    # badges, so a card-only warning would vanish exactly when it fires.
+    withdrawn_papers = [
+        {"title": p["title"], "url": p["url"], "field": p["withdrawn_in"]}
+        for p in scored
+        if p.get("withdrawn_in")
+    ]
+
     return {
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "run_id": run_id,
@@ -263,6 +304,7 @@ def _build_digest_context(
         "trends": trends,
         "recommended": recommended,
         "extends_starred": extends_starred,
+        "withdrawn_papers": withdrawn_papers,
     }
 
 
@@ -399,6 +441,9 @@ _CSV_FIELDS = [
     "embedding_score",
     "citation_score",
     "tier",
+    # Which field the withdrawal notice was found in, empty for a clean paper. A
+    # spreadsheet export of a digest must not hide that a row is retracted work.
+    "withdrawn_in",
     "authors",
     "categories",
     "published",

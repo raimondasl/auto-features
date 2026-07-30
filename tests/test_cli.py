@@ -47,6 +47,10 @@ def _setup_repo(tmp_path: Path) -> Path:
         # three retries with backoff each once the network guard blocked them).
         "enrichment:\n"
         "  provider: 'off'\n"
+        # Likewise the integrity check, which defaults ON and queries arXiv for
+        # withdrawal comments. Tests that exercise it patch fetch_comments instead.
+        "signals:\n"
+        "  integrity: false\n"
         "output:\n"
         f"  digest_path: {tmp_path / 'digest.md'}\n"
         "  top_n: 15\n",
@@ -625,6 +629,228 @@ class TestUpdateCommand:
         assert by_id["2402.00001v1"]["community_score"] == 1.0
         assert by_id["2402.00002v1"]["community_score"] < 1.0
         assert by_id["2402.00001v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
+
+    @patch("reporadar.signals.integrity.fetch_comments")
+    @patch("reporadar.cli.collect_papers")
+    def test_integrity_demotes_and_records_a_withdrawn_paper(
+        self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        withdrawn, clean = _community_paper("2607.00001v1"), _community_paper("2607.00002v1")
+        mock_collect.return_value = [withdrawn, clean]
+        mock_comments.return_value = {
+            "2607.00001v1": "Withdrawn by the authors due to an error in Theorem 2",
+            "2607.00002v1": "10 pages, 3 figures",
+        }
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "withdrawn by their authors" in result.output.lower()
+        with PaperStore(db) as store:
+            run_id = store.get_last_run()["run_id"]
+            by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+            signals = store.get_signals(["2607.00001v1", "2607.00002v1"], "withdrawn")
+        # Same title/abstract/date, so only the penalty can separate them.
+        assert by_id["2607.00001v1"]["score_total"] < by_id["2607.00002v1"]["score_total"]
+        assert signals["2607.00001v1"]["value"] == "comment"
+        # The clean paper is recorded as checked-with-no-notice (a NULL value), so the
+        # next run can skip it — that is not the same as being flagged.
+        assert signals["2607.00002v1"]["value"] is None
+
+    @patch("reporadar.signals.integrity.fetch_comments")
+    @patch("reporadar.cli.collect_papers")
+    def test_integrity_failure_does_not_break_the_run(
+        self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
+            ),
+            encoding="utf-8",
+        )
+        mock_collect.return_value = [_community_paper("2607.00001v1")]
+        mock_comments.side_effect = RuntimeError("arXiv unreachable")
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "Integrity check failed" in result.output
+
+    @patch("reporadar.signals.integrity.fetch_comments")
+    @patch("reporadar.cli.collect_papers")
+    def test_an_arxiv_outage_is_reported_not_hidden(
+        self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
+    ) -> None:
+        """fetch_comments swallows per-batch failures and returns what it got.
+
+        So an outage returns {} without raising, and the run would otherwise print a
+        clean "no withdrawn papers" while having checked nothing.
+        """
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
+            ),
+            encoding="utf-8",
+        )
+        mock_collect.return_value = [_community_paper("2607.00001v1")]
+        mock_comments.return_value = {}  # what an outage looks like from here
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "could not reach arXiv" in result.output
+
+    @patch("reporadar.signals.integrity.fetch_comments")
+    @patch("reporadar.cli.collect_papers")
+    def test_local_fallback_flags_a_paper_arxiv_cannot_resolve(
+        self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
+    ) -> None:
+        # A notice in the stored abstract needs no network, so it must cover papers
+        # from non-arXiv sources too — whose synthetic ids the API cannot resolve.
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
+            ),
+            encoding="utf-8",
+        )
+        paper = _community_paper("ss:987654")
+        paper["abstract"] = "This paper has been withdrawn by the authors."
+        mock_collect.return_value = [paper]
+        mock_comments.return_value = {}
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "withdrawn by their authors" in result.output.lower()
+        # A synthetic id must not be queued for a lookup it can never satisfy.
+        mock_comments.assert_not_called()
+
+    @patch("reporadar.signals.integrity.fetch_comments")
+    @patch("reporadar.cli.collect_papers")
+    def test_integrity_skips_recently_checked_papers(
+        self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
+    ) -> None:
+        """The recheck must be bounded by checked_at, not re-run over everything.
+
+        arXiv wants 3s between requests, so an unbounded pass over a --foundational
+        store would spend minutes per run on a signal that fires for under 1% of
+        papers. A stored (clean) result from today means no lookup at all.
+        """
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        paper = _community_paper("2607.00001v1")
+        with PaperStore(db) as store:
+            store.upsert_paper(paper)
+            store.save_signals([("2607.00001v1", "withdrawn", None, None)])  # checked, clean
+        mock_collect.return_value = [paper]
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        mock_comments.assert_not_called()
+        assert "0 looked up" in result.output
+
+    @patch("reporadar.signals.integrity.fetch_comments")
+    @patch("reporadar.cli.collect_papers")
+    def test_a_previously_flagged_paper_stays_demoted_without_a_refetch(
+        self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        flagged, clean = _community_paper("2607.00001v1"), _community_paper("2607.00002v1")
+        with PaperStore(db) as store:
+            store.upsert_paper(flagged)
+            store.upsert_paper(clean)
+            store.save_signals(
+                [
+                    ("2607.00001v1", "withdrawn", "comment", None),
+                    ("2607.00002v1", "withdrawn", None, None),
+                ]
+            )
+        mock_collect.return_value = [flagged, clean]
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        mock_comments.assert_not_called()
+        with PaperStore(db) as store:
+            run_id = store.get_last_run()["run_id"]
+            by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+        assert by_id["2607.00001v1"]["score_total"] < by_id["2607.00002v1"]["score_total"]
+
+    @patch("reporadar.signals.hn.fetch_attention")
+    @patch("reporadar.cli.collect_papers")
+    def test_hackernews_wiring(
+        self, mock_collect: MagicMock, mock_attention: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8")
+            .replace("  w_recency: 0.3\n", "  w_recency: 0.3\n  w_attention: 5.0\n")
+            .replace("  integrity: false\n", "  integrity: false\n  hackernews: true\n"),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        discussed, quiet = _community_paper("2607.00001v1"), _community_paper("2607.00002v1")
+        mock_collect.return_value = [discussed, quiet]
+        mock_attention.return_value = {
+            "2607.00001v1": {
+                "points": 1351,
+                "comments": 1056,
+                "story_url": "https://news.ycombinator.com/item?id=42823568",
+                "title": "A Story",
+                "submissions": 1,
+            }
+        }
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "Hacker News" in result.output
+        with PaperStore(db) as store:
+            run_id = store.get_last_run()["run_id"]
+            by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+            signals = store.get_signals(["2607.00001v1"], "hn")
+        assert by_id["2607.00001v1"]["attention_score"] == 1.0
+        # Never discussed -> absent signal, so it must not be scored 0 and sink.
+        assert by_id["2607.00002v1"]["attention_score"] is None
+        assert by_id["2607.00001v1"]["score_total"] > by_id["2607.00002v1"]["score_total"]
+        assert signals["2607.00001v1"]["value"] == "1351"
+        assert signals["2607.00001v1"]["detail"].endswith("42823568")
 
     @patch("reporadar.cli.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:

@@ -127,6 +127,78 @@ class TestCommunityScorePersistence:
         assert got["community_score"] is None
 
 
+class TestPaperSignals:
+    def test_round_trips_one_signal(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_signals([("2401.1v1", "withdrawn", "comment", "Withdrawn by author")])
+            got = store.get_signals(["2401.1v1"], "withdrawn")
+        assert got["2401.1v1"]["value"] == "comment"
+        assert got["2401.1v1"]["detail"] == "Withdrawn by author"
+        assert got["2401.1v1"]["checked_at"]
+
+    def test_groups_by_signal_when_unfiltered(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_signals(
+                [("2401.1v1", "withdrawn", "comment", None), ("2401.1v1", "hn", "1351", "u")]
+            )
+            got = store.get_signals(["2401.1v1"])
+        assert set(got["2401.1v1"]) == {"withdrawn", "hn"}
+
+    def test_upsert_replaces_a_stale_value(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_signals([("2401.1v1", "hn", "12", "u")])
+            store.save_signals([("2401.1v1", "hn", "340", "u")])
+            got = store.get_signals(["2401.1v1"], "hn")
+        assert got["2401.1v1"]["value"] == "340"
+
+    def test_orphan_rows_are_skipped_not_fatal(self, tmp_path: Path) -> None:
+        # A foreign-key error would abort the whole batch — the failure mode that
+        # once made one bad DBLP field kill an entire update.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_signals([("2401.1v1", "hn", "10", None), ("9999.9v1", "hn", "20", None)])
+            got = store.get_signals(["2401.1v1", "9999.9v1"])
+        assert set(got) == {"2401.1v1"}
+
+    def test_unknown_ids_and_empty_input(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            assert store.get_signals([]) == {}
+            assert store.get_signals(["nope"]) == {}
+            store.save_signals([])  # must not raise
+
+    def test_clear_signal_removes_only_that_signal(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            store.save_signals(
+                [("2401.1v1", "withdrawn", "comment", None), ("2401.1v1", "hn", "5", None)]
+            )
+            assert store.clear_signal("hn") == 1
+            assert set(store.get_signals(["2401.1v1"])["2401.1v1"]) == {"withdrawn"}
+
+
+class TestAttentionScorePersistence:
+    def test_round_trips(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.1v1"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(
+                run_id, [{"arxiv_id": "2401.1v1", "score_total": 0.7, "attention_score": 0.88}]
+            )
+            got = store.get_scores_for_run(run_id)[0]
+        assert got["attention_score"] == 0.88
+
+    def test_absent_score_stays_null(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper(arxiv_id="2401.2v1"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(run_id, [{"arxiv_id": "2401.2v1", "score_total": 0.5}])
+            got = store.get_scores_for_run(run_id)[0]
+        assert got["attention_score"] is None
+
+
 class TestCitationEdges:
     def test_save_and_get(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:

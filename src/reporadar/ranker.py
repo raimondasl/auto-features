@@ -138,6 +138,8 @@ def score_paper(
     citation_proximity_score: float | None = None,
     specter_score: float | None = None,
     community_score: float | None = None,
+    attention_score: float | None = None,
+    withdrawn: bool = False,
 ) -> dict[str, Any]:
     """Compute a combined score for a single paper.
 
@@ -185,9 +187,22 @@ def score_paper(
         raw_total += w_community * community_score
         weight_sum += w_community
 
+    w_attention = getattr(ranking_cfg, "w_attention", 0.0)
+    if attention_score is not None and w_attention > 0:
+        raw_total += w_attention * attention_score
+        weight_sum += w_attention
+
     normalized = raw_total / weight_sum if weight_sum > 0 else 0.0
 
     penalty = compute_exclude_penalty(paper, queries_cfg.exclude)
+    # A withdrawn paper is penalized *multiplicatively*, never as a weighted
+    # component: as one more signal it would be outvoted by keyword + category +
+    # recency all firing, and a strongly-relevant withdrawn paper would still reach
+    # Top Picks. The factor stays above 0 so the paper sinks to Muted while remaining
+    # visible with its flag — a reader who already saw the preprint elsewhere is
+    # better served by "this was withdrawn" than by its silent disappearance.
+    if withdrawn:
+        penalty *= getattr(ranking_cfg, "withdrawn_penalty", 0.1)
     total = normalized * penalty
 
     return {
@@ -200,6 +215,7 @@ def score_paper(
         "citation_score": round(citation_score, 4) if citation_score is not None else None,
         "specter_score": round(specter_score, 4) if specter_score is not None else None,
         "community_score": round(community_score, 4) if community_score is not None else None,
+        "attention_score": round(attention_score, 4) if attention_score is not None else None,
         "matched_query": paper.get("matched_query"),
     }
 
@@ -220,6 +236,8 @@ def format_score_explanation(score_dict: dict[str, Any], ranking_cfg: RankingCon
         components.append(("specter", "specter_score", getattr(ranking_cfg, "w_specter", 0)))
     if "community_score" in score_dict and score_dict["community_score"] is not None:
         components.append(("community", "community_score", getattr(ranking_cfg, "w_community", 0)))
+    if "attention_score" in score_dict and score_dict["attention_score"] is not None:
+        components.append(("attention", "attention_score", getattr(ranking_cfg, "w_attention", 0)))
 
     for name, key, weight in components:
         val = score_dict.get(key, 0) or 0
@@ -265,6 +283,8 @@ def rank_papers(
     citation_proximity: dict[str, float] | None = None,
     specter: dict[str, float] | None = None,
     community: dict[str, float] | None = None,
+    attention: dict[str, float] | None = None,
+    withdrawn: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Score and rank a list of papers. Returns score dicts sorted by score descending.
 
@@ -306,6 +326,10 @@ def rank_papers(
         if community is not None:
             comm_score = community.get(paper["arxiv_id"])
 
+        att_score = None
+        if attention is not None:
+            att_score = attention.get(paper["arxiv_id"])
+
         scores.append(
             score_paper(
                 paper,
@@ -319,6 +343,8 @@ def rank_papers(
                 citation_proximity_score=prox_score,
                 specter_score=spec_score,
                 community_score=comm_score,
+                attention_score=att_score,
+                withdrawn=bool(withdrawn and paper["arxiv_id"] in withdrawn),
             )
         )
     # Tie-break on arxiv_id so the order never depends on the order papers were

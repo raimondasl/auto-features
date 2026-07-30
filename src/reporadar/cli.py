@@ -514,6 +514,91 @@ def update(
                 info(f"  Community signal failed: {exc}")
                 community = None
 
+        # 6e. Integrity: is any candidate a withdrawn paper (Feature 9)? On by
+        #     default — recommending retracted work is the worst thing the ranker can
+        #     do. Re-checked every run, not just at collect time: a paper can be
+        #     withdrawn days after it was ingested (observed in a real corpus).
+        withdrawn: set[str] = set()
+        if cfg.signals.integrity:
+            try:
+                from reporadar.signals.integrity import (
+                    fetch_comments,
+                    find_withdrawn,
+                    stale_ids,
+                )
+
+                # The free half first: a notice the authors put in the title or the
+                # abstract needs no network at all, so it covers every candidate —
+                # including papers from non-arXiv sources that the API cannot resolve.
+                flags = find_withdrawn(papers, {})
+
+                # Then the comment lookup, which is where most notices actually live.
+                # Bounded: skip papers checked within the recheck window and cap how
+                # many are looked up per run. arXiv wants 3s between requests, so an
+                # unbounded pass over a --foundational (all-time) store would spend
+                # minutes on a signal that fires for well under 1% of papers. Only ids
+                # arXiv can resolve enter the queue, or synthetic ss:/oa:/dblp: ids
+                # would occupy the cap forever and starve the real re-checks.
+                previous = store.get_signals([p["arxiv_id"] for p in papers], "withdrawn")
+                resolvable = [p["arxiv_id"] for p in papers if ":" not in p["arxiv_id"]]
+                to_check = stale_ids(
+                    resolvable, {aid: row["checked_at"] for aid, row in previous.items()}
+                )
+                comments = fetch_comments(to_check) if to_check else {}
+                flags.update(find_withdrawn(papers, comments))
+
+                if to_check and comments:
+                    # Record a row for every id asked about, not just the answered
+                    # ones: arXiv silently drops ids it does not know, and those would
+                    # otherwise stay "never checked" forever and consume the whole
+                    # per-run budget on every future run, starving the real re-checks.
+                    store.save_signals(
+                        [(aid, "withdrawn", flags.get(aid), None) for aid in to_check]
+                    )
+                # Trust a stored flag for anything not re-checked this run.
+                for aid, row in previous.items():
+                    if row["value"] and aid not in comments:
+                        flags.setdefault(aid, row["value"])
+                withdrawn = set(flags)
+
+                if to_check and not comments:
+                    # fetch_comments swallows per-batch failures, so an arXiv outage
+                    # would otherwise print a clean "0 withdrawn" and hide the gap.
+                    warn(
+                        f"  Integrity check could not reach arXiv for {len(to_check)} "
+                        "paper(s); only their stored title/abstract was checked."
+                    )
+                if withdrawn:
+                    warn(f"  {len(withdrawn)} paper(s) withdrawn by their authors - demoted.")
+                else:
+                    info(f"  Integrity check: no withdrawn papers ({len(comments)} looked up).")
+            except Exception as exc:
+                info(f"  Integrity check failed: {exc}")
+                withdrawn = set()
+
+        # 6f. Hacker News attention (Feature 9, optional). Off by default: measured
+        #     coverage is ~0% for papers published in the last two weeks.
+        attention: dict[str, float] | None = None
+        if cfg.signals.hackernews:
+            try:
+                from reporadar.signals.hn import fetch_attention, normalize_points
+
+                stories = fetch_attention([p["arxiv_id"] for p in papers])
+                if stories:
+                    attention = normalize_points({k: v["points"] for k, v in stories.items()})
+                    store.save_signals(
+                        [
+                            (aid, "hn", str(s["points"]), s["story_url"])
+                            for aid, s in stories.items()
+                        ]
+                    )
+                    info(f"  Discussed on Hacker News: {len(stories)} paper(s).")
+                else:
+                    info("  No Hacker News discussion found for this run's papers.")
+            except Exception as exc:
+                info(f"  Hacker News lookup failed: {exc}")
+                attention = None
+
         # 7. Apply feedback-adjusted weights if enabled
         ranking_cfg = cfg.ranking
         if cfg.feedback.enabled:
@@ -562,6 +647,8 @@ def update(
             citation_proximity=citation_proximity,
             specter=specter,
             community=community,
+            attention=attention,
+            withdrawn=withdrawn,
         )
         # 8b. Hybrid retrieval (roadmap #4): fuse the heuristic order with a BM25
         #     lexical order via RRF, so a paper buried on vocabulary mismatch can

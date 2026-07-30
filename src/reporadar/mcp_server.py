@@ -37,7 +37,7 @@ def profile_payload(
 
 
 def _paper_brief(s: dict[str, Any]) -> dict[str, Any]:
-    return {
+    brief = {
         "arxiv_id": s["arxiv_id"],
         "title": s.get("title"),
         "url": s.get("url"),
@@ -46,6 +46,16 @@ def _paper_brief(s: dict[str, Any]) -> dict[str, Any]:
         "llm_reason": s.get("llm_reason"),
         "abstract": (s.get("abstract") or "")[:500],
     }
+    # An agent acting on a retracted result is the exact harm the withdrawal signal
+    # exists to prevent, and an agent never sees the digest's warning section — so the
+    # flag has to travel with the paper itself. Absent unless positively flagged.
+    if s.get("withdrawn_in"):
+        brief["withdrawn"] = True
+        brief["warning"] = (
+            "The authors withdrew this paper (notice in its "
+            f"{s['withdrawn_in']}). Treat its claims as retracted."
+        )
+    return brief
 
 
 def ranked_papers_payload(store: PaperStore, limit: int = 10) -> dict[str, Any]:
@@ -71,13 +81,20 @@ def explain_relevance_payload(
     )
     if match is None:
         return {"error": f"{arxiv_id} is not in the latest run's ranked papers."}
-    return {
+    payload = {
         "arxiv_id": match["arxiv_id"],
         "title": match.get("title"),
         "explanation": format_score_explanation(match, ranking_cfg),
         "llm_score": match.get("llm_score"),
         "llm_reason": match.get("llm_reason"),
     }
+    if match.get("withdrawn_in"):
+        payload["withdrawn"] = True
+        payload["warning"] = (
+            "The authors withdrew this paper (notice in its "
+            f"{match['withdrawn_in']}). Its score is penalized and its claims are retracted."
+        )
+    return payload
 
 
 def rate_paper_action(store: PaperStore, arxiv_id: str, rating: int) -> dict[str, Any]:
