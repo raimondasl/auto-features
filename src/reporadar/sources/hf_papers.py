@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json as json_mod
 import logging
+import math
 import time
 import urllib.error
 import urllib.parse
@@ -112,6 +113,28 @@ def _code_urls_from_paper(paper: dict[str, Any]) -> list[str]:
     if repo.startswith("http"):
         return [repo]
     return [f"https://github.com/{repo.strip('/')}"]
+
+
+def normalize_upvotes(upvotes_by_id: dict[str, int]) -> dict[str, float]:
+    """Log-scale HF upvote counts into ``[0, 1]`` relative to the run's maximum.
+
+    Upvotes are heavy-tailed (a few papers get hundreds, most get none), so a
+    linear scale would give everything below the leader a near-zero score. Same
+    ``log(1 + v) / log(1 + max)`` treatment as
+    :func:`reporadar.citations.normalize_citations`.
+
+    Papers with zero upvotes are **omitted**, not scored 0: zero upvotes usually
+    means "HF has no page for this paper", which is an absent signal rather than
+    evidence of no interest — and the ranker only counts components that are
+    present, so omitting them avoids a silent penalty.
+    """
+    counted = {k: v for k, v in upvotes_by_id.items() if v and v > 0}
+    if not counted:
+        return {}
+    denom = math.log(1 + max(counted.values()))
+    if denom <= 0:  # pragma: no cover - max >= 1 here, so log(1+max) > 0
+        return {}
+    return {k: math.log(1 + v) / denom for k, v in counted.items()}
 
 
 def fetch_enrichment(arxiv_id: str, token: str | None = None) -> dict[str, Any] | None:

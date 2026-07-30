@@ -42,12 +42,32 @@ def _setup_repo(tmp_path: Path) -> Path:
         "  w_keyword: 1.0\n"
         "  w_category: 0.5\n"
         "  w_recency: 0.3\n"
+        # Enrichment defaults to the live HF Papers API, and `rr update` runs it as
+        # stage 9 — so without this every update test made real HTTP calls (and paid
+        # three retries with backoff each once the network guard blocked them).
+        "enrichment:\n"
+        "  provider: 'off'\n"
         "output:\n"
         f"  digest_path: {tmp_path / 'digest.md'}\n"
         "  top_n: 15\n",
         encoding="utf-8",
     )
     return tmp_path
+
+
+def _community_paper(arxiv_id: str) -> dict:
+    """A minimal arXiv-shaped paper for the community-signal tests."""
+    return {
+        "arxiv_id": arxiv_id,
+        "title": f"Paper {arxiv_id}",
+        "authors": ["A"],
+        "abstract": "language model evaluation",
+        "categories": ["cs.CL"],
+        "published": datetime.now(UTC).isoformat(),
+        "updated": None,
+        "url": f"http://arxiv.org/abs/{arxiv_id}",
+        "pdf_url": None,
+    }
 
 
 def _seed_db(tmp_path: Path) -> None:
@@ -262,6 +282,38 @@ class TestProfileCommand:
         assert result.exit_code == 0
         assert "(none found)" in result.output
 
+    def test_suggests_a_domain_source_for_a_bio_repo(self, tmp_path: Path) -> None:
+        (tmp_path / "README.md").write_text(
+            "# scRNA tooling\n\nSingle-cell RNA sequencing and genome analysis.\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "requirements.txt").write_text("scanpy\nanndata\n", encoding="utf-8")
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(f"repo_path: {tmp_path}\nsources: [arxiv]\n", encoding="utf-8")
+
+        result = CliRunner().invoke(cli, ["profile", "--config", str(config_file)])
+
+        assert result.exit_code == 0
+        assert "Consider adding 'biorxiv'" in result.output
+        # A suggestion, not an activation: the config is untouched.
+        assert "biorxiv" not in config_file.read_text(encoding="utf-8")
+
+    def test_no_suggestion_when_the_source_is_already_enabled(self, tmp_path: Path) -> None:
+        (tmp_path / "README.md").write_text(
+            "# scRNA tooling\n\nSingle-cell RNA sequencing and genome analysis.\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "requirements.txt").write_text("scanpy\nanndata\n", encoding="utf-8")
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(
+            f"repo_path: {tmp_path}\nsources: [arxiv, biorxiv]\n", encoding="utf-8"
+        )
+
+        result = CliRunner().invoke(cli, ["profile", "--config", str(config_file)])
+
+        assert result.exit_code == 0
+        assert "Consider adding" not in result.output
+
 
 class TestUpdateCommand:
     @patch("reporadar.cli.collect_papers")
@@ -464,6 +516,117 @@ class TestUpdateCommand:
             assert by_id["2402.00002v1"]["specter_score"] == 0.0
 
     @patch("reporadar.cli.collect_papers")
+    def test_community_wiring_uses_cached_upvotes(
+        self, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        # _setup_repo already sets enrichment.provider to "off", which is the point:
+        # ranking reads upvotes cached by an *earlier* run, since enrichment (stage 9)
+        # happens after ranking (stage 8).
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "  w_recency: 0.3\n", "  w_recency: 0.3\n  w_community: 5.0\n"
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        popular, quiet, unseen = (
+            _community_paper("2402.00001v1"),
+            _community_paper("2402.00002v1"),
+            _community_paper("2402.00003v1"),
+        )
+        with PaperStore(db) as store:
+            for paper in (popular, quiet):
+                store.upsert_paper(paper)
+            store.save_enrichments(
+                {
+                    "2402.00001v1": {"arxiv_id": "2402.00001v1", "upvotes": 200},
+                    "2402.00002v1": {"arxiv_id": "2402.00002v1", "upvotes": 2},
+                }
+            )
+        mock_collect.return_value = [popular, quiet, unseen]
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path)])
+
+        assert result.exit_code == 0
+        assert "Community signal" in result.output
+        with PaperStore(db) as store:
+            run_id = store.get_last_run()["run_id"]
+            by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+        assert by_id["2402.00001v1"]["community_score"] == 1.0  # the run's leader
+        assert 0.0 < by_id["2402.00002v1"]["community_score"] < 1.0
+        # Never enriched -> absent signal, not a zero, so it outranks the paper
+        # HF *did* see but that barely anyone upvoted.
+        assert by_id["2402.00003v1"]["community_score"] is None
+        assert by_id["2402.00003v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
+
+    @patch("reporadar.cli.collect_papers")
+    def test_feedback_tuning_preserves_non_learned_weights(
+        self, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        """Feedback tuning must not silently disable the optional components.
+
+        The weight rebuild used to enumerate fields by hand, so each newly added
+        component was dropped exactly when ratings existed to tune on.
+
+        Asserts on *score ordering*, not on the recorded ``community_score``: that
+        value is stored whenever the signal exists, regardless of the weight, so an
+        assertion on it would pass with the bug reinstated (verified — reverting to
+        the hand-written rebuild leaves such an assertion green).
+        """
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "  w_recency: 0.3\n",
+                "  w_recency: 0.3\n  w_community: 5.0\n"
+                "feedback:\n  enabled: true\n  min_ratings: 2\n",
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        upvoted, quiet = _community_paper("2402.00001v1"), _community_paper("2402.00002v1")
+        with PaperStore(db) as store:
+            store.upsert_paper(upvoted)
+            store.upsert_paper(quiet)
+            # Two enriched papers with different counts: the weight has to be in the
+            # weighted sum for their totals to differ at all.
+            store.save_enrichments(
+                {
+                    "2402.00001v1": {"arxiv_id": "2402.00001v1", "upvotes": 500},
+                    "2402.00002v1": {"arxiv_id": "2402.00002v1", "upvotes": 1},
+                }
+            )
+            # Enough ratings to trip feedback.min_ratings and rebuild the config.
+            for i, rating in enumerate((5, 1, 4), start=10):
+                aid = f"2401.000{i}v1"
+                store.upsert_paper(_community_paper(aid))
+                prev_run = store.record_run(["q"], 1, 0)
+                store.save_scores(
+                    prev_run, [{"arxiv_id": aid, "score_total": 0.5, "keyword_score": 0.5}]
+                )
+                store.save_rating(aid, rating)
+        mock_collect.return_value = [upvoted, quiet]
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path), "-v"])
+
+        assert result.exit_code == 0
+        # -v proves the rebuild actually happened; without it this test would pass
+        # vacuously whenever feedback tuning silently bailed out.
+        assert "adjusted ranking weights" in result.output
+        with PaperStore(db) as store:
+            run_id = store.get_last_run()["run_id"]
+            by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
+        # Same title/abstract/date, so every other component ties: the totals can
+        # only differ if w_community survived the feedback rebuild.
+        assert by_id["2402.00001v1"]["community_score"] == 1.0
+        assert by_id["2402.00002v1"]["community_score"] < 1.0
+        assert by_id["2402.00001v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
+
+    @patch("reporadar.cli.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []
@@ -516,6 +679,45 @@ class TestUpdateCommand:
         assert "keyword" in result.output
         assert "category" in result.output
         assert "recency" in result.output
+
+    @patch("reporadar.cli.collect_papers")
+    def test_explain_uses_the_feedback_tuned_weights(
+        self, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        # With feedback on, the scores come from adjusted weights; explaining them
+        # with the file's weights printed contributions that didn't sum to the total.
+        repo = _setup_repo(tmp_path)
+        cfg_path = repo / ".reporadar.yml"
+        cfg_path.write_text(
+            cfg_path.read_text(encoding="utf-8").replace(
+                "  w_recency: 0.3\n",
+                "  w_recency: 0.3\nfeedback:\n  enabled: true\n  min_ratings: 2\n",
+            ),
+            encoding="utf-8",
+        )
+        db = repo / ".reporadar" / "papers.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        target = _community_paper("2402.00001v1")
+        with PaperStore(db) as store:
+            store.upsert_paper(target)
+            for i, rating in enumerate((5, 1, 4), start=10):
+                aid = f"2401.000{i}v1"
+                store.upsert_paper(_community_paper(aid))
+                prev_run = store.record_run(["q"], 1, 0)
+                store.save_scores(
+                    prev_run, [{"arxiv_id": aid, "score_total": 0.5, "keyword_score": 0.5}]
+                )
+                store.save_rating(aid, rating)
+        mock_collect.return_value = [target]
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(cfg_path), "--explain", "-v"])
+
+        assert result.exit_code == 0
+        assert "adjusted ranking weights" in result.output  # tuning really ran
+        # The untuned weights are 1.00/0.50/0.30; the tuned ones differ, so the
+        # explanation must not be printing the config's defaults.
+        explanation = result.output[result.output.index("Score explanations:") :]
+        assert "1.00 *" not in explanation
 
     @patch("reporadar.cli.collect_papers")
     def test_score_distribution_shown(self, mock_collect: MagicMock, tmp_path: Path) -> None:

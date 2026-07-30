@@ -28,6 +28,9 @@ class DigestSummary:
     top_picks_count: int
     total_scored: int
     fmt: str
+    # How many of this run's papers cite something you starred or rated highly.
+    # Defaulted so older callers (and pickled/JSON summaries) keep working.
+    extends_starred_count: int = 0
 
 
 def summary_to_env(summary: DigestSummary) -> dict[str, str]:
@@ -39,18 +42,26 @@ def summary_to_env(summary: DigestSummary) -> dict[str, str]:
         "RR_PAPERS_SEEN": str(summary.papers_seen),
         "RR_TOP_PICKS_COUNT": str(summary.top_picks_count),
         "RR_TOTAL_SCORED": str(summary.total_scored),
+        "RR_EXTENDS_STARRED_COUNT": str(summary.extends_starred_count),
         "RR_FORMAT": summary.fmt,
     }
 
 
 def _format_message(summary: DigestSummary) -> str:
     """Build a human-readable notification message."""
-    return (
+    message = (
         f"RepoRadar digest #{summary.run_id}: "
         f"{summary.papers_new} new papers, "
         f"{summary.top_picks_count} top picks "
         f"({summary.total_scored} scored)"
     )
+    # The whole point of the citation alert is to be *pushed*, not found later in
+    # the digest — so it goes in the message, and only when there's something to say.
+    if summary.extends_starred_count:
+        count = summary.extends_starred_count
+        phrase = "paper extends" if count == 1 else "papers extend"
+        message += f" — {count} {phrase} work you starred"
+    return message
 
 
 def run_shell_hook(command: str, summary: DigestSummary) -> bool:

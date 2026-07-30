@@ -11,6 +11,7 @@ from reporadar.sources.hf_papers import (
     _repo_ids,
     fetch_enrichment,
     fetch_enrichments_batch,
+    normalize_upvotes,
 )
 
 
@@ -130,3 +131,28 @@ class TestFetchEnrichmentsBatch:
         results = fetch_enrichments_batch(["a", "b"], rate_limit=0.0)
 
         assert set(results.keys()) == {"b"}
+
+
+class TestNormalizeUpvotes:
+    def test_scales_relative_to_the_run_maximum(self) -> None:
+        scores = normalize_upvotes({"a": 100, "b": 10, "c": 1})
+        assert scores["a"] == 1.0  # the run's leader anchors the scale
+        assert 0.0 < scores["c"] < scores["b"] < scores["a"]
+
+    def test_log_scale_beats_linear_for_the_tail(self) -> None:
+        # Linear would put a 10-upvote paper at 0.1; log keeps the tail legible.
+        scores = normalize_upvotes({"leader": 1000, "tail": 10})
+        assert scores["tail"] > 0.3
+
+    def test_zero_upvotes_are_omitted_not_scored_zero(self) -> None:
+        # A 0 usually means "HF has no page for this paper" — an absent signal.
+        # Scoring it as 0.0 would let w_community silently penalize the paper.
+        scores = normalize_upvotes({"a": 5, "b": 0})
+        assert set(scores) == {"a"}
+
+    def test_empty_and_all_zero_inputs(self) -> None:
+        assert normalize_upvotes({}) == {}
+        assert normalize_upvotes({"a": 0, "b": 0}) == {}
+
+    def test_single_paper_anchors_itself(self) -> None:
+        assert normalize_upvotes({"a": 7}) == {"a": 1.0}

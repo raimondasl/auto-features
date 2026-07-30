@@ -36,6 +36,10 @@ _FOUNDATIONAL_LOOKBACK = 36500
 # Modern arXiv id with a version suffix, for version-insensitive cross-source dedup.
 _ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
 
+# The only ranking weights feedback.compute_adjusted_weights learns; every other
+# RankingConfig field is passed through untouched (see stage 7 in `update`).
+_LEARNED_WEIGHTS = ("w_keyword", "w_category", "w_recency", "w_embedding", "w_citations")
+
 
 def _dedup_id(arxiv_id: str) -> str:
     """Version-strip a modern arXiv id for cross-source dedup; leave others as-is."""
@@ -152,6 +156,16 @@ def profile(config_path: str | None, verbose: bool) -> None:
     if result.source_signals:
         info(f"Source signals:     {', '.join(result.source_signals)}")
 
+    # Paper sources this repo's literature suggests but the config doesn't enable.
+    # Advisory only — enabling a source has real costs, so it stays the user's call.
+    from reporadar.sources.suggest import format_suggestion, suggest_sources
+
+    suggestions = suggest_sources(result, cfg.sources)
+    if suggestions:
+        info("")
+        for suggestion in suggestions:
+            warn(format_suggestion(suggestion))
+
 
 @cli.command()
 @click.option(
@@ -203,6 +217,13 @@ def update(
     info(f"Profiling repo: {repo_path}")
     repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
     info(f"  Found {len(repo_profile.keywords)} keywords, {len(repo_profile.anchors)} anchors")
+
+    # Nudge (never auto-enable) domain sources this repo's literature needs but
+    # the config leaves off — an arXiv-only run silently misses those papers.
+    from reporadar.sources.suggest import format_suggestion, suggest_sources
+
+    for suggestion in suggest_sources(repo_profile, cfg.sources):
+        warn(f"  {format_suggestion(suggestion)}")
 
     # 2. Build queries
     queries = build_queries(repo_profile, cfg.queries, cfg.arxiv)
@@ -471,6 +492,28 @@ def update(
                 info(f"  SPECTER2 scoring failed: {exc}")
                 specter = None
 
+        # 6d. Community attention from HF upvotes (Feature 1, optional).
+        #     Enrichment runs *after* ranking (stage 9) because it only fetches for
+        #     the top papers — so this reads the enrichments cached by *previous*
+        #     runs. A brand-new paper therefore has no community signal on its first
+        #     run; it is simply not scored on that component rather than penalised.
+        community: dict[str, float] | None = None
+        if cfg.ranking.w_community > 0:
+            try:
+                from reporadar.sources.hf_papers import normalize_upvotes
+
+                cached_enrichments = store.get_enrichments([p["arxiv_id"] for p in papers])
+                community = normalize_upvotes(
+                    {aid: int(e.get("upvotes") or 0) for aid, e in cached_enrichments.items()}
+                )
+                if community:
+                    info(f"  Community signal (HF upvotes) for {len(community)} papers.")
+                else:
+                    info("  No cached HF upvotes yet — community signal starts next run.")
+            except Exception as exc:
+                info(f"  Community signal failed: {exc}")
+                community = None
+
         # 7. Apply feedback-adjusted weights if enabled
         ranking_cfg = cfg.ranking
         if cfg.feedback.enabled:
@@ -479,30 +522,22 @@ def update(
 
                 rated_scores = store.get_rated_paper_scores()
                 if len(rated_scores) >= cfg.feedback.min_ratings:
-                    current_weights = {
-                        "w_keyword": ranking_cfg.w_keyword,
-                        "w_category": ranking_cfg.w_category,
-                        "w_recency": ranking_cfg.w_recency,
-                        "w_embedding": ranking_cfg.w_embedding,
-                        "w_citations": ranking_cfg.w_citations,
-                    }
+                    current_weights = {k: getattr(ranking_cfg, k) for k in _LEARNED_WEIGHTS}
                     new_weights = compute_adjusted_weights(
                         rated_scores, current_weights, cfg.feedback.learning_rate
                     )
-                    from reporadar.config import RankingConfig
-
-                    ranking_cfg = RankingConfig(
+                    # replace() overrides only the learned weights, so every other
+                    # knob (proximity, specter, community, category_weights, hybrid)
+                    # survives feedback tuning automatically. Rebuilding the config
+                    # field-by-field instead silently dropped each new component
+                    # until someone remembered to add it here.
+                    ranking_cfg = replace(
+                        ranking_cfg,
                         w_keyword=new_weights["w_keyword"],
                         w_category=new_weights["w_category"],
                         w_recency=new_weights["w_recency"],
                         w_embedding=new_weights["w_embedding"],
                         w_citations=new_weights["w_citations"],
-                        # Preserve non-learned weights/flags through the rebuild so
-                        # the proximity boost + hybrid mode survive feedback tuning.
-                        w_citation_proximity=cfg.ranking.w_citation_proximity,
-                        w_specter=cfg.ranking.w_specter,
-                        category_weights=cfg.ranking.category_weights,
-                        hybrid=cfg.ranking.hybrid,
                     )
                     if verbose:
                         info("  Feedback: adjusted ranking weights from user ratings.")
@@ -526,6 +561,7 @@ def update(
             paper_embeddings=paper_embeddings,
             citation_proximity=citation_proximity,
             specter=specter,
+            community=community,
         )
         # 8b. Hybrid retrieval (roadmap #4): fuse the heuristic order with a BM25
         #     lexical order via RRF, so a paper buried on vocabulary mismatch can
@@ -624,7 +660,11 @@ def update(
         if explain and top:
             info("\nScore explanations:")
             for s in top:
-                info(format_score_explanation(s, cfg.ranking))
+                # ranking_cfg, not cfg.ranking: with feedback tuning on, the weights
+                # that produced these scores are the adjusted ones, so explaining
+                # them with the file's weights printed contributions that didn't
+                # sum to the printed total.
+                info(format_score_explanation(s, ranking_cfg))
 
     success(f"\nDone! Run #{run_id}: {new_count} new, {seen_count} already seen.")
     info(f"Total papers in DB: {new_count + seen_count}")
@@ -983,7 +1023,7 @@ def search(
 )
 def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
     """Send a notification about a digest run."""
-    from reporadar.digest import categorize_papers
+    from reporadar.digest import categorize_papers, find_extends_starred
     from reporadar.notify import DigestSummary, dispatch_notification
 
     cfg = _load_and_validate(config_path)
@@ -1021,6 +1061,7 @@ def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
             top_picks_count=len(top_picks),
             total_scored=len(scored),
             fmt="md",
+            extends_starred_count=len(find_extends_starred(store, scored)),
         )
 
     if dispatch_notification(channel, cfg.hooks, summary):

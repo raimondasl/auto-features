@@ -35,6 +35,21 @@ def _expand_env(value: Any) -> Any:
     return value
 
 
+def _normalize_off(value: Any) -> str:
+    """Coerce an off-switch value to a string, treating YAML 1.1 booleans as ``"off"``.
+
+    PyYAML implements YAML 1.1, where a bare ``off`` (also ``no``, ``false``) parses
+    as the boolean ``False`` — so the documented ``provider: off`` arrived as
+    ``False``, the ``!= "off"`` guard passed, and enrichment kept running: an
+    off-switch that did nothing unless the user happened to quote it.
+    """
+    if value is False:
+        return "off"
+    if value is True:
+        return "huggingface"
+    return str(value)
+
+
 @dataclass
 class ArxivConfig:
     categories: list[str] = field(default_factory=lambda: ["cs.LG", "cs.CL"])
@@ -67,6 +82,11 @@ class RankingConfig:
     # Scholar) similarity to the papers you starred/rated highly. 0 disables the
     # feature entirely (no vector fetches).
     w_specter: float = 0.0
+    # Community attention: Hugging Face Papers upvotes, which enrichment already
+    # fetches and stores. Uses enrichments cached from *previous* runs, because
+    # enrichment happens after ranking (see cli.update) — so a brand-new paper has
+    # no community signal on its first run and is simply not scored on it.
+    w_community: float = 0.0
     category_weights: dict[str, float] = field(default_factory=dict)
     # Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
     # ranking via RRF, so a paper buried on vocabulary mismatch can still surface.
@@ -208,6 +228,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     enrichment = (
         EnrichmentConfig(**data["enrichment"]) if "enrichment" in data else EnrichmentConfig()
     )
+    enrichment.provider = _normalize_off(enrichment.provider)
     sources = data.get("sources", ["arxiv"])
 
     if "hooks" in data:
@@ -339,6 +360,7 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         "w_citations",
         "w_citation_proximity",
         "w_specter",
+        "w_community",
     ):
         val = getattr(cfg.ranking, name)
         if val < 0:

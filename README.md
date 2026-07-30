@@ -19,6 +19,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Extends work you starred** — flags and boosts new papers that cite a paper you starred or rated highly (`ranking.w_citation_proximity`)
 - **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
 - **SPECTER2 similarity** — citation-trained scientific embeddings (served free by Semantic Scholar, no local model) score how close each paper is to the work you starred/rated (`ranking.w_specter`)
+- **Community attention** — optionally rank on Hugging Face Papers upvotes, log-scaled against the run's own maximum (`ranking.w_community`)
 - **No API keys required** — uses only free, public APIs
 
 ## Installation
@@ -67,6 +68,8 @@ Creates `.reporadar.yml` config and `.reporadar/` storage directory. Safe to run
 
 Prints the inferred topic profile: TF-IDF keywords with weights, detected packages (anchors), and inferred domains.
 
+It also flags paper sources that match the repo but aren't in `sources:` — a repo built on `scanpy`/`anndata` gets pointed at bioRxiv, one built on `duckdb`/`rocksdb` at DBLP (`rr update` prints the same hint). Suggestions only: nothing is auto-enabled, since each source has costs worth opting into knowingly, and the hint says what they are.
+
 ### `rr update [--config PATH] [--foundational] [-v]`
 
 Runs the full pipeline: profile repo, build queries, fetch papers from arXiv, store in SQLite, score, and display top 5 results. Use `-v` for verbose logging.
@@ -108,6 +111,22 @@ rr search "low-rank adaptation quantization"
 rr search "efficient attention" --semantic
 rr search "retrieval augmented generation" --hybrid -n 5 --format json
 ```
+
+### `rr notify --channel shell|slack|discord|email [--config PATH] [--run-id N]`
+
+Pushes a one-line summary of a run to a configured channel (`hooks:` in
+`.reporadar.yml`: `on_digest` for a shell command, `slack_webhook_url`,
+`discord_webhook_url`, `email`):
+
+```
+RepoRadar digest #12: 24 new papers, 5 top picks (40 scored) — 2 papers extend work you starred
+```
+
+The trailing clause appears only when papers in the run cite something you starred
+or rated 4–5, so a citation alert reaches you instead of waiting to be noticed in
+the digest. Shell hooks additionally get the whole summary as environment
+variables: `RR_DIGEST_PATH`, `RR_RUN_ID`, `RR_PAPERS_NEW`, `RR_PAPERS_SEEN`,
+`RR_TOP_PICKS_COUNT`, `RR_TOTAL_SCORED`, `RR_EXTENDS_STARRED_COUNT`, `RR_FORMAT`.
 
 ### `rr mcp [--config PATH]`
 
@@ -203,6 +222,10 @@ ranking:
   w_recency: 0.3                      # Weight for recency score
   w_citation_proximity: 0.0          # >0: fetch references + boost papers that cite work you starred/rated
   w_specter: 0.0                     # >0: SPECTER2 similarity to the papers you starred/rated highly
+  w_community: 0.0                   # >0: rank on Hugging Face Papers upvotes (from cached enrichments)
+
+enrichment:
+  provider: huggingface               # or `off` to skip the HF Papers lookup entirely
 
 recommendations:
   enabled: false                      # true: seed the free S2 recommender with your stars/ratings
@@ -219,6 +242,18 @@ each candidate is to that work, in citation-trained space). Vectors are fetched 
 from Semantic Scholar and cached (~3 KB per paper); `rr update --rebuild-embeddings`
 clears every cached vector. The component is skipped when a run's papers are too few
 or too similar to rank meaningfully.
+
+`w_community` scores each paper on its Hugging Face Papers upvote count, log-scaled
+against the highest count in the same run (upvotes are heavy-tailed, so a linear
+scale would flatten everything below the leader). It reuses the upvotes that
+enrichment already stores — and because enrichment runs *after* ranking (it only
+fetches for the papers that made the digest), the signal comes from **previous**
+runs. A paper seen for the first time therefore has no community score yet and is
+scored on the other components alone rather than penalized for it. Papers with zero
+upvotes are likewise treated as "no signal", since a zero usually just means HF has
+no page for that paper. Setting `enrichment.provider: off` therefore also stops the
+community signal from ever refreshing (quoting it is not required — a bare `off` is
+handled, even though YAML would otherwise read it as the boolean `false`).
 
 Recommendations need at least one **starred or 4–5-star** paper (low-rated papers
 become negative examples that suppress similar results; an explicit low rating

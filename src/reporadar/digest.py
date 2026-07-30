@@ -143,6 +143,35 @@ def categorize_papers(
     return top_picks, maybe_relevant, muted
 
 
+def find_extends_starred(store: PaperStore, scored: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return the run's papers that cite a starred/highly-rated paper (Feature 8).
+
+    *scored* is expected best-first; matching papers keep that order and are
+    annotated in place with ``cites_starred`` so templates can badge them. The
+    seed set is re-read from the store on every call, so unstarring a paper drops
+    it from the section on the next digest.
+
+    Shared by the digest context and the notification summary, so the count that
+    gets pushed can't drift from the section that gets rendered.
+    """
+    extends: list[dict[str, Any]] = []
+    try:
+        from reporadar.citation_graph import build_seed_set
+
+        seeds = build_seed_set(store)
+        if not seeds:
+            return []
+        edges = store.get_citations_for([p["arxiv_id"] for p in scored])
+        for paper in scored:
+            cites = sorted(c for c in edges.get(paper["arxiv_id"], []) if c in seeds)
+            if cites:
+                paper["cites_starred"] = cites
+                extends.append({"title": paper["title"], "url": paper["url"], "cites": cites})
+    except Exception:
+        return extends
+    return extends
+
+
 def _build_digest_context(
     store: PaperStore,
     run_id: int,
@@ -215,24 +244,7 @@ def _build_digest_context(
     except Exception:
         pass
 
-    # "Extends work you starred" (Feature 8): papers in this run that cite a
-    # starred/highly-rated paper (re-checked against the CURRENT seed set).
-    extends_starred: list[dict[str, Any]] = []
-    try:
-        from reporadar.citation_graph import build_seed_set
-
-        seeds = build_seed_set(store)
-        if seeds:
-            edges = store.get_citations_for([p["arxiv_id"] for p in scored])
-            for paper in scored:  # scored is sorted by score, best-first
-                cites = sorted(c for c in edges.get(paper["arxiv_id"], []) if c in seeds)
-                if cites:
-                    paper["cites_starred"] = cites
-                    extends_starred.append(
-                        {"title": paper["title"], "url": paper["url"], "cites": cites}
-                    )
-    except Exception:
-        pass
+    extends_starred = find_extends_starred(store, scored)
 
     return {
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
@@ -567,6 +579,7 @@ def write_digest(
         top_picks_count=len(top_picks),
         total_scored=len(scored),
         fmt=fmt,
+        extends_starred_count=len(find_extends_starred(store, scored)),
     )
 
     return output_path, summary

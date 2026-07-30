@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 11
+CURRENT_SCHEMA_VERSION = 12
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     citation_score  REAL,
     rrf_score       REAL,
     specter_score   REAL,
+    community_score REAL,
     matched_query   TEXT,
     PRIMARY KEY (arxiv_id, run_id)
 );
@@ -259,6 +260,11 @@ MIGRATIONS: dict[int, list[str]] = {
         # SPECTER2 similarity component (Feature 7), persisted so stored score
         # explanations (e.g. the MCP explain_relevance tool) stay complete.
         "ALTER TABLE paper_scores ADD COLUMN specter_score REAL",
+    ],
+    12: [
+        # Community-attention component (Feature 1): HF Papers upvotes, persisted so
+        # stored score explanations stay complete.
+        "ALTER TABLE paper_scores ADD COLUMN community_score REAL",
     ],
 }
 
@@ -618,8 +624,8 @@ class PaperStore:
                        (arxiv_id, run_id, score_total,
                         keyword_score, category_score, recency_score,
                         embedding_score, citation_score, rrf_score,
-                        specter_score, matched_query)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        specter_score, community_score, matched_query)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     s["arxiv_id"],
                     run_id,
@@ -631,6 +637,7 @@ class PaperStore:
                     s.get("citation_score"),
                     s.get("rrf_score"),
                     s.get("specter_score"),
+                    s.get("community_score"),
                     s.get("matched_query"),
                 ),
             )
