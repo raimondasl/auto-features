@@ -95,17 +95,20 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   "Recommended for You" prefers them over the keyword recommender.
 
 **🟡 Partial**
-- **Feature 1** — HF Papers enrichment shipped; remaining: the `w_community` ranking component + `pwc-archive`
-  offline fallback.
+- **Feature 1** — HF Papers enrichment shipped, plus the `w_community` ranking component (opt-in, store v12
+  `community_score`) scoring log-normalized upvotes from *previously cached* enrichments, since enrichment
+  runs after ranking. *Remaining:* the `pwc-archive` offline fallback.
 - **Feature 8 — citation alerts** ("extends work you starred"): store v10 `paper_citations`, a Semantic Scholar
   references fetch (`citations.fetch_references`), `citation_graph` (seed set from stars/high ratings +
-  link-finding), a `w_citation_proximity` ranking boost, and a digest "Extends work you starred" section +
-  badge. *Remaining:* the OpenAlex `cites:` fallback, a co-citation-graph SVG, one-hop citation expansion, and
-  a dedicated notification.
+  link-finding), a `w_citation_proximity` ranking boost, a digest "Extends work you starred" section +
+  badge, and the count in `rr notify` (message tail + `RR_EXTENDS_STARRED_COUNT`), so the alert is pushed
+  rather than only rendered. *Remaining:* the OpenAlex `cites:` fallback, a co-citation-graph SVG, and
+  one-hop citation expansion.
 - **Feature 10 — domain source adapters**: `sources/dblp.py` (keyword-search JSON, systems/PL/DB, title-only)
   and `sources/biorxiv.py` (date-interval listing + local query filter, biology) — opt in via `sources:`,
-  merged with arXiv priority. *Remaining:* the IACR ePrint adapter, DOI abstract-backfill for DBLP,
-  medRxiv/category config, and profile-driven auto-activation.
+  merged with arXiv priority. `sources/suggest.py` reads the repo profile and **suggests** a matching source
+  in `rr profile` / `rr update`. *Remaining:* the IACR ePrint adapter, DOI abstract-backfill for DBLP, and
+  medRxiv/category config.
 - **Feature 7 — SPECTER2 similarity** (`specter.py`, `ranking.w_specter`): citation-trained vectors served free
   by S2, cached under a distinct `specter_v2` key in `paper_embeddings`, queried by the centroid of your
   starred/highly-rated papers (no local model), pool-normalized, persisted via store v11 `specter_score`.
@@ -125,7 +128,7 @@ Proven technology, verified-live dependencies, clear path. Days-to-weeks each.
 
 ### 1. Hugging Face Papers enrichment (replace dead Papers With Code)
 
-> **✅ Core shipped in PR #13** (`sources/hf_papers.py`, schema v6 with `models`/`upvotes`, `EnrichmentConfig`). Remaining: the `w_community` ranking component and the `pwc-archive` offline fallback.
+> **✅ Core shipped in PR #13** (`sources/hf_papers.py`, schema v6 with `models`/`upvotes`, `EnrichmentConfig`). The **`w_community` ranking component now ships too** (opt-in `ranking.w_community`, store v12 `paper_scores.community_score`): `normalize_upvotes` log-scales each run's upvote counts against that run's own maximum, since raw counts are heavy-tailed. One design constraint worth recording — enrichment is **stage 9, ranking is stage 8**, because enrichment only fetches for the papers that made the digest. The plan's "feed upvotes into `score_paper`" is therefore impossible as written; the component reads the enrichments **cached by previous runs** instead, so a brand-new paper carries no community signal on its first run. Papers with zero upvotes (usually "HF has no page for it") are **omitted rather than scored 0**, so the absent-≠-zero rule keeps them from being handicapped. Two bugs the adversarial review turned up while wiring this: `enrichment: provider: off` was landing as the YAML 1.1 **boolean `False`**, so `!= "off"` passed and the documented off-switch did nothing unless quoted (now coerced in `_dict_to_config`); and an autouse `_no_network` fixture — added because the first version of these tests silently ran live enrichment — revealed **six pre-existing tests hitting huggingface.co** on every CI run (fixed by disabling enrichment in the shared repo fixture; the suite is now offline and ~3x faster under the guard). The guard asserts at *teardown*, since every adapter's `except Exception` would otherwise swallow a blocked request and let the test pass. **Remaining:** the `pwc-archive` offline fallback.
 
 **Verification: confirmed** (endpoints live-tested 2026-07-03).
 
@@ -276,7 +279,7 @@ Ranking is currently a heuristic weighted sum, and embeddings are recomputed for
 
 ### 10. Domain source adapters: IACR ePrint, bioRxiv/medRxiv, DBLP
 
-> **🟡 Core shipped.** The source-adapter contract is documented (`sources/__init__.py`), and two adapters ship: `sources/dblp.py` (keyword-search JSON, systems/PL/DB — title-only, `abstract=""`) and `sources/biorxiv.py` (date-interval listing bounded + locally query-filtered, biology). Both opt in via `sources:` and merge with arXiv priority; both degrade gracefully. **Remaining:** the IACR ePrint adapter (RSS/HTML), DOI abstract-backfill for DBLP, medRxiv + per-adapter category config, and profile-driven auto-activation.
+> **🟡 Core shipped.** The source-adapter contract is documented (`sources/__init__.py`), and two adapters ship: `sources/dblp.py` (keyword-search JSON, systems/PL/DB — title-only, `abstract=""`) and `sources/biorxiv.py` (date-interval listing bounded + locally query-filtered, biology). Both opt in via `sources:` and merge with arXiv priority; both degrade gracefully. `sources/suggest.py` closes the profile-driven half: it scores the repo profile (detected packages plus keyword/source-signal tokens) against each adapter's signal set and prints a one-line hint in `rr profile` and `rr update` when a source matches but isn't enabled. One matched package is decisive; bare keyword hits need corroboration, so a repo that mentions "protein" once is not nagged. Precision came from *removing* signals: the profiler's inferred domains are not used at all ("containers"/"data pipelines" mark deployment tooling, "distributed computing" comes from Ray/Dask, "databases" only from SQLAlchemy), ubiquitous infrastructure packages (redis, kubernetes, kafka, sqlalchemy) are not DBLP anchors, and words ML repos use in another sense ("distributed", "scheduler", "kernel", "runtime") are not DBLP terms — otherwise every Django app and every ML-systems repo would be told to enable DBLP. **It suggests rather than auto-activates, deliberately** — DBLP rate-limits hard and records publication *year* only, so silently enabling it would slow runs and mismatch the recency window; the caveat is printed with the suggestion instead. **Remaining:** the IACR ePrint adapter (RSS/HTML), DOI abstract-backfill for DBLP, and medRxiv + per-adapter category config.
 
 **Verification: proposed by completeness critique; APIs confirmed free.**
 
@@ -420,7 +423,7 @@ all-MiniLM is a generic sentence model; SPECTER2 is the de-facto scientific-pape
 
 ### 8. Citation alerts for starred papers + citation-graph digest section
 
-> **🟡 Core shipped.** Store v10 `paper_citations`; `citations.fetch_references` (S2 batch `references.externalIds`, graceful); `citation_graph` (seed set from stars + ratings ≥4, version-insensitive link-finding); a `w_citation_proximity` ranking boost (opt-in, gates the reference lookups); and a digest **"Extends work you starred"** section + `[EXTENDS STARRED]` badge. **Remaining:** OpenAlex `cites:` fallback, an inline co-citation-graph SVG, one-hop citation expansion, and a dedicated `notify` alert.
+> **🟡 Core shipped.** Store v10 `paper_citations`; `citations.fetch_references` (S2 batch `references.externalIds`, graceful); `citation_graph` (seed set from stars + ratings ≥4, version-insensitive link-finding); a `w_citation_proximity` ranking boost (opt-in, gates the reference lookups); and a digest **"Extends work you starred"** section + `[EXTENDS STARRED]` badge. `rr notify` now carries the count too — the message gains a "N papers extend work you starred" tail (only when N > 0) and shell hooks get `RR_EXTENDS_STARRED_COUNT` — so the alert is *pushed* instead of waiting to be noticed in the digest. The count and the digest section come from one shared `digest.find_extends_starred`, so they cannot drift. **Remaining:** OpenAlex `cites:` fallback, an inline co-citation-graph SVG, and one-hop citation expansion.
 
 **Verification: feasible-with-caveats** (core mechanism proven by live API calls).
 

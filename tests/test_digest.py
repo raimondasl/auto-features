@@ -454,6 +454,45 @@ class TestExtendsStarred:
             md = generate_digest(store, run_id)
         assert "Extends work you starred" not in md
 
+    def test_summary_count_matches_the_rendered_section(self, tmp_path: Path) -> None:
+        # The notification count and the digest section come from the same helper,
+        # so a citation alert can't be pushed without appearing in the digest.
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2402.00001v1", title="Extends A"))
+            store.upsert_paper(_make_paper("2402.00002v1", title="Extends B"))
+            store.upsert_paper(_make_paper("2402.00003v1", title="Cites Nothing Starred"))
+            store.upsert_paper(_make_paper("2401.00099v1", title="Starred Seed"))
+            run_id = store.record_run(["q"], 3, 0)
+            store.save_scores(
+                run_id,
+                [
+                    _make_score("2402.00001v1", 0.9),
+                    _make_score("2402.00002v1", 0.8),
+                    _make_score("2402.00003v1", 0.7),
+                ],
+            )
+            store.star_paper("2401.00099v1")
+            store.save_citations(
+                [
+                    ("2402.00001v1", "2401.00099"),
+                    ("2402.00002v1", "2401.00099"),
+                    ("2402.00003v1", "2401.00500"),  # not a seed
+                ]
+            )
+            _, summary = write_digest(store, run_id, tmp_path / "digest.md")
+        assert summary is not None
+        assert summary.extends_starred_count == 2
+
+    def test_summary_count_is_zero_without_seeds(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2402.00001v1"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(run_id, [_make_score("2402.00001v1", 0.9)])
+            store.save_citations([("2402.00001v1", "2401.00099")])
+            _, summary = write_digest(store, run_id, tmp_path / "digest.md")
+        assert summary is not None
+        assert summary.extends_starred_count == 0
+
 
 class TestDigestRunMetadata:
     def test_header_uses_requested_run_not_latest(self, tmp_path: Path) -> None:

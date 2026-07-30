@@ -3,11 +3,45 @@
 from __future__ import annotations
 
 import shutil
+import urllib.request
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Fail any test that reaches the network instead of letting it silently do so.
+
+    A test that quietly hits arXiv/HF/S2 is slow, flaky and offline-hostile — and it
+    hides mocking mistakes: ``enrichment: provider: off`` was landing as the YAML
+    boolean ``False``, so two tests ran live enrichment while claiming to have it
+    disabled.
+
+    The verdict is raised at **teardown**, not at the call site, because every source
+    adapter degrades gracefully behind ``except Exception`` — an exception thrown from
+    ``urlopen`` would be swallowed and the test would still pass, which is exactly how
+    the original mistake stayed invisible. Tests that genuinely exercise the HTTP layer
+    patch ``urlopen`` themselves, which replaces this and records nothing.
+    """
+    attempted: list[str] = []
+
+    def _blocked(*args: Any, **kwargs: Any) -> Any:
+        target = args[0] if args else kwargs.get("url", "?")
+        attempted.append(str(getattr(target, "full_url", target)))
+        raise OSError("network access is blocked in tests")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _blocked)
+    yield
+    if attempted:
+        raise AssertionError(
+            f"test attempted {len(attempted)} live network request(s): {attempted[:3]}. "
+            "Patch the source adapter (or urlopen) so the test runs offline."
+        )
 
 
 @pytest.fixture()

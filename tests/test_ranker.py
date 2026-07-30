@@ -279,6 +279,62 @@ class TestSpecterComponent:
         assert "specter" in format_score_explanation(score, cfg)
 
 
+class TestCommunityComponent:
+    def test_boost_and_gate(self) -> None:
+        paper = _make_paper(
+            title="An unrelated topic entirely",
+            abstract="nothing here matches the profile",
+            categories=["cs.CV"],
+            published=datetime(2020, 1, 1, tzinfo=UTC).isoformat(),
+        )
+        profile = _make_profile()
+        on = RankingConfig(w_community=1.0)
+        base = score_paper(paper, profile, on, QueriesConfig(), ["cs.CL"])
+        boosted = score_paper(paper, profile, on, QueriesConfig(), ["cs.CL"], community_score=1.0)
+        assert boosted["score_total"] > base["score_total"]
+        assert boosted["community_score"] == 1.0
+
+        # w_community = 0 disables the component entirely.
+        off = score_paper(
+            paper, profile, RankingConfig(), QueriesConfig(), ["cs.CL"], community_score=1.0
+        )
+        assert off["score_total"] == base["score_total"]
+
+    def test_absent_signal_is_not_a_zero(self) -> None:
+        # A paper HF has never seen must not be ranked below an identical paper
+        # that merely has *few* upvotes — absent is not the same as unpopular.
+        paper = _make_paper()
+        profile = _make_profile()
+        cfg = RankingConfig(w_community=1.0)
+        absent = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"])
+        low = score_paper(paper, profile, cfg, QueriesConfig(), ["cs.CL"], community_score=0.1)
+        assert absent["community_score"] is None
+        assert absent["score_total"] > low["score_total"]
+
+    def test_rank_papers_maps_scores_by_id(self) -> None:
+        p1, p2 = _make_paper(arxiv_id="2401.1v1"), _make_paper(arxiv_id="2401.2v1")
+        scores = rank_papers(
+            [p1, p2],
+            _make_profile(),
+            RankingConfig(w_community=5.0),
+            QueriesConfig(),
+            ["cs.CL"],
+            community={"2401.1v1": 1.0},
+        )
+        by_id = {s["arxiv_id"]: s for s in scores}
+        assert by_id["2401.1v1"]["community_score"] == 1.0
+        # Not in the mapping → no signal, not a zero.
+        assert by_id["2401.2v1"]["community_score"] is None
+        assert by_id["2401.1v1"]["score_total"] > by_id["2401.2v1"]["score_total"]
+
+    def test_explanation_includes_community(self) -> None:
+        cfg = RankingConfig(w_community=2.0)
+        score = score_paper(
+            _make_paper(), _make_profile(), cfg, QueriesConfig(), ["cs.CL"], community_score=0.5
+        )
+        assert "community" in format_score_explanation(score, cfg)
+
+
 class TestCitationProximity:
     def _low_scoring_paper(self) -> dict:
         # No keyword/category overlap and old → a low base score, so a proximity

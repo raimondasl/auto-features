@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 from reporadar.config import EmailHookConfig, HooksConfig
 from reporadar.notify import (
     DigestSummary,
+    _format_message,
     dispatch_notification,
     run_shell_hook,
     send_discord_webhook,
@@ -40,7 +41,32 @@ class TestSummaryToEnv:
         assert env["RR_PAPERS_SEEN"] == "5"
         assert env["RR_TOP_PICKS_COUNT"] == "3"
         assert env["RR_TOTAL_SCORED"] == "15"
+        assert env["RR_EXTENDS_STARRED_COUNT"] == "0"
         assert env["RR_FORMAT"] == "md"
+
+    def test_extends_starred_count_is_exported(self) -> None:
+        env = summary_to_env(_make_summary(extends_starred_count=4))
+        assert env["RR_EXTENDS_STARRED_COUNT"] == "4"
+
+
+class TestFormatMessage:
+    def test_mentions_extends_starred_when_present(self) -> None:
+        msg = _format_message(_make_summary(extends_starred_count=3))
+        assert "3 papers extend work you starred" in msg
+
+    def test_singular_wording(self) -> None:
+        assert "1 paper extend work you starred" not in _format_message(
+            _make_summary(extends_starred_count=1)
+        )
+        assert "1 paper extends work you starred" in _format_message(
+            _make_summary(extends_starred_count=1)
+        )
+
+    def test_silent_when_nothing_extends_starred(self) -> None:
+        # No stars, or nothing citing them: the message must not gain a "0 papers" tail.
+        msg = _format_message(_make_summary(extends_starred_count=0))
+        assert "starred" not in msg
+        assert msg.endswith("(15 scored)")
 
     def test_all_values_are_strings(self) -> None:
         env = summary_to_env(_make_summary())

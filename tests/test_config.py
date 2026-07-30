@@ -163,6 +163,45 @@ class TestDefaultConfigYaml:
         assert cfg.output.top_n == 15
 
 
+class TestEnrichmentOffSwitch:
+    """``provider: off`` must disable enrichment even unquoted.
+
+    PyYAML is YAML 1.1, so a bare ``off`` parses as the boolean ``False`` — which
+    made the documented off-switch a no-op (``False != "off"``) unless the user
+    happened to quote it, and produced the nonsense warning "Unknown enrichment
+    provider: False".
+    """
+
+    def _load(self, tmp_path: Path, raw: str) -> RepoRadarConfig:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(f"repo_path: .\nenrichment:\n  provider: {raw}\n", encoding="utf-8")
+        return load_config(config_file)
+
+    def test_unquoted_off_disables_enrichment(self, tmp_path: Path) -> None:
+        cfg = self._load(tmp_path, "off")
+        assert cfg.enrichment.provider == "off"
+        assert validate_config(cfg) == []
+
+    def test_quoted_off_still_works(self, tmp_path: Path) -> None:
+        assert self._load(tmp_path, "'off'").enrichment.provider == "off"
+
+    def test_yaml_falsey_synonyms_mean_off(self, tmp_path: Path) -> None:
+        for raw in ("no", "false", "No", "FALSE"):
+            assert self._load(tmp_path, raw).enrichment.provider == "off"
+
+    def test_yaml_truthy_means_the_default_provider(self, tmp_path: Path) -> None:
+        # `provider: on` reads as "enrichment on", so honor that rather than
+        # leaving a bare True to fall through as an unknown provider.
+        assert self._load(tmp_path, "on").enrichment.provider == "huggingface"
+
+    def test_real_provider_is_untouched(self, tmp_path: Path) -> None:
+        assert self._load(tmp_path, "huggingface").enrichment.provider == "huggingface"
+
+    def test_unknown_provider_still_warns(self, tmp_path: Path) -> None:
+        cfg = self._load(tmp_path, "bogus")
+        assert any("Unknown enrichment provider" in w for w in validate_config(cfg))
+
+
 class TestValidateConfig:
     def test_valid_config_no_warnings(self) -> None:
         cfg = RepoRadarConfig()
