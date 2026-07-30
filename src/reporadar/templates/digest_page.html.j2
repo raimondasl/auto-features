@@ -47,6 +47,10 @@
   }
   .badge.new { background: var(--accent-soft); color: var(--accent); }
   .badge.action { background: var(--accent-soft); color: var(--accent); }
+  /* Integrity warning: must read as a warning in both themes, not as another tag. */
+  .badge.warn { background: #fde8e8; color: #9b1c1c; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .badge.warn { background: #3b1414; color: #f8b4b4; } }
+  .withdrawn { border-left: 3px solid #9b1c1c; padding-left: .6rem; }
   .score { font-size: .9rem; color: var(--muted); margin: .1rem 0 .5rem; }
   .score .total { color: var(--good); font-weight: 700; }
   .facts { font-size: .9rem; color: var(--muted); margin: .35rem 0; }
@@ -107,6 +111,15 @@
 {% endfor %}
 {% endif %}
 
+{% if withdrawn_papers %}
+<h2 class="section">Withdrawn by their authors</h2>
+<ul>
+  {% for w in withdrawn_papers %}
+  <li class="withdrawn"><a href="{{ w.url|safe_url }}">{{ w.title }}</a> &mdash; withdrawal notice
+    in its {{ w.field }}; ranked down but shown so you don't act on it</li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% if extends_starred %}
 <h2 class="section">Extends work you starred</h2>
 <ul>
@@ -124,8 +137,10 @@
     <span class="rank">{{ loop.index }}.</span>
     <a href="{{ p.url|safe_url }}">{{ p.title }}</a>
     <span class="badges">
+      {% if p.withdrawn_in %}<span class="badge warn">Withdrawn</span>{% endif %}
       {% if diff_mode and p.is_new %}<span class="badge new">New</span>{% endif %}
       {% if p.cites_starred %}<span class="badge action">Extends starred</span>{% endif %}
+      {% if p.hn_points %}<span class="badge">HN {{ p.hn_points }}</span>{% endif %}
       {% if p.llm_score is not none %}<span class="badge action">Actionable {{ p.llm_score }}/3</span>{% endif %}
       {% if p.has_code %}<span class="badge">Code</span>{% endif %}
       {% if p.models %}<span class="badge">Model</span>{% endif %}
@@ -136,6 +151,14 @@
     Score <span class="total">{{ "%.2f"|format(p.score_total) }}</span>
     (keyword {{ "%.2f"|format(p.keyword_score) }}, category {{ "%.2f"|format(p.category_score) }}, recency {{ "%.2f"|format(p.recency_score) }}{% if has_embeddings and p.embedding_score is not none %}, embedding {{ "%.2f"|format(p.embedding_score) }}{% endif %}{% if has_citations and p.citation_score is not none %}, citation {{ "%.2f"|format(p.citation_score) }}{% endif %})
   </div>
+  {% if p.withdrawn_in %}
+  <div class="facts withdrawn"><span class="label">Withdrawn:</span> the authors withdrew this
+    paper (notice in its {{ p.withdrawn_in }}) &mdash; treat its claims as retracted.</div>
+  {% endif %}
+  {% if p.hn_points %}
+  <div class="facts"><span class="label">Hacker News:</span> {{ p.hn_points }} points{% if p.hn_url %}
+    &mdash; <a href="{{ p.hn_url|safe_url }}">discussion</a>{% endif %}</div>
+  {% endif %}
   {% if p.llm_score is not none and p.llm_reason %}
   <div class="facts"><span class="label">Actionability:</span> {{ p.llm_score }}/3 &mdash; {{ p.llm_reason }}</div>
   {% endif %}

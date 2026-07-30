@@ -16,6 +16,7 @@ from reporadar.config import (
     RankingConfig,
     RecommendationsConfig,
     RepoRadarConfig,
+    SignalsConfig,
     SuggestionsConfig,
     TriageConfig,
     default_config_yaml,
@@ -161,6 +162,55 @@ class TestDefaultConfigYaml:
 
         assert cfg.arxiv.categories == ["cs.LG", "cs.CL"]
         assert cfg.output.top_n == 15
+
+
+class TestSignalsConfig:
+    def test_defaults(self) -> None:
+        cfg = RepoRadarConfig()
+        # Integrity defaults ON: recommending retracted work is the worst ranking
+        # failure, and the check costs a couple of throttled requests.
+        assert cfg.signals.integrity is True
+        # HN defaults OFF: measured 0/340 coverage for papers from the last 2 weeks.
+        assert cfg.signals.hackernews is False
+        assert cfg.ranking.w_attention == 0.0
+        assert cfg.ranking.withdrawn_penalty == 0.1
+
+    def test_parsed_from_yaml(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".reporadar.yml"
+        config_file.write_text(
+            "repo_path: .\nsignals:\n  integrity: false\n  hackernews: true\n",
+            encoding="utf-8",
+        )
+        cfg = load_config(config_file)
+        assert cfg.signals.integrity is False
+        assert cfg.signals.hackernews is True
+
+    def test_attention_weight_without_the_source_warns(self) -> None:
+        # Otherwise the weight is silently inert: nothing ever fetches the data.
+        cfg = RepoRadarConfig(ranking=RankingConfig(w_attention=1.0))
+        assert any("w_attention" in w and "hackernews" in w for w in validate_config(cfg))
+
+    def test_attention_weight_with_the_source_is_clean(self) -> None:
+        cfg = RepoRadarConfig(
+            ranking=RankingConfig(w_attention=1.0), signals=SignalsConfig(hackernews=True)
+        )
+        assert validate_config(cfg) == []
+
+    def test_out_of_range_withdrawn_penalty_warns(self) -> None:
+        # > 1 would *promote* withdrawn papers — an inverted feature, not a tweak.
+        for bad in (2.0, -0.5):
+            cfg = RepoRadarConfig(ranking=RankingConfig(withdrawn_penalty=bad))
+            assert any("withdrawn_penalty" in w for w in validate_config(cfg))
+
+    def test_penalty_of_one_is_a_legitimate_opt_out(self) -> None:
+        cfg = RepoRadarConfig(ranking=RankingConfig(withdrawn_penalty=1.0))
+        assert validate_config(cfg) == []
+
+    def test_negative_attention_weight_warns(self) -> None:
+        cfg = RepoRadarConfig(
+            ranking=RankingConfig(w_attention=-1.0), signals=SignalsConfig(hackernews=True)
+        )
+        assert any("Negative ranking weight: w_attention" in w for w in validate_config(cfg))
 
 
 class TestEnrichmentOffSwitch:

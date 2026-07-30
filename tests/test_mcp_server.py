@@ -67,6 +67,30 @@ class TestRankedPapers:
             out = ranked_papers_payload(store)
             assert out["run_id"] is None and out["papers"] == []
 
+    def test_withdrawn_paper_carries_a_warning(self, tmp_path: Path) -> None:
+        """An agent never sees the digest's warning section.
+
+        get_ranked_papers hands papers straight to a coding agent, so the withdrawal
+        flag has to travel with the paper itself — an agent acting on a retracted
+        result is the exact harm this signal exists to prevent.
+        """
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            store.save_signals([("2401.00001v1", "withdrawn", "comment", None)])
+            out = ranked_papers_payload(store, limit=10)
+        by_id = {p["arxiv_id"]: p for p in out["papers"]}
+        assert by_id["2401.00001v1"]["withdrawn"] is True
+        assert "retracted" in by_id["2401.00001v1"]["warning"]
+        # A clean paper must not gain the key at all — absent, not False-y noise.
+        assert "withdrawn" not in by_id["2401.00002v1"]
+
+    def test_checked_clean_paper_carries_no_warning(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            store.save_signals([("2401.00001v1", "withdrawn", None, None)])
+            out = ranked_papers_payload(store, limit=10)
+        assert all("withdrawn" not in p for p in out["papers"])
+
 
 class TestExplainRelevance:
     def test_found(self, tmp_path: Path) -> None:
@@ -86,6 +110,15 @@ class TestExplainRelevance:
     def test_no_runs(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
             assert "error" in explain_relevance_payload(store, "2401.00001", RankingConfig())
+
+    def test_explains_that_a_paper_was_withdrawn(self, tmp_path: Path) -> None:
+        # "Why was this ranked?" must answer "it was withdrawn and penalized".
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            store.save_signals([("2401.00001v1", "withdrawn", "comment", None)])
+            out = explain_relevance_payload(store, "2401.00001", RankingConfig())
+        assert out["withdrawn"] is True
+        assert "retracted" in out["warning"]
 
 
 class TestRatePaper:

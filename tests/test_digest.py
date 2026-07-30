@@ -494,6 +494,112 @@ class TestExtendsStarred:
         assert summary.extends_starred_count == 0
 
 
+class TestSignalRendering:
+    def _seed(self, store: PaperStore) -> int:
+        store.upsert_paper(_make_paper("2607.00001v1", title="A Withdrawn Result"))
+        store.upsert_paper(_make_paper("2607.00002v1", title="A Much Discussed Paper"))
+        run_id = store.record_run(["q"], 2, 0)
+        store.save_scores(
+            run_id,
+            [
+                _make_score("2607.00002v1", 0.9),
+                # Already penalized by the ranker, so it lands in Muted.
+                _make_score("2607.00001v1", 0.08),
+            ],
+        )
+        store.save_signals(
+            [
+                ("2607.00001v1", "withdrawn", "comment", None),
+                ("2607.00002v1", "hn", "1351", "https://news.ycombinator.com/item?id=42823568"),
+            ]
+        )
+        return run_id
+
+    def test_withdrawal_survives_demotion_to_muted(self, tmp_path: Path) -> None:
+        """The warning must not depend on the paper's tier.
+
+        The ranking penalty deliberately pushes a withdrawn paper into Muted, which
+        renders no per-card badges — so a card-only warning would disappear in
+        exactly the case it exists for. Hence a dedicated section.
+        """
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = self._seed(store)
+            md = generate_digest(store, run_id)
+            html = generate_digest_html(store, run_id)
+        assert "## Withdrawn by their authors" in md
+        assert "A Withdrawn Result" in md.split("## Withdrawn by their authors")[1]
+        assert "Withdrawn by their authors" in html
+
+    def test_hn_badge_and_link(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = self._seed(store)
+            md = generate_digest(store, run_id)
+            html = generate_digest_html(store, run_id)
+        assert "[HN 1351]" in md
+        assert "**Hacker News:** 1351 points" in md
+        assert "item?id=42823568" in md
+        assert 'badge">HN 1351' in html
+
+    def test_each_metadata_line_stays_on_its_own_line(self, tmp_path: Path) -> None:
+        # trim_blocks eats the newline after a line-ending {% endif %}, which used to
+        # concatenate every optional bullet into one unreadable line.
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = self._seed(store)
+            store.save_enrichments(
+                {
+                    "2607.00002v1": {
+                        "arxiv_id": "2607.00002v1",
+                        "has_code": True,
+                        "code_urls": ["https://github.com/a/b"],
+                        "models": ["m/1"],
+                        "datasets": ["d/1"],
+                        "tasks": ["t"],
+                        "upvotes": 7,
+                    }
+                }
+            )
+            md = generate_digest(store, run_id)
+        for line in md.splitlines():
+            assert line.count("- **") <= 1, f"bullets ran together: {line!r}"
+
+    def test_withdrawn_paper_cannot_reach_top_picks_via_triage(self, tmp_path: Path) -> None:
+        """The LLM triage branch must not route around the withdrawal penalty.
+
+        categorize_papers tiers by llm_score and returns before reading score_total,
+        so a withdrawn paper with a high actionability score landed in Top Picks with
+        the 0.1x multiplier silently ignored.
+        """
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2607.00001v1", title="A Withdrawn Result"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(run_id, [_make_score("2607.00001v1", 0.08)])
+            store.save_llm_scores(run_id, {"2607.00001v1": {"llm_score": 3, "llm_reason": "r"}})
+            store.save_signals([("2607.00001v1", "withdrawn", "comment", None)])
+            md = generate_digest(store, run_id, triage_threshold=2)
+        top = md.split("## Top Picks")[1] if "## Top Picks" in md else ""
+        assert "A Withdrawn Result" not in top
+        assert "## Withdrawn by their authors" in md
+
+    def test_a_checked_clean_paper_is_not_flagged(self, tmp_path: Path) -> None:
+        # Clean results are stored too (so the next run can skip them), as a NULL
+        # value — which must not read as "withdrawn".
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2607.00001v1", title="A Clean Paper"))
+            run_id = store.record_run(["q"], 1, 0)
+            store.save_scores(run_id, [_make_score("2607.00001v1", 0.9)])
+            store.save_signals([("2607.00001v1", "withdrawn", None, None)])
+            md = generate_digest(store, run_id)
+        assert "Withdrawn by their authors" not in md
+        assert "[WITHDRAWN]" not in md
+
+    def test_no_sections_without_signals(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed_store(store)
+            md = generate_digest(store, run_id)
+        assert "Withdrawn by their authors" not in md
+        assert "[HN " not in md
+
+
 class TestDigestRunMetadata:
     def test_header_uses_requested_run_not_latest(self, tmp_path: Path) -> None:
         # A digest for an older run must show THAT run's stats, not the newest run's.

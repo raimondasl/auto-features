@@ -123,6 +123,9 @@ class TestRunUpdateCycle:
         cfg.queries = MagicMock()
         cfg.arxiv.categories = ["cs.CL"]
         cfg.arxiv.lookback_days = 14
+        # This test covers cycle mechanics; the integrity check (on by default) would
+        # otherwise reach arXiv. TestWatcherIntegrity below covers it directly.
+        cfg.signals.integrity = False
         mock_load.return_value = cfg
         mock_collect.return_value = [{"arxiv_id": "123", "title": "Test"}]
         mock_rank.return_value = [{"arxiv_id": "123", "score_total": 0.8}]
@@ -241,3 +244,66 @@ class TestWatchLoop:
         mock_cycle.return_value = {"success": True, "papers_new": 5, "top_picks_count": 2}
         watch_loop("/tmp/config.yml", interval_seconds=10, max_cycles=1, notify=False)
         mock_notify.assert_not_called()
+
+
+class TestWatcherIntegrity:
+    """`rr watch` is the unattended path, so a withdrawn paper here reaches a digest
+    nobody is watching for it. The watch loop is a reduced pipeline (no embeddings,
+    citations, SPECTER2 or triage) but the integrity check is not an enhancement to
+    skip — it originally was, which meant the headline safety property held for
+    `rr update` and silently did not hold for `rr watch`."""
+
+    def _run(self, tmp_path, comments: dict[str, str]):
+        from pathlib import Path
+
+        from reporadar.config import RepoRadarConfig, SignalsConfig
+        from reporadar.store import PaperStore
+
+        repo = Path(tmp_path)
+        repo.mkdir(parents=True, exist_ok=True)
+        (repo / "README.md").write_text("retrieval augmented generation", encoding="utf-8")
+        cfg = RepoRadarConfig(repo_path=str(repo), signals=SignalsConfig(integrity=True))
+        cfg.queries.seed = ["retrieval augmented generation"]
+        paper = {
+            "arxiv_id": "2607.00001v1",
+            "title": "A Paper",
+            "authors": ["A"],
+            "abstract": "retrieval augmented generation",
+            "categories": ["cs.CL"],
+            "published": "2026-07-25T00:00:00+00:00",
+            "updated": None,
+            "url": "http://arxiv.org/abs/2607.00001v1",
+            "pdf_url": None,
+        }
+        with (
+            patch("reporadar.config.load_config", return_value=cfg),
+            patch("reporadar.config.validate_config", return_value=[]),
+            patch("reporadar.collector.collect_papers", return_value=[paper]),
+            patch("reporadar.signals.integrity.fetch_comments", return_value=comments),
+            patch("reporadar.digest.write_digest", return_value=(repo / "d.md", None)),
+        ):
+            result = run_update_cycle("cfg.yml")
+        with PaperStore(repo / ".reporadar" / "papers.db") as store:
+            run_id = store.get_last_run()["run_id"]
+            scores = store.get_scores_for_run(run_id)
+        return result, scores
+
+    def test_withdrawn_paper_is_flagged_and_kept_out_of_top_picks(self, tmp_path) -> None:
+        result, scores = self._run(tmp_path, {"2607.00001v1": "Withdrawn by the authors"})
+        assert result["success"] is True
+        assert scores[0]["withdrawn_in"] == "comment"
+        assert result["top_picks_count"] == 0
+
+    def test_clean_paper_is_unaffected(self, tmp_path) -> None:
+        result, scores = self._run(tmp_path, {"2607.00001v1": "10 pages, 3 figures"})
+        assert scores[0]["withdrawn_in"] is None
+        assert result["top_picks_count"] == 1
+
+    def test_the_stored_score_is_actually_penalized(self, tmp_path) -> None:
+        """The flag and the mute both come from the store join, so they pass even if
+        `rank_papers(withdrawn=...)` is never wired up. Only the score proves the
+        ranker itself applied the multiplier — verified by removing the wiring and
+        watching this fail while the two tests above stayed green."""
+        _, withdrawn = self._run(tmp_path / "a", {"2607.00001v1": "Withdrawn"})
+        _, clean = self._run(tmp_path / "b", {"2607.00001v1": "10 pages"})
+        assert withdrawn[0]["score_total"] < clean[0]["score_total"]

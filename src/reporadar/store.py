@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -45,8 +45,22 @@ CREATE TABLE IF NOT EXISTS paper_scores (
     rrf_score       REAL,
     specter_score   REAL,
     community_score REAL,
+    attention_score REAL,
     matched_query   TEXT,
     PRIMARY KEY (arxiv_id, run_id)
+);
+
+-- Free-form signals *about* a paper (Feature 9): withdrawal flags, HN attention,
+-- publication venue. Key-value rather than a column per signal: these arrive from
+-- unrelated APIs on different cadences, several are absent for most papers, and a
+-- signal that turns out to be worthless should be droppable without a migration.
+CREATE TABLE IF NOT EXISTS paper_signals (
+    arxiv_id    TEXT NOT NULL REFERENCES papers(arxiv_id),
+    signal      TEXT NOT NULL,
+    value       TEXT,
+    detail      TEXT,
+    checked_at  TEXT NOT NULL,
+    PRIMARY KEY (arxiv_id, signal)
 );
 
 CREATE TABLE IF NOT EXISTS paper_llm_scores (
@@ -265,6 +279,18 @@ MIGRATIONS: dict[int, list[str]] = {
         # Community-attention component (Feature 1): HF Papers upvotes, persisted so
         # stored score explanations stay complete.
         "ALTER TABLE paper_scores ADD COLUMN community_score REAL",
+    ],
+    13: [
+        # Attention & integrity signals (Feature 9).
+        "ALTER TABLE paper_scores ADD COLUMN attention_score REAL",
+        """        CREATE TABLE IF NOT EXISTS paper_signals (
+            arxiv_id    TEXT NOT NULL REFERENCES papers(arxiv_id),
+            signal      TEXT NOT NULL,
+            value       TEXT,
+            detail      TEXT,
+            checked_at  TEXT NOT NULL,
+            PRIMARY KEY (arxiv_id, signal)
+        )""",
     ],
 }
 
@@ -624,8 +650,9 @@ class PaperStore:
                        (arxiv_id, run_id, score_total,
                         keyword_score, category_score, recency_score,
                         embedding_score, citation_score, rrf_score,
-                        specter_score, community_score, matched_query)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        specter_score, community_score, attention_score,
+                        matched_query)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     s["arxiv_id"],
                     run_id,
@@ -638,6 +665,7 @@ class PaperStore:
                     s.get("rrf_score"),
                     s.get("specter_score"),
                     s.get("community_score"),
+                    s.get("attention_score"),
                     s.get("matched_query"),
                 ),
             )
@@ -651,12 +679,21 @@ class PaperStore:
                    pe.has_code, pe.code_urls AS enrichment_code_urls,
                    pe.datasets AS enrichment_datasets, pe.tasks AS enrichment_tasks,
                    pe.models AS enrichment_models, pe.upvotes AS enrichment_upvotes,
-                   pls.llm_score, pls.llm_reason
+                   pls.llm_score, pls.llm_reason,
+                   -- Integrity flag joined here rather than annotated by callers, so
+                   -- EVERY consumer of a run's scores sees it: md/html/json/csv/rss
+                   -- digests, rr open, rr gh-issues, notify, the MCP tools and the
+                   -- archive. Annotating in one caller left all the others emitting
+                   -- withdrawn papers as recommendations. Read live, not frozen into
+                   -- the score, so a paper withdrawn after its run is still flagged.
+                   psig.value AS withdrawn_in
               FROM paper_scores ps
               JOIN papers p ON ps.arxiv_id = p.arxiv_id
               LEFT JOIN paper_enrichments pe ON ps.arxiv_id = pe.arxiv_id
               LEFT JOIN paper_llm_scores pls
                      ON ps.arxiv_id = pls.arxiv_id AND ps.run_id = pls.run_id
+              LEFT JOIN paper_signals psig
+                     ON ps.arxiv_id = psig.arxiv_id AND psig.signal = 'withdrawn'
              WHERE ps.run_id = ?
              ORDER BY COALESCE(ps.rrf_score, ps.score_total) DESC""",
             (run_id,),
@@ -943,6 +980,81 @@ class PaperStore:
             for row in rows:
                 out.setdefault(row["citing_id"], []).append(row["cited_id"])
         return out
+
+    # ── Signal operations (Feature 9) ────────────────────────────────
+
+    def save_signals(self, signals: list[tuple[str, str, str | None, str | None]]) -> None:
+        """Upsert ``(arxiv_id, signal, value, detail)`` rows into ``paper_signals``.
+
+        Rows for papers not in ``papers`` are skipped rather than raising: signals
+        are looked up for a run's candidates, and a candidate can be dropped from
+        the store between ranking and the signal pass. A foreign-key error here
+        would abort the whole batch (the failure mode that broke the DBLP update).
+        """
+        if not signals:
+            return
+        now = datetime.now(UTC).isoformat()
+        # Chunked like get_citations_for: a --foundational run can carry well over
+        # SQLite's 999-bound-parameter limit on builds older than 3.32.
+        candidates = sorted({s[0] for s in signals})
+        known: set[str] = set()
+        for start in range(0, len(candidates), 900):
+            chunk = candidates[start : start + 900]
+            known.update(
+                row["arxiv_id"]
+                for row in self._conn.execute(
+                    f"SELECT arxiv_id FROM papers WHERE arxiv_id IN ({','.join('?' * len(chunk))})",
+                    chunk,
+                ).fetchall()
+            )
+        rows = [(a, s, v, d, now) for a, s, v, d in signals if a in known]
+        if not rows:
+            return
+        self._conn.executemany(
+            """\
+            INSERT OR REPLACE INTO paper_signals
+                   (arxiv_id, signal, value, detail, checked_at)
+            VALUES (?, ?, ?, ?, ?)""",
+            rows,
+        )
+        self._conn.commit()
+
+    def get_signals(self, arxiv_ids: list[str], signal: str | None = None) -> dict[str, Any]:
+        """Return stored signals.
+
+        With *signal*, returns ``{arxiv_id: {"value", "detail", "checked_at"}}`` for
+        that one signal. Without it, returns ``{arxiv_id: {signal: {...}}}``.
+        """
+        ids = list(arxiv_ids)
+        if not ids:
+            return {}
+        out: dict[str, Any] = {}
+        # Chunk to stay under SQLite's bound-parameter limit (999 on old builds).
+        for start in range(0, len(ids), 900):
+            chunk = ids[start : start + 900]
+            placeholders = ",".join("?" * len(chunk))
+            sql = f"SELECT * FROM paper_signals WHERE arxiv_id IN ({placeholders})"
+            params = list(chunk)
+            if signal is not None:
+                sql += " AND signal = ?"
+                params.append(signal)
+            for row in self._conn.execute(sql, params).fetchall():
+                entry = {
+                    "value": row["value"],
+                    "detail": row["detail"],
+                    "checked_at": row["checked_at"],
+                }
+                if signal is not None:
+                    out[row["arxiv_id"]] = entry
+                else:
+                    out.setdefault(row["arxiv_id"], {})[row["signal"]] = entry
+        return out
+
+    def clear_signal(self, signal: str) -> int:
+        """Delete every row for one *signal*; returns how many were removed."""
+        cur = self._conn.execute("DELETE FROM paper_signals WHERE signal = ?", (signal,))
+        self._conn.commit()
+        return cur.rowcount or 0
 
     # ── Rating operations ────────────────────────────────────────────
 

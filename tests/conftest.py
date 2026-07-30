@@ -27,6 +27,10 @@ def _no_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     ``urlopen`` would be swallowed and the test would still pass, which is exactly how
     the original mistake stayed invisible. Tests that genuinely exercise the HTTP layer
     patch ``urlopen`` themselves, which replaces this and records nothing.
+
+    Both HTTP stacks have to be blocked: RepoRadar's own adapters use stdlib
+    ``urllib``, but the ``arxiv`` package (and therefore ``collector``) uses
+    ``requests``, so guarding only ``urlopen`` left the biggest caller uncovered.
     """
     attempted: list[str] = []
 
@@ -35,7 +39,17 @@ def _no_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         attempted.append(str(getattr(target, "full_url", target)))
         raise OSError("network access is blocked in tests")
 
+    def _blocked_session(self: Any, method: str, url: str, *args: Any, **kwargs: Any) -> Any:
+        attempted.append(f"{method} {url}")
+        raise OSError("network access is blocked in tests")
+
     monkeypatch.setattr(urllib.request, "urlopen", _blocked)
+    try:
+        import requests
+
+        monkeypatch.setattr(requests.Session, "request", _blocked_session)
+    except ImportError:  # pragma: no cover - requests ships with arxiv
+        pass
     yield
     if attempted:
         raise AssertionError(

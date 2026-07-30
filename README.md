@@ -20,6 +20,8 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
 - **SPECTER2 similarity** — citation-trained scientific embeddings (served free by Semantic Scholar, no local model) score how close each paper is to the work you starred/rated (`ranking.w_specter`)
 - **Community attention** — optionally rank on Hugging Face Papers upvotes, log-scaled against the run's own maximum (`ranking.w_community`)
+- **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
+- **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
 - **No API keys required** — uses only free, public APIs
 
 ## Installation
@@ -223,9 +225,15 @@ ranking:
   w_citation_proximity: 0.0          # >0: fetch references + boost papers that cite work you starred/rated
   w_specter: 0.0                     # >0: SPECTER2 similarity to the papers you starred/rated highly
   w_community: 0.0                   # >0: rank on Hugging Face Papers upvotes (from cached enrichments)
+  w_attention: 0.0                   # >0: rank on Hacker News points (needs signals.hackernews)
+  withdrawn_penalty: 0.1             # multiplier for a withdrawn paper's score (1.0 disables)
 
 enrichment:
   provider: huggingface               # or `off` to skip the HF Papers lookup entirely
+
+signals:
+  integrity: true                     # check whether a paper was withdrawn by its authors
+  hackernews: false                   # look up Hacker News discussion (badge; see below)
 
 recommendations:
   enabled: false                      # true: seed the free S2 recommender with your stars/ratings
@@ -254,6 +262,39 @@ upvotes are likewise treated as "no signal", since a zero usually just means HF 
 no page for that paper. Setting `enrichment.provider: off` therefore also stops the
 community signal from ever refreshing (quoting it is not required — a bare `off` is
 handled, even though YAML would otherwise read it as the boolean `false`).
+
+### Withdrawal detection and Hacker News attention
+
+`signals.integrity` (**on by default**) asks arXiv whether any of the run's papers
+have been withdrawn by their authors. It is the one signal that defaults on, because
+a withdrawn paper is the case where ranking can actively waste your time: it reads as
+fresh and on-topic, and you can spend an hour on a result its own authors retracted.
+
+A flagged paper's score is multiplied by `withdrawn_penalty` (0.1). That is a
+multiplier, not another weighted component, so a withdrawn paper **cannot** reach Top
+Picks by scoring well everywhere else — 1.0 × 0.1 = 0.1, below the Maybe Relevant
+threshold. It is not dropped to zero, because a paper you may have seen elsewhere is
+better shown flagged than silently missing; the digest gets a "Withdrawn by their
+authors" section that appears regardless of tier.
+
+arXiv has no withdrawal *field* — the notice is hand-written free text in the paper's
+comment, so the matcher is the whole feature. It reads the comment liberally (the most
+common real comment is the single word "Withdrawn") and prose conservatively, since an
+abstract may legitimately discuss a drug withdrawn from the market, and it covers
+"retracted" and "the authors withdrew this" as well as "withdrawn". Measured at
+100% recall on notices phrased "withdrawn" and 83–85% on the other two verbs, with
+no confirmed false positive over 600 ordinary papers. Papers are
+re-checked at most weekly, capped per run, oldest first — withdrawal can happen days
+after a paper is ingested, but chasing it every run would cost minutes of throttled
+requests for a signal that fires for well under 1% of papers.
+
+`signals.hackernews` (off by default) badges papers that were discussed on HN, with
+points and a link. Be aware of what it is: across **340 random papers from the last
+two weeks, zero had any HN story** — including 0/40 in cs.LG. HN surfaces a handful of
+papers a week across all of science, so treat `w_attention` as a bonus that
+occasionally fires, not a component you can rank on. Points are scaled against a fixed
+reference rather than the run's maximum (the usual RepoRadar pattern), because with 0–1
+discussed papers per run a relative scale would award 1.0 to a 12-point story.
 
 Recommendations need at least one **starred or 4–5-star** paper (low-rated papers
 become negative examples that suppress similar results; an explicit low rating
