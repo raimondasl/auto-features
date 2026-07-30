@@ -342,6 +342,21 @@ Every existing source assumes the arXiv-ML user, but RepoRadar's value propositi
 > "cannot tell them apart". It now resamples judged *papers* and re-derives each config's order over the sample;
 > a test pins that perfect-vs-reversed stays distinguishable.
 >
+> **The harness recommended a weight change on the strength of noise, and the review caught it.** SPECTER2's
+> query is the centroid of the papers you starred or rated 4-5 — which is exactly the set `load_judgments` marks
+> *relevant*. Scoring a judged paper against it puts that paper's own vector inside its own query, inflating
+> every relevant paper by construction. Measured with purely random 768-d vectors: mean score **0.81 relevant vs
+> 0.20 irrelevant**, and `rr eval --compare` duly reported nDCG 0.555 -> 1.000, 90% interval [+0.180, +0.751],
+> "B is better (interval excludes zero)" — a *confident* false positive, in exactly the workflow the README tells
+> you to use. Fixed by leave-one-out scoring (the centroid is a mean of unit vectors, so removing one is
+> arithmetic, not a rebuild): 0/4 corpora now claim a win from noise, down from 4/4. The lesson is general — a
+> feature derived from the same user signals the labels come from will leak unless something explicitly stops it.
+>
+> Also from the review: a stars-only user (no negative labels) got 1.000 on every metric — the most flattering
+> output from the least informative data — and now gets a **DEGENERATE** headline instead; `hybrid` RRF turned
+> out to be reproducible offline after all and is now measured rather than declared unmeasurable; and
+> `--compare` warns when the two config files also differ outside the `ranking:` block, which it does not apply.
+>
 > **The optional components are measurable, which nearly did not happen.** The first cut passed no optional
 > signals into `rank_papers`, so every one arrived as `None`, absent-is-not-zero (correctly) dropped it from the
 > weighted sum, and a `--compare` differing only in `w_specter` reported "NOT SHOWN" on *every* corpus — a

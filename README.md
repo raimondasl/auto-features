@@ -199,11 +199,18 @@ irrelevant: with tens of labels against thousands of stored papers, counting the
 unjudged as bad would drown every metric in papers you never looked at.
 
 The optional components are measurable too. Citation proximity, SPECTER2, HF upvotes,
-Hacker News points and withdrawal flags are rebuilt from what your own runs already
-stored — **entirely offline, no network calls** — so `--compare` can tell you whether
-`w_specter` or `w_attention` earns its weight on your corpus. A signal your runs never
-fetched stays absent rather than becoming a zero, which means the eval measures only
-the components you actually populated.
+Hacker News points, withdrawal flags and hybrid RRF are rebuilt from what your own runs
+already stored — **entirely offline, no network calls** — so `--compare` can tell you
+whether `w_specter` or `w_attention` earns its weight on your corpus. A signal your runs
+never fetched stays absent rather than becoming a zero, so the eval measures only the
+components you actually populated. `w_embedding` and `w_citations` cannot be reproduced
+offline; a comparison that turns on one of those says so rather than reporting a null.
+
+SPECTER2 gets special handling: its query is the centroid of the papers you starred or
+rated highly, which are *exactly* the relevant labels — so it is scored leave-one-out,
+with each paper excluded from its own query. Without that, every relevant paper's score
+is inflated by construction and the harness confidently recommends turning the weight
+up even when the vectors are pure noise.
 
 ### `rr mcp [--config PATH]`
 

@@ -133,6 +133,92 @@ def _first_seen_map(store: PaperStore, arxiv_ids: list[str]) -> dict[str, dateti
     return out
 
 
+def specter_scores_leave_one_out(store: PaperStore, arxiv_ids: list[str]) -> dict[str, float]:
+    """SPECTER2 similarity scored without letting a paper into its own query.
+
+    **This exists because the obvious implementation leaks the labels.** SPECTER2's
+    query is the centroid of the papers you starred or rated 4-5 — which is exactly the
+    set :func:`load_judgments` marks *relevant*. Score a judged paper against that
+    centroid and its own vector is inside its own query, so every relevant paper gets an
+    inflated similarity **by construction**. Measured with purely random 768-d vectors
+    carrying zero information: mean score 0.81 for relevant versus 0.20 for irrelevant,
+    and ``rr eval --compare`` duly reported nDCG 0.555 -> 1.000, 90% interval
+    [+0.180, +0.751], "B is better (interval excludes zero)". A confident false positive
+    recommending a weight change on the strength of noise — the exact failure the
+    interval exists to prevent.
+
+    The centroid is a mean of unit vectors, so removing one is arithmetic rather than a
+    rebuild: ``(S - u_i) / (n - 1)``. Papers that are not seeds keep the full centroid.
+
+    Production does not need this — there the candidates are newly fetched papers, not
+    the rated ones — which is why it lives here rather than in ``specter``.
+    """
+    try:
+        import numpy as np
+
+        from reporadar.specter import (
+            _MIN_POOL,
+            _MIN_SPREAD,
+            SPECTER_DIM,
+            load_or_fetch_vectors,
+        )
+    except ImportError:  # pragma: no cover - numpy ships with the package
+        return {}
+
+    seeds = list(store.get_starred_papers())
+    seeds += [aid for aid, rating in store.get_all_ratings().items() if rating >= 4]
+    seeds = [s for s in dict.fromkeys(seeds) if ":" not in s]
+    if not seeds:
+        return {}
+
+    wanted = [a for a in dict.fromkeys(list(seeds) + list(arxiv_ids)) if ":" not in a]
+    vectors = load_or_fetch_vectors(store, wanted, offline=True)
+
+    units: dict[str, Any] = {}
+    for arxiv_id, vec in vectors.items():
+        if vec.size != SPECTER_DIM:
+            continue  # never mix dimensionalities with a stale MiniLM vector
+        norm = float(np.linalg.norm(vec))
+        if norm > 0.0:
+            units[arxiv_id] = vec / norm
+
+    seed_units = [units[s] for s in seeds if s in units]
+    if not seed_units:
+        return {}
+    total = np.sum(np.vstack(seed_units), axis=0)
+    n_seeds = len(seed_units)
+    seed_set = {s for s in seeds if s in units}
+
+    sims: dict[str, float] = {}
+    for arxiv_id in arxiv_ids:
+        unit = units.get(arxiv_id)
+        if unit is None:
+            continue
+        if arxiv_id in seed_set:
+            if n_seeds < 2:
+                continue  # its own vector is the entire query; nothing honest to say
+            query = (total - unit) / (n_seeds - 1)
+        else:
+            query = total / n_seeds
+        qn = float(np.linalg.norm(query))
+        if qn > 0.0:
+            sims[arxiv_id] = float(np.dot(unit, query) / qn)
+
+    # Same guards as specter.specter_scores: min-max manufactures a full-range signal
+    # from nothing, so it only applies when the pool can support it.
+    if len(sims) < _MIN_POOL:
+        return {}
+    lo, hi = min(sims.values()), max(sims.values())
+    if hi - lo < _MIN_SPREAD:
+        return {}
+    scores = {k: (v - lo) / (hi - lo) for k, v in sims.items()}
+    # Neutral fill for papers with no vector, matching specter.score_papers: omitting
+    # them would drop the component from their average and favour papers S2 has never
+    # heard of, since min-max always puts some real paper at 0.0.
+    neutral = sum(scores.values()) / len(scores)
+    return {a: scores.get(a, neutral) for a in arxiv_ids}
+
+
 def stored_signals(
     store: PaperStore, arxiv_ids: list[str], ranking_cfg: RankingConfig
 ) -> dict[str, Any]:
@@ -165,14 +251,10 @@ def stored_signals(
 
     if ranking_cfg.w_specter > 0:
         try:
-            from reporadar.specter import score_papers as specter_score_papers
-
-            # offline=True: cache only. An eval that quietly fetched from Semantic
-            # Scholar would be slow, rate-limited, and would change its own inputs
-            # between the two sides of a --compare.
-            specter = specter_score_papers(
-                store, [{"arxiv_id": a} for a in arxiv_ids], offline=True
-            )
+            # Leave-one-out, and cache-only. Scoring a judged paper against a centroid
+            # that contains it leaks the labels; fetching from S2 mid-eval would change
+            # the inputs between the two sides of a --compare.
+            specter = specter_scores_leave_one_out(store, arxiv_ids)
             if specter:
                 signals["specter"] = specter
         except Exception:
@@ -234,7 +316,7 @@ def rank_judged_papers(
         return []
     arxiv_ids = [p["arxiv_id"] for p in papers]
     active = ranking_cfg or cfg.ranking
-    return rank_papers(
+    ranked = rank_papers(
         papers,
         profile,
         active,
@@ -244,6 +326,17 @@ def rank_judged_papers(
         now_by_id=_first_seen_map(store, arxiv_ids),
         **stored_signals(store, arxiv_ids, active),
     )
+    if active.hybrid:
+        # RRF fusion with a BM25 lexical ranking, exactly as cli.update stage 8b does.
+        # It is pure local text scoring, so unlike LLM triage it *can* be reproduced
+        # here — and leaving it out would have made `hybrid` silently unmeasurable.
+        try:
+            from reporadar.retrieval import hybrid_reorder
+
+            ranked = hybrid_reorder(ranked, papers, profile)
+        except Exception:
+            pass
+    return ranked
 
 
 def _labels_in_rank_order(ranked: list[dict[str, Any]], labels: dict[str, int]) -> list[int]:
@@ -351,12 +444,14 @@ def bootstrap_delta(
     }
 
 
-# Ranking knobs this harness cannot reproduce. Hybrid RRF reorders using a BM25 index
-# built over the whole corpus at digest time; a condensed list of judged papers cannot
-# recreate it. A config difference confined to these produces byte-identical rankings,
-# and reporting that as "cannot tell the two apart" is indistinguishable from a genuine
-# null result — so it is called out separately.
-UNMODELLED_KNOBS = ("hybrid",)
+# Ranking knobs this harness cannot reproduce. `w_embedding` needs the repo's own
+# embedding, which requires the optional sentence-transformers extra and re-encoding the
+# profile; `w_citations` needs live citation counts that are only fetched at digest time.
+# (`hybrid` used to be here and is now genuinely applied — see rank_judged_papers.)
+# A config difference confined to these produces byte-identical rankings, and reporting
+# that as "cannot tell the two apart" is indistinguishable from a genuine null result,
+# so it is called out separately.
+UNMODELLED_KNOBS = ("w_embedding", "w_citations")
 
 
 def unmodelled_differences(config_a: RankingConfig, config_b: RankingConfig) -> list[str]:
@@ -462,6 +557,30 @@ def format_baseline_check(check: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def degenerate_reason(judgments: Judgments) -> str | None:
+    """Why these labels cannot rank anything, or ``None`` if they can.
+
+    A user who only ever stars papers has no negative labels at all, so every metric
+    reads 1.000 no matter how the ranker behaves — the most flattering possible output
+    produced by the least informative possible data. Saying that plainly beats printing
+    a perfect score.
+    """
+    if judgments.n_judged == 0:
+        return "no judged papers"
+    if judgments.n_relevant == judgments.n_judged:
+        return (
+            f"all {judgments.n_judged} judged papers are relevant, so every metric is "
+            "1.000 whatever the ranker does. Rate some papers 1-2 to give it something "
+            "to get wrong"
+        )
+    if judgments.n_relevant == 0:
+        return (
+            f"none of the {judgments.n_judged} judged papers are relevant, so every "
+            "metric is 0.000 whatever the ranker does. Rate some papers 4-5"
+        )
+    return None
+
+
 def format_report(result: dict[str, Any], judgments: Judgments) -> str:
     """Render one evaluation as plain ASCII (Windows consoles are cp1252)."""
     lines = [
@@ -470,6 +589,13 @@ def format_report(result: dict[str, Any], judgments: Judgments) -> str:
         f"{judgments.ignored_neutral} neutral 3-star ignored)",
         f"Relevant:      {judgments.n_relevant}",
         "",
+    ]
+    reason = degenerate_reason(judgments)
+    if reason:
+        # Headline, not a footnote: these numbers are worse than meaningless because
+        # they look like a perfect score.
+        lines += [f"DEGENERATE: {reason}.", ""]
+    lines += [
         f"  precision@{result['k']}: {result['precision@k']:.3f}",
         f"  recall@{result['k']}:    {result['recall@k']:.3f}",
         f"  nDCG@{result['k']}:      {result['ndcg@k']:.3f}",

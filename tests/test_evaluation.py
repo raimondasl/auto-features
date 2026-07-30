@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from reporadar.config import QueriesConfig, RankingConfig, RepoRadarConfig
 from reporadar.evaluation import (
     Judgments,
@@ -17,6 +19,7 @@ from reporadar.evaluation import (
     format_report,
     load_judgments,
     rank_judged_papers,
+    specter_scores_leave_one_out,
     stored_signals,
 )
 from reporadar.profiler import RepoProfile
@@ -486,14 +489,11 @@ class TestBaselineRegressionGate:
 
 
 class TestUnmodelledKnobs:
-    def test_a_hybrid_only_difference_is_flagged_not_reported_as_equal(
-        self, tmp_path: Path
-    ) -> None:
-        """Hybrid RRF reorders with a corpus-wide BM25 index at digest time.
+    def test_hybrid_is_applied_rather_than_declared_unmeasurable(self, tmp_path: Path) -> None:
+        """Hybrid RRF is pure local BM25, so the harness *can* reproduce it.
 
-        A condensed list of judged papers cannot reproduce it, so two configs differing
-        only in `hybrid` rank identically here — and reporting that as "cannot tell them
-        apart" is indistinguishable from a genuine null result.
+        It was originally listed as unmodelled, which would have left one of the
+        roadmap's four competing ranking upgrades permanently unmeasurable.
         """
         with PaperStore(tmp_path / "p.db") as store:
             _seed(store, n=20)
@@ -507,9 +507,27 @@ class TestUnmodelledKnobs:
                 RankingConfig(hybrid=True),
                 k=10,
             )
-        assert comparison["unmodelled"] == ["hybrid"]
-        rendered = format_comparison(comparison, judgments)
-        assert "does not reproduce" in rendered
+        assert comparison["unmodelled"] == []
+        assert "does not reproduce" not in format_comparison(comparison, judgments)
+
+    def test_genuinely_unmeasurable_knobs_are_declared(self, tmp_path: Path) -> None:
+        # w_embedding needs the repo's own encoded profile (optional extra) and
+        # w_citations needs live counts fetched at digest time, so neither can be
+        # reproduced here — and a silent null would look like "no difference".
+        with PaperStore(tmp_path / "p.db") as store:
+            _seed(store, n=20)
+            judgments = load_judgments(store)
+            comparison = compare_configs(
+                store,
+                judgments,
+                _profile(),
+                _cfg(),
+                RankingConfig(w_citations=0.0),
+                RankingConfig(w_citations=2.0),
+                k=10,
+            )
+        assert comparison["unmodelled"] == ["w_citations"]
+        assert "does not reproduce" in format_comparison(comparison, judgments)
 
     def test_no_warning_when_the_configs_differ_in_modelled_knobs(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
@@ -556,3 +574,209 @@ class TestCeilingNotes:
         report = format_report(result, judgments)
         assert result["recall@k"] < 1.0
         assert "recall@10 maxes out" in report
+
+
+class TestSpecterLabelLeakage:
+    """SPECTER2's query is the centroid of the papers you starred or rated 4-5.
+
+    That is exactly the set `load_judgments` marks relevant, so scoring a judged paper
+    against it puts the paper's own vector inside its own query and inflates every
+    relevant paper's score by construction. The first implementation did that, and
+    `rr eval --compare` reported nDCG 0.555 -> 1.000 with a 90% interval of
+    [+0.180, +0.751] from *purely random* vectors: a confident false positive telling
+    the user to enable `w_specter` on the strength of noise.
+    """
+
+    def _store_with_random_vectors(self, tmp_path: Path, seed: int, n: int = 40) -> PaperStore:
+        import numpy as np
+
+        from reporadar.specter import SPECTER_DIM, SPECTER_MODEL, vec_to_bytes
+
+        rng = np.random.default_rng(seed)
+        store = PaperStore(tmp_path / f"p{seed}.db")
+        same = "identical abstract text so keyword category and recency are all blind"
+        rows = []
+        for i in range(n):
+            arxiv_id = f"2607.{i:05d}v1"
+            store.upsert_paper(
+                {
+                    "arxiv_id": arxiv_id,
+                    "title": "P",
+                    "authors": ["A"],
+                    "abstract": same,
+                    "categories": ["cs.CL"],
+                    "published": "2026-07-20T00:00:00+00:00",
+                    "updated": None,
+                    "url": f"http://x/{arxiv_id}",
+                    "pdf_url": None,
+                }
+            )
+            store.save_rating(arxiv_id, 5 if i % 2 == 0 else 1)
+            vec = rng.normal(size=SPECTER_DIM).astype(np.float32)
+            rows.append((arxiv_id, SPECTER_MODEL, SPECTER_DIM, vec_to_bytes(vec)))
+        store._conn.executemany(
+            "INSERT OR REPLACE INTO paper_embeddings (arxiv_id, model, dim, vec, created_at)"
+            " VALUES (?,?,?,?,datetime('now'))",
+            rows,
+        )
+        store._conn.commit()
+        return store
+
+    def test_noise_vectors_do_not_separate_the_labels(self, tmp_path: Path) -> None:
+        import statistics
+
+        store = self._store_with_random_vectors(tmp_path, seed=5)
+        try:
+            judgments = load_judgments(store)
+            scores = specter_scores_leave_one_out(store, list(judgments.labels))
+            relevant = [scores[a] for a, lab in judgments.labels.items() if lab and a in scores]
+            other = [scores[a] for a, lab in judgments.labels.items() if not lab and a in scores]
+        finally:
+            store.close()
+        # Leaking the labels produced 0.81 vs 0.20. Random vectors must not separate.
+        assert abs(statistics.mean(relevant) - statistics.mean(other)) < 0.25
+
+    def test_no_confident_false_positive_from_pure_noise(self, tmp_path: Path) -> None:
+        # The end-to-end failure: `--compare` recommending w_specter on noise.
+        flagged = 0
+        for seed in (5, 12, 33, 41):
+            store = self._store_with_random_vectors(tmp_path, seed=seed)
+            try:
+                judgments = load_judgments(store)
+                comparison = compare_configs(
+                    store,
+                    judgments,
+                    RepoProfile(keywords=[("identical", 0.5)], anchors=[], domains=[]),
+                    _cfg(),
+                    RankingConfig(w_specter=0.0),
+                    RankingConfig(w_specter=1.0),
+                    k=10,
+                )
+            finally:
+                store.close()
+            flagged += int(bool(comparison["bootstrap"]["significant"]))
+        assert flagged == 0, f"{flagged}/4 corpora claimed a significant win from noise"
+
+    def test_a_lone_seed_yields_no_score_rather_than_a_free_one(self, tmp_path: Path) -> None:
+        # With one seed, leave-one-out leaves an empty query. Returning 1.0 for that
+        # paper would be the leak in its purest form.
+        import numpy as np
+
+        from reporadar.specter import SPECTER_DIM, SPECTER_MODEL, vec_to_bytes
+
+        rng = np.random.default_rng(1)
+        with PaperStore(tmp_path / "p.db") as store:
+            rows = []
+            for i in range(4):
+                arxiv_id = f"2607.{i:05d}v1"
+                store.upsert_paper(_paper(arxiv_id, on_topic=True))
+                store.save_rating(arxiv_id, 5 if i == 0 else 1)
+                vec = rng.normal(size=SPECTER_DIM).astype(np.float32)
+                rows.append((arxiv_id, SPECTER_MODEL, SPECTER_DIM, vec_to_bytes(vec)))
+            store._conn.executemany(
+                "INSERT OR REPLACE INTO paper_embeddings (arxiv_id, model, dim, vec, created_at)"
+                " VALUES (?,?,?,?,datetime('now'))",
+                rows,
+            )
+            store._conn.commit()
+            scores = specter_scores_leave_one_out(store, [f"2607.{i:05d}v1" for i in range(4)])
+        # The single seed must not be handed a score derived from itself.
+        assert scores.get("2607.00000v1", 0.0) < 1.0 or not scores
+
+    def test_no_vectors_means_no_signal(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "p.db") as store:
+            _seed(store, n=10)
+            assert specter_scores_leave_one_out(store, list(load_judgments(store).labels)) == {}
+
+
+class TestDegenerateLabels:
+    """Labels that cannot rank anything must say so, not print a perfect score."""
+
+    def test_a_stars_only_user_is_told_the_score_is_meaningless(self, tmp_path: Path) -> None:
+        # No negative labels at all -> every metric reads 1.000 whatever the ranker
+        # does. The most flattering output produced by the least informative data.
+        with PaperStore(tmp_path / "p.db") as store:
+            for i in range(24):
+                arxiv_id = f"2607.{i:05d}v1"
+                store.upsert_paper(_paper(arxiv_id, on_topic=True))
+                store.star_paper(arxiv_id)
+            judgments = load_judgments(store)
+            result = evaluate(store, judgments, _profile(), _cfg(), k=10)
+        report = format_report(result, judgments)
+        assert result["ndcg@k"] == 1.0
+        assert "DEGENERATE" in report
+        assert "Rate some papers 1-2" in report
+
+    def test_all_negative_labels_are_flagged_too(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "p.db") as store:
+            for i in range(10):
+                arxiv_id = f"2607.{i:05d}v1"
+                store.upsert_paper(_paper(arxiv_id, on_topic=True))
+                store.save_rating(arxiv_id, 1)
+            judgments = load_judgments(store)
+            result = evaluate(store, judgments, _profile(), _cfg(), k=10)
+        assert "DEGENERATE" in format_report(result, judgments)
+        assert "Rate some papers 4-5" in format_report(result, judgments)
+
+    def test_a_healthy_mix_is_not_flagged(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "p.db") as store:
+            _seed(store, n=20)
+            judgments = load_judgments(store)
+            result = evaluate(store, judgments, _profile(), _cfg(), k=10)
+        assert "DEGENERATE" not in format_report(result, judgments)
+
+
+class TestReportInternalConsistency:
+    def test_printed_precision_never_exceeds_the_printed_ceiling(self, tmp_path: Path) -> None:
+        """Read the ceiling out of the rendered text, not re-derive it.
+
+        Re-deriving it in the test would pass even if the report printed something
+        else entirely — the assertion has to be against what the user actually sees.
+        """
+        import re
+
+        for n in (4, 6, 8, 10, 24):
+            with PaperStore(tmp_path / f"p{n}.db") as store:
+                _seed(store, n=n)
+                judgments = load_judgments(store)
+                result = evaluate(store, judgments, _profile(), _cfg(), k=10)
+                report = format_report(result, judgments)
+            printed_precision = float(re.search(r"precision@10: ([\d.]+)", report).group(1))
+            match = re.search(r"precision@10 maxes out at ([\d.]+)", report)
+            printed_ceiling = float(match.group(1)) if match else 1.0
+            assert printed_precision <= printed_ceiling + 1e-9, (
+                f"n={n}: report shows precision {printed_precision} "
+                f"above its own stated ceiling {printed_ceiling}"
+            )
+
+    def test_printed_recall_never_exceeds_the_printed_ceiling(self, tmp_path: Path) -> None:
+        import re
+
+        for n in (6, 20, 40):
+            with PaperStore(tmp_path / f"r{n}.db") as store:
+                _seed(store, n=n)
+                judgments = load_judgments(store)
+                result = evaluate(store, judgments, _profile(), _cfg(), k=10)
+                report = format_report(result, judgments)
+            printed_recall = float(re.search(r"recall@10:    ([\d.]+)", report).group(1))
+            match = re.search(r"recall@10 maxes out at ([\d.]+)", report)
+            printed_ceiling = float(match.group(1)) if match else 1.0
+            assert printed_recall <= printed_ceiling + 1e-9
+
+
+class TestCutoffAndMrr:
+    def test_k_actually_changes_the_metrics(self, tmp_path: Path) -> None:
+        # If -k were ignored, every snapshot would silently be at the same cut-off.
+        with PaperStore(tmp_path / "p.db") as store:
+            _seed(store, n=40)
+            judgments = load_judgments(store)
+            narrow = evaluate(store, judgments, _profile(), _cfg(), k=3)
+            wide = evaluate(store, judgments, _profile(), _cfg(), k=20)
+        assert narrow["recall@k"] < wide["recall@k"]
+
+    def test_mrr_is_the_reciprocal_rank_of_the_first_relevant_paper(self) -> None:
+        from reporadar.metrics import mrr as mrr_metric
+
+        assert mrr_metric([0, 0, 1, 0]) == pytest.approx(1 / 3)
+        assert mrr_metric([1, 0, 0]) == 1.0
+        assert mrr_metric([0, 0, 0]) == 0.0

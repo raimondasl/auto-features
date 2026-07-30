@@ -1536,6 +1536,24 @@ def eval_cmd(
 
         if compare:
             cfg_a, cfg_b = (_load_and_validate(path) for path in compare)
+            # Only the `ranking:` block is applied. A user who also changed
+            # `queries.exclude` or `arxiv.categories` between the two files would
+            # otherwise believe those were compared too, and read the verdict as
+            # covering a change that was never made.
+            ignored = [
+                name
+                for name, a, b in (
+                    ("queries", cfg_a.queries, cfg_b.queries),
+                    ("arxiv.categories", cfg_a.arxiv.categories, cfg_b.arxiv.categories),
+                    ("arxiv.lookback_days", cfg_a.arxiv.lookback_days, cfg_b.arxiv.lookback_days),
+                )
+                if a != b
+            ]
+            if ignored:
+                warn(
+                    "  Only the `ranking:` block is compared; these also differ and are "
+                    f"NOT reflected below: {', '.join(ignored)}"
+                )
             comparison = compare_configs(
                 store, judgments, profile, cfg, cfg_a.ranking, cfg_b.ranking, k=top_k
             )
