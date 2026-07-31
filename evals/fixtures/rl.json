@@ -50,6 +50,29 @@
     "source_query": "deep reinforcement learning"
   },
   {
+    "arxiv_id": "2607.18488v1",
+    "title": "The Open Ant: A Robot Platform for Reinforcement Learning Research",
+    "abstract": "Reinforcement learning (RL) research has demonstrated success in both physical and simulated domains; however, the predominant methodology remains rooted in simulations. The predominance of simulations makes translating research to physical reality uncertain for both algorithms and researchers. We propose a physical platform that is designed to simplify the transition. In this paper, we present the Open Ant: a physical variant of the commonly used Gymnasium Ant environment, along with a simulation. We demonstrate that competent walking policies can be learned from scratch in approximately one hour directly from the physical robot's experience for two substantially different RL algorithms: SARSA($λ$) and Soft Actor-Critic (SAC). Separately, we show policies that were learned in simulation transfer to reality. We also examine how well the platform supports a nimble experimental ecosystem. Specifically, we observe the speed with which new users from diverse backgrounds achieve their first success with the platform, and how easily the platform can be repaired and updated when hardware issues arise. Both the hardware design and software are available as open-source on GitHub for ease of customization. In summary, we advocate for the use of the Open Ant for RL researchers who frequently use simulated environments, so they can more easily include robot experiments in their evaluations.",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "eess.SY"
+    ],
+    "published": "2026-07-20T20:18:29+00:00",
+    "authors": [
+      "Elena Sorina Lupu",
+      "Patrick Spieler",
+      "Khurram Javed",
+      "Kris De Asis",
+      "John D. Martin",
+      "Martha Steenstrup",
+      "Joseph Modayil"
+    ],
+    "url": "http://arxiv.org/abs/2607.18488v1",
+    "label": 1,
+    "source_query": "deep reinforcement learning"
+  },
+  {
     "arxiv_id": "1604.08153v3",
     "title": "Classifying Options for Deep Reinforcement Learning",
     "abstract": "In this paper we combine one method for hierarchical reinforcement learning - the options framework - with deep Q-networks (DQNs) through the use of different \"option heads\" on the policy network, and a supervisory network for choosing between the different options. We utilise our setup to investigate the effects of architectural constraints in subtasks with positive and negative transfer, across a range of network capacities. We empirically show that our augmented DQN has lower sample complexity when simultaneously learning subtasks with negative transfer, without degrading performance when learning subtasks with positive transfer.",
@@ -66,25 +89,6 @@
       "Anil Anthony Bharath"
     ],
     "url": "http://arxiv.org/abs/1604.08153v3",
-    "label": 1,
-    "source_query": "deep reinforcement learning"
-  },
-  {
-    "arxiv_id": "1911.11285v1",
-    "title": "Biologically inspired architectures for sample-efficient deep reinforcement learning",
-    "abstract": "Deep reinforcement learning requires a heavy price in terms of sample efficiency and overparameterization in the neural networks used for function approximation. In this work, we use tensor factorization in order to learn more compact representation for reinforcement learning policies. We show empirically that in the low-data regime, it is possible to learn online policies with 2 to 10 times less total coefficients, with little to no loss of performance. We also leverage progress in second order optimization, and use the theory of wavelet scattering to further reduce the number of learned coefficients, by foregoing learning the topmost convolutional layer filters altogether. We evaluate our results on the Atari suite against recent baseline algorithms that represent the state-of-the-art in data efficiency, and get comparable results with an order of magnitude gain in weight parsimony.",
-    "categories": [
-      "cs.LG",
-      "cs.NE",
-      "stat.ML"
-    ],
-    "published": "2019-11-25T23:59:22+00:00",
-    "authors": [
-      "Pierre H. Richemond",
-      "Arinbjörn Kolbeinsson",
-      "Yike Guo"
-    ],
-    "url": "http://arxiv.org/abs/1911.11285v1",
     "label": 1,
     "source_query": "deep reinforcement learning"
   },
@@ -428,26 +432,6 @@
     "source_query": "object detection image"
   },
   {
-    "arxiv_id": "2106.13217v3",
-    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
-    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
-    "categories": [
-      "cs.CV"
-    ],
-    "published": "2021-06-24T17:51:31+00:00",
-    "authors": [
-      "Mochu Xiang",
-      "Jing Zhang",
-      "Yunqiu Lv",
-      "Aixuan Li",
-      "Yiran Zhong",
-      "Yuchao Dai"
-    ],
-    "url": "http://arxiv.org/abs/2106.13217v3",
-    "label": 0,
-    "source_query": "object detection image"
-  },
-  {
     "arxiv_id": "2408.14600v1",
     "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
     "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
@@ -466,6 +450,26 @@
       "Nicu Sebe"
     ],
     "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
     "label": 0,
     "source_query": "object detection image"
   },

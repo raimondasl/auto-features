@@ -62,9 +62,12 @@ See [Implementation status](#implementation-status-2026-07-30) below for the shi
 ## Implementation status (2026-07-30)
 
 A benchmark-driven arc (Tier B eval → Feature 6 triage/rerank → all-time discovery → hybrid retrieval)
-shipped the ranking-and-precision core. The 12-case Tier B benchmark now shows RepoRadar **net-positive
-and competitive with an agentic Opus 4.8 baseline** (Top Picks mean net@2 **+1.42** vs **+1.75**, a 0.33
-gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md).
+shipped the ranking-and-precision core. The 12-case Tier B benchmark shows RepoRadar **net-positive
+and competitive with an agentic Opus 4.8 baseline** — Top Picks mean net@2 **+1.75** vs **+1.83**
+(2026-07-31, a 0.08 gap, narrowed from 0.33 after the query-construction fix in PR #59). Read the
+per-case table rather than the mean: the gain concentrates in the repos whose queries the fix
+repaired, and `speech` regressed 10 points for reasons not yet understood — see
+[`evals/RESULTS.md`](evals/RESULTS.md).
 
 **✅ Shipped**
 - **Tier 0 repairs** (PR #13): HF Papers (dead PwC), OpenAlex key support, retired model default, wired the
@@ -130,9 +133,15 @@ gap), winning on its ML home turf — see [`evals/RESULTS.md`](evals/RESULTS.md)
   starred/highly-rated papers (no local model), pool-normalized, persisted via store v11 `specter_score`.
   *Remaining:* the CPU cross-encoder rerank, local SPECTER2 for a profile query, and HyDE.
 - **Feature 12** — OpenAlex `api_key` groundwork shipped; semantic search, Topics, and full-text are not.
+- **Feature 13 — privacy guard** (PR #57): `privacy.py` (an enforced destination registry) and `rr audit`
+  (`--json`) print every outbound destination and the exact query strings a config would transmit, sending
+  nothing to find out; `privacy.redact` strips terms at two choke points — `build_queries` and
+  `llm_client.complete` — wired via a config mirror so no call site can bypass it. *Remaining:* layer 3,
+  `--local-only` against a bulk arXiv snapshot, deliberately deferred (see §13 for why).
 
 **⬜ Not started**
-- Features 13, 14, 15, 16, 17, 18, 19, 20.
+- Features 14, 15, 16, 17, 18, 19, 20. (Feature 13 shipped its first two layers in PR #57 and is
+  listed under 🟡 above; `--local-only` remains.)
 
 ---
 
