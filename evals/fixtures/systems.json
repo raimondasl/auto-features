@@ -1,0 +1,880 @@
+[
+  {
+    "arxiv_id": "1904.12068v3",
+    "title": "Authenticated Key-Value Stores with Hardware Enclaves",
+    "abstract": "Authenticated data storage on an untrusted platform is an important computing paradigm for cloud applications ranging from big-data outsourcing, to cryptocurrency and certificate transparency log. These modern applications increasingly feature update-intensive workloads, whereas existing authenticated data structures (ADSs) designed with in-place updates are inefficient to handle such workloads. In this paper, we address this issue and propose a novel authenticated log-structured merge tree (eLSM) based key-value store by leveraging Intel SGX enclaves.   We present a system design that runs the code of eLSM store inside enclave. To circumvent the limited enclave memory (128 MB with the latest Intel CPUs), we propose to place the memory buffer of the eLSM store outside the enclave and protect the buffer using a new authenticated data structure by digesting individual LSM-tree levels. We design protocols to support query authentication in data integrity, completeness (under range queries), and freshness. The proof in our protocol is made small by including only the Merkle proofs at selective levels.   We implement eLSM on top of Google LevelDB and Facebook RocksDB with minimal code change and performance interference. We evaluate the performance of eLSM under the YCSB workload benchmark and show a performance advantage of up to 4.5X speedup.",
+    "categories": [
+      "cs.CR",
+      "cs.DB",
+      "cs.DC",
+      "cs.DS"
+    ],
+    "published": "2019-04-26T22:45:04+00:00",
+    "authors": [
+      "Yuzhe Tang",
+      "Ju Chen",
+      "Kai Li",
+      "Jianliang Xu",
+      "Qi Zhang"
+    ],
+    "url": "http://arxiv.org/abs/1904.12068v3",
+    "label": 1,
+    "source_query": "in-memory key-value store"
+  },
+  {
+    "arxiv_id": "2005.13762v3",
+    "title": "CedrusDB: Persistent Key-Value Store with Memory-Mapped Lazy-Trie",
+    "abstract": "As a result of RAM becoming cheaper, there has been a trend in key-value store design towards maintaining a fast in-memory index (such as a hash table) while logging user operations to disk, allowing high performance under failure-free conditions while still being able to recover from failures. This design, however, comes at the cost of long recovery times or expensive checkpoint operations. This paper presents a new in-memory index that is also storage-friendly. A \"lazy-trie\" is a variant of the hash-trie data structure that achieves near-optimal height, has practical storage overhead, and can be maintained on-disk with standard write-ahead logging.   We implemented CedrusDB, persistent key-value store based on a lazy-trie. The lazy-trie is kept on disk while made available in memory using standard memory-mapping. The lazy-trie organization in virtual memory allows CedrusDB to better leverage concurrent processing than other on-disk index schemes (LSMs, B+-trees). CedrusDB achieves comparable or superior performance to recent log-based in-memory key-value stores in mixed workloads while being able to recover quickly from failures.",
+    "categories": [
+      "cs.DB"
+    ],
+    "published": "2020-05-28T03:26:02+00:00",
+    "authors": [
+      "Maofan Yin",
+      "Hongbo Zhang",
+      "Robbert van Renesse",
+      "Emin Gün Sirer"
+    ],
+    "url": "http://arxiv.org/abs/2005.13762v3",
+    "label": 1,
+    "source_query": "in-memory key-value store"
+  },
+  {
+    "arxiv_id": "2301.09839v1",
+    "title": "FUSEE: A Fully Memory-Disaggregated Key-Value Store (Extended Version)",
+    "abstract": "Distributed in-memory key-value (KV) stores are embracing the disaggregated memory (DM) architecture for higher resource utilization. However, existing KV stores on DM employ a semi-disaggregated design that stores KV pairs on DM but manages metadata with monolithic metadata servers, hence still suffering from low resource efficiency on metadata servers. To address this issue, this paper proposes FUSEE, a FUlly memory-diSaggrEgated KV StorE that brings disaggregation to metadata management. FUSEE replicates metadata, i.e., the index and memory management information, on memory nodes, manages them directly on the client side, and handles complex failures under the DM architecture. To scalably replicate the index on clients, FUSEE proposes a client-centric replication protocol that allows clients to concurrently access and modify the replicated index. To efficiently manage disaggregated memory, FUSEE adopts a two-level memory management scheme that splits the memory management duty among clients and memory nodes. Finally, to handle the metadata corruption under client failures, FUSEE leverages an embedded operation log scheme to repair metadata with low log maintenance overhead. We evaluate FUSEE with both micro and YCSB hybrid benchmarks. The experimental results show that FUSEE outperforms the state-of-the-art KV stores on DM by up to 4.5 times with less resource consumption.",
+    "categories": [
+      "cs.DC"
+    ],
+    "published": "2023-01-24T06:50:46+00:00",
+    "authors": [
+      "Jiacheng Shen",
+      "Pengfei Zuo",
+      "Xuchuan Luo",
+      "Tianyi Yang",
+      "Yuxin Su",
+      "Yangfan Zhou",
+      "Michael R. Lyu"
+    ],
+    "url": "http://arxiv.org/abs/2301.09839v1",
+    "label": 1,
+    "source_query": "in-memory key-value store"
+  },
+  {
+    "arxiv_id": "2104.12425v3",
+    "title": "Separating Data via Block Invalidation Time Inference for Write Amplification Reduction in Log-Structured Storage",
+    "abstract": "Log-structured storage has been widely deployed in various domains of storage systems, yet its garbage collection incurs write amplification (WA) due to the rewrites of live data. We show that there exists an optimal data placement scheme that minimizes WA using the future knowledge of block invalidation time (BIT) of each written block, yet it is infeasible to realize in practice. We propose a novel data placement algorithm for reducing WA, SepBIT, that aims to infer the BITs of written blocks from storage workloads and separately place the blocks into groups with similar estimated BITs. We show via both mathematical and production trace analyses that SepBIT effectively infers the BITs by leveraging the write skewness property in practical storage workloads. Trace analysis and prototype experiments show that SepBIT reduces WA and improves I/O throughput, respectively, compared with state-of-the-art data placement schemes. SepBIT is currently deployed to support the log-structured block storage management at Alibaba Cloud.",
+    "categories": [
+      "cs.DC"
+    ],
+    "published": "2021-04-26T09:36:24+00:00",
+    "authors": [
+      "Qiuping Wang",
+      "Jinhong Li",
+      "Patrick P. C. Lee",
+      "Tao Ouyang",
+      "Chao Shi",
+      "Lilong Huang"
+    ],
+    "url": "http://arxiv.org/abs/2104.12425v3",
+    "label": 1,
+    "source_query": "log-structured storage engine"
+  },
+  {
+    "arxiv_id": "2508.19345v2",
+    "title": "Privacy-Preserving Distributed Control for a Networked Battery Energy Storage System",
+    "abstract": "The increasing deployment of distributed Battery Energy Storage Systems (BESSs) in modern power grids necessitates effective coordination strategies to ensure state-of-charge (SoC) balancing and accurate power delivery. While distributed control frameworks offer scalability and resilience, they also raise significant privacy concerns due to the need for inter-agent information exchange. This paper presents a novel privacy-preserving distributed control algorithm for SoC balancing in a networked BESS. The proposed framework includes distributed power allocation law that is designed based on two privacy-preserving distributed estimators, one for the average unit state and the other for the average desired power. The average unit state estimator is designed via the state decomposition method without disclosing sensitive internal states. The proposed power allocation law based on these estimators ensures asymptotic SoC balancing and global power delivery while safeguarding agent privacy from external eavesdroppers. The effectiveness and privacy-preserving properties of the proposed control strategy are demonstrated through simulation results.",
+    "categories": [
+      "eess.SY"
+    ],
+    "published": "2025-08-26T18:06:37+00:00",
+    "authors": [
+      "Mihitha Maithripala",
+      "Zongli Lin"
+    ],
+    "url": "http://arxiv.org/abs/2508.19345v2",
+    "label": 1,
+    "source_query": "log-structured storage engine"
+  },
+  {
+    "arxiv_id": "2511.18178v2",
+    "title": "Bayesian Calibration of Engine-out NOx Models for Engine-to-Engine Transferability",
+    "abstract": "Accurate prediction of engine-out NOx is essential for meeting stringent emissions regulations and optimizing engine performance. Traditional approaches rely on models trained on data from a small number of engines, which can be insufficient in generalizing across an entire population of engines due to sensor biases and variations in input conditions. In real world applications, these models require tuning or calibration to maintain acceptable error tolerance when applied to other engines. This highlights the need for models that can adapt with minimal adjustments to accommodate engine-to-engine variability and sensor discrepancies. While previous studies have explored machine learning methods for predicting engine-out NOx, these approaches often fail to generalize reliably across different engines and operating environments. To address these issues, we propose a Bayesian calibration framework that combines Gaussian processes (GP) with approximate Bayesian computation to infer and correct sensor biases. Starting with a pre-trained model developed using nominal engine data, our method identifies engine specific sensor biases and recalibrates predictions accordingly. By incorporating these inferred biases, our approach generates posterior predictive distributions for engine-out NOx on unseen test data, achieving high accuracy without retraining the model. Our results demonstrate that this transferable modeling approach significantly improves the accuracy of predictions compared to conventional non-adaptive GP models, effectively addressing engine-to-engine variability and improving model generalizability.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2025-11-22T20:10:38+00:00",
+    "authors": [
+      "Shrenik Zinage",
+      "Peter Meckl",
+      "Ilias Bilionis"
+    ],
+    "url": "http://arxiv.org/abs/2511.18178v2",
+    "label": 1,
+    "source_query": "log-structured storage engine"
+  },
+  {
+    "arxiv_id": "1809.01794v3",
+    "title": "Information-Theoretic Privacy in Distributed Average Consensus",
+    "abstract": "We present a distributed average consensus protocol that preserves the privacy of agents' inputs. Unlike the differential privacy mechanisms, the presented protocol does not affect the accuracy of the output. It is shown that the protocol preserves the information-theoretic privacy of the agents' inputs against colluding passive adversarial (or honest-but-curious) agents in the network, if the adversarial agents do not constitute a vertex cut in the underlying communication network. This implies that we can guarantee information-theoretic privacy of all the honest agents' inputs against $t$ arbitrary colluding passive adversarial agents if the network is $(t+1)$-connected. The protocol is constructed by composing a distributed privacy mechanism that we propose with any (non-private) distributed average consensus algorithm.",
+    "categories": [
+      "eess.SY"
+    ],
+    "published": "2018-09-06T02:43:53+00:00",
+    "authors": [
+      "Nirupam Gupta",
+      "Jonathan Katz",
+      "Nikhil Chopra"
+    ],
+    "url": "http://arxiv.org/abs/1809.01794v3",
+    "label": 1,
+    "source_query": "distributed consensus replication"
+  },
+  {
+    "arxiv_id": "2212.10387v1",
+    "title": "Tuning the Tail Latency of Distributed Queries Using Replication",
+    "abstract": "Querying graph data with low latency is an important requirement in application domains such as social networks and knowledge graphs. Graph queries perform multiple hops between vertices. When data is partitioned and stored across multiple servers, queries executing at one server often need to hop to vertices stored by another server. Such distributed traversals represent a performance bottleneck for low-latency queries. To reduce query latency, one can replicate remote data to make distributed traversals unnecessary, but replication is expensive and should be minimized. In this paper, we introduce the problem of finding data replication schemes that satisfy arbitrary user-defined query latency constraints with minimal replication cost. We propose a novel workload model to express data access causality, propose a family of heuristics, and introduce non-trivial sufficient conditions for their correctness. Our evaluation on two representative benchmarks show that our algorithms enable fine-tuning query latency with data replication and can find sweet spots in the latency/replication design space.",
+    "categories": [
+      "cs.DB",
+      "cs.DC"
+    ],
+    "published": "2022-12-20T16:12:23+00:00",
+    "authors": [
+      "Nathan Ng",
+      "Hung Le",
+      "Marco Serafini"
+    ],
+    "url": "http://arxiv.org/abs/2212.10387v1",
+    "label": 1,
+    "source_query": "distributed consensus replication"
+  },
+  {
+    "arxiv_id": "2202.03012v2",
+    "title": "EDCHO: High Order Exact Dynamic Consensus",
+    "abstract": "This article addresses the problem of average consensus in a multi-agent system when the desired consensus quantity is a time varying signal. Although this problem has been addressed in existing literature by linear schemes, only bounded steady-state errors have been achieved. Other approaches have used first order sliding modes to achieve zero steady-state error, but suffer from the chattering effect. In this work, we propose a new exact dynamic consensus algorithm which leverages high order sliding modes, in the form of a distributed differentiator to achieve zero steady-state error of the average of time varying reference signals in a group of agents. Moreover, our proposal is also able to achieve consensus to high order derivatives of the average signal, if desired. An in depth formal study on the stability and convergence for EDCHO is provided for undirected connected graphs. Finally, the effectiveness and advantages of our proposal are shown with concrete simulation scenarios.",
+    "categories": [
+      "eess.SY",
+      "cs.MA",
+      "math.OC"
+    ],
+    "published": "2022-02-07T09:09:42+00:00",
+    "authors": [
+      "Rodrigo Aldana-López",
+      "Rosario Aragüés",
+      "Carlos Sagüés"
+    ],
+    "url": "http://arxiv.org/abs/2202.03012v2",
+    "label": 1,
+    "source_query": "distributed consensus replication"
+  },
+  {
+    "arxiv_id": "2511.09410v1",
+    "title": "No Cords Attached: Coordination-Free Concurrent Lock-Free Queues",
+    "abstract": "The queue is conceptually one of the simplest data structures-a basic FIFO container. However, ensuring correctness in the presence of concurrency makes existing lock-free implementations significantly more complex than their original form. Coordination mechanisms introduced to prevent hazards such as ABA, use-after-free, and unsafe reclamation often dominate the design, overshadowing the queue itself. Many schemes compromise strict FIFO ordering, unbounded capacity, or lock-free progress to mask coordination overheads. Yet the true source of complexity lies in the pursuit of infinite protection against reclamation hazards--theoretically sound but impractical and costly. This pursuit not only drives unnecessary complexity but also creates a protection paradox where excessive protection reduces system resilience rather than improving it. While such costs may be tolerable in conventional workloads, the AI era has shifted the paradigm: training and inference pipelines involve hundreds to thousands of concurrent threads per node, and at this scale, protection and coordination overheads dominate, often far heavier than the basic queue operations themselves.   This paper introduces Cyclic Memory Protection (CMP), a coordination-free queue that preserves strict FIFO semantics, unbounded capacity, and lock-free progress while restoring simplicity. CMP reclaims the strict FIFO that other approaches sacrificed through bounded protection windows that provide practical reclamation guarantees. We prove strict FIFO and safety via linearizability and bounded reclamation analysis, and show experimentally that CMP outperforms state-of-the-art lock-free queues by up to 1.72-4x under high contention while maintaining scalability to hundreds of threads. Our work demonstrates that highly concurrent queues can return to their fundamental simplicity without weakening queue semantics.",
+    "categories": [
+      "cs.DC",
+      "cs.DS",
+      "cs.PF"
+    ],
+    "published": "2025-11-12T15:26:05+00:00",
+    "authors": [
+      "Yusuf Motiwala"
+    ],
+    "url": "http://arxiv.org/abs/2511.09410v1",
+    "label": 1,
+    "source_query": "concurrent lock-free data structures"
+  },
+  {
+    "arxiv_id": "1302.2757v1",
+    "title": "Lock-free Concurrent Data Structures",
+    "abstract": "Concurrent data structures are the data sharing side of parallel programming. Data structures give the means to the program to store data, but also provide operations to the program to access and manipulate these data. These operations are implemented through algorithms that have to be efficient. In the sequential setting, data structures are crucially important for the performance of the respective computation. In the parallel programming setting, their importance becomes more crucial because of the increased use of data and resource sharing for utilizing parallelism.   The first and main goal of this chapter is to provide a sufficient background and intuition to help the interested reader to navigate in the complex research area of lock-free data structures. The second goal is to offer the programmer familiarity to the subject that will allow her to use truly concurrent methods.",
+    "categories": [
+      "cs.DC",
+      "cs.DS",
+      "cs.PL"
+    ],
+    "published": "2013-02-12T11:08:26+00:00",
+    "authors": [
+      "Daniel Cederman",
+      "Anders Gidenstam",
+      "Phuong Ha",
+      "Håkan Sundell",
+      "Marina Papatriantafilou",
+      "Philippas Tsigas"
+    ],
+    "url": "http://arxiv.org/abs/1302.2757v1",
+    "label": 1,
+    "source_query": "concurrent lock-free data structures"
+  },
+  {
+    "arxiv_id": "1907.02664v2",
+    "title": "Data Encoding for Byzantine-Resilient Distributed Optimization",
+    "abstract": "We study distributed optimization in the presence of Byzantine adversaries, where both data and computation are distributed among $m$ worker machines, $t$ of which may be corrupt. The compromised nodes may collaboratively and arbitrarily deviate from their pre-specified programs, and a designated (master) node iteratively computes the model/parameter vector for generalized linear models. In this work, we primarily focus on two iterative algorithms: Proximal Gradient Descent (PGD) and Coordinate Descent (CD). Gradient descent (GD) is a special case of these algorithms. PGD is typically used in the data-parallel setting, where data is partitioned across different samples, whereas, CD is used in the model-parallelism setting, where data is partitioned across the parameter space.   In this paper, we propose a method based on data encoding and error correction over real numbers to combat adversarial attacks. We can tolerate up to $t\\leq \\lfloor\\frac{m-1}{2}\\rfloor$ corrupt worker nodes, which is information-theoretically optimal. We give deterministic guarantees, and our method does not assume any probability distribution on the data. We develop a {\\em sparse} encoding scheme which enables computationally efficient data encoding and decoding. We demonstrate a trade-off between the corruption threshold and the resource requirements (storage, computational, and communication complexity). As an example, for $t\\leq\\frac{m}{3}$, our scheme incurs only a {\\em constant} overhead on these resources, over that required by the plain distributed PGD/CD algorithms which provide no adversarial protection. To the best of our knowledge, ours is the first paper that makes CD secure against adversarial attacks.   Our encoding scheme extends efficiently to the data streaming model and for stochastic gradient descent (SGD). We also give experimental results to show the efficacy of our proposed schemes.",
+    "categories": [
+      "cs.DC",
+      "cs.CR",
+      "cs.LG"
+    ],
+    "published": "2019-07-05T03:31:43+00:00",
+    "authors": [
+      "Deepesh Data",
+      "Linqi Song",
+      "Suhas Diggavi"
+    ],
+    "url": "http://arxiv.org/abs/1907.02664v2",
+    "label": 1,
+    "source_query": "concurrent lock-free data structures"
+  },
+  {
+    "arxiv_id": "2508.12485v1",
+    "title": "Cold-RL: Learning Cache Eviction with Offline Reinforcement Learning for NGINX",
+    "abstract": "Web proxies such as NGINX commonly rely on least-recently-used (LRU) eviction, which is size agnostic and can thrash under periodic bursts and mixed object sizes. We introduce Cold-RL, a learned eviction policy for NGINX that replaces LRU's forced-expire path with a dueling Deep Q-Network served by an ONNX sidecar within a strict microsecond budget. On each eviction, Cold-RL samples the K least-recently-used objects, extracts six lightweight features (age, size, hit count, inter-arrival time, remaining TTL, and last origin RTT), and requests a bitmask of victims; a hard timeout of 500 microseconds triggers immediate fallback to native LRU. Policies are trained offline by replaying NGINX access logs through a cache simulator with a simple reward: a retained object earns one point if it is hit again before TTL expiry. We compare against LRU, LFU, size-based, adaptive LRU, and a hybrid baseline on two adversarial workloads. With a 25 MB cache, Cold-RL raises hit ratio from 0.1436 to 0.3538, a 146 percent improvement over the best classical baseline; at 100 MB, from 0.7530 to 0.8675, a 15 percent gain; and at 400 MB it matches classical methods (about 0.918). Inference adds less than 2 percent CPU overhead and keeps 95th percentile eviction latency within budget. To our knowledge, this is the first reinforcement learning eviction policy integrated into NGINX with strict SLOs.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.DB",
+      "cs.NI"
+    ],
+    "published": "2025-08-17T20:01:12+00:00",
+    "authors": [
+      "Aayush Gupta",
+      "Arpit Bhayani"
+    ],
+    "url": "http://arxiv.org/abs/2508.12485v1",
+    "label": 1,
+    "source_query": "cache eviction policies"
+  },
+  {
+    "arxiv_id": "2605.09649v1",
+    "title": "Make Each Token Count: Towards Improving Long-Context Performance with KV Cache Eviction",
+    "abstract": "The key-value (KV) cache is a major bottleneck in long-context inference, where memory and computation grow with sequence length. Existing KV eviction methods reduce this cost but typically degrade performance relative to full-cache inference. Our key insight is that full-cache attention is not always optimal: in long contexts, irrelevant tokens can dilute attention away from useful evidence, so selective, learnable eviction can improve generation rather than merely approximate the full cache. We introduce a global retention-based KV eviction method that learns each token's future utility under a unified memory budget. Lightweight retention gates assign utility scores to cached KV entries, and a shared final scoring projection calibrates these scores across all layers and heads. This enables a single global eviction policy in which tokens from different layers, heads, and modalities compete directly for cache capacity. We further provide theoretical analysis showing that preferentially retaining useful tokens reduces attention dilution, and we justify geometric retention as a query-agnostic proxy for future utility. Across diverse long-context language and vision-language reasoning, and multi-turn dialogue benchmarks, our method substantially reduces KV memory while matching or surpassing full-cache inference. These results suggest that learned, globally calibrated KV eviction is not only a compression technique, but also a mechanism for improving long-context reasoning.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2026-05-10T16:47:50+00:00",
+    "authors": [
+      "Ngoc Bui",
+      "Hieu Trung Nguyen",
+      "Arman Cohan",
+      "Rex Ying"
+    ],
+    "url": "http://arxiv.org/abs/2605.09649v1",
+    "label": 1,
+    "source_query": "cache eviction policies"
+  },
+  {
+    "arxiv_id": "2605.26168v1",
+    "title": "LearnedCache: An eBPF-Integrated Perceptron-Based Eviction Policy for the Linux Page Cache",
+    "abstract": "Linux is the foundation of the digital age, accounting for the majority of the cloud and mobile OS markets. Any device that runs Linux uses the Linux page cache, a central pillar in OS and application performance, serving to reduce extraneous disk access. Many page cache eviction policies have been developed but remain bound by the rigidity of heuristics. The rise of AI-driven tools in recent years, melded with the ever-increasing variety of workloads for Linux devices, sets the stage for machine-learning-driven cache eviction policies. Promising research has been done in this field, but only in the field of user-space applications such as CDNs. We develop LearnedCache, an eBPF-integrated single-layer perceptron-based cache eviction policy for the Linux page cache, trained on real kernel data from diverse workloads. We demonstrate median AUCs of nearly 80% over multiple linear models modeling page reuse time, then take a step further by embedding these models inside the Linux kernel for real-time performance evaluation. Through statistical testing over 50 paired trials against a baseline of FIFO for each workload, LearnedCache reveals that machine-learning-derived cache eviction policies are practical in the Linux kernel under representative empirical workloads and are able to surpass conventional FIFO by statistically significant margins of up to 10% in insertion rate, a frequency-adjusted derivation of cache hit rate, in specific workloads while incurring minimal overhead.",
+    "categories": [
+      "cs.OS",
+      "cs.LG"
+    ],
+    "published": "2026-05-25T00:15:38+00:00",
+    "authors": [
+      "Zejia Qi"
+    ],
+    "url": "http://arxiv.org/abs/2605.26168v1",
+    "label": 1,
+    "source_query": "cache eviction policies"
+  },
+  {
+    "arxiv_id": "2302.10473v6",
+    "title": "Oriented object detection in optical remote sensing images using deep learning: a survey",
+    "abstract": "Oriented object detection is a fundamental yet challenging task in remote sensing (RS), aiming to locate and classify objects with arbitrary orientations. Recent advancements in deep learning have significantly enhanced the capabilities of oriented object detection methods. Given the rapid development of this field, a comprehensive survey of the recent advances in oriented object detection is presented in this paper. Specifically, we begin by tracing the technical evolution from horizontal object detection to oriented object detection and highlighting the specific related challenges, including feature misalignment, spatial misalignment, oriented bounding box (OBB) regression problems, and common issues encountered in RS. Subsequently, we further categorize the existing methods into detection frameworks, OBB regression techniques, feature representation approaches, and solutions to common issues and provide an in-depth discussion of how these methods address the above challenges. In addition, we cover several publicly available datasets and evaluation protocols. Furthermore, we provide a comprehensive comparison and analysis involving the state-of-the-art methods. Toward the end of this paper, we identify several future directions for oriented object detection research.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-21T06:31:53+00:00",
+    "authors": [
+      "Kun Wang",
+      "Zi Wang",
+      "Zhang Li",
+      "Ang Su",
+      "Xichao Teng",
+      "Erting Pan",
+      "Minhao Liu",
+      "Qifeng Yu"
+    ],
+    "url": "http://arxiv.org/abs/2302.10473v6",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "1904.13353v2",
+    "title": "Object Contour and Edge Detection with RefineContourNet",
+    "abstract": "A ResNet-based multi-path refinement CNN is used for object contour detection. For this task, we prioritise the effective utilization of the high-level abstraction capability of a ResNet, which leads to state-of-the-art results for edge detection. Keeping our focus in mind, we fuse the high, mid and low-level features in that specific order, which differs from many other approaches. It uses the tensor with the highest-levelled features as the starting point to combine it layer-by-layer with features of a lower abstraction level until it reaches the lowest level. We train this network on a modified PASCAL VOC 2012 dataset for object contour detection and evaluate on a refined PASCAL-val dataset reaching an excellent performance and an Optimal Dataset Scale (ODS) of 0.752. Furthermore, by fine-training on the BSDS500 dataset we reach state-of-the-art results for edge-detection with an ODS of 0.824.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2019-04-30T16:34:27+00:00",
+    "authors": [
+      "Andre Peter Kelm",
+      "Vijesh Soorya Rao",
+      "Udo Zoelzer"
+    ],
+    "url": "http://arxiv.org/abs/1904.13353v2",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2408.14600v1",
+    "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
+    "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-08-26T19:43:01+00:00",
+    "authors": [
+      "Yidi Li",
+      "Jiahao Wen",
+      "Bin Ren",
+      "Wenhao Li",
+      "Zhenhuan Xu",
+      "Hao Guo",
+      "Hong Liu",
+      "Nicu Sebe"
+    ],
+    "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2011.09170v1",
+    "title": "TJU-DHD: A Diverse High-Resolution Dataset for Object Detection",
+    "abstract": "Vehicles, pedestrians, and riders are the most important and interesting objects for the perception modules of self-driving vehicles and video surveillance. However, the state-of-the-art performance of detecting such important objects (esp. small objects) is far from satisfying the demand of practical systems. Large-scale, rich-diversity, and high-resolution datasets play an important role in developing better object detection methods to satisfy the demand. Existing public large-scale datasets such as MS COCO collected from websites do not focus on the specific scenarios. Moreover, the popular datasets (e.g., KITTI and Citypersons) collected from the specific scenarios are limited in the number of images and instances, the resolution, and the diversity. To attempt to solve the problem, we build a diverse high-resolution dataset (called TJU-DHD). The dataset contains 115,354 high-resolution images (52% images have a resolution of 1624$\\times$1200 pixels and 48% images have a resolution of at least 2,560$\\times$1,440 pixels) and 709,330 labeled objects in total with a large variance in scale and appearance. Meanwhile, the dataset has a rich diversity in season variance, illumination variance, and weather variance. In addition, a new diverse pedestrian dataset is further built. With the four different detectors (i.e., the one-stage RetinaNet, anchor-free FCOS, two-stage FPN, and Cascade R-CNN), experiments about object detection and pedestrian detection are conducted. We hope that the newly built dataset can help promote the research on object detection and pedestrian detection in these two scenes. The dataset is available at https://github.com/tjubiit/TJU-DHD.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-11-18T09:32:24+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Jiale Cao",
+      "Yazhao Li",
+      "Jin Xie",
+      "Hanqing Sun",
+      "Jinfeng Gong"
+    ],
+    "url": "http://arxiv.org/abs/2011.09170v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2110.14711v3",
+    "title": "A Survey of Self-Supervised and Few-Shot Object Detection",
+    "abstract": "Labeling data is often expensive and time-consuming, especially for tasks such as object detection and instance segmentation, which require dense labeling of the image. While few-shot object detection is about training a model on novel (unseen) object classes with little data, it still requires prior training on many labeled examples of base (seen) classes. On the other hand, self-supervised methods aim at learning representations from unlabeled data which transfer well to downstream tasks such as object detection. Combining few-shot and self-supervised object detection is a promising research direction. In this survey, we review and characterize the most recent approaches on few-shot and self-supervised object detection. Then, we give our main takeaways and discuss future research directions. Project page at https://gabrielhuang.github.io/fsod-survey/",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-10-27T18:55:47+00:00",
+    "authors": [
+      "Gabriel Huang",
+      "Issam Laradji",
+      "David Vazquez",
+      "Simon Lacoste-Julien",
+      "Pau Rodriguez"
+    ],
+    "url": "http://arxiv.org/abs/2110.14711v3",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2301.02562v1",
+    "title": "Super Sparse 3D Object Detection",
+    "abstract": "As the perception range of LiDAR expands, LiDAR-based 3D object detection contributes ever-increasingly to the long-range perception in autonomous driving. Mainstream 3D object detectors often build dense feature maps, where the cost is quadratic to the perception range, making them hardly scale up to the long-range settings. To enable efficient long-range detection, we first propose a fully sparse object detector termed FSD. FSD is built upon the general sparse voxel encoder and a novel sparse instance recognition (SIR) module. SIR groups the points into instances and applies highly-efficient instance-wise feature extraction. The instance-wise grouping sidesteps the issue of the center feature missing, which hinders the design of the fully sparse architecture. To further enjoy the benefit of fully sparse characteristic, we leverage temporal information to remove data redundancy and propose a super sparse detector named FSD++. FSD++ first generates residual points, which indicate the point changes between consecutive frames. The residual points, along with a few previous foreground points, form the super sparse input data, greatly reducing data redundancy and computational overhead. We comprehensively analyze our method on the large-scale Waymo Open Dataset, and state-of-the-art performance is reported. To showcase the superiority of our method in long-range detection, we also conduct experiments on Argoverse 2 Dataset, where the perception range ($200m$) is much larger than Waymo Open Dataset ($75m$). Code is open-sourced at https://github.com/tusen-ai/SST.",
+    "categories": [
+      "cs.CV",
+      "cs.RO"
+    ],
+    "published": "2023-01-05T17:03:56+00:00",
+    "authors": [
+      "Lue Fan",
+      "Yuxue Yang",
+      "Feng Wang",
+      "Naiyan Wang",
+      "Zhaoxiang Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2301.02562v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2508.19294v2",
+    "title": "Object Detection with Multimodal Large Vision-Language Models: An In-depth Review",
+    "abstract": "The fusion of language and vision in large vision-language models (LVLMs) has revolutionized deep learning-based object detection by enhancing adaptability, contextual reasoning, and generalization beyond traditional architectures. This in-depth review presents a structured exploration of the state-of-the-art in LVLMs, systematically organized through a three-step research review process. First, we discuss the functioning of vision language models (VLMs) for object detection, describing how these models harness natural language processing (NLP) and computer vision (CV) techniques to revolutionize object detection and localization. We then explain the architectural innovations, training paradigms, and output flexibility of recent LVLMs for object detection, highlighting how they achieve advanced contextual understanding for object detection. The review thoroughly examines the approaches used in integration of visual and textual information, demonstrating the progress made in object detection using VLMs that facilitate more sophisticated object detection and localization strategies. This review presents comprehensive visualizations demonstrating LVLMs' effectiveness in diverse scenarios including localization and segmentation, and then compares their real-time performance, adaptability, and complexity to traditional deep learning systems. Based on the review, its is expected that LVLMs will soon meet or surpass the performance of conventional methods in object detection. The review also identifies a few major limitations of the current LVLM modes, proposes solutions to address those challenges, and presents a clear roadmap for the future advancement in this field. We conclude, based on this study, that the recent advancement in LVLMs have made and will continue to make a transformative impact on object detection and robotic applications in the future.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2025-08-25T17:21:00+00:00",
+    "authors": [
+      "Ranjan Sapkota",
+      "Manoj Karkee"
+    ],
+    "url": "http://arxiv.org/abs/2508.19294v2",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2411.02844v1",
+    "title": "Correlation of Object Detection Performance with Visual Saliency and Depth Estimation",
+    "abstract": "As object detection techniques continue to evolve, understanding their relationships with complementary visual tasks becomes crucial for optimising model architectures and computational resources. This paper investigates the correlations between object detection accuracy and two fundamental visual tasks: depth prediction and visual saliency prediction. Through comprehensive experiments using state-of-the-art models (DeepGaze IIE, Depth Anything, DPT-Large, and Itti's model) on COCO and Pascal VOC datasets, we find that visual saliency shows consistently stronger correlations with object detection accuracy (mA$ρ$ up to 0.459 on Pascal VOC) compared to depth prediction (mA$ρ$ up to 0.283). Our analysis reveals significant variations in these correlations across object categories, with larger objects showing correlation values up to three times higher than smaller objects. These findings suggest incorporating visual saliency features into object detection architectures could be more beneficial than depth information, particularly for specific object categories. The observed category-specific variations also provide insights for targeted feature engineering and dataset design improvements, potentially leading to more efficient and accurate object detection systems.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2024-11-05T06:34:19+00:00",
+    "authors": [
+      "Matthias Bartolo",
+      "Dylan Seychell"
+    ],
+    "url": "http://arxiv.org/abs/2411.02844v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2601.02016v1",
+    "title": "Enhancing Object Detection with Privileged Information: A Model-Agnostic Teacher-Student Approach",
+    "abstract": "This paper investigates the integration of the Learning Using Privileged Information (LUPI) paradigm in object detection to exploit fine-grained, descriptive information available during training but not at inference. We introduce a general, model-agnostic methodology for injecting privileged information-such as bounding box masks, saliency maps, and depth cues-into deep learning-based object detectors through a teacher-student architecture. Experiments are conducted across five state-of-the-art object detection models and multiple public benchmarks, including UAV-based litter detection datasets and Pascal VOC 2012, to assess the impact on accuracy, generalization, and computational efficiency. Our results demonstrate that LUPI-trained students consistently outperform their baseline counterparts, achieving significant boosts in detection accuracy with no increase in inference complexity or model size. Performance improvements are especially marked for medium and large objects, while ablation studies reveal that intermediate weighting of teacher guidance optimally balances learning from privileged and standard inputs. The findings affirm that the LUPI framework provides an effective and practical strategy for advancing object detection systems in both resource-constrained and real-world settings.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.ET",
+      "cs.LG"
+    ],
+    "published": "2026-01-05T11:24:34+00:00",
+    "authors": [
+      "Matthias Bartolo",
+      "Dylan Seychell",
+      "Gabriel Hili",
+      "Matthew Montebello",
+      "Carl James Debono",
+      "Saviour Formosa",
+      "Konstantinos Makantasis"
+    ],
+    "url": "http://arxiv.org/abs/2601.02016v1",
+    "label": 0,
+    "source_query": "object detection"
+  },
+  {
+    "arxiv_id": "2110.06500v2",
+    "title": "Differentially Private Fine-tuning of Language Models",
+    "abstract": "We give simpler, sparser, and faster algorithms for differentially private fine-tuning of large-scale pre-trained language models, which achieve the state-of-the-art privacy versus utility tradeoffs on many standard NLP tasks. We propose a meta-framework for this problem, inspired by the recent success of highly parameter-efficient methods for fine-tuning. Our experiments show that differentially private adaptations of these approaches outperform previous private algorithms in three important dimensions: utility, privacy, and the computational and memory cost of private training. On many commonly studied datasets, the utility of private models approaches that of non-private models. For example, on the MNLI dataset we achieve an accuracy of $87.8\\%$ using RoBERTa-Large and $83.5\\%$ using RoBERTa-Base with a privacy budget of $ε= 6.7$. In comparison, absent privacy constraints, RoBERTa-Large achieves an accuracy of $90.2\\%$. Our findings are similar for natural language generation tasks. Privately fine-tuning with DART, GPT-2-Small, GPT-2-Medium, GPT-2-Large, and GPT-2-XL achieve BLEU scores of 38.5, 42.0, 43.1, and 43.8 respectively (privacy budget of $ε= 6.8,δ=$ 1e-5) whereas the non-private baseline is $48.1$. All our experiments suggest that larger models are better suited for private fine-tuning: while they are well known to achieve superior accuracy non-privately, we find that they also better maintain their accuracy when privacy is introduced.",
+    "categories": [
+      "cs.LG",
+      "cs.CL",
+      "cs.CR",
+      "stat.ML"
+    ],
+    "published": "2021-10-13T05:15:00+00:00",
+    "authors": [
+      "Da Yu",
+      "Saurabh Naik",
+      "Arturs Backurs",
+      "Sivakanth Gopi",
+      "Huseyin A. Inan",
+      "Gautam Kamath",
+      "Janardhan Kulkarni",
+      "Yin Tat Lee",
+      "Andre Manoel",
+      "Lukas Wutschitz",
+      "Sergey Yekhanin",
+      "Huishuai Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2110.06500v2",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2312.10793v3",
+    "title": "Demystifying Instruction Mixing for Fine-tuning Large Language Models",
+    "abstract": "Instruction tuning significantly enhances the performance of large language models (LLMs) across various tasks. However, the procedure to optimizing the mixing of instruction datasets for LLM fine-tuning is still poorly understood. This study categorizes instructions into three primary types: NLP downstream tasks, coding, and general chat. We explore the effects of instruction tuning on different combinations of datasets on LLM performance, and find that certain instruction types are more advantageous for specific applications but can negatively impact other areas. This work provides insights into instruction mixtures, laying the foundations for future research.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2023-12-17T18:44:26+00:00",
+    "authors": [
+      "Renxi Wang",
+      "Haonan Li",
+      "Minghao Wu",
+      "Yuxia Wang",
+      "Xudong Han",
+      "Chiyu Zhang",
+      "Timothy Baldwin"
+    ],
+    "url": "http://arxiv.org/abs/2312.10793v3",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2210.12607v1",
+    "title": "Learning to Perform Complex Tasks through Compositional Fine-Tuning of Language Models",
+    "abstract": "How to usefully encode compositional task structure has long been a core challenge in AI. Recent work in chain of thought prompting has shown that for very large neural language models (LMs), explicitly demonstrating the inferential steps involved in a target task may improve performance over end-to-end learning that focuses on the target task alone. However, chain of thought prompting has significant limitations due to its dependency on huge pretrained LMs. In this work, we present compositional fine-tuning (CFT): an approach based on explicitly decomposing a target task into component tasks, and then fine-tuning smaller LMs on a curriculum of such component tasks. We apply CFT to recommendation tasks in two domains, world travel and local dining, as well as a previously studied inferential task (sports understanding). We show that CFT outperforms end-to-end learning even with equal amounts of data, and gets consistently better as more component tasks are modeled via fine-tuning. Compared with chain of thought prompting, CFT performs at least as well using LMs only 7.4% of the size, and is moreover applicable to task domains for which data are not available during pretraining.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2022-10-23T03:22:34+00:00",
+    "authors": [
+      "Victor S. Bursztyn",
+      "David Demeter",
+      "Doug Downey",
+      "Larry Birnbaum"
+    ],
+    "url": "http://arxiv.org/abs/2210.12607v1",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2402.11651v2",
+    "title": "Learning From Failure: Integrating Negative Examples when Fine-tuning Large Language Models as Agents",
+    "abstract": "Large language models (LLMs) have achieved success in acting as agents, which interact with environments through tools such as search engines. However, LLMs are optimized for language generation instead of tool use during training or alignment, limiting their effectiveness as agents. To resolve this problem, previous work has first collected interaction trajectories between LLMs and environments, using only trajectories that successfully finished the task to fine-tune smaller models, making fine-tuning data scarce and acquiring it both difficult and costly. Discarding failed trajectories also leads to significant wastage of data and resources and limits the possible optimization paths during fine-tuning. In this paper, we argue that unsuccessful trajectories offer valuable insights, and LLMs can learn from these trajectories through appropriate quality control and fine-tuning strategies. By simply adding a prefix or suffix that tells the model whether to generate a successful trajectory during training, we improve model performance by a large margin on mathematical reasoning, multi-hop question answering, and strategic question answering tasks. We further analyze the inference results and find that our method provides a better trade-off between valuable information and errors in unsuccessful trajectories. To our knowledge, we are the first to demonstrate the value of negative trajectories and their application in agent-tunning scenarios. Our findings offer guidance for developing better agent-tuning methods and low-resource data usage techniques.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2024-02-18T17:10:07+00:00",
+    "authors": [
+      "Renxi Wang",
+      "Haonan Li",
+      "Xudong Han",
+      "Yixuan Zhang",
+      "Timothy Baldwin"
+    ],
+    "url": "http://arxiv.org/abs/2402.11651v2",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2602.08239v1",
+    "title": "Linearization Explains Fine-Tuning in Large Language Models",
+    "abstract": "Parameter-Efficient Fine-Tuning (PEFT) is a popular class of techniques that strive to adapt large models in a scalable and resource-efficient manner. Yet, the mechanisms underlying their training performance and generalization remain underexplored. In this paper, we provide several insights into such fine-tuning through the lens of linearization. Fine-tuned models are often implicitly encouraged to remain close to the pretrained model. By making this explicit, using an Euclidean distance inductive bias in parameter space, we show that fine-tuning dynamics become equivalent to learning with the positive-definite neural tangent kernel (NTK). We specifically analyze how close the fully linear and the linearized fine-tuning optimizations are, based on the strength of the regularization. This allows us to be pragmatic about how good a model linearization is when fine-tuning large language models (LLMs). When linearization is a good model, our findings reveal a strong correlation between the eigenvalue spectrum of the NTK and the performance of model adaptation. Motivated by this, we give spectral perturbation bounds on the NTK induced by the choice of layers selected for fine-tuning. We empirically validate our theory on Low Rank Adaptation (LoRA) on LLMs. These insights not only characterize fine-tuning but also have the potential to enhance PEFT techniques, paving the way to better informed and more nimble adaptation in LLMs.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-09T03:27:58+00:00",
+    "authors": [
+      "Zahra Rahimi Afzal",
+      "Tara Esmaeilbeig",
+      "Mojtaba Soltanalian",
+      "Mesrob I. Ohannessian"
+    ],
+    "url": "http://arxiv.org/abs/2602.08239v1",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2508.11281v3",
+    "title": "ToxiFrench: Benchmarking and Enhancing Language Models via CoT Fine-Tuning for French Toxicity Detection",
+    "abstract": "Detecting toxic content using language models is crucial yet challenging. While substantial progress has been made in English, toxicity detection in French remains underdeveloped, primarily due to the lack of culturally relevant, human-annotated, large-scale datasets. In this work, we release ToxiFrench, a dataset of 53,622 French online comments together with a balanced benchmark split for systematic evaluation. The dataset is constructed via a semi-automated annotation pipeline that reduces manual labeling to only 10% through high-confidence LLM-based pre-annotation and human verification, while ensuring statistical alignment with human-only annotation. We then benchmark a broad range of models and uncover a counterintuitive finding: Small Language Models (SLMs) often surpass larger models in robustness and generalization on this task. Motivated by this finding, we propose a novel Chain-of-Thought (CoT) fine-tuning strategy using a Dynamic Weighted Loss (DWL) that progressively emphasizes the model's final decision and significantly improves faithfulness. Our fine-tuned 4B model (Qwen3-4B) achieves state-of-the-art performance on the benchmark. It improves its balanced accuracy by 10% over its baseline and achieves better performance than GPT-4o and DeepSeek-R1 on our benchmark, while successfully retaining cross-lingual capabilities.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.CY"
+    ],
+    "published": "2025-08-15T07:40:41+00:00",
+    "authors": [
+      "Axel Delaval",
+      "Shujian Yang",
+      "Haicheng Wang",
+      "Han Qiu",
+      "Jialiang Lu"
+    ],
+    "url": "http://arxiv.org/abs/2508.11281v3",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2504.16584v1",
+    "title": "Case Study: Fine-tuning Small Language Models for Accurate and Private CWE Detection in Python Code",
+    "abstract": "Large Language Models (LLMs) have demonstrated significant capabilities in understanding and analyzing code for security vulnerabilities, such as Common Weakness Enumerations (CWEs). However, their reliance on cloud infrastructure and substantial computational requirements pose challenges for analyzing sensitive or proprietary codebases due to privacy concerns and inference costs. This work explores the potential of Small Language Models (SLMs) as a viable alternative for accurate, on-premise vulnerability detection. We investigated whether a 350-million parameter pre-trained code model (codegen-mono) could be effectively fine-tuned to detect the MITRE Top 25 CWEs specifically within Python code. To facilitate this, we developed a targeted dataset of 500 examples using a semi-supervised approach involving LLM-driven synthetic data generation coupled with meticulous human review. Initial tests confirmed that the base codegen-mono model completely failed to identify CWEs in our samples. However, after applying instruction-following fine-tuning, the specialized SLM achieved remarkable performance on our test set, yielding approximately 99% accuracy, 98.08% precision, 100% recall, and a 99.04% F1-score. These results strongly suggest that fine-tuned SLMs can serve as highly accurate and efficient tools for CWE detection, offering a practical and privacy-preserving solution for integrating advanced security analysis directly into development workflows.",
+    "categories": [
+      "cs.CR",
+      "cs.AI"
+    ],
+    "published": "2025-04-23T10:05:27+00:00",
+    "authors": [
+      "Md. Azizul Hakim Bappy",
+      "Hossen A Mustafa",
+      "Prottoy Saha",
+      "Rajinus Salehat"
+    ],
+    "url": "http://arxiv.org/abs/2504.16584v1",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2408.00690v2",
+    "title": "Improving Text Embeddings for Smaller Language Models Using Contrastive Fine-tuning",
+    "abstract": "While Large Language Models show remarkable performance in natural language understanding, their resource-intensive nature makes them less accessible. In contrast, smaller language models such as MiniCPM offer more sustainable scalability, but often underperform without specialized optimization. In this paper, we explore the enhancement of smaller language models through the improvement of their text embeddings. We select three language models, MiniCPM, Phi-2, and Gemma, to conduct contrastive fine-tuning on the NLI dataset. Our results demonstrate that this fine-tuning method enhances the quality of text embeddings for all three models across various benchmarks, with MiniCPM showing the most significant improvements of an average 56.33% performance gain. The contrastive fine-tuning code is publicly available at https://github.com/trapoom555/Language-Model-STS-CFT.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2024-08-01T16:31:35+00:00",
+    "authors": [
+      "Trapoom Ukarapol",
+      "Zhicheng Lee",
+      "Amy Xin"
+    ],
+    "url": "http://arxiv.org/abs/2408.00690v2",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2408.07888v2",
+    "title": "Evaluating Fine-Tuning Efficiency of Human-Inspired Learning Strategies in Medical Question Answering",
+    "abstract": "Fine-tuning Large Language Models (LLMs) incurs considerable training costs, driving the need for data-efficient training with optimised data ordering. Human-inspired strategies offer a solution by organising data based on human learning practices. This study evaluates the fine-tuning efficiency of five human-inspired strategies across four language models, three datasets, and both human- and LLM-labelled data in the context of medical question answering. These strategies achieve the best accuracy gain of 1.81% and an average gain of 1.02% across datasets, with interleaved strategies delivering the best average results. However, the best strategy varies across model-dataset combinations, limiting the generalisability of the effects of any single strategy. Additionally, LLM-defined question difficulty outperforms human-defined labels in curriculum-based learning, showing the potential of model-generated data as a cost-effective alternative for optimising fine-tuning.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2024-08-15T02:22:48+00:00",
+    "authors": [
+      "Yushi Yang",
+      "Andrew M. Bean",
+      "Robert McCraith",
+      "Adam Mahdi"
+    ],
+    "url": "http://arxiv.org/abs/2408.07888v2",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2503.21676v2",
+    "title": "How do language models learn facts? Dynamics, curricula and hallucinations",
+    "abstract": "Large language models accumulate vast knowledge during pre-training, yet the dynamics governing this acquisition remain poorly understood. This work investigates the learning dynamics of language models on a synthetic factual recall task, uncovering three key findings: First, language models learn in three phases, exhibiting a performance plateau before acquiring precise factual knowledge. Mechanistically, this plateau coincides with the formation of attention-based circuits that support recall. Second, the training data distribution significantly impacts learning dynamics, as imbalanced distributions lead to shorter plateaus. Finally, hallucinations emerge simultaneously with knowledge, and integrating new knowledge into the model through fine-tuning is challenging, as it quickly corrupts its existing parametric memories. Our results emphasize the importance of data distribution in knowledge acquisition and suggest novel data scheduling strategies to accelerate neural network training.",
+    "categories": [
+      "cs.CL",
+      "cs.LG"
+    ],
+    "published": "2025-03-27T16:43:45+00:00",
+    "authors": [
+      "Nicolas Zucchet",
+      "Jörg Bornschein",
+      "Stephanie Chan",
+      "Andrew Lampinen",
+      "Razvan Pascanu",
+      "Soham De"
+    ],
+    "url": "http://arxiv.org/abs/2503.21676v2",
+    "label": 0,
+    "source_query": "language model fine-tuning"
+  },
+  {
+    "arxiv_id": "2607.18488v1",
+    "title": "The Open Ant: A Robot Platform for Reinforcement Learning Research",
+    "abstract": "Reinforcement learning (RL) research has demonstrated success in both physical and simulated domains; however, the predominant methodology remains rooted in simulations. The predominance of simulations makes translating research to physical reality uncertain for both algorithms and researchers. We propose a physical platform that is designed to simplify the transition. In this paper, we present the Open Ant: a physical variant of the commonly used Gymnasium Ant environment, along with a simulation. We demonstrate that competent walking policies can be learned from scratch in approximately one hour directly from the physical robot's experience for two substantially different RL algorithms: SARSA($λ$) and Soft Actor-Critic (SAC). Separately, we show policies that were learned in simulation transfer to reality. We also examine how well the platform supports a nimble experimental ecosystem. Specifically, we observe the speed with which new users from diverse backgrounds achieve their first success with the platform, and how easily the platform can be repaired and updated when hardware issues arise. Both the hardware design and software are available as open-source on GitHub for ease of customization. In summary, we advocate for the use of the Open Ant for RL researchers who frequently use simulated environments, so they can more easily include robot experiments in their evaluations.",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "eess.SY"
+    ],
+    "published": "2026-07-20T20:18:29+00:00",
+    "authors": [
+      "Elena Sorina Lupu",
+      "Patrick Spieler",
+      "Khurram Javed",
+      "Kris De Asis",
+      "John D. Martin",
+      "Martha Steenstrup",
+      "Joseph Modayil"
+    ],
+    "url": "http://arxiv.org/abs/2607.18488v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2602.12375v1",
+    "title": "Value Bonuses using Ensemble Errors for Exploration in Reinforcement Learning",
+    "abstract": "Optimistic value estimates provide one mechanism for directed exploration in reinforcement learning (RL). The agent acts greedily with respect to an estimate of the value plus what can be seen as a value bonus. The value bonus can be learned by estimating a value function on reward bonuses, propagating local uncertainties around rewards. However, this approach only increases the value bonus for an action retroactively, after seeing a higher reward bonus from that state and action. Such an approach does not encourage the agent to visit a state and action for the first time. In this work, we introduce an algorithm for exploration called Value Bonuses with Ensemble errors (VBE), that maintains an ensemble of random action-value functions (RQFs). VBE uses the errors in the estimation of these RQFs to design value bonuses that provide first-visit optimism and deep exploration. The key idea is to design the rewards for these RQFs in such a way that the value bonus can decrease to zero. We show that VBE outperforms Bootstrap DQN and two reward bonus approaches (RND and ACB) on several classic environments used to test exploration and provide demonstrative experiments that it can scale easily to more complex environments like Atari.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-12T20:12:17+00:00",
+    "authors": [
+      "Abdul Wahab",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2602.12375v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2507.02910v1",
+    "title": "Causal-Paced Deep Reinforcement Learning",
+    "abstract": "Designing effective task sequences is crucial for curriculum reinforcement learning (CRL), where agents must gradually acquire skills by training on intermediate tasks. A key challenge in CRL is to identify tasks that promote exploration, yet are similar enough to support effective transfer. While recent approach suggests comparing tasks via their Structural Causal Models (SCMs), the method requires access to ground-truth causal structures, an unrealistic assumption in most RL settings. In this work, we propose Causal-Paced Deep Reinforcement Learning (CP-DRL), a curriculum learning framework aware of SCM differences between tasks based on interaction data approximation. This signal captures task novelty, which we combine with the agent's learnability, measured by reward gain, to form a unified objective. Empirically, CP-DRL outperforms existing curriculum methods on the Point Mass benchmark, achieving faster convergence and higher returns. CP-DRL demonstrates reduced variance with comparable final returns in the Bipedal Walker-Trivial setting, and achieves the highest average performance in the Infeasible variant. These results indicate that leveraging causal relationships between tasks can improve the structure-awareness and sample efficiency of curriculum reinforcement learning. We provide the full implementation of CP-DRL to facilitate the reproduction of our main results at https://github.com/Cho-Geonwoo/CP-DRL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2025-06-24T20:15:01+00:00",
+    "authors": [
+      "Geonwoo Cho",
+      "Jaegyun Im",
+      "Doyoon Kim",
+      "Sundong Kim"
+    ],
+    "url": "http://arxiv.org/abs/2507.02910v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1807.05037v1",
+    "title": "Exploring Hierarchy-Aware Inverse Reinforcement Learning",
+    "abstract": "We introduce a new generative model for human planning under the Bayesian Inverse Reinforcement Learning (BIRL) framework which takes into account the fact that humans often plan using hierarchical strategies. We describe the Bayesian Inverse Hierarchical RL (BIHRL) algorithm for inferring the values of hierarchical planners, and use an illustrative toy model to show that BIHRL retains accuracy where standard BIRL fails. Furthermore, BIHRL is able to accurately predict the goals of `Wikispeedia' game players, with inclusion of hierarchical structure in the model resulting in a large boost in accuracy. We show that BIHRL is able to significantly outperform BIRL even when we only have a weak prior on the hierarchical structure of the plans available to the agent, and discuss the significant challenges that remain for scaling up this framework to more realistic settings.",
+    "categories": [
+      "cs.AI",
+      "cs.HC"
+    ],
+    "published": "2018-07-13T12:33:07+00:00",
+    "authors": [
+      "Chris Cundy",
+      "Daniel Filan"
+    ],
+    "url": "http://arxiv.org/abs/1807.05037v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2301.08028v4",
+    "title": "A Tutorial on Meta-Reinforcement Learning",
+    "abstract": "While deep reinforcement learning (RL) has fueled multiple high-profile successes in machine learning, it is held back from more widespread adoption by its often poor data efficiency and the limited generality of the policies it produces. A promising approach for alleviating these limitations is to cast the development of better RL algorithms as a machine learning problem itself in a process called meta-RL. Meta-RL is most commonly studied in a problem setting where, given a distribution of tasks, the goal is to learn a policy that is capable of adapting to any new task from the task distribution with as little data as possible. In this survey, we describe the meta-RL problem setting in detail as well as its major variations. We discuss how, at a high level, meta-RL research can be clustered based on the presence of a task distribution and the learning budget available for each individual task. Using these clusters, we then survey meta-RL algorithms and applications. We conclude by presenting the open problems on the path to making meta-RL part of the standard toolbox for a deep RL practitioner.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2023-01-19T12:01:41+00:00",
+    "authors": [
+      "Jacob Beck",
+      "Risto Vuorio",
+      "Evan Zheran Liu",
+      "Zheng Xiong",
+      "Luisa Zintgraf",
+      "Chelsea Finn",
+      "Shimon Whiteson"
+    ],
+    "url": "http://arxiv.org/abs/2301.08028v4",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1809.09501v1",
+    "title": "Anderson Acceleration for Reinforcement Learning",
+    "abstract": "Anderson acceleration is an old and simple method for accelerating the computation of a fixed point. However, as far as we know and quite surprisingly, it has never been applied to dynamic programming or reinforcement learning. In this paper, we explain briefly what Anderson acceleration is and how it can be applied to value iteration, this being supported by preliminary experiments showing a significant speed up of convergence, that we critically discuss. We also discuss how this idea could be applied more generally to (deep) reinforcement learning.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2018-09-25T14:04:25+00:00",
+    "authors": [
+      "Matthieu Geist",
+      "Bruno Scherrer"
+    ],
+    "url": "http://arxiv.org/abs/1809.09501v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "2406.04896v2",
+    "title": "Stabilizing Extreme Q-learning by Maclaurin Expansion",
+    "abstract": "In offline reinforcement learning, in-sample learning methods have been widely used to prevent performance degradation caused by evaluating out-of-distribution actions from the dataset. Extreme Q-learning (XQL) employs a loss function based on the assumption that Bellman error follows a Gumbel distribution, enabling it to model the soft optimal value function in an in-sample manner. It has demonstrated strong performance in both offline and online reinforcement learning settings. However, issues remain, such as the instability caused by the exponential term in the loss function and the risk of the error distribution deviating from the Gumbel distribution. Therefore, we propose Maclaurin Expanded Extreme Q-learning to enhance stability. In this method, applying Maclaurin expansion to the loss function in XQL enhances stability against large errors. This approach involves adjusting the modeled value function between the value function under the behavior policy and the soft optimal value function, thus achieving a trade-off between stability and optimality depending on the order of expansion. It also enables adjustment of the error distribution assumption from a normal distribution to a Gumbel distribution. Our method significantly stabilizes learning in online RL tasks from DM Control, where XQL was previously unstable. Additionally, it improves performance in several offline RL tasks from D4RL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2024-06-07T12:43:17+00:00",
+    "authors": [
+      "Motoki Omura",
+      "Takayuki Osa",
+      "Yusuke Mukuta",
+      "Tatsuya Harada"
+    ],
+    "url": "http://arxiv.org/abs/2406.04896v2",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1909.11939v6",
+    "title": "MERL: Multi-Head Reinforcement Learning",
+    "abstract": "A common challenge in reinforcement learning is how to convert the agent's interactions with an environment into fast and robust learning. For instance, earlier work makes use of domain knowledge to improve existing reinforcement learning algorithms in complex tasks. While promising, previously acquired knowledge is often costly and challenging to scale up. Instead, we decide to consider problem knowledge with signals from quantities relevant to solve any task, e.g., self-performance assessment and accurate expectations. $\\mathcal{V}^{ex}$ is such a quantity. It is the fraction of variance explained by the value function $V$ and measures the discrepancy between $V$ and the returns. Taking advantage of $\\mathcal{V}^{ex}$, we propose MERL, a general framework for structuring reinforcement learning by injecting problem knowledge into policy gradient updates. As a result, the agent is not only optimized for a reward but learns using problem-focused quantities provided by MERL, applicable out-of-the-box to any task. In this paper: (a) We introduce and define MERL, the multi-head reinforcement learning framework we use throughout this work. (b) We conduct experiments across a variety of standard benchmark environments, including 9 continuous control tasks, where results show improved performance. (c) We demonstrate that MERL also improves transfer learning on a set of challenging pixel-based tasks. (d) We ponder how MERL tackles the problem of reward sparsity and better conditions the feature space of reinforcement learning agents.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-09-26T06:57:51+00:00",
+    "authors": [
+      "Yannis Flet-Berliac",
+      "Philippe Preux"
+    ],
+    "url": "http://arxiv.org/abs/1909.11939v6",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1904.09489v1",
+    "title": "Compression and Localization in Reinforcement Learning for ATARI Games",
+    "abstract": "Deep neural networks have become commonplace in the domain of reinforcement learning, but are often expensive in terms of the number of parameters needed. While compressing deep neural networks has of late assumed great importance to overcome this drawback, little work has been done to address this problem in the context of reinforcement learning agents. This work aims at making first steps towards model compression in an RL agent. In particular, we compress networks to drastically reduce the number of parameters in them (to sizes less than 3% of their original size), further facilitated by applying a global max pool after the final convolution layer, and propose using Actor-Mimic in the context of compression. Finally, we show that this global max-pool allows for weakly supervised object localization, improving the ability to identify the agent's points of focus.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-04-20T19:42:50+00:00",
+    "authors": [
+      "Joel Ruben Antony Moniz",
+      "Barun Patra",
+      "Sarthak Garg"
+    ],
+    "url": "http://arxiv.org/abs/1904.09489v1",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  },
+  {
+    "arxiv_id": "1911.04947v2",
+    "title": "Accelerating Training in Pommerman with Imitation and Reinforcement Learning",
+    "abstract": "The Pommerman simulation was recently developed to mimic the classic Japanese game Bomberman, and focuses on competitive gameplay in a multi-agent setting. We focus on the 2$\\times$2 team version of Pommerman, developed for a competition at NeurIPS 2018. Our methodology involves training an agent initially through imitation learning on a noisy expert policy, followed by a proximal-policy optimization (PPO) reinforcement learning algorithm. The basic PPO approach is modified for stable transition from the imitation learning phase through reward shaping, action filters based on heuristics, and curriculum learning. The proposed methodology is able to beat heuristic and pure reinforcement learning baselines with a combined 100,000 training games, significantly faster than other non-tree-search methods in literature. We present results against multiple agents provided by the developers of the simulation, including some that we have enhanced. We include a sensitivity analysis over different parameters, and highlight undesirable effects of some strategies that initially appear promising. Since Pommerman is a complex multi-agent competitive environment, the strategies developed here provide insights into several real-world problems with characteristics such as partial observability, decentralized execution (without communication), and very sparse and delayed rewards.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2019-11-12T15:50:18+00:00",
+    "authors": [
+      "Hardik Meisheri",
+      "Omkar Shelke",
+      "Richa Verma",
+      "Harshad Khadilkar"
+    ],
+    "url": "http://arxiv.org/abs/1911.04947v2",
+    "label": 0,
+    "source_query": "reinforcement learning"
+  }
+]

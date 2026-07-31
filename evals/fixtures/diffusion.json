@@ -1,0 +1,996 @@
+[
+  {
+    "arxiv_id": "2402.14810v1",
+    "title": "GeneOH Diffusion: Towards Generalizable Hand-Object Interaction Denoising via Denoising Diffusion",
+    "abstract": "In this work, we tackle the challenging problem of denoising hand-object interactions (HOI). Given an erroneous interaction sequence, the objective is to refine the incorrect hand trajectory to remove interaction artifacts for a perceptually realistic sequence. This challenge involves intricate interaction noise, including unnatural hand poses and incorrect hand-object relations, alongside the necessity for robust generalization to new interactions and diverse noise patterns. We tackle those challenges through a novel approach, GeneOH Diffusion, incorporating two key designs: an innovative contact-centric HOI representation named GeneOH and a new domain-generalizable denoising scheme. The contact-centric representation GeneOH informatively parameterizes the HOI process, facilitating enhanced generalization across various HOI scenarios. The new denoising scheme consists of a canonical denoising model trained to project noisy data samples from a whitened noise space to a clean data manifold and a \"denoising via diffusion\" strategy which can handle input trajectories with various noise patterns by first diffusing them to align with the whitened noise space and cleaning via the canonical denoiser. Extensive experiments on four benchmarks with significant domain variations demonstrate the superior effectiveness of our method. GeneOH Diffusion also shows promise for various downstream applications. Project website: https://meowuu7.github.io/GeneOH-Diffusion/.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.GR",
+      "cs.LG"
+    ],
+    "published": "2024-02-22T18:59:21+00:00",
+    "authors": [
+      "Xueyi Liu",
+      "Li Yi"
+    ],
+    "url": "http://arxiv.org/abs/2402.14810v1",
+    "label": 1,
+    "source_query": "denoising diffusion probabilistic models"
+  },
+  {
+    "arxiv_id": "2404.00491v3",
+    "title": "Denoising Monte Carlo Renders with Diffusion Models",
+    "abstract": "Physically-based renderings contain Monte Carlo noise, with variance that increases as the number of rays per pixel decreases. This noise, while zero-mean for good modern renderers, can have heavy tails (most notably, for scenes containing specular or refractive objects). Learned methods for restoring low fidelity renders are highly developed, because suppressing render noise means one can save compute and use fast renders with few rays per pixel. We demonstrate that a diffusion model can denoise low fidelity renders successfully. Furthermore, our method can be conditioned on a variety of natural render information, and this conditioning helps performance. Quantitative experiments show that our method is competitive with SOTA across a range of sampling rates. Qualitative examination of the reconstructions suggests that the image prior applied by a diffusion method strongly favors reconstructions that are like real images -- so have straight shadow boundaries, curved specularities and no fireflies.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-03-30T23:19:40+00:00",
+    "authors": [
+      "Vaibhav Vavilala",
+      "Rahul Vasanth",
+      "David Forsyth"
+    ],
+    "url": "http://arxiv.org/abs/2404.00491v3",
+    "label": 1,
+    "source_query": "denoising diffusion probabilistic models"
+  },
+  {
+    "arxiv_id": "2201.09865v4",
+    "title": "RePaint: Inpainting using Denoising Diffusion Probabilistic Models",
+    "abstract": "Free-form inpainting is the task of adding new content to an image in the regions specified by an arbitrary binary mask. Most existing approaches train for a certain distribution of masks, which limits their generalization capabilities to unseen mask types. Furthermore, training with pixel-wise and perceptual losses often leads to simple textural extensions towards the missing areas instead of semantically meaningful generation. In this work, we propose RePaint: A Denoising Diffusion Probabilistic Model (DDPM) based inpainting approach that is applicable to even extreme masks. We employ a pretrained unconditional DDPM as the generative prior. To condition the generation process, we only alter the reverse diffusion iterations by sampling the unmasked regions using the given image information. Since this technique does not modify or condition the original DDPM network itself, the model produces high-quality and diverse output images for any inpainting form. We validate our method for both faces and general-purpose image inpainting using standard and extreme masks.   RePaint outperforms state-of-the-art Autoregressive, and GAN approaches for at least five out of six mask distributions.   Github Repository: git.io/RePaint",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2022-01-24T18:40:15+00:00",
+    "authors": [
+      "Andreas Lugmayr",
+      "Martin Danelljan",
+      "Andres Romero",
+      "Fisher Yu",
+      "Radu Timofte",
+      "Luc Van Gool"
+    ],
+    "url": "http://arxiv.org/abs/2201.09865v4",
+    "label": 1,
+    "source_query": "denoising diffusion probabilistic models"
+  },
+  {
+    "arxiv_id": "2312.02246v4",
+    "title": "Conditional Variational Diffusion Models",
+    "abstract": "Inverse problems aim to determine parameters from observations, a crucial task in engineering and science. Lately, generative models, especially diffusion models, have gained popularity in this area for their ability to produce realistic solutions and their good mathematical properties. Despite their success, an important drawback of diffusion models is their sensitivity to the choice of variance schedule, which controls the dynamics of the diffusion process. Fine-tuning this schedule for specific applications is crucial but time-costly and does not guarantee an optimal result. We propose a novel approach for learning the schedule as part of the training process. Our method supports probabilistic conditioning on data, provides high-quality solutions, and is flexible, proving able to adapt to different applications with minimum overhead. This approach is tested in two unrelated inverse problems: super-resolution microscopy and quantitative phase imaging, yielding comparable or superior results to previous methods and fine-tuned diffusion models. We conclude that fine-tuning the schedule by experimentation should be avoided because it can be learned during training in a stable way that yields better results.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2023-12-04T14:45:56+00:00",
+    "authors": [
+      "Gabriel della Maggiora",
+      "Luis Alberto Croquevielle",
+      "Nikita Deshpande",
+      "Harry Horsley",
+      "Thomas Heinis",
+      "Artur Yakimovich"
+    ],
+    "url": "http://arxiv.org/abs/2312.02246v4",
+    "label": 1,
+    "source_query": "denoising diffusion probabilistic models"
+  },
+  {
+    "arxiv_id": "2603.29727v2",
+    "title": "Latent-Y: A Lab-Validated Autonomous Agent for De Novo Drug Design",
+    "abstract": "Drug discovery relies on iterative expert workflows that are slow to parallelize and difficult to scale. Here we introduce Latent-Y, an AI agent that autonomously executes complete antibody design campaigns from text prompts, covering literature review, target analysis, epitope identification, candidate design, computational validation, and selection of lab-ready sequences. Latent-Y is integrated into the Latent Labs Platform, where it operates in the same environment as drug-discovery experts with access to bioinformatics tools, biological databases, and scientific literature. The agent can run fully autonomously end-to-end, or collaboratively, where researchers review progress, provide feedback, and direct subsequent steps. Candidate antibodies are generated using Latent-X2, our frontier generative model for drug-like antibody design. We demonstrate the agent's capability across three distinct campaign types: epitope discovery guided by therapeutic specifications, cross-species binder design, and autonomous design from a scientific publication targeting human transferrin receptor for blood-brain barrier crossing. Across nine targets, Latent-Y produced lab-confirmed nanobody binders against six, achieving a 67% target-level success rate with binding affinities reaching the single-digit nanomolar range, without human filtering or intervention. In user studies, experts working with Latent-Y completed design campaigns 56 times faster than independent expert time estimates, compressing weeks of work into hours. Because Latent-X2 is a general-purpose atomic-level model for biologics design, the same agent architecture naturally extends to macrocyclic peptide and mini-binder design campaigns, broadening autonomous discovery across therapeutic modalities. Latent-Y is available to selected partners at https://platform.latentlabs.com.",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2026-03-31T13:26:33+00:00",
+    "authors": [
+      "Latent Labs Team",
+      "Sebastian M. Schmon",
+      "Daniella Pretorius",
+      "Simon Mathis",
+      "Rebecca Bartke-Croughan",
+      "Aishaini Puvanendran",
+      "James Vuckovic",
+      "Henry Kenlay",
+      "Mária Vlachynská",
+      "Alex Bridgland",
+      "Ivan Grishin",
+      "Sven Over",
+      "David Li",
+      "Bridget Li",
+      "Jonathan Crabbé",
+      "Agrin Hilmkil",
+      "Alexander W. R. Nelson",
+      "David Yuan",
+      "Annette Obika",
+      "Simon A. A. Kohl"
+    ],
+    "url": "http://arxiv.org/abs/2603.29727v2",
+    "label": 1,
+    "source_query": "latent diffusion text to image"
+  },
+  {
+    "arxiv_id": "2302.08510v2",
+    "title": "Text-driven Visual Synthesis with Latent Diffusion Prior",
+    "abstract": "There has been tremendous progress in large-scale text-to-image synthesis driven by diffusion models enabling versatile downstream applications such as 3D object synthesis from texts, image editing, and customized generation. We present a generic approach using latent diffusion models as powerful image priors for various visual synthesis tasks. Existing methods that utilize such priors fail to use these models' full capabilities. To improve this, our core ideas are 1) a feature matching loss between features from different layers of the decoder to provide detailed guidance and 2) a KL divergence loss to regularize the predicted latent features and stabilize the training. We demonstrate the efficacy of our approach on three different applications, text-to-3D, StyleGAN adaptation, and layered image editing. Extensive results show our method compares favorably against baselines.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-16T18:59:58+00:00",
+    "authors": [
+      "Ting-Hsuan Liao",
+      "Songwei Ge",
+      "Yiran Xu",
+      "Yao-Chih Lee",
+      "Badour AlBahar",
+      "Jia-Bin Huang"
+    ],
+    "url": "http://arxiv.org/abs/2302.08510v2",
+    "label": 1,
+    "source_query": "latent diffusion text to image"
+  },
+  {
+    "arxiv_id": "2507.19375v1",
+    "title": "Latent-X: An Atom-level Frontier Model for De Novo Protein Binder Design",
+    "abstract": "Traditional drug discovery relies on rounds of screening millions of candidate molecules with low success rates, making drug discovery time and resource intensive. To overcome this screening bottleneck, we introduce Latent-X, an all-atom protein design model that enables a new paradigm of precision AI design. Given a target protein epitope, Latent-X jointly generates the all atom structure and sequence of the protein binder and target, directly modelling the non-covalent interactions essential for specific binding. We demonstrate its efficacy across two therapeutically relevant modalities through extensive wet lab experiments, testing as few as 30-100 designs per target. For macrocyclic peptides, Latent-X achieves experimental hit rates exceeding 90% on all evaluated benchmark targets. For mini-binders, it consistently produces potent candidates against all evaluated benchmark targets, with binding affinities reaching the low nanomolar and picomolar range - comparable to those of approved therapeutics - whilst also being highly specific in mammalian display. In direct comparisons with the state-of-the-art models AlphaProteo, RFdiffusion and RFpeptides under identical conditions demonstrates, Latent-X generates binders with higher hit rates and better binding affinities, and uniquely creates structurally diverse binders, including complex beta-sheet folds. Its end-to-end process is an order of magnitude faster than existing multi-step computational pipelines. By drastically improving the efficiency and success rate of de novo design, Latent-X represents a significant advance towards push-button biologics discovery and a valuable tool for protein engineers. Latent-X is available at https://platform.latentlabs.com, enabling users to reliably generate de novo binders without AI infrastructure or coding.",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2025-07-25T15:25:22+00:00",
+    "authors": [
+      "Latent Labs Team",
+      "Alex Bridgland",
+      "Jonathan Crabbé",
+      "Henry Kenlay",
+      "Daniella Pretorius",
+      "Sebastian M. Schmon",
+      "Agrin Hilmkil",
+      "Rebecca Bartke-Croughan",
+      "Robin Rombach",
+      "Michael Flashman",
+      "Tomas Matteson",
+      "Simon Mathis",
+      "Alexander W. R. Nelson",
+      "David Yuan",
+      "Annette Obika",
+      "Simon A. A. Kohl"
+    ],
+    "url": "http://arxiv.org/abs/2507.19375v1",
+    "label": 1,
+    "source_query": "latent diffusion text to image"
+  },
+  {
+    "arxiv_id": "2303.07909v3",
+    "title": "Text-to-image Diffusion Models in Generative AI: A Survey",
+    "abstract": "This survey reviews the progress of diffusion models in generating images from text, ~\\textit{i.e.} text-to-image diffusion models. As a self-contained work, this survey starts with a brief introduction of how diffusion models work for image synthesis, followed by the background for text-conditioned image synthesis. Based on that, we present an organized review of pioneering methods and their improvements on text-to-image generation. We further summarize applications beyond image generation, such as text-guided generation for various modalities like videos, and text-guided image editing. Beyond the progress made so far, we discuss existing challenges and promising future directions.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2023-03-14T13:49:54+00:00",
+    "authors": [
+      "Chenshuang Zhang",
+      "Chaoning Zhang",
+      "Mengchun Zhang",
+      "In So Kweon",
+      "Junmo Kim"
+    ],
+    "url": "http://arxiv.org/abs/2303.07909v3",
+    "label": 1,
+    "source_query": "latent diffusion text to image"
+  },
+  {
+    "arxiv_id": "2311.09952v1",
+    "title": "Score-based generative models learn manifold-like structures with constrained mixing",
+    "abstract": "How do score-based generative models (SBMs) learn the data distribution supported on a low-dimensional manifold? We investigate the score model of a trained SBM through its linear approximations and subspaces spanned by local feature vectors. During diffusion as the noise decreases, the local dimensionality increases and becomes more varied between different sample sequences. Importantly, we find that the learned vector field mixes samples by a non-conservative field within the manifold, although it denoises with normal projections as if there is an energy function in off-manifold directions. At each noise level, the subspace spanned by the local features overlap with an effective density function. These observations suggest that SBMs can flexibly mix samples with the learned score field while carefully maintaining a manifold-like structure of the data distribution.",
+    "categories": [
+      "stat.ML",
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2023-11-16T15:15:15+00:00",
+    "authors": [
+      "Li Kevin Wenliang",
+      "Ben Moran"
+    ],
+    "url": "http://arxiv.org/abs/2311.09952v1",
+    "label": 1,
+    "source_query": "score-based generative models"
+  },
+  {
+    "arxiv_id": "2210.12254v2",
+    "title": "Score-based Denoising Diffusion with Non-Isotropic Gaussian Noise Models",
+    "abstract": "Generative models based on denoising diffusion techniques have led to an unprecedented increase in the quality and diversity of imagery that is now possible to create with neural generative models. However, most contemporary state-of-the-art methods are derived from a standard isotropic Gaussian formulation. In this work we examine the situation where non-isotropic Gaussian distributions are used. We present the key mathematical derivations for creating denoising diffusion models using an underlying non-isotropic Gaussian noise model. We also provide initial experiments with the CIFAR-10 dataset to help verify empirically that this more general modeling approach can also yield high-quality samples.",
+    "categories": [
+      "cs.LG",
+      "cs.CV"
+    ],
+    "published": "2022-10-21T21:16:46+00:00",
+    "authors": [
+      "Vikram Voleti",
+      "Christopher Pal",
+      "Adam Oberman"
+    ],
+    "url": "http://arxiv.org/abs/2210.12254v2",
+    "label": 1,
+    "source_query": "score-based generative models"
+  },
+  {
+    "arxiv_id": "2306.15324v1",
+    "title": "Anomaly Detection in Networks via Score-Based Generative Models",
+    "abstract": "Node outlier detection in attributed graphs is a challenging problem for which there is no method that would work well across different datasets. Motivated by the state-of-the-art results of score-based models in graph generative modeling, we propose to incorporate them into the aforementioned problem. Our method achieves competitive results on small-scale graphs. We provide an empirical analysis of the Dirichlet energy, and show that generative models might struggle to accurately reconstruct it.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2023-06-27T09:28:29+00:00",
+    "authors": [
+      "Dmitrii Gavrilev",
+      "Evgeny Burnaev"
+    ],
+    "url": "http://arxiv.org/abs/2306.15324v1",
+    "label": 1,
+    "source_query": "score-based generative models"
+  },
+  {
+    "arxiv_id": "2212.03325v1",
+    "title": "Proposal of a Score Based Approach to Sampling Using Monte Carlo Estimation of Score and Oracle Access to Target Density",
+    "abstract": "Score based approaches to sampling have shown much success as a generative algorithm to produce new samples from a target density given a pool of initial samples. In this work, we consider if we have no initial samples from the target density, but rather $0^{th}$ and $1^{st}$ order oracle access to the log likelihood. Such problems may arise in Bayesian posterior sampling, or in approximate minimization of non-convex functions. Using this knowledge alone, we propose a Monte Carlo method to estimate the score empirically as a particular expectation of a random variable. Using this estimator, we can then run a discrete version of the backward flow SDE to produce samples from the target density. This approach has the benefit of not relying on a pool of initial samples from the target density, and it does not rely on a neural network or other black box model to estimate the score.",
+    "categories": [
+      "stat.ML",
+      "cs.LG",
+      "stat.ME"
+    ],
+    "published": "2022-12-06T20:56:39+00:00",
+    "authors": [
+      "Curtis McDonald",
+      "Andrew Barron"
+    ],
+    "url": "http://arxiv.org/abs/2212.03325v1",
+    "label": 1,
+    "source_query": "score-based generative models"
+  },
+  {
+    "arxiv_id": "2306.05414v3",
+    "title": "Improving Tuning-Free Real Image Editing with Proximal Guidance",
+    "abstract": "DDIM inversion has revealed the remarkable potential of real image editing within diffusion-based methods. However, the accuracy of DDIM reconstruction degrades as larger classifier-free guidance (CFG) scales being used for enhanced editing. Null-text inversion (NTI) optimizes null embeddings to align the reconstruction and inversion trajectories with larger CFG scales, enabling real image editing with cross-attention control. Negative-prompt inversion (NPI) further offers a training-free closed-form solution of NTI. However, it may introduce artifacts and is still constrained by DDIM reconstruction quality. To overcome these limitations, we propose proximal guidance and incorporate it to NPI with cross-attention control. We enhance NPI with a regularization term and reconstruction guidance, which reduces artifacts while capitalizing on its training-free nature. Additionally, we extend the concepts to incorporate mutual self-attention control, enabling geometry and layout alterations in the editing process. Our method provides an efficient and straightforward approach, effectively addressing real image editing tasks with minimal computational overhead.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-06-08T17:57:18+00:00",
+    "authors": [
+      "Ligong Han",
+      "Song Wen",
+      "Qi Chen",
+      "Zhixing Zhang",
+      "Kunpeng Song",
+      "Mengwei Ren",
+      "Ruijiang Gao",
+      "Anastasis Stathopoulos",
+      "Xiaoxiao He",
+      "Yuxiao Chen",
+      "Di Liu",
+      "Qilong Zhangli",
+      "Jindong Jiang",
+      "Zhaoyang Xia",
+      "Akash Srivastava",
+      "Dimitris Metaxas"
+    ],
+    "url": "http://arxiv.org/abs/2306.05414v3",
+    "label": 1,
+    "source_query": "classifier-free guidance"
+  },
+  {
+    "arxiv_id": "2506.14399v5",
+    "title": "Factored Classifier-Free Guidance",
+    "abstract": "Counterfactual generation aims to simulate realistic hypothetical outcomes under causal interventions. Diffusion models have emerged as a powerful tool for this task, combining DDIM inversion with conditional generation and classifier-free guidance (CFG). In this work, we identify a key limitation of CFG for counterfactual generation: it prescribes a global guidance scale for all attributes, leading to significant spurious changes in inferred counterfactuals. To mitigate this, we propose Factored Classifier-Free Guidance (FCFG), a flexible and model-agnostic guidance technique that enables attribute-wise control following a causal graph. FCFG complements recent advances in classifier-free guidance and can be seamlessly extended to advanced guidance schemes such as CFG++ and APG. Our experiments demonstrate that FCFG significantly improves the axiomatic soundness of inferred counterfactuals across both natural and medical image datasets, mitigating spurious amplification effects, and enhancing counterfactual reversibility.",
+    "categories": [
+      "cs.CV",
+      "cs.AI"
+    ],
+    "published": "2025-06-17T10:56:09+00:00",
+    "authors": [
+      "Tian Xia",
+      "Fabio De Sousa Ribeiro",
+      "Rajat R Rasal",
+      "Avinash Kori",
+      "Raghav Mehta",
+      "Ben Glocker"
+    ],
+    "url": "http://arxiv.org/abs/2506.14399v5",
+    "label": 1,
+    "source_query": "classifier-free guidance"
+  },
+  {
+    "arxiv_id": "2207.12598v1",
+    "title": "Classifier-Free Diffusion Guidance",
+    "abstract": "Classifier guidance is a recently introduced method to trade off mode coverage and sample fidelity in conditional diffusion models post training, in the same spirit as low temperature sampling or truncation in other types of generative models. Classifier guidance combines the score estimate of a diffusion model with the gradient of an image classifier and thereby requires training an image classifier separate from the diffusion model. It also raises the question of whether guidance can be performed without a classifier. We show that guidance can be indeed performed by a pure generative model without such a classifier: in what we call classifier-free guidance, we jointly train a conditional and an unconditional diffusion model, and we combine the resulting conditional and unconditional score estimates to attain a trade-off between sample quality and diversity similar to that obtained using classifier guidance.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2022-07-26T01:42:07+00:00",
+    "authors": [
+      "Jonathan Ho",
+      "Tim Salimans"
+    ],
+    "url": "http://arxiv.org/abs/2207.12598v1",
+    "label": 1,
+    "source_query": "classifier-free guidance"
+  },
+  {
+    "arxiv_id": "2503.10638v3",
+    "title": "Studying Classifier(-Free) Guidance From a Classifier-Centric Perspective",
+    "abstract": "Classifier-free guidance has become a staple for conditional generation with denoising diffusion models. However, a comprehensive understanding of classifier-free guidance is still missing. In this work, we carry out an empirical study to provide a fresh perspective on classifier-free guidance. Concretely, instead of solely focusing on classifier-free guidance, we trace back to the root, i.e., classifier guidance, pinpoint the key assumption for the derivation, and conduct a systematic study to understand the role of the classifier. On 1D data, we find that both classifier guidance and classifier-free guidance achieve conditional generation by pushing the denoising diffusion trajectories away from decision boundaries, i.e., areas where conditional information is usually entangled and is hard to learn. To validate this classifier-centric perspective on high-dimensional data, we assess whether a flow-matching postprocessing step that is designed to narrow the gap between a pre-trained diffusion model's learned distribution and the real data distribution, especially near decision boundaries, can improve the performance. Experiments on various datasets verify our classifier-centric understanding.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2025-03-13T17:59:59+00:00",
+    "authors": [
+      "Xiaoming Zhao",
+      "Alexander G. Schwing"
+    ],
+    "url": "http://arxiv.org/abs/2503.10638v3",
+    "label": 1,
+    "source_query": "classifier-free guidance"
+  },
+  {
+    "arxiv_id": "2105.13695v1",
+    "title": "AutoSampling: Search for Effective Data Sampling Schedules",
+    "abstract": "Data sampling acts as a pivotal role in training deep learning models. However, an effective sampling schedule is difficult to learn due to the inherently high dimension of parameters in learning the sampling schedule. In this paper, we propose an AutoSampling method to automatically learn sampling schedules for model training, which consists of the multi-exploitation step aiming for optimal local sampling schedules and the exploration step for the ideal sampling distribution. More specifically, we achieve sampling schedule search with shortened exploitation cycle to provide enough supervision. In addition, we periodically estimate the sampling distribution from the learned sampling schedules and perturb it to search in the distribution space. The combination of two searches allows us to learn a robust sampling schedule. We apply our AutoSampling method to a variety of image classification tasks illustrating the effectiveness of the proposed method.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-05-28T09:39:41+00:00",
+    "authors": [
+      "Ming Sun",
+      "Haoxuan Dou",
+      "Baopu Li",
+      "Lei Cui",
+      "Junjie Yan",
+      "Wanli Ouyang"
+    ],
+    "url": "http://arxiv.org/abs/2105.13695v1",
+    "label": 1,
+    "source_query": "diffusion model sampling schedulers"
+  },
+  {
+    "arxiv_id": "2401.05779v4",
+    "title": "Erasing Undesirable Influence in Diffusion Models",
+    "abstract": "Diffusion models are highly effective at generating high-quality images but pose risks, such as the unintentional generation of NSFW (not safe for work) content. Although various techniques have been proposed to mitigate unwanted influences in diffusion models while preserving overall performance, achieving a balance between these goals remains challenging. In this work, we introduce EraseDiff, an algorithm designed to preserve the utility of the diffusion model on retained data while removing the unwanted information associated with the data to be forgotten. Our approach formulates this task as a constrained optimization problem using the value function, resulting in a natural first-order algorithm for solving the optimization problem. By altering the generative process to deviate away from the ground-truth denoising trajectory, we update parameters for preservation while controlling constraint reduction to ensure effective erasure, striking an optimal trade-off. Extensive experiments and thorough comparisons with state-of-the-art algorithms demonstrate that EraseDiff effectively preserves the model's utility, efficacy, and efficiency.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-01-11T09:30:36+00:00",
+    "authors": [
+      "Jing Wu",
+      "Trung Le",
+      "Munawar Hayat",
+      "Mehrtash Harandi"
+    ],
+    "url": "http://arxiv.org/abs/2401.05779v4",
+    "label": 1,
+    "source_query": "diffusion model sampling schedulers"
+  },
+  {
+    "arxiv_id": "1109.2262v1",
+    "title": "Diffusion in LanCoIn3n+2 phases studied by perturbed angular correlation",
+    "abstract": "Jump frequencies of 111In/Cd tracer atoms were measured for a series of layered phases LanCoIn3n+2 using the technique of perturbed angular correlation of gamma rays (PAC). The frequencies were determined by analysis of nuclear quadrupole relaxation produced by fluctuating electric field gradients. Samples were synthesized having nominal values n= 1, 2, 3, 5 and \\infty, with n=\\infty corresponding to the L12 phase LaIn3. The phases form heuristically from LaIn3 by replacing every (n+1)th (100) mixed plane of La and In atoms with a plane of Co-atoms. For the n=1 phase, LaCoIn5, jump frequencies were too small to detect. Two signals were observed, one for indium atoms next to the Co-planes and the other for more distant indium atoms. No relaxation was observed for atoms next to the Co-planes, indicating that there is no diffusion across the Co-planes. With increasing n, jump rates for the other In-atoms increased toward values observed for LaIn3. Jump frequency activation enthalpies for n= 3 and 5 were observed to be the same as for n=\\infty, suggesting the same diffusion mechanism. However, the jump-frequency prefactors were found to be smaller for small n, which is attributed to reductions in the connectivity of the diffusion sublattice. We conclude that diffusion in the layered phases is remarkably similar to diffusion in LaIn3 once the reduced connectivity is taken into account.",
+    "categories": [
+      "cond-mat.mtrl-sci"
+    ],
+    "published": "2011-09-10T21:29:55+00:00",
+    "authors": [
+      "Randal Newhouse",
+      "Gary S. Collins"
+    ],
+    "url": "http://arxiv.org/abs/1109.2262v1",
+    "label": 1,
+    "source_query": "diffusion model sampling schedulers"
+  },
+  {
+    "arxiv_id": "2511.09180v1",
+    "title": "FSampler: Training Free Acceleration of Diffusion Sampling via Epsilon Extrapolation",
+    "abstract": "FSampler is a training free, sampler agnostic execution layer that accelerates diffusion sampling by reducing the number of function evaluations (NFE). FSampler maintains a short history of denoising signals (epsilon) from recent real model calls and extrapolates the next epsilon using finite difference predictors at second order, third order, or fourth order, falling back to lower order when history is insufficient. On selected steps the predicted epsilon substitutes the model call while keeping each sampler's update rule unchanged. Predicted epsilons are validated for finiteness and magnitude; a learning stabilizer rescales predictions on skipped steps to correct drift, and an optional gradient estimation stabilizer compensates local curvature. Protected windows, periodic anchors, and a cap on consecutive skips bound deviation over the trajectory. Operating at the sampler level, FSampler integrates with Euler/DDIM, DPM++ 2M/2S, LMS/AB2, and RES family exponential multistep methods and drops into standard workflows. FLUX.1 dev, Qwen Image, and Wan 2.2, FSampler reduces time by 8 to 22% and model calls by 15 to 25% at high fidelity (Structural Similarity Index (SSIM) 0.95 to 0.99), without altering sampler formulas. With an aggressive adaptive gate, reductions can reach 45 to 50% fewer model calls at lower fidelity (SSIM 0.73 to 0.74).",
+    "categories": [
+      "cs.LG",
+      "cs.CV"
+    ],
+    "published": "2025-11-12T10:21:25+00:00",
+    "authors": [
+      "Michael A. Vladimir"
+    ],
+    "url": "http://arxiv.org/abs/2511.09180v1",
+    "label": 1,
+    "source_query": "diffusion model sampling schedulers"
+  },
+  {
+    "arxiv_id": "1808.04096v1",
+    "title": "Directed Policy Gradient for Safe Reinforcement Learning with Human Advice",
+    "abstract": "Many currently deployed Reinforcement Learning agents work in an environment shared with humans, be them co-workers, users or clients. It is desirable that these agents adjust to people's preferences, learn faster thanks to their help, and act safely around them. We argue that most current approaches that learn from human feedback are unsafe: rewarding or punishing the agent a-posteriori cannot immediately prevent it from wrong-doing. In this paper, we extend Policy Gradient to make it robust to external directives, that would otherwise break the fundamentally on-policy nature of Policy Gradient. Our technique, Directed Policy Gradient (DPG), allows a teacher or backup policy to override the agent before it acts undesirably, while allowing the agent to leverage human advice or directives to learn faster. Our experiments demonstrate that DPG makes the agent learn much faster than reward-based approaches, while requiring an order of magnitude less advice.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2018-08-13T08:12:22+00:00",
+    "authors": [
+      "Hélène Plisnier",
+      "Denis Steckelmacher",
+      "Tim Brys",
+      "Diederik M. Roijers",
+      "Ann Nowé"
+    ],
+    "url": "http://arxiv.org/abs/1808.04096v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2607.18488v1",
+    "title": "The Open Ant: A Robot Platform for Reinforcement Learning Research",
+    "abstract": "Reinforcement learning (RL) research has demonstrated success in both physical and simulated domains; however, the predominant methodology remains rooted in simulations. The predominance of simulations makes translating research to physical reality uncertain for both algorithms and researchers. We propose a physical platform that is designed to simplify the transition. In this paper, we present the Open Ant: a physical variant of the commonly used Gymnasium Ant environment, along with a simulation. We demonstrate that competent walking policies can be learned from scratch in approximately one hour directly from the physical robot's experience for two substantially different RL algorithms: SARSA($λ$) and Soft Actor-Critic (SAC). Separately, we show policies that were learned in simulation transfer to reality. We also examine how well the platform supports a nimble experimental ecosystem. Specifically, we observe the speed with which new users from diverse backgrounds achieve their first success with the platform, and how easily the platform can be repaired and updated when hardware issues arise. Both the hardware design and software are available as open-source on GitHub for ease of customization. In summary, we advocate for the use of the Open Ant for RL researchers who frequently use simulated environments, so they can more easily include robot experiments in their evaluations.",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "eess.SY"
+    ],
+    "published": "2026-07-20T20:18:29+00:00",
+    "authors": [
+      "Elena Sorina Lupu",
+      "Patrick Spieler",
+      "Khurram Javed",
+      "Kris De Asis",
+      "John D. Martin",
+      "Martha Steenstrup",
+      "Joseph Modayil"
+    ],
+    "url": "http://arxiv.org/abs/2607.18488v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2602.12375v1",
+    "title": "Value Bonuses using Ensemble Errors for Exploration in Reinforcement Learning",
+    "abstract": "Optimistic value estimates provide one mechanism for directed exploration in reinforcement learning (RL). The agent acts greedily with respect to an estimate of the value plus what can be seen as a value bonus. The value bonus can be learned by estimating a value function on reward bonuses, propagating local uncertainties around rewards. However, this approach only increases the value bonus for an action retroactively, after seeing a higher reward bonus from that state and action. Such an approach does not encourage the agent to visit a state and action for the first time. In this work, we introduce an algorithm for exploration called Value Bonuses with Ensemble errors (VBE), that maintains an ensemble of random action-value functions (RQFs). VBE uses the errors in the estimation of these RQFs to design value bonuses that provide first-visit optimism and deep exploration. The key idea is to design the rewards for these RQFs in such a way that the value bonus can decrease to zero. We show that VBE outperforms Bootstrap DQN and two reward bonus approaches (RND and ACB) on several classic environments used to test exploration and provide demonstrative experiments that it can scale easily to more complex environments like Atari.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-12T20:12:17+00:00",
+    "authors": [
+      "Abdul Wahab",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2602.12375v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2606.11798v1",
+    "title": "Deterministic Policy Gradient for Learning Equilibrium in Time-Inconsistent Control Problems",
+    "abstract": "In this paper, we develop a continuous-time model-free reinforcement learning algorithm to learn deterministic equilibrium policies in general time-inconsistent control problems. Utilizing the extended Hamilton-Jacobi-Bellman system, we recast the original time-inconsistent problem into an equivalent two-stage problem. In the first stage, for given auxiliary functions, we employ the deterministic policy gradient approach to learn an optimal policy in an auxiliary time-consistent control problem. In the second stage, given the updated policy, we exploit the inner fixed point iterations and some martingale characterizations to learn the auxiliary functions. As a theoretical contribution, we provide some mild model assumptions and establish the convergence of inner fixed point iterations. By repeating this actor-critic style of iterations across two stages, our algorithm aims to learn the equilibrium under different sources of time-inconsistency in a unified manner. The superior effectiveness of the proposed algorithm are illustrated in two classical financial applications with time-inconsistency: mean-variance portfolio management and optimal tracking portfolio under non-exponential discounting.",
+    "categories": [
+      "q-fin.CP",
+      "cs.LG",
+      "math.OC"
+    ],
+    "published": "2026-06-10T08:31:54+00:00",
+    "authors": [
+      "Xin Guo",
+      "Yijie Huang",
+      "Xiang Yu"
+    ],
+    "url": "http://arxiv.org/abs/2606.11798v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "1912.02532v1",
+    "title": "Iterative Policy-Space Expansion in Reinforcement Learning",
+    "abstract": "Humans and animals solve a difficult problem much more easily when they are presented with a sequence of problems that starts simple and slowly increases in difficulty. We explore this idea in the context of reinforcement learning. Rather than providing the agent with an externally provided curriculum of progressively more difficult tasks, the agent solves a single task utilizing a decreasingly constrained policy space. The algorithm we propose first learns to categorize features into positive and negative before gradually learning a more refined policy. Experimental results in Tetris demonstrate superior learning rate of our approach when compared to existing algorithms.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-12-05T12:32:15+00:00",
+    "authors": [
+      "Jan Malte Lichtenberg",
+      "Özgür Şimşek"
+    ],
+    "url": "http://arxiv.org/abs/1912.02532v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "1906.04452v1",
+    "title": "Continual Reinforcement Learning deployed in Real-life using Policy Distillation and Sim2Real Transfer",
+    "abstract": "We focus on the problem of teaching a robot to solve tasks presented sequentially, i.e., in a continual learning scenario. The robot should be able to solve all tasks it has encountered, without forgetting past tasks. We provide preliminary work on applying Reinforcement Learning to such setting, on 2D navigation tasks for a 3 wheel omni-directional robot. Our approach takes advantage of state representation learning and policy distillation. Policies are trained using learned features as input, rather than raw observations, allowing better sample efficiency. Policy distillation is used to combine multiple policies into a single one that solves all encountered tasks.",
+    "categories": [
+      "cs.LG",
+      "cs.RO",
+      "stat.ML"
+    ],
+    "published": "2019-06-11T09:06:19+00:00",
+    "authors": [
+      "René Traoré",
+      "Hugo Caselles-Dupré",
+      "Timothée Lesort",
+      "Te Sun",
+      "Natalia Díaz-Rodríguez",
+      "David Filliat"
+    ],
+    "url": "http://arxiv.org/abs/1906.04452v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2004.08883v4",
+    "title": "Variational Policy Propagation for Multi-agent Reinforcement Learning",
+    "abstract": "We propose a \\emph{collaborative} multi-agent reinforcement learning algorithm named variational policy propagation (VPP) to learn a \\emph{joint} policy through the interactions over agents. We prove that the joint policy is a Markov Random Field under some mild conditions, which in turn reduces the policy space effectively. We integrate the variational inference as special differentiable layers in policy such that the actions can be efficiently sampled from the Markov Random Field and the overall policy is differentiable. We evaluate our algorithm on several large scale challenging tasks and demonstrate that it outperforms previous state-of-the-arts.",
+    "categories": [
+      "cs.LG",
+      "cs.MA",
+      "stat.ML"
+    ],
+    "published": "2020-04-19T15:42:55+00:00",
+    "authors": [
+      "Chao Qu",
+      "Hui Li",
+      "Chang Liu",
+      "Junwu Xiong",
+      "James Zhang",
+      "Wei Chu",
+      "Weiqiang Wang",
+      "Yuan Qi",
+      "Le Song"
+    ],
+    "url": "http://arxiv.org/abs/2004.08883v4",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2010.04816v1",
+    "title": "Characterizing Policy Divergence for Personalized Meta-Reinforcement Learning",
+    "abstract": "Despite ample motivation from costly exploration and limited trajectory data, rapidly adapting to new environments with few-shot reinforcement learning (RL) can remain a challenging task, especially with respect to personalized settings. Here, we consider the problem of recommending optimal policies to a set of multiple entities each with potentially different characteristics, such that individual entities may parameterize distinct environments with unique transition dynamics. Inspired by existing literature in meta-learning, we extend previous work by focusing on the notion that certain environments are more similar to each other than others in personalized settings, and propose a model-free meta-learning algorithm that prioritizes past experiences by relevance during gradient-based adaptation. Our algorithm involves characterizing past policy divergence through methods in inverse reinforcement learning, and we illustrate how such metrics are able to effectively distinguish past policy parameters by the environment they were deployed in, leading to more effective fast adaptation during test time. To study personalization more effectively we introduce a navigation testbed to specifically incorporate environment diversity across training episodes, and demonstrate that our approach outperforms meta-learning alternatives with respect to few-shot reinforcement learning in personalized settings.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2020-10-09T21:31:53+00:00",
+    "authors": [
+      "Michael Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2010.04816v1",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "1907.04543v4",
+    "title": "An Optimistic Perspective on Offline Reinforcement Learning",
+    "abstract": "Off-policy reinforcement learning (RL) using a fixed offline dataset of logged interactions is an important consideration in real world applications. This paper studies offline RL using the DQN replay dataset comprising the entire replay experience of a DQN agent on 60 Atari 2600 games. We demonstrate that recent off-policy deep RL algorithms, even when trained solely on this fixed dataset, outperform the fully trained DQN agent. To enhance generalization in the offline setting, we present Random Ensemble Mixture (REM), a robust Q-learning algorithm that enforces optimal Bellman consistency on random convex combinations of multiple Q-value estimates. Offline REM trained on the DQN replay dataset surpasses strong RL baselines. Ablation studies highlight the role of offline dataset size and diversity as well as the algorithm choice in our positive results. Overall, the results here present an optimistic view that robust RL algorithms trained on sufficiently large and diverse offline datasets can lead to high quality policies. The DQN replay dataset can serve as an offline RL benchmark and is open-sourced.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-07-10T07:23:27+00:00",
+    "authors": [
+      "Rishabh Agarwal",
+      "Dale Schuurmans",
+      "Mohammad Norouzi"
+    ],
+    "url": "http://arxiv.org/abs/1907.04543v4",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2301.08028v4",
+    "title": "A Tutorial on Meta-Reinforcement Learning",
+    "abstract": "While deep reinforcement learning (RL) has fueled multiple high-profile successes in machine learning, it is held back from more widespread adoption by its often poor data efficiency and the limited generality of the policies it produces. A promising approach for alleviating these limitations is to cast the development of better RL algorithms as a machine learning problem itself in a process called meta-RL. Meta-RL is most commonly studied in a problem setting where, given a distribution of tasks, the goal is to learn a policy that is capable of adapting to any new task from the task distribution with as little data as possible. In this survey, we describe the meta-RL problem setting in detail as well as its major variations. We discuss how, at a high level, meta-RL research can be clustered based on the presence of a task distribution and the learning budget available for each individual task. Using these clusters, we then survey meta-RL algorithms and applications. We conclude by presenting the open problems on the path to making meta-RL part of the standard toolbox for a deep RL practitioner.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2023-01-19T12:01:41+00:00",
+    "authors": [
+      "Jacob Beck",
+      "Risto Vuorio",
+      "Evan Zheran Liu",
+      "Zheng Xiong",
+      "Luisa Zintgraf",
+      "Chelsea Finn",
+      "Shimon Whiteson"
+    ],
+    "url": "http://arxiv.org/abs/2301.08028v4",
+    "label": 0,
+    "source_query": "reinforcement learning policy gradient"
+  },
+  {
+    "arxiv_id": "2506.06962v3",
+    "title": "AR-RAG: Autoregressive Retrieval Augmentation for Image Generation",
+    "abstract": "We introduce Autoregressive Retrieval Augmentation (AR-RAG), a novel paradigm that enhances image generation by autoregressively incorporating knearest neighbor retrievals at the patch level. Unlike prior methods that perform a single, static retrieval before generation and condition the entire generation on fixed reference images, AR-RAG performs context-aware retrievals at each generation step, using prior-generated patches as queries to retrieve and incorporate the most relevant patch-level visual references, enabling the model to respond to evolving generation needs while avoiding limitations (e.g., over-copying, stylistic bias, etc.) prevalent in existing methods. To realize AR-RAG, we propose two parallel frameworks: (1) Distribution-Augmentation in Decoding (DAiD), a training-free plug-and-use decoding strategy that directly merges the distribution of model-predicted patches with the distribution of retrieved patches, and (2) Feature-Augmentation in Decoding (FAiD), a parameter-efficient fine-tuning method that progressively smooths the features of retrieved patches via multi-scale convolution operations and leverages them to augment the image generation process. We validate the effectiveness of AR-RAG on widely adopted benchmarks, including Midjourney-30K, GenEval and DPG-Bench, demonstrating significant performance gains over state-of-the-art image generation models.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2025-06-08T01:33:05+00:00",
+    "authors": [
+      "Jingyuan Qi",
+      "Zhiyang Xu",
+      "Qifan Wang",
+      "Lifu Huang"
+    ],
+    "url": "http://arxiv.org/abs/2506.06962v3",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.13684v1",
+    "title": "Intelligent Interaction Strategies for Context-Aware Cognitive Augmentation",
+    "abstract": "Human cognition is constrained by processing limitations, leading to cognitive overload and inefficiencies in knowledge synthesis and decision-making. Large Language Models (LLMs) present an opportunity for cognitive augmentation, but their current reactive nature limits their real-world applicability. This position paper explores the potential of context-aware cognitive augmentation, where LLMs dynamically adapt to users' cognitive states and task environments to provide appropriate support. Through a think-aloud study in an exhibition setting, we examine how individuals interact with multi-modal information and identify key cognitive challenges in structuring, retrieving, and applying knowledge. Our findings highlight the need for AI-driven cognitive support systems that integrate real-time contextual awareness, personalized reasoning assistance, and socially adaptive interactions. We propose a framework for AI augmentation that seamlessly transitions between real-time cognitive support and post-experience knowledge organization, contributing to the design of more effective human-centered AI systems.",
+    "categories": [
+      "cs.HC"
+    ],
+    "published": "2025-04-18T13:35:21+00:00",
+    "authors": [
+      "Xiangrong",
+      "Zhu",
+      "Yuan Xu",
+      "Tianjian Liu",
+      "Jingwei Sun",
+      "Yu Zhang",
+      "Xin Tong"
+    ],
+    "url": "http://arxiv.org/abs/2504.13684v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.17204v1",
+    "title": "Factually: Exploring Wearable Fact-Checking for Augmented Truth Discernment",
+    "abstract": "Wearable devices are transforming human capabilities by seamlessly augmenting cognitive functions. In this position paper, we propose a voice-based, interactive learning companion designed to amplify and extend cognitive abilities through informal learning. Our vision is threefold: (1) to enable users to discover new knowledge on-the-go through contextual interactive quizzes, fostering critical thinking and mindfulness, (2) to proactively detect misinformation, empowering users to critically assess information in real time, and (3) to provide spoken language correction and prompting hints for second language learning and effective communication. As an initial step toward this vision, we present Factually - a proactive, wearable fact-checking system integrated into devices like smartwatches or rings. Factually discreetly alerts users to potential falsehoods via vibrotactile feedback, helping them assess information critically. We demonstrate its utility through three illustrative scenarios, highlighting its potential to extend cognitive abilities for real-time misinformation detection. Early qualitative feedback suggests that Factually can enhance users' fact-checking capabilities, offering both practical and experiential benefits.",
+    "categories": [
+      "cs.HC",
+      "cs.ET"
+    ],
+    "published": "2025-04-24T02:29:50+00:00",
+    "authors": [
+      "Chitralekha Gupta",
+      "Hanjun Wu",
+      "Praveen Sasikumar",
+      "Shreyas Sridhar",
+      "Priambudi Bagaskara",
+      "Suranga Nanayakkara"
+    ],
+    "url": "http://arxiv.org/abs/2504.17204v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2504.14689v1",
+    "title": "Designing AI Systems that Augment Human Performed vs. Demonstrated Critical Thinking",
+    "abstract": "The recent rapid advancement of LLM-based AI systems has accelerated our search and production of information. While the advantages brought by these systems seemingly improve the performance or efficiency of human activities, they do not necessarily enhance human capabilities. Recent research has started to examine the impact of generative AI on individuals' cognitive abilities, especially critical thinking. Based on definitions of critical thinking across psychology and education, this position paper proposes the distinction between demonstrated and performed critical thinking in the era of generative AI and discusses the implication of this distinction in research and development of AI systems that aim to augment human critical thinking.",
+    "categories": [
+      "cs.HC"
+    ],
+    "published": "2025-04-20T17:40:28+00:00",
+    "authors": [
+      "Katelyn Xiaoying Mei",
+      "Nic Weber"
+    ],
+    "url": "http://arxiv.org/abs/2504.14689v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2411.18583v1",
+    "title": "Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation",
+    "abstract": "This research presents and compares multiple approaches to automate the generation of literature reviews using several Natural Language Processing (NLP) techniques and retrieval-augmented generation (RAG) with a Large Language Model (LLM). The ever-increasing number of research articles provides a huge challenge for manual literature review. It has resulted in an increased demand for automation. Developing a system capable of automatically generating the literature reviews from only the PDF files as input is the primary objective of this research work. The effectiveness of several Natural Language Processing (NLP) strategies, such as the frequency-based method (spaCy), the transformer model (Simple T5), and retrieval-augmented generation (RAG) with Large Language Model (GPT-3.5-turbo), is evaluated to meet the primary objective. The SciTLDR dataset is chosen for this research experiment and three distinct techniques are utilized to implement three different systems for auto-generating the literature reviews. The ROUGE scores are used for the evaluation of all three systems. Based on the evaluation, the Large Language Model GPT-3.5-turbo achieved the highest ROUGE-1 score, 0.364. The transformer model comes in second place and spaCy is at the last position. Finally, a graphical user interface is created for the best system based on the large language model.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2024-11-27T18:27:07+00:00",
+    "authors": [
+      "Nurshat Fateh Ali",
+      "Md. Mahdi Mohtasim",
+      "Shakil Mosharrof",
+      "T. Gopi Krishna"
+    ],
+    "url": "http://arxiv.org/abs/2411.18583v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2605.12335v1",
+    "title": "EHR-RAGp: Retrieval-Augmented Prototype-Guided Foundation Model for Electronic Health Records",
+    "abstract": "Electronic Health Records (EHR) contain rich longitudinal patient information and are widely used in predictive modeling applications. However, effectively leveraging historical data remains challenging due to long trajectories, heterogeneous events, temporal irregularity, and the varying relevance of past clinical context. Existing approaches often rely on fixed windows or uniform aggregation, which can obscure clinically important signals. In this work, we introduce EHR-RAGp, a retrieval-augmented foundation model that dynamically integrates the most relevant patient history across diverse clinical event types. We propose a prototype-guided retrieval module that acts as an alignment mechanism and estimates the relevance of retrieved historical chunks with respect to a given prediction task, guiding the model towards the most informative context. Across multiple clinical prediction tasks, EHR-RAGp consistently outperforms state-of-the-art EHR foundation models and transformer-based baselines. Furthermore, integrating EHR-RAGp with existing clinical foundation models yields substantial performance gains. Overall, EHR-RAGp provides a scalable and efficient framework for leveraging long-range clinical context to improve downstream performance.",
+    "categories": [
+      "cs.IR",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2026-05-12T16:17:03+00:00",
+    "authors": [
+      "Saeed Shurrab",
+      "Mariam Al-Omari",
+      "Dana El Samad",
+      "Farah E. Shamout"
+    ],
+    "url": "http://arxiv.org/abs/2605.12335v1",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2402.12317v2",
+    "title": "EVOR: Evolving Retrieval for Code Generation",
+    "abstract": "Recently the retrieval-augmented generation (RAG) has been successfully applied in code generation. However, existing pipelines for retrieval-augmented code generation (RACG) employ static knowledge bases with a single source, limiting the adaptation capabilities of Large Language Models (LLMs) to domains they have insufficient knowledge of. In this work, we develop a novel pipeline, EVOR, that employs the synchronous evolution of both queries and diverse knowledge bases. On two realistic settings where the external knowledge is required to solve code generation tasks, we compile four new datasets associated with frequently updated libraries and long-tail programming languages, named EVOR-BENCH. Extensive experiments demonstrate that EVOR achieves two to four times of execution accuracy compared to other methods such as Reflexion (Shinn et al., 2024), DocPrompting (Zhou et al., 2023), etc. We demonstrate that EVOR is flexible and can be easily combined with them to achieve further improvement. Further analysis reveals that EVOR benefits from the synchronous evolution of queries and documents and the diverse information sources in the knowledge base. We hope that our studies will inspire more insights into the design of advanced RACG pipelines in future research. Our model, code, and data are available at https://arks-codegen.github.io.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2024-02-19T17:37:28+00:00",
+    "authors": [
+      "Hongjin Su",
+      "Shuyang Jiang",
+      "Yuhang Lai",
+      "Haoyuan Wu",
+      "Boao Shi",
+      "Che Liu",
+      "Qian Liu",
+      "Tao Yu"
+    ],
+    "url": "http://arxiv.org/abs/2402.12317v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2502.00306v2",
+    "title": "Riddle Me This! Stealthy Membership Inference for Retrieval-Augmented Generation",
+    "abstract": "Retrieval-Augmented Generation (RAG) enables Large Language Models (LLMs) to generate grounded responses by leveraging external knowledge databases without altering model parameters. Although the absence of weight tuning prevents leakage via model parameters, it introduces the risk of inference adversaries exploiting retrieved documents in the model's context. Existing methods for membership inference and data extraction often rely on jailbreaking or carefully crafted unnatural queries, which can be easily detected or thwarted with query rewriting techniques common in RAG systems. In this work, we present Interrogation Attack (IA), a membership inference technique targeting documents in the RAG datastore. By crafting natural-text queries that are answerable only with the target document's presence, our approach demonstrates successful inference with just 30 queries while remaining stealthy; straightforward detectors identify adversarial prompts from existing methods up to ~76x more frequently than those generated by our attack. We observe a 2x improvement in TPR@1%FPR over prior inference attacks across diverse RAG configurations, all while costing less than $0.02 per document inference.",
+    "categories": [
+      "cs.CR",
+      "cs.AI",
+      "cs.CL",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2025-02-01T04:01:18+00:00",
+    "authors": [
+      "Ali Naseh",
+      "Yuefeng Peng",
+      "Anshuman Suri",
+      "Harsh Chaudhari",
+      "Alina Oprea",
+      "Amir Houmansadr"
+    ],
+    "url": "http://arxiv.org/abs/2502.00306v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2309.15217v2",
+    "title": "Ragas: Automated Evaluation of Retrieval Augmented Generation",
+    "abstract": "We introduce Ragas (Retrieval Augmented Generation Assessment), a framework for reference-free evaluation of Retrieval Augmented Generation (RAG) pipelines. RAG systems are composed of a retrieval and an LLM based generation module, and provide LLMs with knowledge from a reference textual database, which enables them to act as a natural language layer between a user and textual databases, reducing the risk of hallucinations. Evaluating RAG architectures is, however, challenging because there are several dimensions to consider: the ability of the retrieval system to identify relevant and focused context passages, the ability of the LLM to exploit such passages in a faithful way, or the quality of the generation itself. With Ragas, we put forward a suite of metrics which can be used to evaluate these different dimensions \\textit{without having to rely on ground truth human annotations}. We posit that such a framework can crucially contribute to faster evaluation cycles of RAG architectures, which is especially important given the fast adoption of LLMs.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2023-09-26T19:23:54+00:00",
+    "authors": [
+      "Shahul Es",
+      "Jithin James",
+      "Luis Espinosa-Anke",
+      "Steven Schockaert"
+    ],
+    "url": "http://arxiv.org/abs/2309.15217v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2507.23334v2",
+    "title": "MUST-RAG: MUSical Text Question Answering with Retrieval Augmented Generation",
+    "abstract": "Recent advancements in Large language models (LLMs) have demonstrated remarkable capabilities across diverse domains. While they exhibit strong zero-shot performance on various tasks, LLMs' effectiveness in music-related applications remains limited due to the relatively small proportion of music-specific knowledge in their training data. To address this limitation, we propose MusT-RAG, a comprehensive framework based on Retrieval Augmented Generation (RAG) to adapt general-purpose LLMs for text-only music question answering (MQA) tasks. RAG is a technique that provides external knowledge to LLMs by retrieving relevant context information when generating answers to questions. To optimize RAG for the music domain, we (1) propose MusWikiDB, a music-specialized vector database for the retrieval stage, and (2) utilizes context information during both inference and fine-tuning processes to effectively transform general-purpose LLMs into music-specific models. Our experiment demonstrates that MusT-RAG significantly outperforms traditional fine-tuning approaches in enhancing LLMs' music domain adaptation capabilities, showing consistent improvements across both in-domain and out-of-domain MQA benchmarks. Additionally, our MusWikiDB proves substantially more effective than general Wikipedia corpora, delivering superior performance and computational efficiency.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2025-07-31T08:31:05+00:00",
+    "authors": [
+      "Daeyong Kwon",
+      "SeungHeon Doh",
+      "Juhan Nam"
+    ],
+    "url": "http://arxiv.org/abs/2507.23334v2",
+    "label": 0,
+    "source_query": "retrieval augmented generation"
+  },
+  {
+    "arxiv_id": "2303.09306v2",
+    "title": "BanglaCoNER: Towards Robust Bangla Complex Named Entity Recognition",
+    "abstract": "Named Entity Recognition (NER) is a fundamental task in natural language processing that involves identifying and classifying named entities in text. But much work hasn't been done for complex named entity recognition in Bangla, despite being the seventh most spoken language globally. CNER is a more challenging task than traditional NER as it involves identifying and classifying complex and compound entities, which are not common in Bangla language. In this paper, we present the winning solution of Bangla Complex Named Entity Recognition Challenge - addressing the CNER task on BanglaCoNER dataset using two different approaches, namely Conditional Random Fields (CRF) and finetuning transformer based Deep Learning models such as BanglaBERT.   The dataset consisted of 15300 sentences for training and 800 sentences for validation, in the .conll format. Exploratory Data Analysis (EDA) on the dataset revealed that the dataset had 7 different NER tags, with notable presence of English words, suggesting that the dataset is synthetic and likely a product of translation.   We experimented with a variety of feature combinations including Part of Speech (POS) tags, word suffixes, Gazetteers, and cluster information from embeddings, while also finetuning the BanglaBERT (large) model for NER. We found that not all linguistic patterns are immediately apparent or even intuitive to humans, which is why Deep Learning based models has proved to be the more effective model in NLP, including CNER task. Our fine tuned BanglaBERT (large) model achieves an F1 Score of 0.79 on the validation set. Overall, our study highlights the importance of Bangla Complex Named Entity Recognition, particularly in the context of synthetic datasets. Our findings also demonstrate the efficacy of Deep Learning models such as BanglaBERT for NER in Bangla language.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2023-03-16T13:31:31+00:00",
+    "authors": [
+      "HAZ Sameen Shahgir",
+      "Ramisa Alam",
+      "Md. Zarif Ul Alam"
+    ],
+    "url": "http://arxiv.org/abs/2303.09306v2",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "1908.10261v1",
+    "title": "A Morpho-Syntactically Informed LSTM-CRF Model for Named Entity Recognition",
+    "abstract": "We propose a morphologically informed model for named entity recognition, which is based on LSTM-CRF architecture and combines word embeddings, Bi-LSTM character embeddings, part-of-speech (POS) tags, and morphological information. While previous work has focused on learning from raw word input, using word and character embeddings only, we show that for morphologically rich languages, such as Bulgarian, access to POS information contributes more to the performance gains than the detailed morphological information. Thus, we show that named entity recognition needs only coarse-grained POS tags, but at the same time it can benefit from simultaneously using some POS information of different granularity. Our evaluation results over a standard dataset show sizable improvements over the state-of-the-art for Bulgarian NER.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2019-08-27T15:10:24+00:00",
+    "authors": [
+      "Lilia Simeonova",
+      "Kiril Simov",
+      "Petya Osenova",
+      "Preslav Nakov"
+    ],
+    "url": "http://arxiv.org/abs/1908.10261v1",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "1908.09138v2",
+    "title": "Query-Based Named Entity Recognition",
+    "abstract": "In this paper, we propose a new strategy for the task of named entity recognition (NER). We cast the task as a query-based machine reading comprehension task: e.g., the task of extracting entities with PER is formalized as answering the question of \"which person is mentioned in the text ?\". Such a strategy comes with the advantage that it solves the long-standing issue of handling overlapping or nested entities (the same token that participates in more than one entity categories) with sequence-labeling techniques for NER. Additionally, since the query encodes informative prior knowledge, this strategy facilitates the process of entity extraction, leading to better performances. We experiment the proposed model on five widely used NER datasets on English and Chinese, including MSRA, Resume, OntoNotes, ACE04 and ACE05. The proposed model sets new SOTA results on all of these datasets.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2019-08-24T13:42:57+00:00",
+    "authors": [
+      "Yuxian Meng",
+      "Xiaoya Li",
+      "Zijun Sun",
+      "Jiwei Li"
+    ],
+    "url": "http://arxiv.org/abs/1908.09138v2",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "2206.07318v1",
+    "title": "CMNEROne at SemEval-2022 Task 11: Code-Mixed Named Entity Recognition by leveraging multilingual data",
+    "abstract": "Identifying named entities is, in general, a practical and challenging task in the field of Natural Language Processing. Named Entity Recognition on the code-mixed text is further challenging due to the linguistic complexity resulting from the nature of the mixing. This paper addresses the submission of team CMNEROne to the SEMEVAL 2022 shared task 11 MultiCoNER. The Code-mixed NER task aimed to identify named entities on the code-mixed dataset. Our work consists of Named Entity Recognition (NER) on the code-mixed dataset by leveraging the multilingual data. We achieved a weighted average F1 score of 0.7044, i.e., 6% greater than the baseline.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2022-06-15T06:33:13+00:00",
+    "authors": [
+      "Suman Dowlagar",
+      "Radhika Mamidi"
+    ],
+    "url": "http://arxiv.org/abs/2206.07318v1",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "2109.15121v1",
+    "title": "Feature-Rich Named Entity Recognition for Bulgarian Using Conditional Random Fields",
+    "abstract": "The paper presents a feature-rich approach to the automatic recognition and categorization of named entities (persons, organizations, locations, and miscellaneous) in news text for Bulgarian. We combine well-established features used for other languages with language-specific lexical, syntactic and morphological information. In particular, we make use of the rich tagset annotation of the BulTreeBank (680 morpho-syntactic tags), from which we derive suitable task-specific tagsets (local and nonlocal). We further add domain-specific gazetteers and additional unlabeled data, achieving F1=89.4%, which is comparable to the state-of-the-art results for English.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-09-26T12:00:06+00:00",
+    "authors": [
+      "Georgi Georgiev",
+      "Preslav Nakov",
+      "Kuzman Ganchev",
+      "Petya Osenova",
+      "Kiril Ivanov Simov"
+    ],
+    "url": "http://arxiv.org/abs/2109.15121v1",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "2412.16976v3",
+    "title": "On Fusing ChatGPT and Ensemble Learning in Discon-tinuous Named Entity Recognition in Health Corpora",
+    "abstract": "Named Entity Recognition has traditionally been a key task in natural language processing, aiming to identify and extract important terms from unstructured text data. However, a notable challenge for contemporary deep-learning NER models has been identifying discontinuous entities, which are often fragmented within the text. To date, methods to address Discontinuous Named Entity Recognition have not been explored using ensemble learning to the best of our knowledge. Furthermore, the rise of large language models, such as ChatGPT in recent years, has shown significant effectiveness across many NLP tasks. Most existing approaches, however, have primarily utilized ChatGPT as a problem-solving tool rather than exploring its potential as an integrative element within ensemble learning algorithms. In this study, we investigated the integration of ChatGPT as an arbitrator within an ensemble method, aiming to enhance performance on DNER tasks. Our method combines five state-of-the-art NER models with ChatGPT using custom prompt engineering to assess the robustness and generalization capabilities of the ensemble algorithm. We conducted experiments on three benchmark medical datasets, comparing our method against the five SOTA models, individual applications of GPT-3.5 and GPT-4, and a voting ensemble method. The results indicate that our proposed fusion of ChatGPT with the ensemble learning algorithm outperforms the SOTA results in the CADEC, ShARe13, and ShARe14 datasets, showcasing its potential to enhance NLP applications in the healthcare domain.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2024-12-22T11:26:49+00:00",
+    "authors": [
+      "Tzu-Chieh Chen",
+      "Wen-Yang Lin"
+    ],
+    "url": "http://arxiv.org/abs/2412.16976v3",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "1405.7397v1",
+    "title": "An HMM Based Named Entity Recognition System for Indian Languages: The JU System at ICON 2013",
+    "abstract": "This paper reports about our work in the ICON 2013 NLP TOOLS CONTEST on Named Entity Recognition. We submitted runs for Bengali, English, Hindi, Marathi, Punjabi, Tamil and Telugu. A statistical HMM (Hidden Markov Models) based model has been used to implement our system. The system has been trained and tested on the NLP TOOLS CONTEST: ICON 2013 datasets. Our system obtains F-measures of 0.8599, 0.7704, 0.7520, 0.4289, 0.5455, 0.4466, and 0.4003 for Bengali, English, Hindi, Marathi, Punjabi, Tamil and Telugu respectively.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2014-05-28T21:05:00+00:00",
+    "authors": [
+      "Vivekananda Gayen",
+      "Kamal Sarkar"
+    ],
+    "url": "http://arxiv.org/abs/1405.7397v1",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "1805.03784v1",
+    "title": "SlugNERDS: A Named Entity Recognition Tool for Open Domain Dialogue Systems",
+    "abstract": "In dialogue systems, the tasks of named entity recognition (NER) and named entity linking (NEL) are vital preprocessing steps for understanding user intent, especially in open domain interaction where we cannot rely on domain-specific inference. UCSC's effort as one of the funded teams in the 2017 Amazon Alexa Prize Contest has yielded Slugbot, an open domain social bot, aimed at casual conversation. We discovered several challenges specifically associated with both NER and NEL when building Slugbot, such as that the NE labels are too coarse-grained or the entity types are not linked to a useful ontology. Moreover, we have discovered that traditional approaches do not perform well in our context: even systems designed to operate on tweets or other social media data do not work well in dialogue systems. In this paper, we introduce Slugbot's Named Entity Recognition for dialogue Systems (SlugNERDS), a NER and NEL tool which is optimized to address these issues. We describe two new resources that we are building as part of this work: SlugEntityDB and SchemaActuator. We believe these resources will be useful for the research community.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2018-05-10T02:07:02+00:00",
+    "authors": [
+      "Kevin K. Bowden",
+      "Jiaqi Wu",
+      "Shereen Oraby",
+      "Amita Misra",
+      "Marilyn Walker"
+    ],
+    "url": "http://arxiv.org/abs/1805.03784v1",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "1912.10016v2",
+    "title": "A Neural Model for Text Localization, Transcription and Named Entity Recognition in Full Pages",
+    "abstract": "In the last years, the consolidation of deep neural network architectures for information extraction in document images has brought big improvements in the performance of each of the tasks involved in this process, consisting of text localization, transcription, and named entity recognition. However, this process is traditionally performed with separate methods for each task. In this work we propose an end-to-end model that combines a one stage object detection network with branches for the recognition of text and named entities respectively in a way that shared features can be learned simultaneously from the training error of each of the tasks. By doing so the model jointly performs handwritten text detection, transcription, and named entity recognition at page level with a single feed forward step. We exhaustively evaluate our approach on different datasets, discussing its advantages and limitations compared to sequential approaches. The results show that the model is capable of benefiting from shared features for simultaneously solving interdependent tasks.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2019-12-20T18:45:19+00:00",
+    "authors": [
+      "Manuel Carbonell",
+      "Alicia Fornés",
+      "Mauricio Villegas",
+      "Josep Lladós"
+    ],
+    "url": "http://arxiv.org/abs/1912.10016v2",
+    "label": 0,
+    "source_query": "named entity recognition"
+  },
+  {
+    "arxiv_id": "2112.04189v1",
+    "title": "Transformer-Based Approach for Joint Handwriting and Named Entity Recognition in Historical documents",
+    "abstract": "The extraction of relevant information carried out by named entities in handwriting documents is still a challenging task. Unlike traditional information extraction approaches that usually face text transcription and named entity recognition as separate subsequent tasks, we propose in this paper an end-to-end transformer-based approach to jointly perform these two tasks. The proposed approach operates at the paragraph level, which brings two main benefits. First, it allows the model to avoid unrecoverable early errors due to line segmentation. Second, it allows the model to exploit larger bi-dimensional context information to identify the semantic categories, reaching a higher final prediction accuracy. We also explore different training scenarios to show their effect on the performance and we demonstrate that a two-stage learning strategy can make the model reach a higher final prediction accuracy. As far as we know, this work presents the first approach that adopts the transformer networks for named entity recognition in handwritten documents. We achieve the new state-of-the-art performance in the ICDAR 2017 Information Extraction competition using the Esposalles database, for the complete task, even though the proposed technique does not use any dictionaries, language modeling, or post-processing.",
+    "categories": [
+      "cs.CV",
+      "cs.CL"
+    ],
+    "published": "2021-12-08T09:26:21+00:00",
+    "authors": [
+      "Ahmed Cheikh Rouhoua",
+      "Marwa Dhiaf",
+      "Yousri Kessentini",
+      "Sinda Ben Salem"
+    ],
+    "url": "http://arxiv.org/abs/2112.04189v1",
+    "label": 0,
+    "source_query": "named entity recognition"
+  }
+]

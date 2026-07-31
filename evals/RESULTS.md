@@ -1,8 +1,15 @@
 # Tier B benchmark — results
 
-> **Headline (re-confirmed 2026-07-29, 12 cases):** RepoRadar is **net-positive** (Top Picks mean
-> net@2 **+1.50**) and **competitive with the Opus baseline** (+1.50 vs +1.83 — a **0.33 gap,
-> unchanged** from 2026-07-12), *beating* it outright on the ML domains it's built for (diffusion,
+> **Headline (2026-07-31, 12 cases):** RepoRadar Top Picks mean net@2 **+1.75** vs the Opus
+> baseline's **+1.83** — a **0.08 gap**, narrowed from 0.33. Measured after the query-construction
+> fix (PR #59), which changed **two thirds of the queries** the benchmark transmits.
+> **Read the per-case table, not the mean**: the improvement is concentrated where the bug was
+> worst and one case regressed hard. See
+> [Re-benchmark after the query-construction fix](#re-benchmark-after-the-query-construction-fix-2026-07-31).
+>
+> **Previous headline (2026-07-29, 12 cases):** RepoRadar **net-positive** (Top Picks mean net@2
+> **+1.50**) and **competitive with the Opus baseline** (+1.50 vs +1.83 — a **0.33 gap, unchanged**
+> from 2026-07-12), *beating* it outright on the ML domains it's built for (diffusion,
 > speech, peft). `min_actionable=2` is the decisively-correct gate. **Nine features shipped between
 > the two runs and the validated configuration did not regress** — see
 > [Re-benchmark](#re-benchmark-after-features-1-8-and-10--no-regression-2026-07-29) below.
@@ -475,6 +482,71 @@ component is scored on how well it ranks the *held-out* gold.
 `evals/.work/seeded/<case>.db`, `--fresh` to discard). Component helpers now return diagnostics, so
 "no signal" is distinguishable from "Semantic Scholar was unreachable" — the F8 conclusion above
 rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fixtures.
+
+
+## Re-benchmark after the query-construction fix (2026-07-31)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-triage --rr-rerank --rr-all-time
+```
+
+Same 12 cases, same configuration and same judge as the 2026-07-29 run, on `main` @ PR #59.
+Baseline spend $9.77 (12 Opus calls) plus judge/triage.
+
+**Why this re-run was warranted, and why it is not a like-for-like comparison.** PR #59 fixed
+`profile_repo` — `setup.py` dependencies were never read, and `stop_words="english"` let README and
+Sphinx furniture through, so the benchmark had been transmitting queries like `(all:license)` and
+`(all:https)`. Diffing the query sets built by the pre- and post-fix profiler over these same 12
+repos, **only 32 of 96 queries survive**. The benchmark is fetching substantially different papers,
+which is the point of the fix and also the reason the two runs are not measuring the same pool.
+
+| Case | 2026-07-29 | 2026-07-31 | Δ | pool actionable/judged |
+|---|---|---|---|---|
+| rag | 0.0 | −1.0 | −1.0 | 5/13 |
+| cv | +1.0 | +1.0 | — | 9/13 |
+| rl | 0.0 | +2.0 | +2.0 | 9/13 |
+| webdev (neg. control) | −2.0 | −2.0 | — | 0/10 |
+| peft | +4.0 | **+7.0** | +3.0 | 11/12 |
+| diffusion | +6.0 | **+10.0** | +4.0 | **12/12** |
+| graph | −4.0 | 0.0 | +4.0 | 6/13 |
+| speech | +8.0 | **−2.0** | **−10.0** | 7/13 |
+| crypto | +3.0 | 0.0 | −3.0 | 2/12 |
+| systems | +2.0 | **+6.0** | +4.0 | 9/11 |
+| cli | 0.0 | 0.0 | — | 0/10 |
+| http | 0.0 | 0.0 | — | 0/10 |
+| **mean** | **+1.50** | **+1.75** | **+0.25** | |
+
+**Do not read the mean as the result.** It moved +0.25, which is *smaller* than this harness's own
+stated per-case noise band (±1 net@2), and it is the average of movements an order of magnitude
+larger in both directions. The informative content is in the per-case column.
+
+**Where the fix landed, it landed hard.** `diffusion` is the case whose queries were most corrupted
+— three of its eight were `license`/`https` boilerplate — and it went +6.0 → +10.0 at **precision
+1.00 with every one of the 12 judged pool papers actionable**. `systems` (+4.0), `graph` (+4.0),
+`peft` (+3.0) and `rl` (+2.0) moved the same direction. That is five of the seven repos that had
+zero anchors before the fix, which is the pattern you would predict if the defect was upstream in
+query construction.
+
+**`speech` regressed by 10 points and is not explained by the profile.** Its keywords are now
+`tiktoken, speech, speech recognition, recognition, model, whisper, audio` and its anchors resolve
+correctly (`torch`, `tiktoken`, `numba`) — the profile is *better* than before. The proximate cause
+is the gate, not retrieval: triage marked only 4 of the top 10 actionable, and the judge agreed with
+2 of those 4, while the surrounding pool held 7 actionable of 13. So the papers were there and the
+triage step rejected them. `crypto` shows the same shape more mildly (+3.0 → abstained, pool 2/12).
+Whether that is triage non-determinism or a real interaction with the new candidate order is
+**unresolved and worth its own investigation** — recorded here rather than averaged away.
+
+**Abstention moved in both directions, which is the honest read of a precision gate.** `graph`
+abstained where it previously returned junk (−4.0 → 0.0, a win) and `crypto` abstained where it
+previously returned something useful (+3.0 → 0.0, a loss). Both `cli` and `http` abstained
+correctly on empty pools, as before.
+
+**Confounds, stated plainly.** Three things differ between the runs besides the fix: the judge is
+non-deterministic; the triage gate is a separate non-deterministic LLM call; and the harness fetches
+live from arXiv, so the corpus has moved (mitigated but not eliminated by `--rr-all-time`'s
+relevance-sorted all-time window). A single 12-case run cannot cleanly attribute the +0.25 mean.
+What it *can* support is the narrower claim: the fix changed two thirds of the transmitted queries,
+and the resulting per-case movements are concentrated in the repos the bug affected.
 
 ## Re-benchmark after Features 1–8 and 10 — no regression (2026-07-29)
 

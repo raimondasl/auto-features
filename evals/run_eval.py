@@ -121,6 +121,14 @@ def run_offline(bench: dict, only: str | None, k: int, embeddings: bool) -> int:
             continue
 
         repo_dir = resolve_repo_dir(case)
+        if not Path(repo_dir).is_dir():
+            # A case needs BOTH a fixture and a mini-repo to profile against. The skip
+            # above only checked the fixture, so building fixtures for the 8 cases that
+            # have no `repos/<case>/` turned a clean skip into a crash mid-run, losing
+            # the results already computed for the cases that were fine.
+            print(f"  [{name}] no mini-repo at {repo_dir} — skipping (fixture exists).")
+            missing += 1
+            continue
         profile = profile_case_repo(repo_dir)
         ranked = rank_pool(
             profile,
@@ -159,7 +167,14 @@ def run_offline(bench: dict, only: str | None, k: int, embeddings: bool) -> int:
             f"MAP={means['map']:.3f}  sep={means['separation']:+.3f}"
         )
     if missing:
-        print(f"\n  {missing} case(s) missing fixtures. Run: uv run python evals/build_fixtures.py")
+        # Naming the actual cause matters: `build_fixtures.py` cannot create a mini-repo,
+        # so telling someone to run it when the fixture already exists sends them in a
+        # loop. A case needs a `repos/<case>/` (hand-authored README + manifest) too.
+        print(
+            f"\n  {missing} case(s) skipped for a missing fixture or mini-repo — see the "
+            f"per-case lines above. Fixtures: uv run python evals/build_fixtures.py; "
+            f"mini-repos are hand-authored under evals/repos/<case>/."
+        )
     return 0
 
 

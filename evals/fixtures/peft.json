@@ -1,0 +1,919 @@
+[
+  {
+    "arxiv_id": "2606.01947v1",
+    "title": "Parameter-Efficient Fine-Tuning of Large Pretrained Models for Instance Segmentation Tasks",
+    "abstract": "Research and applications in artificial intelligence have recently shifted with the rise of large pretrained models, which deliver state-of-the-art results across numerous tasks. However, the substantial increase in parameters introduces a need for parameter-efficient training strategies. Despite significant advancements, limited research has explored parameter-efficient fine-tuning (PEFT) methods in the context of transformer-based models for instance segmentation. Addressing this gap, this study investigates the effectiveness of PEFT methods, specifically adapters and Low-Rank Adaptation (LoRA), applied to two models across four benchmark datasets. Integrating sequentially arranged adapter modules and applying LoRA to deformable attention--explored here for the first time--achieves competitive performance while fine-tuning only about 1-6% of model parameters, a marked improvement over the 40-55% required in traditional fine-tuning. Key findings indicate that using 2-3 adapters per transformer block offers an optimal balance of performance and efficiency. Furthermore, LoRA, exhibits strong parameter efficiency when applied to deformable attention, and in certain cases surpasses adapter configurations. These results show that the impact of PEFT techniques varies based on dataset complexity and model architecture, underscoring the importance of context-specific tuning. Overall, this work demonstrates the potential of PEFT to enable scalable, customizable, and computationally efficient transfer learning for instance segmentation tasks.",
+    "categories": [
+      "cs.CV",
+      "cs.AI"
+    ],
+    "published": "2026-06-01T09:09:32+00:00",
+    "authors": [
+      "Nermeen Abou Baker",
+      "David Rohrschneider",
+      "Uwe Handmann"
+    ],
+    "url": "http://arxiv.org/abs/2606.01947v1",
+    "label": 1,
+    "source_query": "parameter efficient fine-tuning"
+  },
+  {
+    "arxiv_id": "2408.07888v2",
+    "title": "Evaluating Fine-Tuning Efficiency of Human-Inspired Learning Strategies in Medical Question Answering",
+    "abstract": "Fine-tuning Large Language Models (LLMs) incurs considerable training costs, driving the need for data-efficient training with optimised data ordering. Human-inspired strategies offer a solution by organising data based on human learning practices. This study evaluates the fine-tuning efficiency of five human-inspired strategies across four language models, three datasets, and both human- and LLM-labelled data in the context of medical question answering. These strategies achieve the best accuracy gain of 1.81% and an average gain of 1.02% across datasets, with interleaved strategies delivering the best average results. However, the best strategy varies across model-dataset combinations, limiting the generalisability of the effects of any single strategy. Additionally, LLM-defined question difficulty outperforms human-defined labels in curriculum-based learning, showing the potential of model-generated data as a cost-effective alternative for optimising fine-tuning.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2024-08-15T02:22:48+00:00",
+    "authors": [
+      "Yushi Yang",
+      "Andrew M. Bean",
+      "Robert McCraith",
+      "Adam Mahdi"
+    ],
+    "url": "http://arxiv.org/abs/2408.07888v2",
+    "label": 1,
+    "source_query": "parameter efficient fine-tuning"
+  },
+  {
+    "arxiv_id": "2110.06500v2",
+    "title": "Differentially Private Fine-tuning of Language Models",
+    "abstract": "We give simpler, sparser, and faster algorithms for differentially private fine-tuning of large-scale pre-trained language models, which achieve the state-of-the-art privacy versus utility tradeoffs on many standard NLP tasks. We propose a meta-framework for this problem, inspired by the recent success of highly parameter-efficient methods for fine-tuning. Our experiments show that differentially private adaptations of these approaches outperform previous private algorithms in three important dimensions: utility, privacy, and the computational and memory cost of private training. On many commonly studied datasets, the utility of private models approaches that of non-private models. For example, on the MNLI dataset we achieve an accuracy of $87.8\\%$ using RoBERTa-Large and $83.5\\%$ using RoBERTa-Base with a privacy budget of $ε= 6.7$. In comparison, absent privacy constraints, RoBERTa-Large achieves an accuracy of $90.2\\%$. Our findings are similar for natural language generation tasks. Privately fine-tuning with DART, GPT-2-Small, GPT-2-Medium, GPT-2-Large, and GPT-2-XL achieve BLEU scores of 38.5, 42.0, 43.1, and 43.8 respectively (privacy budget of $ε= 6.8,δ=$ 1e-5) whereas the non-private baseline is $48.1$. All our experiments suggest that larger models are better suited for private fine-tuning: while they are well known to achieve superior accuracy non-privately, we find that they also better maintain their accuracy when privacy is introduced.",
+    "categories": [
+      "cs.LG",
+      "cs.CL",
+      "cs.CR",
+      "stat.ML"
+    ],
+    "published": "2021-10-13T05:15:00+00:00",
+    "authors": [
+      "Da Yu",
+      "Saurabh Naik",
+      "Arturs Backurs",
+      "Sivakanth Gopi",
+      "Huseyin A. Inan",
+      "Gautam Kamath",
+      "Janardhan Kulkarni",
+      "Yin Tat Lee",
+      "Andre Manoel",
+      "Lukas Wutschitz",
+      "Sergey Yekhanin",
+      "Huishuai Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2110.06500v2",
+    "label": 1,
+    "source_query": "parameter efficient fine-tuning"
+  },
+  {
+    "arxiv_id": "2102.03983v1",
+    "title": "Partial Is Better Than All: Revisiting Fine-tuning Strategy for Few-shot Learning",
+    "abstract": "The goal of few-shot learning is to learn a classifier that can recognize unseen classes from limited support data with labels. A common practice for this task is to train a model on the base set first and then transfer to novel classes through fine-tuning (Here fine-tuning procedure is defined as transferring knowledge from base to novel data, i.e. learning to transfer in few-shot scenario.) or meta-learning. However, as the base classes have no overlap to the novel set, simply transferring whole knowledge from base data is not an optimal solution since some knowledge in the base model may be biased or even harmful to the novel class. In this paper, we propose to transfer partial knowledge by freezing or fine-tuning particular layer(s) in the base model. Specifically, layers will be imposed different learning rates if they are chosen to be fine-tuned, to control the extent of preserved transferability. To determine which layers to be recast and what values of learning rates for them, we introduce an evolutionary search based method that is efficient to simultaneously locate the target layers and determine their individual learning rates. We conduct extensive experiments on CUB and mini-ImageNet to demonstrate the effectiveness of our proposed method. It achieves the state-of-the-art performance on both meta-learning and non-meta based frameworks. Furthermore, we extend our method to the conventional pre-training + fine-tuning paradigm and obtain consistent improvement.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-02-08T03:27:05+00:00",
+    "authors": [
+      "Zhiqiang Shen",
+      "Zechun Liu",
+      "Jie Qin",
+      "Marios Savvides",
+      "Kwang-Ting Cheng"
+    ],
+    "url": "http://arxiv.org/abs/2102.03983v1",
+    "label": 1,
+    "source_query": "parameter efficient fine-tuning"
+  },
+  {
+    "arxiv_id": "2605.28222v1",
+    "title": "Analyzing Quality-Latency-Resource Trade-offs in a Technical Documentation RAG Assistant Using LoRA Adaptation",
+    "abstract": "We study quality-latency-resource trade-offs in a documentation-grounded retrieval-augmented generation (RAG) system that uses Low-Rank Adaptation (LoRA) of the generator. We build a manually verified benchmark of 5,144 question-answer pairs over the official Kubernetes documentation and combine it with a fixed hybrid-retrieval pipeline (BGE-M3 dense, BGE-M3 native sparse, Reciprocal Rank Fusion, cross-encoder reranking). Over this benchmark we ablate 20 LoRA configurations on Llama-3.2-3B-Instruct and Llama-3.1-8B-Instruct across rank and target-module choices, and evaluate each on token-level F1, LLM-judged groundedness and correctness (pass@4), inference latency, inference memory, and training cost, all reported with bootstrap 95% confidence intervals. Pareto analysis shows that LoRA adapters acting only on the q and v attention projections consistently dominate the front, while the 3B/8B choice mainly defines operating regime. A param-matched control comparison further indicates that the q/v advantage is structural rather than purely parametric. The benchmark, selected adapters, and code are available at https://github.com/EugPal/rag-lora-tradeoffs.",
+    "categories": [
+      "cs.CL",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2026-05-27T09:37:55+00:00",
+    "authors": [
+      "Evgenii Palnikov",
+      "Elizaveta Gavrilova"
+    ],
+    "url": "http://arxiv.org/abs/2605.28222v1",
+    "label": 1,
+    "source_query": "low-rank adaptation LoRA"
+  },
+  {
+    "arxiv_id": "2412.09827v1",
+    "title": "Low-Rank Adaptation with Task-Relevant Feature Enhancement for Fine-tuning Language Models",
+    "abstract": "Fine-tuning pre-trained large language models in a parameter-efficient manner is widely studied for its effectiveness and efficiency. LoRA is one of the most widely used methods, which assumes that the optimization process is essentially low dimensional. Although LoRA has demonstrated commendable performance, there remains a significant performance gap between LoRA and full fine-tuning when learning new tasks. In this work, we propose Low-Rank Adaptation with Task-Relevant Feature Enhancement(LoRATRF) for enhancing task-relevant features from the perspective of editing neural network representations. To prioritize task-relevant features, a task-aware filter that selectively extracts valuable knowledge from hidden representations for the target or current task is designed. As the experiments on a vareity of datasets including NLU, commonsense reasoning and mathematical reasoning tasks demonstrates, our method reduces 33.71% parameters and achieves better performance on a variety of datasets in comparison with SOTA low-rank methods.",
+    "categories": [
+      "cs.CL",
+      "cs.CV"
+    ],
+    "published": "2024-12-13T03:38:49+00:00",
+    "authors": [
+      "Changqun Li",
+      "Chaofan Ding",
+      "Kexin Luan",
+      "Xinhan Di"
+    ],
+    "url": "http://arxiv.org/abs/2412.09827v1",
+    "label": 1,
+    "source_query": "low-rank adaptation LoRA"
+  },
+  {
+    "arxiv_id": "2411.14961v3",
+    "title": "LoRA-FAIR: Federated LoRA Fine-Tuning with Aggregation and Initialization Refinement",
+    "abstract": "Foundation models (FMs) achieve strong performance across diverse tasks with task-specific fine-tuning, yet full parameter fine-tuning is often computationally prohibitive for large models. Parameter-efficient fine-tuning (PEFT) methods like Low-Rank Adaptation (LoRA) reduce this cost by introducing low-rank matrices for tuning fewer parameters. While LoRA allows for efficient fine-tuning, it requires significant data for adaptation, making Federated Learning (FL) an appealing solution due to its privacy-preserving collaborative framework. However, combining LoRA with FL introduces two key challenges: the \\textbf{Server-Side Aggregation Bias}, where server-side averaging of LoRA matrices diverges from the ideal global update, and the \\textbf{Client-Side Initialization Lag}, emphasizing the need for consistent initialization across rounds. Existing approaches address these challenges individually, limiting their effectiveness. We propose LoRA-FAIR, a novel method that tackles both issues by introducing a correction term on the server, enhancing aggregation efficiency and accuracy. LoRA-FAIR maintains computational and communication efficiency, yielding superior performance over state-of-the-art methods. Experimental results on ViT and MLP-Mixer models across large-scale datasets demonstrate that LoRA-FAIR consistently achieves performance improvements in FL settings.",
+    "categories": [
+      "cs.LG",
+      "cs.CV"
+    ],
+    "published": "2024-11-22T14:19:01+00:00",
+    "authors": [
+      "Jieming Bian",
+      "Lei Wang",
+      "Letian Zhang",
+      "Jie Xu"
+    ],
+    "url": "http://arxiv.org/abs/2411.14961v3",
+    "label": 1,
+    "source_query": "low-rank adaptation LoRA"
+  },
+  {
+    "arxiv_id": "2407.18242v3",
+    "title": "LoRA-Pro: Are Low-Rank Adapters Properly Optimized?",
+    "abstract": "Low-rank adaptation, also known as LoRA, has emerged as a prominent method for parameter-efficient fine-tuning of foundation models. Despite its computational efficiency, LoRA still yields inferior performance compared to full fine-tuning. In this paper, we first uncover a fundamental connection between the optimization processes of LoRA and full fine-tuning: using LoRA for optimization is mathematically equivalent to full fine-tuning using a low-rank gradient for parameter updates. And this low-rank gradient can be expressed in terms of the gradients of the two low-rank matrices in LoRA. Leveraging this insight, we introduce LoRA-Pro, a method that enhances LoRA's performance by strategically adjusting the gradients of these low-rank matrices. This adjustment allows the low-rank gradient to more accurately approximate the full fine-tuning gradient, thereby narrowing the performance gap between LoRA and full fine-tuning. Furthermore, we theoretically derive the optimal solutions for adjusting the gradients of the low-rank matrices, applying them during fine-tuning in LoRA-Pro. We conduct extensive experiments across natural language understanding, dialogue generation, mathematical reasoning, code generation, and image classification tasks, demonstrating that LoRA-Pro substantially improves LoRA's performance, effectively narrowing the gap with full fine-tuning. Code is publicly available at https://github.com/mrflogs/LoRA-Pro.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2024-07-25T17:57:12+00:00",
+    "authors": [
+      "Zhengbo Wang",
+      "Jian Liang",
+      "Ran He",
+      "Zilei Wang",
+      "Tieniu Tan"
+    ],
+    "url": "http://arxiv.org/abs/2407.18242v3",
+    "label": 1,
+    "source_query": "low-rank adaptation LoRA"
+  },
+  {
+    "arxiv_id": "2402.02382v3",
+    "title": "Revisiting the Power of Prompt for Visual Tuning",
+    "abstract": "Visual prompt tuning (VPT) is a promising solution incorporating learnable prompt tokens to customize pre-trained models for downstream tasks. However, VPT and its variants often encounter challenges like prompt initialization, prompt length, and subpar performance in self-supervised pretraining, hindering successful contextual adaptation. This study commences by exploring the correlation evolvement between prompts and patch tokens during proficient training. Inspired by the observation that the prompt tokens tend to share high mutual information with patch tokens, we propose initializing prompts with downstream token prototypes. The strategic initialization, a stand-in for the previous initialization, substantially improves performance in fine-tuning. To refine further, we optimize token construction with a streamlined pipeline that maintains excellent performance with almost no increase in computational expenses compared to VPT. Exhaustive experiments show our proposed approach outperforms existing methods by a remarkable margin. For instance, it surpasses full fine-tuning in 19 out of 24 tasks, using less than 0.4% of learnable parameters on the FGVC and VTAB-1K benchmarks. Notably, our method significantly advances the adaptation for self-supervised pretraining, achieving impressive task performance gains of at least 10% to 30%. Besides, the experimental results demonstrate the proposed SPT is robust to prompt lengths and scales well with model capacity and training data size. We finally provide an insightful exploration into the amount of target data facilitating the adaptation of pre-trained models to downstream tasks. The code is available at https://github.com/WangYZ1608/Self-Prompt-Tuning.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2024-02-04T07:49:02+00:00",
+    "authors": [
+      "Yuzhu Wang",
+      "Lechao Cheng",
+      "Chaowei Fang",
+      "Dingwen Zhang",
+      "Manni Duan",
+      "Meng Wang"
+    ],
+    "url": "http://arxiv.org/abs/2402.02382v3",
+    "label": 1,
+    "source_query": "prompt tuning language models"
+  },
+  {
+    "arxiv_id": "2312.00249v2",
+    "title": "Acoustic Prompt Tuning: Empowering Large Language Models with Audition Capabilities",
+    "abstract": "The auditory system plays a substantial role in shaping the overall human perceptual experience. While prevailing large language models (LLMs) and visual language models (VLMs) have shown their promise in solving a wide variety of language and vision understanding tasks, only a few of them can be generalised to the audio domain without compromising their domain-specific capability. In this work, we introduce Acoustic Prompt Tuning (APT), a new adapter extending LLMs and VLMs to the audio domain by injecting audio embeddings to the input of LLMs, namely soft prompting. Specifically, APT applies an instruction-aware audio aligner to generate soft prompts, conditioned on both input text and sounds, as the inputs to the language model. To mitigate data scarcity in the audio domain, a curriculum learning strategy is proposed by formulating diverse audio tasks in a sequential manner. Moreover, we improve the audio language model by using interleaved audio-text embeddings as the input sequence. In this improved model, zero constraints are imposed on the input format, thus it is capable of tackling diverse modelling tasks, such as few-shot audio classification and audio comparison. To further evaluate the advanced ability of the audio networks, we introduce natural language audio reasoning (NLAR), a new task that analyses two audio clips by comparison and summarisation. Experiments show that APT-enhanced LLMs (namely APT-LLMs) achieve competitive results compared to the expert models (i.e., the networks trained on the target datasets) across various tasks. We finally demonstrate APT's ability in extending frozen VLMs to the audio domain without fine-tuning, achieving promising results in audio-visual question and answering. Our code and model weights will be released at https://github.com/JinhuaLiang/APT",
+    "categories": [
+      "eess.AS"
+    ],
+    "published": "2023-11-30T23:43:59+00:00",
+    "authors": [
+      "Jinhua Liang",
+      "Xubo Liu",
+      "Wenwu Wang",
+      "Mark D. Plumbley",
+      "Huy Phan",
+      "Emmanouil Benetos"
+    ],
+    "url": "http://arxiv.org/abs/2312.00249v2",
+    "label": 1,
+    "source_query": "prompt tuning language models"
+  },
+  {
+    "arxiv_id": "2312.10793v3",
+    "title": "Demystifying Instruction Mixing for Fine-tuning Large Language Models",
+    "abstract": "Instruction tuning significantly enhances the performance of large language models (LLMs) across various tasks. However, the procedure to optimizing the mixing of instruction datasets for LLM fine-tuning is still poorly understood. This study categorizes instructions into three primary types: NLP downstream tasks, coding, and general chat. We explore the effects of instruction tuning on different combinations of datasets on LLM performance, and find that certain instruction types are more advantageous for specific applications but can negatively impact other areas. This work provides insights into instruction mixtures, laying the foundations for future research.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2023-12-17T18:44:26+00:00",
+    "authors": [
+      "Renxi Wang",
+      "Haonan Li",
+      "Minghao Wu",
+      "Yuxia Wang",
+      "Xudong Han",
+      "Chiyu Zhang",
+      "Timothy Baldwin"
+    ],
+    "url": "http://arxiv.org/abs/2312.10793v3",
+    "label": 1,
+    "source_query": "prompt tuning language models"
+  },
+  {
+    "arxiv_id": "2501.16372v1",
+    "title": "Low-Rank Adapters Meet Neural Architecture Search for LLM Compression",
+    "abstract": "The rapid expansion of Large Language Models (LLMs) has posed significant challenges regarding the computational resources required for fine-tuning and deployment. Recent advancements in low-rank adapters have demonstrated their efficacy in parameter-efficient fine-tuning (PEFT) of these models. This retrospective paper comprehensively discusses innovative approaches that synergize low-rank representations with Neural Architecture Search (NAS) techniques, particularly weight-sharing super-networks. Robust solutions for compressing and fine-tuning large pre-trained models are developed by integrating these methodologies. Our analysis highlights the potential of these combined strategies to democratize the use of LLMs, making them more accessible for deployment in resource-constrained environments. The resulting models exhibit reduced memory footprints and faster inference times, paving the way for more practical and scalable applications of LLMs. Models and code are available at https://github.com/IntelLabs/Hardware-Aware-Automated-Machine-Learning.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2025-01-23T02:14:08+00:00",
+    "authors": [
+      "J. Pablo Muñoz",
+      "Jinjie Yuan",
+      "Nilesh Jain"
+    ],
+    "url": "http://arxiv.org/abs/2501.16372v1",
+    "label": 1,
+    "source_query": "quantized low-rank fine-tuning"
+  },
+  {
+    "arxiv_id": "2403.00946v3",
+    "title": "Fine-tuning with Very Large Dropout",
+    "abstract": "It is impossible today to pretend that the practice of machine learning is always compatible with the idea that training and testing data follow the same distribution. Several authors have recently used ensemble techniques to show how scenarios involving multiple data distributions are best served by representations that are both richer than those obtained by regularizing for the best in-distribution performance, and richer than those obtained under the influence of the implicit sparsity bias of common stochastic gradient procedures.   This contribution investigates the use of very high dropout rates instead of ensembles to obtain such rich representations. Although training a deep network from scratch using such dropout rates is virtually impossible, fine-tuning a large pre-trained model under such conditions is not only possible but also achieves out-of-distribution performances that exceed those of both ensembles and weight averaging methods such as model soups.   This result has practical significance because the importance of the fine-tuning scenario has considerably grown in recent years. This result also provides interesting insights on the nature of rich representations and on the intrinsically linear nature of fine-tuning a large network using a comparatively small dataset.",
+    "categories": [
+      "cs.LG",
+      "cs.CV"
+    ],
+    "published": "2024-03-01T19:50:22+00:00",
+    "authors": [
+      "Jianyu Zhang",
+      "Léon Bottou"
+    ],
+    "url": "http://arxiv.org/abs/2403.00946v3",
+    "label": 1,
+    "source_query": "quantized low-rank fine-tuning"
+  },
+  {
+    "arxiv_id": "2207.02337v1",
+    "title": "Federated and Transfer Learning: A Survey on Adversaries and Defense Mechanisms",
+    "abstract": "The advent of federated learning has facilitated large-scale data exchange amongst machine learning models while maintaining privacy. Despite its brief history, federated learning is rapidly evolving to make wider use more practical. One of the most significant advancements in this domain is the incorporation of transfer learning into federated learning, which overcomes fundamental constraints of primary federated learning, particularly in terms of security. This chapter performs a comprehensive survey on the intersection of federated and transfer learning from a security point of view. The main goal of this study is to uncover potential vulnerabilities and defense mechanisms that might compromise the privacy and performance of systems that use federated and transfer learning.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.CR",
+      "cs.CV",
+      "cs.DC"
+    ],
+    "published": "2022-07-05T22:07:26+00:00",
+    "authors": [
+      "Ehsan Hallaji",
+      "Roozbeh Razavi-Far",
+      "Mehrdad Saif"
+    ],
+    "url": "http://arxiv.org/abs/2207.02337v1",
+    "label": 1,
+    "source_query": "adapter modules transfer learning"
+  },
+  {
+    "arxiv_id": "1911.08967v1",
+    "title": "Transfer Learning Toolkit: Primers and Benchmarks",
+    "abstract": "The transfer learning toolkit wraps the codes of 17 transfer learning models and provides integrated interfaces, allowing users to use those models by calling a simple function. It is easy for primary researchers to use this toolkit and to choose proper models for real-world applications. The toolkit is written in Python and distributed under MIT open source license. In this paper, the current state of this toolkit is described and the necessary environment setting and usage are introduced.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2019-11-20T15:30:36+00:00",
+    "authors": [
+      "Fuzhen Zhuang",
+      "Keyu Duan",
+      "Tongjia Guo",
+      "Yongchun Zhu",
+      "Dongbo Xi",
+      "Zhiyuan Qi",
+      "Qing He"
+    ],
+    "url": "http://arxiv.org/abs/1911.08967v1",
+    "label": 1,
+    "source_query": "adapter modules transfer learning"
+  },
+  {
+    "arxiv_id": "1808.05443v1",
+    "title": "Transfer Learning and Organic Computing for Autonomous Vehicles",
+    "abstract": "Autonomous Vehicles(AV) are one of the brightest promises of the future which would help cut down fatalities and improve travel time while working in harmony. Autonomous vehicles will face with challenging situations and experiences not seen before. These experiences should be converted to knowledge and help the vehicle prepare better in the future. Online Transfer Learning will help transferring prior knowledge to a new task and also keep the knowledge updated as the task evolves. This paper presents the different methods of transfer learning, online transfer learning and organic computing that could be adapted to the domain of autonomous vehicles.",
+    "categories": [
+      "cs.LG",
+      "cs.RO",
+      "stat.ML"
+    ],
+    "published": "2018-08-16T12:28:11+00:00",
+    "authors": [
+      "Christofer Fellicious"
+    ],
+    "url": "http://arxiv.org/abs/1808.05443v1",
+    "label": 1,
+    "source_query": "adapter modules transfer learning"
+  },
+  {
+    "arxiv_id": "2502.01654v1",
+    "title": "Predicting concentration levels of air pollutants by transfer learning and recurrent neural network",
+    "abstract": "Air pollution (AP) poses a great threat to human health, and people are paying more attention than ever to its prediction. Accurate prediction of AP helps people to plan for their outdoor activities and aids protecting human health. In this paper, long-short term memory (LSTM) recurrent neural networks (RNNs) have been used to predict the future concentration of air pollutants (APS) in Macau. Additionally, meteorological data and data on the concentration of APS have been utilized. Moreover, in Macau, some air quality monitoring stations (AQMSs) have less observed data in quantity, and, at the same time, some AQMSs recorded less observed data of certain types of APS. Therefore, the transfer learning and pre-trained neural networks have been employed to assist AQMSs with less observed data to build a neural network with high prediction accuracy. The experimental sample covers a period longer than 12-year and includes daily measurements from several APS as well as other more classical meteorological values. Records from five stations, four out of them are AQMSs and the remaining one is an automatic weather station, have been prepared from the aforesaid period and eventually underwent to computational intelligence techniques to build and extract a prediction knowledge-based system. As shown by experimentation, LSTM RNNs initialized with transfer learning methods have higher prediction accuracy; it incurred shorter training time than randomly initialized recurrent neural networks.",
+    "categories": [
+      "cs.LG",
+      "cs.NE",
+      "physics.ao-ph"
+    ],
+    "published": "2025-01-30T23:39:19+00:00",
+    "authors": [
+      "Iat Hang Fong",
+      "Tengyue Li",
+      "Simon Fong",
+      "Raymond K. Wong",
+      "Antonio J. Tallón-Ballesteros"
+    ],
+    "url": "http://arxiv.org/abs/2502.01654v1",
+    "label": 1,
+    "source_query": "adapter modules transfer learning"
+  },
+  {
+    "arxiv_id": "2302.10473v6",
+    "title": "Oriented object detection in optical remote sensing images using deep learning: a survey",
+    "abstract": "Oriented object detection is a fundamental yet challenging task in remote sensing (RS), aiming to locate and classify objects with arbitrary orientations. Recent advancements in deep learning have significantly enhanced the capabilities of oriented object detection methods. Given the rapid development of this field, a comprehensive survey of the recent advances in oriented object detection is presented in this paper. Specifically, we begin by tracing the technical evolution from horizontal object detection to oriented object detection and highlighting the specific related challenges, including feature misalignment, spatial misalignment, oriented bounding box (OBB) regression problems, and common issues encountered in RS. Subsequently, we further categorize the existing methods into detection frameworks, OBB regression techniques, feature representation approaches, and solutions to common issues and provide an in-depth discussion of how these methods address the above challenges. In addition, we cover several publicly available datasets and evaluation protocols. Furthermore, we provide a comprehensive comparison and analysis involving the state-of-the-art methods. Toward the end of this paper, we identify several future directions for oriented object detection research.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-21T06:31:53+00:00",
+    "authors": [
+      "Kun Wang",
+      "Zi Wang",
+      "Zhang Li",
+      "Ang Su",
+      "Xichao Teng",
+      "Erting Pan",
+      "Minhao Liu",
+      "Qifeng Yu"
+    ],
+    "url": "http://arxiv.org/abs/2302.10473v6",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "1904.13353v2",
+    "title": "Object Contour and Edge Detection with RefineContourNet",
+    "abstract": "A ResNet-based multi-path refinement CNN is used for object contour detection. For this task, we prioritise the effective utilization of the high-level abstraction capability of a ResNet, which leads to state-of-the-art results for edge detection. Keeping our focus in mind, we fuse the high, mid and low-level features in that specific order, which differs from many other approaches. It uses the tensor with the highest-levelled features as the starting point to combine it layer-by-layer with features of a lower abstraction level until it reaches the lowest level. We train this network on a modified PASCAL VOC 2012 dataset for object contour detection and evaluate on a refined PASCAL-val dataset reaching an excellent performance and an Optimal Dataset Scale (ODS) of 0.752. Furthermore, by fine-training on the BSDS500 dataset we reach state-of-the-art results for edge-detection with an ODS of 0.824.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2019-04-30T16:34:27+00:00",
+    "authors": [
+      "Andre Peter Kelm",
+      "Vijesh Soorya Rao",
+      "Udo Zoelzer"
+    ],
+    "url": "http://arxiv.org/abs/1904.13353v2",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2408.14600v1",
+    "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
+    "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-08-26T19:43:01+00:00",
+    "authors": [
+      "Yidi Li",
+      "Jiahao Wen",
+      "Bin Ren",
+      "Wenhao Li",
+      "Zhenhuan Xu",
+      "Hao Guo",
+      "Hong Liu",
+      "Nicu Sebe"
+    ],
+    "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2011.09170v1",
+    "title": "TJU-DHD: A Diverse High-Resolution Dataset for Object Detection",
+    "abstract": "Vehicles, pedestrians, and riders are the most important and interesting objects for the perception modules of self-driving vehicles and video surveillance. However, the state-of-the-art performance of detecting such important objects (esp. small objects) is far from satisfying the demand of practical systems. Large-scale, rich-diversity, and high-resolution datasets play an important role in developing better object detection methods to satisfy the demand. Existing public large-scale datasets such as MS COCO collected from websites do not focus on the specific scenarios. Moreover, the popular datasets (e.g., KITTI and Citypersons) collected from the specific scenarios are limited in the number of images and instances, the resolution, and the diversity. To attempt to solve the problem, we build a diverse high-resolution dataset (called TJU-DHD). The dataset contains 115,354 high-resolution images (52% images have a resolution of 1624$\\times$1200 pixels and 48% images have a resolution of at least 2,560$\\times$1,440 pixels) and 709,330 labeled objects in total with a large variance in scale and appearance. Meanwhile, the dataset has a rich diversity in season variance, illumination variance, and weather variance. In addition, a new diverse pedestrian dataset is further built. With the four different detectors (i.e., the one-stage RetinaNet, anchor-free FCOS, two-stage FPN, and Cascade R-CNN), experiments about object detection and pedestrian detection are conducted. We hope that the newly built dataset can help promote the research on object detection and pedestrian detection in these two scenes. The dataset is available at https://github.com/tjubiit/TJU-DHD.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-11-18T09:32:24+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Jiale Cao",
+      "Yazhao Li",
+      "Jin Xie",
+      "Hanqing Sun",
+      "Jinfeng Gong"
+    ],
+    "url": "http://arxiv.org/abs/2011.09170v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2110.14711v3",
+    "title": "A Survey of Self-Supervised and Few-Shot Object Detection",
+    "abstract": "Labeling data is often expensive and time-consuming, especially for tasks such as object detection and instance segmentation, which require dense labeling of the image. While few-shot object detection is about training a model on novel (unseen) object classes with little data, it still requires prior training on many labeled examples of base (seen) classes. On the other hand, self-supervised methods aim at learning representations from unlabeled data which transfer well to downstream tasks such as object detection. Combining few-shot and self-supervised object detection is a promising research direction. In this survey, we review and characterize the most recent approaches on few-shot and self-supervised object detection. Then, we give our main takeaways and discuss future research directions. Project page at https://gabrielhuang.github.io/fsod-survey/",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-10-27T18:55:47+00:00",
+    "authors": [
+      "Gabriel Huang",
+      "Issam Laradji",
+      "David Vazquez",
+      "Simon Lacoste-Julien",
+      "Pau Rodriguez"
+    ],
+    "url": "http://arxiv.org/abs/2110.14711v3",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2006.11692v1",
+    "title": "Semi-Supervised Object Detection with Sparsely Annotated Dataset",
+    "abstract": "In training object detector based on convolutional neural networks, selection of effective positive examples for training is an important factor. However, when training an anchor-based detectors with sparse annotations on an image, effort to find effective positive examples can hinder training performance. When using the anchor-based training for the ground truth bounding box to collect positive examples under given IoU, it is often possible to include objects from other classes in the current training class, or objects that are needed to be trained can only be sampled as negative examples. We used two approaches to solve this problem: 1) the use of an anchorless object detector and 2) a semi-supervised learning-based object detection using a single object tracker. The proposed technique performs single object tracking by using the sparsely annotated bounding box as an anchor in the temporal domain for successive frames. From the tracking results, dense annotations for training images were generated in an automated manner and used for training the object detector. We applied the proposed single object tracking-based semi-supervised learning to the Epic-Kitchens dataset. As a result, we were able to achieve \\textbf{runner-up} performance in the Unseen section while achieving the first place in the Seen section of the Epic-Kitchens 2020 object detection challenge under IoU > 0.5 evaluation",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-06-21T02:26:48+00:00",
+    "authors": [
+      "Jihun Yoon",
+      "Seungbum Hong",
+      "Sanha Jeong",
+      "Min-Kook Choi"
+    ],
+    "url": "http://arxiv.org/abs/2006.11692v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2301.02562v1",
+    "title": "Super Sparse 3D Object Detection",
+    "abstract": "As the perception range of LiDAR expands, LiDAR-based 3D object detection contributes ever-increasingly to the long-range perception in autonomous driving. Mainstream 3D object detectors often build dense feature maps, where the cost is quadratic to the perception range, making them hardly scale up to the long-range settings. To enable efficient long-range detection, we first propose a fully sparse object detector termed FSD. FSD is built upon the general sparse voxel encoder and a novel sparse instance recognition (SIR) module. SIR groups the points into instances and applies highly-efficient instance-wise feature extraction. The instance-wise grouping sidesteps the issue of the center feature missing, which hinders the design of the fully sparse architecture. To further enjoy the benefit of fully sparse characteristic, we leverage temporal information to remove data redundancy and propose a super sparse detector named FSD++. FSD++ first generates residual points, which indicate the point changes between consecutive frames. The residual points, along with a few previous foreground points, form the super sparse input data, greatly reducing data redundancy and computational overhead. We comprehensively analyze our method on the large-scale Waymo Open Dataset, and state-of-the-art performance is reported. To showcase the superiority of our method in long-range detection, we also conduct experiments on Argoverse 2 Dataset, where the perception range ($200m$) is much larger than Waymo Open Dataset ($75m$). Code is open-sourced at https://github.com/tusen-ai/SST.",
+    "categories": [
+      "cs.CV",
+      "cs.RO"
+    ],
+    "published": "2023-01-05T17:03:56+00:00",
+    "authors": [
+      "Lue Fan",
+      "Yuxue Yang",
+      "Feng Wang",
+      "Naiyan Wang",
+      "Zhaoxiang Zhang"
+    ],
+    "url": "http://arxiv.org/abs/2301.02562v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2508.19294v2",
+    "title": "Object Detection with Multimodal Large Vision-Language Models: An In-depth Review",
+    "abstract": "The fusion of language and vision in large vision-language models (LVLMs) has revolutionized deep learning-based object detection by enhancing adaptability, contextual reasoning, and generalization beyond traditional architectures. This in-depth review presents a structured exploration of the state-of-the-art in LVLMs, systematically organized through a three-step research review process. First, we discuss the functioning of vision language models (VLMs) for object detection, describing how these models harness natural language processing (NLP) and computer vision (CV) techniques to revolutionize object detection and localization. We then explain the architectural innovations, training paradigms, and output flexibility of recent LVLMs for object detection, highlighting how they achieve advanced contextual understanding for object detection. The review thoroughly examines the approaches used in integration of visual and textual information, demonstrating the progress made in object detection using VLMs that facilitate more sophisticated object detection and localization strategies. This review presents comprehensive visualizations demonstrating LVLMs' effectiveness in diverse scenarios including localization and segmentation, and then compares their real-time performance, adaptability, and complexity to traditional deep learning systems. Based on the review, its is expected that LVLMs will soon meet or surpass the performance of conventional methods in object detection. The review also identifies a few major limitations of the current LVLM modes, proposes solutions to address those challenges, and presents a clear roadmap for the future advancement in this field. We conclude, based on this study, that the recent advancement in LVLMs have made and will continue to make a transformative impact on object detection and robotic applications in the future.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.CL"
+    ],
+    "published": "2025-08-25T17:21:00+00:00",
+    "authors": [
+      "Ranjan Sapkota",
+      "Manoj Karkee"
+    ],
+    "url": "http://arxiv.org/abs/2508.19294v2",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2411.02844v1",
+    "title": "Correlation of Object Detection Performance with Visual Saliency and Depth Estimation",
+    "abstract": "As object detection techniques continue to evolve, understanding their relationships with complementary visual tasks becomes crucial for optimising model architectures and computational resources. This paper investigates the correlations between object detection accuracy and two fundamental visual tasks: depth prediction and visual saliency prediction. Through comprehensive experiments using state-of-the-art models (DeepGaze IIE, Depth Anything, DPT-Large, and Itti's model) on COCO and Pascal VOC datasets, we find that visual saliency shows consistently stronger correlations with object detection accuracy (mA$ρ$ up to 0.459 on Pascal VOC) compared to depth prediction (mA$ρ$ up to 0.283). Our analysis reveals significant variations in these correlations across object categories, with larger objects showing correlation values up to three times higher than smaller objects. These findings suggest incorporating visual saliency features into object detection architectures could be more beneficial than depth information, particularly for specific object categories. The observed category-specific variations also provide insights for targeted feature engineering and dataset design improvements, potentially leading to more efficient and accurate object detection systems.",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2024-11-05T06:34:19+00:00",
+    "authors": [
+      "Matthias Bartolo",
+      "Dylan Seychell"
+    ],
+    "url": "http://arxiv.org/abs/2411.02844v1",
+    "label": 0,
+    "source_query": "object detection convolutional"
+  },
+  {
+    "arxiv_id": "2607.18488v1",
+    "title": "The Open Ant: A Robot Platform for Reinforcement Learning Research",
+    "abstract": "Reinforcement learning (RL) research has demonstrated success in both physical and simulated domains; however, the predominant methodology remains rooted in simulations. The predominance of simulations makes translating research to physical reality uncertain for both algorithms and researchers. We propose a physical platform that is designed to simplify the transition. In this paper, we present the Open Ant: a physical variant of the commonly used Gymnasium Ant environment, along with a simulation. We demonstrate that competent walking policies can be learned from scratch in approximately one hour directly from the physical robot's experience for two substantially different RL algorithms: SARSA($λ$) and Soft Actor-Critic (SAC). Separately, we show policies that were learned in simulation transfer to reality. We also examine how well the platform supports a nimble experimental ecosystem. Specifically, we observe the speed with which new users from diverse backgrounds achieve their first success with the platform, and how easily the platform can be repaired and updated when hardware issues arise. Both the hardware design and software are available as open-source on GitHub for ease of customization. In summary, we advocate for the use of the Open Ant for RL researchers who frequently use simulated environments, so they can more easily include robot experiments in their evaluations.",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "eess.SY"
+    ],
+    "published": "2026-07-20T20:18:29+00:00",
+    "authors": [
+      "Elena Sorina Lupu",
+      "Patrick Spieler",
+      "Khurram Javed",
+      "Kris De Asis",
+      "John D. Martin",
+      "Martha Steenstrup",
+      "Joseph Modayil"
+    ],
+    "url": "http://arxiv.org/abs/2607.18488v1",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "2602.12375v1",
+    "title": "Value Bonuses using Ensemble Errors for Exploration in Reinforcement Learning",
+    "abstract": "Optimistic value estimates provide one mechanism for directed exploration in reinforcement learning (RL). The agent acts greedily with respect to an estimate of the value plus what can be seen as a value bonus. The value bonus can be learned by estimating a value function on reward bonuses, propagating local uncertainties around rewards. However, this approach only increases the value bonus for an action retroactively, after seeing a higher reward bonus from that state and action. Such an approach does not encourage the agent to visit a state and action for the first time. In this work, we introduce an algorithm for exploration called Value Bonuses with Ensemble errors (VBE), that maintains an ensemble of random action-value functions (RQFs). VBE uses the errors in the estimation of these RQFs to design value bonuses that provide first-visit optimism and deep exploration. The key idea is to design the rewards for these RQFs in such a way that the value bonus can decrease to zero. We show that VBE outperforms Bootstrap DQN and two reward bonus approaches (RND and ACB) on several classic environments used to test exploration and provide demonstrative experiments that it can scale easily to more complex environments like Atari.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2026-02-12T20:12:17+00:00",
+    "authors": [
+      "Abdul Wahab",
+      "Raksha Kumaraswamy",
+      "Martha White"
+    ],
+    "url": "http://arxiv.org/abs/2602.12375v1",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "2507.02910v1",
+    "title": "Causal-Paced Deep Reinforcement Learning",
+    "abstract": "Designing effective task sequences is crucial for curriculum reinforcement learning (CRL), where agents must gradually acquire skills by training on intermediate tasks. A key challenge in CRL is to identify tasks that promote exploration, yet are similar enough to support effective transfer. While recent approach suggests comparing tasks via their Structural Causal Models (SCMs), the method requires access to ground-truth causal structures, an unrealistic assumption in most RL settings. In this work, we propose Causal-Paced Deep Reinforcement Learning (CP-DRL), a curriculum learning framework aware of SCM differences between tasks based on interaction data approximation. This signal captures task novelty, which we combine with the agent's learnability, measured by reward gain, to form a unified objective. Empirically, CP-DRL outperforms existing curriculum methods on the Point Mass benchmark, achieving faster convergence and higher returns. CP-DRL demonstrates reduced variance with comparable final returns in the Bipedal Walker-Trivial setting, and achieves the highest average performance in the Infeasible variant. These results indicate that leveraging causal relationships between tasks can improve the structure-awareness and sample efficiency of curriculum reinforcement learning. We provide the full implementation of CP-DRL to facilitate the reproduction of our main results at https://github.com/Cho-Geonwoo/CP-DRL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2025-06-24T20:15:01+00:00",
+    "authors": [
+      "Geonwoo Cho",
+      "Jaegyun Im",
+      "Doyoon Kim",
+      "Sundong Kim"
+    ],
+    "url": "http://arxiv.org/abs/2507.02910v1",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "1807.05037v1",
+    "title": "Exploring Hierarchy-Aware Inverse Reinforcement Learning",
+    "abstract": "We introduce a new generative model for human planning under the Bayesian Inverse Reinforcement Learning (BIRL) framework which takes into account the fact that humans often plan using hierarchical strategies. We describe the Bayesian Inverse Hierarchical RL (BIHRL) algorithm for inferring the values of hierarchical planners, and use an illustrative toy model to show that BIHRL retains accuracy where standard BIRL fails. Furthermore, BIHRL is able to accurately predict the goals of `Wikispeedia' game players, with inclusion of hierarchical structure in the model resulting in a large boost in accuracy. We show that BIHRL is able to significantly outperform BIRL even when we only have a weak prior on the hierarchical structure of the plans available to the agent, and discuss the significant challenges that remain for scaling up this framework to more realistic settings.",
+    "categories": [
+      "cs.AI",
+      "cs.HC"
+    ],
+    "published": "2018-07-13T12:33:07+00:00",
+    "authors": [
+      "Chris Cundy",
+      "Daniel Filan"
+    ],
+    "url": "http://arxiv.org/abs/1807.05037v1",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "2607.26434v2",
+    "title": "Reinforcement Learning on Cost-Constrained Quadrupedal Hardware",
+    "abstract": "Deploying learned control policies on low-cost robotic platforms introduces transport latencies and noisy motor feedback that systematically widens the sim-to-real gap. The chasm of simulation to deployment in hardware lies in the delay of the actuator reaching the commanded position. On platforms such as the Mini Pupper 2, a measured >50 ms transport delay transforms the locomotion task from a standard Markov decision process into a partially observable one. In this paper, we take a biologically inspired approach of handling noisy and delayed feedback to close the sim-to-real gap, thereby expanding the capability of reinforcement learning on cost-constrained hardware. Using a low-cost quadrupedal hardware platform, we find that using a forward model of the average actuator delay, paired with a time-aware neural network results in robust locomotion. Additionally, our time-aware neural network learned a central pattern generator (CPG): a self-sustaining rhythmic gait that is robust to +320 ms latency perturbations, mirroring the CPGs found in the spinal cords of vertebrates. We posit that temporal self-organization may be a general strategy for cost-constrained locomotion.",
+    "categories": [
+      "cs.RO",
+      "cs.AI"
+    ],
+    "published": "2026-07-29T03:22:12+00:00",
+    "authors": [
+      "Javier C. Weddington",
+      "Bence P. Ölveczky",
+      "Stephen A. Baccus"
+    ],
+    "url": "http://arxiv.org/abs/2607.26434v2",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "2511.06465v1",
+    "title": "Sim-to-Real Transfer in Deep Reinforcement Learning for Bipedal Locomotion",
+    "abstract": "This chapter addresses the critical challenge of simulation-to-reality (sim-to-real) transfer for deep reinforcement learning (DRL) in bipedal locomotion. After contextualizing the problem within various control architectures, we dissect the ``curse of simulation'' by analyzing the primary sources of sim-to-real gap: robot dynamics, contact modeling, state estimation, and numerical solvers. Building on this diagnosis, we structure the solutions around two complementary philosophies. The first is to shrink the gap through model-centric strategies that systematically improve the simulator's physical fidelity. The second is to harden the policy, a complementary approach that uses in-simulation robustness training and post-deployment adaptation to make the policy inherently resilient to model inaccuracies. The chapter concludes by synthesizing these philosophies into a strategic framework, providing a clear roadmap for developing and evaluating robust sim-to-real solutions.",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2025-11-09T17:20:04+00:00",
+    "authors": [
+      "Lingfan Bao",
+      "Tianhu Peng",
+      "Chengxu Zhou"
+    ],
+    "url": "http://arxiv.org/abs/2511.06465v1",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "2301.08028v4",
+    "title": "A Tutorial on Meta-Reinforcement Learning",
+    "abstract": "While deep reinforcement learning (RL) has fueled multiple high-profile successes in machine learning, it is held back from more widespread adoption by its often poor data efficiency and the limited generality of the policies it produces. A promising approach for alleviating these limitations is to cast the development of better RL algorithms as a machine learning problem itself in a process called meta-RL. Meta-RL is most commonly studied in a problem setting where, given a distribution of tasks, the goal is to learn a policy that is capable of adapting to any new task from the task distribution with as little data as possible. In this survey, we describe the meta-RL problem setting in detail as well as its major variations. We discuss how, at a high level, meta-RL research can be clustered based on the presence of a task distribution and the learning budget available for each individual task. Using these clusters, we then survey meta-RL algorithms and applications. We conclude by presenting the open problems on the path to making meta-RL part of the standard toolbox for a deep RL practitioner.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2023-01-19T12:01:41+00:00",
+    "authors": [
+      "Jacob Beck",
+      "Risto Vuorio",
+      "Evan Zheran Liu",
+      "Zheng Xiong",
+      "Luisa Zintgraf",
+      "Chelsea Finn",
+      "Shimon Whiteson"
+    ],
+    "url": "http://arxiv.org/abs/2301.08028v4",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "1809.09501v1",
+    "title": "Anderson Acceleration for Reinforcement Learning",
+    "abstract": "Anderson acceleration is an old and simple method for accelerating the computation of a fixed point. However, as far as we know and quite surprisingly, it has never been applied to dynamic programming or reinforcement learning. In this paper, we explain briefly what Anderson acceleration is and how it can be applied to value iteration, this being supported by preliminary experiments showing a significant speed up of convergence, that we critically discuss. We also discuss how this idea could be applied more generally to (deep) reinforcement learning.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2018-09-25T14:04:25+00:00",
+    "authors": [
+      "Matthieu Geist",
+      "Bruno Scherrer"
+    ],
+    "url": "http://arxiv.org/abs/1809.09501v1",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "2406.04896v2",
+    "title": "Stabilizing Extreme Q-learning by Maclaurin Expansion",
+    "abstract": "In offline reinforcement learning, in-sample learning methods have been widely used to prevent performance degradation caused by evaluating out-of-distribution actions from the dataset. Extreme Q-learning (XQL) employs a loss function based on the assumption that Bellman error follows a Gumbel distribution, enabling it to model the soft optimal value function in an in-sample manner. It has demonstrated strong performance in both offline and online reinforcement learning settings. However, issues remain, such as the instability caused by the exponential term in the loss function and the risk of the error distribution deviating from the Gumbel distribution. Therefore, we propose Maclaurin Expanded Extreme Q-learning to enhance stability. In this method, applying Maclaurin expansion to the loss function in XQL enhances stability against large errors. This approach involves adjusting the modeled value function between the value function under the behavior policy and the soft optimal value function, thus achieving a trade-off between stability and optimality depending on the order of expansion. It also enables adjustment of the error distribution assumption from a normal distribution to a Gumbel distribution. Our method significantly stabilizes learning in online RL tasks from DM Control, where XQL was previously unstable. Additionally, it improves performance in several offline RL tasks from D4RL.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2024-06-07T12:43:17+00:00",
+    "authors": [
+      "Motoki Omura",
+      "Takayuki Osa",
+      "Yusuke Mukuta",
+      "Tatsuya Harada"
+    ],
+    "url": "http://arxiv.org/abs/2406.04896v2",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "1909.11939v6",
+    "title": "MERL: Multi-Head Reinforcement Learning",
+    "abstract": "A common challenge in reinforcement learning is how to convert the agent's interactions with an environment into fast and robust learning. For instance, earlier work makes use of domain knowledge to improve existing reinforcement learning algorithms in complex tasks. While promising, previously acquired knowledge is often costly and challenging to scale up. Instead, we decide to consider problem knowledge with signals from quantities relevant to solve any task, e.g., self-performance assessment and accurate expectations. $\\mathcal{V}^{ex}$ is such a quantity. It is the fraction of variance explained by the value function $V$ and measures the discrepancy between $V$ and the returns. Taking advantage of $\\mathcal{V}^{ex}$, we propose MERL, a general framework for structuring reinforcement learning by injecting problem knowledge into policy gradient updates. As a result, the agent is not only optimized for a reward but learns using problem-focused quantities provided by MERL, applicable out-of-the-box to any task. In this paper: (a) We introduce and define MERL, the multi-head reinforcement learning framework we use throughout this work. (b) We conduct experiments across a variety of standard benchmark environments, including 9 continuous control tasks, where results show improved performance. (c) We demonstrate that MERL also improves transfer learning on a set of challenging pixel-based tasks. (d) We ponder how MERL tackles the problem of reward sparsity and better conditions the feature space of reinforcement learning agents.",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "stat.ML"
+    ],
+    "published": "2019-09-26T06:57:51+00:00",
+    "authors": [
+      "Yannis Flet-Berliac",
+      "Philippe Preux"
+    ],
+    "url": "http://arxiv.org/abs/1909.11939v6",
+    "label": 0,
+    "source_query": "reinforcement learning locomotion"
+  },
+  {
+    "arxiv_id": "1206.3509v1",
+    "title": "A Novel Approach for Protein Structure Prediction",
+    "abstract": "The idea of this project is to study the protein structure and sequence relationship using the hidden markov model and artificial neural network. In this context we have assumed two hidden markov models. In first model we have taken protein secondary structures as hidden and protein sequences as observed. In second model we have taken protein sequences as hidden and protein structures as observed. The efficiencies for both the hidden markov models have been calculated. The results show that the efficiencies of first model is greater that the second one .These efficiencies are cross validated using artificial neural network. This signifies the importance of protein secondary structures as the main hidden controlling factors due to which we observe a particular amino acid sequence. This also signifies that protein secondary structure is more conserved in comparison to amino acid sequence.",
+    "categories": [
+      "cs.LG",
+      "q-bio.BM"
+    ],
+    "published": "2012-06-15T16:31:45+00:00",
+    "authors": [
+      "Saurabh Sarkar",
+      "Prateek Malhotra",
+      "Virender Guman"
+    ],
+    "url": "http://arxiv.org/abs/1206.3509v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2207.07410v1",
+    "title": "AlphaFold predicts the most complex protein knot and composite protein knots",
+    "abstract": "The computer artificial intelligence system AlphaFold has recently predicted previously unknown three-dimensional structures of thousands of proteins. Focusing on the subset with high-confidence scores, we algorithmically analyze these predictions for cases where the protein backbone exhibits rare topological complexity, i.e. knotting. Amongst others, we discovered a $7_1$-knot, the most topologically complex knot ever found in a protein, as well several 6-crossing composite knots comprised of two methyltransferase or carbonic anhydrase domains, each containing a simple trefoil knot. These deeply embedded composite knots occur evidently by gene duplication and interconnection of knotted dimers. Finally, we report two new five-crossing knots including the first $5_1$-knot. Our list of analyzed structures forms the basis for future experimental studies to confirm these novel knotted topologies and to explore their complex folding mechanisms.",
+    "categories": [
+      "q-bio.BM",
+      "cond-mat.soft",
+      "physics.bio-ph"
+    ],
+    "published": "2022-07-15T11:38:45+00:00",
+    "authors": [
+      "Maarten A. Brems",
+      "Robert Runkel",
+      "Todd O. Yeates",
+      "Peter Virnau"
+    ],
+    "url": "http://arxiv.org/abs/2207.07410v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2504.06806v1",
+    "title": "Mass Balance Approximation of Unfolding Improves Potential-Like Methods for Protein Stability Predictions",
+    "abstract": "The prediction of protein stability changes following single-point mutations plays a pivotal role in computational biology, particularly in areas like drug discovery, enzyme reengineering, and genetic disease analysis. Although deep-learning strategies have pushed the field forward, their use in standard workflows remains limited due to resource demands. Conversely, potential-like methods are fast, intuitive, and efficient. Yet, these typically estimate Gibbs free energy shifts without considering the free-energy variations in the unfolded protein state, an omission that may breach mass balance and diminish accuracy. This study shows that incorporating a mass-balance correction (MBC) to account for the unfolded state significantly enhances these methods. While many machine learning models partially model this balance, our analysis suggests that a refined representation of the unfolded state may improve the predictive performance.",
+    "categories": [
+      "q-bio.QM",
+      "cs.LG",
+      "physics.bio-ph"
+    ],
+    "published": "2025-04-09T11:53:02+00:00",
+    "authors": [
+      "Ivan Rossi",
+      "Guido Barducci",
+      "Tiziana Sanavia",
+      "Paola Turina",
+      "Emidio Capriotti",
+      "Piero Fariselli"
+    ],
+    "url": "http://arxiv.org/abs/2504.06806v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1208.2680v2",
+    "title": "Atomic-accuracy prediction of protein loop structures through an RNA-inspired ansatz",
+    "abstract": "Consistently predicting biopolymer structure at atomic resolution from sequence alone remains a difficult problem, even for small sub-segments of large proteins. Such loop prediction challenges, which arise frequently in comparative modeling and protein design, can become intractable as loop lengths exceed 10 residues and if surrounding side-chain conformations are erased. This article introduces a modeling strategy based on a 'stepwise ansatz', recently developed for RNA modeling, which posits that any realistic all-atom molecular conformation can be built up by residue-by-residue stepwise enumeration. When harnessed to a dynamic-programming-like recursion in the Rosetta framework, the resulting stepwise assembly (SWA) protocol enables enumerative sampling of a 12 residue loop at a significant but achievable cost of thousands of CPU-hours. In a previously established benchmark, SWA recovers crystallographic conformations with sub-Angstrom accuracy for 19 of 20 loops, compared to 14 of 20 by KIC modeling with a comparable expenditure of computational power. Furthermore, SWA gives high accuracy results on an additional set of 15 loops highlighted in the biological literature for their irregularity or unusual length. Successes include cis-Pro touch turns, loops that pass through tunnels of other side-chains, and loops of lengths up to 24 residues. Remaining problem cases are traced to inaccuracies in the Rosetta all-atom energy function. In five additional blind tests, SWA achieves sub-Angstrom accuracy models, including the first such success in a protein/RNA binding interface, the YbxF/kink-turn interaction in the fourth RNA-puzzle competition. These results establish all-atom enumeration as a systematic approach to protein structure that can leverage high performance computing and physically realistic energy functions to more consistently achieve atomic resolution.",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2012-08-02T19:06:33+00:00",
+    "authors": [
+      "Rhiju Das"
+    ],
+    "url": "http://arxiv.org/abs/1208.2680v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1511.08097v2",
+    "title": "One-Dimensional Structural Properties of Proteins in the Coarse-Grained CABS Model",
+    "abstract": "Despite the significant increase in computational power, molecular modeling of protein structure using classical all-atom approaches remains inefficient, at least for most of the protein targets in the focus of biomedical research. Perhaps the most successful strategy to overcome the inefficiency problem is multiscale modeling to merge all-atom and coarse-grained models. This chapter describes a well-established CABS coarse-grained protein model. The CABS (C-Alpha, C-Beta and Side chains) model assumes a 2-4 united-atom representation of amino acids, knowledge-based force field (derived from the statistical regularities seen in known protein sequences and structures) and efficient Monte Carlo sampling schemes (MC dynamics, MC replica-exchange, and combinations). A particular emphasis is given to the unique design of the CABS force-field, which is largely defined using one-dimensional structural properties of proteins, including protein secondary structure. This chapter also presents CABS-based modeling methods, including multiscale tools for de novo structure prediction, modeling of protein dynamics and prediction of protein-peptide complexes. CABS-based tools are freely available at http://biocomp.chem.uw.edu.pl/tools",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2015-11-25T15:46:58+00:00",
+    "authors": [
+      "Sebastian Kmiecik",
+      "Andrzej Kolinski"
+    ],
+    "url": "http://arxiv.org/abs/1511.08097v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1711.10540v2",
+    "title": "ISLAND: In-Silico Prediction of Proteins Binding Affinity Using Sequence Descriptors",
+    "abstract": "Determination of binding affinity of proteins in the formation of protein complexes requires sophisticated, expensive and time-consuming experimentation which can be replaced with computational methods. Most computational prediction techniques require protein structures which limit their applicability to protein complexes with known structures. In this work, we explore sequence based protein binding affinity prediction using machine learning. Our paper highlights the fact that the generalization performance of even the state of the art sequence-only predictor of binding affinity is far from satisfactory and that the development of effective and practical methods in this domain is still an open problem. We also propose a novel sequence-only predictor of binding affinity called ISLAND which gives better accuracy than existing methods over the same validation set as well as on external independent test dataset. A cloud-based webserver implementation of ISLAND and its Python code are available at the URL: http://faculty.pieas.edu.pk/fayyaz/software.html#island.",
+    "categories": [
+      "q-bio.QM",
+      "cs.LG"
+    ],
+    "published": "2017-11-22T07:54:31+00:00",
+    "authors": [
+      "Wajid Arshad Abbasi",
+      "Fahad Ul Hassan",
+      "Adiba Yaseen",
+      "Fayyaz Ul Amir Afsar Minhas"
+    ],
+    "url": "http://arxiv.org/abs/1711.10540v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1310.2182v1",
+    "title": "New Approach for Prediction Pre-cancer via Detecting Mutated in Tumor Protein P53",
+    "abstract": "Tumor protein P53 is believed to be involved in over half of human cancers cases, the prediction of malignancies plays essential roles not only in advance detection for cancer, but also in discovering effective prevention and treatment of cancer, till now there isn't approach be able in prediction the mutated in tumor protein P53 which is caused high ratio of human cancers like breast, Blood, skin, liver, lung, bladder etc. This research proposed a new approach for prediction pre-cancer via detection malignant mutations in tumor protein P53 using bioinformatics tools like FASTA, BLAST, CLUSTALW and TP53 databases worldwide. Implement and apply this new approach of prediction pre-cancer through mutations at tumor protein P53 shows an effective result when used more specific parameters/features to extract the prediction result that means when the user increase the number of filters of the results which obtained from the database gives more specific diagnosis and classify, addition that the detecting pre-cancer via prediction mutated tumor protein P53 will reduces a person's cancers in the future by avoiding exposure to toxins, radiation or monitoring themselves at older ages by change their food, environment, even the pace of living. Also that new approach of prediction pre-cancer will help if there is any treatment can give for that person to therapy the mutated tumor protein P53. Index Terms (Normal Homology TP53 gene, Tumor Protein P53, Oncogene Labs, GC and AT content, FASTA, BLAST, ClustalW)",
+    "categories": [
+      "cs.CE",
+      "q-bio.OT"
+    ],
+    "published": "2013-10-08T15:43:25+00:00",
+    "authors": [
+      "Ayad Ghany Ismaeel"
+    ],
+    "url": "http://arxiv.org/abs/1310.2182v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "1008.4006v3",
+    "title": "Potentials of Mean Force for Protein Structure Prediction Vindicated, Formalized and Generalized",
+    "abstract": "Understanding protein structure is of crucial importance in science, medicine and biotechnology. For about two decades, knowledge based potentials based on pairwise distances -- so-called \"potentials of mean force\" (PMFs) -- have been center stage in the prediction and design of protein structure and the simulation of protein folding. However, the validity, scope and limitations of these potentials are still vigorously debated and disputed, and the optimal choice of the reference state -- a necessary component of these potentials -- is an unsolved problem. PMFs are loosely justified by analogy to the reversible work theorem in statistical physics, or by a statistical argument based on a likelihood function. Both justifications are insightful but leave many questions unanswered. Here, we show for the first time that PMFs can be seen as approximations to quantities that do have a rigorous probabilistic justification: they naturally arise when probability distributions over different features of proteins need to be combined. We call these quantities reference ratio distributions deriving from the application of the reference ratio method. This new view is not only of theoretical relevance, but leads to many insights that are of direct practical use: the reference state is uniquely defined and does not require external physical insights; the approach can be generalized beyond pairwise distances to arbitrary features of protein structure; and it becomes clear for which purposes the use of these quantities is justified. We illustrate these insights with two applications, involving the radius of gyration and hydrogen bonding. In the latter case, we also show how the reference ratio method can be iteratively applied to sculpt an energy funnel. Our results considerably increase the understanding and scope of energy functions derived from known biomolecular structures.",
+    "categories": [
+      "q-bio.BM",
+      "cond-mat.stat-mech"
+    ],
+    "published": "2010-08-24T10:49:18+00:00",
+    "authors": [
+      "Thomas Hamelryck",
+      "Mikael Borg",
+      "Martin Paluszewski",
+      "Jonas Paulsen",
+      "Jes Frellsen",
+      "Christian Andreetta",
+      "Wouter Boomsma",
+      "Sandro Bottaro",
+      "Jesper Ferkinghoff-Borg"
+    ],
+    "url": "http://arxiv.org/abs/1008.4006v3",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2307.02169v2",
+    "title": "Introduction to Protein Structure",
+    "abstract": "While many good textbooks are available on Protein Structure, Molecular Simulations, Thermodynamics and Bioinformatics methods in general, there is no good introductory level book for the field of Structural Bioinformatics. This book aims to give an introduction into Structural Bioinformatics, which is where the previous topics meet to explore three dimensional protein structures through computational analysis. We provide an overview of existing computational techniques, to validate, simulate, predict and analyse protein structures. More importantly, it will aim to provide practical knowledge about how and when to use such techniques. We will consider proteins from three major vantage points: Protein structure quantification, Protein structure prediction, and Protein simulation & dynamics.   Within the living cell, protein molecules perform specific functions, typically by interacting with other proteins, DNA, RNA or small molecules. They take on a specific three dimensional structure, encoded by its amino acid sequence, which allows them to function within the cell. Hence, the understanding of a protein's function is tightly coupled to its sequence and its three dimensional structure. Before going into protein structure analysis and prediction, and protein folding and dynamics, here, we give a short and concise introduction into the basics of protein structures.",
+    "categories": [
+      "q-bio.BM"
+    ],
+    "published": "2023-07-05T10:12:55+00:00",
+    "authors": [
+      "Annika Jacobsen",
+      "Erik van Dijk",
+      "Halima Mouhib",
+      "Bas Stringer",
+      "Olga Ivanova",
+      "Jose Gavaldá-Garciá",
+      "Laura Hoekstra",
+      "K. Anton Feenstra",
+      "Sanne Abeln"
+    ],
+    "url": "http://arxiv.org/abs/2307.02169v2",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  },
+  {
+    "arxiv_id": "2601.00656v1",
+    "title": "Quantum Simulation of Protein Fragment Electronic Structure Using Moment-based Adaptive Variational Quantum Algorithms",
+    "abstract": "Background: Understanding electronic interactions in protein active sites is fundamental to drug discovery and enzyme engineering, but remains computationally challenging due to exponential scaling of quantum mechanical calculations.   Results: We present a quantum-classical hybrid framework for simulating protein fragment electronic structure using variational quantum algorithms. We construct fermionic Hamiltonians from experimentally determined protein structures, map them to qubits via Jordan-Wigner transformation, and optimize ground state energies using the Variational Quantum Eigensolver implemented in pure Python. For a 4-orbital serine protease fragment, we achieve chemical accuracy (< 1.6 mHartree) with 95.3% correlation energy recovery. Systematic analysis reveals three-phase convergence behaviour with exponential decay (α = 0.95), power law optimization (γ = 1.21), and asymptotic approach. Application to SARS-CoV-2 protease inhibition demonstrates predictive accuracy (MAE=0.25 kcal/mol), while cytochrome P450 metabolism predictions achieve 85% site accuracy.   Conclusions: This work establishes a pathway for quantum-enhanced biomolecular simulations on near-term quantum hardware, bridging quantum algorithm development with practical biological applications.",
+    "categories": [
+      "q-bio.QM",
+      "cs.ET"
+    ],
+    "published": "2026-01-02T11:33:09+00:00",
+    "authors": [
+      "Biraja Ghoshal"
+    ],
+    "url": "http://arxiv.org/abs/2601.00656v1",
+    "label": 0,
+    "source_query": "protein structure prediction"
+  }
+]

@@ -1,0 +1,925 @@
+[
+  {
+    "arxiv_id": "2306.14753v1",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural Networks could benefit from Data-Driven Homogeneous Chaos Theory",
+    "abstract": "Artificial Intelligence and Machine learning have been widely used in various fields of mathematical computing, physical modeling, computational science, communication science, and stochastic analysis. Approaches based on Deep Artificial Neural Networks (DANN) are very popular in our days. Depending on the learning task, the exact form of DANNs is determined via their multi-layer architecture, activation functions and the so-called loss function. However, for a majority of deep learning approaches based on DANNs, the kernel structure of neural signal processing remains the same, where the node response is encoded as a linear superposition of neural activity, while the non-linearity is triggered by the activation functions. In the current paper, we suggest to analyze the neural signal processing in DANNs from the point of view of homogeneous chaos theory as known from polynomial chaos expansion (PCE). From the PCE perspective, the (linear) response on each node of a DANN could be seen as a $1^{st}$ degree multi-variate polynomial of single neurons from the previous layer, i.e. linear weighted sum of monomials. From this point of view, the conventional DANN structure relies implicitly (but erroneously) on a Gaussian distribution of neural signals. Additionally, this view revels that by design DANNs do not necessarily fulfill any orthogonality or orthonormality condition for a majority of data-driven applications. Therefore, the prevailing handling of neural signals in DANNs could lead to redundant representation as any neural signal could contain some partial information from other neural signals. To tackle that challenge, we suggest to employ the data-driven generalization of PCE theory known as arbitrary polynomial chaos (aPC) to construct a corresponding multi-variate orthonormal representations on each node of a DANN to obtain Deep arbitrary polynomial chaos neural networks.",
+    "categories": [
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2023-06-26T15:09:14+00:00",
+    "authors": [
+      "Sergey Oladyshkin",
+      "Timothy Praditia",
+      "Ilja Kröker",
+      "Farid Mohammadi",
+      "Wolfgang Nowak",
+      "Sebastian Otte"
+    ],
+    "url": "http://arxiv.org/abs/2306.14753v1",
+    "label": 1,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "2307.05639v2",
+    "title": "Learning Active Subspaces and Discovering Important Features with Gaussian Radial Basis Functions Neural Networks",
+    "abstract": "Providing a model that achieves a strong predictive performance and is simultaneously interpretable by humans is one of the most difficult challenges in machine learning research due to the conflicting nature of these two objectives. To address this challenge, we propose a modification of the radial basis function neural network model by equipping its Gaussian kernel with a learnable precision matrix. We show that precious information is contained in the spectrum of the precision matrix that can be extracted once the training of the model is completed. In particular, the eigenvectors explain the directions of maximum sensitivity of the model revealing the active subspace and suggesting potential applications for supervised dimensionality reduction. At the same time, the eigenvectors highlight the relationship in terms of absolute variation between the input and the latent variables, thereby allowing us to extract a ranking of the input variables based on their importance to the prediction task enhancing the model interpretability. We conducted numerical experiments for regression, classification, and feature selection tasks, comparing our model against popular machine learning models, the state-of-the-art deep learning-based embedding feature selection techniques, and a transformer model for tabular data. Our results demonstrate that the proposed model does not only yield an attractive prediction performance compared to the competitors but also provides meaningful and interpretable results that potentially could assist the decision-making process in real-world applications. A PyTorch implementation of the model is available on GitHub at the following link. https://github.com/dannyzx/Gaussian-RBFNN",
+    "categories": [
+      "cs.LG",
+      "cs.AI",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2023-07-11T09:54:30+00:00",
+    "authors": [
+      "Danny D'Agostino",
+      "Ilija Ilievski",
+      "Christine Annette Shoemaker"
+    ],
+    "url": "http://arxiv.org/abs/2307.05639v2",
+    "label": 1,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "2211.12792v2",
+    "title": "MECCH: Metapath Context Convolution-based Heterogeneous Graph Neural Networks",
+    "abstract": "Heterogeneous graph neural networks (HGNNs) were proposed for representation learning on structural data with multiple types of nodes and edges. To deal with the performance degradation issue when HGNNs become deep, researchers combine metapaths into HGNNs to associate nodes closely related in semantics but far apart in the graph. However, existing metapath-based models suffer from either information loss or high computation costs. To address these problems, we present a novel Metapath Context Convolution-based Heterogeneous Graph Neural Network (MECCH). MECCH leverages metapath contexts, a new kind of graph structure that facilitates lossless node information aggregation while avoiding any redundancy. Specifically, MECCH applies three novel components after feature preprocessing to extract comprehensive information from the input graph efficiently: (1) metapath context construction, (2) metapath context encoder, and (3) convolutional metapath fusion. Experiments on five real-world heterogeneous graph datasets for node classification and link prediction show that MECCH achieves superior prediction accuracy compared with state-of-the-art baselines with improved computational efficiency.",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2022-11-23T09:13:33+00:00",
+    "authors": [
+      "Xinyu Fu",
+      "Irwin King"
+    ],
+    "url": "http://arxiv.org/abs/2211.12792v2",
+    "label": 1,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1901.06610v2",
+    "title": "Hierarchical Attentional Hybrid Neural Networks for Document Classification",
+    "abstract": "Document classification is a challenging task with important applications. The deep learning approaches to the problem have gained much attention recently. Despite the progress, the proposed models do not incorporate the knowledge of the document structure in the architecture efficiently and not take into account the contexting importance of words and sentences. In this paper, we propose a new approach based on a combination of convolutional neural networks, gated recurrent units, and attention mechanisms for document classification tasks. The main contribution of this work is the use of convolution layers to extract more meaningful, generalizable and abstract features by the hierarchical representation. The proposed method in this paper improves the results of the current attention-based approaches for document classification.",
+    "categories": [
+      "cs.CL",
+      "cs.AI",
+      "cs.LG",
+      "cs.NE"
+    ],
+    "published": "2019-01-20T01:48:43+00:00",
+    "authors": [
+      "Jader Abreu",
+      "Luis Fred",
+      "David Macêdo",
+      "Cleber Zanchettin"
+    ],
+    "url": "http://arxiv.org/abs/1901.06610v2",
+    "label": 1,
+    "source_query": "graph neural networks"
+  },
+  {
+    "arxiv_id": "1603.06759v1",
+    "title": "Convolution in Convolution for Network in Network",
+    "abstract": "Network in Netwrok (NiN) is an effective instance and an important extension of Convolutional Neural Network (CNN) consisting of alternating convolutional layers and pooling layers. Instead of using a linear filter for convolution, NiN utilizes shallow MultiLayer Perceptron (MLP), a nonlinear function, to replace the linear filter. Because of the powerfulness of MLP and $ 1\\times 1 $ convolutions in spatial domain, NiN has stronger ability of feature representation and hence results in better recognition rate. However, MLP itself consists of fully connected layers which give rise to a large number of parameters. In this paper, we propose to replace dense shallow MLP with sparse shallow MLP. One or more layers of the sparse shallow MLP are sparely connected in the channel dimension or channel-spatial domain. The proposed method is implemented by applying unshared convolution across the channel dimension and applying shared convolution across the spatial dimension in some computational layers. The proposed method is called CiC. Experimental results on the CIFAR10 dataset, augmented CIFAR10 dataset, and CIFAR100 dataset demonstrate the effectiveness of the proposed CiC method.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2016-03-22T12:33:11+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Manli Sun",
+      "Xiaoheng Jiang",
+      "Xuelong Li"
+    ],
+    "url": "http://arxiv.org/abs/1603.06759v1",
+    "label": 1,
+    "source_query": "graph convolutional networks"
+  },
+  {
+    "arxiv_id": "2406.03099v4",
+    "title": "Supplementary Materials to Graph Convolutional Branch and Bound",
+    "abstract": "This article explores the integration of deep learning models into combinatorial optimization pipelines, specifically targeting NP-hard problems. Traditional exact algorithms for such problems often rely on heuristic criteria to guide the exploration of feasible solutions. In this work, we propose using neural networks to learn informative heuristics, most notably, an optimality score that estimates a solution's proximity to the optimum. This score is used to evaluate nodes within a branch-and-bound framework, enabling a more efficient traversal of the solution space. Focusing on the Traveling Salesman Problem, we introduce Concorde, a state-of-the-art solver, and present a hybrid approach called Graph Convolutional Branch and Bound, which augments it with a graph convolutional neural network trained with a novel unsupervised training strategy that facilitates generalization to graphs of varying sizes without requiring labeled data. Empirical results demonstrate the effectiveness of the proposed method, showing a significant reduction in the number of explored branch-and-bound nodes and overall computational time. Some of the results concerning the use of the 1-tree relaxation are in the supplementary materials.",
+    "categories": [
+      "cs.LG",
+      "math.OC"
+    ],
+    "published": "2024-06-05T09:42:43+00:00",
+    "authors": [
+      "Lorenzo Sciandra",
+      "Roberto Esposito",
+      "Andrea Cesare Grosso",
+      "Laura Sacerdote",
+      "Cristina Zucca"
+    ],
+    "url": "http://arxiv.org/abs/2406.03099v4",
+    "label": 1,
+    "source_query": "graph convolutional networks"
+  },
+  {
+    "arxiv_id": "2007.06281v2",
+    "title": "Distributed Training of Graph Convolutional Networks",
+    "abstract": "The aim of this work is to develop a fully-distributed algorithmic framework for training graph convolutional networks (GCNs). The proposed method is able to exploit the meaningful relational structure of the input data, which are collected by a set of agents that communicate over a sparse network topology. After formulating the centralized GCN training problem, we first show how to make inference in a distributed scenario where the underlying data graph is split among different agents. Then, we propose a distributed gradient descent procedure to solve the GCN training problem. The resulting model distributes computation along three lines: during inference, during back-propagation, and during optimization. Convergence to stationary solutions of the GCN training problem is also established under mild conditions. Finally, we propose an optimization criterion to design the communication topology between agents in order to match with the graph describing data relationships. A wide set of numerical results validate our proposal. To the best of our knowledge, this is the first work combining graph convolutional neural networks with distributed optimization.",
+    "categories": [
+      "cs.LG",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2020-07-13T10:04:20+00:00",
+    "authors": [
+      "Simone Scardapane",
+      "Indro Spinelli",
+      "Paolo Di Lorenzo"
+    ],
+    "url": "http://arxiv.org/abs/2007.06281v2",
+    "label": 1,
+    "source_query": "graph convolutional networks"
+  },
+  {
+    "arxiv_id": "2002.10306v3",
+    "title": "Adaptive Propagation Graph Convolutional Network",
+    "abstract": "Graph convolutional networks (GCNs) are a family of neural network models that perform inference on graph data by interleaving vertex-wise operations and message-passing exchanges across nodes. Concerning the latter, two key questions arise: (i) how to design a differentiable exchange protocol (e.g., a 1-hop Laplacian smoothing in the original GCN), and (ii) how to characterize the trade-off in complexity with respect to the local updates. In this paper, we show that state-of-the-art results can be achieved by adapting the number of communication steps independently at every node. In particular, we endow each node with a halting unit (inspired by Graves' adaptive computation time) that after every exchange decides whether to continue communicating or not. We show that the proposed adaptive propagation GCN (AP-GCN) achieves superior or similar results to the best proposed models so far on a number of benchmarks, while requiring a small overhead in terms of additional parameters. We also investigate a regularization term to enforce an explicit trade-off between communication and accuracy. The code for the AP-GCN experiments is released as an open-source library.",
+    "categories": [
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2020-02-24T15:31:16+00:00",
+    "authors": [
+      "Indro Spinelli",
+      "Simone Scardapane",
+      "Aurelio Uncini"
+    ],
+    "url": "http://arxiv.org/abs/2002.10306v3",
+    "label": 1,
+    "source_query": "graph convolutional networks"
+  },
+  {
+    "arxiv_id": "physics/0304041v1",
+    "title": "Message Passing Fluids: molecules as processes in parallel computational fluids",
+    "abstract": "In this paper we present the concept of MPF, Message Passing Fluid, an abstract fluid where the molecules move by mean of the informations that they exchange each other, on the basis of rules and methods of a generalized Cellular Automaton. The model is intended for its simulation by mean of message passing libraries on the field of parallel computing. We present a critical analysis of the necessary computational effort in a possible implementation of such an object.",
+    "categories": [
+      "physics.flu-dyn",
+      "cs.DC",
+      "physics.comp-ph"
+    ],
+    "published": "2003-04-10T17:23:11+00:00",
+    "authors": [
+      "Gianluca Argentini"
+    ],
+    "url": "http://arxiv.org/abs/physics/0304041v1",
+    "label": 1,
+    "source_query": "message passing neural networks"
+  },
+  {
+    "arxiv_id": "1508.05013v1",
+    "title": "Message Passing and Combinatorial Optimization",
+    "abstract": "Graphical models use the intuitive and well-studied methods of graph theory to implicitly represent dependencies between variables in large systems. They can model the global behaviour of a complex system by specifying only local factors. This thesis studies inference in discrete graphical models from an algebraic perspective and the ways inference can be used to express and approximate NP-hard combinatorial problems.   We investigate the complexity and reducibility of various inference problems, in part by organizing them in an inference hierarchy. We then investigate tractable approximations for a subset of these problems using distributive law in the form of message passing. The quality of the resulting message passing procedure, called Belief Propagation (BP), depends on the influence of loops in the graphical model. We contribute to three classes of approximations that improve BP for loopy graphs A) loop correction techniques; B) survey propagation, another message passing technique that surpasses BP in some settings; and C) hybrid methods that interpolate between deterministic message passing and Markov Chain Monte Carlo inference.   We then review the existing message passing solutions and provide novel graphical models and inference techniques for combinatorial problems under three broad classes: A) constraint satisfaction problems such as satisfiability, coloring, packing, set / clique-cover and dominating / independent set and their optimization counterparts; B) clustering problems such as hierarchical clustering, K-median, K-clustering, K-center and modularity optimization; C) problems over permutations including assignment, graph morphisms and alignment, finding symmetries and traveling salesman problem. In many cases we show that message passing is able to find solutions that are either near optimal or favourably compare with today's state-of-the-art approaches.",
+    "categories": [
+      "cs.AI",
+      "cs.CC",
+      "cs.DS",
+      "math.AC",
+      "math.PR"
+    ],
+    "published": "2015-08-20T15:50:45+00:00",
+    "authors": [
+      "Siamak Ravanbakhsh"
+    ],
+    "url": "http://arxiv.org/abs/1508.05013v1",
+    "label": 1,
+    "source_query": "message passing neural networks"
+  },
+  {
+    "arxiv_id": "2007.10908v1",
+    "title": "Robust Hierarchical Graph Classification with Subgraph Attention",
+    "abstract": "Graph neural networks get significant attention for graph representation and classification in machine learning community. Attention mechanism applied on the neighborhood of a node improves the performance of graph neural networks. Typically, it helps to identify a neighbor node which plays more important role to determine the label of the node under consideration. But in real world scenarios, a particular subset of nodes together, but not the individual pairs in the subset, may be important to determine the label of the graph. To address this problem, we introduce the concept of subgraph attention for graphs. On the other hand, hierarchical graph pooling has been shown to be promising in recent literature. But due to noisy hierarchical structure of real world graphs, not all the hierarchies of a graph play equal role for graph classification. Towards this end, we propose a graph classification algorithm called SubGattPool which jointly learns the subgraph attention and employs two different types of hierarchical attention mechanisms to find the important nodes in a hierarchy and the importance of individual hierarchies in a graph. Experimental evaluation with different types of graph classification algorithms shows that SubGattPool is able to improve the state-of-the-art or remains competitive on multiple publicly available graph classification datasets. We conduct further experiments on both synthetic and real world graph datasets to justify the usefulness of different components of SubGattPool and to show its consistent performance on other downstream tasks.",
+    "categories": [
+      "cs.LG",
+      "cs.SI"
+    ],
+    "published": "2020-07-19T10:03:06+00:00",
+    "authors": [
+      "Sambaran Bandyopadhyay",
+      "Manasvi Aggarwal",
+      "M. Narasimha Murty"
+    ],
+    "url": "http://arxiv.org/abs/2007.10908v1",
+    "label": 1,
+    "source_query": "graph attention networks"
+  },
+  {
+    "arxiv_id": "1910.05300v1",
+    "title": "Patterns of Multiplex Layer Entanglement across Real and Synthetic Networks",
+    "abstract": "Real world complex networks often exhibit multiplex structure, connecting entities from different aspects of physical systems such as social, transportation and biological networks. Little is known about general properties of such networks across disciplines. In this work, we first investigate how consistent are connectivity patterns across 35 real world multiplex networks. We demonstrate that entanglement homogeneity and intensity, two measures of layer consistency, indicate apparent differences between social and biological networks. We also investigate trade, co-authorship and transport networks. We show that real networks can be separated in the joint space of homogeneity and intensity, demonstrating the usefulness of the two measures for categorization of real multiplex networks. Finally, we design a multiplex network generator, where similar patterns (as observed in real networks), are emerging over the analysis of 11{,}905 synthetic multiplex networks with various topological properties.",
+    "categories": [
+      "cs.SI",
+      "physics.soc-ph"
+    ],
+    "published": "2019-10-11T16:50:33+00:00",
+    "authors": [
+      "Blaž Škrlj",
+      "Benjamin Renoust"
+    ],
+    "url": "http://arxiv.org/abs/1910.05300v1",
+    "label": 1,
+    "source_query": "graph attention networks"
+  },
+  {
+    "arxiv_id": "2309.07380v1",
+    "title": "Domain-adaptive Graph Attention-supervised Network for Cross-network Edge Classification",
+    "abstract": "Graph neural networks (GNNs) have shown great ability in modeling graphs, however, their performance would significantly degrade when there are noisy edges connecting nodes from different classes. To alleviate negative effect of noisy edges on neighborhood aggregation, some recent GNNs propose to predict the label agreement between node pairs within a single network. However, predicting the label agreement of edges across different networks has not been investigated yet. Our work makes the pioneering attempt to study a novel problem of cross-network homophilous and heterophilous edge classification (CNHHEC), and proposes a novel domain-adaptive graph attention-supervised network (DGASN) to effectively tackle the CNHHEC problem. Firstly, DGASN adopts multi-head GAT as the GNN encoder, which jointly trains node embeddings and edge embeddings via the node classification and edge classification losses. As a result, label-discriminative embeddings can be obtained to distinguish homophilous edges from heterophilous edges. In addition, DGASN applies direct supervision on graph attention learning based on the observed edge labels from the source network, thus lowering the negative effects of heterophilous edges while enlarging the positive effects of homophilous edges during neighborhood aggregation. To facilitate knowledge transfer across networks, DGASN employs adversarial domain adaptation to mitigate domain divergence. Extensive experiments on real-world benchmark datasets demonstrate that the proposed DGASN achieves the state-of-the-art performance in CNHHEC.",
+    "categories": [
+      "cs.SI"
+    ],
+    "published": "2023-09-14T01:45:41+00:00",
+    "authors": [
+      "Xiao Shen",
+      "Mengqiu Shao",
+      "Shirui Pan",
+      "Laurence T. Yang",
+      "Xi Zhou"
+    ],
+    "url": "http://arxiv.org/abs/2309.07380v1",
+    "label": 1,
+    "source_query": "graph attention networks"
+  },
+  {
+    "arxiv_id": "2103.04668v2",
+    "title": "The distance backbone of complex networks",
+    "abstract": "Redundancy needs more precise characterization as it is a major factor in the evolution and robustness of networks of multivariate interactions. We investigate the complexity of such interactions by inferring a connection transitivity that includes all possible measures of path length for weighted graphs. The result, without breaking the graph into smaller components, is a distance backbone subgraph sufficient to compute all shortest paths. This is important for understanding the dynamics of spread and communication phenomena in real-world networks. The general methodology we formally derive yields a principled graph reduction technique and provides a finer characterization of the triangular geometry of all edges -- those that contribute to shortest paths and those that do not but are involved in other network phenomena. We demonstrate that the distance backbone is very small in large networks across domains ranging from air traffic to the human brain connectome, revealing that network robustness to attacks and failures seems to stem from surprisingly vast amounts of redundancy.",
+    "categories": [
+      "cs.SI",
+      "cs.DS",
+      "cs.IR",
+      "q-bio.QM"
+    ],
+    "published": "2021-03-08T11:08:59+00:00",
+    "authors": [
+      "Tiago Simas",
+      "Rion Brattig Correia",
+      "Luis M. Rocha"
+    ],
+    "url": "http://arxiv.org/abs/2103.04668v2",
+    "label": 1,
+    "source_query": "graph attention networks"
+  },
+  {
+    "arxiv_id": "1002.1162v1",
+    "title": "Node Disjoint Multipath Routing Considering Link and Node Stability protocol: A characteristic Evaluation",
+    "abstract": "Mobile Ad hoc Networks are highly dynamic networks. Quality of Service (QoS) routing in such networks is usually limited by the network breakage due to either node mobility or energy depletion of the mobile nodes. Also, to fulfill certain quality parameters, presence of multiple node-disjoint paths becomes essential. Such paths aid in the optimal traffic distribution and reliability in case of path breakages. Thus, to cater various challenges in QoS routing in Mobile Add hoc Networks, a Node Disjoint Multipath Routing Considering Link and Node Stability (NDMLNR) protocol has been proposed by the authors. The metric used to select the paths takes into account the stability of the nodes and the corresponding links. This paper studies various challenges in the QoS routing and presents the characteristic evaluation of NDMLNR w.r.t various existing protocols in this area.",
+    "categories": [
+      "cs.NI"
+    ],
+    "published": "2010-02-05T09:14:56+00:00",
+    "authors": [
+      "Shuchita Upadhayaya",
+      "Charu Gandhi"
+    ],
+    "url": "http://arxiv.org/abs/1002.1162v1",
+    "label": 1,
+    "source_query": "node classification link prediction"
+  },
+  {
+    "arxiv_id": "1303.0095v1",
+    "title": "Label-dependent Feature Extraction in Social Networks for Node Classification",
+    "abstract": "A new method of feature extraction in the social network for within-network classification is proposed in the paper. The method provides new features calculated by combination of both: network structure information and class labels assigned to nodes. The influence of various features on classification performance has also been studied. The experiments on real-world data have shown that features created owing to the proposed method can lead to significant improvement of classification accuracy.",
+    "categories": [
+      "cs.SI",
+      "cs.LG"
+    ],
+    "published": "2013-03-01T06:31:02+00:00",
+    "authors": [
+      "Tomasz Kajdanowicz",
+      "Przemyslaw Kazienko",
+      "Piotr Doskocz"
+    ],
+    "url": "http://arxiv.org/abs/1303.0095v1",
+    "label": 1,
+    "source_query": "node classification link prediction"
+  },
+  {
+    "arxiv_id": "2112.04768v2",
+    "title": "Quantum Link Prediction in Complex Networks",
+    "abstract": "Predicting new links in physical, biological, social, or technological networks has a significant scientific and societal impact. Path-based link prediction methods utilize explicit counting of even and odd-length paths between nodes to quantify a score function and infer new or unobserved links. Here, we propose a quantum algorithm for path-based link prediction, QLP, using a controlled continuous-time quantum walk to encode even and odd path-based prediction scores. Through classical simulations on a few real networks, we confirm that the quantum walk scoring function performs similarly to other path-based link predictors. In a brief complexity analysis we identify the potential of our approach in uncovering a quantum speedup for path-based link prediction.",
+    "categories": [
+      "quant-ph",
+      "cond-mat.dis-nn",
+      "cs.SI",
+      "physics.bio-ph"
+    ],
+    "published": "2021-12-09T08:58:31+00:00",
+    "authors": [
+      "João P. Moutinho",
+      "André Melo",
+      "Bruno Coutinho",
+      "István A. Kovács",
+      "Yasser Omar"
+    ],
+    "url": "http://arxiv.org/abs/2112.04768v2",
+    "label": 1,
+    "source_query": "node classification link prediction"
+  },
+  {
+    "arxiv_id": "2106.07297v2",
+    "title": "Node Classification Meets Link Prediction on Knowledge Graphs",
+    "abstract": "Node classification and link prediction are widely studied in graph representation learning. While both transductive node classification and link prediction operate over a single input graph, they have so far been studied separately. Node classification models take an input graph with node features and incomplete node labels, and implicitly assume that the graph is relationally complete, i.e., no edges are missing. By contrast, link prediction models are solely motivated by relational incompleteness of the input graphs, and do not typically leverage node features or classes. We propose a unifying perspective and study the problems of (i) transductive node classification over incomplete graphs and (ii) link prediction over graphs with node features, introduce a new dataset for this setting, WikiAlumni, and conduct an extensive benchmarking study.",
+    "categories": [
+      "cs.LG",
+      "cs.AI"
+    ],
+    "published": "2021-06-14T10:52:52+00:00",
+    "authors": [
+      "Ralph Abboud",
+      "İsmail İlkan Ceylan"
+    ],
+    "url": "http://arxiv.org/abs/2106.07297v2",
+    "label": 1,
+    "source_query": "node classification link prediction"
+  },
+  {
+    "arxiv_id": "2302.10473v6",
+    "title": "Oriented object detection in optical remote sensing images using deep learning: a survey",
+    "abstract": "Oriented object detection is a fundamental yet challenging task in remote sensing (RS), aiming to locate and classify objects with arbitrary orientations. Recent advancements in deep learning have significantly enhanced the capabilities of oriented object detection methods. Given the rapid development of this field, a comprehensive survey of the recent advances in oriented object detection is presented in this paper. Specifically, we begin by tracing the technical evolution from horizontal object detection to oriented object detection and highlighting the specific related challenges, including feature misalignment, spatial misalignment, oriented bounding box (OBB) regression problems, and common issues encountered in RS. Subsequently, we further categorize the existing methods into detection frameworks, OBB regression techniques, feature representation approaches, and solutions to common issues and provide an in-depth discussion of how these methods address the above challenges. In addition, we cover several publicly available datasets and evaluation protocols. Furthermore, we provide a comprehensive comparison and analysis involving the state-of-the-art methods. Toward the end of this paper, we identify several future directions for oriented object detection research.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2023-02-21T06:31:53+00:00",
+    "authors": [
+      "Kun Wang",
+      "Zi Wang",
+      "Zhang Li",
+      "Ang Su",
+      "Xichao Teng",
+      "Erting Pan",
+      "Minhao Liu",
+      "Qifeng Yu"
+    ],
+    "url": "http://arxiv.org/abs/2302.10473v6",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2011.09170v1",
+    "title": "TJU-DHD: A Diverse High-Resolution Dataset for Object Detection",
+    "abstract": "Vehicles, pedestrians, and riders are the most important and interesting objects for the perception modules of self-driving vehicles and video surveillance. However, the state-of-the-art performance of detecting such important objects (esp. small objects) is far from satisfying the demand of practical systems. Large-scale, rich-diversity, and high-resolution datasets play an important role in developing better object detection methods to satisfy the demand. Existing public large-scale datasets such as MS COCO collected from websites do not focus on the specific scenarios. Moreover, the popular datasets (e.g., KITTI and Citypersons) collected from the specific scenarios are limited in the number of images and instances, the resolution, and the diversity. To attempt to solve the problem, we build a diverse high-resolution dataset (called TJU-DHD). The dataset contains 115,354 high-resolution images (52% images have a resolution of 1624$\\times$1200 pixels and 48% images have a resolution of at least 2,560$\\times$1,440 pixels) and 709,330 labeled objects in total with a large variance in scale and appearance. Meanwhile, the dataset has a rich diversity in season variance, illumination variance, and weather variance. In addition, a new diverse pedestrian dataset is further built. With the four different detectors (i.e., the one-stage RetinaNet, anchor-free FCOS, two-stage FPN, and Cascade R-CNN), experiments about object detection and pedestrian detection are conducted. We hope that the newly built dataset can help promote the research on object detection and pedestrian detection in these two scenes. The dataset is available at https://github.com/tjubiit/TJU-DHD.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-11-18T09:32:24+00:00",
+    "authors": [
+      "Yanwei Pang",
+      "Jiale Cao",
+      "Yazhao Li",
+      "Jin Xie",
+      "Hanqing Sun",
+      "Jinfeng Gong"
+    ],
+    "url": "http://arxiv.org/abs/2011.09170v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "1809.00778v1",
+    "title": "PFDet: 2nd Place Solution to Open Images Challenge 2018 Object Detection Track",
+    "abstract": "We present a large-scale object detection system by team PFDet. Our system enables training with huge datasets using 512 GPUs, handles sparsely verified classes, and massive class imbalance. Using our method, we achieved 2nd place in the Google AI Open Images Object Detection Track 2018 on Kaggle.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2018-09-04T02:59:07+00:00",
+    "authors": [
+      "Takuya Akiba",
+      "Tommi Kerola",
+      "Yusuke Niitani",
+      "Toru Ogawa",
+      "Shotaro Sano",
+      "Shuji Suzuki"
+    ],
+    "url": "http://arxiv.org/abs/1809.00778v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "1904.13353v2",
+    "title": "Object Contour and Edge Detection with RefineContourNet",
+    "abstract": "A ResNet-based multi-path refinement CNN is used for object contour detection. For this task, we prioritise the effective utilization of the high-level abstraction capability of a ResNet, which leads to state-of-the-art results for edge detection. Keeping our focus in mind, we fuse the high, mid and low-level features in that specific order, which differs from many other approaches. It uses the tensor with the highest-levelled features as the starting point to combine it layer-by-layer with features of a lower abstraction level until it reaches the lowest level. We train this network on a modified PASCAL VOC 2012 dataset for object contour detection and evaluate on a refined PASCAL-val dataset reaching an excellent performance and an Optimal Dataset Scale (ODS) of 0.752. Furthermore, by fine-training on the BSDS500 dataset we reach state-of-the-art results for edge-detection with an ODS of 0.824.",
+    "categories": [
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2019-04-30T16:34:27+00:00",
+    "authors": [
+      "Andre Peter Kelm",
+      "Vijesh Soorya Rao",
+      "Udo Zoelzer"
+    ],
+    "url": "http://arxiv.org/abs/1904.13353v2",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2408.14600v1",
+    "title": "PVAFN: Point-Voxel Attention Fusion Network with Multi-Pooling Enhancing for 3D Object Detection",
+    "abstract": "The integration of point and voxel representations is becoming more common in LiDAR-based 3D object detection. However, this combination often struggles with capturing semantic information effectively. Moreover, relying solely on point features within regions of interest can lead to information loss and limitations in local feature representation. To tackle these challenges, we propose a novel two-stage 3D object detector, called Point-Voxel Attention Fusion Network (PVAFN). PVAFN leverages an attention mechanism to improve multi-modal feature fusion during the feature extraction phase. In the refinement stage, it utilizes a multi-pooling strategy to integrate both multi-scale and region-specific information effectively. The point-voxel attention mechanism adaptively combines point cloud and voxel-based Bird's-Eye-View (BEV) features, resulting in richer object representations that help to reduce false detections. Additionally, a multi-pooling enhancement module is introduced to boost the model's perception capabilities. This module employs cluster pooling and pyramid pooling techniques to efficiently capture key geometric details and fine-grained shape structures, thereby enhancing the integration of local and global features. Extensive experiments on the KITTI and Waymo datasets demonstrate that the proposed PVAFN achieves competitive performance. The code and models will be available.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2024-08-26T19:43:01+00:00",
+    "authors": [
+      "Yidi Li",
+      "Jiahao Wen",
+      "Bin Ren",
+      "Wenhao Li",
+      "Zhenhuan Xu",
+      "Hao Guo",
+      "Hong Liu",
+      "Nicu Sebe"
+    ],
+    "url": "http://arxiv.org/abs/2408.14600v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2106.13217v3",
+    "title": "Exploring Depth Contribution for Camouflaged Object Detection",
+    "abstract": "Camouflaged object detection (COD) aims to segment camouflaged objects hiding in the environment, which is challenging due to the similar appearance of camouflaged objects and their surroundings. Research in biology suggests depth can provide useful object localization cues for camouflaged object discovery. In this paper, we study the depth contribution for camouflaged object detection, where the depth maps are generated with existing monocular depth estimation (MDE) methods. Due to the domain gap between the MDE dataset and our COD dataset, the generated depth maps are not accurate enough to be directly used. We then introduce two solutions to avoid the noisy depth maps from dominating the training process. Firstly, we present an auxiliary depth estimation branch (\"ADE\"), aiming to regress the depth maps. We find that \"ADE\" is especially necessary for our \"generated depth\" scenario. Secondly, we introduce a multi-modal confidence-aware loss function via a generative adversarial network to weigh the contribution of depth for camouflaged object detection. Our extensive experiments on various camouflaged object detection datasets explain that the existing \"sensor depth\" based RGB-D segmentation techniques work poorly with \"generated depth\", and our proposed two solutions work cooperatively, achieving effective depth contribution exploration for camouflaged object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2021-06-24T17:51:31+00:00",
+    "authors": [
+      "Mochu Xiang",
+      "Jing Zhang",
+      "Yunqiu Lv",
+      "Aixuan Li",
+      "Yiran Zhong",
+      "Yuchao Dai"
+    ],
+    "url": "http://arxiv.org/abs/2106.13217v3",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2110.14711v3",
+    "title": "A Survey of Self-Supervised and Few-Shot Object Detection",
+    "abstract": "Labeling data is often expensive and time-consuming, especially for tasks such as object detection and instance segmentation, which require dense labeling of the image. While few-shot object detection is about training a model on novel (unseen) object classes with little data, it still requires prior training on many labeled examples of base (seen) classes. On the other hand, self-supervised methods aim at learning representations from unlabeled data which transfer well to downstream tasks such as object detection. Combining few-shot and self-supervised object detection is a promising research direction. In this survey, we review and characterize the most recent approaches on few-shot and self-supervised object detection. Then, we give our main takeaways and discuss future research directions. Project page at https://gabrielhuang.github.io/fsod-survey/",
+    "categories": [
+      "cs.CV",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2021-10-27T18:55:47+00:00",
+    "authors": [
+      "Gabriel Huang",
+      "Issam Laradji",
+      "David Vazquez",
+      "Simon Lacoste-Julien",
+      "Pau Rodriguez"
+    ],
+    "url": "http://arxiv.org/abs/2110.14711v3",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2007.03262v6",
+    "title": "RGBT Salient Object Detection: A Large-scale Dataset and Benchmark",
+    "abstract": "Salient object detection in complex scenes and environments is a challenging research topic. Most works focus on RGB-based salient object detection, which limits its performance of real-life applications when confronted with adverse conditions such as dark environments and complex backgrounds. Taking advantage of RGB and thermal infrared images becomes a new research direction for detecting salient object in complex scenes recently, as thermal infrared spectrum imaging provides the complementary information and has been applied to many computer vision tasks. However, current research for RGBT salient object detection is limited by the lack of a large-scale dataset and comprehensive benchmark. This work contributes such a RGBT image dataset named VT5000, including 5000 spatially aligned RGBT image pairs with ground truth annotations. VT5000 has 11 challenges collected in different scenes and environments for exploring the robustness of algorithms. With this dataset, we propose a powerful baseline approach, which extracts multi-level features within each modality and aggregates these features of all modalities with the attention mechanism, for accurate RGBT salient object detection. Extensive experiments show that the proposed baseline approach outperforms the state-of-the-art methods on VT5000 dataset and other two public datasets. In addition, we carry out a comprehensive analysis of different algorithms of RGBT salient object detection on VT5000 dataset, and then make several valuable conclusions and provide some potential research directions for RGBT salient object detection.",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-07-07T07:58:14+00:00",
+    "authors": [
+      "Zhengzheng Tu",
+      "Yan Ma",
+      "Zhun Li",
+      "Chenglong Li",
+      "Jieming Xu",
+      "Yongtao Liu"
+    ],
+    "url": "http://arxiv.org/abs/2007.03262v6",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2005.00031v1",
+    "title": "Unsupervised Lesion Detection via Image Restoration with a Normative Prior",
+    "abstract": "Unsupervised lesion detection is a challenging problem that requires accurately estimating normative distributions of healthy anatomy and detecting lesions as outliers without training examples. Recently, this problem has received increased attention from the research community following the advances in unsupervised learning with deep learning. Such advances allow the estimation of high-dimensional distributions, such as normative distributions, with higher accuracy than previous methods.The main approach of the recently proposed methods is to learn a latent-variable model parameterized with networks to approximate the normative distribution using example images showing healthy anatomy, perform prior-projection, i.e. reconstruct the image with lesions using the latent-variable model, and determine lesions based on the differences between the reconstructed and original images. While being promising, the prior-projection step often leads to a large number of false positives. In this work, we approach unsupervised lesion detection as an image restoration problem and propose a probabilistic model that uses a network-based prior as the normative distribution and detect lesions pixel-wise using MAP estimation. The probabilistic model punishes large deviations between restored and original images, reducing false positives in pixel-wise detections. Experiments with gliomas and stroke lesions in brain MRI using publicly available datasets show that the proposed approach outperforms the state-of-the-art unsupervised methods by a substantial margin, +0.13 (AUC), for both glioma and stroke detection. Extensive model analysis confirms the effectiveness of MAP-based image restoration.",
+    "categories": [
+      "eess.IV",
+      "cs.CV"
+    ],
+    "published": "2020-04-30T18:03:18+00:00",
+    "authors": [
+      "Xiaoran Chen",
+      "Suhang You",
+      "Kerem Can Tezcan",
+      "Ender Konukoglu"
+    ],
+    "url": "http://arxiv.org/abs/2005.00031v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2006.11692v1",
+    "title": "Semi-Supervised Object Detection with Sparsely Annotated Dataset",
+    "abstract": "In training object detector based on convolutional neural networks, selection of effective positive examples for training is an important factor. However, when training an anchor-based detectors with sparse annotations on an image, effort to find effective positive examples can hinder training performance. When using the anchor-based training for the ground truth bounding box to collect positive examples under given IoU, it is often possible to include objects from other classes in the current training class, or objects that are needed to be trained can only be sampled as negative examples. We used two approaches to solve this problem: 1) the use of an anchorless object detector and 2) a semi-supervised learning-based object detection using a single object tracker. The proposed technique performs single object tracking by using the sparsely annotated bounding box as an anchor in the temporal domain for successive frames. From the tracking results, dense annotations for training images were generated in an automated manner and used for training the object detector. We applied the proposed single object tracking-based semi-supervised learning to the Epic-Kitchens dataset. As a result, we were able to achieve \\textbf{runner-up} performance in the Unseen section while achieving the first place in the Seen section of the Epic-Kitchens 2020 object detection challenge under IoU > 0.5 evaluation",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2020-06-21T02:26:48+00:00",
+    "authors": [
+      "Jihun Yoon",
+      "Seungbum Hong",
+      "Sanha Jeong",
+      "Min-Kook Choi"
+    ],
+    "url": "http://arxiv.org/abs/2006.11692v1",
+    "label": 0,
+    "source_query": "object detection image"
+  },
+  {
+    "arxiv_id": "2109.14357v1",
+    "title": "Comparison of Self-Supervised Speech Pre-Training Methods on Flemish Dutch",
+    "abstract": "Recent research in speech processing exhibits a growing interest in unsupervised and self-supervised representation learning from unlabelled data to alleviate the need for large amounts of annotated data. We investigate several popular pre-training methods and apply them to Flemish Dutch. We compare off-the-shelf English pre-trained models to models trained on an increasing amount of Flemish data. We find that the most important factors for positive transfer to downstream speech recognition tasks include a substantial amount of data and a matching pre-training domain. Ideally, we also finetune on an annotated subset in the target language. All pre-trained models improve linear phone separability in Flemish, but not all methods improve Automatic Speech Recognition. We experience superior performance with wav2vec 2.0 and we obtain a 30% WER improvement by finetuning the multilingually pre-trained XLSR-53 model on Flemish Dutch, after integration into an HMM-DNN acoustic model.",
+    "categories": [
+      "eess.AS",
+      "cs.SD"
+    ],
+    "published": "2021-09-29T11:38:26+00:00",
+    "authors": [
+      "Jakob Poncelet",
+      "Hugo Van hamme"
+    ],
+    "url": "http://arxiv.org/abs/2109.14357v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "1811.04224v1",
+    "title": "Reinforcement Learning Based Speech Enhancement for Robust Speech Recognition",
+    "abstract": "Conventional deep neural network (DNN)-based speech enhancement (SE) approaches aim to minimize the mean square error (MSE) between enhanced speech and clean reference. The MSE-optimized model may not directly improve the performance of an automatic speech recognition (ASR) system. If the target is to minimize the recognition error, the recognition results should be used to design the objective function for optimizing the SE model. However, the structure of an ASR system, which consists of multiple units, such as acoustic and language models, is usually complex and not differentiable. In this study, we proposed to adopt the reinforcement learning algorithm to optimize the SE model based on the recognition results. We evaluated the propsoed SE system on the Mandarin Chinese broadcast news corpus (MATBN). Experimental results demonstrate that the proposed method can effectively improve the ASR results with a notable 12.40% and 19.23% error rate reductions for signal to noise ratio at 0 dB and 5 dB conditions, respectively.",
+    "categories": [
+      "eess.AS",
+      "cs.SD"
+    ],
+    "published": "2018-11-10T09:38:36+00:00",
+    "authors": [
+      "Yih-Liang Shen",
+      "Chao-Yuan Huang",
+      "Syu-Siang Wang",
+      "Yu Tsao",
+      "Hsin-Min Wang",
+      "Tai-Shih Chi"
+    ],
+    "url": "http://arxiv.org/abs/1811.04224v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "2003.01277v3",
+    "title": "The Effect of Silence Feature in Dimensional Speech Emotion Recognition",
+    "abstract": "Silence is a part of human-to-human communication, which can be a clue for human emotion perception. For automatic emotion recognition by a computer, it is not clear whether silence is useful to determine human emotion within a speech. This paper presents an investigation of the effect of using silence feature in dimensional emotion recognition. Since the silence feature is extracted per utterance, we grouped the silence feature with high statistical functions from a set of acoustic features. The result reveals that the silence features affect the arousal dimension more than other emotion dimensions. The proper choice of a threshold factor in the calculation of silence feature improved the performance of dimensional speech emotion recognition performance, in terms of a concordance correlation coefficient. On the other side, improper choice of that factor leads to a decrease in performance by using the same architecture.",
+    "categories": [
+      "eess.AS",
+      "cs.SD"
+    ],
+    "published": "2020-03-03T01:17:07+00:00",
+    "authors": [
+      "Bagus Tris Atmaja",
+      "Masato Akagi"
+    ],
+    "url": "http://arxiv.org/abs/2003.01277v3",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "2011.04547v1",
+    "title": "Data Augmentation For Children's Speech Recognition -- The \"Ethiopian\" System For The SLT 2021 Children Speech Recognition Challenge",
+    "abstract": "This paper presents the \"Ethiopian\" system for the SLT 2021 Children Speech Recognition Challenge. Various data processing and augmentation techniques are proposed to tackle children's speech recognition problem, especially the lack of the children's speech recognition training data issue. Detailed experiments are designed and conducted to show the effectiveness of each technique, across different speech recognition toolkits and model architectures. Step by step, we explain how we come up with our final system, which provides the state-of-the-art results in the SLT 2021 Children Speech Recognition Challenge, with 21.66% CER on the Track 1 evaluation set (4th place overall), and 16.53% CER on the Track 2 evaluation set (1st place overall). Post-challenge analysis shows that our system actually achieves 18.82% CER on the Track 1 evaluation set, but we submitted the wrong version to the challenge organizer for Track 1.",
+    "categories": [
+      "cs.SD",
+      "eess.AS"
+    ],
+    "published": "2020-11-09T16:44:47+00:00",
+    "authors": [
+      "Guoguo Chen",
+      "Xingyu Na",
+      "Yongqing Wang",
+      "Zhiyong Yan",
+      "Junbo Zhang",
+      "Sifan Ma",
+      "Yujun Wang"
+    ],
+    "url": "http://arxiv.org/abs/2011.04547v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "1805.10339v1",
+    "title": "Curriculum Learning for Speech Emotion Recognition from Crowdsourced Labels",
+    "abstract": "This study introduces a method to design a curriculum for machine-learning to maximize the efficiency during the training process of deep neural networks (DNNs) for speech emotion recognition. Previous studies in other machine-learning problems have shown the benefits of training a classifier following a curriculum where samples are gradually presented in increasing level of difficulty. For speech emotion recognition, the challenge is to establish a natural order of difficulty in the training set to create the curriculum. We address this problem by assuming that ambiguous samples for humans are also ambiguous for computers. Speech samples are often annotated by multiple evaluators to account for differences in emotion perception across individuals. While some sentences with clear emotional content are consistently annotated, sentences with more ambiguous emotional content present important disagreement between individual evaluations. We propose to use the disagreement between evaluators as a measure of difficulty for the classification task. We propose metrics that quantify the inter-evaluation agreement to define the curriculum for regression problems and binary and multi-class classification problems. The experimental results consistently show that relying on a curriculum based on agreement between human judgments leads to statistically significant improvements over baselines trained without a curriculum.",
+    "categories": [
+      "eess.AS",
+      "cs.SD"
+    ],
+    "published": "2018-05-25T19:27:59+00:00",
+    "authors": [
+      "Reza Lotfian",
+      "Carlos Busso"
+    ],
+    "url": "http://arxiv.org/abs/1805.10339v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "2604.22203v1",
+    "title": "Advancing automatic speech recognition using feature fusion with self-supervised learning features: A case study on Fearless Steps Apollo corpus",
+    "abstract": "Using self-supervised learning (SSL) models has significantly improved performance for downstream speech tasks, surpassing the capabilities of traditional hand-crafted features. This study investigates the amalgamation of SSL models, with the aim to leverage both their individual strengths and refine extracted features to achieve improved speech recognition models for naturalistic scenarios. Our research investigates the massive naturalistic Fearless Steps (FS) APOLLO resource, with particular focus on the FS Challenge (FSC) Phase-4 corpus, providing the inaugural analysis of this dataset. Additionally, we incorporate the CHiME-6 dataset to evaluate performance across diverse naturalistic speech scenarios. While exploring previously proposed Feature Refinement Loss and fusion methods, we found these methods to be less effective on the FSC Phase-4 corpus. To address this, we introduce a novel deep cross-attention (DCA) fusion method, designed to elevate performance, especially for the FSC Phase-4 corpus. Our objective is to foster creation of superior FS APOLLO community resources, catering to the diverse needs of researchers across various disciplines. The proposed solution achieves an absolute +1.1% improvement in WER, providing effective meta-data creation for the massive FS APOLLO community resource.",
+    "categories": [
+      "eess.AS",
+      "cs.SD"
+    ],
+    "published": "2026-04-24T04:15:43+00:00",
+    "authors": [
+      "Szu-Jui Chen",
+      "John H. L. Hansen"
+    ],
+    "url": "http://arxiv.org/abs/2604.22203v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "2107.01573v1",
+    "title": "Arabic Code-Switching Speech Recognition using Monolingual Data",
+    "abstract": "Code-switching in automatic speech recognition (ASR) is an important challenge due to globalization. Recent research in multilingual ASR shows potential improvement over monolingual systems. We study key issues related to multilingual modeling for ASR through a series of large-scale ASR experiments. Our innovative framework deploys a multi-graph approach in the weighted finite state transducers (WFST) framework. We compare our WFST decoding strategies with a transformer sequence to sequence system trained on the same data. Given a code-switching scenario between Arabic and English languages, our results show that the WFST decoding approaches were more suitable for the intersentential code-switching datasets. In addition, the transformer system performed better for intrasentential code-switching task. With this study, we release an artificially generated development and test sets, along with ecological code-switching test set, to benchmark the ASR performance.",
+    "categories": [
+      "cs.CL",
+      "cs.SD",
+      "eess.AS"
+    ],
+    "published": "2021-07-04T08:40:49+00:00",
+    "authors": [
+      "Ahmed Ali",
+      "Shammur Chowdhury",
+      "Amir Hussein",
+      "Yasser Hifny"
+    ],
+    "url": "http://arxiv.org/abs/2107.01573v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "1911.04890v1",
+    "title": "Recurrent Neural Network Transducer for Audio-Visual Speech Recognition",
+    "abstract": "This work presents a large-scale audio-visual speech recognition system based on a recurrent neural network transducer (RNN-T) architecture. To support the development of such a system, we built a large audio-visual (A/V) dataset of segmented utterances extracted from YouTube public videos, leading to 31k hours of audio-visual training content. The performance of an audio-only, visual-only, and audio-visual system are compared on two large-vocabulary test sets: a set of utterance segments from public YouTube videos called YTDEV18 and the publicly available LRS3-TED set. To highlight the contribution of the visual modality, we also evaluated the performance of our system on the YTDEV18 set artificially corrupted with background noise and overlapping speech. To the best of our knowledge, our system significantly improves the state-of-the-art on the LRS3-TED set.",
+    "categories": [
+      "eess.AS",
+      "cs.CL",
+      "cs.CV",
+      "cs.LG",
+      "cs.SD"
+    ],
+    "published": "2019-11-08T22:01:42+00:00",
+    "authors": [
+      "Takaki Makino",
+      "Hank Liao",
+      "Yannis Assael",
+      "Brendan Shillingford",
+      "Basilio Garcia",
+      "Otavio Braga",
+      "Olivier Siohan"
+    ],
+    "url": "http://arxiv.org/abs/1911.04890v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "1912.05946v2",
+    "title": "Leveraging End-to-End Speech Recognition with Neural Architecture Search",
+    "abstract": "Deep neural networks (DNNs) have been demonstrated to outperform many traditional machine learning algorithms in Automatic Speech Recognition (ASR). In this paper, we show that a large improvement in the accuracy of deep speech models can be achieved with effective Neural Architecture Optimization at a very low computational cost. Phone recognition tests with the popular LibriSpeech and TIMIT benchmarks proved this fact by displaying the ability to discover and train novel candidate models within a few hours (less than a day) many times faster than the attention-based seq2seq models. Our method achieves test error of 7% Word Error Rate (WER) on the LibriSpeech corpus and 13% Phone Error Rate (PER) on the TIMIT corpus, on par with state-of-the-art results.",
+    "categories": [
+      "eess.AS",
+      "cs.IR",
+      "cs.LG",
+      "cs.SD"
+    ],
+    "published": "2019-12-11T08:15:58+00:00",
+    "authors": [
+      "Ahmed Baruwa",
+      "Mojeed Abisiga",
+      "Ibrahim Gbadegesin",
+      "Afeez Fakunle"
+    ],
+    "url": "http://arxiv.org/abs/1912.05946v2",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "2107.00921v1",
+    "title": "Supervised Contrastive Learning for Accented Speech Recognition",
+    "abstract": "Neural network based speech recognition systems suffer from performance degradation due to accented speech, especially unfamiliar accents. In this paper, we study the supervised contrastive learning framework for accented speech recognition. To build different views (similar \"positive\" data samples) for contrastive learning, three data augmentation techniques including noise injection, spectrogram augmentation and TTS-same-sentence generation are further investigated. From the experiments on the Common Voice dataset, we have shown that contrastive learning helps to build data-augmentation invariant and pronunciation invariant representations, which significantly outperforms traditional joint training methods in both zero-shot and full-shot settings. Experiments show that contrastive learning can improve accuracy by 3.66% (zero-shot) and 3.78% (full-shot) on average, comparing to the joint training method.",
+    "categories": [
+      "cs.SD",
+      "cs.LG",
+      "eess.AS"
+    ],
+    "published": "2021-07-02T09:23:33+00:00",
+    "authors": [
+      "Tao Han",
+      "Hantao Huang",
+      "Ziang Yang",
+      "Wei Han"
+    ],
+    "url": "http://arxiv.org/abs/2107.00921v1",
+    "label": 0,
+    "source_query": "speech recognition transformer"
+  },
+  {
+    "arxiv_id": "1702.01806v2",
+    "title": "Beam Search Strategies for Neural Machine Translation",
+    "abstract": "The basic concept in Neural Machine Translation (NMT) is to train a large Neural Network that maximizes the translation performance on a given parallel corpus. NMT is then using a simple left-to-right beam-search decoder to generate new translations that approximately maximize the trained conditional probability. The current beam search strategy generates the target sentence word by word from left-to- right while keeping a fixed amount of active candidates at each time step. First, this simple search is less adaptive as it also expands candidates whose scores are much worse than the current best. Secondly, it does not expand hypotheses if they are not within the best scoring candidates, even if their scores are close to the best one. The latter one can be avoided by increasing the beam size until no performance improvement can be observed. While you can reach better performance, this has the draw- back of a slower decoding speed. In this paper, we concentrate on speeding up the decoder by applying a more flexible beam search strategy whose candidate size may vary at each time step depending on the candidate scores. We speed up the original decoder by up to 43% for the two language pairs German-English and Chinese-English without losing any translation quality.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2017-02-06T22:08:46+00:00",
+    "authors": [
+      "Markus Freitag",
+      "Yaser Al-Onaizan"
+    ],
+    "url": "http://arxiv.org/abs/1702.01806v2",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1409.7085v1",
+    "title": "Semantically-Informed Syntactic Machine Translation: A Tree-Grafting Approach",
+    "abstract": "We describe a unified and coherent syntactic framework for supporting a semantically-informed syntactic approach to statistical machine translation. Semantically enriched syntactic tags assigned to the target-language training texts improved translation quality. The resulting system significantly outperformed a linguistically naive baseline model (Hiero), and reached the highest scores yet reported on the NIST 2009 Urdu-English translation task. This finding supports the hypothesis (posed by many researchers in the MT community, e.g., in DARPA GALE) that both syntactic and semantic information are critical for improving translation quality---and further demonstrates that large gains can be achieved for low-resource languages with different word order than English.",
+    "categories": [
+      "cs.CL",
+      "cs.LG",
+      "stat.ML"
+    ],
+    "published": "2014-09-24T20:16:49+00:00",
+    "authors": [
+      "Kathryn Baker",
+      "Michael Bloodgood",
+      "Chris Callison-Burch",
+      "Bonnie J. Dorr",
+      "Nathaniel W. Filardo",
+      "Lori Levin",
+      "Scott Miller",
+      "Christine Piatko"
+    ],
+    "url": "http://arxiv.org/abs/1409.7085v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1809.00357v1",
+    "title": "Trivial Transfer Learning for Low-Resource Neural Machine Translation",
+    "abstract": "Transfer learning has been proven as an effective technique for neural machine translation under low-resource conditions. Existing methods require a common target language, language relatedness, or specific training tricks and regimes. We present a simple transfer learning method, where we first train a \"parent\" model for a high-resource language pair and then continue the training on a lowresource pair only by replacing the training corpus. This \"child\" model performs significantly better than the baseline trained for lowresource pair only. We are the first to show this for targeting different languages, and we observe the improvements even for unrelated languages with different alphabets.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2018-09-02T15:24:15+00:00",
+    "authors": [
+      "Tom Kocmi",
+      "Ondřej Bojar"
+    ],
+    "url": "http://arxiv.org/abs/1809.00357v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1509.09097v1",
+    "title": "Polish - English Speech Statistical Machine Translation Systems for the IWSLT 2013",
+    "abstract": "This research explores the effects of various training settings from Polish to English Statistical Machine Translation system for spoken language. Various elements of the TED parallel text corpora for the IWSLT 2013 evaluation campaign were used as the basis for training of language models, and for development, tuning and testing of the translation system. The BLEU, NIST, METEOR and TER metrics were used to evaluate the effects of data preparations on translation results. Our experiments included systems, which use stems and morphological information on Polish words. We also conducted a deep analysis of provided Polish data as preparatory work for the automatic data correction and cleaning phase.",
+    "categories": [
+      "cs.CL",
+      "stat.ML"
+    ],
+    "published": "2015-09-30T09:35:38+00:00",
+    "authors": [
+      "Krzysztof Wołk",
+      "Krzysztof Marasek"
+    ],
+    "url": "http://arxiv.org/abs/1509.09097v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1707.09050v1",
+    "title": "A Shared Task on Bandit Learning for Machine Translation",
+    "abstract": "We introduce and describe the results of a novel shared task on bandit learning for machine translation. The task was organized jointly by Amazon and Heidelberg University for the first time at the Second Conference on Machine Translation (WMT 2017). The goal of the task is to encourage research on learning machine translation from weak user feedback instead of human references or post-edits. On each of a sequence of rounds, a machine translation system is required to propose a translation for an input, and receives a real-valued estimate of the quality of the proposed translation for learning. This paper describes the shared task's learning and evaluation setup, using services hosted on Amazon Web Services (AWS), the data and evaluation metrics, and the results of various machine translation architectures and learning protocols.",
+    "categories": [
+      "cs.CL",
+      "stat.ML"
+    ],
+    "published": "2017-07-27T21:16:41+00:00",
+    "authors": [
+      "Artem Sokolov",
+      "Julia Kreutzer",
+      "Kellen Sunderland",
+      "Pavel Danchenko",
+      "Witold Szymaniak",
+      "Hagen Fürstenau",
+      "Stefan Riezler"
+    ],
+    "url": "http://arxiv.org/abs/1707.09050v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1509.08644v1",
+    "title": "Neural-based machine translation for medical text domain. Based on European Medicines Agency leaflet texts",
+    "abstract": "The quality of machine translation is rapidly evolving. Today one can find several machine translation systems on the web that provide reasonable translations, although the systems are not perfect. In some specific domains, the quality may decrease. A recently proposed approach to this domain is neural machine translation. It aims at building a jointly-tuned single neural network that maximizes translation performance, a very different approach from traditional statistical machine translation. Recently proposed neural machine translation models often belong to the encoder-decoder family in which a source sentence is encoded into a fixed length vector that is, in turn, decoded to generate a translation. The present research examines the effects of different training methods on a Polish-English Machine Translation system used for medical data. The European Medicines Agency parallel text corpus was used as the basis for training of neural and statistical network-based translation systems. The main machine translation evaluation metrics have also been used in analysis of the systems. A comparison and implementation of a real-time medical translator is the main focus of our experiments.",
+    "categories": [
+      "cs.CL",
+      "cs.CY",
+      "cs.NE",
+      "stat.ML"
+    ],
+    "published": "2015-09-29T08:54:48+00:00",
+    "authors": [
+      "Krzysztof Wołk",
+      "Krzysztof Marasek"
+    ],
+    "url": "http://arxiv.org/abs/1509.08644v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1710.01504v1",
+    "title": "Discourse Structure in Machine Translation Evaluation",
+    "abstract": "In this article, we explore the potential of using sentence-level discourse structure for machine translation evaluation. We first design discourse-aware similarity measures, which use all-subtree kernels to compare discourse parse trees in accordance with the Rhetorical Structure Theory (RST). Then, we show that a simple linear combination with these measures can help improve various existing machine translation evaluation metrics regarding correlation with human judgments both at the segment- and at the system-level. This suggests that discourse information is complementary to the information used by many of the existing evaluation metrics, and thus it could be taken into account when developing richer evaluation metrics, such as the WMT-14 winning combined metric DiscoTKparty. We also provide a detailed analysis of the relevance of various discourse elements and relations from the RST parse trees for machine translation evaluation. In particular we show that: (i) all aspects of the RST tree are relevant, (ii) nuclearity is more useful than relation type, and (iii) the similarity of the translation RST tree to the reference tree is positively correlated with translation quality.",
+    "categories": [
+      "cs.CL"
+    ],
+    "published": "2017-10-04T08:28:24+00:00",
+    "authors": [
+      "Shafiq Joty",
+      "Francisco Guzmán",
+      "Lluís Màrquez",
+      "Preslav Nakov"
+    ],
+    "url": "http://arxiv.org/abs/1710.01504v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1912.03135v1",
+    "title": "Pairwise Neural Machine Translation Evaluation",
+    "abstract": "We present a novel framework for machine translation evaluation using neural networks in a pairwise setting, where the goal is to select the better translation from a pair of hypotheses, given the reference translation. In this framework, lexical, syntactic and semantic information from the reference and the two hypotheses is compacted into relatively small distributed vector representations, and fed into a multi-layer neural network that models the interaction between each of the hypotheses and the reference, as well as between the two hypotheses. These compact representations are in turn based on word and sentence embeddings, which are learned using neural networks. The framework is flexible, allows for efficient learning and classification, and yields correlation with humans that rivals the state of the art.",
+    "categories": [
+      "cs.CL",
+      "cs.IR",
+      "cs.LG"
+    ],
+    "published": "2019-12-05T05:17:05+00:00",
+    "authors": [
+      "Francisco Guzman",
+      "Shafiq Joty",
+      "Lluis Marquez",
+      "Preslav Nakov"
+    ],
+    "url": "http://arxiv.org/abs/1912.03135v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1802.01451v1",
+    "title": "Quantitative Fine-Grained Human Evaluation of Machine Translation Systems: a Case Study on English to Croatian",
+    "abstract": "This paper presents a quantitative fine-grained manual evaluation approach to comparing the performance of different machine translation (MT) systems. We build upon the well-established Multidimensional Quality Metrics (MQM) error taxonomy and implement a novel method that assesses whether the differences in performance for MQM error types between different MT systems are statistically significant. We conduct a case study for English-to-Croatian, a language direction that involves translating into a morphologically rich language, for which we compare three MT systems belonging to different paradigms: pure phrase-based, factored phrase-based and neural. First, we design an MQM-compliant error taxonomy tailored to the relevant linguistic phenomena of Slavic languages, which made the annotation process feasible and accurate. Errors in MT outputs were then annotated by two annotators following this taxonomy. Subsequently, we carried out a statistical analysis which showed that the best-performing system (neural) reduces the errors produced by the worst system (pure phrase-based) by more than half (54\\%). Moreover, we conducted an additional analysis of agreement errors in which we distinguished between short (phrase-level) and long distance (sentence-level) errors. We discovered that phrase-based MT approaches are of limited use for long distance agreement phenomena, for which neural MT was found to be especially effective.",
+    "categories": [
+      "cs.CL",
+      "cs.AI"
+    ],
+    "published": "2018-02-02T14:41:08+00:00",
+    "authors": [
+      "Filip Klubička",
+      "Antonio Toral",
+      "Víctor M. Sánchez-Cartagena"
+    ],
+    "url": "http://arxiv.org/abs/1802.01451v1",
+    "label": 0,
+    "source_query": "machine translation"
+  },
+  {
+    "arxiv_id": "1906.07286v1",
+    "title": "Generalizing Back-Translation in Neural Machine Translation",
+    "abstract": "Back-translation - data augmentation by translating target monolingual data - is a crucial component in modern neural machine translation (NMT). In this work, we reformulate back-translation in the scope of cross-entropy optimization of an NMT model, clarifying its underlying mathematical assumptions and approximations beyond its heuristic usage. Our formulation covers broader synthetic data generation schemes, including sampling from a target-to-source NMT model. With this formulation, we point out fundamental problems of the sampling-based approaches and propose to remedy them by (i) disabling label smoothing for the target-to-source model and (ii) sampling from a restricted search space. Our statements are investigated on the WMT 2018 German - English news translation task.",
+    "categories": [
+      "cs.CL",
+      "cs.LG"
+    ],
+    "published": "2019-06-17T22:13:24+00:00",
+    "authors": [
+      "Miguel Graça",
+      "Yunsu Kim",
+      "Julian Schamper",
+      "Shahram Khadivi",
+      "Hermann Ney"
+    ],
+    "url": "http://arxiv.org/abs/1906.07286v1",
+    "label": 0,
+    "source_query": "machine translation"
+  }
+]
