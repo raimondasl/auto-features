@@ -88,7 +88,17 @@ def complete(
     *cfg* is any object exposing ``provider`` plus the provider's fields
     (``claude_api_key``/``claude_model`` or ``ollama_url``/``ollama_model``,
     and ``timeout``) — e.g. a SuggestionsConfig or TriageConfig.
+
+    If *cfg* carries a non-empty ``redact`` list (config mirrors ``privacy.redact``
+    onto it at load time), those terms are stripped from the prompt here — at the
+    last point before it leaves the process, so no call site can route around it.
     """
+    patterns = getattr(cfg, "redact", None)
+    if patterns:
+        from reporadar.privacy import compile_patterns, redact
+
+        prompt = redact(prompt, compile_patterns(list(patterns)))
+
     last: Exception | None = None
     for attempt in range(max_retries + 1):
         try:

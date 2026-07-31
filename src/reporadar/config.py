@@ -65,6 +65,9 @@ class ArxivConfig:
 class QueriesConfig:
     seed: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
+    # Not user-set under `queries:` — populated from `privacy.redact` at load time
+    # so `build_queries` strips the terms from every query string it hands out.
+    redact: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -143,6 +146,20 @@ class SignalsConfig:
 
 
 @dataclass
+class PrivacyConfig:
+    """Controls on what repo-derived text is allowed to leave (Feature 13).
+
+    Deliberately modest, and `rr audit` says so: removing literal terms stops a
+    codename reaching a search log, but TF-IDF keywords still encode the domain you
+    work in. The audit view is the honest layer, not this filter.
+    """
+
+    # Terms or regexes stripped from every outbound query and LLM prompt. An entry
+    # that is not valid regex is matched literally, so `C++` behaves as written.
+    redact: list[str] = field(default_factory=list)
+
+
+@dataclass
 class EmailHookConfig:
     smtp_host: str = ""
     smtp_port: int = 587
@@ -179,6 +196,9 @@ class SuggestionsConfig:
     claude_model: str = "claude-haiku-4-5"
     max_suggestions: int = 3
     timeout: int = 30
+    # Not user-set under `suggestions:` — populated from `privacy.redact` at load
+    # time so `complete()` can strip the terms from any prompt it is about to send.
+    redact: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -228,6 +248,7 @@ class RepoRadarConfig:
     feedback: FeedbackConfig = field(default_factory=FeedbackConfig)
     recommendations: RecommendationsConfig = field(default_factory=RecommendationsConfig)
     signals: SignalsConfig = field(default_factory=SignalsConfig)
+    privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
 
 
 def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
@@ -252,6 +273,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     )
     enrichment.provider = _normalize_off(enrichment.provider)
     signals = SignalsConfig(**data["signals"]) if "signals" in data else SignalsConfig()
+    privacy = PrivacyConfig(**data["privacy"]) if "privacy" in data else PrivacyConfig()
     sources = data.get("sources", ["arxiv"])
 
     if "hooks" in data:
@@ -266,6 +288,13 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     suggestions = (
         SuggestionsConfig(**data["suggestions"]) if "suggestions" in data else SuggestionsConfig()
     )
+    # Mirror the redaction list onto the two config objects that reach a choke point,
+    # rather than threading it through every call site. Both LLM features reach the
+    # network via `complete(prompt, suggestions_cfg)`, and every text-search source
+    # via `build_queries(..., queries_cfg, ...)`, so putting the terms *there* means
+    # redaction applies by construction — a new caller gets it without opting in.
+    suggestions.redact = list(privacy.redact)
+    queries.redact = list(privacy.redact)
     triage = TriageConfig(**data["triage"]) if "triage" in data else TriageConfig()
     feedback = FeedbackConfig(**data["feedback"]) if "feedback" in data else FeedbackConfig()
     recommendations = (
@@ -291,6 +320,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         feedback=feedback,
         recommendations=recommendations,
         signals=signals,
+        privacy=privacy,
     )
 
 

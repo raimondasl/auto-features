@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -61,6 +62,22 @@ def build_queries(
 
     Returns a list of arXiv query strings ready for the API.
     """
+    if queries_cfg.redact:
+        # Redact the *terms*, before they are assembled into query syntax. Doing it
+        # to the finished string instead would leave the scaffolding behind — a
+        # keyword query would degrade to `(all: ) AND (cat:cs.IR)`, which is not a
+        # redacted search but a broken one. A term that redacts away is dropped.
+        from reporadar.privacy import compile_patterns, redact, redact_all
+
+        patterns = compile_patterns(queries_cfg.redact)
+        queries_cfg = replace(queries_cfg, seed=redact_all(queries_cfg.seed, patterns))
+        profile = replace(
+            profile,
+            keywords=[
+                (t, w) for t, w in ((redact(t, patterns), w) for t, w in profile.keywords) if t
+            ],
+        )
+
     cat_filter = _category_filter(arxiv_cfg.categories)
     queries: list[str] = []
 

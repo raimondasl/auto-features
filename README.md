@@ -23,6 +23,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
 - **Ranking eval** — `rr eval` scores the ranker against your own ratings, and `--compare a.yml b.yml` A/Bs two configs with a bootstrap interval, so "did that change help?" has an answer
+- **Privacy audit** — `rr audit` prints every network destination and the exact query strings your profile would transmit, without sending any of them; `privacy.redact` strips internal codenames from queries and LLM prompts
 - **No API keys required** for the default arXiv pipeline — every core source is free and keyless (OpenAlex is the one exception: since 2026-02-13 it throttles keyless callers, so set `openalex.api_key` if you enable that source)
 
 ## Installation
@@ -229,6 +230,81 @@ with each paper excluded from its own query. Without that, every relevant paper'
 is inflated by construction and the harness confidently recommends turning the weight
 up even when the vectors are pure noise.
 
+### `rr audit [--config PATH] [--json]`
+
+Prints exactly what would leave this machine, and sends nothing to find out.
+
+```
+Reached by every `rr update` (3):
+  [repo-derived] arXiv - export.arxiv.org/api/query
+      sends: the search queries built from your repo profile (keywords, library names)
+      enabled by: always (the core source)
+  [repo-derived] DBLP - dblp.org/search/publ/api
+      ...
+
+Reached only by an explicit command (1):
+  [interests] GitHub - the `gh` CLI, against your configured remote
+      sends: paper titles, abstracts and suggestions, as issue bodies in your repo
+
+Query strings that would be transmitted (10):
+  1. (all:"learning to rank") AND (cat:cs.LG OR cat:cs.CL)
+  ...
+
+Redaction: 2 pattern(s) active - queries above are filtered.
+
+What leaves regardless of redaction:
+  Profile keywords, which encode your domain: arxiv, mcp, pytest, sqlite-vec, ...
+```
+
+Destinations are grouped by what they receive — `repo+paper text` (LLM prompts, the
+most sensitive), `repo-derived` (search terms inferred from your code), `interests`
+(arXiv ids of papers you track), `none` — and sorted worst-first. Anything reached only
+by an explicit command (`rr gh-issues`, `rr notify`) gets its own section rather than
+being omitted for not being part of `rr update`.
+
+Two things make the report trustworthy rather than decorative. The query strings come
+from the same `build_queries` call `update` uses — profiled the same way, including
+`profiler.scan_source` — so there is no second implementation to drift from the first.
+And the destination list is **enforced**: a test walks the package for modules that make
+outbound calls and fails CI if any is missing from the registry, so adding a source
+without documenting it is a build error rather than a quietly stale privacy page. That
+detector is static, and the test says so: it knows a list of request shapes and follows
+private helpers imported from an already-outbound module (`specter` makes no request of
+its own — it borrows one from `citations`). A module reaching the network some third way
+would still slip past. It raises the cost of an undeclared destination; it does not make
+one impossible.
+
+`--json` emits the same data for scripting (e.g. failing a CI job if an unexpected
+destination becomes active).
+
+#### `privacy.redact` — stripping internal codenames
+
+```yaml
+privacy:
+  redact:
+    - projectatlas          # literal, case-insensitive
+    - "re:acme-[0-9]{4}"    # regex, only with the `re:` prefix
+```
+
+Entries are **literal by default**; a `re:` prefix opts into a regex. This matters more
+than it looks: `C++` is a *valid* Python regex — `++` parses as a possessive quantifier
+— so treating entries as regexes by default would compile it happily and redact only
+the letter `C`, leaving `++` in the query and the user believing otherwise.
+
+Terms are removed at two choke points, both by construction rather than per-call-site:
+`build_queries`, which every text-search source draws from, and `llm_client.complete`,
+the last step before any prompt leaves the process. Redaction runs on the query *terms*
+before they're assembled into arXiv syntax — filtering the finished string would leave
+`(all: ) AND (cat:cs.IR)` behind, which is not a redacted search but a broken one. A
+term that redacts to nothing is dropped rather than sent empty.
+
+**What it does not do.** Removing a codename stops it reaching a search log. It does
+not hide that you work on, say, distributed consensus: TF-IDF keywords still encode
+the domain, and no denylist changes that. `rr audit` says so explicitly in its "what
+leaves regardless of redaction" section, and warns when your patterns matched nothing
+— a user who configures redaction and gets silence would otherwise assume it worked.
+The audit view is the honest layer; the filter is a convenience on top of it.
+
 ### `rr mcp [--config PATH]`
 
 Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cursor, VS Code, Windsurf — can query your repo-aware paper store conversationally. Unlike generic arXiv MCP servers, its tools are grounded in *this repository's* profile and ranking. Tools exposed:
@@ -376,6 +452,11 @@ recommendations:
   enabled: false                      # true: seed the free S2 recommender with your stars/ratings
   limit: 20                           # how many recommendations to request per run
   max_seeds: 50                       # cap on example papers sent
+
+privacy:
+  redact: []                          # terms stripped from outbound queries and LLM prompts.
+                                      # Literal and case-insensitive; prefix with `re:`
+                                      # for a regex. See `rr audit`.
 
 output:
   digest_path: ./reporadar_digest.md  # Default output path
