@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 
 
 @dataclass
@@ -115,6 +116,116 @@ def _parse_pyproject_toml(path: Path) -> list[str]:
     return packages
 
 
+def _requirement_name(spec: str) -> str:
+    """Reduce a requirement string like ``torch>=2.1`` to its bare package name."""
+    return re.split(r"[>=<!~;\[\]]", spec)[0].strip().lower()
+
+
+# Module-level variables in a setup.py that plausibly hold requirement strings. Real
+# packaging files rarely pass a literal to `setup()`; they build a list (or a table of
+# pinned versions) above it and reference it, so the literal has to be found by name.
+_DEP_VAR_HINTS = ("dep", "require", "install")
+
+
+def _parse_setup_py(path: Path) -> list[str]:
+    """Extract dependency names from setup.py **without executing it**.
+
+    Reading this file matters more than it looks: a HuggingFace-style project (diffusers,
+    transformers, peft) ships no requirements.txt and a pyproject.toml holding only tool
+    config, so setup.py is the *only* place its dependencies are declared. Skipping it
+    left those repos with no anchors at all, no inferred domains, and a keyword list that
+    fell through to README boilerplate — `license` and `https` became search queries.
+
+    Parsed with :mod:`ast`, never ``exec``: a setup.py is arbitrary code, and profiling a
+    repository must not run it. That rules out resolving computed values, so this reads
+    literal lists of strings only, which is what the overwhelming majority of them use.
+    """
+    text = _read_text_file(path)
+    if not text:
+        return []
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []  # a setup.py we cannot parse is not worth failing a profile over
+
+    packages: list[str] = []
+
+    def _from_list(node: ast.AST) -> None:
+        if not isinstance(node, ast.List):
+            return
+        for element in node.elts:
+            if isinstance(element, ast.Constant) and isinstance(element.value, str):
+                name = _requirement_name(element.value)
+                if name:
+                    packages.append(name)
+
+    for node in ast.walk(tree):
+        # `install_requires = [...]`, `_deps = [...]`, `REQUIRED = [...]`
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and any(
+                    hint in target.id.lower() for hint in _DEP_VAR_HINTS
+                ):
+                    _from_list(node.value)
+        # `setup(install_requires=[...], extras_require={...: [...]})`
+        elif isinstance(node, ast.Call):
+            for kw in node.keywords:
+                if kw.arg in ("install_requires", "setup_requires"):
+                    _from_list(kw.value)
+                elif kw.arg == "extras_require" and isinstance(kw.value, ast.Dict):
+                    for value in kw.value.values:
+                        _from_list(value)
+
+    return packages
+
+
+def _packaging_metadata_text(repo_path: Path) -> str:
+    """The project's own one-line description and keywords, if it declares any.
+
+    This is the most concentrated topic signal a repo has — an author writing
+    ``keywords="deep learning diffusion jax pytorch"`` is stating the subject directly,
+    where a README says it diffusely between badges and install instructions. It is a
+    handful of words against a README's thousands, so it enters TF-IDF as its own
+    document rather than being appended to one.
+    """
+    parts: list[str] = []
+
+    setup_py = repo_path / "setup.py"
+    text = _read_text_file(setup_py)
+    if text:
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            tree = None
+        if tree is not None:
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                for kw in node.keywords:
+                    if (
+                        kw.arg in ("description", "keywords")
+                        and isinstance(kw.value, ast.Constant)
+                        and isinstance(kw.value.value, str)
+                    ):
+                        parts.append(kw.value.value)
+
+    pyproject = repo_path / "pyproject.toml"
+    if pyproject.is_file():
+        try:
+            with open(pyproject, "rb") as f:
+                data = tomllib.load(f)
+        except tomllib.TOMLDecodeError:
+            data = {}
+        project = data.get("project", {})
+        if isinstance(project.get("description"), str):
+            parts.append(project["description"])
+        keywords = project.get("keywords")
+        if isinstance(keywords, list):
+            parts.extend(k for k in keywords if isinstance(k, str))
+
+    return " ".join(parts)
+
+
 def _parse_package_json(path: Path) -> list[str]:
     """Extract dependency names from package.json."""
     if not path.is_file():
@@ -137,6 +248,7 @@ def _extract_anchors(repo_path: Path) -> list[str]:
     anchors: list[str] = []
     anchors.extend(_parse_requirements_txt(repo_path / "requirements.txt"))
     anchors.extend(_parse_pyproject_toml(repo_path / "pyproject.toml"))
+    anchors.extend(_parse_setup_py(repo_path / "setup.py"))
     anchors.extend(_parse_package_json(repo_path / "package.json"))
     # Deduplicate while preserving order
     seen: set[str] = set()
@@ -161,6 +273,168 @@ def _infer_domains(anchors: list[str]) -> list[str]:
     return sorted(domains)
 
 
+# Markup that carries no topic signal but plenty of tokens. Badge rows and link targets
+# are the worst offenders: a README's first screen is often four shields.io URLs, and
+# every one of them contributes `https`, `com`, `svg`, `badge` to the term counts.
+_URL_RE = re.compile(r"https?://\S+|www\.\S+")
+_MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")  # badges
+_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")  # keep the text, drop the target
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_RST_DIRECTIVE_RE = re.compile(r"^\s*\.\.\s+[\w-]+::.*$", re.MULTILINE)
+_RST_OPTION_RE = re.compile(r"^\s*:[\w-]+:.*$", re.MULTILINE)
+
+# Vocabulary that survives `stop_words="english"` but describes *packaging and docs
+# tooling*, never a research topic. Measured across the 13 benchmark repos, these
+# dominated the keyword list for several of them: the `cv` fixture's top six were
+# `detectron2, md, undoc-members show-inheritance, show-inheritance, members, automodule`
+# — five of six pure Sphinx. Library names are deliberately absent from this list; a repo
+# whose subject really is `pytest` should still be able to say so.
+_BOILERPLATE_STOPWORDS = frozenset(
+    {
+        # links and hosting
+        "https",
+        "http",
+        "www",
+        "com",
+        "org",
+        "io",
+        "github",
+        "gitlab",
+        "badge",
+        "badges",
+        "svg",
+        "png",
+        "img",
+        "shields",
+        "href",
+        "url",
+        "link",
+        # packaging and repo furniture
+        "license",
+        "licensed",
+        "licence",
+        "copyright",
+        "install",
+        "installation",
+        "pip",
+        "conda",
+        "setup",
+        "usage",
+        "changelog",
+        "contributing",
+        "readme",
+        "version",
+        "versions",
+        "release",
+        "releases",
+        "download",
+        "downloads",
+        # file extensions and formats
+        "py",
+        "yml",
+        "yaml",
+        "json",
+        "md",
+        "rst",
+        "txt",
+        "toml",
+        "cfg",
+        "ini",
+        "sh",
+        "csv",
+        "html",
+        "css",
+        # Sphinx / docs directives
+        "autodoc",
+        "automodule",
+        "autofunction",
+        "autoclass",
+        "autoattribute",
+        "automethod",
+        "currentmodule",
+        "toctree",
+        "maxdepth",
+        "undoc",
+        "members",
+        "inheritance",
+        "eval",
+        "ref",
+        "doc",
+        "docs",
+        "docstring",
+        "api",
+        "index",
+        "genindex",
+        "modindex",
+        "versionadded",
+        "versionchanged",
+        "deprecated",
+        "seealso",
+        "rubric",
+        "literalinclude",
+        "codeblock",
+        # generic prose scaffolding the english list misses
+        "import",
+        "imports",
+        "example",
+        "examples",
+        "documentation",
+        "reference",
+        "note",
+        "notes",
+        "warning",
+        "parameters",
+        "returns",
+        "args",
+        "kwargs",
+        # hyphenated Sphinx tokens, which survive as single terms under our token pattern
+        "eval-rst",
+        "undoc-members",
+        "show-inheritance",
+        "code-block",
+        # code and template syntax quoted in docs — `def`, `self` and Jinja's `endfor`
+        # are among the commonest terms in a docs/ tree and mean nothing as a topic
+        "def",
+        "cls",
+        "self",
+        "obj",
+        "param",
+        "true",
+        "false",
+        "none",
+        "null",
+        "endfor",
+        "endif",
+        "endblock",
+        "endmacro",
+        # build-system furniture, which dominates C/system repos with no Python manifest
+        "make",
+        "makefile",
+        "cmake",
+        "build",
+        "src",
+        "usr",
+        "bin",
+        "lib",
+        "tar",
+        "gz",
+        "config",
+        "configure",
+    }
+)
+
+
+def _clean_document(text: str) -> str:
+    """Strip markup that inflates term counts without carrying topic signal."""
+    text = _MD_IMAGE_RE.sub(" ", text)
+    text = _MD_LINK_RE.sub(r"\1", text)
+    text = _RST_DIRECTIVE_RE.sub(" ", text)
+    text = _RST_OPTION_RE.sub(" ", text)
+    text = _URL_RE.sub(" ", text)
+    text = _HTML_TAG_RE.sub(" ", text)
+    return text
+
+
 def _collect_text_corpus(repo_path: Path) -> list[str]:
     """Gather text documents from the repo for TF-IDF analysis.
 
@@ -169,11 +443,17 @@ def _collect_text_corpus(repo_path: Path) -> list[str]:
     """
     documents: list[str] = []
 
+    # The project's own description/keywords, if declared. Short and dense, so it goes
+    # in first and stands as its own document rather than being merged into the README.
+    metadata = _packaging_metadata_text(repo_path)
+    if metadata.strip():
+        documents.append(metadata)
+
     # README variants
     for name in ("README.md", "README.rst", "README.txt", "README"):
         text = _read_text_file(repo_path / name)
         if text:
-            documents.append(text)
+            documents.append(_clean_document(text))
 
     # docs/ directory — read .md and .rst files
     docs_dir = repo_path / "docs"
@@ -182,7 +462,7 @@ def _collect_text_corpus(repo_path: Path) -> list[str]:
             for doc_file in docs_dir.rglob(ext):
                 text = _read_text_file(doc_file)
                 if text:
-                    documents.append(text)
+                    documents.append(_clean_document(text))
 
     return documents
 
@@ -208,9 +488,15 @@ def _extract_keywords(
     # (every term appears in 100% of a single-doc corpus).
     effective_max_df = 1.0 if len(all_docs) < 3 else 0.95
 
+    # `stop_words="english"` removes "the" and "and" but not `license`, `https` or
+    # `automodule`, which is how README furniture reached the arXiv API as a query.
+    # Stopping happens before n-grams are formed, so this also kills the bigrams built
+    # out of two boilerplate tokens ("license https").
+    stop_words = sorted(ENGLISH_STOP_WORDS | _BOILERPLATE_STOPWORDS)
+
     vectorizer = TfidfVectorizer(
         max_features=200,
-        stop_words="english",
+        stop_words=stop_words,
         token_pattern=r"(?u)\b[a-zA-Z][a-zA-Z0-9_-]{1,}\b",
         ngram_range=(1, 2),
         max_df=effective_max_df,

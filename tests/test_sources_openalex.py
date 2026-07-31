@@ -208,3 +208,37 @@ class TestCollectPapers:
         arxiv_ids = [p["arxiv_id"] for p in results]
         assert "new" in arxiv_ids
         assert "old" not in arxiv_ids
+
+
+class TestArxivIdFromLowercaseDoi:
+    """OpenAlex normalises DOIs, so the same work can arrive with a lowercase `arxiv.`.
+
+    The guard was case-insensitive (`"arxiv" in doi.lower()`) but the split was not
+    (`doi.split("arXiv.")`), so a lowercase DOI passed the guard, failed the split, and
+    fell through to a synthetic `oa:W…` id — the same paper arXiv had already supplied,
+    now impossible to dedup against it. The pre-existing test could not catch this: it
+    hand-writes the capital-X form on both sides.
+    """
+
+    def test_lowercase_doi_yields_the_arxiv_id(self) -> None:
+        work = {"doi": "https://doi.org/10.48550/arxiv.2401.12345", "id": "x", "ids": {}}
+        assert _extract_arxiv_id(work) == "2401.12345"
+
+    def test_uppercase_doi_still_works(self) -> None:
+        work = {"doi": "https://doi.org/10.48550/arXiv.2401.12345", "id": "x", "ids": {}}
+        assert _extract_arxiv_id(work) == "2401.12345"
+
+    def test_both_casings_resolve_to_the_same_id(self) -> None:
+        # The point of the fix: one paper, one id, whatever OpenAlex chose to send.
+        lower = {"doi": "https://doi.org/10.48550/arxiv.2401.12345", "id": "x", "ids": {}}
+        upper = {"doi": "https://doi.org/10.48550/ARXIV.2401.12345", "id": "x", "ids": {}}
+        assert _extract_arxiv_id(lower) == _extract_arxiv_id(upper)
+        assert not _extract_arxiv_id(lower).startswith("oa:")
+
+    def test_a_non_arxiv_doi_is_unaffected(self) -> None:
+        work = {
+            "doi": "https://doi.org/10.1145/3459637",
+            "id": "https://openalex.org/W123",
+            "ids": {},
+        }
+        assert _extract_arxiv_id(work) == "oa:W123"

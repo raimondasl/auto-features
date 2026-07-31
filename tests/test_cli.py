@@ -1968,3 +1968,48 @@ class TestNoNewProfilerCfgOmissions:
             "these call `profile_repo` without `profiler_cfg`, which silently disables "
             "`profiler.scan_source` for that code path:\n  " + "\n  ".join(offenders)
         )
+
+
+class TestCrossSourceDedupIsVersionAware:
+    """arXiv ids carry a version suffix; a raw-equality merge lets the same paper in twice.
+
+    arXiv returns `2401.12345` where Semantic Scholar, OpenAlex or bioRxiv may return
+    `2401.12345v2`. `_dedup_id` version-strips exactly for this, and DBLP and
+    recommendations already went through it — these three merges had been left on raw
+    equality, so a versioned duplicate reached the digest as a second entry.
+    """
+
+    def test_every_source_merge_uses_the_version_stripping_helper(self) -> None:
+        """A static check, because the runtime symptom is a duplicate digest row.
+
+        Nothing raises, no test fails, and the run looks fine — you just see the same
+        paper twice. Three merges drifted this way, so assert the shape directly.
+        """
+        src = Path(__file__).resolve().parent.parent / "src" / "reporadar" / "cli.py"
+        offenders: list[str] = []
+        for n, line in enumerate(src.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if not stripped.startswith(("existing_ids =", "new_from_")):
+                continue
+            if 'p["arxiv_id"]' in stripped and "_dedup_id" not in stripped:
+                offenders.append(f"cli.py:{n}: {stripped}")
+        assert not offenders, (
+            "these cross-source merges compare raw arXiv ids, so a versioned duplicate "
+            "of a paper already collected will be added again:\n  " + "\n  ".join(offenders)
+        )
+
+    def test_dedup_id_strips_the_version(self) -> None:
+        # Guards the helper the merges rely on; if this changed, the merges would still
+        # "use _dedup_id" while no longer deduping.
+        from reporadar.cli import _dedup_id
+
+        assert _dedup_id("2401.12345v2") == _dedup_id("2401.12345")
+        assert _dedup_id("2401.12345v2") == "2401.12345"
+
+    def test_non_arxiv_ids_are_left_alone(self) -> None:
+        from reporadar.cli import _dedup_id
+
+        # Synthetic and legacy ids must pass through untouched, or unrelated papers
+        # would start colliding with each other.
+        assert _dedup_id("oa:W123") == "oa:W123"
+        assert _dedup_id("10.1101/2024.01.01.123456") == "10.1101/2024.01.01.123456"
