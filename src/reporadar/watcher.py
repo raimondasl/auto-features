@@ -125,8 +125,9 @@ def run_update_cycle(
     db_path = repo_path / ".reporadar" / "papers.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Profile + collect
-    repo_profile = profile_repo(repo_path)
+    # Profile + collect. `rr watch` is `rr update` on a loop, so it must build the same
+    # queries — omitting profiler_cfg silently turned scan_source off for every cycle.
+    repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
     queries = build_queries(repo_profile, cfg.queries, cfg.arxiv)
     if not queries:
         return {"success": True, "run_id": None, "papers_new": 0, "top_picks_count": 0}

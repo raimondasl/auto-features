@@ -2024,7 +2024,10 @@ def workspace_update(verbose: bool) -> None:
             repo_path = Path(repo["repo_path"]).resolve()
 
             info(f"Profiling {repo['repo_id']}...")
-            repo_profile = profile_repo(repo_path)
+            # Each member is profiled under its own `profiler:` block. Dropping it here
+            # made `scan_source: true` a no-op, so a workspace run collected against a
+            # different query set than `rr update` would for the same repo.
+            repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
             queries = build_queries(repo_profile, cfg.queries, cfg.arxiv)
 
             if queries:

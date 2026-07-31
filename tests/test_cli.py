@@ -1811,3 +1811,160 @@ class TestEvalRegressionGate:
         result = runner.invoke(cli, ["eval", "--config", cfg_path, "--history"])
         assert result.exit_code == 0
         assert " k " in result.output or "k " in result.output.splitlines()[0]
+
+
+class TestScanSourceReachesEveryPipeline:
+    """`profiler.scan_source` must mean the same thing in every command that profiles.
+
+    `profile_repo`'s `profiler_cfg` is optional and defaults to None, and `profiler.py`
+    gates source scanning on `getattr(profiler_cfg, "scan_source", False)` — so omitting
+    the argument silently turns the feature off rather than failing. Three call sites had
+    done exactly that, which meant `rr workspace update` and `rr watch` built and
+    transmitted a *different* query set than `rr update` would for the same repo.
+    """
+
+    def _repo(self, tmp_path: Path, name: str = "repo") -> Path:
+        repo = tmp_path / name
+        repo.mkdir()
+        (repo / "README.md").write_text(
+            "# Internal Search\n\nAn internal search service for document ranking.\n",
+            encoding="utf-8",
+        )
+        # The identifiers only a source scan can reach.
+        (repo / "engine.py").write_text(
+            "def blackbriar_rerank(docs):\n    return docs\n\n\n"
+            "class BlackbriarPipeline:\n    pass\n",
+            encoding="utf-8",
+        )
+        (repo / ".reporadar.yml").write_text(
+            f"repo_path: {repo.as_posix()}\n"
+            "profiler:\n  scan_source: true\n"
+            "arxiv:\n  categories: [cs.IR]\n"
+            "enrichment:\n  provider: 'off'\n"
+            "signals:\n  integrity: false\n",
+            encoding="utf-8",
+        )
+        return repo
+
+    def _expected_queries(self, repo: Path) -> list[str]:
+        """What `rr update` would transmit — the reference every other path must match."""
+        from reporadar.collector import build_queries
+        from reporadar.config import load_config
+        from reporadar.profiler import profile_repo
+
+        cfg = load_config(repo / ".reporadar.yml")
+        profile = profile_repo(repo, profiler_cfg=cfg.profiler)
+        return build_queries(profile, cfg.queries, cfg.arxiv)
+
+    def test_the_fixture_actually_exercises_source_scanning(self, tmp_path: Path) -> None:
+        # If this stops holding, every assertion below becomes vacuous.
+        repo = self._repo(tmp_path)
+        expected = self._expected_queries(repo)
+        assert any("blackbriar" in q.lower() for q in expected), expected
+
+        from reporadar.collector import build_queries
+        from reporadar.config import load_config
+        from reporadar.profiler import profile_repo
+
+        cfg = load_config(repo / ".reporadar.yml")
+        without = build_queries(profile_repo(repo), cfg.queries, cfg.arxiv)
+        assert not any("blackbriar" in q.lower() for q in without), (
+            "omitting profiler_cfg no longer changes the queries, so these tests prove nothing"
+        )
+
+    def test_workspace_update_collects_the_same_queries_as_update(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        expected = self._expected_queries(repo)
+
+        collected: list[list[str]] = []
+
+        def fake_collect(queries: list[str], arxiv_cfg: object) -> list[dict]:
+            collected.append(list(queries))
+            return []
+
+        ws_db = tmp_path / "workspace.db"
+        store = PaperStore(ws_db)
+        store.add_workspace_repo("myrepo", str(repo), str(repo / ".reporadar.yml"))
+
+        with (
+            patch("reporadar.workspace.open_workspace_store", return_value=PaperStore(ws_db)),
+            patch("reporadar.cli.collect_papers", side_effect=fake_collect),
+        ):
+            result = CliRunner().invoke(cli, ["workspace", "update"])
+
+        assert result.exit_code == 0, result.output
+        assert collected, "workspace update never reached collection"
+        assert collected[0] == expected
+
+    def test_workspace_scoring_profiles_the_same_way_it_collected(self, tmp_path: Path) -> None:
+        """Collecting and scoring must agree, or the run misranks what it just fetched.
+
+        Fixing only the collection half would leave `workspace update` matching papers
+        against source identifiers and then ranking them against a docs-only profile.
+        """
+        from reporadar.config import load_config
+        from reporadar.profiler import profile_repo
+        from reporadar.workspace import score_papers_for_repo
+
+        repo = self._repo(tmp_path)
+        cfg = load_config(repo / ".reporadar.yml")
+
+        seen: list[object] = []
+        real_profile_repo = profile_repo
+
+        def spy(path, profiler_cfg=None):  # type: ignore[no-untyped-def]
+            seen.append(profiler_cfg)
+            return real_profile_repo(path, profiler_cfg=profiler_cfg)
+
+        with patch("reporadar.profiler.profile_repo", side_effect=spy):
+            score_papers_for_repo("myrepo", str(repo), [], cfg)
+
+        assert seen, "score_papers_for_repo never profiled the repo"
+        assert seen[0] is cfg.profiler, (
+            "scoring profiled without the repo's profiler config, so it disagrees with collection"
+        )
+
+    def test_watch_cycle_builds_the_same_queries_as_update(self, tmp_path: Path) -> None:
+        from reporadar.watcher import run_update_cycle
+
+        repo = self._repo(tmp_path)
+        expected = self._expected_queries(repo)
+
+        collected: list[list[str]] = []
+
+        def fake_collect(queries: list[str], arxiv_cfg: object) -> list[dict]:
+            collected.append(list(queries))
+            return []
+
+        with patch("reporadar.collector.collect_papers", side_effect=fake_collect):
+            run_update_cycle(str(repo / ".reporadar.yml"))
+
+        assert collected, "the watch cycle never reached collection"
+        assert collected[0] == expected
+
+
+class TestNoNewProfilerCfgOmissions:
+    def test_every_profile_repo_call_passes_profiler_cfg(self) -> None:
+        """A static guard, because this bug is invisible at runtime.
+
+        `profiler_cfg` defaults to None and the scan is gated on `getattr(..., False)`,
+        so an omission does not raise, log, or change any test that does not set
+        `scan_source` — it just quietly narrows what the tool searches for. Three call
+        sites drifted this way before anyone noticed. Fail the build instead.
+        """
+        src = Path(__file__).resolve().parent.parent / "src" / "reporadar"
+        offenders: list[str] = []
+        for path in src.rglob("*.py"):
+            if path.name == "profiler.py":  # the definition itself
+                continue
+            for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if "profile_repo(" not in line or "profiler_cfg" in line:
+                    continue
+                if "import" in line or line.lstrip().startswith("#"):
+                    continue
+                offenders.append(f"{path.relative_to(src)}:{n}: {line.strip()}")
+
+        assert not offenders, (
+            "these call `profile_repo` without `profiler_cfg`, which silently disables "
+            "`profiler.scan_source` for that code path:\n  " + "\n  ".join(offenders)
+        )
