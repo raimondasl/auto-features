@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json as json_mod
 import logging
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -95,8 +96,12 @@ def _extract_arxiv_id(work: dict[str, Any]) -> str:
     # Check DOI for arXiv
     doi = work.get("doi", "") or ids.get("doi", "")
     if doi and "arxiv" in doi.lower():
-        # e.g., https://doi.org/10.48550/arXiv.2401.12345
-        parts = doi.split("arXiv.")
+        # e.g. https://doi.org/10.48550/arXiv.2401.12345 — but OpenAlex normalises DOIs,
+        # so the same record can arrive lowercased. The guard above is case-insensitive;
+        # splitting case-sensitively meant a lowercase DOI passed the guard, failed the
+        # split, and fell through to a synthetic `oa:W...` id — the same paper arXiv had
+        # already supplied, now undeduplicable against it.
+        parts = re.split(r"arxiv\.", doi, flags=re.IGNORECASE)
         if len(parts) > 1:
             return str(parts[-1])
 

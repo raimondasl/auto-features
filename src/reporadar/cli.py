@@ -282,9 +282,12 @@ def update(
                 api_key=api_key,
                 lookback_days=cfg.arxiv.lookback_days,
             )
-            # Merge: arXiv results take priority
-            existing_ids = {p["arxiv_id"] for p in papers}
-            new_from_ss = [p for p in ss_papers if p["arxiv_id"] not in existing_ids]
+            # Merge: arXiv results take priority. Version-strip both sides — arXiv hands
+            # back `2401.12345` where another source may say `2401.12345v2`, and matching
+            # raw ids lets the same paper through twice. DBLP and recommendations already
+            # went through `_dedup_id`; these three merges had been left on raw equality.
+            existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
+            new_from_ss = [p for p in ss_papers if _dedup_id(p["arxiv_id"]) not in existing_ids]
             papers.extend(new_from_ss)
             info(f"  {len(new_from_ss)} additional papers from Semantic Scholar")
         except Exception as exc:
@@ -303,8 +306,8 @@ def update(
                 lookback_days=cfg.arxiv.lookback_days,
                 api_key=cfg.openalex.api_key or None,
             )
-            existing_ids = {p["arxiv_id"] for p in papers}
-            new_from_oa = [p for p in oa_papers if p["arxiv_id"] not in existing_ids]
+            existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
+            new_from_oa = [p for p in oa_papers if _dedup_id(p["arxiv_id"]) not in existing_ids]
             papers.extend(new_from_oa)
             info(f"  {len(new_from_oa)} additional papers from OpenAlex")
         except Exception as exc:
@@ -318,8 +321,8 @@ def update(
             info("Fetching papers from bioRxiv...")
             bx_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
             bx_papers = bx_collect(bx_queries, lookback_days=cfg.arxiv.lookback_days)
-            existing_ids = {p["arxiv_id"] for p in papers}
-            new_from_bx = [p for p in bx_papers if p["arxiv_id"] not in existing_ids]
+            existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
+            new_from_bx = [p for p in bx_papers if _dedup_id(p["arxiv_id"]) not in existing_ids]
             papers.extend(new_from_bx)
             info(f"  {len(new_from_bx)} additional papers from bioRxiv")
         except Exception as exc:
