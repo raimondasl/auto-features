@@ -38,7 +38,10 @@ def score_papers_for_repo(
     from reporadar.profiler import profile_repo
     from reporadar.ranker import rank_papers
 
-    profile = profile_repo(Path(repo_path))
+    # The scoring half of `rr workspace update`. It has to profile the repo the same way
+    # the collection half did — otherwise a `scan_source: true` member fetches papers
+    # matched against source identifiers, then ranks them against a docs-only profile.
+    profile = profile_repo(Path(repo_path), profiler_cfg=cfg.profiler)
     scores = rank_papers(
         papers,
         profile,
