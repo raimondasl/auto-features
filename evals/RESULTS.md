@@ -6,6 +6,10 @@
 > **Read the per-case table, not the mean**: the improvement is concentrated where the bug was
 > worst and one case regressed hard. See
 > [Re-benchmark after the query-construction fix](#re-benchmark-after-the-query-construction-fix-2026-07-31).
+> That regression is now diagnosed: on `speech` the **triage gate carried no discriminative
+> signal** (precision 50% against a 50% pool base rate) and `min_actionable=3` would have beaten
+> `=2` — so the "decisively correct gate" claim below is **pre-fix and no longer established**.
+> See [`speech` regression, diagnosed](#speech-regression-diagnosed-2026-07-31).
 >
 > **Previous headline (2026-07-29, 12 cases):** RepoRadar **net-positive** (Top Picks mean net@2
 > **+1.50**) and **competitive with the Opus baseline** (+1.50 vs +1.83 — a **0.33 gap, unchanged**
@@ -547,6 +551,62 @@ live from arXiv, so the corpus has moved (mitigated but not eliminated by `--rr-
 relevance-sorted all-time window). A single 12-case run cannot cleanly attribute the +0.25 mean.
 What it *can* support is the narrower claim: the fix changed two thirds of the transmitted queries,
 and the resulting per-case movements are concentrated in the repos the bug affected.
+
+
+### `speech` regression, diagnosed (2026-07-31)
+
+```bash
+uv run python evals/run_judge_eval.py --case speech --baseline cli \
+    --rr-triage --rr-rerank --rr-all-time --rr-sweep
+```
+
+The −10.0 swing reproduced (net@2 −2.0 again). With the harness now recording *which* papers
+each system returned, the cause is visible and it is **not** retrieval.
+
+**The Top-10 candidate pool held five genuinely actionable papers. Triage admitted four
+papers and got two of them right.**
+
+| rank | admitted | judge | paper |
+|---|---|---|---|
+| 1 | **yes** | 1 | Improving Children's Speech Recognition by Fine-tuning… |
+| 2 | **yes** | **2** | FiLM-Based Speaker Conditioning of a SpeechLLM… |
+| 3 | **yes** | **2** | POWSM: A Phonetic Open Whisper-Style Speech Foundation Model |
+| 4 | **yes** | 1 | TokenChain: A Discrete Speech Chain via Semantic Token Modeling |
+| 5 | no | **2** | A Density Ratio Approach to Language Model Fusion |
+| 6 | no | 1 | Low-resource speech recognition and dialect identification |
+| 7 | no | **2** | Omni-Router: Sharing Routing Decisions in Sparse MoE |
+| 8 | no | 1 | Differentiable Allophone Graphs |
+| 9 | no | **2** | Multi-task Language Modeling for Improving Speech Recognition |
+| 10 | no | 1 | FlashSpeech: Efficient Zero-Shot Speech Synthesis |
+
+**On this pool the triage gate carried no discriminative signal.** Precision 50% (2 of 4),
+recall 40% (2 of 5) — against a pool base rate of 50% actionable. Selecting four papers at
+random would have scored the same precision. The two false positives were ranked **1st and
+4th**, above three papers the judge scored 2, so the listwise rerank is ordering by an
+`llm_score` that does not track the judge either. This is one case at n=10 and cannot support
+a general claim about triage, but it does mean `speech`'s −2.0 is a gate failure, not a
+consequence of the query-construction fix changing what was fetched.
+
+**The threshold sweep contradicts `min_actionable=2` on this case.**
+
+| gate | returned | net@2 |
+|---|---|---|
+| `min>=1` | 10 | −5.0 |
+| `min>=2` | 4 | **−2.0** |
+| `min>=3` | 0 | **+0.0** (abstains) |
+
+Strictest wins, and it wins by returning nothing. Where the gate has no signal, its only
+remaining value is abstention — which is exactly what `graph` did in the 12-case run
+(−4.0 → 0.0). RESULTS.md calls `min_actionable=2` "decisively correct" on pre-fix cross-case
+data; that claim is not re-established post-fix and should not be treated as settled.
+
+**The candidate pool is not stable between runs of the same command.** This run judged
+`2606.06211v1` for the first time — a paper absent from the pool eight hours earlier under an
+identical invocation, because the harness fetches live from arXiv. The pool went from 7
+actionable of 13 to 8 of 13. That the net@2 landed on −2.0 both times is therefore partly
+coincidence, not evidence of stability, and it is a reminder that **two Tier B runs are never
+strictly comparable** — the confound applies to every historical row in this file, including
+the ones showing "no regression".
 
 ## Re-benchmark after Features 1–8 and 10 — no regression (2026-07-29)
 

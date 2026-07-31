@@ -341,6 +341,28 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         for t in SWEEP_THRESHOLDS:
             _print_system(f"  min>={t}          ", sweep[t])
 
+    def _returned(papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Which papers a system actually returned, with the judge's verdict on each.
+
+        Counts alone make a regression undebuggable. When `speech` fell from net@2 +8.0
+        to −2.0 between two runs, the artifacts could say *how many* papers the triage
+        gate admitted and how many the judge rejected, but not *which*, so there was no
+        way to tell a bad gate from a different candidate pool without paying to re-run.
+        """
+        out = []
+        for p in papers:
+            base = p["arxiv_id"].split("v")[0]
+            v = verdicts.get(base) or {}
+            out.append(
+                {
+                    "arxiv_id": p["arxiv_id"],
+                    "title": p.get("title", ""),
+                    "judge_score": v.get("score"),
+                    "judge_justification": v.get("justification", ""),
+                }
+            )
+        return out
+
     result: dict[str, Any] = {
         "case": name,
         "repo": case["live_repo"],
@@ -351,6 +373,11 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         "reporadar_toppicks": rr_pick_metrics,
         "reporadar_top10": rr_topn_metrics,
         "baseline": b_metrics,
+        "returned": {
+            "reporadar_toppicks": _returned(rr_toppicks),
+            "reporadar_top10": _returned(rr_topn),
+            "baseline": _returned(b_papers) if baseline_ok else [],
+        },
     }
     if sweep is not None:
         result["reporadar_toppicks_sweep"] = sweep
