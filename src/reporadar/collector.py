@@ -28,11 +28,17 @@ def _generate_bigram_queries(
 
     Takes the top keywords and generates adjacent pairs as quoted phrases.
     Filters out bigrams where both words are short (< 4 chars).
+
+    Only pairs *single-word* terms. The profiler's TF-IDF already emits bigrams of its
+    own, and concatenating those with a neighbour produced three-word phrases that no
+    paper contains — `"speech speech recognition"` and `"speech recognition recognition"`
+    were two of the three phrase queries built for the whisper repo. A multi-word term is
+    already a phrase, and reaches arXiv as one via the keyword path below.
     """
     if not profile.keywords or len(profile.keywords) < 2:
         return []
 
-    terms = [term for term, _weight in profile.keywords]
+    terms = [term for term, _weight in profile.keywords if " " not in term]
     bigrams: list[str] = []
 
     for i in range(len(terms) - 1):
@@ -100,7 +106,14 @@ def build_queries(
     if profile.keywords:
         top_terms = [term for term, _weight in profile.keywords[:max_auto_queries]]
         for term in top_terms:
-            q = f"all:{term}"
+            # Quote anything with a space. The profiler runs TF-IDF with
+            # ngram_range=(1, 2), so bigrams like "speech recognition" reach this line —
+            # and on the arXiv API an unquoted space after a field prefix is **OR**, not
+            # AND. `all:speech recognition` matched 246,802 papers (essentially "anything
+            # about recognition"); `all:"speech recognition"` matches 6,845. Emitting it
+            # unquoted made the most specific terms the profiler produces into the
+            # broadest queries it sends, and we then kept only the first 50 results.
+            q = f'all:"{term}"' if " " in term else f"all:{term}"
             if cat_filter:
                 q = f"({q}) AND ({cat_filter})"
             # Skip if it duplicates a seed query
@@ -153,7 +166,13 @@ def _query_with_retry(
     for attempt in range(max_retries):
         try:
             return list(client.results(search))
-        except (ConnectionError, TimeoutError, OSError) as exc:
+        # `arxiv.ArxivError` is NOT an OSError — it subclasses Exception directly — so
+        # `arxiv.HTTPError` (a 429 or 503 from export.arxiv.org) escaped this handler
+        # entirely and surfaced as a traceback. Every call site catches only
+        # `CollectionError`, including `watcher.py`, so a single throttle response ended
+        # a scheduled `rr watch` loop. arXiv throttles for real: sustained polling earned
+        # this project's own machine a ~70-minute IP block.
+        except (ConnectionError, TimeoutError, OSError, arxiv.ArxivError) as exc:
             last_exc = exc
             if attempt < max_retries - 1:
                 delay = base_delay * (2**attempt)
