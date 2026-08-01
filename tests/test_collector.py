@@ -392,3 +392,128 @@ class TestBigramQueries:
         profile = _make_profile(keywords=keywords)
         bigrams = _generate_bigram_queries(profile, max_bigrams=2)
         assert len(bigrams) <= 2
+
+
+class TestMultiWordTermsAreQuoted:
+    """An unquoted space after an arXiv field prefix is OR, not AND.
+
+    The profiler runs TF-IDF with ``ngram_range=(1, 2)``, so bigrams reach the query
+    builder. Measured against the live API: ``all:speech recognition`` matches 246,802
+    papers — more than ``all:recognition`` alone (224,631) and 7x more than the narrower
+    term ``all:speech`` (34,239), i.e. the union. ``all:"speech recognition"`` matches
+    6,845. Emitting these unquoted turned the *most specific* terms the profiler produces
+    into the *broadest* queries it sends, and only the first 50 results were kept.
+    """
+
+    def _profile(self, keywords: list[str]) -> RepoProfile:
+        return RepoProfile(
+            keywords=[(k, 1.0) for k in keywords], anchors=[], domains=[], source_signals={}
+        )
+
+    def test_a_multi_word_keyword_is_sent_as_a_phrase(self) -> None:
+        queries = build_queries(
+            self._profile(["speech recognition"]),
+            QueriesConfig(),
+            ArxivConfig(categories=[]),
+        )
+        assert 'all:"speech recognition"' in queries
+        assert "all:speech recognition" not in queries
+
+    def test_a_single_word_keyword_is_not_quoted(self) -> None:
+        # Quoting a single token is harmless but noisy; keep the emitted syntax minimal
+        # so a query is readable in `rr audit` and in the arXiv access logs.
+        queries = build_queries(
+            self._profile(["whisper"]), QueriesConfig(), ArxivConfig(categories=[])
+        )
+        assert "all:whisper" in queries
+
+    def test_every_emitted_query_has_balanced_quotes(self) -> None:
+        # A stray quote silently changes what arXiv matches rather than erroring.
+        queries = build_queries(
+            self._profile(["speech recognition", "whisper", "audio", "large model"]),
+            QueriesConfig(seed=["end to end asr"]),
+            ArxivConfig(categories=["cs.CL", "eess.AS"]),
+        )
+        assert queries
+        for q in queries:
+            assert q.count('"') % 2 == 0, q
+
+
+class TestBigramQueriesAreRealPhrases:
+    def test_multi_word_terms_are_not_concatenated(self) -> None:
+        """Joining a TF-IDF bigram to its neighbour built phrases no paper contains.
+
+        The whisper repo's keywords include both ``speech`` and ``speech recognition``,
+        and pairing adjacent terms produced ``"speech speech recognition"`` and
+        ``"speech recognition recognition"`` — two of its three phrase queries, each
+        matching nothing. A multi-word term is already a phrase and reaches arXiv as one
+        through the keyword path.
+        """
+        profile = RepoProfile(
+            keywords=[(k, 1.0) for k in ("speech", "speech recognition", "recognition", "audio")],
+            anchors=[],
+            domains=[],
+            source_signals={},
+        )
+        for phrase in _generate_bigram_queries(profile):
+            words = phrase.strip('"').split()
+            assert len(words) == 2, f"{phrase} is not a two-word phrase"
+            assert len(set(words)) == 2, f"{phrase} repeats a word"
+
+    def test_bigrams_are_still_generated_from_single_word_terms(self) -> None:
+        # The filter must not disable the feature outright.
+        profile = RepoProfile(
+            keywords=[(k, 1.0) for k in ("retrieval", "ranking", "index")],
+            anchors=[],
+            domains=[],
+            source_signals={},
+        )
+        assert _generate_bigram_queries(profile)
+
+
+class TestArxivThrottlingIsRetriedNotRaised:
+    """`arxiv.ArxivError` is not an `OSError`, so a 429 escaped the retry handler.
+
+    Every call site catches only `CollectionError` — `cli.py` and, critically,
+    `watcher.py`, the scheduled path — so one throttle response ended an `rr watch` loop
+    with a traceback. arXiv throttles for real: sustained polling from this project's own
+    machine earned a roughly 70-minute IP block.
+    """
+
+    def test_http_error_is_retried_and_wrapped(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        import arxiv
+
+        from reporadar import collector
+
+        assert not issubclass(arxiv.ArxivError, OSError), (
+            "arxiv errors are now OSErrors; this test no longer proves anything"
+        )
+
+        calls = {"n": 0}
+
+        class Boom:
+            def results(self, search: object) -> list[object]:
+                calls["n"] += 1
+                raise arxiv.HTTPError("https://export.arxiv.org/api/query", 1, 429)
+
+        monkeypatch.setattr(collector.time, "sleep", lambda _s: None)
+        with pytest.raises(collector.CollectionError):
+            collector._query_with_retry(Boom(), object(), max_retries=3)
+        assert calls["n"] == 3, "a throttled request must be retried, not raised on first sight"
+
+    def test_a_transient_error_still_yields_results_on_retry(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        import arxiv
+
+        from reporadar import collector
+
+        state = {"n": 0}
+
+        class Flaky:
+            def results(self, search: object) -> list[object]:
+                state["n"] += 1
+                if state["n"] == 1:
+                    raise arxiv.HTTPError("https://export.arxiv.org/api/query", 1, 503)
+                return ["paper"]
+
+        monkeypatch.setattr(collector.time, "sleep", lambda _s: None)
+        assert collector._query_with_retry(Flaky(), object(), max_retries=3) == ["paper"]
