@@ -488,6 +488,145 @@ component is scored on how well it ranks the *held-out* gold.
 rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fixtures.
 
 
+
+## Candidate-pool diagnosis — what RepoRadar cannot reach, and why (2026-08-01)
+
+The Tier B headline (+1.75 vs Opus +1.83) says the two systems score alike. They do not
+recommend alike. This section records the measurement that established that, and the four
+candidate fixes tried against it — **every one a negative result**, preserved here so nobody
+pays to rediscover them. Nothing below is a solution; the value is in knowing which roads
+are closed and why.
+
+Both measurements are re-derivable rather than asserted:
+
+```bash
+uv run python evals/diagnose_pool.py                                  # free, keyless
+uv run python evals/diagnose_query_generation.py --prompt uses        # ~$0.01
+uv run python evals/diagnose_query_generation.py --prompt lacks       # ~$0.01
+```
+
+### The measurement: 2030 papers fetched, 0 of 24 known-good reached
+
+Take every paper the Opus baseline recommended **and** the GPT-5.5 judge scored ≥2
+(genuinely actionable). That is 24 papers across 9 repos. Ask one question: was it in the
+pool RepoRadar's own queries fetched?
+
+| | |
+|---|---|
+| papers RepoRadar fetched across the 9 repos | **2030** |
+| known-good papers among them | **0** |
+
+Not a near miss — a disjoint set. The papers are canonical and on-topic: ConvNeXt,
+Prioritized Experience Replay, Double Q-learning, Soft-NMS, WhisperX, Distil-Whisper,
+Speculative Decoding, Exphormer.
+
+**The obvious explanations were checked and none hold:**
+
+- *Not an id-matching artifact.* Pool ids are `1907.04378v1`; version-stripping matches the
+  baseline's `2303.00747` form correctly.
+- *Not the category filter.* **23 of the 24 are inside the categories being searched.** Only
+  TinyLFU (`cs.OS`) sits outside.
+- *Not an arXiv limitation.* With a precise phrase, `all:"prioritized experience replay"`
+  returns 1511.05952 at **rank 1**, and `all:"ConvNet for the 2020s"` returns 2201.03545 at
+  **rank 1**.
+
+**The mechanism.** TF-IDF produces generic single terms, so RepoRadar sent `all:model`,
+`all:image`, `all:torch` — each matching tens of thousands of papers — and kept the first 50
+by arXiv's *lexical* relevance, which has no impact weighting. It was sampling near-randomly
+from a huge match set, eight times per repo. (The unquoted-space bug that made this
+dramatically worse is fixed in PR #62; it was a compounding factor, not the root cause.)
+
+A second-order problem the fix does not touch: even the right phrase can fail.
+`all:"speculative decoding"` does **not** return the 2022 original in its top 20, because
+hundreds of later papers use the term and nothing ranks by influence.
+
+### Negative result 1 — repos do not cite what would improve them
+
+Harvesting a repository's own bibliography looks like a free, keyless, offline way to seed a
+corpus. It is not: **0 of the 24 appear anywhere in the repos' own docs**, including `graph`
+(pytorch_geometric), whose README lists 112 arXiv papers.
+
+The reason is structural and worth stating plainly, because it recurs below: **a codebase
+cites what it implements. The valuable paper describes what it should adopt next.** Those
+are disjoint by construction. A project's bibliography is a well-targeted index of things it
+already does.
+
+### Negative result 2 — LLM-generated search phrases, tested two ways, recover 8% and 0%
+
+A dependency verification estimated that LLM-generated technique phrases would recover
+**19/24**. That estimate was produced by people who already knew the answers. Both prompts
+below were run for real against Haiku, given the repo profile plus its documentation and
+never the targets, with identical inputs, phrase counts and arXiv checks — so the only
+variable is the question asked.
+
+| prompt | recovered | phrases matching **zero** papers |
+|---|---|---|
+| current TF-IDF keywords (control) | 0/24 | — |
+| *"name the techniques this repo uses"* | **2/24 (8%)** | 19/54 |
+| *"name what this repo lacks"* | **0/24 (0%)** | **45/54** |
+
+**They fail for opposite reasons, and that is the finding.**
+
+*Asked what the repo uses*, the model answered accurately and uselessly. For detectron2 it
+produced *"Mask R-CNN with feature pyramid networks"*, *"panoptic segmentation"*,
+*"Cascade R-CNN"* — a correct description of what detectron2 implements. The targets were
+Soft-NMS, Copy-Paste augmentation and ConvNeXt, which it does not. For whisper it emitted
+*"multilingual speech recognition"* while the targets were WhisperX, Distil-Whisper and
+Speculative Decoding, all inference-acceleration work. **This is the same asymmetry as
+negative result 1**: an LLM reading a repository inherits the repository's vocabulary, and
+that vocabulary describes what the repo *has*. The two recoveries prove the rule — `rl`
+found Prioritized Experience Replay precisely because stable-baselines3 already implements
+PER, so "what it has" and "what would improve it" coincided. That is the case where a user
+needs the tool least.
+
+*Asked what the repo lacks*, the model aimed correctly — quantization, knowledge
+distillation, ViT backbones, cross-encoder reranking, adapter merging are all exactly the
+right classes of work — and then phrased them as descriptive compounds that no paper title
+contains. **83% of its phrases matched nothing.**
+
+The sharpest single comparison is `rl`. The "lacks" prompt emitted *"experience replay
+prioritization methods"* — conceptually the exact target paper — and got **0 hits**. The
+"uses" prompt emitted *"prioritized experience replay"* and **found it**. Same concept: one
+is the literature's term of art, the other is a description of it.
+
+**Do not read this as a prompt-tuning problem.** The failing prompt already specified "2-5
+words", "real terms of art only" and "favour method names over topic names", and explicitly
+forbade naming techniques the repo already implements. Both failures are about the gap
+between how a codebase describes itself and how the literature names its own methods —
+a retrieval-representation problem, not a wording one. Any further attempt here should be
+justified by a mechanism that closes *that* gap (e.g. validating emitted phrases against the
+index and discarding zero-hit ones, or matching in embedding space rather than by exact
+phrase) rather than by another rewording.
+
+### Negative result 3 — citation-sorted retrieval is a multiplier, not a fix
+
+Ranking search results by citation count sounds like the obvious answer to "arXiv has no
+impact signal". As a drop-in replacement it recovers **1 of 24**. It improves the ordering
+of a match set; it cannot repair a match set that never contained the paper. It is worth
+having *after* query quality is fixed, not before.
+
+It also hard-errors on RepoRadar's modal queries: the Semantic Scholar bulk endpoint returns
+HTTP 400 above 10M hits, and `model` (24.4M) and `data` (24.8M) both exceed that.
+`fieldsOfStudy=Computer Science` brings `model` down to 6.46M and works.
+
+### Negative result 4 — fetching deeper is not a fix and carries a real cost
+
+Raising `max_results_per_query` recovers at most 3 of the 24 into the *pool* (not into the
+digest — nobody measured whether they survive a Top-10 cut against ~16,000 competitors), and
+**9 of the 24 are outside the match set at any depth** — all three `rl` papers are absent
+even from a 265,785-result query.
+
+The cost is not theoretical. Sustained polling at ToU-compliant 3.2 s spacing earned this
+project's machine an **IP-level block that survived 30 minutes of complete silence and
+lasted roughly 70 minutes**. Request *rate* is the lever, not page size.
+
+### A precondition that applies to every option
+
+All 24 targets are **≥11 months old**, and `collector.py` discards anything older than
+`lookback_days` (default **14**). Under a default `rr update`, every option above scores 0/24
+on merit alone. Any retrieval work must be developed and evaluated in the `--foundational`
+path, which already sets relevance sort and a 100-year window.
+
 ## Re-benchmark after the query-construction fix (2026-07-31)
 
 ```bash
