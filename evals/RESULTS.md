@@ -492,15 +492,25 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 ## Candidate-pool diagnosis — what RepoRadar cannot reach, and why (2026-08-01)
 
 The Tier B headline (+1.75 vs Opus +1.83) says the two systems score alike. They do not
-recommend alike. This section records the measurement that established that, and the four
-candidate fixes tried against it — **every one a negative result**, preserved here so nobody
-pays to rediscover them. Nothing below is a solution; the value is in knowing which roads
-are closed and why.
+recommend alike. This section records the measurement that established that, and the five
+candidate fixes tried against it. **Four are negative results**, preserved so nobody pays to
+rediscover them; the fifth — a citation hop from the repo's own bibliography — is the only
+one that reaches the papers at all, and its own caveat is as large as its result.
 
-Both measurements are re-derivable rather than asserted:
+| approach | recovered of 24 |
+|---|---|
+| current TF-IDF keyword queries | 0/24 |
+| LLM phrases, "name what the repo uses" | 2/24 |
+| LLM phrases, "name what the repo lacks" | 0/24 |
+| citation-count-sorted search | 1/24 |
+| fetch deeper (raise `max_results`) | ≤3 |
+| **citation hop from the repo's bibliography** | **14/24** |
+
+Every number here is re-derivable rather than asserted:
 
 ```bash
 uv run python evals/diagnose_pool.py                                  # free, keyless
+uv run python evals/diagnose_citation_hop.py                          # free, keyless
 uv run python evals/diagnose_query_generation.py --prompt uses        # ~$0.01
 uv run python evals/diagnose_query_generation.py --prompt lacks       # ~$0.01
 ```
@@ -597,6 +607,57 @@ a retrieval-representation problem, not a wording one. Any further attempt here 
 justified by a mechanism that closes *that* gap (e.g. validating emitted phrases against the
 index and discarding zero-hit ones, or matching in embedding space rather than by exact
 phrase) rather than by another rewording.
+
+
+### The one thing that worked — a citation hop from the repo's own bibliography (14/24)
+
+Reproduce: `uv run python evals/diagnose_citation_hop.py` (free, keyless).
+
+Negative result 1 established that a repo never cites the papers that would improve it. That
+is true and it is not the end of the story: those papers are **one hop away** in the citation
+graph.
+
+Seeds are the arXiv ids the repo itself cites (README, `docs/`, `.bib`, `CITATION.cff`) —
+the only seed set a cold-start repo has, since a fresh install has no ratings or stars. One
+hop in each direction, seeds capped at 60, via the Semantic Scholar batch endpoint the F8
+plumbing already uses.
+
+| case | seeds | candidates | recovered |
+|---|---|---|---|
+| rag | 7 | 1,856 | **5/5** |
+| rl | 30 | 4,283 | **3/3** |
+| peft | 18 | 6,316 | **2/2** |
+| cv | 18 | 1,754 | 2/3 |
+| speech | 2 | 6,011 | 2/3 |
+| diffusion | 10 | 4,072 | 0/2 |
+| graph | 121 | 4,306 | 0/3 |
+| crypto | 0 | — | 0/2 (no arXiv-indexed bibliography) |
+| systems | 0 | — | 0/1 (no arXiv-indexed bibliography) |
+| **total** | | **28,598** | **14/24 (58%)** |
+
+Against 0/24 for keyword search, 2/24 for LLM phrases and 1/24 for citation-sorted search,
+this is the only approach that reaches the papers at all. The targets are genuinely
+discovered, not handed over: seeds are subtracted from the candidate set, and 0 of the 24
+appear in any repo's own documentation.
+
+**Both hop directions earn their place.** Forward (papers *citing* a seed) recovered 10 and
+backward (papers a seed *cites*) recovered 5, overlapping on 1. Forward carries roughly twice
+the load — consistent with "what improves a codebase is later work building on what it
+already uses" — but dropping backward would still cost 4 of the 14.
+
+**Seed count does not predict recall.** `graph` had 121 seeds and recovered 0/3; `speech` had
+2 and recovered 2/3. Relevance of the seed, not volume, is what matters — which means a
+naive "harvest every arXiv id in the repo" seeding strategy is not obviously right.
+
+**The caveat is as large as the result: 28,598 candidates for 14 papers, a density of
+1 in 2,042.** Recall is transformed and precision is untouched. But this changes the shape of
+the problem rather than solving it: the pool now *contains* the answers, so selection becomes
+a real and tractable problem instead of a moot one. At roughly 3,200 papers per repo — about
+12x the current pool — it is within reach of the embedding cache and vector index that
+already exist but are wired only into `rr search`.
+
+**Unverified:** a dependency investigation reported 20/24 with *two* hops. One hop measured
+14/24 here. Two hops is plausible and would also multiply the 28,598; it has not been tested.
 
 ### Negative result 3 — citation-sorted retrieval is a multiplier, not a fix
 
