@@ -394,8 +394,8 @@ evals/
                      RESULTS.md "Candidate-pool diagnosis" for why, before retrying
   diagnose_citation_hop.py
                      free/keyless: one citation hop from the repo's own bibliography.
-                     14/24 — the only approach measured that reaches the papers at all,
-                     at 1 good paper per 2042 candidates (recall solved, precision not)
+                     18/24 — the only approach measured that reaches the papers at all,
+                     at 1 good paper per 5111 candidates (recall solved, precision not)
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode

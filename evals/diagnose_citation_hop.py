@@ -1,12 +1,15 @@
 """Does a citation hop from the repo's own bibliography reach the papers keyword search misses?
 
 Free and keyless. **This is the only approach measured so far that reaches them at all**:
-14/24, against 0/24 for keyword search and 2/24 for LLM-generated phrases.
+18/24, against 0/24 for keyword search and 2/24 for LLM-generated phrases.
 
     uv run python evals/diagnose_citation_hop.py
 
-A dependency investigation reported 20/24 with *two* hops; one hop measures 14/24 here, so
-two remains plausible and unverified. See RESULTS.md -> "Candidate-pool diagnosis".
+An earlier version of this script recorded 14/24. That was a transport artifact, not a
+result: it sent 100 seeds per request, and the batch endpoint truncates nested items at
+9,999 across a request, filled greedily in id order — so one hub seed consumed the whole
+budget and every later seed came back empty, HTTP 200, no error. `graph` scored 0/3 purely
+because it has the most seeds. See RESULTS.md -> "Candidate-pool diagnosis".
 
 Seeds: arXiv ids the repo itself cites (README, docs/, .bib, CITATION.cff) — the only seed
 set a cold-start repo has, since the benchmark has no ratings or stars.
@@ -55,22 +58,52 @@ def seeds_for(case: str) -> list[str]:
     return sorted(found)
 
 
-def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> set[str]:
-    """One citation hop. `direction` is 'references' or 'citations'."""
+_NESTED_CAP = 9999
+_CHUNK = 4
+_MAX_DEPTH = 3
+
+
+def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> tuple[set[str], int]:
+    """One citation hop. Returns (arxiv ids reached, number of seeds truncated at the cap).
+
+    **Chunking is the whole correctness story here.** The batch endpoint truncates nested
+    items at 9,999 across a request, filled greedily in id order. The first version of this
+    script sent 100 seeds per request and got `[9999, 0, 0, ...]` back — one seed's
+    citations and every later seed blank, HTTP 200, no error. That understated recall and,
+    worse, made it *decrease* with seed count, since a hub seed eats the whole budget.
+
+    So: small chunks, and split on a capped response. A seed that still saturates alone is
+    genuinely un-enumerable (a paper with ~40k citers cannot be paged past the API's global
+    `offset + limit < 10000` wall) and is counted as truncated rather than silently
+    accepted.
+    """
     out: set[str] = set()
+    truncated = 0
     ids = [_s2_id(a) for a in arxiv_ids[:cap]]
-    for i in range(0, len(ids), 100):
-        chunk = ids[i : i + 100]
+
+    def collect(chunk: list[str], depth: int = 0) -> None:
+        nonlocal truncated
         data = _s2_batch_post(chunk, f"{direction}.externalIds", None, 3, 3.0)
+        time.sleep(2)
         if not data:
-            continue
+            return
+        nested = sum(len((e or {}).get(direction) or []) for e in data)
+        if nested >= _NESTED_CAP and len(chunk) > 1 and depth < _MAX_DEPTH:
+            mid = len(chunk) // 2
+            collect(chunk[:mid], depth + 1)
+            collect(chunk[mid:], depth + 1)
+            return
+        if nested >= _NESTED_CAP:
+            truncated += len(chunk)
         for entry in data:
             for ref in (entry or {}).get(direction) or []:
                 ax = ((ref or {}).get("externalIds") or {}).get("ArXiv")
                 if ax:
                     out.add(ax.split("v")[0])
-        time.sleep(3)
-    return out
+
+    for i in range(0, len(ids), _CHUNK):
+        collect(ids[i : i + _CHUNK])
+    return out, truncated
 
 
 def main() -> int:
@@ -86,16 +119,17 @@ def main() -> int:
         seed_set = set(seeds)
         print(f"[{case}] {len(seeds)} seeds", flush=True)
 
-        back = hop(seeds, "references")
-        fwd = hop(seeds, "citations")
+        back, trunc_b = hop(seeds, "references")
+        fwd, trunc_f = hop(seeds, "citations")
         pool = (back | fwd) - seed_set
         hit_b = sorted(set(targets) & back)
         hit_f = sorted(set(targets) & fwd)
         hit = sorted(set(targets) & pool)
+        note = f"  [{trunc_b + trunc_f} seed(s) un-enumerable]" if trunc_b + trunc_f else ""
         print(
             f"        backward={len(back):6d}  forward={len(fwd):6d}  union={len(pool):6d}"
             f"   recovered={len(hit)}/{len(targets)}"
-            f"{'  ' + ','.join(hit) if hit else ''}",
+            f"{'  ' + ','.join(hit) if hit else ''}{note}",
             flush=True,
         )
         rows.append(
@@ -106,6 +140,7 @@ def main() -> int:
                 "back": hit_b,
                 "fwd": hit_f,
                 "n": len(pool),
+                "truncated_seeds": trunc_b + trunc_f,
             }
         )
 
