@@ -69,6 +69,18 @@ per-case table rather than the mean: the gain concentrates in the repos whose qu
 repaired, and `speech` regressed 10 points for reasons not yet understood — see
 [`evals/RESULTS.md`](evals/RESULTS.md).
 
+> **⚠ The binding constraint is retrieval, not ranking — and the mean hides it.** Measured 2026-08-01:
+> RepoRadar fetched **2030 papers across 9 benchmark repos and reached 0 of the 24** papers the Opus
+> baseline recommended *and* the judge confirmed actionable. Those two scores are near-tied while
+> ranking **disjoint sets of papers**; net@2 cannot tell them apart, which is a limit of the metric
+> rather than evidence of equivalence. Every ranking feature (F4 hybrid, F5 recommendations, F6
+> triage, F7 SPECTER2) reorders a pool selected upstream of it, so no reranker can recover a paper
+> that was never fetched. **Four candidate fixes were tested and three are negative results** —
+> repo-bibliography seeding, LLM technique-phrase generation, and citation-sorted retrieval all
+> recover ~0–8% on their own. Read
+> [Candidate-pool diagnosis](evals/RESULTS.md#candidate-pool-diagnosis--what-reporadar-cannot-reach-and-why-2026-08-01)
+> before starting retrieval work; it exists so the dead ends are not paid for twice.
+
 **✅ Shipped**
 - **Tier 0 repairs** (PR #13): HF Papers (dead PwC), OpenAlex key support, retired model default, wired the
   LLM path, `--since` filter, CI, run-ordering fix. *(Pipeline-drift refactor still deferred → Feature 14.)*

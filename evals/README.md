@@ -386,6 +386,12 @@ evals/
   run_judge_eval.py  Tier B runner (LLM judge vs Opus baseline; --mock to dry-run)
   judge.py           neutral GPT-5.5 judge (rubric, caching, --mock scoring)
   baseline.py        Opus 4.8 baseline — --baseline api (Anthropic + web_search) or cli (Claude Code)
+  diagnose_pool.py   free/keyless: is a miss a POOL or a SELECTION failure? Established that
+                     RepoRadar fetched 2030 papers and reached 0 of 24 known-good ones
+  diagnose_query_generation.py
+                     ~$0.01: can an LLM emit phrases that reach what TF-IDF misses?
+                     `--prompt uses` 2/24, `--prompt lacks` 0/24. Both negative; see
+                     RESULTS.md "Candidate-pool diagnosis" for why, before retrying
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode
