@@ -48,12 +48,62 @@ class TestFetchReferences:
         assert fetch_references(["2401.00001v1"]) == {}
 
     @patch("reporadar.citations._s2_batch_post")
-    def test_chunks_large_id_sets(self, mock_post: MagicMock) -> None:
-        mock_post.return_value = []  # empty per-chunk result; we assert the chunking
-        ids = [f"2401.{i:05d}v1" for i in range(1100)]  # > 2 * 500
+    def test_chunks_small_enough_to_stay_under_the_nested_cap(self, mock_post: MagicMock) -> None:
+        """Chunk size is bounded by nested items, not by the 500-id limit.
+
+        The batch endpoint truncates nested results at 9,999 per request, filled greedily
+        in id order, so a 500-id chunk asking for `references.externalIds` returns the
+        first few papers' references and blanks the rest — HTTP 200, no error. Measured on
+        300 real ids: 9,999 references with 85 of 300 papers blank, against 14,041 with 8
+        blank at chunks of 50. This test previously asserted the 500 chunking, i.e. it
+        encoded the bug.
+        """
+        from reporadar.citations import _S2_NESTED_CAP, _S2_REFERENCE_CHUNK
+
+        mock_post.return_value = []
+        ids = [f"2401.{i:05d}v1" for i in range(220)]
         fetch_references(ids)
-        assert mock_post.call_count == 3  # 500 + 500 + 100
-        assert all(len(call.args[0]) <= 500 for call in mock_post.call_args_list)
+        assert all(len(call.args[0]) <= _S2_REFERENCE_CHUNK for call in mock_post.call_args_list)
+        # A chunk must not be able to reach the cap on any plausible reference density.
+        assert _S2_REFERENCE_CHUNK * 100 < _S2_NESTED_CAP
+
+    @patch("reporadar.citations._s2_batch_post")
+    def test_a_chunk_pinned_at_the_cap_is_split_and_retried(self, mock_post: MagicMock) -> None:
+        """Density varies by corpus, so a fixed chunk size is not enough on its own.
+
+        A response whose nested total sits exactly at the cap is indistinguishable from a
+        genuine result unless it is re-fetched smaller — and accepting it would silently
+        drop the tail of the chunk.
+        """
+        from reporadar.citations import _S2_NESTED_CAP
+
+        ref = {"externalIds": {"ArXiv": "1706.03762"}}
+        calls: list[int] = []
+
+        def fake_post(chunk, fields, *a, **k):  # type: ignore[no-untyped-def]
+            calls.append(len(chunk))
+            if len(chunk) > 1:
+                # Simulate the cap: everything the API can fit, on the first paper only.
+                return [{"references": [ref] * _S2_NESTED_CAP}] + [
+                    {"references": []} for _ in chunk[1:]
+                ]
+            return [{"references": [ref]}]
+
+        mock_post.side_effect = fake_post
+        result = fetch_references([f"2401.{i:05d}v1" for i in range(8)])
+
+        assert max(calls) > min(calls), "a capped chunk was accepted instead of being split"
+        # Every paper resolves once the chunk is small enough, instead of only the first.
+        assert len(result) == 8, f"only {len(result)} of 8 papers survived truncation"
+
+    @patch("reporadar.citations._s2_batch_post")
+    def test_an_ordinary_response_is_not_split(self, mock_post: MagicMock) -> None:
+        # The split must be triggered by the cap, not by every request — otherwise it
+        # multiplies traffic against an API that already rate-limits this project.
+        ref = {"externalIds": {"ArXiv": "1706.03762"}}
+        mock_post.return_value = [{"references": [ref]} for _ in range(10)]
+        fetch_references([f"2401.{i:05d}v1" for i in range(10)])
+        assert mock_post.call_count == 1
 
 
 class TestFetchCitationCounts:

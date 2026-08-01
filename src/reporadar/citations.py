@@ -18,6 +18,14 @@ _S2_BATCH_URL = "https://api.semanticscholar.org/graph/v1/paper/batch"
 # chunked so big (e.g. --foundational) runs degrade partially, not to nothing.
 _S2_BATCH_LIMIT = 500
 
+# The batch endpoint accepts 500 ids but truncates *nested* items (references, citations)
+# at 9,999 across the whole request, allocated greedily in id order. Requests asking for a
+# nested field must therefore be chunked by expected nested volume, not by the id limit.
+# Measured 2026-08-01 against the live API; see `fetch_references`.
+_S2_NESTED_CAP = 9999
+_S2_REFERENCE_CHUNK = 50  # ~47 refs/paper observed -> ~2,400 nested, well clear of the cap
+_MAX_SPLIT_DEPTH = 4
+
 
 def _s2_id(arxiv_id: str) -> str:
     """arXiv id → Semantic Scholar id (version-stripped): ``2401.1v2`` → ``ARXIV:2401.1``."""
@@ -121,8 +129,18 @@ def fetch_references(
 
     Uses ``fields=references.externalIds``. Returns ``{arxiv_id: [cited_arxiv_id, ...]}``
     where cited ids are version-stripped arXiv ids from each reference's
-    ``externalIds.ArXiv``. Ids are chunked into 500-id batches; a failed batch is
-    skipped, and a total failure yields an empty dict.
+    ``externalIds.ArXiv``. A failed batch is skipped; a total failure yields an empty dict.
+
+    **Chunk size is bounded by a nested-item cap, not by the id limit.** The batch endpoint
+    accepts 500 ids but truncates *nested* results at 9,999 across the whole request, filled
+    greedily in id order — so the first few papers consume the budget and every later paper
+    comes back with an empty ``references`` array, HTTP 200, no error. Measured on 300 real
+    ids: one request returned exactly 9,999 references with **85 of 300 papers blank**; the
+    same ids in chunks of 50 returned 14,041 with 8 blank. At the old 500-id chunking this
+    feature silently lost ~29% of its edges on any ordinary run.
+
+    A fixed smaller chunk is not enough on its own, because reference density varies by
+    corpus — so a chunk that comes back pinned at the cap is split and retried.
     """
     if not arxiv_ids:
         return {}
@@ -131,10 +149,25 @@ def fetch_references(
     s2_ids = [_s2_id(a) for a in original_ids]
 
     result: dict[str, list[str]] = {}
-    for start, chunk in _chunks(s2_ids, _S2_BATCH_LIMIT):
+
+    def _collect(start: int, chunk: list[str], depth: int = 0) -> None:
         data = _s2_batch_post(chunk, "references.externalIds", api_key, max_retries, base_delay)
         if data is None:
-            continue
+            return
+        nested = sum(len((e or {}).get("references") or []) for e in data)
+        if nested >= _S2_NESTED_CAP and len(chunk) > 1 and depth < _MAX_SPLIT_DEPTH:
+            # Pinned at the cap: the tail of this chunk was silently blanked. Split and
+            # retry rather than accept a truncated answer we cannot distinguish from
+            # "these papers genuinely have no arXiv-indexed references".
+            logger.info(
+                "S2 returned %d nested references for %d ids (at the cap) — splitting",
+                nested,
+                len(chunk),
+            )
+            mid = len(chunk) // 2
+            _collect(start, chunk[:mid], depth + 1)
+            _collect(start + mid, chunk[mid:], depth + 1)
+            return
         for i, entry in enumerate(data):
             if entry is None:
                 continue
@@ -146,6 +179,9 @@ def fetch_references(
                     cited.append(str(arxiv).split("v")[0])
             if cited:
                 result[original_ids[start + i]] = cited
+
+    for start, chunk in _chunks(s2_ids, _S2_REFERENCE_CHUNK):
+        _collect(start, chunk)
     return result
 
 
