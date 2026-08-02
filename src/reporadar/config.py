@@ -185,6 +185,19 @@ class ProfilerConfig:
     source_extensions: list[str] = field(
         default_factory=lambda: [".py", ".js", ".ts", ".tsx", ".jsx"]
     )
+    # How much of the README to carry on RepoProfile.prose, for prompts that need to know
+    # what the repo is FOR. Set to 0 to send no prose at all: on a proprietary codebase the
+    # README is a far larger disclosure than a keyword list, and `rr audit` reports which
+    # of the two an LLM destination receives. Budgeted here so it is one setting, checkable
+    # in one place, rather than a truncation decided at each call site.
+    #
+    # 300 is measured, not guessed, on 602 labelled papers (evals/RESULTS.md -> "how much
+    # prose"): net@2 +95 against +73 for no prose (+22, 95% CI [+4, +41]). MORE IS WORSE —
+    # 2000 scores +86 and 6000 scores +89. ~300 characters is where a README has finished
+    # saying what the project is and started on badges and install steps, and only the
+    # first part is information the keyword profile lacks. Raising this costs tokens and
+    # discloses more of your README for no measured gain.
+    prose_chars: int = 300
 
 
 @dataclass

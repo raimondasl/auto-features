@@ -408,3 +408,119 @@ class TestQueriesAreAboutTheRepo:
             assert f"all:{junk}" not in joined, f"still searching arXiv for {junk!r}"
             assert f'all:"{junk}' not in joined
         assert any("diffusion" in q.lower() for q in queries), queries
+
+
+class TestRepoProse:
+    """`RepoProfile.prose` — the repo described in its own words.
+
+    Guarded closely because getting this subtly wrong is not hypothetical: an earlier
+    experiment read `_collect_text_corpus(repo)[0]`, believed it was the README, and
+    recorded a result under that name. On 11 of 12 benchmark repos element 0 is the
+    packaging one-liner (23-230 chars), so the experiment tested something else entirely.
+    """
+
+    def _repo(self, tmp_path: Path, readme: str | None, pyproject: str | None) -> Path:
+        repo = tmp_path / "r"
+        repo.mkdir(exist_ok=True)
+        if readme is not None:
+            (repo / "README.md").write_text(readme, encoding="utf-8")
+        if pyproject is not None:
+            (repo / "pyproject.toml").write_text(pyproject, encoding="utf-8")
+        return repo
+
+    _PYPROJECT = '[project]\nname = "thing"\ndescription = "A one line tagline."\n'
+
+    def test_prefers_the_readme_over_the_packaging_description(self, tmp_path: Path) -> None:
+        """The exact bug that invalidated the earlier measurement.
+
+        Both documents exist and the README is the one that says what the project is for;
+        taking the metadata instead yields a tagline and looks like it worked.
+        """
+        repo = self._repo(
+            tmp_path,
+            "# Thing\n\nThing performs late-interaction retrieval over BERT embeddings.\n",
+            self._PYPROJECT,
+        )
+        prose = profile_repo(repo).prose
+        assert "late-interaction retrieval" in prose
+        assert "A one line tagline." not in prose
+
+    def test_falls_back_to_the_packaging_description_with_no_readme(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path, None, self._PYPROJECT)
+        assert "A one line tagline." in profile_repo(repo).prose
+
+    def test_is_empty_when_the_repo_describes_itself_nowhere(self, tmp_path: Path) -> None:
+        assert profile_repo(self._repo(tmp_path, None, None)).prose == ""
+
+    def test_a_whitespace_only_readme_does_not_shadow_the_metadata(self, tmp_path: Path) -> None:
+        """`_read_text_file` returns the file, so a blank README would otherwise win."""
+        repo = self._repo(tmp_path, "\n\n   \n", self._PYPROJECT)
+        assert "A one line tagline." in profile_repo(repo).prose
+
+    def test_respects_the_configured_budget(self, tmp_path: Path) -> None:
+        """A 41k-character README must not reach a prompt because nobody truncated it."""
+        from reporadar.config import ProfilerConfig
+
+        repo = self._repo(tmp_path, "# T\n\n" + ("retrieval " * 5000), None)
+        prose = profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=120)).prose
+        assert len(prose) == 120
+
+    @pytest.mark.parametrize("budget", [0, -1])
+    def test_a_non_positive_budget_sends_no_prose_at_all(self, tmp_path: Path, budget: int) -> None:
+        """The privacy opt-out: on a proprietary codebase the README is the disclosure.
+
+        `rr audit` tells users `profiler.prose_chars: 0` withholds it, so this is the
+        assertion that keeps that sentence true.
+
+        `-1` is not a hypothetical. Slicing is what enforces the budget, and `text[:0]`
+        is empty while `text[:-1]` is the *whole README bar one character* — so a typo'd
+        or negative setting would silently invert the opt-out into a full disclosure.
+        That inversion is the only thing the explicit guard buys, which is why it is
+        tested here rather than left to the slice.
+        """
+        from reporadar.config import ProfilerConfig
+        from reporadar.triage import build_triage_prompt
+
+        repo = self._repo(tmp_path, "# T\n\nSecret internal system.\n", self._PYPROJECT)
+        profile = profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=budget))
+        assert profile.prose == ""
+        assert "Secret internal system" not in build_triage_prompt(
+            {"title": "t", "abstract": "a"}, profile
+        )
+
+    def test_the_prose_reaches_the_triage_prompt(self, tmp_path: Path) -> None:
+        """End-to-end, because the field existing is not the point — being sent is."""
+        from reporadar.triage import build_triage_prompt
+
+        repo = self._repo(tmp_path, "# Thing\n\nThing does late-interaction retrieval.\n", None)
+        prompt = build_triage_prompt({"title": "P", "abstract": "a"}, profile_repo(repo))
+        assert "late-interaction retrieval" in prompt
+
+    def test_the_default_budget_is_the_measured_one(self) -> None:
+        """300 is an empirical result, not a round number someone liked.
+
+        On 602 labelled papers it scored net@2 +95 against +73 for no prose, while 2000
+        scored +86 and 6000 scored +89 — the curve turns over, so raising this is a
+        regression in both quality and disclosure. If you change it, re-run
+        `evals/diagnose_triage.py --repo-context prose --prose-chars N` and update
+        evals/RESULTS.md; do not just widen the number.
+        """
+        from reporadar.config import ProfilerConfig
+
+        assert ProfilerConfig().prose_chars == 300
+
+    def test_the_undeclared_fallback_matches_the_config_default(self, tmp_path: Path) -> None:
+        """`profile_repo` accepts any object as profiler_cfg and falls back via getattr.
+
+        A fallback that drifts from the dataclass default means callers passing a bare
+        namespace silently get a different budget from callers passing a real config —
+        the same class of split-brain that put an undeclared 2000 in two places.
+        """
+        from types import SimpleNamespace
+
+        from reporadar.config import ProfilerConfig
+
+        repo = self._repo(tmp_path, "# T\n\n" + ("x " * 4000), None)
+        bare = profile_repo(repo, profiler_cfg=SimpleNamespace(scan_source=False))
+        typed = profile_repo(repo, profiler_cfg=ProfilerConfig())
+        assert len(bare.prose) == len(typed.prose) == ProfilerConfig().prose_chars

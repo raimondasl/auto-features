@@ -766,3 +766,67 @@ class TestReviewFixes:
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg_file), "--json"])
         assert result.exit_code == 0, result.output
         json_mod.loads(result.stdout)  # raises if prose was printed above the document
+
+
+class TestTheRegistryDescribesWhatTheTriagePromptActuallyCarries:
+    """The audit's value is that its `sends` line is true, so tie it to the real prompt.
+
+    The static drift guard catches an *undeclared module*; it cannot catch a declared
+    module whose disclosure grew. Adding README prose to the triage prompt did exactly
+    that — "your repo's libraries and key topics" became a material understatement — and
+    nothing in CI would have noticed.
+    """
+
+    def _anthropic(self):  # type: ignore[no-untyped-def]
+        return next(d for d in DESTINATIONS if d.service == "Anthropic")
+
+    def test_the_prompt_carries_prose_and_the_registry_says_so(self) -> None:
+        from types import SimpleNamespace
+
+        from reporadar.triage import build_triage_prompt
+
+        profile = SimpleNamespace(
+            keywords=[("retrieval", 0.5)],
+            anchors=["faiss"],
+            domains=["information retrieval"],
+            prose="SECRET-INTERNAL-DESCRIPTION",
+        )
+        prompt = build_triage_prompt({"title": "t", "abstract": "a"}, profile)
+        carries_prose = "SECRET-INTERNAL-DESCRIPTION" in prompt
+        declares_prose = "README" in self._anthropic().sends
+        assert carries_prose == declares_prose, (
+            "privacy.DESTINATIONS['Anthropic'].sends and build_triage_prompt disagree "
+            "about whether the repo's own prose leaves the machine. Whichever you "
+            "changed, change the other."
+        )
+
+    def test_the_opt_out_it_advertises_is_a_real_setting(self) -> None:
+        """`enabled_by` names `profiler.prose_chars: 0`; a stale name is a broken promise."""
+        from reporadar.config import ProfilerConfig
+
+        assert "profiler.prose_chars" in self._anthropic().enabled_by
+        assert hasattr(ProfilerConfig(), "prose_chars")
+
+    def test_prose_is_redacted_like_the_rest_of_the_prompt(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """Redaction runs on the assembled prompt, so prose is covered — assert it.
+
+        A README is where a proprietary project's internal names are most likely to
+        appear, which makes this the case redaction most needs to hold for.
+        """
+        from types import SimpleNamespace
+
+        import reporadar.llm_client as llm
+        from reporadar.triage import build_triage_prompt
+
+        sent: dict[str, str] = {}
+        monkeypatch.setattr(llm, "_dispatch", lambda prompt, cfg, mt: sent.setdefault("p", prompt))
+        profile = SimpleNamespace(
+            keywords=[("x", 0.1)],
+            anchors=["faiss"],
+            domains=["ir"],
+            prose="Built on the Acme-Fusion-Core pipeline.",
+        )
+        cfg = SimpleNamespace(provider="claude", redact=["Acme-Fusion-Core"], timeout=5)
+        llm.complete(build_triage_prompt({"title": "t", "abstract": "a"}, profile), cfg)
+        assert "Acme-Fusion-Core" not in sent["p"]
+        assert "pipeline" in sent["p"]  # redaction removed the term, not the section

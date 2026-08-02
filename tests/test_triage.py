@@ -57,6 +57,46 @@ class TestBuildPrompt:
         assert "A Retrieval Method" in prompt
         assert '{"score"' in prompt  # rubric asks for JSON
 
+    def test_carries_the_repo_prose_when_the_profile_has_some(self) -> None:
+        """The prose is the only part of the profile that says what the repo is FOR.
+
+        Every other field says what it contains, which is how ColBERT profiles as "web
+        APIs" — it depends on flask. If this stops reaching the prompt, the gate is back
+        to judging on a term list.
+        """
+        profile = SimpleNamespace(
+            keywords=_PROFILE.keywords,
+            anchors=_PROFILE.anchors,
+            domains=_PROFILE.domains,
+            prose="Late-interaction passage search over BERT embeddings.",
+        )
+        prompt = build_triage_prompt(_PAPER, profile)
+        assert "Late-interaction passage search over BERT embeddings." in prompt
+        assert "in its own words" in prompt
+        # Additive, not a replacement — dropping the keyword block is a separate question.
+        assert "faiss" in prompt
+        assert "retrieval, ranking" in prompt
+
+    def test_omits_the_prose_section_entirely_when_there_is_none(self) -> None:
+        """A repo with no README must not get a dangling empty header.
+
+        `prose=""` is the normal state for a bare repo and for `profiler.prose_chars: 0`,
+        which is the privacy opt-out — an empty labelled section would tell the model the
+        project described itself and then said nothing.
+        """
+        for empty in ("", "   \n  "):
+            profile = SimpleNamespace(
+                keywords=_PROFILE.keywords,
+                anchors=_PROFILE.anchors,
+                domains=_PROFILE.domains,
+                prose=empty,
+            )
+            assert "in its own words" not in build_triage_prompt(_PAPER, profile)
+
+    def test_a_profile_without_the_field_at_all_still_builds(self) -> None:
+        """`_PROFILE` here has no `prose` attribute, as older callers' objects do not."""
+        assert "in its own words" not in build_triage_prompt(_PAPER, _PROFILE)
+
 
 class TestScoreActionability:
     def test_returns_parsed_verdict(self) -> None:

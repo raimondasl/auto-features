@@ -262,6 +262,14 @@ most sensitive), `repo-derived` (search terms inferred from your code), `interes
 by an explicit command (`rr gh-issues`, `rr notify`) gets its own section rather than
 being omitted for not being part of `rr update`.
 
+If LLM triage is on, the prompt also carries the first `profiler.prose_chars` characters
+of your README (300 by default) so the model knows what the project is *for* — the
+keyword profile only says what it *contains*. On a proprietary codebase that is a larger
+disclosure than a term list, so the audit names it explicitly and
+**`profiler.prose_chars: 0` withholds it**. 300 is the measured optimum rather than a
+safe-looking number: 2,000 and 6,000 characters both score *worse* on the benchmark, so
+the privacy-preserving setting is also the best-performing one.
+
 Two things make the report trustworthy rather than decorative. The query strings come
 from the same `build_queries` call `update` uses — profiled the same way, including
 `profiler.scan_source` — so there is no second implementation to drift from the first.
@@ -437,6 +445,7 @@ feedback:
 
 profiler:
   scan_source: false                  # true: also scan source files for imports/ML patterns
+  prose_chars: 300                    # README chars sent to LLM triage; 0 sends none
 
 openalex:
   api_key: ""                         # required for real use since 2026-02-13; ${ENV} refs work
