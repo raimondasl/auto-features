@@ -124,6 +124,7 @@ def fetch_references(
     api_key: str | None = None,
     max_retries: int = 3,
     base_delay: float = 2.0,
+    stats: dict[str, int] | None = None,
 ) -> dict[str, list[str]]:
     """Fetch each paper's references (the papers it cites) from Semantic Scholar.
 
@@ -141,6 +142,12 @@ def fetch_references(
 
     A fixed smaller chunk is not enough on its own, because reference density varies by
     corpus — so a chunk that comes back pinned at the cap is split and retried.
+
+    Pass *stats* to learn whether an empty result means "these papers cite nothing on arXiv"
+    or "Semantic Scholar did not answer". It is filled with ``requests`` / ``failed`` /
+    ``truncated`` counts. Callers that judge a signal by its output — the Tier S harness
+    concludes "no signal" from an empty dict — cannot otherwise tell a real negative from an
+    outage, and a rate-limited run then reads as evidence about the feature.
     """
     if not arxiv_ids:
         return {}
@@ -149,10 +156,13 @@ def fetch_references(
     s2_ids = [_s2_id(a) for a in original_ids]
 
     result: dict[str, list[str]] = {}
+    counts = {"requests": 0, "failed": 0, "truncated": 0}
 
     def _collect(start: int, chunk: list[str], depth: int = 0) -> None:
+        counts["requests"] += 1
         data = _s2_batch_post(chunk, "references.externalIds", api_key, max_retries, base_delay)
         if data is None:
+            counts["failed"] += 1
             return
         nested = sum(len((e or {}).get("references") or []) for e in data)
         if nested >= _S2_NESTED_CAP and len(chunk) > 1 and depth < _MAX_SPLIT_DEPTH:
@@ -168,6 +178,8 @@ def fetch_references(
             _collect(start, chunk[:mid], depth + 1)
             _collect(start + mid, chunk[mid:], depth + 1)
             return
+        if nested >= _S2_NESTED_CAP:
+            counts["truncated"] += 1
         for i, entry in enumerate(data):
             if entry is None:
                 continue
@@ -182,6 +194,8 @@ def fetch_references(
 
     for start, chunk in _chunks(s2_ids, _S2_REFERENCE_CHUNK):
         _collect(start, chunk)
+    if stats is not None:
+        stats.update(counts)
     return result
 
 

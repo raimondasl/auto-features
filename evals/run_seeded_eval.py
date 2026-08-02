@@ -337,6 +337,13 @@ def main() -> int:
         # The real mini-repo profile, exactly as Tier A uses it, so the baseline is
         # the ranking a user would actually get rather than a synthetic one.
         repo_dir = resolve_repo_dir(case)
+        if not Path(repo_dir).is_dir():
+            # Same defect as run_eval.py had: a case needs a fixture AND a mini-repo, and
+            # only the fixture was checked. Building the 8 missing fixtures turned a clean
+            # skip into a crash that discarded every result already computed. Fixed there;
+            # this runner was missed.
+            print(f"  [{name}] no mini-repo at {repo_dir} — skipping (fixture exists).")
+            continue
         row = run_case(
             name,
             pool,
