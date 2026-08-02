@@ -395,6 +395,8 @@ evals/
   diagnose_triage.py ~$0.10: scores all 428 cached judge labels with the shipping triage
                      gate. precision 0.81 / recall 0.78 vs a 32% base rate — NOT at chance,
                      correcting an n=10 reading. --repo-context {keywords,readme,both}
+  compare_triage.py  paired per-paper comparison of two --repo-context runs, with an exact
+                     binomial on the discordant pairs so a noisy tie is not read as a win
   diagnose_citation_hop.py
                      free/keyless: one citation hop from the repo's own bibliography.
                      18/24 — the only approach measured that reaches the papers at all,
