@@ -395,6 +395,9 @@ evals/
   diagnose_triage.py ~$0.10: scores all 428 cached judge labels with the shipping triage
                      gate. precision 0.81 / recall 0.78 vs a 32% base rate — NOT at chance,
                      correcting an n=10 reading. --repo-context {keywords,readme,both}
+  diagnose_ranker.py ~$5: judges a RANK-STRATIFIED sample of the candidate pool, the only
+                     way to score the ranker. Ranks 1-10 and 11-50 are indistinguishable
+                     (31% vs 33% actionable) — the top-10 cut is arbitrary
   compare_triage.py  paired per-paper comparison of two --repo-context runs, with an exact
                      binomial on the discordant pairs so a noisy tie is not read as a win
   diagnose_citation_hop.py

@@ -570,6 +570,9 @@ failed.
 
 
 ### Negative result — giving triage the README does not help
+> **[SUPERSEDED — see the Correction immediately below.](#correction--the-readme-variant-helps-the-null-was-measured-on-the-wrong-metric)**
+> This section's conclusion was produced by scoring the variant on *accuracy*. On net@2, the
+> metric the digest is graded on, the same two runs are **+16 (+28%)**.
 
 ```bash
 uv run python evals/diagnose_triage.py --repo-context readme     # ~$0.10
@@ -613,6 +616,101 @@ One small real effect, in the wrong direction: `cli` is a negative control with 
 and the `keywords` gate abstained perfectly on all 23 papers. Adding prose about what the
 project is produced one false positive. More context gives a model more surface on which to
 find a connection, which is precisely wrong where the correct answer is "nothing here helps".
+
+
+### Correction — the README variant helps; the null was measured on the wrong metric
+
+The section above concluded that giving triage the README "does not help", from 21 fixed /
+17 broke at p = 0.63. **That test was run on accuracy, and accuracy is the wrong objective
+for this gate.** net@2 charges 2 for returning a junk paper and 1 for missing a good one. A
+flip from false-positive to correct-abstention is worth **+2**; a flip from true-positive to
+miss costs **−1**. Counting both as "one flip" throws the asymmetry away.
+
+Re-scored on the metric the digest is actually graded on, same two runs, same 428 papers:
+
+| gate | returned | actionable | **net@2** | accuracy |
+|---|---|---|---|---|
+| Haiku, `keywords` (shipped) | 123 | 99 | **+57** | 0.87 |
+| Haiku, `readme` | 103 | 91 | **+73** | 0.88 |
+| Sonnet, `keywords` | 73 | 67 | +55 | 0.84 |
+| a perfect gate | 129 | 129 | +129 | 1.00 |
+
+Paired bootstrap over papers, README vs shipped: **delta +16 (+28%), 95% CI [−2, +36],
+P(delta ≤ 0) = 0.046.** The interval still grazes zero, so this is *suggestive, not
+established* — but "does not help" was wrong, and it was wrong because of the measurement,
+not the sample.
+
+**Where the gain comes from is the interesting part.** On the ranker's top-10 — the only
+subset a Tier B run ever judges, and where the gate collapsed to 0.33 precision:
+
+| gate | top-10 precision | elsewhere |
+|---|---|---|
+| Haiku, `keywords` | 0.33 | 0.81 |
+| Haiku, `readme` | **0.50** | 0.85 |
+| Sonnet | **abstained entirely** | 0.83 |
+
+The README context does its work precisely where the gate was weakest. n=20 on that subset,
+so treat the size with suspicion and the direction as real.
+
+### Sonnet answers the capability-vs-information question, and the answer is neither
+
+The test was posed as a fork: if a stronger model rescues the top-10, the gate is
+capability-limited and deserves a model tier on the ~10 papers that matter; if it collapses
+too, the papers are genuinely indistinguishable from title and abstract.
+
+**Sonnet did neither — it abstained on the top-10 entirely**, returning nothing rather than
+discriminating. Overall it is far more conservative than Haiku (precision 0.92 vs 0.81,
+recall 0.52 vs 0.78), which is a different operating point rather than a better gate: paired
+net@2 delta **+4, 95% CI [−16, +25], P(delta ≤ 0) = 0.37**. It also failed 6 of 428 calls.
+
+So a stronger model is **not worth adopting here**, and this is now the second time that
+conclusion has been reached — Feature 6 found `claude-sonnet-5` metric-identical in 2026-07.
+The lever is the prompt's repo half and the operating point, not the model.
+
+### The lesson worth keeping
+
+`evals/compare_triage.py` now reports net@2 with a paired bootstrap as the primary result and
+labels the accuracy view as secondary. **A harness that scores a component on a different
+objective than the product will confidently report a null on a real improvement** — which is
+exactly what happened, and the tool that produced the mistake is the one that had to change.
+
+## The ranker measured for the first time — it discriminates coarsely, not finely (2026-08-02)
+
+```bash
+uv run python evals/diagnose_ranker.py --per-stratum 4      # ~$5 of GPT-5.5
+```
+
+Every label the benchmark owned came from the ranker's own top-10 plus the baseline's picks,
+so the ranker had never been scored, and an earlier attempt to infer its quality from the
+Tier B pool produced an artifact. This judges a **rank-stratified sample** of the real
+candidate pool instead, and adds those verdicts to the shared cache — the labelled set went
+from 428 to **576 papers**.
+
+| rank band | n | actionable |
+|---|---|---|
+| 1–10 | 48 | **31%** |
+| 11–50 | 48 | **33%** |
+| 51–150 | 48 | 15% |
+| 151+ | 44 | 7% |
+
+**Two findings, and the second is the useful one.**
+
+The ordering is *not* decoration: 31–33% in the top 50 against 7% past rank 150 is a real,
+large separation. The heuristic weights do sort relevant from irrelevant.
+
+But **ranks 1–10 and 11–50 are indistinguishable** — 31% vs 33%. The ranker cannot tell which
+of its top 50 are the best 10, which makes the top-10 cut arbitrary. Per case that discards
+roughly **13 actionable papers to keep 3**.
+
+That is a concrete, cheap change with a measurable prediction: the gate currently sees ~3.1
+actionable papers per case and could see ~16.5 at depth 50, for the cost of more triage calls
+(Haiku, pennies). `--rr-rerank` already triages a deeper pool, but at `RERANK_POOL = 20` it
+stops well inside the flat region.
+
+It also reframes the retrieval work. The citation hop's 18/24 recall sits in a 92,014-paper
+pool; a ranker that cannot order within its own top 50 will not order 92,014. **Depth of the
+gate is the near-term lever; ordering quality is what blocks the citation-hop pool from being
+usable at all.**
 
 ## Two-case re-benchmark after the quoting fix (2026-08-02)
 

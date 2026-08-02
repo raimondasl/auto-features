@@ -5,8 +5,11 @@
     uv run python evals/compare_triage.py \
         evals/.work/diag_triage_keywords.json evals/.work/diag_triage_readme.json
 
-Result on 2026-08-02: 21 fixed, 17 broke, p = 0.63 — the README variant is indistinguishable
-from run-to-run noise. See RESULTS.md -> "giving triage the README does not help".
+**Report net@2, not accuracy.** The gate's errors are asymmetric — returning a junk paper
+costs 2, missing a good one costs 1 — so accuracy answers a question nobody asked. Judged on
+accuracy the README variant looked like a null (21 fixed, 17 broke, p = 0.63); judged on
+net@2 the same runs are +16 (+31%), because most of its flips were false positives becoming
+correct abstentions, each worth +2. See RESULTS.md -> "the README variant, re-judged".
 
 
 Comparing two aggregate precision numbers cannot separate a real effect from Haiku's
@@ -20,6 +23,7 @@ Also reports a two-sided exact binomial on the discordant pairs (McNemar), so "1
 
 import json
 import math
+import random
 import sys
 from pathlib import Path
 
@@ -94,10 +98,29 @@ def main() -> int:
         f"{same_ok} both right, {same_bad} both wrong"
     )
     print(f"discordant pairs: {n_disc}   two-sided exact binomial p = {p:.4f}")
-    verdict = (
-        "a real difference" if p < 0.05 else "indistinguishable from Haiku's own run-to-run noise"
-    )
-    print(f"-> {verdict}")
+    print("(accuracy view — treats a false positive and a false negative as equally bad)")
+
+    # net@2 is what the product optimises, and its errors are ASYMMETRIC: returning a junk
+    # paper costs 2, missing a good one costs 1. Judging a gate on accuracy therefore
+    # answers a question nobody asked — it reported the README variant as a null (p=0.63)
+    # while that variant was worth +16 net@2, because most of its flips were false
+    # positives turning into correct abstentions, each worth +2.
+    def contrib(r: dict) -> int:
+        if r["triage"] < ACTIONABLE:
+            return 0
+        return 1 if r["judge"] >= ACTIONABLE else -2
+
+    deltas = [contrib(var[k]) - contrib(base[k]) for k in shared]
+    total = sum(deltas)
+    rng = random.Random(7)
+    boots = sorted(sum(rng.choice(deltas) for _ in deltas) for _ in range(4000))
+    lo, hi = boots[int(0.025 * len(boots))], boots[int(0.975 * len(boots))]
+    p_le0 = sum(1 for b in boots if b <= 0) / len(boots)
+    b_net = sum(contrib(base[k]) for k in shared)
+    v_net = sum(contrib(var[k]) for k in shared)
+    print(f"\nnet@2   baseline {b_net:+d}   variant {v_net:+d}   delta {total:+d}")
+    print(f"paired bootstrap 95% CI [{lo:+d}, {hi:+d}]   P(delta <= 0) = {p_le0:.3f}")
+    print("(net@2 view — the metric the digest is scored on; use this one)")
 
     print(f"\n{'case':11} {'fixed':>6} {'broke':>6}")
     for case, (f, b) in sorted(per_case.items(), key=lambda kv: kv[1][1] - kv[1][0]):
