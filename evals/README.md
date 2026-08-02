@@ -392,6 +392,9 @@ evals/
                      ~$0.01: can an LLM emit phrases that reach what TF-IDF misses?
                      `--prompt uses` 2/24, `--prompt lacks` 0/24. Both negative; see
                      RESULTS.md "Candidate-pool diagnosis" for why, before retrying
+  diagnose_triage.py ~$0.10: scores all 428 cached judge labels with the shipping triage
+                     gate. precision 0.81 / recall 0.78 vs a 32% base rate — NOT at chance,
+                     correcting an n=10 reading. --repo-context {keywords,readme,both}
   diagnose_citation_hop.py
                      free/keyless: one citation hop from the repo's own bibliography.
                      18/24 — the only approach measured that reaches the papers at all,
