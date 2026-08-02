@@ -392,6 +392,10 @@ evals/
                      ~$0.01: can an LLM emit phrases that reach what TF-IDF misses?
                      `--prompt uses` 2/24, `--prompt lacks` 0/24. Both negative; see
                      RESULTS.md "Candidate-pool diagnosis" for why, before retrying
+  diagnose_citation_hop.py
+                     free/keyless: one citation hop from the repo's own bibliography.
+                     18/24 — the only approach measured that reaches the papers at all,
+                     at 1 good paper per 5111 candidates (recall solved, precision not)
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode

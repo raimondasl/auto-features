@@ -492,15 +492,25 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 ## Candidate-pool diagnosis — what RepoRadar cannot reach, and why (2026-08-01)
 
 The Tier B headline (+1.75 vs Opus +1.83) says the two systems score alike. They do not
-recommend alike. This section records the measurement that established that, and the four
-candidate fixes tried against it — **every one a negative result**, preserved here so nobody
-pays to rediscover them. Nothing below is a solution; the value is in knowing which roads
-are closed and why.
+recommend alike. This section records the measurement that established that, and the five
+candidate fixes tried against it. **Four are negative results**, preserved so nobody pays to
+rediscover them; the fifth — a citation hop from the repo's own bibliography — is the only
+one that reaches the papers at all, and its own caveat is as large as its result.
 
-Both measurements are re-derivable rather than asserted:
+| approach | recovered of 24 |
+|---|---|
+| current TF-IDF keyword queries | 0/24 |
+| LLM phrases, "name what the repo uses" | 2/24 |
+| LLM phrases, "name what the repo lacks" | 0/24 |
+| citation-count-sorted search | 1/24 |
+| fetch deeper (raise `max_results`) | ≤3 |
+| **citation hop from the repo's bibliography** | **18/24** |
+
+Every number here is re-derivable rather than asserted:
 
 ```bash
 uv run python evals/diagnose_pool.py                                  # free, keyless
+uv run python evals/diagnose_citation_hop.py                          # free, keyless
 uv run python evals/diagnose_query_generation.py --prompt uses        # ~$0.01
 uv run python evals/diagnose_query_generation.py --prompt lacks       # ~$0.01
 ```
@@ -597,6 +607,79 @@ a retrieval-representation problem, not a wording one. Any further attempt here 
 justified by a mechanism that closes *that* gap (e.g. validating emitted phrases against the
 index and discarding zero-hit ones, or matching in embedding space rather than by exact
 phrase) rather than by another rewording.
+
+
+
+### The one thing that worked — a citation hop from the repo's own bibliography (18/24)
+
+Reproduce: `uv run python evals/diagnose_citation_hop.py` (free, keyless).
+
+Negative result 1 established that a repo never cites the papers that would improve it. That
+is true and it is not the end of the story: those papers are **one hop away** in the citation
+graph.
+
+Seeds are the arXiv ids the repo itself cites (README, `docs/`, `.bib`, `CITATION.cff`) —
+the only seed set a cold-start repo has, since a fresh install has no ratings or stars. One
+hop in each direction, seeds capped at 60, via the Semantic Scholar batch endpoint the
+Feature 8 plumbing already uses.
+
+| case | seeds | candidates | recovered | un-enumerable seeds |
+|---|---|---|---|---|
+| rag | 7 | 1,856 | **5/5** | 0 |
+| cv | 18 | 7,378 | **3/3** | 0 |
+| rl | 30 | 29,430 | **3/3** | 5 |
+| peft | 18 | 6,342 | **2/2** | 0 |
+| graph | 121 | 36,868 | **3/3** | 8 |
+| speech | 2 | 6,068 | 2/3 | 0 |
+| diffusion | 10 | 4,072 | 0/2 | 0 |
+| crypto | 0 | — | 0/2 (no arXiv-indexed bibliography) | — |
+| systems | 0 | — | 0/1 (no arXiv-indexed bibliography) | — |
+| **total** | | **92,014** | **18/24 (75%)** | 13 |
+
+Against 0/24 for keyword search, 2/24 for LLM phrases and 1/24 for citation-sorted search,
+this is the only approach that reaches the papers at all. The targets are genuinely
+discovered, not handed over: seeds are subtracted from the candidate set, and 0 of the 24
+appear in any repo's own documentation.
+
+**Both hop directions earn their place.** Forward (papers *citing* a seed) does most of the
+work — consistent with "what improves a codebase is later work building on what it already
+uses" — but the backward direction uniquely contributes several targets, so dropping it would
+cost real recall.
+
+> #### Correction: an earlier version of this measurement said 14/24
+>
+> It was a transport artifact, not a result. The first script sent 100 seeds per request, and
+> `/paper/batch` truncates **nested** items at 9,999 across a request, filled greedily in id
+> order. Verified directly: 18 seeds in one request returned `[9999, 0, 0, …]` — one seed's
+> citations and seventeen empty arrays, HTTP 200, no error. Per-seed requests returned 47,897
+> nested items against 9,999.
+>
+> Two conclusions drawn from the bad number were wrong and are withdrawn:
+>
+> - **`graph` did not score 0/3 because its seeds were irrelevant. It scored 0/3 because it
+>   has the most seeds (121)** — one hub consumed the budget and the other 59 came back
+>   blank. Corrected, it is 3/3.
+> - **"Seed count does not predict recall" was backwards.** Under the buggy chunking more
+>   seeds actively destroyed recall. There is no evidence here for or against a seed-relevance
+>   effect; the apparent one was an artifact.
+>
+> The corrected script chunks at 4 seeds and splits any response that comes back pinned at the
+> cap. The same defect existed in shipped code — `citations.fetch_references` chunked at the
+> 500-id limit and was silently losing ~29% of `w_citation_proximity`'s edges.
+
+**A hard wall worth knowing about.** 13 seeds across `rl` and `graph` saturate the 9,999 cap
+even when requested alone, and the API enforces `offset + limit < 10000` on paging. A paper
+with tens of thousands of citers cannot be fully enumerated by anyone, keyed or keyless. The
+script counts these rather than silently accepting a truncated answer.
+
+**The caveat grew along with the result: 92,014 candidates for 18 papers, a density of
+1 in 5,111** — worse than the 1 in 2,042 the truncated run appeared to show, because the
+recovered pool is 3.2x larger while recall rose by less than a third. Recall is transformed
+and precision is untouched. But this changes the shape of the problem rather than solving it:
+the pool now *contains* the answers, so selection becomes a real and tractable problem
+instead of a moot one. At ~10,000 papers per repo it is a heavier load than the embedding
+cache and vector index carry today, and the filter that reduces it is unbuilt — see
+[`RETRIEVAL_DESIGN.md`](../RETRIEVAL_DESIGN.md).
 
 ### Negative result 3 — citation-sorted retrieval is a multiplier, not a fix
 
