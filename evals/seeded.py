@@ -170,7 +170,11 @@ def citation_proximity_component(
         if not seeds:
             return {}, {"n_seeds": 0, "papers_with_refs": 0, "ref_edges": 0}
         ids = [p["arxiv_id"] for p in candidates if ":" not in p["arxiv_id"]]
-        refs = fetch_references(ids, api_key=api_key)
+        # Without the fetch stats an empty `refs` is ambiguous, and the docstring's promise
+        # above is not actually kept: a rate-limited run reports "no signal" identically to
+        # a genuine negative, so an outage reads as evidence about Feature 8.
+        fetch_stats: dict[str, int] = {}
+        refs = fetch_references(ids, api_key=api_key, stats=fetch_stats)
         links = find_citation_links(refs, seeds)
         if links:
             store.save_citations([(c, cited) for c, cs in links.items() for cited in cs])
@@ -179,4 +183,6 @@ def citation_proximity_component(
         "ids_requested": len(ids),
         "papers_with_refs": len(refs),
         "ref_edges": sum(len(v) for v in refs.values()),
+        "fetch_failed": fetch_stats.get("failed", 0),
+        "fetch_requests": fetch_stats.get("requests", 0),
     }

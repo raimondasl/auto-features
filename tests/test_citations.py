@@ -105,6 +105,31 @@ class TestFetchReferences:
         fetch_references([f"2401.{i:05d}v1" for i in range(10)])
         assert mock_post.call_count == 1
 
+    @patch("reporadar.citations._s2_batch_post")
+    def test_stats_distinguish_an_outage_from_a_genuine_negative(
+        self, mock_post: MagicMock
+    ) -> None:
+        """An empty result means two very different things, and callers judge features on it.
+
+        `seeded.py` reports "no signal" from an empty dict, so a rate-limited run reads as
+        evidence about Feature 8 rather than as an outage. Its docstring already claimed to
+        tell these apart; the information was being discarded inside `fetch_references`.
+        """
+        mock_post.return_value = None  # every request fails
+        stats: dict[str, int] = {}
+        out = fetch_references([f"2401.{i:05d}v1" for i in range(20)], stats=stats)
+        assert out == {}
+        assert stats["requests"] > 0
+        assert stats["failed"] == stats["requests"], "an outage must be visible in the stats"
+
+    @patch("reporadar.citations._s2_batch_post")
+    def test_stats_show_no_failures_on_a_genuine_empty_result(self, mock_post: MagicMock) -> None:
+        # Papers that really cite nothing arXiv-indexed must NOT look like an outage.
+        mock_post.return_value = [{"references": []} for _ in range(20)]
+        stats: dict[str, int] = {}
+        assert fetch_references([f"2401.{i:05d}v1" for i in range(20)], stats=stats) == {}
+        assert stats["failed"] == 0
+
 
 class TestFetchCitationCounts:
     @patch("reporadar.citations.urllib.request.urlopen")
