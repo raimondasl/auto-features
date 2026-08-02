@@ -179,47 +179,26 @@ def _triage_reporadar(
     papers: list[dict[str, Any]],
     keys: dict[str, str],
     model: str,
-    readme_context: bool = False,
+    prose_chars: int = 300,
 ) -> dict[str, dict[str, Any]]:
     """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic).
 
-    With *readme_context*, the repo half of the prompt carries the project's own README
-    prose instead of only extracted keywords. Measured at +16 net@2 over keywords on 576
-    labelled papers, and it closes part of a real asymmetry: the judge that defines the
-    labels sees 18-31x more repo text than the gate being graded.
+    *prose_chars* is the README budget on the profile; 0 withholds it. The prompt itself
+    is always the shipped one — this used to assemble its own "README context" variant,
+    and that copy is exactly how a measurement got published under the wrong name: it
+    read ``_collect_text_corpus(repo)[0]``, which is the packaging one-liner on 11 of the
+    12 benchmark repos, and it silently dropped the domains/key-topics block as well. A
+    harness that rebuilds the prompt measures the harness. See evals/RESULTS.md.
     """
-    from reporadar.config import SuggestionsConfig
+    from reporadar.config import ProfilerConfig, SuggestionsConfig
+    from reporadar.profiler import profile_repo
     from reporadar.triage import triage_papers
 
-    profile = profile_case_repo(repo_dir)
+    profile = profile_repo(repo_dir, profiler_cfg=ProfilerConfig(prose_chars=prose_chars))
     llm_cfg = SuggestionsConfig(
         provider="claude", claude_api_key=keys.get("ANTHROPIC_API_KEY", ""), claude_model=model
     )
-    if not readme_context:
-        return triage_papers(papers, profile, llm_cfg, top_k=len(papers))
-
-    from reporadar.llm_client import complete
-    from reporadar.profiler import _collect_text_corpus
-    from reporadar.triage import _RUBRIC, _parse_verdict
-
-    docs = _collect_text_corpus(repo_dir)
-    prose = (docs[0] if docs else "")[:1800]
-    anchors = ", ".join(profile.anchors[:12]) or "none"
-    out: dict[str, dict[str, Any]] = {}
-    for paper in papers:
-        prompt = (
-            f"{_RUBRIC}\n\n# Repository\nDependencies/libraries: {anchors}\n\n"
-            f"What this project is, in its own words:\n{prose}\n\n"
-            f"# Candidate paper\nTitle: {paper.get('title', 'Unknown')}\n"
-            f"Abstract: {paper.get('abstract', '')[:1500]}\n\n"
-            f"Score this paper for the repository above."
-        )
-        try:
-            score, reason = _parse_verdict(complete(prompt, llm_cfg, max_tokens=200))
-        except Exception:  # noqa: BLE001, S112
-            continue
-        out[paper["arxiv_id"]] = {"llm_score": score, "llm_reason": reason}
-    return out
+    return triage_papers(papers, profile, llm_cfg, top_k=len(papers))
 
 
 def is_recent(published: str) -> bool:
@@ -266,7 +245,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
         # heuristic 0.5 threshold, so the benchmark measures triage's effect.
         triaged = _triage_reporadar(
-            dest, rr_candidates, keys, args.rr_triage_model, args.rr_readme_context
+            dest, rr_candidates, keys, args.rr_triage_model, args.rr_prose_chars
         )
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
@@ -492,10 +471,13 @@ def main() -> int:
         f"buried-but-actionable paper can surface. Implies --rr-triage. Incurs more triage spend.",
     )
     parser.add_argument(
-        "--rr-readme-context",
-        action="store_true",
-        help="give triage the project's own README prose instead of only extracted keywords "
-        "(measured +16 net@2 on 576 labelled papers). Implies --rr-triage.",
+        "--rr-prose-chars",
+        type=int,
+        default=300,
+        help="README budget on the profile the gate sees (profiler.prose_chars). 300 is "
+        "the shipped default and the measured optimum (+22 net@2 over 0 on 602 labelled "
+        "papers; 2000 and 6000 both score lower). 0 withholds it, which is the "
+        "pre-2026-08-02 behaviour and the control arm for any prose measurement.",
     )
     parser.add_argument(
         "--rr-pool",

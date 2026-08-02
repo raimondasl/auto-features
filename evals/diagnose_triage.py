@@ -37,7 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from reporadar.config import SuggestionsConfig  # noqa: E402
+from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
 from reporadar.llm_client import complete  # noqa: E402
 from reporadar.profiler import (
     _collect_text_corpus,  # noqa: E402
@@ -116,32 +116,50 @@ def fetch_papers(ids: list[str]) -> dict[str, dict[str, str]]:
 
 
 def repo_section(profile: object, repo: Path, mode: str) -> str:
-    """The repo half of the triage prompt, in one of three representations.
+    """The repo half of the triage prompt, in one of four representations.
 
-    `keywords` is what ships. For ColBERT it yields "functions, indexer, searcher functions,
-    trainer functions, trainer, searcher, colbert, file, torch, transformers, master" and
-    "Domains: NLP, deep learning, scientific computing, web APIs" — 354 characters that never
-    say retrieval, and say "web APIs" because the project depends on flask. Meanwhile the
-    README's own first line is "Efficient and Effective Passage Search via Contextualized
-    Late Interaction over BERT". The hypothesis under test is that the gate is not failing at
-    judgement, it is judging nearly blind.
+    `keywords` is the shipped prompt with `profiler.prose_chars: 0`. For ColBERT it yields
+    "functions, indexer, searcher functions, trainer functions, trainer, searcher, colbert,
+    file, torch, transformers, master" and "Domains: NLP, deep learning, scientific
+    computing, web APIs" — 354 characters that never say retrieval, and say "web APIs"
+    because the project depends on flask. The README's own first line is "Efficient and
+    Effective Passage Search via Contextualized Late Interaction over BERT".
+
+    `prose` is the shipped prompt with prose on: keywords AND the real README.
+
+    `tagline` is the historical variant that was reported as "+16 net@2 for README
+    context". It is kept, and named honestly, because it was NOT the README: it read
+    `_collect_text_corpus(repo)[0]`, which is the packaging description on 11 of the 12
+    benchmark repos — 23 to 230 characters. It also DROPS the domains and key-topics
+    block, so the prompt it produced was *smaller* than `keywords` on 9 of 12 cases.
+    Whether its gain came from adding the tagline or from deleting the misleading keyword
+    block is exactly what these four modes separate.
     """
     anchors = ", ".join(profile.anchors[:12]) or "none"
     domains = ", ".join(profile.domains[:5]) or "general"
     keywords = ", ".join(t for t, _ in profile.keywords[:12]) or "n/a"
     kw = f"Dependencies/libraries: {anchors}\nDomains: {domains}\nKey topics: {keywords}\n"
+    header = "What this project is, in its own words:"
     if mode == "keywords":
         return kw
+    if mode == "prose":
+        return f"{kw}\n{header}\n{getattr(profile, 'prose', '')}\n"
+    # tagline / both: the historical docs[0] read, reproduced exactly.
     docs = _collect_text_corpus(repo)
-    prose = (docs[0] if docs else "")[:1800]
-    header = "What this project is, in its own words:"
-    if mode == "readme":
-        return f"Dependencies/libraries: {anchors}\n\n{header}\n{prose}\n"
-    return f"{kw}\n{header}\n{prose}\n"
+    tagline = (docs[0] if docs else "")[:1800]
+    if mode == "tagline":
+        return f"Dependencies/libraries: {anchors}\n\n{header}\n{tagline}\n"
+    return f"{kw}\n{header}\n{tagline}\n"
 
 
 def score_with(paper: dict, profile: object, repo: Path, mode: str, cfg: object) -> int:
-    if mode == "keywords":
+    """Score one paper. `keywords` and `prose` go through the SHIPPED prompt builder.
+
+    Routing those two through `score_actionability` rather than a local copy is the point:
+    a diagnostic that reimplements the prompt measures the diagnostic. Prose is controlled
+    by the profile the caller passes (`ProfilerConfig.prose_chars`), not by a flag here.
+    """
+    if mode in ("keywords", "prose"):
         return score_actionability(paper, profile, cfg)[0]
     prompt = (
         f"{_RUBRIC}\n\n# Repository\n{repo_section(profile, repo, mode)}\n"
@@ -156,13 +174,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--repo-context",
-        choices=("keywords", "readme", "both"),
-        default="keywords",
-        help="how the repo is described to the gate; `keywords` is what ships",
+        choices=("keywords", "prose", "tagline", "both"),
+        default="prose",
+        help="how the repo is described to the gate; `prose` is what ships",
     )
     ap.add_argument("--case")
     ap.add_argument("--limit", type=int, help="max papers per case (for a cheap smoke run)")
     ap.add_argument("--model", default="claude-haiku-4-5")
+    ap.add_argument("--prose-chars", type=int, default=300, help="README budget for `prose` mode")
     args = ap.parse_args()
 
     _load_env()
@@ -182,7 +201,10 @@ def main() -> int:
         if not repo.is_dir():
             print(f"[{case}] no clone — skipping")
             continue
-        profile = profile_repo(repo)
+        # The shipped prompt reads prose off the profile, so the variant is set HERE.
+        # Building every mode from one profile would silently put prose in `keywords`.
+        budget = 0 if args.repo_context == "keywords" else args.prose_chars
+        profile = profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=budget))
         ids = [i for i in sorted(lab) if i in papers][: args.limit]
         tp = fp = fn = tn = 0
         failures = 0
@@ -228,9 +250,12 @@ def main() -> int:
             "ABOVE chance" if lift > 0.05 else ("AT chance" if lift > -0.05 else "BELOW chance")
         )
         print(f"triage is {lift:+.2f} vs chance -> {verdict}")
-    (WORK / f"diag_triage_{args.repo_context}.json").write_text(
-        json.dumps(rows, indent=2), encoding="utf-8"
-    )
+    # Budget goes in the filename: two `prose` runs at different budgets are different
+    # arms, and silently overwriting one with the other would compare a run to itself.
+    tag = args.repo_context
+    if tag == "prose" and args.prose_chars != 300:
+        tag = f"prose{args.prose_chars}"
+    (WORK / f"diag_triage_{tag}.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
     return 0
 
 

@@ -43,15 +43,30 @@ Respond with ONLY a JSON object: {"score": 0|1|2|3, "reason": "<one sentence>"}"
 
 
 def build_triage_prompt(paper: dict[str, Any], profile: RepoProfile) -> str:
+    """The gate's prompt: the rubric, the repository, then one candidate paper.
+
+    The repository half carries ``profile.prose`` when the profile has any. Without it the
+    repo is described only by what it *contains* — its libraries and its frequent terms —
+    which measured at 366 characters mean against the 6,375 the eval judge reads about the
+    same repo before labelling the papers this gate is graded on. Prose is what says what
+    the project is FOR, and the keyword half regularly gets that wrong (ColBERT profiles as
+    "web APIs" because it depends on flask).
+
+    Prose is additive, not a replacement: whether dropping the keyword block helps is a
+    separate, open question. See evals/RESULTS.md.
+    """
     keywords = ", ".join(term for term, _ in profile.keywords[:12]) or "n/a"
     domains = ", ".join(profile.domains[:5]) if profile.domains else "general"
     anchors = ", ".join(profile.anchors[:12]) if profile.anchors else "none"
+    prose = getattr(profile, "prose", "").strip()
+    prose_block = f"\nWhat this project is, in its own words:\n{prose}\n" if prose else ""
     return (
         f"{_RUBRIC}\n\n"
         f"# Repository\n"
         f"Dependencies/libraries: {anchors}\n"
         f"Domains: {domains}\n"
-        f"Key topics: {keywords}\n\n"
+        f"Key topics: {keywords}\n"
+        f"{prose_block}\n"
         f"# Candidate paper\n"
         f"Title: {paper.get('title', 'Unknown')}\n"
         f"Abstract: {paper.get('abstract', '')[:1500]}\n\n"

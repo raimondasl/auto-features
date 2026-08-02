@@ -180,9 +180,15 @@ DESTINATIONS: tuple[Destination, ...] = (
         module="llm_client",
         service="Anthropic",
         endpoint="api.anthropic.com/v1/messages",
-        sends="your repo's libraries and key topics TOGETHER WITH paper abstracts, in every prompt",
+        sends=(
+            "your repo's libraries and key topics, AND up to profiler.prose_chars "
+            "characters of your README, TOGETHER WITH paper abstracts, in every prompt"
+        ),
         sensitivity=REPO_AND_CONTENT,
-        enabled_by="suggestions.provider: claude (used by triage and LLM suggestions)",
+        enabled_by=(
+            "suggestions.provider: claude (used by triage and LLM suggestions); "
+            "set profiler.prose_chars: 0 to withhold the README"
+        ),
         active=lambda cfg: getattr(cfg.suggestions, "provider", "template") == "claude",
     ),
     Destination(

@@ -271,11 +271,25 @@ uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time -
 # 2 more actionable papers across 12 cases. See RESULTS.md -> "Negative result 5".
 uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-pool 50
 
-# Give triage the repo's README prose instead of only extracted keywords. Worth +16 net@2
-# on the 576-paper labelled set (evals/diagnose_triage.py); NOT independently confirmed in
-# Tier B, where it was run confounded with --rr-pool. The gate otherwise sees ~366 chars of
-# repo context against the judge's ~6,375 — see RESULTS.md -> "The gate's repo context".
-uv run python evals/run_judge_eval.py --baseline cli --rr-triage --rr-readme-context
+# How much README the gate sees (profiler.prose_chars on the profile it is given).
+# 0 is the pre-2026-08-02 behaviour and the CONTROL ARM for any prose measurement; the
+# shipped default is 2000. The prompt is the shipped one either way — this used to build
+# its own "README context" variant, which is how a result got published under the wrong
+# name. See RESULTS.md -> "what the README variant actually sent".
+uv run python evals/run_judge_eval.py --baseline cli --rr-triage --rr-prose-chars 0
+```
+
+**Decomposing a prompt change cheaply.** A 12-case Tier B run costs ~$11 and its paired CI
+over cases is about ±2 net@2 — too wide to resolve a prompt tweak. `diagnose_triage.py`
+scores every cached judge label (600+ papers) for ~$0.10 per arm, and `compare_triage.py`
+pairs two arms per paper. Decide there first; spend the $11 confirming a winner.
+
+```bash
+uv run python evals/diagnose_triage.py --repo-context keywords   # control: no prose
+uv run python evals/diagnose_triage.py --repo-context prose      # shipped: + real README
+uv run python evals/diagnose_triage.py --repo-context tagline    # the historical variant
+uv run python evals/compare_triage.py \
+    evals/.work/diag_triage_keywords.json evals/.work/diag_triage_prose.json
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either

@@ -20,6 +20,13 @@ class RepoProfile:
     anchors: list[str]  # library/package names found in manifests
     domains: list[str]  # inferred domain labels
     source_signals: list[str] = field(default_factory=list)  # ML/domain patterns from source
+    # The project described in its own words, for prompts that need to know what the repo
+    # is FOR rather than what it CONTAINS. Every other field here says what the repo has —
+    # its libraries, its frequent terms — which is why a keyword profile of ColBERT reports
+    # "web APIs" (it depends on flask) and never says retrieval. Empty when the repo has no
+    # README and declares no packaging description. Budgeted at profile time, not at use
+    # time, so a 41k-character README cannot reach a prompt by accident.
+    prose: str = ""
 
 
 # Mapping from common package names to domain labels.
@@ -467,6 +474,30 @@ def _collect_text_corpus(repo_path: Path) -> list[str]:
     return documents
 
 
+def _repo_prose(repo_path: Path, budget: int) -> str:
+    """The repo's own description: its README, else its packaging description.
+
+    Deliberately NOT ``_collect_text_corpus(repo)[0]``. That corpus puts the packaging
+    metadata first whenever a project declares one, so taking element 0 yields a 23-230
+    character tagline on almost every real repo — "Python HTTP for Humans." for `requests`.
+    An earlier experiment did exactly that and was recorded as a README result; it was not
+    one. See evals/RESULTS.md -> "what the README variant actually sent".
+
+    The README is preferred because it is the document that says what the project is FOR.
+    Metadata is the fallback, not the default: it is one sentence and usually already
+    implied by the anchors.
+    """
+    if budget <= 0:
+        return ""
+    for name in ("README.md", "README.rst", "README.txt", "README"):
+        text = _read_text_file(repo_path / name)
+        if text:
+            cleaned = _clean_document(text).strip()
+            if cleaned:
+                return cleaned[:budget]
+    return _packaging_metadata_text(repo_path).strip()[:budget]
+
+
 def _extract_keywords(
     documents: list[str],
     anchors: list[str],
@@ -588,4 +619,5 @@ def profile_repo(
         anchors=anchors,
         domains=domains,
         source_signals=source_signals,
+        prose=_repo_prose(repo_path, getattr(profiler_cfg, "prose_chars", 300)),
     )

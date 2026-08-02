@@ -13,11 +13,18 @@
 > (0.33 vs 0.82 elsewhere), which is the only subset Tier B ever judges. See
 > [Triage measured properly](#triage-measured-properly--it-is-not-at-chance-2026-08-02).
 >
-> **Latest 12-case run (2026-08-02, window 50 + README context): +2.42 vs +1.83.** Do not read
-> that as a new headline. The gain over the +1.75 control is **+0.67, 95% CI [−0.50, +2.00]**,
-> half of it from one case, and the lead over Opus is **+0.58, 95% CI [−1.25, +2.58]** — parity,
-> as in every run since 2026-07-12. Widening the triage window 20→50 is a **negative result**:
-> 4× the candidates bought 2 more actionable papers across 12 cases. See
+> **Headline (2026-08-02, 12 cases): RepoRadar Top Picks mean net@2 +2.75, up from +1.75.**
+> Paired over cases **+1.00, 95% CI [+0.00, +2.00], P(Δ≤0) = 0.032**; 7 cases improved, 1
+> worsened; it survives dropping the largest mover (+0.73). At an unchanged digest size the
+> **junk papers a reader wades through fell from 9 to 5** across 12 repos, and precision at
+> `min_actionable=2` rose 0.85 → 0.92. The cause is one prompt change: the gate is now told
+> what the repo is *for*, in **300 characters** of its own README — measured optimum, with
+> 2,000 and 6,000 both scoring *worse*. See
+> [How much prose](#how-much-prose-does-the-gate-need-300-characters--and-more-is-worse-2026-08-02).
+> **Against Opus it is still parity** (+2.75 vs +1.83, but paired +0.92, CI [−0.67, +2.75]).
+>
+> Widening the triage window 20→50 remains a **negative result** — 4× the candidates bought
+> 2 more actionable papers — see
 > [Negative result 5](#negative-result-5--widening-the-triage-window-from-20-to-50-does-not-pay-2026-08-02).
 >
 > **`min_actionable=2` — three sweeps against, one for.** Three two-case sweeps had the
@@ -572,6 +579,133 @@ cases, mean precision 0.85) against **−2.25** at `min>=1` and **+0.42** at `mi
 first sweep in which the shipped default is not contradicted by a stricter gate. Three
 earlier sweeps went the other way, so this is one data point against three, not a resolution.
 
+## How much prose does the gate need? 300 characters — and more is worse (2026-08-02)
+
+```bash
+uv run python evals/diagnose_triage.py --repo-context keywords              # control
+uv run python evals/diagnose_triage.py --repo-context prose --prose-chars N # the sweep
+uv run python evals/compare_triage.py evals/.work/diag_triage_{keywords,prose300}.json
+```
+
+Five arms, all paired on the same **602** labelled papers, ~$0.10 each:
+
+| arm | repo half of the prompt | precision | recall | **net@2** | vs control | 95% CI | P(Δ≤0) |
+|---|---|---|---|---|---|---|---|
+| `keywords` | libraries + domains + topics | 0.83 | 0.74 | +73 | — | — | — |
+| `tagline` | libraries + a 23–230 char one-liner | 0.88 | 0.70 | +85 | +12 | [−8, +31] | 0.126 |
+| **`prose 300`** | **+ first 300 chars of the README** | **0.92** | 0.68 | **+95** | **+22** | **[+4, +41]** | **0.008** |
+| `prose 2000` | + first 2,000 chars | 0.89 | 0.68 | +86 | +13 | [−7, +33] | 0.112 |
+| `prose 6000` | + first 6,000 chars | 0.90 | 0.68 | +89 | +16 | [−5, +36] | 0.069 |
+
+**The curve turns over.** 300 beats 2,000 and 6,000, and is the only arm whose interval
+excludes zero. Four arms were compared against the control and the best selected, so the
+figure to act on is the **Bonferroni-adjusted P = 0.031**, not the raw 0.008.
+
+**Why 300.** That is roughly where a README stops saying what the project is and starts on
+badges, install steps and API examples. ColBERT's first 300 characters read "a *fast* and
+*accurate* retrieval model, enabling scalable BERT-based search over large text
+collections" — the one fact its keyword profile never contained, which instead reports
+"web APIs" because the project depends on flask. Everything after the opening dilutes.
+
+Two hypotheses this **kills**, both of which earlier sections of this file were built on:
+
+1. *"The gate is starved of repo context"* (the 17× judge/gate asymmetry). No — a 23
+   character tagline captures most of the gain and 6,000 characters captures less than 300.
+   Volume was never the lever; naming the purpose is.
+2. *"The keyword block is actively misleading, so removing it helps."* `tagline` drops it,
+   `prose` keeps it, and at fixed budget they are statistically indistinguishable.
+
+It also retires a wrong lead from this same session: cases whose README hit the 2,000 cap
+averaged +1.71 against +0.20 for those under it, which looked like evidence the cap was
+binding. It was an artifact of *which* repos have long READMEs. Twenty cents of sweep
+beat the inference.
+
+**Shipped:** `profiler.prose_chars` defaults to **300**. Against the 2,000 first
+implemented that is +9 net@2, ~85% fewer prose tokens per triage call, and materially less
+of a possibly-proprietary README leaving the machine — better on all three axes.
+
+### Confirmed on Tier B: +1.00 net@2, and the digest's junk nearly halved
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-triage --rr-rerank \
+    --rr-all-time --rr-sweep --rr-pool 50 --rr-prose-chars 300     # 12 cases, ~$11
+```
+
+| | previous shipped (window 20, no prose) | now (window 50, prose 300) |
+|---|---|---|
+| mean net@2 | **+1.75** | **+2.75** |
+| papers returned, 12 cases | 48 | 48 |
+| actionable | 39 | **43** |
+| **junk papers in the digest** | **9** | **5** |
+| mean precision at `min>=2` | 0.85 | **0.92** |
+
+Delta **+1.00**, paired bootstrap over cases **95% CI [+0.00, +2.00]**, **P(Δ≤0) = 0.032**.
+**Seven cases improved, one worsened**, four unchanged — and unlike the depth-50 run, it does
+not rest on one case: dropping the largest mover (`speech`, +4.0) still leaves **+0.73**.
+
+The product statement is the junk row: at an unchanged digest size, **the number of
+non-actionable papers a reader has to wade through fell from 9 to 5 across 12 repos.**
+
+**What Tier B cannot settle.** Holding the window at 50, `prose 300` vs `tagline` is
+**+0.33, 95% CI [−0.42, +1.50], P = 0.330** — 2 cases better, 3 worse, 7 unchanged. At
+n=12 cases Tier B simply cannot resolve a difference the 602-paper instrument puts at +10.
+Decide prompt questions on the labelled set; use Tier B to confirm the direction.
+
+**Attribution.** This run changed window *and* prose against the +1.75 control, so +1.00 is
+the combined figure. The window is unlikely to be the source: widening it alone moved
+returned-actionable from 39 to 41 and was
+[not distinguishable from zero](#negative-result-5--widening-the-triage-window-from-20-to-50-does-not-pay-2026-08-02),
+while the labelled set puts prose at +22 on its own. Read the gain as mostly prose, but a
+window-50/no-prose arm was never run at Tier B.
+
+**Against Opus, still parity.** RepoRadar +2.75 vs the baseline's +1.83 in the same run;
+paired over cases that is **+0.92, 95% CI [−0.67, +2.75], P = 0.148**, winning 5, losing 3,
+tying 4. The second consecutive run where RepoRadar leads on the mean and neither run
+establishes it.
+
+## Correction — what the "README variant" actually sent (2026-08-02)
+
+> **The +16 net@2 "README context" result was not about READMEs.** It read
+> `_collect_text_corpus(repo)[0]`, and that corpus puts `_packaging_metadata_text` **first**
+> whenever a project declares a description. On **11 of the 12** benchmark repos, element 0
+> is the packaging one-liner.
+
+| case | what "README context" actually sent | chars | the real README |
+|---|---|---|---|
+| `http` | "Python HTTP for Humans." | **23** | 1,893 |
+| `cli` | "Composable command line interface toolkit" | **41** | 1,557 |
+| `peft` | "Parameter-Efficient Fine-Tuning (PEFT) deep learning" | **52** | 9,802 |
+| `rag` | ColBERT's one-line subtitle | **84** | 10,047 |
+| `systems` | *(genuinely the README — the only one)* | 41,195 | 41,195 |
+
+It compounds: that variant also **dropped** the `Domains:` and `Key topics:` block. So the
+prompt it produced was **smaller than the keyword control on 9 of 12 cases**:
+
+| | keywords | "readme" | delta |
+|---|---|---|---|
+| mean chars | 270 | 381 | +111 |
+| median case | — | — | **negative** |
+
+The entire +111 mean is `systems` alone (+1,708). Strip it and the "more context" variant is
+*less* context on nearly every case.
+
+**Two claims in this file were therefore wrong and are withdrawn:**
+
+1. That the variant "closes part of the 17× judge/gate asymmetry." It does not — it slightly
+   narrows the prompt on most cases.
+2. That the mechanism is "the gate was judging nearly blind." The plausible mechanism is the
+   opposite: the keyword block is *actively misleading* (ColBERT profiles as "web APIs"
+   because it depends on flask), and **deleting** it is what may have helped.
+
+The measured +16 itself stands as a number — that comparison ran. What it is evidence *for*
+was misattributed. The decomposition below separates the two mechanisms.
+
+**Root cause, and the fix.** The eval harness and the diagnostic each rebuilt the triage
+prompt instead of calling `build_triage_prompt`, so neither was measuring the shipped gate.
+`run_judge_eval.py` now always uses the shipped prompt and controls the variant through
+`ProfilerConfig.prose_chars`; `--rr-readme-context` is gone, replaced by `--rr-prose-chars`.
+A harness that reimplements the thing under test measures the harness.
+
 ## The gate's repo context is 13% of its own prompt (2026-08-02)
 
 Measured on the 12 case repos with `build_triage_prompt` and `assemble_repo_context`:
@@ -600,10 +734,12 @@ its information loss, including the register mismatch: the profile enumerates wh
 *has* (dependencies, identifiers), never what it is *for*.
 
 Consequences, in decreasing confidence:
-- Giving triage README prose is worth **+16 net@2** on the 576-paper labelled set — that is
-  this asymmetry being partially closed (1,800 chars, still only ~28% of the judge's context).
-- `build_triage_prompt` should accept repo prose, not just a `RepoProfile`. That is an API
-  change, not a constant bump.
+- `RepoProfile` should carry the repo's prose, so the gate can be told what the project is
+  *for*. **Shipped** as `RepoProfile.prose` / `profiler.prose_chars` (default 2000).
+- The +16 attributed to "README context" does **not** close this asymmetry — see
+  [the correction](#correction--what-the-readme-variant-actually-sent-2026-08-02); that
+  variant sent a 23-230 character packaging tagline on 11 of 12 cases and was *smaller*
+  than the keyword prompt it beat.
 - `abstract[:1500]` has never been measured. At 54% of the prompt, shrinking it would rebalance
   the repo/paper ratio for free. **Unmeasured** — do not assume it helps.
 
@@ -727,6 +863,11 @@ find a connection, which is precisely wrong where the correct answer is "nothing
 
 
 ### Correction — the README variant helps; the null was measured on the wrong metric
+
+> **Read `readme` in this section as `tagline`.** The variant named "README" here did not
+> send a README on 11 of 12 cases; it sent the packaging one-liner and dropped the keyword
+> block. The net@2 numbers below are real, the label on them was not. See
+> [what the "README variant" actually sent](#correction--what-the-readme-variant-actually-sent-2026-08-02).
 
 The section above concluded that giving triage the README "does not help", from 21 fixed /
 17 broke at p = 0.63. **That test was run on accuracy, and accuracy is the wrong objective
