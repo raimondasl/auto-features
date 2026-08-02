@@ -11,6 +11,12 @@
 > `=2` — so the "decisively correct gate" claim below is **pre-fix and no longer established**.
 > See [`speech` regression, diagnosed](#speech-regression-diagnosed-2026-07-31).
 >
+> **`min_actionable=2` is now contradicted on every case where it has been swept** — three
+> sweeps, three times the strictest gate wins *by abstaining*, because triage found 0 of `rag`'s
+> 3 actionable papers and 2 of `speech`'s 6. Read the shipped default as unvalidated
+> post-fix rather than as a settled result. See
+> [Two-case re-benchmark](#two-case-re-benchmark-after-the-quoting-fix-2026-08-02).
+>
 > **Previous headline (2026-07-29, 12 cases):** RepoRadar **net-positive** (Top Picks mean net@2
 > **+1.50**) and **competitive with the Opus baseline** (+1.50 vs +1.83 — a **0.33 gap, unchanged**
 > from 2026-07-12), *beating* it outright on the ML domains it's built for (diffusion,
@@ -488,6 +494,71 @@ component is scored on how well it ranks the *held-out* gold.
 rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fixtures.
 
 
+
+
+## Two-case re-benchmark after the quoting fix (2026-08-02)
+
+```bash
+uv run python evals/run_judge_eval.py --case rag    --baseline cli --rr-triage --rr-rerank --rr-all-time --rr-sweep
+uv run python evals/run_judge_eval.py --case speech --baseline cli --rr-triage --rr-rerank --rr-all-time --rr-sweep
+```
+
+PR #62 quoted multi-word query terms, which on the arXiv API is the difference between OR and
+a phrase — `all:speech recognition` matches 246,802 papers, `all:"speech recognition"` matches
+6,845. Diffing query sets across all 12 benchmark repos showed **93% unchanged**; only `rag`
+and `speech` moved, so only those two were re-run rather than paying for ten unchanged cases.
+
+**Both went down.**
+
+| case | 07-31 | 08-02 | pool actionable | triage found |
+|---|---|---|---|---|
+| rag | −1.0 | **−2.0** | 5/13 → **3/13** | 0 of 3 |
+| speech | −2.0 | **−4.0** | 7/13 → **6/13** | 2 of 6 |
+
+**The pool changed, and the new papers are worse.** `rag` judged 4 papers it had never seen,
+scoring 0, 0, 1, 1 — four junk papers displacing four previously-judged ones, two of which
+were actionable. `speech` judged 5 new, scoring 1, 1, 1, 1, 2.
+
+**The two cases changed for opposite reasons, and only one is a real improvement.**
+
+For `speech` the fix is unambiguously right in isolation: the OR-query collapsed to a real
+phrase, and the nonsense `"speech speech recognition"` and `"speech recognition recognition"`
+disappeared. Narrower, more precise, fewer wasted queries — and net@2 still fell.
+
+For `rag` the fix is correct in form and empty in effect. ColBERT's top TF-IDF terms are
+`indexer`, `trainer`, `searcher`, `functions` — its **API surface, not its subject**. Quoting
+turned `all:searcher functions` (a broad OR that at least returned IR papers) into
+`all:"searcher functions"` (an exact phrase almost no paper contains). The queries got
+narrower and the pool got emptier.
+
+That is not a query-syntax problem. It is the profiler again: ColBERT's docs are autodoc API
+reference, so TF-IDF extracts method names. `indexer` and `trainer` survive the boilerplate
+stoplist because they are ordinary English words — the earlier Sphinx-directive filter cannot
+catch them. **A repo whose documentation is an API reference gets profiled by its API.**
+
+**Attribution, honestly.** Three things differ between the runs: the query change, live arXiv
+drift, and a non-deterministic judge. n=2. The direction is consistent and the pool-composition
+evidence is concrete, but this cannot support "the quoting fix caused a regression" — the
+`speech` change in particular is provably a better query that produced a worse score, which is
+more consistent with the *pool* being poor either way than with the fix being wrong.
+
+### `min_actionable=2` is now contradicted on every case where it has been swept
+
+| case | `min>=1` | `min>=2` (shipped) | `min>=3` |
+|---|---|---|---|
+| speech (07-31) | −5.0 | −2.0 | **+0.0** |
+| speech (08-02) | −11.0 | −4.0 | **+0.0** |
+| rag (08-02) | −6.0 | −2.0 | **+0.0** |
+
+Three sweeps, three times the strictest gate wins — **by abstaining**. RESULTS.md still calls
+`min_actionable=2` "the decisively-correct gate" on pre-fix cross-case data. That claim is not
+re-established and the evidence now runs against it.
+
+The reason is visible in the same table: **triage found 0 of `rag`'s 3 actionable papers and
+2 of `speech`'s 6.** Where a gate has no discriminative signal, its only remaining value is
+abstention, and a stricter threshold buys more of it. That is not an argument for shipping
+`min_actionable=3` — it is an argument that the gate is not currently doing the job the
+threshold is tuned for.
 
 ## Candidate-pool diagnosis — what RepoRadar cannot reach, and why (2026-08-01)
 
