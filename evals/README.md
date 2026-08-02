@@ -263,6 +263,19 @@ uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time -
 # ranking via RRF before the Top-N cut, so a paper buried on vocabulary mismatch
 # can surface. Measure-first — compare the RepoRadar columns with/without it.
 uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-hybrid
+
+# Triage-window depth: score N candidates instead of the default 20, then still cut the
+# digest at 10 — so this measures SELECTION quality at a fixed digest size, not "return
+# more papers". Cost scales linearly with N.
+# MEASURED NEGATIVE at N=50: +0.67 net@2, 95% CI [-0.50, +2.00]. 4x the candidates bought
+# 2 more actionable papers across 12 cases. See RESULTS.md -> "Negative result 5".
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-pool 50
+
+# Give triage the repo's README prose instead of only extracted keywords. Worth +16 net@2
+# on the 576-paper labelled set (evals/diagnose_triage.py); NOT independently confirmed in
+# Tier B, where it was run confounded with --rr-pool. The gate otherwise sees ~366 chars of
+# repo context against the judge's ~6,375 — see RESULTS.md -> "The gate's repo context".
+uv run python evals/run_judge_eval.py --baseline cli --rr-triage --rr-readme-context
 ```
 
 Requires **`OPENAI_API_KEY`** (the judge) and, for the baseline, either

@@ -13,11 +13,19 @@
 > (0.33 vs 0.82 elsewhere), which is the only subset Tier B ever judges. See
 > [Triage measured properly](#triage-measured-properly--it-is-not-at-chance-2026-08-02).
 >
-> **`min_actionable=2` is now contradicted on every case where it has been swept** — three
-> sweeps, three times the strictest gate wins *by abstaining*, because triage found 0 of `rag`'s
-> 3 actionable papers and 2 of `speech`'s 6. Read the shipped default as unvalidated
-> post-fix rather than as a settled result. See
-> [Two-case re-benchmark](#two-case-re-benchmark-after-the-quoting-fix-2026-08-02).
+> **Latest 12-case run (2026-08-02, window 50 + README context): +2.42 vs +1.83.** Do not read
+> that as a new headline. The gain over the +1.75 control is **+0.67, 95% CI [−0.50, +2.00]**,
+> half of it from one case, and the lead over Opus is **+0.58, 95% CI [−1.25, +2.58]** — parity,
+> as in every run since 2026-07-12. Widening the triage window 20→50 is a **negative result**:
+> 4× the candidates bought 2 more actionable papers across 12 cases. See
+> [Negative result 5](#negative-result-5--widening-the-triage-window-from-20-to-50-does-not-pay-2026-08-02).
+>
+> **`min_actionable=2` — three sweeps against, one for.** Three two-case sweeps had the
+> strictest gate winning *by abstaining*, because triage found 0 of `rag`'s 3 actionable papers
+> and 2 of `speech`'s 6. The 12-case sweep on 2026-08-02 goes the other way: `min>=2` wins at
+> **+2.42** against −2.25 (`min>=1`) and +0.42 (`min>=3`), with 0 false positives. The 12-case
+> evidence is the stronger of the two, but read the default as contested rather than settled.
+> See [Two-case re-benchmark](#two-case-re-benchmark-after-the-quoting-fix-2026-08-02).
 >
 > **Previous headline (2026-07-29, 12 cases):** RepoRadar **net-positive** (Top Picks mean net@2
 > **+1.50**) and **competitive with the Opus baseline** (+1.50 vs +1.83 — a **0.33 gap, unchanged**
@@ -498,6 +506,106 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+
+## Negative result 5 — widening the triage window from 20 to 50 does not pay (2026-08-02)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-triage --rr-rerank \
+    --rr-all-time --rr-sweep --rr-pool 50 --rr-readme-context     # 12 cases, ~$11
+```
+
+The ranker diagnosis found that ranks 1–10 and 11–50 hold statistically identical actionable
+rates (31% vs 33%), so the top-10 cut looked arbitrary and ~13 actionable papers per case were
+being discarded before triage ever saw them. Widening the window to 50 was the obvious
+consequence. **It is worth approximately nothing.**
+
+| | control (window 20, keyword context) | this run (window 50, README context) |
+|---|---|---|
+| mean net@2 | **+1.75** | **+2.42** |
+| papers returned, 12 cases | 48 | 47 |
+| actionable returned | 39 | **41** |
+| judged pool | 142 papers, 70 actionable | 142 papers, 69 actionable |
+
+Delta **+0.67**, paired bootstrap over cases **95% CI [−0.50, +2.00]**, **P(Δ≤0) = 0.153**.
+Five cases improved, two worsened, five unchanged. **Half the gain is one case**: `speech`
+moved +5.0 on its own, and without it the mean delta is **+0.27**. For scale, nominally
+comparable configurations in this file have landed anywhere from +0.58 to +1.75 — the noise
+band is wider than the effect.
+
+Across 12 cases, 4× more candidates bought **two** additional actionable papers.
+
+**The experiment did happen.** All 12 cases had a full 50-candidate window (verified by
+re-running discovery at `top_n=50`), so this is not a case of the flag silently doing nothing.
+
+### Why the extrapolation was wrong — it measured digest size, not selection quality
+
+The rank-stratified estimate predicted ranks 1–50 would score **+8.33** against +1.88 for
+ranks 1–10. That estimate scaled the *admitted* papers up to a 50-paper window and counted
+every admitted paper as returned:
+
+| scaled band | returns/case | good | junk | net@2 |
+|---|---|---|---|---|
+| ranks 1–10 | 2.5 | 2.3 | 0.2 | +1.88 |
+| ranks 1–50 | **9.9** | 9.4 | 0.5 | +8.33 |
+
+The +8.33 row assumes a digest of ~10 papers *per case that survive the gate*, i.e. roughly
+4× the volume. The shipped system cuts the digest at 10 candidates regardless of window
+width, and the real run returned **3.9 papers/case**. So the extrapolation answered "what if
+we return far more papers", not "what if we choose 10 from a wider pool" — which is the
+question that was actually asked. A flat actionable rate across ranks 1–50 means the deeper
+band is *no better* than the top band; it never implied selecting from it would be better.
+
+**Two variables moved at once** in this run (window 20→50 *and* keyword→README context), so
+the +0.67 cannot be attributed to either. Given it is not distinguishable from zero, the
+decomposition is not worth $11 — but no claim about README context in Tier B should be read
+out of this run. The +16 net@2 for README context stands on the 576-paper labelled set only.
+
+### What this leaves standing
+
+RepoRadar scored **+2.42 vs the Opus baseline's +1.83** in the same run — the first 12-case
+run where it leads. That lead is **not established**: paired over cases the difference is
++0.58, **95% CI [−1.25, +2.58]**, P(≤0) = 0.291, winning 4 cases, losing 4, tying 4. Read it
+as parity, which is what every run since 2026-07-12 has shown.
+
+`min_actionable=2` won this sweep cleanly (mean net@2 **+2.42**, 0 false positives on 12
+cases, mean precision 0.85) against **−2.25** at `min>=1` and **+0.42** at `min>=3` — the
+first sweep in which the shipped default is not contradicted by a stricter gate. Three
+earlier sweeps went the other way, so this is one data point against three, not a resolution.
+
+## The gate's repo context is 13% of its own prompt (2026-08-02)
+
+Measured on the 12 case repos with `build_triage_prompt` and `assemble_repo_context`:
+
+| | chars (mean) | range |
+|---|---|---|
+| repo half of the triage prompt | **366** | 244 (`cli`) – 459 (`diffusion`) |
+| full triage prompt | 2,802 | — |
+| repo context the **judge** sees | **6,375** | 4,668 – 9,015 |
+| ratio | **17×** | 14× – 23× |
+
+The repo half is **13% of the triage prompt**; the candidate paper's abstract (`[:1500]`) is
+54% of it. The gate is asked to match a rich description of the paper against a term list of
+the repo — and the judge that *defines the labels* reads 17× more about the repo than the
+gate being graded against those labels.
+
+**This is not a cost decision.** Raising the repo half to judge size costs **+$0.024 per run**
+at the shipped `top_k=15` (Haiku list price, ~4 chars/token). Cost is the stated reason triage
+is off by default; it never justified the size of the repo half.
+
+The cause is structural. `build_triage_prompt(paper, profile)` takes a `RepoProfile`, which is
+the **ranker's** data structure — a bag of extracted terms with no prose field to pass. The
+`keywords[:12]` / `domains[:5]` / `anchors[:12]` slices are not a token budget, they are
+"don't dump 400 keywords into a prompt". Triage reused the ranker's input type and inherited
+its information loss, including the register mismatch: the profile enumerates what the repo
+*has* (dependencies, identifiers), never what it is *for*.
+
+Consequences, in decreasing confidence:
+- Giving triage README prose is worth **+16 net@2** on the 576-paper labelled set — that is
+  this asymmetry being partially closed (1,800 chars, still only ~28% of the judge's context).
+- `build_triage_prompt` should accept repo prose, not just a `RepoProfile`. That is an API
+  change, not a constant bump.
+- `abstract[:1500]` has never been measured. At 54% of the prompt, shrinking it would rebalance
+  the repo/paper ratio for free. **Unmeasured** — do not assume it helps.
 
 ## Triage measured properly — it is not at chance (2026-08-02)
 
