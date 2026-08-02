@@ -568,6 +568,52 @@ with Opus's 100%. There are no judge labels for the rest of RepoRadar's candidat
 **whether the ranker beats a random draw from its own pool is unmeasured**, not measured and
 failed.
 
+
+### Negative result — giving triage the README does not help
+
+```bash
+uv run python evals/diagnose_triage.py --repo-context readme     # ~$0.10
+```
+
+The shipped prompt describes ColBERT to the gate as `functions, indexer, searcher functions,
+trainer functions, trainer, searcher, colbert, file, torch, transformers, master` in the
+domains `NLP, deep learning, scientific computing, web APIs` — 354 characters that never say
+*retrieval*, and say *web APIs* because the project depends on flask. Its README's own first
+line is "Efficient and Effective Passage Search via Contextualized Late Interaction over
+BERT". The hypothesis was that the gate is not failing at judgement but judging nearly blind.
+
+**It is not.** Same 428 papers, same labels, same model, only the repo half of the prompt
+changed:
+
+| | precision | recall | accuracy |
+|---|---|---|---|
+| `keywords` (shipped) | 0.81 | 0.78 | 0.87 |
+| `readme` | 0.89 | 0.72 | 0.88 |
+| delta | +0.08 | −0.06 | **+0.01** |
+
+Aggregate numbers cannot separate a real effect from Haiku's non-determinism, so this is
+paired per paper — for each one, did the variant fix a baseline mistake or break a baseline
+success?
+
+**21 fixed, 17 broke.** 38 discordant pairs, two-sided exact binomial **p = 0.63**. The flips
+are symmetric: this is run-to-run noise with a precision/recall redistribution on top, not an
+improvement. Per case the churn cancels out — `rl` +5/−2, `speech` +3/−5, `cv` +3/−3.
+
+**Why the intuition was wrong.** Triage already sees the candidate paper's title and abstract,
+which carry most of the signal for "is this applicable"; the repo description only has to be
+good enough to establish the domain, and even a bad keyword list does that. Query building has
+no such crutch — it has *only* the profile, which is why the same impoverished representation
+is binding there (0 of 24 target papers reachable) and not here.
+
+That distinction is worth keeping: **profile quality is a retrieval problem, not a judgement
+problem.** Effort spent enriching the profile should be justified by retrieval gains, not by
+expectations about the gate.
+
+One small real effect, in the wrong direction: `cli` is a negative control with a 0% base rate
+and the `keywords` gate abstained perfectly on all 23 papers. Adding prose about what the
+project is produced one false positive. More context gives a model more surface on which to
+find a connection, which is precisely wrong where the correct answer is "nothing here helps".
+
 ## Two-case re-benchmark after the quoting fix (2026-08-02)
 
 ```bash
