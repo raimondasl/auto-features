@@ -6,10 +6,12 @@
 > **Read the per-case table, not the mean**: the improvement is concentrated where the bug was
 > worst and one case regressed hard. See
 > [Re-benchmark after the query-construction fix](#re-benchmark-after-the-query-construction-fix-2026-07-31).
-> That regression is now diagnosed: on `speech` the **triage gate carried no discriminative
-> signal** (precision 50% against a 50% pool base rate) and `min_actionable=3` would have beaten
-> `=2` — so the "decisively correct gate" claim below is **pre-fix and no longer established**.
-> See [`speech` regression, diagnosed](#speech-regression-diagnosed-2026-07-31).
+> That regression is diagnosed below, but **read its conclusion about triage as superseded**:
+> it inferred "no discriminative signal" from ~10 papers. Measured on all 428 labelled papers,
+> triage runs at **precision 0.81 / recall 0.78 against a 32% base rate** — well above chance.
+> What survives is narrower and sharper: triage collapses *specifically on the ranker's top-10*
+> (0.33 vs 0.82 elsewhere), which is the only subset Tier B ever judges. See
+> [Triage measured properly](#triage-measured-properly--it-is-not-at-chance-2026-08-02).
 >
 > **`min_actionable=2` is now contradicted on every case where it has been swept** — three
 > sweeps, three times the strictest gate wins *by abstaining*, because triage found 0 of `rag`'s
@@ -496,6 +498,76 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+
+## Triage measured properly — it is not at chance (2026-08-02)
+
+```bash
+uv run python evals/diagnose_triage.py           # ~$0.10, 428 papers
+```
+
+> **Correction.** This file previously said the triage gate "carried no discriminative signal"
+> and was "at chance", based on the ~10 papers a single Tier B case happened to surface. At
+> n=428 that is wrong, and it was repeated across several sections. The claim is withdrawn.
+
+**428 judged papers were already sitting in `cache/judge/`** across 12 repos — every verdict
+the benchmark has ever paid for. They are a labelled set, and they make the gate falsifiable
+offline for ~$0.10 instead of ~$12 for a Tier B pass.
+
+| | precision | recall | base rate |
+|---|---|---|---|
+| all 428 labelled papers | **0.81** | 0.78 | 32% |
+| excluding the 27 Opus baseline picks | **0.78** | 0.75 | 28% |
+
+A gate with no signal scores precision equal to the base rate. Triage scores **+0.50 above
+it**. The earlier "at chance" reading came from n=10 samples of an adversarially selected
+subset, not from the gate's actual behaviour.
+
+**Per case, the failure modes are opposite — which a single pooled number hides:**
+
+| case | base | precision | recall | reading |
+|---|---|---|---|---|
+| diffusion | 77% | 1.00 | 0.91 | excellent |
+| systems | 42% | 0.90 | 0.82 | |
+| peft | 90% | 0.89 | 0.89 | |
+| rag | 30% | 0.81 | 0.81 | |
+| cv | 35% | 0.79 | 0.79 | |
+| speech | 47% | 0.75 | 0.83 | |
+| graph | 26% | 0.75 | 0.33 | **too strict** |
+| crypto | 22% | 1.00 | 0.29 | **too strict** — never wrong, misses 5 of 7 |
+| rl | 19% | 0.50 | 0.70 | **too loose** |
+| cli, http | 0% | — | — | correct total abstention (53 papers, 0 false positives) |
+| webdev | 0% | 0.00 | — | 1 false positive in 39 |
+
+`crypto` and `rl` fail in opposite directions. A single global threshold cannot fix both, and
+tuning `min_actionable` up — which the sweeps appear to recommend — would make `crypto` and
+`graph` worse while helping `rl`.
+
+### Why it looked like a coin flip inside Tier B
+
+Tier B only ever judges the ranker's top 10. On that subset triage really does collapse:
+
+| subset (Opus picks removed from both sides) | n | base | precision |
+|---|---|---|---|
+| the ranker's current top-10 | 20 | **15%** | **0.33** |
+| judged but not in the current top-10 | 63 | 37% | **0.82** |
+
+Triage is good at telling an actionable paper from an unrelated one, and poor at telling them
+apart **among papers the heuristic ranker has already selected for surface similarity**. That
+is the subset where its judgement is actually load-bearing.
+
+**n=20, so this is suggestive and not established** — only two cases have per-paper records,
+since the harness did not record returned ids until 2026-07-31.
+
+### A claim I nearly published and had to withdraw
+
+The 12-case run shows the ranker's top-10 at 40% actionable against a "pool" at 49%, which
+looks like the ranker selecting *against* good papers. **That is an artifact.** The Tier B
+pool is RepoRadar's top-10 *plus the baseline's picks*, and all 22 baseline-only papers in
+that run were actionable. The pool rate is 49% precisely because it mixes RepoRadar's 40%
+with Opus's 100%. There are no judge labels for the rest of RepoRadar's candidate pool, so
+**whether the ranker beats a random draw from its own pool is unmeasured**, not measured and
+failed.
+
 ## Two-case re-benchmark after the quoting fix (2026-08-02)
 
 ```bash
@@ -555,8 +627,9 @@ Three sweeps, three times the strictest gate wins — **by abstaining**. RESULTS
 re-established and the evidence now runs against it.
 
 The reason is visible in the same table: **triage found 0 of `rag`'s 3 actionable papers and
-2 of `speech`'s 6.** Where a gate has no discriminative signal, its only remaining value is
-abstention, and a stricter threshold buys more of it. That is not an argument for shipping
+2 of `speech`'s 6.** On the top-10 subset — the only one Tier B judges — the gate really does
+have little signal, so abstention is most of what it has left there. Note this is *not* true of
+the gate in general: at n=428 it scores 0.81 precision against a 32% base rate. That is not an argument for shipping
 `min_actionable=3` — it is an argument that the gate is not currently doing the job the
 threshold is tuned for.
 
@@ -872,7 +945,10 @@ papers and got two of them right.**
 | 9 | no | **2** | Multi-task Language Modeling for Improving Speech Recognition |
 | 10 | no | 1 | FlashSpeech: Efficient Zero-Shot Speech Synthesis |
 
-**On this pool the triage gate carried no discriminative signal.** Precision 50% (2 of 4),
+**On this pool the triage gate carried no discriminative signal.** (Superseded in scope by
+[Triage measured properly](#triage-measured-properly--it-is-not-at-chance-2026-08-02): the
+gate is well above chance overall, and weak specifically on top-ranked papers like these.)
+Precision 50% (2 of 4),
 recall 40% (2 of 5) — against a pool base rate of 50% actionable. Selecting four papers at
 random would have scored the same precision. The two false positives were ranked **1st and
 4th**, above three papers the judge scored 2, so the listwise rerank is ordering by an
