@@ -1,0 +1,140 @@
+# Retrieval design — where RepoRadar's candidate pool comes from, and what to do about it
+
+**Status: research, not a commitment.** This records three candidate architectures and the
+evidence for and against each, so the design work is not lost and is not redone. Nothing here
+is built. Read [`evals/RESULTS.md` → Candidate-pool diagnosis](evals/RESULTS.md) first — it
+holds the measurements this is reasoning about.
+
+Provenance is marked throughout. **VERIFIED** = re-run by hand against the live API in the
+main session. **REPORTED** = measured by an investigating agent and not independently
+re-checked. The distinction matters: one agent estimate in this project was off by 10x, and
+another turned out to be measuring a transport bug.
+
+---
+
+## The problem, in one paragraph
+
+RepoRadar builds arXiv queries from TF-IDF keywords of a repo. **VERIFIED:** across 9
+benchmark repos it fetched 2,030 papers and reached **0** of the 24 an Opus baseline
+recommended and a GPT-5.5 judge confirmed genuinely actionable. Not a category-filter problem
+(23 of 24 are inside the searched categories) and not an arXiv limitation (a precise phrase
+returns them at rank 1). The root cause is a **register mismatch**: a codebase's vocabulary
+describes what it *has*; the useful paper describes what it should *adopt*. Two LLM
+query-generation prompts, tested blind, recovered 2/24 and 0/24 — the second aimed at exactly
+the right techniques and phrased them as compounds no paper title contains.
+
+**The one channel that reaches these papers is the citation graph**, because it maps
+identifier to identifier and never constructs a query, so the asymmetry has nothing to
+corrupt.
+
+---
+
+## Design 1 — Bibliographic Coupling Funnel
+
+Keep the citation hop as the recall channel; spend the entire precision budget on a free
+structural signal: how many of the repo's own seeds co-cite each candidate.
+
+**REPORTED:** a direction-aware filter (`forward_degree >= 2` **or** a middle band of
+`backward_degree`) cut `cv` from 14,867 candidates to 2,115 while retaining 3/3, moving
+density from 1:4,956 to 1:705.
+
+**The insight worth keeping**, and it is measured: splitting the two hop directions separates
+two very different sets. The **backward** set (papers the seeds cite) is the repo's own
+intellectual ancestry — ResNet, MS-COCO, Mask R-CNN — and is only ~2.5% of the pool. The
+**forward** set is later work. Ranking by coupling degree alone surfaces the ancestors, i.e.
+exactly what the repo already knows.
+
+**Weakest link (REPORTED, and the author says so):** the funnel reaches a top-150 band and
+stops, and the head of that band is actively wrong — Dense Passage Retrieval, BEIR, BERT for
+`rag`; ResNet, COCO, Mask R-CNN for `cv`. Coupling is a filter, never a sort key.
+
+**Fatal for two repos:** `crypto` and `systems` have no arXiv-indexed bibliography, so there
+is nothing to seed from. Structurally 0, not merely bad.
+
+---
+
+## Design 2 — "Wanted Poster": HyDE hypotheses against a local dense index
+
+Have the LLM write the *abstract of the paper it wishes existed* for this repo, embed that,
+and search it against a precomputed binary index of all arXiv.
+
+**Why this attacks the actual constraint.** The register mismatch is only fatal against a
+*lexical* index. "experience replay prioritization methods" and "prioritized experience
+replay" are far apart as strings and close as vectors. A hypothesis abstract is written in
+the literature's register by construction, because that is what the model was asked to
+produce.
+
+**REPORTED, blind protocol** (hypotheses generated from the repo profile alone; the
+generating process never saw the targets):
+
+| query | top-100 | top-1k | median rank |
+|---|---|---|---|
+| TF-IDF keywords (today) | 1/24 | 3/24 | 10,041 |
+| repo README (today's `w_embedding`) | 5/24 | 9/24 | 19,461 |
+| **HyDE-4** | **8/24** | **10/24** | **1,584** |
+
+Pool sweep, HyDE-16: 3,164 candidates → 10/24; 26,572 → 13/24; 480,391 → 24/24. Against the
+citation hop's 28,598 → 14/24, that is **71% of the recall from 11% of the candidates**.
+
+**Two properties that matter more than the recall number:**
+
+1. **It covers the repos the citation hop cannot.** At the 3,164 operating point it recovers
+   `crypto` 2/2 and `systems` 1/1 — precisely where Design 1 is structurally zero. The two
+   channels are **additive**: REPORTED union ≥ 17/24 from ~31,800 candidates.
+2. **Discovery becomes fully offline and sends nothing.** This is a *net privacy improvement*
+   over the status quo, where repo-derived keywords are transmitted to arXiv on every run.
+   It is Feature 13's deferred `--local-only` arriving by a different route.
+
+**Cost (REPORTED):** ~370 MB one-time index sync + ~670 MB model weights; ~100 s per repo per
+run on CPU, no network; ~$0.01 per run for hypotheses ($0 on Ollama).
+
+**Weakest link (REPORTED):** the bottleneck moves from the index to the hypothesis. Recall is
+capped by whether the sampled gap-guesses happen to include the gap the judge rewarded — at
+the 3,164 operating point, `cv` 1/3, `rl` 1/3.
+
+**Unverified and load-bearing.** Before building any of this: does the HuggingFace dataset
+exist under the stated licence, is the columnar range-fetch real, and is 1.87 s/query over
+3.1M vectors reproducible? Every one of those is a single check, and this project has lost
+work to exactly this class of assumption.
+
+---
+
+## Design 3 — Persistent per-repo neighbourhood, no query at all
+
+Build a citation neighbourhood once per repo, persist it, rank by RRF of SPECTER2
+seed-proximity and coupling, and let it accumulate across runs.
+
+**Its most valuable contribution is a negative result.** The author fetched SPECTER2 vectors —
+citation-trained, so a *vocabulary* mismatch provably cannot apply — and reports that
+seed-proximity still does not rank the targets highly. If that holds, the gap is **not merely
+lexical**: "similar to what this repo does" is not the same relation as "would improve this
+repo", and no embedding of the repo, in any space, expresses the second one. That would
+constrain Design 2 as well, whose ranking is ultimately a similarity.
+
+**Weakest link (REPORTED, and decisive):** it ends by handing ~100 papers to `triage.py`, and
+triage was measured at chance on this exact benchmark — 50% precision against a 50% base rate,
+40% recall, on the `speech` case. Every design in this document terminates in triage, and
+none of them fixes it.
+
+---
+
+## What all three agree on
+
+1. **The citation graph is the only channel with demonstrated recall.** Every design keeps it.
+2. **Coupling degree, SPECTER2 similarity and citation count all surface the repo's own
+   ancestry** at the head of the ranking. Similarity is the wrong relation, however it is
+   computed.
+3. **Triage is the terminal stage of every design and is currently at chance.** Improving
+   retrieval raises the ceiling; it does not deliver a better digest on its own.
+4. **All of it must live under `--foundational`.** Every target is ≥11 months old and
+   `lookback_days` defaults to 14, so the default path cannot see any of them regardless.
+
+## What to settle before building
+
+- **Re-measure the citation-hop baseline.** The 14/24 that all three designs were calibrated
+  against was produced by a batching bug (**VERIFIED**: 18 seeds in one request returned
+  `[9999, 0, 0, …]`). Corrected numbers change the comparison and possibly the ranking.
+- **Verify Design 2's index dependency** — existence, licence, fetch method, query latency.
+- **Decide whether triage is fixable**, because it caps every design here. A retrieval
+  improvement that terminates in a chance-level gate delivers a better pool and the same
+  digest.
