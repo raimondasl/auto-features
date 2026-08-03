@@ -33,7 +33,9 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -152,6 +154,30 @@ def repo_section(profile: object, repo: Path, mode: str) -> str:
     return f"{kw}\n{header}\n{tagline}\n"
 
 
+SUMMARY_CACHE = WORK / "repo_summaries.json"
+
+
+def _summary_for(repo: Path, cfg: object):  # type: ignore[no-untyped-def]
+    """One summariser call per repo, cached on disk and keyed by doc content.
+
+    Without the cache a 602-paper arm would re-summarise the same 12 repos 602 times,
+    which is both 50x the cost and a different (noisier) experiment than the shipped
+    path, where the summary is computed once per run.
+    """
+    from reporadar.repo_summary import RepoSummary, summarize_repo
+
+    disk = {}
+    if SUMMARY_CACHE.is_file():
+        disk = json.loads(SUMMARY_CACHE.read_text(encoding="utf-8"))
+    entry = disk.get(repo.name, {})
+    summary = summarize_repo(repo, cfg, cache=entry)
+    disk[repo.name] = entry
+    SUMMARY_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    SUMMARY_CACHE.write_text(json.dumps(disk, indent=2), encoding="utf-8")
+    assert isinstance(summary, RepoSummary)
+    return summary
+
+
 def score_with(paper: dict, profile: object, repo: Path, mode: str, cfg: object) -> int:
     """Score one paper. `keywords` and `prose` go through the SHIPPED prompt builder.
 
@@ -161,6 +187,19 @@ def score_with(paper: dict, profile: object, repo: Path, mode: str, cfg: object)
     """
     if mode in ("keywords", "prose"):
         return score_actionability(paper, profile, cfg)[0]
+    if mode.startswith("summary"):
+        # A thin shim so the three summary arms differ ONLY in the gap section, and
+        # go through the shipped scorer rather than a reimplemented prompt.
+        full = _summary_for(repo, cfg)
+        if mode == "summary_nogaps":
+            full = replace(full, improvement_areas=[])
+        return score_actionability(paper, profile, cfg, full)[0]
+    if mode == "extractive":
+        # Verbatim sentences only: the repo's own words, semantically SELECTED. The
+        # direct control for prose300, which is the same words positionally selected.
+        sel = _summary_for(repo, cfg)
+        shim = SimpleNamespace(as_prompt_block=lambda **_: sel.as_excerpt_block())
+        return score_actionability(paper, profile, cfg, shim)[0]
     prompt = (
         f"{_RUBRIC}\n\n# Repository\n{repo_section(profile, repo, mode)}\n"
         f"# Candidate paper\nTitle: {paper.get('title', 'Unknown')}\n"
@@ -174,7 +213,16 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--repo-context",
-        choices=("keywords", "prose", "tagline", "both"),
+        choices=(
+            "keywords",
+            "prose",
+            "tagline",
+            "both",
+            "summary",
+            "summary_nogaps",
+            "summary_hedged",
+            "extractive",
+        ),
         default="prose",
         help="how the repo is described to the gate; `prose` is what ships",
     )

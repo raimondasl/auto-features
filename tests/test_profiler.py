@@ -496,14 +496,15 @@ class TestRepoProse:
         prompt = build_triage_prompt({"title": "P", "abstract": "a"}, profile_repo(repo))
         assert "late-interaction retrieval" in prompt
 
-    def test_the_default_budget_is_the_measured_one(self) -> None:
-        """300 is an empirical result, not a round number someone liked.
+    def test_the_default_budget_is_the_one_that_was_measured(self) -> None:
+        """300 is the best-measured budget, NOT a demonstrated optimum.
 
-        On 602 labelled papers it scored net@2 +95 against +73 for no prose, while 2000
-        scored +86 and 6000 scored +89 — the curve turns over, so raising this is a
-        regression in both quality and disclosure. If you change it, re-run
-        `evals/diagnose_triage.py --repo-context prose --prose-chars N` and update
-        evals/RESULTS.md; do not just widen the number.
+        On 602 labelled papers: +95 net@2 against +73 for no prose (+22, CI [+4, +41]),
+        with 2000 at +86 and 6000 at +89. Only "some prose beats none" is established —
+        300 vs 2000 is +9 at P = 0.108, so this is the argmax of noisy arms. The test
+        pins the number so a change is deliberate and re-measured
+        (`evals/diagnose_triage.py --repo-context prose --prose-chars N`), not so anyone
+        believes 300 is optimal.
         """
         from reporadar.config import ProfilerConfig
 

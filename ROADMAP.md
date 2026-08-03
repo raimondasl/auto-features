@@ -161,6 +161,45 @@ repaired, and `speech` regressed 10 points for reasons not yet understood — se
 
 Proven technology, verified-live dependencies, clear path. Days-to-weeks each.
 
+### 0. Let the user say what they want to improve
+
+**Verification: not started.** Proposed 2026-08-02, and promoted here because four
+document-derived alternatives were measured and all hit the same ceiling.
+
+Everything the gate knows about a repository today is *inferred from its documentation*:
+extracted keywords, a README prefix, or an LLM reading of the docs. Measured on 602
+labelled papers, those converge — any purpose statement is worth about +20 net@2 over none,
+and no extraction strategy beats another (README prefix +95, LLM verbatim extraction +91,
+tied at P = 0.778; see evals/RESULTS.md → "four ways to tell the gate what a repo is"). The
+binding constraint appears to be **what the documents contain**, and no amount of cleverness
+in reading them gets past it.
+
+A maintainer's own statement of intent is not bounded that way. "We want to cut index memory"
+or "we need better long-context retrieval" is ground truth about a goal, not an inference
+about a codebase — and it is exactly what the rubric's score-3 band asks for ("directly
+addresses a known limitation"). It is also the one input that can express something the
+repository does *not* yet do, which no reading of its own docs can supply.
+
+**Capabilities**
+- `goals:` in `.reporadar.yml` — a short list of free-text improvement targets
+- Goals in the triage prompt, and (probably more valuable) in **query construction**:
+  retrieval is the measured bottleneck at 18/24 reach, and a stated goal is a search query
+- `rr goals` to review/edit, so it does not require hand-editing YAML
+
+**Plan**
+1. `GoalsConfig` + validation; goals join the profile the same way `queries.seed` does.
+2. Triage arm first — it is measurable offline for ~$0.10 against the existing 602 labels.
+   Hand-write goals for the 12 benchmark repos from their *issue trackers*, not their
+   READMEs, or the arm just re-measures document-derived description again.
+3. Only then the retrieval arm, which needs new judge labels and is the expensive half.
+
+**Risks**
+- The benchmark cannot fairly evaluate a feature whose input does not exist for its 12
+  cases; hand-authored goals are a proxy for real user goals and should be labelled as such.
+- Stated goals are repo-derived text going to an LLM and to search APIs — `privacy.py` must
+  declare them, and they are more sensitive than keywords because they describe unshipped
+  intent.
+
 ### 1. Hugging Face Papers enrichment (replace dead Papers With Code)
 
 > **✅ Core shipped in PR #13** (`sources/hf_papers.py`, schema v6 with `models`/`upvotes`, `EnrichmentConfig`). The **`w_community` ranking component now ships too** (opt-in `ranking.w_community`, store v12 `paper_scores.community_score`): `normalize_upvotes` log-scales each run's upvote counts against that run's own maximum, since raw counts are heavy-tailed. One design constraint worth recording — enrichment is **stage 9, ranking is stage 8**, because enrichment only fetches for the papers that made the digest. The plan's "feed upvotes into `score_paper`" is therefore impossible as written; the component reads the enrichments **cached by previous runs** instead, so a brand-new paper carries no community signal on its first run. Papers with zero upvotes (usually "HF has no page for it") are **omitted rather than scored 0**, so the absent-≠-zero rule keeps them from being handicapped. Two bugs the adversarial review turned up while wiring this: `enrichment: provider: off` was landing as the YAML 1.1 **boolean `False`**, so `!= "off"` passed and the documented off-switch did nothing unless quoted (now coerced in `_dict_to_config`); and an autouse `_no_network` fixture — added because the first version of these tests silently ran live enrichment — revealed **six pre-existing tests hitting huggingface.co** on every CI run (fixed by disabling enrichment in the shared repo fixture; the suite is now offline and ~3x faster under the guard). The guard asserts at *teardown*, since every adapter's `except Exception` would otherwise swallow a blocked request and let the test pass. **Remaining:** the `pwc-archive` offline fallback.

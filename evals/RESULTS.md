@@ -18,9 +18,10 @@
 > worsened; it survives dropping the largest mover (+0.73). At an unchanged digest size the
 > **junk papers a reader wades through fell from 9 to 5** across 12 repos, and precision at
 > `min_actionable=2` rose 0.85 → 0.92. The cause is one prompt change: the gate is now told
-> what the repo is *for*, in **300 characters** of its own README — measured optimum, with
-> 2,000 and 6,000 both scoring *worse*. See
-> [How much prose](#how-much-prose-does-the-gate-need-300-characters--and-more-is-worse-2026-08-02).
+> what the repo is *for*, using **300 characters** of its own README — the best-measured of
+> four budgets, though **not a demonstrated optimum**: 300 vs 2,000 is +9 at P = 0.108, and a
+> prefix fails outright on `graph`, whose first 300 characters are link badges. See
+> [How much prose](#how-much-prose-does-the-gate-need-some-beats-none-the-amount-is-unresolved-2026-08-02).
 > **Against Opus it is still parity** (+2.75 vs +1.83, but paired +0.92, CI [−0.67, +2.75]).
 >
 > Widening the triage window 20→50 remains a **negative result** — 4× the candidates bought
@@ -579,7 +580,83 @@ cases, mean precision 0.85) against **−2.25** at `min>=1` and **+0.42** at `mi
 first sweep in which the shipped default is not contradicted by a stricter gate. Three
 earlier sweeps went the other way, so this is one data point against three, not a resolution.
 
-## How much prose does the gate need? 300 characters — and more is worse (2026-08-02)
+## Four ways to tell the gate what a repo is — and the ceiling they all hit (2026-08-02)
+
+```bash
+uv run python evals/diagnose_triage.py --repo-context {keywords,prose,summary,extractive}
+```
+
+The prefix approach (`prose 300`) has an obvious weakness: it bets on the purpose statement
+sitting in the first N characters. On `graph` that bet loses outright — its first 300
+characters are link badges. So the repo was given to an LLM to read properly. Six arms, all
+paired on the same **602** labelled papers:
+
+| arm | how the repo is described | chars | precision | recall | **net@2** |
+|---|---|---|---|---|---|
+| `keywords` | libraries + domains + topics | 270 | 0.83 | 0.74 | +73 |
+| `prose 300` | **+ first 300 chars of README** | 300 | 0.92 | 0.68 | **+95** |
+| `extractive` | + 3–6 **verbatim** sentences an LLM picked | ~600 | 0.92 | 0.67 | **+91** |
+| `prose 2000` | + first 2,000 chars | 1,828 | 0.89 | 0.68 | +86 |
+| `summary_nogaps` | + LLM **paraphrase**, purpose + capabilities | 969 | 0.89 | 0.61 | +76 |
+| `summary` | + LLM paraphrase incl. improvement areas | 1,894 | 0.91 | 0.52 | +70 |
+
+### Finding 1 — verbatim beats paraphrase by +21, and paraphrase loses to nothing at all
+
+`extractive` (+91) and `summary` (+70) differ **only** in whether the selected content is
+quoted or rewritten. That is a clean **+21**. And the full paraphrase (+70) is *below the
+no-description control* (+73): an accurate, well-structured LLM summary is worse input than
+sending no description whatsoever.
+
+Diagnosis of the paraphrase failure, in the order the hypotheses were tested and dropped:
+
+| hypothesis | test | result |
+|---|---|---|
+| the gap list reads as an exhaustive whitelist | relabel it "NOT exhaustive" | **dead** — recall unchanged at 0.52 |
+| ...so remove the gaps entirely | `summary_nogaps` | partial — recall 0.52 → 0.61, +8 (P = 0.152), still −19 vs prefix |
+| the description is simply too long | compare at matched length | **dead** — `summary` (1,894 ch) is 16 *below* `prose 2000` (1,828 ch) |
+| paraphrase discards the paper-matching vocabulary | `extractive`, verbatim | **supported** — recovers the whole gap |
+
+A README states techniques in the words papers use — "contextual late interaction",
+"token-level embeddings", "`nn.MessagePassing`". Rewriting them into descriptive prose
+removes the very signal the gate matches on.
+
+### Finding 2 — semantic selection does NOT beat positional selection
+
+`extractive` vs `prose 300` is **−4, 95% CI [−16, +8], P = 0.778**. Letting a model choose
+*which* sentences to send is worth nothing over taking the first 300 characters.
+
+**A failed prediction, recorded because it was made in advance.** The argument for
+extraction was `graph`, whose prefix is badges while extraction correctly pulls "All Graph
+Neural Network layers are implemented via the `nn.MessagePassing` interface" from deep in
+the README. On that exact case extraction scored **+0 against the prefix's +2**. The
+mechanism was real, visible in the text, and did not produce the predicted gain.
+
+### The ceiling
+
+Every arm that supplies *any* purpose statement lands between +85 and +95, and none is
+distinguishable from another. Four different extraction strategies — a packaging tagline, a
+prefix, LLM paraphrase, LLM verbatim selection — converge on the same place. The limit does
+not appear to be how the description is extracted; it is what the documents contain.
+
+Two consequences:
+
+* **Nothing changes.** `profiler.prose_chars: 300` stays the default: statistically tied
+  with extraction, no per-repo LLM call, no extra disclosure. `repo_summary.py` ships as a
+  measured module that `rr update` does not call.
+* The untested direction with the most headroom is **the user stating what they want to
+  improve**. It is ground truth rather than inference from documents, and it is the one
+  input that is not bounded by what the README happens to say. Separately,
+  `improvement_areas` has never been tried on *retrieval*, which is the measured
+  bottleneck (18/24 reach) — "adaptive quantization strategies" is a search query, and
+  gating was possibly the wrong place to spend it.
+
+**Caveat on all 12 cases:** they are popular OSS projects with well-maintained READMEs, so
+the prefix bet pays on 11 of 12. A private codebase — RepoRadar's actual target — is far
+more likely to have thin or badly-ordered docs, where a prefix should degrade and extraction
+should not. This benchmark cannot see that difference, and `graph` is the only case that
+even approximates it.
+
+## How much prose does the gate need? Some beats none; the amount is unresolved (2026-08-02)
 
 ```bash
 uv run python evals/diagnose_triage.py --repo-context keywords              # control
@@ -597,23 +674,44 @@ Five arms, all paired on the same **602** labelled papers, ~$0.10 each:
 | `prose 2000` | + first 2,000 chars | 0.89 | 0.68 | +86 | +13 | [−7, +33] | 0.112 |
 | `prose 6000` | + first 6,000 chars | 0.90 | 0.68 | +89 | +16 | [−5, +36] | 0.069 |
 
-**The curve turns over.** 300 beats 2,000 and 6,000, and is the only arm whose interval
-excludes zero. Four arms were compared against the control and the best selected, so the
-figure to act on is the **Bonferroni-adjusted P = 0.031**, not the raw 0.008.
+> ### Correction (same day) — "the curve turns over" was over-read
+>
+> This section originally claimed **more prose is worse**, and explained it as "300 is
+> where a README stops describing the project and starts on badges". **Both halves were
+> wrong**, and the correction came from a reader pushing back rather than from the data
+> changing.
+>
+> **The statistics never supported it.** 300 vs 2000 is **+9, P = 0.108**; 300 vs 6000 is
+> **+6, P = 0.193**. Neither is significant. 300 is the **argmax of four noisy arms**, and
+> a claim about the *shape* of a curve needs the differences *between* its points to be
+> real. They are not.
+>
+> **The mechanism was false on inspection.** Reading the text the extra budget actually
+> buys: `rag` chars 300–2000 hold ColBERT's late-interaction explanation (token-level
+> embedding matrices, MaxSim); `cv` holds its capability list (panoptic segmentation,
+> Cascade R-CNN, PointRend, ViTDet); and **`graph`'s first 300 characters are link badges
+> — its real description begins *after* the cut.** The extra text was not dilution, it was
+> the most paper-relevant content in the file, and on one of twelve cases the 300-char
+> prefix already fails outright.
+>
+> **What survives:** *some* purpose statement beats none (+12 to +22, every budget
+> positive, Bonferroni-adjusted P = 0.031 for the best arm). **Which budget is best is
+> unresolved**, and a prefix is a lottery on document layout that these 12 repos happen
+> to mostly win. The default stays at 300 because it is the best *measured* arm, not
+> because it is optimal.
 
-**Why 300.** That is roughly where a README stops saying what the project is and starts on
-badges, install steps and API examples. ColBERT's first 300 characters read "a *fast* and
-*accurate* retrieval model, enabling scalable BERT-based search over large text
-collections" — the one fact its keyword profile never contained, which instead reports
-"web APIs" because the project depends on flask. Everything after the opening dilutes.
+Four arms were compared against the control and the best selected, so the figure to act on
+is the **Bonferroni-adjusted P = 0.031**, not the raw 0.008.
 
-Two hypotheses this **kills**, both of which earlier sections of this file were built on:
+ColBERT's first 300 characters read "a *fast* and *accurate* retrieval model, enabling
+scalable BERT-based search over large text collections" — the one fact its keyword profile
+never contained, which instead reports "web APIs" because the project depends on flask.
+That is what a purpose statement buys when the prefix happens to contain one.
 
-1. *"The gate is starved of repo context"* (the 17× judge/gate asymmetry). No — a 23
-   character tagline captures most of the gain and 6,000 characters captures less than 300.
-   Volume was never the lever; naming the purpose is.
-2. *"The keyword block is actively misleading, so removing it helps."* `tagline` drops it,
-   `prose` keeps it, and at fixed budget they are statistically indistinguishable.
+One hypothesis this **kills**, which an earlier section of this file was built on:
+
+*"The keyword block is actively misleading, so removing it helps."* `tagline` drops it,
+`prose` keeps it, and at fixed budget they are statistically indistinguishable.
 
 It also retires a wrong lead from this same session: cases whose README hit the 2,000 cap
 averaged +1.71 against +0.20 for those under it, which looked like evidence the cap was

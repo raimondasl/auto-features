@@ -191,12 +191,16 @@ class ProfilerConfig:
     # of the two an LLM destination receives. Budgeted here so it is one setting, checkable
     # in one place, rather than a truncation decided at each call site.
     #
-    # 300 is measured, not guessed, on 602 labelled papers (evals/RESULTS.md -> "how much
-    # prose"): net@2 +95 against +73 for no prose (+22, 95% CI [+4, +41]). MORE IS WORSE —
-    # 2000 scores +86 and 6000 scores +89. ~300 characters is where a README has finished
-    # saying what the project is and started on badges and install steps, and only the
-    # first part is information the keyword profile lacks. Raising this costs tokens and
-    # discloses more of your README for no measured gain.
+    # 300 scored best of four budgets on 602 labelled papers — net@2 +95 against +73 for no
+    # prose (+22, 95% CI [+4, +41]) — but it is the ARGMAX OF NOISY ARMS, not a settled
+    # optimum: 2000 scores +86 and 6000 scores +89, and 300-vs-2000 is +9 at P = 0.108.
+    # Only "some prose beats none" is established; which budget wins is not.
+    #
+    # Do not read this as "short is better". A prefix is a lottery on document layout —
+    # `graph`'s first 300 characters are link badges and its actual description starts
+    # after the cut, while chars 300-2000 of `rag` hold ColBERT's late-interaction
+    # explanation. 300 wins here partly by luck of how 12 READMEs happen to open.
+    # See evals/RESULTS.md -> "how much prose" for the sweep and its limits.
     prose_chars: int = 300
 
 
