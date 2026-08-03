@@ -52,6 +52,7 @@ WORK = EVALS / ".work"
 JUDGE = EVALS / "cache" / "judge" / "v1" / "gpt-5.5"
 PAPERS_CACHE = WORK / "triage_papers.json"
 ACTIONABLE = 2
+DEFAULT_MODEL = "claude-haiku-4-5"
 
 _ENTRY = re.compile(r"<entry>(.*?)</entry>", re.DOTALL)
 _ID = re.compile(r"<id>https?://arxiv\.org/abs/([^<]+)</id>")
@@ -228,7 +229,7 @@ def main() -> int:
     )
     ap.add_argument("--case")
     ap.add_argument("--limit", type=int, help="max papers per case (for a cheap smoke run)")
-    ap.add_argument("--model", default="claude-haiku-4-5")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--prose-chars", type=int, default=300, help="README budget for `prose` mode")
     args = ap.parse_args()
 
@@ -300,9 +301,15 @@ def main() -> int:
         print(f"triage is {lift:+.2f} vs chance -> {verdict}")
     # Budget goes in the filename: two `prose` runs at different budgets are different
     # arms, and silently overwriting one with the other would compare a run to itself.
+    # Every dimension that changes the arm must be in the filename. `--model` was NOT, and
+    # it cost real data: a Sonnet run wrote to diag_triage_keywords.json and was later
+    # overwritten by a Haiku run, so the per-case Sonnet numbers no longer exist anywhere
+    # and only the aggregates that had already been copied into RESULTS.md survived.
     tag = args.repo_context
     if tag == "prose" and args.prose_chars != 300:
         tag = f"prose{args.prose_chars}"
+    if args.model != DEFAULT_MODEL:
+        tag = f"{tag}_{args.model}"
     (WORK / f"diag_triage_{tag}.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
     return 0
 
