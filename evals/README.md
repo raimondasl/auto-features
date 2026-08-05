@@ -93,6 +93,67 @@ The original 4 (`rag`/`cv`/`rl`/`webdev`) have offline Tier A fixtures in
 `fixtures/`; the 8 added 2026-07-12 are **Tier B (live) only** until their
 fixtures are built (`build_fixtures.py`).
 
+### Cohort 2 (2026-08-05) — added because 12 was measurably too few
+
+Jackknifing P1's headline exposed the problem: recomputing its leave-one-out result
+with one repo removed moved a 70% pool cut to **11%** when that repo was `rag` (5 of
+18 targets, smallest pool). Effective repo count over target share was **5.4 of 7**.
+A result one repo can move 59 points describes the case set, not the mechanism.
+
+Ten cases were added against four **measured** criteria — chosen to close named
+blind spots, not to add more of the same:
+
+| criterion | meaning | why |
+|---|---|---|
+| **T** | README < 3,000 chars **and** real applicable research | RepoRadar's actual target user. A thin *control* does not count — it cannot test the shipped `profiler.prose_chars: 300`, which may be an artifact of 12 well-documented repos. |
+| **B** | zero arXiv ids in docs | structural zero for the citation hop; only 2 non-control cases had this, too few to measure P3's synthetic seeding |
+| **N** | non-ML domain | 7 of the original 12 are ML |
+| **C** | cites papers **and** is cited by them | P6's adoption ground truth needs citation-rich history |
+
+| case | live repo | README | arXiv ids | T | B | N | C | targets |
+|---|---|---|---|---|---|---|---|---|
+| `db` | `duckdb/duckdb` | 3,480 | 1 | | | ✓ | ✓ | 3 |
+| `storage` | `facebook/rocksdb` | **1,689** | 0 | ✓ | ✓ | ✓ | ✓ | 2 |
+| `numerics` | `scipy/scipy` | 3,798 | 1 | | | ✓ | ✓ | 2 |
+| `compiler` | `numba/numba` | **1,686** | 0 | ✓ | ✓ | ✓ | | 2 |
+| `llminfer` | `ggml-org/llama.cpp` | 7,103 | 2 | | | | ✓ | 4 |
+| `vectordb` | `qdrant/qdrant` | 11,530 | 0 | | ✓ | ✓ | | 4 |
+| `linter` | `astral-sh/ruff` | 25,182 | 0 | | ✓ | ✓ | | 0 |
+| `encryption` | `FiloSottile/age` | 11,618 | 0 | | ✓ | ✓ | | 0 |
+| `ann` | `facebookresearch/faiss` | 6,364 | 3 | | | | ✓ | 3 |
+| `columnar` | `apache/arrow` | 5,837 | 0 | | ✓ | ✓ | ✓ | 4 |
+
+Coverage after: **T 4, B 11, N 13, C 11** across 22 cases (cohort 1 contributed
+T 2, B 5, N 5, C 5).
+
+**Effect on the concentration problem** — targets **24 → 48**, `rag`'s share
+**21% → 10%**, effective repo count **5.4 → 15.2** of 17 contributing cases.
+
+**Two predictions of mine that the measurement refuted**, kept here because the
+labels were nearly shipped as asserted:
+
+1. I expected `llminfer`, `vectordb`, `linter` and `encryption` to be thin-docs
+   cases. **All four have substantial READMEs** — ruff's is 25,182 characters, four
+   times peft's. "Rust CLI tool ⇒ sparse docs" was wrong. The only genuine T
+   additions are `storage` and `compiler`, and the `criteria:` field in
+   `benchmark.yaml` now carries the measured numbers inline so labels cannot drift
+   from evidence.
+2. I expected the six **B** cases to yield ~0 targets, reasoning that a repo citing
+   no arXiv work has no arXiv work to recommend. **12 of the 22 new targets come
+   from B cases.** ANN indexing, columnar compression and LSM compaction all have
+   arXiv literature that those repos simply do not cite — which makes them the most
+   interesting cases in the set: the hop is structurally blind there and the
+   research exists anyway.
+
+Two cases contribute **0 targets** and are kept: `encryption` (Opus abstained
+entirely — correct for a repo whose literature is on IACR) and `linter` (Opus made 3
+picks, the judge rejected all 3 — an over-firing case worth having).
+
+`numerics` needed a second, longer run: the headless baseline takes >10 minutes and
+$3.25 on a repo scipy's size and was cut short by the batch loop, not by any harness
+limit. It contributes 2 targets. Budget wall-clock, not just dollars, when adding
+large repos.
+
 ## Interpreting the metrics
 
 - **P@k** (precision@k) — fraction of the top-k that are genuinely relevant. Higher is better.

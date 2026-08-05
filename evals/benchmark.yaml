@@ -234,3 +234,214 @@ cases:
       - diffusion models
     gold_n: 0
     distractor_n: 30
+
+  # ---------------------------------------------------------------------------
+  # Cohort 2 (2026-08-05) — added because the original 12 were measurably too
+  # narrow, not as a general "more data is better" gesture.
+  #
+  # Jackknifing P1's headline showed that removing ONE repo (`rag`, which holds
+  # 5 of 18 targets in the smallest pool) moved the leave-one-out result from a
+  # 70% pool cut to 11%. Effective repo count over target share was 5.4 of 7. A
+  # result one repo can move 59 points is a property of the set, not of the
+  # mechanism under test.
+  #
+  # These ten close four *named* blind spots rather than adding more of the same.
+  # The measured criteria table is in evals/README.md.
+  #   T = thin/operational docs (RepoRadar's real target user; all 12 originals
+  #       are popular OSS with maintained READMEs, so the shipped
+  #       `profiler.prose_chars: 300` default may be an artifact of that)
+  #   B = no arXiv bibliography (structural zero for the citation hop; only
+  #       crypto+systems had this, too few to measure P3's synthetic seeding)
+  #   N = non-ML domain (8 of the original 12 are ML)
+  #   C = citation-rich: cites papers AND is cited by them (P6 adoption truth)
+  # ---------------------------------------------------------------------------
+
+  - name: db
+    description: Embedded analytical database (query optimisation, vectorised execution)
+    criteria: [N, C]  # README 3,480 ch, 1 arXiv ids in docs
+    repo_dir: repos/db
+    live_repo: https://github.com/duckdb/duckdb
+    expected_categories: [cs.DB]
+    gold_queries:
+      - vectorized query execution
+      - morsel-driven parallelism
+      - adaptive query optimization
+      - columnar storage compression
+      - join order selection cardinality estimation
+    distractor_queries:
+      - object detection
+      - reinforcement learning
+      - diffusion models
+    gold_n: 10
+    distractor_n: 24
+
+  - name: storage
+    description: Persistent key-value store (LSM-tree compaction, write amplification)
+    criteria: [T, B, N, C]  # README 1,689 ch, 0 arXiv ids in docs
+    repo_dir: repos/storage
+    live_repo: https://github.com/facebook/rocksdb
+    expected_categories: [cs.DB, cs.OS]
+    gold_queries:
+      - log-structured merge tree compaction
+      - write amplification reduction
+      - bloom filter memory efficiency
+      - key-value store caching policy
+      - NVMe SSD aware storage engine
+    distractor_queries:
+      - object detection
+      - language model fine-tuning
+      - protein structure prediction
+    gold_n: 10
+    distractor_n: 24
+
+  - name: numerics
+    description: Scientific computing library (numerical algorithms, sparse linear algebra)
+    criteria: [N, C]  # README 3,798 ch, 1 arXiv ids in docs
+    repo_dir: repos/numerics
+    live_repo: https://github.com/scipy/scipy
+    expected_categories: [math.NA, cs.MS]
+    gold_queries:
+      - sparse linear system solver
+      - numerical optimization algorithm
+      - fast fourier transform implementation
+      - numerical integration quadrature
+      - eigenvalue solver iterative method
+    distractor_queries:
+      - object detection
+      - retrieval augmented generation
+      - reinforcement learning
+    gold_n: 10
+    distractor_n: 24
+
+  - name: compiler
+    description: JIT compiler for numerical Python (type inference, LLVM codegen)
+    criteria: [T, B, N]  # README 1,686 ch, 0 arXiv ids in docs
+    repo_dir: repos/compiler
+    live_repo: https://github.com/numba/numba
+    expected_categories: [cs.PL, cs.MS]
+    gold_queries:
+      - just-in-time compilation type specialisation
+      - automatic vectorisation SIMD
+      - loop optimisation polyhedral
+      - type inference for dynamic languages
+      - GPU kernel code generation
+    distractor_queries:
+      - object detection
+      - retrieval augmented generation
+      - protein structure prediction
+    gold_n: 10
+    distractor_n: 24
+
+  - name: llminfer
+    description: LLM inference engine in C++ (quantisation, KV-cache, speculative decoding)
+    criteria: [C]  # README 7,103 ch, 2 arXiv ids in docs
+    repo_dir: repos/llminfer
+    live_repo: https://github.com/ggml-org/llama.cpp
+    expected_categories: [cs.LG, cs.CL]
+    gold_queries:
+      - post-training quantization large language models
+      - speculative decoding inference acceleration
+      - KV cache compression
+      - efficient attention inference CPU
+      - mixture of experts inference offloading
+    distractor_queries:
+      - object detection
+      - protein structure prediction
+      - graph neural networks
+    gold_n: 12
+    distractor_n: 24
+
+  - name: vectordb
+    description: Vector database in Rust (ANN indexing, filtered search, quantisation)
+    criteria: [B, N]  # README 11,530 ch, 0 arXiv ids in docs
+    repo_dir: repos/vectordb
+    live_repo: https://github.com/qdrant/qdrant
+    expected_categories: [cs.IR, cs.DB]
+    gold_queries:
+      - approximate nearest neighbour graph index
+      - HNSW index construction
+      - product quantization vector compression
+      - filtered vector search
+      - billion scale similarity search
+    distractor_queries:
+      - object detection
+      - reinforcement learning
+      - protein structure prediction
+    gold_n: 10
+    distractor_n: 24
+
+  - name: linter
+    description: Python linter in Rust (static analysis research it never cites)
+    criteria: [B, N]  # README 25,182 ch, 0 arXiv ids in docs
+    repo_dir: repos/linter
+    live_repo: https://github.com/astral-sh/ruff
+    expected_categories: [cs.SE, cs.PL]
+    gold_queries:
+      - static analysis false positive reduction
+      - incremental program analysis
+      - abstract syntax tree pattern matching
+      - automated program repair lint
+      - type inference gradual typing
+    distractor_queries:
+      - object detection
+      - diffusion models
+      - reinforcement learning
+    gold_n: 8
+    distractor_n: 24
+
+  - name: encryption
+    description: File encryption tool in Go (thin docs, research lives on IACR ePrint)
+    criteria: [B, N]  # README 11,618 ch, 0 arXiv ids in docs
+    repo_dir: repos/encryption
+    live_repo: https://github.com/FiloSottile/age
+    expected_categories: [cs.CR]
+    gold_queries:
+      - authenticated encryption with associated data
+      - key derivation function design
+      - post-quantum key encapsulation
+      - forward secrecy file encryption
+      - passphrase hashing memory hard
+    distractor_queries:
+      - object detection
+      - retrieval augmented generation
+      - reinforcement learning
+    gold_n: 6
+    distractor_n: 24
+
+  - name: ann
+    description: Similarity search library (ANN indexing, quantisation, GPU search)
+    criteria: [C]  # README 6,364 ch, 3 arXiv ids in docs
+    repo_dir: repos/ann
+    live_repo: https://github.com/facebookresearch/faiss
+    expected_categories: [cs.IR, cs.LG, cs.DS]
+    gold_queries:
+      - inverted file product quantization
+      - GPU accelerated nearest neighbour search
+      - learned index structures for retrieval
+      - graph based approximate nearest neighbour
+      - vector compression for billion scale search
+    distractor_queries:
+      - object detection
+      - reinforcement learning
+      - protein structure prediction
+    gold_n: 12
+    distractor_n: 24
+
+  - name: columnar
+    description: Columnar in-memory data format (zero-copy IPC, compute kernels)
+    criteria: [B, N, C]  # README 5,837 ch, 0 arXiv ids in docs
+    repo_dir: repos/columnar
+    live_repo: https://github.com/apache/arrow
+    expected_categories: [cs.DB, cs.DC]
+    gold_queries:
+      - columnar in-memory data format
+      - lightweight compression encoding schemes
+      - zero copy data interchange
+      - SIMD compute kernels analytics
+      - out-of-core query processing
+    distractor_queries:
+      - object detection
+      - language model fine-tuning
+      - reinforcement learning
+    gold_n: 10
+    distractor_n: 24
