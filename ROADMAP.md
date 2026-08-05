@@ -157,6 +157,217 @@ repaired, and `speech` regressed 10 points for reasons not yet understood — se
 
 ---
 
+## Research plan — derived from RESEARCH.md (2026-08-04)
+
+An ordered set of experiments, not features. Each was proposed from the measured record in
+[`RESEARCH.md`](RESEARCH.md), adversarially checked against that document's own negative
+results (so nothing already-falsified is re-proposed), and carries a **prediction stated in
+advance** and a **kill condition** — the two things RESEARCH.md §6.7 says made its own
+falsified predictions more valuable than its confirmations. Costs are per experiment, not
+per feature; almost everything runs offline against artifacts that already exist (the 602
+labelled papers, the 18/24 known-good target list, the citation-hop machinery).
+
+**The bet, in one paragraph.** The citation hop is the discovery engine — it is the only
+channel with measured recall (18/24 where every other is 0–3/24) and it dies of density
+(1:5,111). So the plan industrializes that single channel: persist the pool once with
+per-candidate structure (P1), cut it structurally (P1), select from it semantically (P2),
+extend it to the repos it structurally misses (P3–P4), and buy the labels that give the
+cascade a precision measure it has never had (P5). Two experiments protect the epistemics
+(P6–P7), because every correction in this project's history came from checking rather than
+assuming. Gating — already at its document ceiling — gets exactly one direction (P8), the
+only one that adds information the documents don't contain. Expected end state after ~2
+weeks of experiments: a measured pool → filter → matcher → gate cascade at ~100–250
+papers/repo with known recall (≥15/18) and a first-ever precision estimate.
+
+**Evidence from running RepoRadar on itself (2026-08-04, ~$0.03).** Pointed at this
+repository (foundational sweep, Haiku triage), RepoRadar fetched 171 papers from its
+self-derived queries (`all:"papers mcp"`, `all:pytest`, …) and admitted 8. Three are
+genuinely applicable — *vstash* (adaptive RRF fusion weighting; `retrieval.py` uses
+fixed-k RRF), *Beyond Paper-to-Paper* (paper–reviewer matching, structurally the
+repo–paper matching problem), *Method and Dataset Mining in Scientific Papers* (feeds
+feature 16). Five are topical echoes of the keyword `mcp`. And the two papers most
+relevant to this plan — *Discovering seminal works with marker papers* (co-citation
+discovery from seeds, i.e. the citation-hop mechanism) and *Ranking Papers by their
+Short-Term Scientific Impact* (the pool-selection problem) — were both **rejected by the
+gate at score 1**, with reasons amounting to "proposes something different from what the
+repo currently does". The system reproduced RESEARCH.md §1's register mismatch on itself
+in one run: the gate reads "would improve this repo" as "resembles this repo". P8 and the
+rubric's treatment of method-divergence are the direct response.
+
+### P1. Persist the citation-hop pool with direction-aware coupling degrees; sweep the coupling filter offline
+
+**Grounding:** §3.5 — the hop is the only channel with recall, unshipped at 92,014
+candidates. RETRIEVAL_DESIGN Design 1's filter numbers (cv 14,867→2,115 keeping 3/3) are
+REPORTED against a pool that matches neither the buggy nor the corrected state — treat as
+hypothesis. Coupling degree is used as a **threshold only, never a sort** (the measured
+ancestry warning). The backward direction provably contributes uniquely (Soft-NMS is
+backward-only), so a forward-only filter is measurably lossy.
+
+**Experiment:** two-pass fetch (lean ids+degrees first, then title/abstract/year/citations
+at 500/chunk — the one-pass version would hit S2's ~10MB response cap *below* the existing
+item-count truncation guard, the §6.5 failure class). Persist to
+`evals/.work/hop_pool/<case>.jsonl`; leave-one-case-out sweep over forward-degree floor ×
+backward band × cross-repo document frequency × citation floor, scored on retention of the
+18 known-goods vs shrinkage. **$0, no LLM calls, 2–3 days.**
+
+**Prediction:** some threshold retains ≥15/18 while cutting the mean seeded-case pool
+(~13,145) by ≥75%. **Kill:** if ≥5 of 18 targets have forward AND backward degree ≤1,
+coupling cannot beat the noise floor at any threshold — close Design 1 as a corrected-pool
+negative (the hop itself survives; its 18/24 is independent of any filter).
+
+**Overlap:** this *is* feature 8's remaining "one-hop expansion", promoted to primary
+discovery channel; feature 14 inherits the funnel. The artifact is the substrate for P2
+and P5. Ships under `--foundational` only (§3.7).
+
+### P2. Gap-phrase matching against the hop pool — dense + stemmed BM25, with a seed-centroid control
+
+**Grounding:** §3.2 — the "lacks" prompt *aims correctly* and fails on phrasing (83%
+zero-hit lexically); stemming and dense vectors collapse exactly that failure. Runs against
+P1's pool because §3.5 says the pool contains the answers and §4.1 says the heuristic
+ranker cannot select from it. The **seed-centroid control arm** matters as much as the
+treatment: Design 3's REPORTED negative ("similarity surfaces ancestry, similarity is the
+wrong relation") has never been MEASURED — this adjudicates it either way.
+
+**Experiment:** embed the pool via the shipped MiniLM cache (CPU, offline); stemmed BM25
+(one new small dependency — the shipped BM25 is unstemmed); regenerate "lacks" phrases
+(~$0.01, cached) plus the summarizer's cached `improvement_areas` as a second phrase
+source (§8.2, never tested on search). Score union-of-phrases top-200/repo: dense, BM25,
+RRF-fused, and the seed-centroid control. **~$0.05, 2–3 days, overlaps P1's network waits.**
+
+**Prediction:** ≥8/18 known-goods in fused top-200/repo (chance ≈ 0.4 — a ~20× lift);
+control ≤4/18. Symmetric outcome: if the *control* wins, Design 3's negative was wrong and
+plain similarity suffices — ship the simpler thing. **Kill:** all arms ≤4/18 even at
+top-500 and after escalating to local SPECTER2 — close §8 items 2/4 as measured negatives.
+
+### P3. Synthetic hop seeds from "uses"-phrase search — extend the hop to crypto, systems, diffusion
+
+**Grounding:** crypto/systems are structural zeros (no arXiv-indexed bibliography) and
+diffusion recovered 0/2 — five of the six hop misses. §3.2 measured "uses" phrases as
+*accurate about the repo and mostly matching real papers*; the hop needs only accurate
+anchors in paper space. Not contradicted by §3.2's 2/24 — that measured phrases as direct
+target retrieval; here they retrieve *seeds* whose neighbourhoods are hopped. Untested.
+
+**Experiment:** for the three repos: "uses" phrases → one quoted arXiv search each (≤10/repo,
+PR #62 quoting fix, nowhere near the §3.4 rate-limit regime) → top-20 per phrase, cap 40
+seeds → existing truncation-guarded hop → measure which of the 5 missing targets enter the
+pool. Diffusion's synthetic pool measured alone, not unioned with its real seeds, for clean
+attribution. **~$0.02, 1–2 days, parallel with P1.**
+
+**Prediction:** ≥3/5 missing targets enter at ≤40k/repo. **Kill:** ≤1/5, or pools blow past
+~50k from hub seeds — synthetic seeding is noise amplification; crypto/systems then depend
+on P4 or feature 10's non-arXiv adapters.
+
+### P4. Verify Design 2's four load-bearing dependencies ($0, half a day), then blind HyDE replication
+
+**Grounding:** RETRIEVAL_DESIGN Design 2 is the largest single recall candidate (REPORTED:
+HyDE-4 8/24 top-100 vs 1/24 for TF-IDF; covers crypto 2/2 and systems 1/1 — precisely the
+hop's structural zeros; additive with the hop, union ≥17/24) and **every dependency is
+explicitly unverified** — in a project where one REPORTED estimate was off 10× and another
+measured a transport bug. Verification precedes any build.
+
+**Experiment:** stage 1, $0: does the HF arXiv-embeddings dataset exist under the stated
+licence; does columnar range-fetch work (pull one shard); is query latency ≤4× the reported
+1.87s (4–10× = `--foundational` batch only; >10× = kill); are all 24 targets in the index.
+Stage 2 only if 4/4 pass: blind HyDE-4 replication across **all nine** seeded cases
+(hypotheses from repo profiles alone, ~$0.05, KNN via the shipped sqlite-vec path).
+
+**Prediction:** stage 1 passes 4/4; stage 2 ≥8/24 in top-1k, median rank <5,000, crypto 2/2.
+**Kill:** any stage-1 check fails — Design 2 dies at zero build cost (fallback dense
+channel: feature 12's OpenAlex semantic search). Stage 2 ≤5/24 — the REPORTED numbers were
+inflated; P1–P3 proceed alone. **Overlap:** feature 7's HyDE item; feature 13's
+`--local-only` by another route (discovery would transmit nothing).
+
+### P5. Label the pool where the filter will live — stratified judge sample + shipped-gate admit rates (~$10)
+
+**Grounding:** the 602 labels cover only ranker/baseline-surfaced papers — any hop-pool
+filter has recall targets but **no precision measure**. §4.1 is the precedent: ~$5 of
+stratified labels converted the ranker from unmeasured to measured. Base-rate facts
+already settled and reused: all 18 hop-reachable targets pass the shipped gate at
+`min>=2`, only 6/18 at `min>=3` (so a strictness-only cascade is foreclosed); labelled
+false-positive rate of the shipped prose-300 gate is 2.3% at `min>=2`.
+
+**Experiment:** from P1's artifact: 4 free-feature strata per repo (forward degree,
+backward membership, citation band, age band) × 10 papers × 7 repos = 280 wild candidates;
+run **both** the GPT-5.5 judge (~$9; verdicts enter the shared cache and grow the labelled
+set) and the shipped Haiku gate (~$0.05) over the same 280. Yields per-stratum actionable
+base rates, gate wild-admit rates, and gate-vs-judge agreement off-distribution.
+
+**Prediction:** top stratum ≥8% actionable vs bottom ≤1% (≥6× separation, non-overlapping
+CIs); gate wild-admit ≤10%. Cascade arithmetic then closes: filter (≥4×) → gate (~10×) ≈
+100–250 papers/repo at ~$0.20–0.35 of Haiku, keeping ≥15/18. **Kill:** all strata ≤2% with
+overlapping CIs — sampled labelling cannot see filter quality at this density. Independently:
+gate wild-admit >20% — the terminal stage must be redesigned before any cascade ships.
+
+### P6. Temporal adoption ground truth — papers a repo actually cited later, mined from git history
+
+**Grounding:** everything measured is agreement-with-GPT-5.5, and the 24 recall targets are
+themselves Opus picks — doubly circular (§2, §8). §3.1's "a bibliography is a well-targeted
+index of what the repo already does" supplies the contrapositive: an arXiv id present in
+docs at HEAD but absent ~24 months earlier is a technique the project **actually adopted**
+— a model-free actionability label as-of-T0. The judge-validity phase is the single
+highest-value test in this plan: show GPT-5.5 the T0 repo and the papers it verifiably
+adopted afterwards; if the judge doesn't call them actionable, every number downstream of
+the judge inherits that.
+
+**Experiment:** separate full-history clones (the `evals/.work` clones are depth-1 and
+their state gates the verdict cache — never check out in them); `git log -p` over doc
+paths for arXiv-id deltas; drop self-citations and papers <6 months old at citing time.
+Structural zeros pre-registered: crypto, systems, cli, http, webdev. **$0, half a day** for
+the count; 2–3 days for the retro-benchmark (T0 re-profile → T0 hop → judge pass).
+
+**Prediction:** ≥30 usable adoptions across ≥6 of 7 arXiv-rich repos; T0 hop reaches ≥60%
+of them; judge scores ≥70% actionable against the T0 repo — **if <40%, the judge is not
+measuring the product's goal.** **Kill:** <10 usable adoptions or >80% self-citations —
+ground truth must come from CHANGELOG/PR mining or new citation-rich benchmark cases.
+
+### P7. Label-noise floor — second-judge kappa over 200 of the 602 labels
+
+**Grounding:** every labelled-set decision, including shipping prose-300, rests on
+single-sample GPT-5.5 verdicts deciding ±10-to-±21 differences, and nothing bounds their
+noise. §5.2 varied the *gate* model, never the judge. Kappa bounds noise only, not
+validity (two LLMs can share a famous-technique halo) — P6 is the validity test; they
+compose.
+
+**Experiment:** re-judge 200 (stratified by case and verdict) with Sonnet via the existing
+`llm_client`, byte-identical rubric, inputs reconstructed and verified against the stored
+`_prompt_hash`. Reweighted kappa on the actionable cut; re-score the +22 prose-300 headline
+under second-judge labels using the cached per-paper gate verdicts. **~$2–5, 1 day.**
+
+**Prediction:** kappa ≥0.6 and the +22 keeps its sign at ≥half magnitude. **Kill:** kappa
+<0.4 — label noise swamps what the instrument decides; every labelled-set conclusion needs
+adjudicated labels or noise-adjusted CIs before another arm is run.
+
+### P8. Verbatim issue-tracker wants as gate context — the single gating bet
+
+**Grounding:** the five purpose-statement arms converge at +85..+95; the rubric's score-3
+band demands "directly addresses a known limitation" evidence **no document-derived arm
+supplies** — a repo's issue tracker states that evidence verbatim, automatically. Correctly
+distinct from the failed `improvement_areas` arm (+70): those were LLM-inferred *and
+paraphrased*, and the supported diagnosis is paraphrase-vocabulary loss (verbatim beat
+paraphrase by +21). Verbatim, externally-sourced want-statements are an untested cell. The
+self-run's failure mode — rejecting the marker-papers and impact-ranking papers for
+*differing* from current code — is exactly what stated wants would correct.
+
+**Experiment:** top ~15 open issues by reactions for the 12 repos (GitHub REST, free);
+append verbatim titles to the shipped prose-300 prompt as a new `--repo-context` arm; one
+602-paper run (~$0.10); paired bootstrap vs prose-300, decision pre-registered on the CI.
+
+**Prediction:** breaks out of the band — net@2 ≥+105 with CI excluding 0; `graph` recall
+0.36 → ≥0.50; negative controls stay clean (their trackers are full of feature requests,
+making them a sharp control). **Kill:** lands inside the band — then information *type* is
+not the gate's constraint, and that negative directly calibrates item 0's triage arm
+before item 0 spends on hand-authored goals.
+
+### Dropped, with reasons (so they are not re-proposed)
+
+- **Multi-sample gate voting** — its supporting evidence misattributed a variance source.
+- **Ancestry-contrast ranking, listwise gating** — undecidable n at the current label count.
+- **Thin-docs benchmark ablation** — the existing arms already bracket the answer; a real
+  thin-docs *case* (RESEARCH.md §8.6) remains worth adding when benchmark cases are next
+  revised.
+- **Abstract-budget sweep (`abstract[:1500]`)** — real but third-order once the cascade
+  shrinks the pool ~50× before the gate.
+
 ## Certainly achievable
 
 Proven technology, verified-live dependencies, clear path. Days-to-weeks each.
