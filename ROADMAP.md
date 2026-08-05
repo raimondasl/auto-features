@@ -265,6 +265,31 @@ attribution. **~$0.02, 1–2 days, parallel with P1.**
 ~50k from hub seeds — synthetic seeding is noise amplification; crypto/systems then depend
 on P4 or feature 10's non-arXiv adapters.
 
+> #### Scope and prediction RESTATED before running (2026-08-05)
+>
+> The 22-case re-run changed what P3 is for. It was written against 5 missing targets in 3
+> repos; the hop's reach is now measured at **21/48 = 44%**, leaving **27 unreached targets
+> across 12 cases** — and P3 is the only planned direction that addresses them:
+>
+> | group | cases | unreached |
+> |---|---|---|
+> | no bibliography at all (structural zero) | crypto, systems, storage, compiler, vectordb, columnar | **15** |
+> | bibliography too thin (1–3 seeds) | db, numerics, llminfer, ann, speech | **10** |
+> | bibliography present but missed | diffusion | **2** |
+>
+> **Restated prediction:** synthetic seeding puts **≥8 of 27 (30%)** unreached targets into a
+> pool of **≤50k candidates per repo**. Two reference points bracket that number: a repo's
+> *real* bibliography with ≥7 seeds reaches **89%**, and the same "uses" phrases used as
+> *direct* arXiv queries reached **8%** (§3.2). P3 claims the mechanism is the hop, not the
+> phrases, so it should land nearer the former than the latter.
+>
+> **Restated kill:** **≤2 of 27 (7%)** — indistinguishable from the direct-query baseline, so
+> the neighbourhood hop adds nothing over the phrases themselves. Or any pool >50k/repo, which
+> is noise amplification regardless of recall.
+>
+> The original 3/5 bar is kept above as the record of what was pre-registered when P3 was
+> written; the run reports both.
+
 ### P4. Verify Design 2's four load-bearing dependencies ($0, half a day), then blind HyDE replication
 
 **Grounding:** RETRIEVAL_DESIGN Design 2 is the largest single recall candidate (REPORTED:
