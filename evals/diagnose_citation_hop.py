@@ -27,7 +27,9 @@ import json
 import re
 import sys
 import time
+from collections import Counter
 from pathlib import Path
+from typing import NamedTuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -61,10 +63,40 @@ def seeds_for(case: str) -> list[str]:
 _NESTED_CAP = 9999
 _CHUNK = 4
 _MAX_DEPTH = 3
+# Keyless S2 is a shared anonymous pool and throttles hard. These are deliberately more
+# patient than an interactive default: a chunk that exhausts its retries is DATA LOSS,
+# and it used to be invisible (see HopResult.failed_chunks).
+_RETRIES = 6
+_BACKOFF = 5.0
+_SLEEP = 3.0
 
 
-def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> tuple[set[str], int]:
-    """One citation hop. Returns (arxiv ids reached, number of seeds truncated at the cap).
+class HopResult(NamedTuple):
+    """What one hop produced, and everything that could make it an undercount.
+
+    ``failed_chunks`` exists because it was missing and that cost a whole run. Chunks
+    whose requests exhausted their retries used to be dropped with a bare ``return``, so
+    throttling produced a smaller pool and no error: a rebuild recovered 10,374 of the
+    known 92,014 candidates — 11% — with `diffusion` and `speech` at exactly zero, and
+    reported success. A caller that ignores this field is reading fiction.
+    """
+
+    reached: Counter[str]
+    truncated_seeds: int
+    failed_chunks: int
+
+
+def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> HopResult:
+    """One citation hop. Returns a HopResult; check `failed_chunks` before using it.
+
+    The count is the **coupling degree**: how many of the repo's own seeds co-cite (forward)
+    or are cited by (backward) this candidate. It is the free structural signal P1 filters
+    on, so it is collected here rather than in a second implementation — this function owns
+    the truncation guard below, and a copy of that guard is exactly how a 14/24 got
+    published (RESEARCH.md §6.5).
+
+    A Counter is a drop-in for the set this used to return: `len()` and `in` and iteration
+    all behave the same over its keys.
 
     **Chunking is the whole correctness story here.** The batch endpoint truncates nested
     items at 9,999 across a request, filled greedily in id order. The first version of this
@@ -77,15 +109,17 @@ def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> tuple[set[str], 
     `offset + limit < 10000` wall) and is counted as truncated rather than silently
     accepted.
     """
-    out: set[str] = set()
+    out: Counter[str] = Counter()
     truncated = 0
+    failed = 0
     ids = [_s2_id(a) for a in arxiv_ids[:cap]]
 
     def collect(chunk: list[str], depth: int = 0) -> None:
-        nonlocal truncated
-        data = _s2_batch_post(chunk, f"{direction}.externalIds", None, 3, 3.0)
-        time.sleep(2)
+        nonlocal truncated, failed
+        data = _s2_batch_post(chunk, f"{direction}.externalIds", None, _RETRIES, _BACKOFF)
+        time.sleep(_SLEEP)
         if not data:
+            failed += 1  # never silent: this chunk's seeds contributed nothing
             return
         nested = sum(len((e or {}).get(direction) or []) for e in data)
         if nested >= _NESTED_CAP and len(chunk) > 1 and depth < _MAX_DEPTH:
@@ -95,15 +129,20 @@ def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> tuple[set[str], 
             return
         if nested >= _NESTED_CAP:
             truncated += len(chunk)
+        # S2 returns results positionally aligned with the posted ids, so each entry's
+        # nested list belongs to exactly one seed. Dedupe within a seed before counting,
+        # so a candidate cited twice by one seed still scores degree 1 for it.
         for entry in data:
-            for ref in (entry or {}).get(direction) or []:
-                ax = ((ref or {}).get("externalIds") or {}).get("ArXiv")
-                if ax:
-                    out.add(ax.split("v")[0])
+            per_seed = {
+                ax.split("v")[0]
+                for ref in (entry or {}).get(direction) or []
+                if (ax := ((ref or {}).get("externalIds") or {}).get("ArXiv"))
+            }
+            out.update(per_seed)
 
     for i in range(0, len(ids), _CHUNK):
         collect(ids[i : i + _CHUNK])
-    return out, truncated
+    return HopResult(out, truncated, failed)
 
 
 def main() -> int:
@@ -119,11 +158,19 @@ def main() -> int:
         seed_set = set(seeds)
         print(f"[{case}] {len(seeds)} seeds", flush=True)
 
-        back, trunc_b = hop(seeds, "references")
-        fwd, trunc_f = hop(seeds, "citations")
-        pool = (back | fwd) - seed_set
-        hit_b = sorted(set(targets) & back)
-        hit_f = sorted(set(targets) & fwd)
+        b_res = hop(seeds, "references")
+        f_res = hop(seeds, "citations")
+        back, fwd = b_res.reached, f_res.reached
+        trunc_b, trunc_f = b_res.truncated_seeds, f_res.truncated_seeds
+        failed = b_res.failed_chunks + f_res.failed_chunks
+        if failed:
+            print(
+                f"        !! {failed} request chunk(s) FAILED — undercount, not a result",
+                flush=True,
+            )
+        pool = (set(back) | set(fwd)) - seed_set
+        hit_b = sorted(set(targets) & set(back))
+        hit_f = sorted(set(targets) & set(fwd))
         hit = sorted(set(targets) & pool)
         note = f"  [{trunc_b + trunc_f} seed(s) un-enumerable]" if trunc_b + trunc_f else ""
         print(
@@ -141,6 +188,7 @@ def main() -> int:
                 "fwd": hit_f,
                 "n": len(pool),
                 "truncated_seeds": trunc_b + trunc_f,
+                "failed_chunks": failed,
             }
         )
 

@@ -515,6 +515,103 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P1 — coupling degree cuts the hop pool 70% and keeps 16/18 targets (2026-08-05)
+
+```bash
+uv run python evals/build_hop_pool.py --skip-metadata   # ~40 min, free, keyless
+uv run python evals/sweep_hop_filter.py                 # instant, offline
+```
+
+The citation hop reaches 18 of 24 known-good papers and buries them in 92,014 candidates
+(§3.5). This is the first measurement of whether the **free structural signal** — how many of
+the repo's own seeds co-cite a candidate — can cut that pool without losing the papers.
+
+The pool is now **persisted** (`evals/.work/hop_pool/<case>.jsonl`, 7 cases, 104,868 rows
+with per-candidate forward/backward degrees), so every future filter idea is an offline
+question rather than a 40-minute network sweep. Rebuilt today it holds **18 targets**,
+reproducing the published recall exactly.
+
+### Result against the pre-registered bars
+
+| bar (stated in ROADMAP P1 before running) | outcome | |
+|---|---|---|
+| kill if ≥5 of 18 targets have fwd ≤1 **and** back ≤1 | **2 of 18** (both `speech`) | not killed |
+| retain ≥15/18 targets | **16/18** | **met** |
+| cut the pool ≥75% | **70%** | **missed** |
+
+Leave-one-case-out throughout: each case's threshold is chosen on the other six and scored
+on the held-out one, so nothing here is a description of the pool that tuned it. The chosen
+cut was `fwd≥2 OR back≥3`, with cross-repo document frequency ≤2, on all seven folds.
+
+| held out | pool | after | cut | targets |
+|---|---|---|---|---|
+| diffusion | 4,083 | 62 | 98% | 0/0 |
+| peft | 6,365 | 577 | 91% | 2/2 |
+| cv | 14,874 | 2,084 | 86% | 3/3 |
+| rag | 1,869 | 408 | 78% | 5/5 |
+| rl | 29,480 | 9,968 | 66% | 3/3 |
+| graph | 42,112 | 18,215 | 57% | 3/3 |
+| **speech** | 6,085 | **13** | 100% | **0/2** |
+| **total** | **104,868** | **31,327** | **70%** | **16/18** |
+
+**Read the aggregate cut as two different stories.** On five cases it is 78–98%. The 70%
+total is dragged down by `graph` and `rl`, which are **68% of all candidates** and cut worst
+(57%, 66%) — and which also hold all 13 un-enumerable hub seeds, so their degrees are the
+most undercounted. `speech` is the opposite failure: the filter removes 99.8% of its pool
+and both its targets with it. Those two targets are the only ones in the whole set reachable
+from ≤1 seed in both directions, i.e. exactly the kill-condition papers. Coupling has nothing
+to work with there.
+
+### The enrichment, and a correction I made mid-run
+
+| filter | targets kept | pool kept | enrichment |
+|---|---|---|---|
+| `fwd ≥ 1` | 83.3% | 98.4% | 0.85× |
+| `fwd ≥ 2` | 72.2% | 29.7% | **2.43×** |
+| `fwd ≥ 3` | 33.3% | 14.4% | 2.32× |
+| `back ≥ 1` | 27.8% | 2.1% | **13.0×** |
+| `back ≥ 2` | 27.8% | 0.5% | **60.4×** |
+
+Backward coupling is the sharper signal by an order of magnitude — it keeps 28% of targets
+while removing 99.5% of the pool — but it is capped at that 28%. Forward coupling is broader
+and weaker. The winning cut uses both, which is why the OR matters: `cv`'s Soft-NMS is
+backward-only and a forward-only rule drops it by construction.
+
+> **CORRECTION, same session.** With four of seven pools built (7 targets), this table read
+> `fwd≥3` at **0.00×** and I reported forward coupling as *anti-correlated* with being a
+> target, with a mechanism attached ("high forward degree means the repo already builds on
+> it"). At 18 targets `fwd≥3` is **2.32×** — positive. The n=7 reading was a small-sample
+> artifact and is withdrawn. This is §6.1 recurring: the earlier number was not wrong to
+> compute, it was wrong to interpret.
+
+### The run that had to be thrown away first
+
+The first rebuild returned **10,374 candidates — 11% of the known pool — with `diffusion`
+and `speech` at exactly zero, and reported success.** Keyless S2 was throttling, and `hop()`
+dropped any chunk whose retries were exhausted with a bare `return`: rate limiting and "these
+seeds cite nothing" were indistinguishable to every caller.
+
+Filter thresholds swept over that pool would have looked excellent and meant nothing. It was
+caught only by comparing against the published per-case sizes.
+
+`hop()` now returns `HopResult(reached, truncated_seeds, failed_chunks)` and the builder
+**refuses to persist any case with a failed chunk** rather than writing an undercount that a
+later sweep would treat as truth. On the guarded re-run, four cases completed and matched the
+published sizes to within +11 to +50 papers (citation-graph growth); three were refused and
+succeeded on retry. Retries went 3→6, backoff 3s→5s, sleep 2s→3s — §3.4's lesson that request
+*rate* is the lever.
+
+Note the shape of this bug: the same function already carried an elaborate guard against
+*truncation* (the 9,999 nested cap) and none against *failure*. §6.5 one layer down.
+
+### What P1 leaves for P2
+
+A 70% cut at 89% target retention is real but not sufficient: `graph` still holds 18,215
+candidates and `rl` 9,968. Structure alone does not get to a shortlist. It does hand P2 a
+persisted, degree-annotated pool a third the size, and a measured statement of where the
+remaining work is — the two hub-seeded repos, and the two `speech` targets that no coupling
+signal can reach.
+
 ## Negative result 5 — widening the triage window from 20 to 50 does not pay (2026-08-02)
 
 ```bash
