@@ -515,6 +515,95 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P1 re-run on 22 cases — the 70% cut does not replicate, and the hop reaches 44% not 75% (2026-08-05)
+
+```bash
+uv run python evals/build_hop_pool.py --skip-metadata   # 11 pools now, free
+uv run python evals/hop_reach.py                        # instant
+uv run python evals/sweep_hop_filter.py                 # instant
+```
+
+The jackknife predicted this and it still landed harder than expected. Re-running P1's
+identical sweep with four more pools:
+
+| | 7 pools (18 targets) | 11 pools (21 targets) |
+|---|---|---|
+| targets retained | 16/18 = **89%** | 16/21 = **76%** |
+| pool cut | **70%** | **10%** |
+| both pre-registered bars | retention met, cut missed | **both missed** |
+
+**The 70% cut was a property of the case set, not of coupling degree.** With `ann` and
+`llminfer` in the folds — repos with 3 and 2 seeds whose targets sit at low forward degree —
+meeting the 83% retention floor on the training folds forces `fwd>=1`, and `fwd>=1` keeps
+98.4% of the pool. The filter degenerates to nearly no filter.
+
+The kill condition is now close rather than comfortable: **5 of 21** targets are reachable
+from ≤1 seed in both directions (`ann` ×2, `llminfer`, `speech` ×2), against a kill line of 6.
+It was 2 of 18 on the old set.
+
+### The larger finding: 18/24 was measured on a favourable subset
+
+`hop_reach.py` asks the question the published figure did not. That 75% was recall over the
+nine cohort-1 cases *that had targets* — a denominator which silently excluded every repo the
+hop cannot serve. Across all 17 cases that now have targets:
+
+| case | seeds | pool | reached |
+|---|---|---|---|
+| graph | 121 | 42,112 | 3/3 |
+| rl | 30 | 29,480 | 3/3 |
+| cv | 18 | 14,874 | 3/3 |
+| peft | 18 | 6,365 | 2/2 |
+| diffusion | 10 | 4,083 | 0/2 |
+| rag | 7 | 1,869 | 5/5 |
+| ann | 3 | 3,152 | 2/3 |
+| speech | 2 | 6,085 | 2/3 |
+| llminfer | 2 | 1,666 | 1/4 |
+| db | 1 | **14** | 0/3 |
+| numerics | 1 | **4** | 0/2 |
+| crypto, systems, storage, compiler, vectordb, columnar | 0 | — | 0/15 |
+
+| | |
+|---|---|
+| all cases with targets | **21/48 = 44%** |
+| bibliography-seeded cases only | 21/33 = 64% |
+| **unreachable by construction** | **15 targets across 6 cases** |
+| seeds ≥ 7 (6 cases) | 16/18 = **89%** |
+| seeds < 7 (5 cases) | 5/15 = **33%** |
+
+**Seed count is the whole story.** Six repos with a real bibliography give 89% recall; five
+with a thin one give 33%; six with none give 0 by construction. `db` (duckdb) has exactly one
+arXiv citation, and one seed produces a **14-paper pool** — a nonzero bibliography is not a
+usable one.
+
+So the honest statement of the hop is not "the channel that works" but **"the channel that
+works for repos with a substantial arXiv bibliography"** — 6 of 22 benchmark cases, and
+plausibly a small minority of real repositories. That does not retract the 18/24; it corrects
+what it was a measurement *of*.
+
+### Consequences
+
+- **P1 is a negative result on the expanded set.** Coupling degree as a threshold does not
+  survive a less concentrated benchmark. The persisted pool and its degree annotations remain
+  useful infrastructure for P2; the filter does not.
+- **P3 (synthetic seeding) is promoted from nice-to-have to the main event.** It addresses the
+  6 structurally-zero cases plus the 5 thin-bibliography ones — 27 of 48 targets, versus the
+  21 the hop can reach today.
+- **P2 should be measured on the seeded cases and reported as such**, since the pool it
+  filters only exists for 11 of 22 cases.
+- Anything that quotes "18/24" or "75%" should say **"of the papers the hop can reach at
+  all"**, and the figure to quote for the system is **44%**.
+
+### A harness bug this exposed, and how it hid
+
+`build_hop_pool` read `diagnose_citation_hop.TARGETS`, a frozen literal covering the nine
+cohort-1 cases. Every new case raised `KeyError` — and all ten failed **silently**, because
+the command running them piped output through a `grep` that filtered the traceback away. Two
+compounding failures: a hardcoded source of truth that could not see new data, and my own
+output filter hiding the crash. Targets are now derived via
+`diagnose_pool.actionable_baseline_ids()` for every benchmark case, with a test that every
+case resolves and that the frozen literal never contradicts the derived list. `TARGETS` is
+kept only as the record of what the published 18/24 was measured against.
+
 ## The benchmark was overfitting on 12 repos — jackknife, then +10 cases (2026-08-05)
 
 P1's headline (70% pool cut, 16/18 targets retained) was produced with leave-one-case-out,
@@ -675,6 +764,11 @@ Note the shape of this bug: the same function already carried an elaborate guard
 *truncation* (the 9,999 nested cap) and none against *failure*. §6.5 one layer down.
 
 ### What P1 leaves for P2
+
+> **SUPERSEDED the same day.** Everything below was measured on 7 pools / 18 targets. Re-run
+> with 4 more pools the cut falls from 70% to **10%** and both pre-registered bars are missed —
+> see [P1 re-run on 22 cases](#p1-re-run-on-22-cases--the-70-cut-does-not-replicate-and-the-hop-reaches-44-not-75-2026-08-05).
+> The 70% figure is retained here as the record of what the 7-case set showed, not as a result.
 
 A 70% cut at 89% target retention is real but not sufficient: `graph` still holds 18,215
 candidates and `rl` 9,968. Structure alone does not get to a shortlist. It does hand P2 a

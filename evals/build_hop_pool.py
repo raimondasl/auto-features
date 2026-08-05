@@ -41,12 +41,32 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from diagnose_citation_hop import TARGETS, hop, seeds_for  # noqa: E402
+import yaml  # noqa: E402
+from diagnose_citation_hop import hop, seeds_for  # noqa: E402
+from diagnose_pool import actionable_baseline_ids  # noqa: E402
 
 from reporadar.citations import _s2_batch_post, _s2_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 OUT_DIR = EVALS / ".work" / "hop_pool"
+
+
+def resolve_targets() -> dict[str, list[str]]:
+    """{case: known-good arXiv ids} for EVERY benchmark case, derived not hardcoded.
+
+    `diagnose_citation_hop.TARGETS` is a frozen literal covering the nine cohort-1 cases
+    that had targets when the 18/24 result was measured. Reading it here meant every case
+    added after that raised KeyError — which is how ten new cases silently failed to build
+    until the traceback was noticed under a `grep` that was filtering it out.
+
+    The canonical list is baseline picks intersected with judge score >= 2, exactly as
+    `diagnose_pool` computes it. Same rule that made a stray `baseline_ids.json` dangerous:
+    derive the target list, never read a copy of it.
+    """
+    bench = yaml.safe_load((EVALS / "benchmark.yaml").read_text(encoding="utf-8"))
+    return {c["name"]: actionable_baseline_ids(c["name"]) for c in bench["cases"]}
+
+
 META_CACHE = OUT_DIR / "_meta_cache.json"
 META_FIELDS = "externalIds,title,abstract,year,citationCount"
 
@@ -195,7 +215,11 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    cases = {args.case: TARGETS[args.case]} if args.case else TARGETS
+    targets = resolve_targets()
+    if args.case and args.case not in targets:
+        print(f"unknown case {args.case!r}; benchmark has: {', '.join(sorted(targets))}")
+        return 1
+    cases = {args.case: targets[args.case]} if args.case else targets
     rows = [
         r for c, t in cases.items() if (r := build_case(c, t, with_metadata=not args.skip_metadata))
     ]

@@ -37,8 +37,14 @@ from typing import Any
 EVALS = Path(__file__).resolve().parent
 POOL_DIR = EVALS / ".work" / "hop_pool"
 
-# Retention floors to report a cut at. 15/18 is the pre-registered bar.
-TARGET_FLOOR = 15
+# The bars pre-registered in ROADMAP P1 were stated against the 18 targets the 12-case
+# benchmark could reach. The case set has since grown to 22, so they are held here as
+# RATIOS of whatever is actually in the pools — same bar, larger denominator. Restating
+# them as ratios is what lets the expanded run be a re-test rather than a new, easier
+# question.
+RETAIN_FLOOR = 15 / 18  # 83.3% of targets retained
+CUT_FLOOR = 0.75  # 75% of the pool removed
+KILL_FRACTION = 5 / 18  # 27.8% of targets unreachable from >1 seed either way
 
 
 def load_pools() -> dict[str, list[dict[str, Any]]]:
@@ -113,11 +119,12 @@ def main() -> int:
         for r in rows
         if r.get("is_target") and r.get("fwd_degree", 0) <= 1 and r.get("back_degree", 0) <= 1
     ]
+    kill_at = max(1, round(KILL_FRACTION * total_targets))
     print("=== KILL CHECK: targets reachable from <=1 seed in BOTH directions ===")
-    print(f"{len(lonely)} of {total_targets}  (kill at >=5)")
+    print(f"{len(lonely)} of {total_targets}  (kill at >={kill_at}, i.e. {KILL_FRACTION:.0%})")
     for case, tid in lonely:
         print(f"    {case:10} {tid}")
-    if len(lonely) >= 5:
+    if len(lonely) >= kill_at:
         print("\n>>> KILL CONDITION MET — coupling cannot separate these from the noise floor.")
     print()
 
@@ -150,7 +157,7 @@ def main() -> int:
         for fwd, back, dmax in grid:
             k, a, size = evaluate(pools, df, fwd, back, dmax, others)
             other_total = sum(len(pools[c]) for c in others)
-            if a and k / a >= TARGET_FLOOR / 18 and (best is None or size < best[3]):
+            if a and k / a >= RETAIN_FLOOR and (best is None or size < best[3]):
                 best = (fwd, back, dmax, size, other_total)
         if best is None:  # nothing on the grid met the floor on the training cases
             print(f"{held:10} {'(no cut meets the floor)':>24}")
@@ -174,9 +181,15 @@ def main() -> int:
         print(f"targets retained : {loo_kept}/{loo_avail}")
         print(f"pool             : {loo_before:,} -> {loo_after:,}  ({cut:.0%} cut)")
         print(f"mean per case    : {loo_before // n_case:,} -> {loo_after // n_case:,}")
+        need = RETAIN_FLOOR * loo_avail
+        ok_r, ok_c = loo_kept >= need, cut >= CUT_FLOOR
         print(
-            f"\nPREDICTION was >={TARGET_FLOOR}/18 retained and >=75% cut: "
-            f"{'MET' if loo_kept >= TARGET_FLOOR and cut >= 0.75 else 'NOT MET'}"
+            f"\nPRE-REGISTERED BARS, held as ratios: retain >={RETAIN_FLOOR:.0%} "
+            f"({need:.1f} of {loo_avail}) and cut >={CUT_FLOOR:.0%}"
+        )
+        print(
+            f"  retention {loo_kept}/{loo_avail} = {loo_kept / loo_avail:.0%} "
+            f"{'MET' if ok_r else 'MISSED'}    cut {cut:.0%} {'MET' if ok_c else 'MISSED'}"
         )
     return 0
 
