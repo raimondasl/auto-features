@@ -23,8 +23,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # --locked fails the build if uv.lock is out of date with pyproject.toml.
+      # Without it `uv sync` silently re-resolves in the runner, so the committed
+      # lockfile is never validated — which is how it drifted for ~a month after
+      # the `mcp`/`vectors` extras were added without a re-lock, while CI stayed
+      # green. A committed lockfile that CI does not check is decoration.
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
 
       - name: Ruff (lint)
         run: uv run ruff check .
