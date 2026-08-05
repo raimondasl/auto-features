@@ -165,3 +165,38 @@ class TestSweepUsesTheCanonicalTargets:
             pytest.skip("baseline cache not present (evals/cache is gitignored)")
         for case, hardcoded in ch.TARGETS.items():
             assert sorted(hardcoded) == sorted(dp.actionable_baseline_ids(case)), case
+
+
+class TestTargetsCoverEveryBenchmarkCase:
+    """Cohort 2 exposed a hardcoded list that could not see new cases.
+
+    `build_hop_pool` read `diagnose_citation_hop.TARGETS`, a frozen literal covering the
+    nine cohort-1 cases that had targets when 18/24 was measured. Every case added later
+    raised KeyError — and ten of them failed to build *silently*, because the command that
+    ran them piped output through a `grep` that filtered the traceback away. Two failures
+    compounding: a stale hardcoded source, and a filter that hid the crash.
+    """
+
+    def test_every_benchmark_case_resolves(self) -> None:
+        import yaml
+
+        bp = _load("build_hop_pool")
+        if not (EVALS / "cache" / "baseline" / "cli").is_dir():
+            pytest.skip("baseline cache not present (evals/cache is gitignored)")
+        bench = yaml.safe_load((EVALS / "benchmark.yaml").read_text(encoding="utf-8"))
+        names = {c["name"] for c in bench["cases"]}
+        resolved = bp.resolve_targets()
+        assert names - set(resolved) == set(), "benchmark case missing from resolve_targets()"
+
+    def test_the_frozen_literal_is_a_subset_not_the_source(self) -> None:
+        """`TARGETS` may lag the benchmark; it must never contradict the derived list.
+
+        Keeping it is fine — it is the record of what the published 18/24 was measured
+        against. Reading it as the source of truth is what broke.
+        """
+        bp = _load("build_hop_pool")
+        if not (EVALS / "cache" / "baseline" / "cli").is_dir():
+            pytest.skip("baseline cache not present")
+        resolved = bp.resolve_targets()
+        for case, frozen in ch.TARGETS.items():
+            assert sorted(frozen) == sorted(resolved[case]), case
