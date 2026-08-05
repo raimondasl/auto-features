@@ -515,6 +515,70 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## The benchmark was overfitting on 12 repos — jackknife, then +10 cases (2026-08-05)
+
+P1's headline (70% pool cut, 16/18 targets retained) was produced with leave-one-case-out,
+which stops a threshold being tuned on the fold it is scored on. It does **not** stop a
+7-fold set from resting on one fold. Recomputing the whole LOO result with one repo removed:
+
+| dropped | targets | cut | swing |
+|---|---|---|---|
+| graph | 13/15 | 77% | +7% |
+| rl | 13/15 | 70% | −0% |
+| diffusion | 16/18 | 69% | −1% |
+| speech | 16/16 | 68% | −2% |
+| peft | 14/16 | 67% | −3% |
+| cv | 13/15 | 66% | −4% |
+| **rag** | 11/13 | **11%** | **−59%** |
+
+**Removing one repo moves the headline from 70% to 11%.** `rag` holds 5 of 18 targets (28%)
+in the smallest pool (1,869); its targets are the cheap ones, and without them the 15/18
+retention floor forces a far looser threshold on every other fold. Top 2 repos held 44% of
+targets; effective repo count (inverse Simpson over target share) was **5.4 of 7**.
+
+Corroborating evidence from the same session: at n=7 targets the forward-degree enrichment
+read 0.00× and was reported with a mechanism; at n=18 it was +2.32×. Same fragility, one
+scale down.
+
+### Ten cases added against four measured criteria
+
+Not "more data" — four named blind spots (thin docs + real research; no arXiv bibliography;
+non-ML; citation-rich). The full measured table is in
+[`evals/README.md`](README.md#cohort-2-2026-08-05--added-because-12-was-measurably-too-few).
+
+| | before | after |
+|---|---|---|
+| cases | 12 | **22** |
+| targets | 24 | **46** |
+| `rag` share of targets | 21% | **11%** |
+| effective repo count | 5.4 of 7 (hop cases) | **14.3 of 16** |
+| non-ML cases | 5 | **13** |
+| no-arXiv-bibliography cases | 5 | **11** |
+
+Baselines cost **~$11** for ten cases (`llminfer` alone was $3.45; the rest $0.60–$1.10).
+
+**Two of my predictions were refuted by the measurement**, recorded because both were
+nearly shipped as asserted labels:
+
+1. I expected `llminfer`, `vectordb`, `linter`, `encryption` to be thin-docs cases. All four
+   have substantial READMEs — ruff's is 25,182 characters, 4× peft's. The only genuine
+   thin-docs additions are `storage` (1,689) and `compiler` (1,686). `benchmark.yaml` now
+   carries the measured numbers inline beside each `criteria:` label.
+2. I expected the six no-bibliography cases to yield ~0 targets, since a repo citing no
+   arXiv work plausibly has none to recommend. **12 of 22 new targets came from them.** ANN
+   indexing, columnar compression and LSM compaction have arXiv literature those repos do
+   not cite — making them the sharpest cases in the set, where the citation hop is
+   structurally blind but the research exists.
+
+Three cases yield 0 and are kept deliberately: `encryption` (Opus abstained — correct, its
+literature is on IACR), `linter` (Opus made 3 picks, the judge rejected all 3 — an
+over-firing case), `numerics` (the headless baseline does not finish on a repo scipy's size;
+a harness limitation, not a result).
+
+**Every number measured before today stands on the 12-case set** and inherits its
+concentration. P1's 70% cut in particular should be re-run on the expanded set before it is
+built on.
+
 ## P1 — coupling degree cuts the hop pool 70% and keeps 16/18 targets (2026-08-05)
 
 ```bash
