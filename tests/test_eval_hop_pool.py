@@ -200,3 +200,75 @@ class TestTargetsCoverEveryBenchmarkCase:
         resolved = bp.resolve_targets()
         for case, frozen in ch.TARGETS.items():
             assert sorted(frozen) == sorted(resolved[case]), case
+
+
+class TestResultFilesMergeRatherThanClobber:
+    """A `--case` re-run must not replace a whole-set result file with one row.
+
+    This is not hypothetical and it is the second occurrence. `diagnose_triage.py` named its
+    output by repo-context and ignored `--model`, so a Sonnet run was overwritten by a Haiku
+    one and its per-case numbers no longer exist. Then `synth_seeds.py` wrote its results
+    with a plain overwrite, and a single failing retry of `diffusion` replaced an 11-case run
+    with `[]` — and printed a KILL verdict against bars scoped to all 27 targets.
+
+    `build_hop_pool` had the correct pattern (read, update, write) the whole time.
+    """
+
+    def test_a_single_case_run_preserves_the_others(self, tmp_path: Path) -> None:
+        import json
+
+        ss = _load("synth_seeds")
+        out = tmp_path / "synth_seeds.json"
+        out.write_text(
+            json.dumps(
+                [
+                    {"case": "crypto", "found": ["x"], "pool": 276},
+                    {"case": "systems", "found": [], "pool": 425},
+                ]
+            ),
+            encoding="utf-8",
+        )
+        with (
+            patch.object(ss, "OUT", out),
+            patch.object(ss, "resolve_targets", return_value={"crypto": ["x"]}),
+            patch.object(ss, "run_case", return_value={"case": "crypto", "found": [], "pool": 5}),
+            patch.object(ss.qg, "_load_env"),
+            patch.object(sys, "argv", ["synth_seeds.py", "--case", "crypto"]),
+        ):
+            ss.main()
+        kept = {r["case"] for r in json.loads(out.read_text(encoding="utf-8"))}
+        assert kept == {"crypto", "systems"}, "a --case run destroyed the other cases' results"
+
+
+class TestSeedRankingIsActuallySelectable:
+    """A loop variable named `rank` shadowed the `rank` parameter, so the citation branch
+    was unreachable and an entire experiment silently re-ran its own control.
+
+    It produced byte-identical pools on 10 of 11 cases — which is the only reason it was
+    caught. "The variant matched the control exactly" is a bug signature, not a finding.
+    """
+
+    def test_the_two_rankings_select_different_seeds(self) -> None:
+        ss = _load("synth_seeds")
+        # 3 phrases x 3 hits; vote order and citation order are deliberately opposed.
+        pages = [["a.1", "b.2", "c.3"], ["a.1", "b.2"], ["a.1"]]
+        cites = {"a.1": 0, "b.2": 5, "c.3": 900}
+        with (
+            patch.object(ss.qg, "arxiv_ids", side_effect=lambda *a, **k: pages.pop(0)),
+            patch.object(ss, "citation_counts", return_value=cites),
+            patch.object(ss.time, "sleep"),
+            patch.object(ss, "SEED_CAP", 2),
+        ):
+            by_votes, _ = ss.seeds_from_phrases(["p1", "p2", "p3"], "votes")
+        pages = [["a.1", "b.2", "c.3"], ["a.1", "b.2"], ["a.1"]]
+        with (
+            patch.object(ss.qg, "arxiv_ids", side_effect=lambda *a, **k: pages.pop(0)),
+            patch.object(ss, "citation_counts", return_value=cites),
+            patch.object(ss.time, "sleep"),
+            patch.object(ss, "SEED_CAP", 2),
+        ):
+            by_cites, _ = ss.seeds_from_phrases(["p1", "p2", "p3"], "citations")
+
+        assert by_votes[0] == "a.1", "votes ranking should lead with the most-agreed paper"
+        assert by_cites[0] == "c.3", "citation ranking should lead with the biggest hub"
+        assert set(by_votes) != set(by_cites), "the rank argument had no effect"

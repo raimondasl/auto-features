@@ -515,6 +515,104 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Negative result 6 — synthetic hop seeds recover 4 of 27; only one domain works (2026-08-05)
+
+```bash
+uv run python evals/synth_seeds.py                  # vote-ranked seeds  (~$0.02)
+uv run python evals/synth_seeds.py --rank citations # hub-ranked seeds
+```
+
+The hop reaches 44% of known-good papers because it seeds from arXiv ids the repo cites, and
+most repos cite few or none. P3 asked whether LLM "uses" phrases can manufacture the missing
+seeds. §3.2 measured those phrases as *accurate but useless for direct retrieval* (2/24) —
+the bet was that the hop needs only an **anchor near** the target, not the target itself.
+
+Pre-registered before running (ROADMAP P3): **≥8 of 27** unreached targets, **kill at ≤2**.
+
+| arm | seeds ranked by | targets | pool |
+|---|---|---|---|
+| P3 | phrase agreement | **3/27 (11%)** | 10,236 |
+| P3b | **S2 citation count** | **4/27 (15%)** | 18,272 |
+
+Both below the prediction, both above the kill line. **All recovered targets come from one
+case**: `vectordb` (qdrant), which reached 3/4 then **4/4**. Eleven other cases recovered
+nothing.
+
+### The mechanism was diagnosed correctly, and fixing it did not help
+
+Why P3 failed is measurable:
+
+| | synthetic seeds | real bibliography |
+|---|---|---|
+| median citations | **3** | **1,210** |
+| zero-citation seeds | 12 of 39 | 0 |
+| neighbourhood | 26 papers/seed | **515 papers/seed** |
+
+A bibliography cites **hubs**; phrase search returns whatever matches the string, because
+arXiv relevance carries no impact weighting — §3.0's founding defect, one stage earlier.
+
+P3b ranked the same phrase matches by citation count before seeding. **The predicted
+mechanism worked**: pools grew **1.8× overall**, and 2.4–3.6× on the cases that needed it
+most (`systems` 425→1,534, `crypto` 276→918, `numerics` 509→1,700, `speech` 1,462→3,448).
+**Recall moved 3 → 4.** Bigger neighbourhoods in the wrong region of the graph are still the
+wrong region — `diffusion` got a 19,747-paper pool and recovered 0 of 2.
+
+So the constraint is not neighbourhood *size*. Phrase-derived seeds sit somewhere the targets
+are not, and hub-ranking moves you to a bigger somewhere-else.
+
+### Why `vectordb` is the exception, and what it implies
+
+Its phrases — "Approximate Nearest Neighbor", "Vector Similarity Search", "Product
+Quantization" — are crisp terms of art naming a subfield with a dense, self-citing arXiv
+presence. There, "what the repo implements" and "where the useful papers live" coincide.
+
+For `crypto`, `db`, `storage`, `compiler`, `columnar` the phrases were equally accurate about
+the repo (8–10 of 10 matched real papers) and still landed nowhere near the targets. Those
+fields' literature is centred on IACR/VLDB/PLDI; their arXiv presence is a thin, poorly
+connected slice, so a hop through it traverses a sparse graph.
+
+**This is the register mismatch's structural twin.** §1 says a repo's vocabulary describes
+what it *has*, not what it should *adopt*. P3 shows that even when you accept that and use
+the vocabulary only as an anchor, the anchor lands in the wrong neighbourhood unless the
+repo's field is natively arXiv-shaped.
+
+### Consequences
+
+- **The citation hop cannot be extended to bibliography-less repos this way.** 11 of 22
+  benchmark cases stay unreachable; 23 of 48 targets stay out of reach of any measured channel.
+- **Feature 10's non-arXiv adapters (IACR, DBLP, VLDB) move from "domain coverage" to the
+  only remaining route** for `crypto`, `systems`, `storage`, `compiler`, `columnar`.
+- **P4 (HyDE against a dense index) is now the highest-value untested retrieval direction**,
+  and its claimed crypto 2/2 + systems 1/1 is exactly the cell P3 just failed. Its $0
+  dependency verification should run before anything else.
+- `vectordb` 4/4 says synthetic seeding is worth keeping **as an opt-in for arXiv-native
+  domains**, not as a general mechanism.
+
+### Two harness failures found while running this, both nearly fatal to the result
+
+**1. `--rank citations` was unreachable — P3b silently re-ran its own control.**
+
+```python
+for rank, pid in enumerate(ids):   # rebinds the `rank` PARAMETER to an int
+    order.setdefault(pid, rank)
+...
+if rank == "citations":            # always False
+```
+
+A loop variable shadowed the function parameter. The first P3b returned exactly 3/27 with
+**byte-identical pools on 10 of 11 cases** — including two where the seed cap binds, which is
+impossible for two different seed sets. That anomaly was the only signal; a perfect match
+between variant and control is a **bug signature, not a confirmation**. Post-fix the two
+rankings share 15 of 40 seeds and lead with entirely different papers. Mutation-tested.
+
+**2. A `--case` re-run overwrote the whole-set results with one row.** Retrying the refused
+`diffusion` case replaced an 11-case file with `[]` and printed a KILL verdict against bars
+scoped to all 27 targets. Recovered from the run log; nothing measured was lost. This is the
+**second occurrence today** — `diagnose_triage.py` ignoring `--model` in its output filename
+destroyed the per-case Sonnet data the same way — and `build_hop_pool` has had the correct
+read-update-write pattern the entire time. Results now merge; verdicts are suppressed on
+partial runs; both guarded by mutation-tested tests.
+
 ## P1 re-run on 22 cases — the 70% cut does not replicate, and the hop reaches 44% not 75% (2026-08-05)
 
 ```bash
