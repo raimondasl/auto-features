@@ -515,6 +515,86 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Negative result 7 — gap-phrases do not beat pasting the keyword profile (2026-08-05)
+
+```bash
+uv run python evals/fill_pool_metadata.py --all    # 103,789/103,793 (100%), free
+uv run python evals/gap_match.py --top-k 200       # instant, offline
+```
+
+P2 was built on §3.2's reading of its own data: the "lacks" prompt *aims correctly* at the
+right research and fails only on phrasing — 45 of 54 phrases matched zero papers, and its
+example was `"experience replay prioritization methods"` (0 hits) against `"prioritized
+experience replay"` (found it). If that is a string-matching failure, matching in a space
+where the two are close should unlock it.
+
+**The string matching was fixed and verified.** Snowball stemming collapses the morphology
+(`prioritization`/`prioritized` → `priorit`) and BM25 scores bag-of-terms overlap instead of
+phrase containment, so word order and compounding stop mattering. §3.2's own example now
+scores **2.79** against the target it missed and **0.00** against distractors.
+
+Four arms rank the same 103k-paper hop pool with the same scorer, differing only in the query:
+
+| cut | `lacks` (what it's missing) | **`uses`** (what it implements) | `gaps` (summariser's improvement_areas) | `profile` (keyword profile — CONTROL) |
+|---|---|---|---|---|
+| top-50 | 2 (10%) | **3 (14%)** | 1 (5%) | 1 (5%) |
+| top-200 | 4 (19%) | **7 (33%)** | 2 (10%) | 6 (29%) |
+| top-500 | 10 (48%) | **11 (52%)** | 3 (14%) | 10 (48%) |
+
+Pre-registered: **≥44% of reachable targets AND ≥2× the control**. The best arm reaches 52%
+at top-500 but beats the control **1.1×** — 11 targets against 10. At top-200 it is 7 against
+6. **A one-target difference on n=21 is noise.** Not killed (`uses` clears `profile` at
+top-500, which was the kill condition), but the prediction fails at every depth.
+
+### The premise was inverted, and the ranks showed it before the tally did
+
+The ordering is the finding: **`uses` > `profile` > `lacks` > `gaps`**. Describing what a
+repo *has* retrieves its targets better than an LLM's account of what it *lacks*, and the
+summariser's improvement areas are worst of all.
+
+Per-target ranks on `rl` (percentile in a 29,479-paper pool; random ≈ 50%):
+
+| query | target percentiles |
+|---|---|
+| `lacks` | 57%, 80%, **94%** |
+| `profile` | **2%**, 70%, 84% |
+
+The "lacks" query ranks the targets *worse than random*. Its phrases for
+`stable-baselines3` were distributed policy gradients, model-based RL, transformer
+actor-critic, offline RL, multi-agent, imitation learning, hierarchical RL — a coherent and
+entirely plausible research agenda. The actual targets were **Double Q-Learning, Prioritized
+Experience Replay, Dropout Q-Functions**: refinements of the value-based RL the repo already
+implements.
+
+**That is not a phrasing failure. It is a different-target failure**, and no retrieval space
+fixes it. §3.2's "aims correctly" reading is withdrawn: on this evidence the "lacks" prompt
+aims at a *plausible different* agenda, and the resemblance to the right answer in §3.2's
+spot-check did not survive measurement across 8 cases.
+
+One fact now explains three previously separate observations:
+
+* why `uses` beat `lacks` in §3.2 (2/24 vs 0/24),
+* why the citation hop works at all — seeding on what a repo *has* lands you among
+  refinements of it, which is what the judge rewards,
+* why `improvement_areas` hurt the triage gate in §5.3 (+70, below the no-description
+  control) and finish last here at 14%.
+
+**The judge's "actionable" skews toward improving existing components, not adding new
+capabilities.** Every channel that works is one that starts from what the repo already does.
+
+### Consequences
+
+- **LLM phrase generation is not measurably better than pasting the keyword profile into a
+  BM25 query.** The cheapest possible baseline is within noise of the best arm at every depth.
+- Retrieval work should stop trying to name what a repo lacks. Three separate attempts have
+  now failed on it: direct queries (§3.2, 0/24), gate context (§5.3, +70 vs +73 control),
+  and pool ranking (here, 19% vs 29% control).
+- `gaps` at 10–14% is the second measured negative for the summariser's `improvement_areas`.
+  Treat that field as unvalidated for any purpose.
+- P2 does not rescue the 44% reach. Combined with P1 (filter does not replicate) and P3
+  (synthetic seeds 4/27), **no measured technique has improved on the bibliography-seeded
+  hop**, and P4 is the only untested channel left.
+
 ## Negative result 6 — synthetic hop seeds recover 4 of 27; only one domain works (2026-08-05)
 
 ```bash

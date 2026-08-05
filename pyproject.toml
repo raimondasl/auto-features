@@ -28,6 +28,11 @@ evals = [
     # Only needed for the Tier B LLM-judge benchmark (evals/run_judge_eval.py).
     "openai>=1.0",  # the neutral judge
     "anthropic>=0.40",  # the --baseline api Opus + web_search baseline
+    # P2's stemmed BM25 arm. The shipped retrieval.py tokenizer is unstemmed, and the
+    # gap-phrase failure it targets is largely morphological: "experience replay
+    # prioritization methods" vs "prioritized experience replay" share no exact token,
+    # but stem to the same terms.
+    "snowballstemmer>=2.2",
 ]
 mcp = [
     # Only needed for `rr mcp` (RepoRadar as an MCP server for coding agents).
