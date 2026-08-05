@@ -549,13 +549,14 @@ non-ML; citation-rich). The full measured table is in
 | | before | after |
 |---|---|---|
 | cases | 12 | **22** |
-| targets | 24 | **46** |
-| `rag` share of targets | 21% | **11%** |
-| effective repo count | 5.4 of 7 (hop cases) | **14.3 of 16** |
+| targets | 24 | **48** |
+| `rag` share of targets | 21% | **10%** |
+| effective repo count | 5.4 of 7 (hop cases) | **15.2 of 17** |
 | non-ML cases | 5 | **13** |
 | no-arXiv-bibliography cases | 5 | **11** |
 
-Baselines cost **~$11** for ten cases (`llminfer` alone was $3.45; the rest $0.60–$1.10).
+Baselines cost **~$14** for ten cases — `llminfer` $3.45 and `numerics` $3.25 alone were
+half of it; the other eight ran $0.60–$1.10. Cost scales with repo size, not case count.
 
 **Two of my predictions were refuted by the measurement**, recorded because both were
 nearly shipped as asserted labels:
@@ -570,10 +571,15 @@ nearly shipped as asserted labels:
    not cite — making them the sharpest cases in the set, where the citation hop is
    structurally blind but the research exists.
 
-Three cases yield 0 and are kept deliberately: `encryption` (Opus abstained — correct, its
-literature is on IACR), `linter` (Opus made 3 picks, the judge rejected all 3 — an
-over-firing case), `numerics` (the headless baseline does not finish on a repo scipy's size;
-a harness limitation, not a result).
+Two cases yield 0 and are kept deliberately: `encryption` (Opus abstained — correct, its
+literature is on IACR) and `linter` (Opus made 3 picks, the judge rejected all 3 — an
+over-firing case).
+
+> **A third correction.** `numerics` was first written up here as *"the headless baseline
+> does not finish on a repo scipy's size — a harness limitation"*. It finishes: it needs
+> >10 minutes and $3.25, and the batch loop cut it short. Re-run alone it contributes 2
+> targets. "It failed" and "I did not wait" are different claims and I published the wrong
+> one. Budget wall-clock, not only dollars, when adding large repos.
 
 **Every number measured before today stands on the 12-case set** and inherits its
 concentration. P1's 70% cut in particular should be re-run on the expanded set before it is

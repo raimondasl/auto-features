@@ -114,7 +114,7 @@ blind spots, not to add more of the same:
 |---|---|---|---|---|---|---|---|---|
 | `db` | `duckdb/duckdb` | 3,480 | 1 | | | ✓ | ✓ | 3 |
 | `storage` | `facebook/rocksdb` | **1,689** | 0 | ✓ | ✓ | ✓ | ✓ | 2 |
-| `numerics` | `scipy/scipy` | 3,798 | 1 | | | ✓ | ✓ | — |
+| `numerics` | `scipy/scipy` | 3,798 | 1 | | | ✓ | ✓ | 2 |
 | `compiler` | `numba/numba` | **1,686** | 0 | ✓ | ✓ | ✓ | | 2 |
 | `llminfer` | `ggml-org/llama.cpp` | 7,103 | 2 | | | | ✓ | 4 |
 | `vectordb` | `qdrant/qdrant` | 11,530 | 0 | | ✓ | ✓ | | 4 |
@@ -126,8 +126,8 @@ blind spots, not to add more of the same:
 Coverage after: **T 4, B 11, N 13, C 11** across 22 cases (cohort 1 contributed
 T 2, B 5, N 5, C 5).
 
-**Effect on the concentration problem** — targets **24 → 46**, `rag`'s share
-**21% → 11%**, effective repo count **5.4 → 14.3** of 16 contributing cases.
+**Effect on the concentration problem** — targets **24 → 48**, `rag`'s share
+**21% → 10%**, effective repo count **5.4 → 15.2** of 17 contributing cases.
 
 **Two predictions of mine that the measurement refuted**, kept here because the
 labels were nearly shipped as asserted:
@@ -145,11 +145,14 @@ labels were nearly shipped as asserted:
    interesting cases in the set: the hop is structurally blind there and the
    research exists anyway.
 
-Three cases contribute **0 targets** and are kept: `encryption` (Opus abstained
-entirely — correct for a repo whose literature is on IACR), `linter` (Opus made 3
-picks, the judge rejected all 3 — an over-firing case worth having), and `numerics`
-(the headless baseline does not finish on a repo scipy's size; recorded as a harness
-limitation rather than a result).
+Two cases contribute **0 targets** and are kept: `encryption` (Opus abstained
+entirely — correct for a repo whose literature is on IACR) and `linter` (Opus made 3
+picks, the judge rejected all 3 — an over-firing case worth having).
+
+`numerics` needed a second, longer run: the headless baseline takes >10 minutes and
+$3.25 on a repo scipy's size and was cut short by the batch loop, not by any harness
+limit. It contributes 2 targets. Budget wall-clock, not just dollars, when adding
+large repos.
 
 ## Interpreting the metrics
 
