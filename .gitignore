@@ -200,6 +200,12 @@ evals/results/
 # RepoRadar generated output (local runs)
 /reporadar_digest.*
 /digests/
+# Scratch configs for pointing `rr` at a benchmark clone (`diffusion.reporadar.yml`
+# and friends). They carry absolute machine-specific paths, so they must not be
+# committed by a stray `git add -A`.
+# The leading `?` is load-bearing: gitignore's `*` matches the empty string, so
+# `/*.reporadar.yml` would also hide a user's real `.reporadar.yml` — verified.
+/?*.reporadar.yml
 
 # PyPI configuration file
 .pypirc

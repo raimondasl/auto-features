@@ -210,6 +210,14 @@ item-count truncation guard, the §6.5 failure class). Persist to
 backward band × cross-repo document frequency × citation floor, scored on retention of the
 18 known-goods vs shrinkage. **$0, no LLM calls, 2–3 days.**
 
+> **The target list is derived, never read from a file.**
+> `evals/diagnose_pool.py::actionable_baseline_ids(case)` intersects the cached baseline
+> picks with judge score ≥ 2 and yields **24** ids (18 of them inside the hop's reach). A
+> stray `baseline_ids.json` in the repo root held **28** — it had skipped the judge filter
+> and carried 4 phantom `webdev` "targets" on a negative control with zero actionable
+> papers, plus one non-arXiv id. Scoring recall against it would have inflated the
+> denominator by 17%. It is deleted; call the function.
+
 **Prediction:** some threshold retains ≥15/18 while cutting the mean seeded-case pool
 (~13,145) by ≥75%. **Kill:** if ≥5 of 18 targets have forward AND backward degree ≤1,
 coupling cannot beat the noise floor at any threshold — close Design 1 as a corrected-pool
