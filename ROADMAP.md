@@ -310,6 +310,51 @@ channel: feature 12's OpenAlex semantic search). Stage 2 ≤5/24 — the REPORTE
 inflated; P1–P3 proceed alone. **Overlap:** feature 7's HyDE item; feature 13's
 `--local-only` by another route (discovery would transmit nothing).
 
+> #### RESULT (2026-08-06) — stage 1 4/4, stage 2 met on aggregate. **The first technique measured that beats the citation hop.**
+>
+> Scope restated before running, as with P3: P4 was written against 24 targets, the benchmark
+> now holds **48**, so the gates were scaled by the same fractions — ≥16/48 in top-1k, kill at
+> ≤10/48. `crypto 2/2` was kept verbatim.
+>
+> **Stage 1, $0** (`evals/verify_hyde_deps.py`): the dataset is
+> `bluuebunny/arxiv_abstract_embedding_mxbai_large_v1_milvus_binary` — apache-2.0,
+> **3,106,925 rows**, binary vector column. Columnar range-fetch is real (**15.9%** of a
+> shard for `id`+`vector`). Latency **1.21 s**, *faster* than the reported 1.87 s. **48/48**
+> targets present. Two corrections: the REPORTED "~370 MB sync" is 432 MB and only with
+> column pruning (the full dataset is 2,542 MB), and each shard holds one row group, so C2
+> measured column pruning rather than row-group pruning.
+>
+> **The check this plan did not think to name.** Nothing in C1–C4 establishes that a vector
+> *we* compute is comparable to the ones in the index. Stage 2 now refuses to run until it
+> reproduces stored vectors bit-for-bit — mxbai-embed-large-v1 over the abstract alone,
+> normalised, binarised at >0: **Hamming 0/1024**. Had the publisher embedded title+abstract,
+> every number below would have been noise that looked healthy.
+>
+> **Stage 2, ~$0.20** (`evals/hyde_replication.py`), blind, 48 targets, 17 cases:
+>
+> | arm | top-100 | top-1k | median rank | within 4k |
+> |---|---|---|---|---|
+> | hyde4-union | 5/48 | **27/48** | **837** | **42/48** |
+> | hyde4-centroid | 4/48 | 17/48 | 2,805 | 27/48 |
+> | hyde1 | 2/48 | 12/48 | 4,317 | 23/48 |
+> | readme | 7/48 | 10/48 | 46,656 | 12/48 |
+> | keywords | 0/48 | 3/48 | 32,582 | 9/48 |
+>
+> **The decisive number is the overlap, not the recall.** The hop reaches 21/48, HyDE 27/48,
+> the **union 36/48 (75%)** — and **15 targets are HyDE-only**, i.e. structurally unreachable
+> by any bibliography. Design 2's REPORTED union was ≥71%; measured on twice the targets, 75%.
+> Density too: the hop's pools are 1 good paper per 5,224 candidates, HyDE-centroid 1 per
+> 1,000.
+>
+> **What did not replicate:** `crypto` 1/2 and `systems` 0/1 — the specific two-repo claim
+> that motivated Design 2 fails at the repo level, and the run script reports it separately
+> so the aggregate cannot absorb it. `readme` is bimodal: 7/48 in the top 100, median 46,656.
+>
+> **What this does not settle:** every candidate still terminates in triage, which collapses
+> on the ranker's top-10. P4 raises the ceiling; it does not deliver a better digest. The
+> next question is P5's — what a filter over this pool costs in precision. Nothing ships from
+> P4 yet; `--foundational` gating and the 432 MB sync are a separate build decision.
+
 ### P5. Label the pool where the filter will live — stratified judge sample + shipped-gate admit rates (~$10)
 
 **Grounding:** the 602 labels cover only ranker/baseline-surfaced papers — any hop-pool

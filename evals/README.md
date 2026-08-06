@@ -492,6 +492,16 @@ evals/
                      free/keyless: one citation hop from the repo's own bibliography.
                      18/24 — the only approach measured that reaches the papers at all,
                      at 1 good paper per 5111 candidates (recall solved, precision not)
+  verify_hyde_deps.py
+                     free/keyless, P4 stage 1: the four load-bearing dependencies of
+                     RETRIEVAL_DESIGN Design 2 — does the 3.1M-vector arXiv index exist
+                     under a usable licence, is columnar range-fetch real, is the query
+                     latency reproducible, are the targets in it. Gates stage 2 at 4/4
+  hyde_replication.py
+                     ~$0.20 + 432 MB, P4 stage 2: blind HyDE against that index. Refuses
+                     to run until it reproduces the publisher's own vectors bit-for-bit.
+                     `--build` fetches the id+vector columns; the run compares hypothesis
+                     abstracts against README and keyword queries on the same index
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode
