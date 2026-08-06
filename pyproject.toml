@@ -33,6 +33,10 @@ evals = [
     # prioritization methods" vs "prioritized experience replay" share no exact token,
     # but stem to the same terms.
     "snowballstemmer>=2.2",
+    # P4 reads one column out of a remote Parquet shard over HTTP Range, to check
+    # whether Design 2's "columnar range-fetch" is real before anything is built on
+    # it. Nothing in src/reporadar imports it.
+    "pyarrow>=15",
 ]
 mcp = [
     # Only needed for `rr mcp` (RepoRadar as an MCP server for coding agents).

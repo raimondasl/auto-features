@@ -515,6 +515,121 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P4 — Design 2 verified, then replicated: HyDE reaches 27 of 48, and 15 of those the citation hop cannot (2026-08-06)
+
+```bash
+uv run python evals/verify_hyde_deps.py              # stage 1, $0, ~40 MB
+uv run python evals/hyde_replication.py --build      # 432 MB of range requests, $0
+uv run python evals/hyde_replication.py              # ~$0.20 of Haiku, ~25 min CPU
+uv run python evals/hyde_replication.py --report     # re-derive from saved ranks
+```
+
+**This is the first measured technique that beats the bibliography-seeded citation hop.**
+Everything tried since P1 — coupling-degree filtering, gap-phrase matching, synthetic hop
+seeds — either failed to replicate or failed to beat a control. This one does not.
+
+### Stage 1 — the four dependencies, before building anything
+
+RETRIEVAL_DESIGN Design 2 was the largest single recall candidate in the project and every
+dependency it rested on was marked unverified. P4's gate was 4/4 or nothing.
+
+| check | pre-registered bar | measured | |
+|---|---|---|---|
+| C1 exists + licence | resolves, permissive licence, ≥3.0M rows, binary vector column | `bluuebunny/arxiv_abstract_embedding_mxbai_large_v1_milvus_binary`, **apache-2.0**, **3,106,925 rows**, `id: string` + `vector: binary` | PASS |
+| C2 columnar range-fetch | ≤25% of a shard's bytes; vectors decode to 128 B | **15.9%** — 25.1 MB of the 158.1 MB 2021 shard, 2 range requests, all vectors 128 B | PASS |
+| C3 query latency | ≤4×1.87 s | **1.21 s**, best of 3 — **0.6× the reported figure** | PASS |
+| C4 target coverage | every target older than the snapshot present, ≤4 missing | **48/48**, including two papers from 2026-07 | PASS |
+
+Two things the checks corrected rather than confirmed:
+
+- **"~370 MB one-time index sync" is only true with column pruning.** The dataset is
+  **2,542 MB** on disk. Fetching `id` + `vector` and nothing else costs **432 MB** — within
+  17% of the reported figure. Without C2 the cost line of Design 2 is off by 5.9×.
+- **C2 measured column pruning, not row-group pruning.** Each shard holds exactly one row
+  group, so "one row group" was the whole year. That is the right test for this workload —
+  we want all rows and 2 of 9 columns — but it is not evidence that a reader can skip *rows*.
+
+### The fifth dependency, which P4 did not think to name
+
+The four checks establish that the index exists, is fetchable, is fast, and contains the
+targets. **None of them establishes that a vector we compute is comparable to the vectors
+in it.** If the publisher had embedded title+abstract, or normalised differently, every
+query would have measured nothing while looking perfectly healthy — and this project has
+lost a week to exactly that shape of failure twice.
+
+So stage 2 refuses to run until it reproduces stored vectors bit-for-bit. It does:
+mxbai-embed-large-v1 over the **abstract alone**, L2-normalised, binarised at >0,
+`np.packbits` — **Hamming 0/1024 on 5 held-out papers**. Exact, not approximate.
+
+### Stage 2 — blind HyDE, 48 targets, 17 cases
+
+Hypotheses come from `assemble_repo_context()` and nothing else; the generator never saw
+the targets, the pool, or the judge. Four hypothesis abstracts per repo, Haiku 4.5, cached.
+Every arm searches the same 3.1M-vector index with the same encoder — **the query text is
+the only variable**.
+
+| arm | top-100 | top-1k | median rank | within 4k |
+|---|---|---|---|---|
+| **hyde4-union** (best of 4) | 5/48 | **27/48** | **837** | **42/48** |
+| hyde4-centroid (1 query) | 4/48 | 17/48 | 2,805 | 27/48 |
+| hyde1 (one guess) | 2/48 | 12/48 | 4,317 | 23/48 |
+| readme (today's `w_embedding`) | **7/48** | 10/48 | 46,656 | 12/48 |
+| keywords (today's arXiv query) | 0/48 | 3/48 | 32,582 | 9/48 |
+
+Pre-registered: ≥16/48 in top-1k, median <5,000, crypto 2/2; kill at ≤10/48.
+**Verdict: met on aggregate, crypto sub-claim not met.**
+
+**Read `hyde4-union` at 4× the budget.** Best-of-4 has already spent up to 4,000 candidates
+per repo by the time it reports a top-1k hit, so it is not comparable to a single-query arm
+at 1,000. The equal-candidate column is the fair one, and it says the same thing:
+**42/48 vs 23/48 for one hypothesis and 12/48 for the README.** Four diverse guesses are
+worth far more than one, at the same candidate cost.
+
+### The number that matters: the two channels barely overlap
+
+| | targets reached |
+|---|---|
+| citation hop (P1's pools) | 21/48 |
+| HyDE-4 top-1k | 27/48 |
+| **union** | **36/48 (75%)** |
+| HyDE-only — unreachable by the hop | **15** |
+
+Design 2's REPORTED union was ≥17/24 = 71%. Measured on twice the targets: **75%**. This is
+the claim that survives most cleanly, and it is the one that matters, because the hop's
+44% ceiling is structural — six benchmark repos have no arXiv-indexed bibliography at all.
+
+**Density, not just reach.** The hop's persisted pools hold **109,704 candidates for 21
+targets — 1 per 5,224**. HyDE-centroid finds 17 targets in 17,000 candidates (1,000/repo ×
+17 repos): **1 per 1,000, 5.2× denser**. HyDE-union finds 27 in at most 68,000: **1 per
+2,519**, 2.1× denser, at 62% of the hop's candidate count.
+
+### What did not replicate
+
+- **crypto 1/2, systems 0/1.** The specific claim that made Design 2 attractive — "it covers
+  the repos the citation hop cannot, `crypto` 2/2 and `systems` 1/1" — does **not** hold at
+  the repo level. `crypto`'s targets rank 459 and 2,976; `systems`' single target ranks
+  1,644. The aggregate replaces it: 15 hop-unreachable targets across the whole benchmark,
+  which is a better argument than the two repos it was originally made with. The run script
+  reports this separately and refuses to let the aggregate absorb it.
+- **`readme` wins top-100 and loses everywhere else** — 7/48 in the first 100, then a median
+  of **46,656**. It is bimodal: when a repo's README happens to read like the abstract of its
+  own literature it lands at the very top, and otherwise it is nowhere. That is the register
+  mismatch, visible as a distribution rather than as an average.
+
+### Caveats
+
+- Ranks are **optimistic**: ties break in the target's favour (`(dists < d).sum() + 1`), so
+  a reported median is a lower bound. It matters in the tail, not at the head.
+- `readme` and `keywords` are proxies for today's channels **inside this index**, not
+  measurements of the shipped pipeline (which uses MiniLM and arXiv's search API). They
+  answer "is the query text the problem", not "how good is RepoRadar today".
+- The encoder truncates at 512 tokens, which caps the `readme` arm's input. Part of its
+  weakness is that budget, not only its register.
+- This is **retrieval reach, not precision**. Every candidate still terminates in triage, and
+  triage collapses on the ranker's top-10. A better pool raises the ceiling; it does not on
+  its own produce a better digest.
+- 48 targets are a **top stratum**, not "the actionable papers" — see the section below.
+
 ## Is "lacks" losing because the judge only rewards improvement? No — but the gold set is a top stratum (2026-08-05)
 
 ```bash

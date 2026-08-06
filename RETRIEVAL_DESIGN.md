@@ -97,6 +97,22 @@ exist under the stated licence, is the columnar range-fetch real, and is 1.87 s/
 3.1M vectors reproducible? Every one of those is a single check, and this project has lost
 work to exactly this class of assumption.
 
+> **VERIFIED and REPLICATED, 2026-08-06** — ROADMAP P4, `evals/verify_hyde_deps.py` and
+> `evals/hyde_replication.py`, write-up in `evals/RESULTS.md`. All four dependencies hold
+> (apache-2.0, 3,106,925 rows, 15.9%-of-shard column fetch, **1.21 s/query**, 48/48 targets
+> present). Two corrections: the "~370 MB sync" is **432 MB** and only under column pruning
+> (the full dataset is 2,542 MB), and a **fifth** dependency this document does not name is
+> more load-bearing than any of the four — that a locally computed vector is comparable to
+> the stored ones. It is: mxbai-embed-large-v1 over the abstract alone, binarised at >0,
+> Hamming **0/1024**.
+>
+> Blind replication on 48 targets: HyDE-4 **27/48 in top-1k, median rank 837**, against
+> 10/48 for a README query and 3/48 for keywords in the same index. The **additivity claim
+> is the one that holds**: hop 21/48, HyDE 27/48, **union 36/48 (75%)** with **15 targets
+> reachable only by HyDE** — against a REPORTED ≥71% on half as many targets. The claim that
+> does **not** hold is the per-repo one quoted above: `crypto` is **1/2** and `systems`
+> **0/1**.
+
 ---
 
 ## Design 3 — Persistent per-repo neighbourhood, no query at all
