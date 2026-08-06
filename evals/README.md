@@ -502,6 +502,13 @@ evals/
                      to run until it reproduces the publisher's own vectors bit-for-bit.
                      `--build` fetches the id+vector columns; the run compares hypothesis
                      abstracts against README and keyword queries on the same index
+  mine_adoptions.py  $0 + ~$1, P6: ground truth no model produced. An arXiv id in a repo's
+                     docs at HEAD and absent 24 months earlier is a technique it actually
+                     adopted. 31 such adoptions across 6 repos; the judge calls 61% of them
+                     actionable against the repo AS IT WAS at T0 (2% is the random-arXiv
+                     floor), and the citation hop reaches 68% of them from the T0
+                     bibliography alone. Clones are blobless and SEPARATE from .work/<case>,
+                     whose working-tree state gates the verdict cache
   label_pool.py      ~$10, P5: the first labels drawn from the candidate pool itself rather
                      than from what the ranker surfaced. 1,200 papers through the shipped
                      gate, 320 through the judge, six strata plus a uniform-random-arXiv
