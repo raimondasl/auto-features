@@ -222,10 +222,14 @@ def main() -> int:
     ap.add_argument("--refresh", action="store_true", help="re-fetch shards even if cached")
     ap.add_argument("--model", default="claude-haiku-4-5", help="hypothesis generator")
     ap.add_argument("--report", action="store_true", help="re-read saved ranks, re-derive only")
+    ap.add_argument("--dump-topk", type=int, metavar="N", help="write the fused top-N per case")
     args = ap.parse_args()
 
     if args.build:
         build_index(args.refresh)
+        return 0
+    if args.dump_topk:
+        dump_topk(args.dump_topk)
         return 0
     if args.report:
         report(json.loads(OUT.read_text(encoding="utf-8"))["rows"])
@@ -287,6 +291,40 @@ def main() -> int:
     )
     report(rows)
     return 0
+
+
+def dump_topk(n: int) -> None:
+    """Write the fused `hyde4-union` ranking per case, so P5 can sample strata from it.
+
+    The replication only ever recorded the ranks of *known targets*; a filter experiment
+    needs the candidates themselves. Fusion is min-rank across the four hypotheses, which is
+    what "union of four lists" means and what the 27/48 figure was computed from.
+
+    No LLM calls — the hypotheses are cached.
+    """
+    from sentence_transformers import SentenceTransformer
+
+    out_dir = WORK / "hyde_topk"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    index, positions = load_index()
+    ids_by_position = [""] * index.shape[0]
+    for pid, pos in positions.items():
+        ids_by_position[pos] = pid
+    model = SentenceTransformer(MODEL)
+    cache = json.loads(HYP_CACHE.read_text(encoding="utf-8")) if HYP_CACHE.is_file() else {}
+    for case, hyps in sorted(cache.items()):
+        emb = model.encode(hyps, normalize_embeddings=True)
+        best: dict[str, int] = {}
+        for vec in emb:
+            dists = _hamming(index, np.packbits(vec > 0))
+            top = np.argpartition(dists, n)[:n]
+            for rank, pos in enumerate(top[np.argsort(dists[top])], start=1):
+                pid = ids_by_position[int(pos)]
+                if rank < best.get(pid, 1 << 30):
+                    best[pid] = rank
+        ordered = [p for p, _ in sorted(best.items(), key=lambda kv: kv[1])]
+        (out_dir / f"{case}.json").write_text(json.dumps(ordered), encoding="utf-8")
+        print(f"  {case:10} {len(ordered):,} distinct ids from {len(hyps)} hypotheses", flush=True)
 
 
 def _hop_reached() -> set[str]:

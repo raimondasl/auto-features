@@ -515,6 +515,97 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P5 — the pool is far denser than every recall number implied, and the gate's problem is recall, not precision (2026-08-06)
+
+```bash
+uv run python evals/hyde_replication.py --dump-topk 10000   # $0, the candidate lists
+uv run python evals/label_pool.py --dry-run                 # sample composition, $0
+uv run python evals/label_pool.py                           # ~$0.3 gate + ~$10.2 judge
+uv run python evals/label_pool.py --report                  # re-derive, $0
+```
+
+Every retrieval number in this project is **recall**. P1 cut a pool, P4 reached 27 of 48
+targets, and neither has a precision figure, because all ~800 cached verdicts describe papers
+the *ranker or the baseline* surfaced. This is the first time anything in the candidate pool
+has been labelled in the wild.
+
+1,200 papers scored by the shipped Haiku gate; a uniform random 320 of them also judged by
+GPT-5.5 under the shipped rubric. **Not one of the 320 is a gold target** — these are entirely
+fresh labels, so nothing below is circular with the 48.
+
+| stratum | gated | gate admits | judged | judge ≥2 | judge =3 |
+|---|---|---|---|---|---|
+| `hyde-top100` | 200 | 38.0% [31.6, 44.9] | 100 | **58.0%** [48.2, 67.2] | **9.0%** |
+| `hyde-100-1k` | 200 | 24.5% [19.1, 30.9] | 30 | 43.3% [27.4, 60.8] | 0.0% |
+| `hyde-1k-10k` | 200 | 13.0% [9.0, 18.4] | 30 | 13.3% [5.3, 29.7] | 0.0% |
+| `hop-coupling3+` | 200 | 43.5% [36.8, 50.4] | 30 | **66.7%** [48.8, 80.8] | **26.7%** |
+| `hop-coupling1` | 200 | 13.0% [9.0, 18.4] | 30 | 33.3% [19.2, 51.2] | 0.0% |
+| `random-arxiv` | 200 | **0.0%** [0.0, 1.9] | 100 | 2.0% [0.6, 7.0] | 0.0% |
+
+### 1. Separation: measured, large, and the prediction lands on the strict bar
+
+58.0% vs 2.0% is a **29× separation at p < 0.001**, against a predicted ≥6×. Two of the three
+pre-registered clauses are met outright; the third — floor ≤1% — misses by **one paper**
+(2/100), which at n=100 is inside sampling noise of the bar itself.
+
+At the **≥3 bar — the one the 48 gold targets were actually drawn at** — the prediction is met
+on all three clauses and lands almost exactly where it was set: **9.0% vs 0.0%, p = 0.0032**
+against a predicted ≥8% vs ≤1%. The ≥2 bar is the permissive one (PR #83 measured half a
+random *hop-pool* sample clearing it), so ≥3 is the number that compares to prior recall work.
+
+### 2. The density that recalibrates everything before it
+
+The hop's pools were described as **1 good paper per 5,224 candidates**. That figure measured
+*distance to a known gold target*. By the judge's own bar, the same pool's high-coupling band
+is **67% actionable and 27% score-3**, and HyDE's top-100 is 58%/9%.
+
+Those are not in conflict — they are two different questions — but every "1 in 5,111",
+"1 in 5,224" and "44% reach" in this file is the first question, and it has been read as the
+second. **The pool is not sparse in useful papers. It is sparse in *these* useful papers.**
+
+### 3. The gate: kill clause fired, premise refuted
+
+Pre-registered kill: wild-admit >20%. Measured on `hyde-100-1k`: **24.5%**. It fires.
+
+But the clause was written on the assumption that a high admit rate means a junk-dominated
+pool is fooling the gate. That premise is wrong here:
+
+- **precision 0.97** — 2 false positives in 66 admits across all 320 judged papers
+- **recall 0.60** — 43 actionable papers rejected
+- the band it fired on is **43.3% actionable, above its 24.5% admit rate**
+
+The gate is not admitting junk; it is **rejecting actionable papers**. And on the floor it is
+perfect: **0 of 200 random arXiv papers admitted**. Compare the labelled set, where the same
+gate measured precision 0.81 / recall 0.78 — off-distribution it becomes *more* precise and
+*less* sensitive. Read P5's kill as aimed at **recall**, and note that tightening the gate,
+the obvious move from every previous run, now costs recall for almost no precision left to buy.
+
+### 4. Where the cascade actually breaks
+
+| operating point | candidates/repo | gate admits | Haiku cost/repo/run |
+|---|---|---|---|
+| HyDE top-100 | 100 | ~38 | ~$0.02 |
+| HyDE top-1k | 1,000 | ~245 | ~$0.23 |
+| HyDE top-10k | 10,000 | ~1,300 | ~$2.30 |
+
+The gate is **affordable** at every point and **insufficient** at all of them: even the
+tightest admits ~38 papers where a digest wants ~10. The missing stage is not a stricter
+gate — at 0.97 precision there is nothing left to tighten — it is **ranking within the
+admitted set**. That is the same conclusion the 2026-07-06 all-time run reached, now with
+numbers: *"discovery is solved; precision on the enriched pool is the remaining gap."*
+
+### Caveats
+
+- Four strata are judged at **n=30 and are descriptive only** — pre-registered as such,
+  because nothing separating 8% from 1% can reach significance at that size. Only the
+  `hyde-top100` vs `random-arxiv` pair (n=100 each) is a test.
+- `hop-coupling3+` looks like the densest stratum, but its CI overlaps `hyde-top100`'s.
+  "At least as dense" is what the data supports.
+- The draw is **balanced across repos**, so these are per-repo mean densities. `graph` alone
+  is 42,112 of the hop pool's 109,704 rows and took **139 of 200** slots in a flat draw.
+- The judge remains the arbiter, not ground truth. P6 (git-history adoption) and P7
+  (second-judge kappa) are still the tests of that, and nothing here touches them.
+
 ## P4 — Design 2 verified, then replicated: HyDE reaches 27 of 48, and 15 of those the citation hop cannot (2026-08-06)
 
 ```bash

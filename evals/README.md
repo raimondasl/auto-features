@@ -502,6 +502,12 @@ evals/
                      to run until it reproduces the publisher's own vectors bit-for-bit.
                      `--build` fetches the id+vector columns; the run compares hypothesis
                      abstracts against README and keyword queries on the same index
+  label_pool.py      ~$10, P5: the first labels drawn from the candidate pool itself rather
+                     than from what the ranker surfaced. 1,200 papers through the shipped
+                     gate, 320 through the judge, six strata plus a uniform-random-arXiv
+                     floor. Established that the pool is dense (top band 58% actionable vs
+                     2% floor) and that the gate's failure is recall (0.60), not precision
+                     (0.97). `--dry-run` shows the sample and cost without calling anything
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode
