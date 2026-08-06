@@ -376,6 +376,45 @@ CIs); gate wild-admit ≤10%. Cascade arithmetic then closes: filter (≥4×) �
 overlapping CIs — sampled labelling cannot see filter quality at this density. Independently:
 gate wild-admit >20% — the terminal stage must be redesigned before any cascade ships.
 
+> #### RESULT (2026-08-06) — separation MET at the strict bar; the gate kill fired with its premise refuted
+>
+> Design restated before running (`evals/label_pool.py`): P5 predates P4, so its four hop-only
+> strata became **six** — three rank bands of the fused HyDE ranking, two coupling bands of the
+> hop pool, and a uniform draw from all 3.1M arXiv papers as the floor. The floor arm is the
+> one that makes the rest readable; its absence is what made the `lacks` numbers unreadable in
+> §7. 1,200 papers gated, 320 judged, **none of them a gold target** — the labels are fresh.
+>
+> | stratum | gate admits | judge ≥2 | judge =3 |
+> |---|---|---|---|
+> | `hyde-top100` | 38.0% | **58.0%** | **9.0%** |
+> | `hyde-100-1k` | 24.5% | 43.3% | 0.0% |
+> | `hyde-1k-10k` | 13.0% | 13.3% | 0.0% |
+> | `hop-coupling3+` | 43.5% | **66.7%** | **26.7%** |
+> | `hop-coupling1` | 13.0% | 33.3% | 0.0% |
+> | `random-arxiv` | **0.0%** | 2.0% | 0.0% |
+>
+> **Separation:** 58% vs 2%, a 29× effect at p < 0.001. At the **≥3 bar — where the 48 gold
+> targets were drawn** — it is 9.0% vs 0.0% (p = 0.0032) and all three pre-registered clauses
+> are met, almost exactly on the predicted ≥8% vs ≤1%. At the ≥2 bar the floor clause misses by
+> a single paper; the report prints the clauses separately so one miss cannot outvote the effect.
+>
+> **Gate:** the >20% wild-admit kill fires at 24.5% — but its premise does not hold. Precision
+> is **0.97** (2 false positives in 66 admits), recall **0.60** (43 rejected actionable papers),
+> and the band it fired on is 43% actionable, *above* its admit rate. The gate rejects 200/200
+> random arXiv papers. It is not admitting junk; it is dropping actionable work. **Read the kill
+> as aimed at recall** — and note that tightening the gate, the move every previous run
+> suggested, now buys nothing and costs recall.
+>
+> **What this changes upstream.** "1 good paper per 5,224 candidates" measured distance to a
+> known gold target, not the density of useful papers. By the judge's own bar the same pool's
+> high-coupling band is 67% actionable. Every recall framing in RESULTS.md needs reading in
+> that light.
+>
+> **Where the cascade breaks:** the gate is affordable everywhere (~$0.23/repo/run at 1,000
+> candidates) and sufficient nowhere — the tightest operating point still admits ~38 papers for
+> a ~10-paper digest. The missing stage is **ranking within the admitted set**, not a stricter
+> gate. That is the 2026-07-06 all-time run's conclusion, now with numbers.
+
 ### P6. Temporal adoption ground truth — papers a repo actually cited later, mined from git history
 
 **Grounding:** everything measured is agreement-with-GPT-5.5, and the 24 recall targets are
