@@ -272,3 +272,54 @@ class TestSeedRankingIsActuallySelectable:
         assert by_votes[0] == "a.1", "votes ranking should lead with the most-agreed paper"
         assert by_cites[0] == "c.3", "citation ranking should lead with the biggest hub"
         assert set(by_votes) != set(by_cites), "the rank argument had no effect"
+
+
+class TestAlternateRubricsDoNotPoisonTheGoldCache:
+    """`judge_paper` keys its cache on (model, repo, paper_id) — NOT on the rubric.
+
+    The rubric only lands inside the file as `_prompt_hash`, and
+    `diagnose_pool.actionable_baseline_ids` reads `score` without checking that hash. So any
+    experiment that swaps `judge_mod.RUBRIC` and lets the cache write will silently overwrite
+    the gold verdicts with scores from a different question.
+
+    That happened: an EXTEND-rubric run knocked 9 known targets below the >=2 threshold and
+    took `rag` from 5 targets to 0. Restored by re-judging. Any script scoring papers under a
+    non-shipped rubric must pass use_cache=False.
+    """
+
+    def test_score_group_never_writes_to_the_shared_cache(self) -> None:
+        ev = _load("extend_vs_improve")
+        seen: dict = {}
+
+        def fake_judge(repo, ctx, paper, *, model=None, use_cache=True, **kw):  # type: ignore[no-untyped-def]
+            seen["use_cache"] = use_cache
+            return {"score": 1, "justification": "x", "proposed_change": ""}
+
+        with patch.object(ev.judge_mod, "judge_paper", side_effect=fake_judge):
+            ev.score_group(
+                "cv",
+                "ctx",
+                [{"arxiv_id": "1.1", "title": "t", "abstract": "a"}],
+                ev.EXTEND_RUBRIC,
+                "extend",
+                "m",
+            )
+        assert seen.get("use_cache") is False, (
+            "score_group let judge_paper write to the shared gold cache under an "
+            "alternate rubric — this corrupts actionable_baseline_ids()"
+        )
+
+    def test_the_shipped_rubric_is_restored_after_scoring(self) -> None:
+        """A swapped module-global must not leak to whatever runs next in the process."""
+        ev = _load("extend_vs_improve")
+        before = ev.judge_mod.RUBRIC
+        with patch.object(ev.judge_mod, "judge_paper", side_effect=RuntimeError("boom")):
+            ev.score_group(
+                "cv",
+                "ctx",
+                [{"arxiv_id": "1.1", "title": "t", "abstract": "a"}],
+                ev.EXTEND_RUBRIC,
+                "extend",
+                "m",
+            )
+        assert before == ev.judge_mod.RUBRIC

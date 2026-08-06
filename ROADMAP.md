@@ -391,6 +391,40 @@ making them a sharp control). **Kill:** lands inside the band — then informati
 not the gate's constraint, and that negative directly calibrates item 0's triage arm
 before item 0 spends on hand-authored goals.
 
+### P9. An "extend this project" mode — NOT justified yet; the instrument exists
+
+**Status: proposed, tested, and the test came back negative.** Recorded so the idea is not
+re-proposed without new evidence, and so the instrument built for it is not rebuilt.
+
+The proposal was that the "lacks" prompt is not failing — it finds papers that would *extend*
+a repo, while the whole benchmark is built on a judge that asks whether a paper would
+*improve* one ("directly addresses a known limitation or core capability"). Those two
+hypotheses predict identical numbers in
+[Negative result 7](../evals/RESULTS.md), so it was a real gap in that conclusion.
+
+**Measured** (`evals/extend_vs_improve.py`, ~$3): no dissociation. Under a rubric written to
+reward new capability and cap refinements at 1, `lacks` papers score **1.75 → 1.38**, i.e.
+*lower*, and targets **2.75 → 2.00**. The rubric is not broken — it separates targets (2.00)
+from a random pool sample (1.18). `lacks` retrievals are simply not extensions.
+
+A second reading, that 68% of `lacks` papers scoring ≥2 meant the gold set was incomplete,
+was also mostly refuted: **50% of uniformly random hop-pool papers score ≥2**. `lacks` beats
+random by +0.38 (permutation p = 0.015) — real but modest, against targets' +1.38.
+
+**What to keep:**
+
+- `EXTEND_RUBRIC` in `evals/extend_vs_improve.py` is a working instrument. If extension
+  discovery is ever wanted, that is how to measure it — and it would need **its own gold
+  set**, since the current one was built end-to-end by an improvement judge and cannot score
+  an extension channel fairly.
+- The random-control pattern. Without it, "68% are actionable" reads as a strong result; with
+  it, most of that is the judge's ≥2 bar being permissive on topically-adjacent papers.
+
+**What would revive this:** evidence from real maintainers that they want capability
+extensions more than component improvements — i.e. a preference signal from outside the
+judge. That is a user-research question, not a retrieval one, and it sits closer to item 0
+(user-stated goals) than to the retrieval plan.
+
 ### Dropped, with reasons (so they are not re-proposed)
 
 - **Multi-sample gate voting** — its supporting evidence misattributed a variance source.
