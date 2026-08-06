@@ -28,8 +28,14 @@ jobs:
       # lockfile is never validated — which is how it drifted for ~a month after
       # the `mcp`/`vectors` extras were added without a re-lock, while CI stayed
       # green. A committed lockfile that CI does not check is decoration.
+      # `evals` is here because tests/ imports the eval scripts directly (the hop-pool
+      # and gold-cache guards load evals/*.py by path), so the runner needs whatever
+      # those scripts import at module level. Installing only `dev` made that an
+      # accident waiting for the next dependency: P2's stemmed-BM25 arm added
+      # `snowballstemmer` to gap_match.py, and the first test to import a module that
+      # imports gap_match failed with ModuleNotFoundError on all three Pythons.
       - name: Install dependencies
-        run: uv sync --locked --extra dev
+        run: uv sync --locked --extra dev --extra evals
 
       - name: Ruff (lint)
         run: uv run ruff check .
