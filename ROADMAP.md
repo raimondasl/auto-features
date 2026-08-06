@@ -437,6 +437,37 @@ of them; judge scores ≥70% actionable against the T0 repo — **if <40%, the j
 measuring the product's goal.** **Kill:** <10 usable adoptions or >80% self-citations —
 ground truth must come from CHANGELOG/PR mining or new citation-rich benchmark cases.
 
+> #### RESULT (2026-08-06) — the judge is not invalidated; 2 of 3 pre-registered bars met
+>
+> Scope restated before running: P6 was written for 12 cases and named 7 arXiv-rich repos.
+> The arXiv-rich set is now measured rather than assumed. Clones are **blobless and separate**
+> (`.work/fullclone/`, `--filter=blob:none --no-checkout`) — the `.work/<case>` clones gate the
+> verdict cache and checking out an old commit in one would silently re-key every verdict.
+>
+> | | predicted | measured | |
+> |---|---|---|---|
+> | usable adoptions | ≥30 across ≥6 repos | **31 across 6** | MET |
+> | retro-recall (T0 hop) | ≥60% | **21/31 = 68%** | MET |
+> | judge calls them actionable | ≥70% | **19/31 = 61%** | below |
+> | — the invalidation bar | <40% ⇒ judge invalid | **61%** | **NOT invalidated** |
+>
+> **The question P6 exists to ask is answered: the judge is measuring approximately the right
+> thing.** It scores 61% of verifiably-adopted papers actionable against a 2% random-arXiv
+> floor (P5). And retro-recall at 68% is the only recall figure in the project whose targets
+> no model chose — higher than the 44% the hop reaches against the Opus-derived gold set.
+>
+> **The instrument has a noise direction nobody predicted.** All 12 judge misses were traced
+> to the file they live in: `rl`'s 2 are on `docs/misc/projects.md`, a list of **downstream
+> users** of stable-baselines3; all 5 of `graph`'s are background citations in one tutorial;
+> one is a **broken arXiv link in the diffusers docs**. Only 4 are genuine disagreements. On
+> the 23 verified adoptions the judge scores **83%** and retro-recall is **74%** — post-hoc,
+> reported as such, and each exclusion checkable by opening the file.
+>
+> **Named next refinement:** a reverse-citation filter on paths matching
+> `projects|showcase|used[-_ ]by`, the same shape as the existing self-citation filter. It
+> would have removed `rl` entirely — and with it, one of the 6 repos, so the stricter labels
+> would miss the yield bar. That trade is the real state of this ground truth.
+
 ### P7. Label-noise floor — second-judge kappa over 200 of the 602 labels
 
 **Grounding:** every labelled-set decision, including shipping prose-300, rests on

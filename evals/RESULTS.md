@@ -515,6 +515,119 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P6 — ground truth without a model: the judge agrees with what repos actually adopted (2026-08-06)
+
+```bash
+uv run python evals/mine_adoptions.py --mine     # $0, blobless clones + two bibliography reads
+uv run python evals/mine_adoptions.py --judge    # ~$1, 31 papers vs the T0 repo
+uv run python evals/mine_adoptions.py --hop      # $0, retro-recall from the T0 bibliography
+uv run python evals/mine_adoptions.py --report   # re-derive, $0
+```
+
+Every number in this file is agreement with GPT-5.5, and the 48 recall targets are Opus
+picks the judge then scored — circular twice over. P5 made that heavier, not lighter: "58% of
+the top band is actionable" is 58% *by the judge's bar*.
+
+This is the first label in the project that no model produced. An arXiv id **in a repo's docs
+at HEAD and absent 24 months earlier** is a technique that project demonstrably took up:
+
+    ids(HEAD) - ids(T0)  =  what this repo adopted, as judged by the repo
+
+| case | adopted | self-cited | too new | usable |
+|---|---|---|---|---|
+| `graph` | 14 | 1 | 0 | **13** |
+| `diffusion` | 9 | 0 | 2 | **7** |
+| `peft` | 15 | 10 | 1 | **5** |
+| `llminfer` | 2 | 0 | 0 | 2 |
+| `rag` | 2 | 0 | 0 | 2 |
+| `rl` | 2 | 0 | 0 | 2 |
+
+**31 usable adoptions across 6 repos** — the pre-registered yield bar (≥30 across ≥6) is met,
+almost exactly on the line. Self-citation fraction 25%, far under the 80% kill bar; `peft` is
+where that filter earns its place, since 10 of its 15 new ids are its own papers under a
+Citation heading. Sixteen repos yielded nothing, and the split is informative: seven
+(`encryption`, `http`, `linter`, `storage`, `systems`, `vectordb`, `webdev`) have **zero
+arXiv ids at either end** — the structural zeros P6 pre-registered — while `cv`, `numerics`,
+`speech` and `db` have stable bibliographies (18→18, 2→2) that cite without adding.
+
+### The three pre-registered outcomes
+
+| | predicted | measured | |
+|---|---|---|---|
+| usable adoptions | ≥30 across ≥6 repos | **31 across 6** | MET |
+| retro-recall (T0 hop) | ≥60% | **21/31 = 68%** | MET |
+| judge scores them actionable | ≥70% | **19/31 = 61%** | below prediction |
+| — the bar that matters | ≥40% or the judge is invalid | **61%** | **judge NOT invalidated** |
+
+Scores `0:3 1:9 2:15 3:4`. For scale, P5 measured this same judge calling **2%** of random
+arXiv papers actionable, so 61% against papers a repo verifiably adopted is a long way from
+chance and a little short of what P6 predicted.
+
+**Retro-recall is the only recall number in this project whose targets were not chosen by a
+model**, and at 68% it is *higher* than the 44% the hop achieves against the Opus-derived
+gold set. `llminfer` is the exception at 0/2 — llama.cpp had 3 seeds at T0, and P1 already
+measured the seed-count cliff (≥7 seeds → 89%, <7 → 33%).
+
+### What the 12 misses actually are
+
+Each was traced back to the file it lives in, which turns "the judge disagreed" into
+something checkable:
+
+- **`rl` 0/2 is a labelling error, not a judge error.** Both ids are in
+  `docs/misc/projects.md` — stable-baselines3's *"Projects using SB3"* page. Those are
+  **downstream users of the library**; the citation direction is reversed and SB3 adopted
+  nothing.
+- **All 5 `graph` misses are in one file**, `docs/source/tutorial/graph_transformer.rst`:
+  BERT, ViT, Attention Is All You Need, Big Bird, Performers, cited as background in a
+  tutorial explaining graph transformers. "Outside PyG's graph-neural-network scope" is right.
+- **One is a broken link in the diffusers docs.** `2412.11963` is labelled "LongCat-Image
+  Technical Report" in `longcat_image.md`; the paper actually at that id is *Approximating the
+  Top Eigenvector in Random Order Streams*. The miner extracted it faithfully and the judge
+  scored the real paper 0.
+
+That leaves **4 genuine disagreements** — an autoregressive video model in `diffusers`,
+Megatron-LM in `peft`, and two similar cases where the judge said "broadly related, not a
+component-level improvement".
+
+### The same numbers on the 23 verified adoptions — post-hoc, and labelled as such
+
+| | all 31 mined (pre-registered) | 23 verified |
+|---|---|---|
+| judge actionable | 19/31 = **61%** | 19/23 = **83%** |
+| retro-recall | 21/31 = **68%** | 17/23 = **74%** |
+
+All 8 excluded rows scored below the actionable bar, and `graph` goes from 8/13 to **8/8**.
+This is a post-hoc subset chosen after seeing which rows the judge missed — it is reported
+because each exclusion is verifiable by opening the file, not because it is the headline.
+**The headline is 61%.** Note also that the verified set spans 5 repos, not 6, so on the
+stricter labels the yield bar would be missed.
+
+### What this settles, and what it does not
+
+**Settled:** the judge is measuring approximately the right thing. It was the largest
+un-tested assumption under every number in this file, and P6's answer is that papers repos
+actually adopt score well above the 2% floor and — once background citations are removed —
+above the 70% the plan asked for.
+
+**Not settled:** `ids(HEAD) − ids(T0)` has a noise direction nobody predicted. Docs cite
+papers as background, and as a list of people using you. The concrete next refinement is a
+**reverse-citation filter** on paths matching `projects|showcase|used[-_ ]by`, the same shape
+as the existing self-citation filter; it would have removed `rl` entirely. Nothing here
+touches P7 — a second judge's kappa is still the test of whether GPT-5.5's *individual*
+verdicts are reproducible, and P6 speaks only to what it rewards on average.
+
+> **Harness failures, recorded because they cost five hours.** The retro-hop was launched by
+> `Start-Process` after an earlier `cd evals/.work/fullclone/rl` in a *different* tool call —
+> the working directory is shared, so it looked for `evals/mine_adoptions.py` inside a cloned
+> repo and died in under a second. The waiter watching it polled for `=== P6` in stdout or
+> `Traceback` in stderr; a bare "can't open file" is neither, so it looped for five hours
+> against a dead process, and a second stale waiter from an earlier killed run did the same.
+> Two lessons, both already known and both re-learned: use `git -C` rather than `cd`, and
+> **wait on process exit, not on log content** — a filter that only matches the happy path
+> and one failure shape reports a crash as silence. Underneath both was a real bug: `hop()`
+> takes its direction positionally as `references`/`citations`, not `forward`/`backward`, and
+> `retro_hop` omitted the argument entirely. That one now has three tests.
+
 ## P5 — the pool is far denser than every recall number implied, and the gate's problem is recall, not precision (2026-08-06)
 
 ```bash
