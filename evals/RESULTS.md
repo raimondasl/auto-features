@@ -515,6 +515,99 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P7 — the two judges rank the same papers the same way; they sit at different strictness (2026-08-06)
+
+```bash
+uv run python evals/second_judge.py --dry-run   # sample + prompt-hash check, $0
+uv run python evals/second_judge.py             # ~$2.20 of Sonnet
+uv run python evals/second_judge.py --report    # re-derive, $0
+```
+
+Every labelled-set decision here rests on **single-sample GPT-5.5 verdicts** deciding
+differences of ±10 to ±22 net@2, and nothing bounded their noise. P6 showed the judge rewards
+roughly the right thing *on average*; that is validity, and it says nothing about whether an
+individual verdict is reproducible — which is what those differences are made of.
+
+200 labels, stratified by case and verdict, re-judged by **Sonnet** with a byte-identical
+rubric. **All 12 cases reproduced their stored `_prompt_hash` before a call was made**, so
+the two judges answered the same question; a mismatch would have excluded the case.
+
+| statistic | value |
+|---|---|
+| exact agreement on 0–3 | 50% |
+| agreement on the ≥2 cut | 78% |
+| **Cohen's kappa (≥2 cut)** | **0.507** — below the ≥0.60 prediction, above the 0.40 kill bar |
+| quadratic-weighted kappa (0–3) | **0.727** |
+| base rate, GPT-5.5 / Sonnet | **40% / 22%** actionable |
+
+### The disagreement is a strictness offset, not a ranking difference
+
+| GPT-5.5 ↓ / Sonnet → | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| **0** | **58** | 0 | 0 | 0 |
+| **1** | 36 | **22** | 1 | 2 |
+| **2** | 4 | 36 | **8** | 0 |
+| **3** | 0 | 1 | 20 | **12** |
+
+Almost all the mass is on or one step below the diagonal. GPT's 0s are Sonnet's 0s — **58 of
+58, no exceptions**. GPT's 2s are mostly Sonnet's 1s; GPT's 3s are mostly Sonnet's 2s. That is
+one judge being consistently one notch stricter, which is why the ordinal kappa (0.727) is so
+much higher than the binary one.
+
+Moving only the second judge's threshold makes it explicit:
+
+| GPT ≥2 vs Sonnet ≥ | kappa | agreement |
+|---|---|---|
+| **≥1** | **0.711** | **86%** |
+| ≥2 (the shipped cut) | 0.507 | 78% |
+| ≥3 | 0.151 | 64% |
+
+**This distinction decides the remedy.** Genuine disagreement would mean the labels need
+adjudication before any further arm is run. A calibration offset means the *rankings* are
+reproducible and the threshold is a free parameter — and, crucially, that a **paired
+difference between two arms scored by the same judge largely cancels the offset**, which is
+what almost every conclusion in this file is.
+
+### Does the +22 survive a different judge?
+
+| prose300 − keywords, on these 200 papers | net@2 |
+|---|---|
+| under GPT-5.5 labels | **+2** |
+| under Sonnet labels | **+20** |
+
+Sign preserved, magnitude far above half — the pre-registered test passes. **It passes weakly
+and the reason matters**: the GPT-labelled delta on this subset is only +2, so "≥half of +2"
+is nearly vacuous. The subset is stratified *by verdict* to estimate kappa well, which
+deliberately over-samples 2s and 3s and distorts a net@2 recomputation. The informative
+reading is directional and it is a strong one: under a **stricter** judge the prose-300
+advantage is *larger*, not smaller, so the +22 is not an artifact of GPT-5.5's particular
+noise.
+
+### What this changes about every number in this file
+
+**Relative comparisons hold; absolute levels are judge-specific.** GPT calls 40% of this
+sample actionable and Sonnet 22% — a factor of ~0.55. So P5's "58% of the HyDE top-100 is
+actionable" would read ~32% under Sonnet, and P6's "61% of verified adoptions" ~34%. The
+*separations* — 58% against a 2% floor, adoptions against random papers — survive intact,
+because both judges order papers the same way. The levels do not.
+
+**And the pre-registered bar was missed, not met.** kappa 0.507 is "moderate" agreement. The
+labelled set is a noisier instrument than P7 predicted, and every ±10-to-±22 conclusion it has
+produced should be read with that in mind, offset-cancellation notwithstanding.
+
+### Caveats
+
+- Byte-identical rubric, but **not byte-identical framing**: the first judge sends the rubric
+  as an OpenAI system message and this sends one prompt string to Anthropic. That difference
+  is not removable while the judges are different vendors.
+- 7 of the first 200 responses were **truncated mid-justification at `max_tokens=500`** and
+  failed to parse. The visible scores in the fragments were 2, 2, 3 — so the dropout skewed
+  *actionable* and would have biased Sonnet's base rate down. Raised to 1,200 and re-run; the
+  numbers above are the full 200. A parse failure that correlates with the verdict is not a
+  random 3.5% loss.
+- Kappa bounds noise, not validity. Two LLMs can share a famous-technique halo and agree
+  confidently on the same wrong answer. P6 is the validity test; these compose.
+
 ## P6 — ground truth without a model: the judge agrees with what repos actually adopted (2026-08-06)
 
 ```bash

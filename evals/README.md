@@ -502,6 +502,13 @@ evals/
                      to run until it reproduces the publisher's own vectors bit-for-bit.
                      `--build` fetches the id+vector columns; the run compares hypothesis
                      abstracts against README and keyword queries on the same index
+  second_judge.py    ~$2, P7: the label-noise floor. Re-judges 200 of the 602 with Sonnet,
+                     byte-identical rubric, after checking every case still reproduces its
+                     stored _prompt_hash. kappa 0.51 on the shipped >=2 cut but 0.71 with
+                     the second judge's cut moved one notch — the judges RANK the same and
+                     differ in strictness, so paired arm-vs-arm differences largely cancel
+                     the offset while absolute levels do not. Writes to .work/, never to
+                     evals/cache/judge/
   mine_adoptions.py  $0 + ~$1, P6: ground truth no model produced. An arXiv id in a repo's
                      docs at HEAD and absent 24 months earlier is a technique it actually
                      adopted. 31 such adoptions across 6 repos; the judge calls 61% of them

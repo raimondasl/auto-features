@@ -485,6 +485,35 @@ under second-judge labels using the cached per-paper gate verdicts. **~$2–5, 1
 <0.4 — label noise swamps what the instrument decides; every labelled-set conclusion needs
 adjudicated labels or noise-adjusted CIs before another arm is run.
 
+> #### RESULT (2026-08-06) — kappa 0.51, below prediction, above the kill bar. The disagreement is a strictness offset.
+>
+> 200 labels re-judged by Sonnet, byte-identical rubric, stratified by case and verdict. **All
+> 12 cases reproduced their stored `_prompt_hash` before any call was made**, so both judges
+> answered the same question.
+>
+> | | |
+> |---|---|
+> | Cohen's kappa (≥2 cut) | **0.507** — below the ≥0.60 prediction, above the 0.40 kill |
+> | quadratic-weighted kappa (0–3) | **0.727** |
+> | base rate GPT-5.5 / Sonnet | **40% / 22%** |
+> | prose300 − keywords on the 200 | **+2** under GPT labels, **+20** under Sonnet's |
+>
+> **The confusion matrix is almost entirely on or one step below the diagonal**, and GPT's 0s
+> are Sonnet's 0s 58 times out of 58. Moving only the second judge's cut to ≥1 lifts kappa to
+> **0.711 at 86% agreement**. So the two judges *rank* papers the same way and sit at different
+> strictness — which decides the remedy: not label adjudication, but the recognition that a
+> **paired difference between arms scored by the same judge largely cancels the offset**. That
+> is the shape of nearly every conclusion in RESULTS.md.
+>
+> **What it changes upstream:** relative comparisons hold, absolute levels are judge-specific.
+> At Sonnet's strictness P5's "58% of the HyDE top-100 actionable" reads ~32% and P6's "61% of
+> adoptions" ~34%; the separations against their floors survive intact. **The prediction was
+> missed, not met** — the labelled set is a noisier instrument than P7 assumed.
+>
+> The +22 test passes but **weakly**: the GPT-labelled delta on this verdict-stratified subset
+> is only +2, so "≥half of +2" is nearly vacuous. The directional result is the strong one —
+> under a stricter judge the prose-300 advantage is larger, not smaller.
+
 ### P8. Verbatim issue-tracker wants as gate context — the single gating bet
 
 **Grounding:** the five purpose-statement arms converge at +85..+95; the rubric's score-3
