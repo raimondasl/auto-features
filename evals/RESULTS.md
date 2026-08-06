@@ -515,6 +515,109 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Is "lacks" losing because the judge only rewards improvement? No — but the gold set is a top stratum (2026-08-05)
+
+```bash
+uv run python evals/extend_vs_improve.py     # ~$3 of judge calls
+```
+
+Negative result 7 concluded that "lacks" phrases suffer a *different-target failure*. A reader
+raised the obvious objection: the judge's rubric says **"genuinely IMPROVE"** and scores 3 for
+a paper that "directly addresses a known limitation or core capability". A paper adding
+offline RL to a library that has none is not improving a known limitation — it is *extending
+the project's scope*, and that rubric would score it low even if a maintainer wanted it.
+
+**"Lacks retrieves badly" and "lacks retrieves extensions the benchmark cannot see" predict
+identical numbers in §7.** That conclusion was asserted without separating them. This is the
+control.
+
+Same papers, same repo context, same model; the **rubric is the only variable**. `EXTEND`
+deliberately caps a merely-refining paper at 1 however good it is, so the two rubrics can
+dissociate instead of one being a looser version of the other. A **uniform random sample of
+the same hop pool** is the third group, without which none of the numbers are readable.
+
+| group (n) | IMPROVE mean (≥2) | EXTEND mean (≥2) |
+|---|---|---|
+| `lacks` top-8/case (40) | **1.75** (68%) | 1.38 (40%) |
+| `targets` (8) | **2.75** (100%) | 2.00 (88%) |
+| **`random` pool sample (40)** | **1.38** (50%) | 1.18 (30%) |
+
+### Finding 1 — no dissociation; the judge-framing hypothesis is refuted
+
+Both groups score *lower* under EXTEND, not higher: `lacks` 1.75 → 1.38, `targets`
+2.75 → 2.00. The rubric works — it separates targets (2.00) from random (1.18) — and `lacks`
+retrievals still do not rise under it. **They are not extensions the improvement judge was
+blind to.** §7's conclusion stands, for the reason §7 gave.
+
+### Finding 2 — "68% of lacks papers are actionable" was mostly the judge being permissive
+
+A first reading of the IMPROVE column looked like evidence that the 21-paper gold list badly
+undercounts what is actionable. The random control mostly kills that: **50% of uniformly
+sampled hop-pool papers also score ≥2.** Papers one citation hop from a repo's own
+bibliography are topically adjacent by construction, and "could plausibly be integrated" is a
+low bar for them.
+
+`lacks` does beat random — **+0.38 mean score, permutation p = 0.015** (n=40 each) — so it
+carries real signal. But it is a modest lift, against `targets` at +1.38 over random.
+
+### Finding 3 — what survives: the gold set is a TOP STRATUM, not "the actionable papers"
+
+| group | score 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| random | 6 | 14 | 19 | **1** |
+| lacks | 1 | 12 | 23 | **4** |
+| targets | 0 | 0 | 2 | **6** |
+
+The 24 targets are the papers an agentic Opus baseline surfaced *and* the judge scored ≥2 —
+in practice mostly 3s. Merely-plausible papers are everywhere in the pool; strongly-useful
+ones are rare, and that is what the gold set indexes.
+
+This does **not** invalidate P1/P2/P3: they compare channels against a *consistent* gold set
+and those comparisons hold. It does change two readings:
+
+- **"1 good paper per 5,111 candidates"** (§3.5) is distance to a *known target*, not to
+  anything useful. By the judge's own ≥2 bar the hop pool is ~50% plausible.
+- **"the hop reaches 44%"** is 44% of the top stratum. It is a fair cross-channel number and
+  an understatement of usefulness.
+
+### What this leaves for an extension mode
+
+Not built, and not justified by this evidence — the experiment that would have justified it
+came back negative. What now exists is the **instrument**: `EXTEND_RUBRIC` separates targets
+(2.00) from random (1.18), so extension-oriented discovery is measurable if it is ever wanted.
+It would need its own gold set; the current one was built end-to-end by an improvement judge
+and cannot score an extension channel fairly.
+
+> **Two harness failures worth recording, and the second is the worst of the week.**
+>
+> **1. A total failure manufactured a finding.** The first run judged *nothing* — `judge.py`
+> reads `OPENAI_API_KEY` from the environment and the script never loaded `evals/.env` — and
+> then printed `">>> NO DISSOCIATION: 'lacks' papers are not extensions either. P2 stands."`
+> The verdict averaged empty lists to 0.0, so `extend <= improve` held trivially. The other
+> silent failures this week destroyed data; this one produced an *answer*, and one that
+> agreed with the conclusion already written. The script now refuses to print any verdict
+> while a 2×3 cell is empty, naming which, and exits non-zero.
+>
+> **2. The experiment corrupted the gold set it was measuring against.** `judge_paper` keys
+> its cache file on `(model, repo, paper_id)` — **not on the rubric**, which only lands
+> inside the file as `_prompt_hash`. Swapping `judge_mod.RUBRIC` and letting the cache write
+> therefore overwrote each target's IMPROVE verdict with its EXTEND score. Nine known targets
+> dropped below the ≥2 threshold and **`rag` went from 5 targets to 0**, because
+> `diagnose_pool.actionable_baseline_ids` reads `score` without checking the hash.
+>
+> Caught by `tests/test_eval_hop_pool.py` — the guard added earlier in the week pinning the
+> frozen `TARGETS` literal to the derived list — on the very next `pytest` run. Restored by
+> re-judging the 9 under the shipped rubric; all came back **1 → 3**, and the gold set is
+> back to 48 targets. `extend_vs_improve.py` now passes `use_cache=False`, which is
+> load-bearing rather than an optimisation, and two mutation-verified tests enforce it: one
+> that `score_group` never lets the cache write, one that the swapped module-global is
+> restored even when judging raises.
+>
+> The general rule: **an experiment that swaps a rubric must not share a cache with the
+> benchmark it is measured against.** The cache path scheme is the underlying hazard — it
+> was left as-is because re-keying it would invalidate every paid-for verdict in
+> `evals/cache/`, so the guard sits at the call site instead.
+
 ## Negative result 7 — gap-phrases do not beat pasting the keyword profile (2026-08-05)
 
 ```bash
