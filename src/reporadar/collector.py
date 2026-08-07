@@ -195,7 +195,9 @@ def _query_with_retry(
     Raises CollectionError if all retries are exhausted.
     """
     last_exc: Exception | None = None
-    for attempt in range(max_retries):
+    attempt = 0
+    throttle_waited = 0.0
+    while attempt < max_retries or throttle_waited < arxiv_rate.THROTTLE_BUDGET_S:
         # Process-wide, shared with signals/integrity.py. Two independent 3-second
         # limiters permit two requests per three seconds, which is not a limit.
         arxiv_rate.wait_turn()
@@ -209,14 +211,28 @@ def _query_with_retry(
         # this project's own machine a ~70-minute IP block.
         except (ConnectionError, TimeoutError, OSError, arxiv.ArxivError) as exc:
             last_exc = exc
-            if attempt < max_retries - 1:
-                # A throttle response is not a flaky socket. Retrying a 429 after 2 s is
-                # impolite exactly when the server has said "slow down", and it is how a
-                # throttle turns into an IP block.
-                if getattr(exc, "status", None) in (429, 503):
-                    delay = arxiv_rate.THROTTLED_BACKOFF * (2**attempt)
-                else:
-                    delay = max(base_delay * (2**attempt), arxiv_rate.min_interval())
+            throttled = getattr(exc, "status", None) in (429, 503)
+            # A throttle is not a flaky socket, and it outlasts three retries. Ordinary
+            # errors get `max_retries` attempts; a throttle gets a TIME budget, because
+            # giving up after 90 seconds is how two benchmark repos ended up with an empty
+            # pool that then scored as a legitimate zero.
+            if throttled:
+                if throttle_waited >= arxiv_rate.THROTTLE_BUDGET_S:
+                    break
+                delay = min(
+                    arxiv_rate.THROTTLED_BACKOFF * (2**attempt),
+                    arxiv_rate.THROTTLE_MAX_SLEEP_S,
+                )
+                throttle_waited += delay
+                logger.warning(
+                    "arXiv throttled us (HTTP %s). Waiting %.0fs; %.0fs of %.0fs budget used.",
+                    getattr(exc, "status", "?"),
+                    delay,
+                    throttle_waited,
+                    arxiv_rate.THROTTLE_BUDGET_S,
+                )
+            elif attempt < max_retries - 1:
+                delay = max(base_delay * (2**attempt), arxiv_rate.min_interval())
                 logger.warning(
                     "arXiv query failed (attempt %d/%d): %s. Retrying in %.1fs...",
                     attempt + 1,
@@ -224,8 +240,14 @@ def _query_with_retry(
                     exc,
                     delay,
                 )
-                time.sleep(delay)
-    raise CollectionError(f"arXiv query failed after {max_retries} attempts: {last_exc}")
+            else:
+                break
+            time.sleep(delay)
+            attempt += 1
+    raise CollectionError(
+        f"arXiv query failed after {attempt + 1} attempts "
+        f"({throttle_waited:.0f}s waiting out throttles): {last_exc}"
+    )
 
 
 def collect_papers(

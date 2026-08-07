@@ -514,7 +514,11 @@ class TestArxivThrottlingIsRetriedNotRaised:
         monkeypatch.setattr(collector.time, "sleep", lambda _s: None)
         with pytest.raises(collector.CollectionError):
             collector._query_with_retry(Boom(), object(), max_retries=3)
-        assert calls["n"] == 3, "a throttled request must be retried, not raised on first sight"
+        # Used to assert exactly 3. A throttle is now retried against a TIME budget rather
+        # than an attempt count, because 3 attempts (30s + 60s) gave up after 90 seconds
+        # while a real arXiv throttle ran for ~15 minutes — and two benchmark repos were
+        # left with an empty pool that scored as a legitimate zero.
+        assert calls["n"] > 3, "a throttled request must be waited out, not given up on"
 
     def test_a_transient_error_still_yields_results_on_retry(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
         import arxiv
