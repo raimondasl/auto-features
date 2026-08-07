@@ -374,7 +374,8 @@ class TestDataclassDefaults:
         cfg = ArxivConfig()
         assert cfg.categories == ["cs.LG", "cs.CL"]
         assert cfg.max_results_per_query == 50
-        assert cfg.lookback_days == 14
+        assert cfg.lookback_days == 36500
+        assert cfg.sort_by == "relevance"
 
     def test_queries_defaults(self) -> None:
         cfg = QueriesConfig()
@@ -385,7 +386,7 @@ class TestDataclassDefaults:
         cfg = RankingConfig()
         assert cfg.w_keyword == 1.0
         assert cfg.w_category == 0.5
-        assert cfg.w_recency == 0.3
+        assert cfg.w_recency == 0.0
         assert cfg.w_embedding == 0.0
         assert cfg.w_citations == 0.0
 
@@ -499,3 +500,34 @@ class TestHooksConfig:
         cfg = RepoRadarConfig(hooks=hooks)
         warnings = validate_config(cfg)
         assert any("smtp_port" in w for w in warnings)
+
+
+class TestShippedDefaultsMatchTheMeasuredConfiguration:
+    """The default used to be a 14-day submitted-first window, and nothing measured it.
+
+    Every headline Tier B number since 2026-07-06 was produced under `--rr-all-time`, which
+    is exactly these three values. The defaults and the validated configuration had drifted
+    apart for a month, so they are pinned here: changing one of them silently would make
+    every published number describe a configuration users do not get.
+
+    All 48 benchmark targets are >= 11 months old. A fortnight's window cannot reach any of
+    them, which is why this is a correctness question and not a taste one.
+    """
+
+    def test_discovery_is_all_time_and_relevance_first(self) -> None:
+        cfg = ArxivConfig()
+        assert cfg.lookback_days == 36500
+        assert cfg.sort_by == "relevance"
+
+    def test_recency_carries_no_ranking_weight_by_default(self) -> None:
+        assert RankingConfig().w_recency == 0.0
+
+    def test_the_generated_template_agrees_with_the_dataclass_defaults(self) -> None:
+        """`rr init` writes the template; a template that disagrees with the code ships a
+        different product than the tests exercise."""
+        import yaml
+
+        parsed = yaml.safe_load(default_config_yaml())
+        assert parsed["arxiv"]["lookback_days"] == ArxivConfig().lookback_days
+        assert parsed["arxiv"]["sort_by"] == ArxivConfig().sort_by
+        assert parsed["ranking"]["w_recency"] == RankingConfig().w_recency

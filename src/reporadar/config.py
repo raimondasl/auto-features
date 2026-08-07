@@ -54,11 +54,24 @@ def _normalize_off(value: Any) -> str:
 class ArxivConfig:
     categories: list[str] = field(default_factory=lambda: ["cs.LG", "cs.CL"])
     max_results_per_query: int = 50
-    lookback_days: int = 14
-    # "submitted" = newest-first (default, for a recency digest); "relevance" =
-    # best-match-first, which (with a large lookback_days) surfaces seminal older
-    # papers instead of only recent ones.
-    sort_by: str = "submitted"
+    # All-time, relevance-first. This used to default to a 14-day submitted-first
+    # window, and that default was never the thing the benchmark measured: every
+    # headline Tier B number since 2026-07-06 was produced with `--rr-all-time`,
+    # which is exactly (lookback 36500, sort relevance, w_recency 0). The shipped
+    # default and the validated configuration had drifted apart for a month.
+    #
+    # It is also structurally unable to do the job. All 48 benchmark targets are
+    # >= 11 months old, so a fortnight's window cannot reach any of them, and P5
+    # measured where the useful papers actually are: a dense band across the whole
+    # corpus, not the last two weeks of it.
+    #
+    # Repeat runs do not re-show the same work — the store records `first_seen` and
+    # the digest marks `is_new` — so an all-time default is a large first digest
+    # that tapers, not a weekly re-run of the same seminal papers.
+    lookback_days: int = 36500
+    # "relevance" = best-match-first, which (with a large lookback_days) surfaces
+    # seminal older papers; "submitted" = newest-first, for a strict recency digest.
+    sort_by: str = "relevance"
 
 
 @dataclass
@@ -74,7 +87,11 @@ class QueriesConfig:
 class RankingConfig:
     w_keyword: float = 1.0
     w_category: float = 0.5
-    w_recency: float = 0.3
+    # 0.0, not 0.3: with an all-time `arxiv.lookback_days` a recency weight ranks a
+    # forgettable preprint from last week above the paper that would actually change
+    # the project. This is the third of the three knobs `--foundational` turns, and
+    # the benchmark has always measured it at 0.
+    w_recency: float = 0.0
     w_embedding: float = 0.0
     w_citations: float = 0.0
     # Boost (and gate) for "extends work you starred": when > 0, RepoRadar fetches
@@ -533,7 +550,11 @@ sources: [arxiv]
 arxiv:
   categories: [cs.LG, cs.CL]
   max_results_per_query: 50
-  lookback_days: 14
+  # All-time, relevance-first: the configuration every benchmark number was measured
+  # under. Set lookback_days to 14 and sort_by to "submitted" for a strict recency
+  # digest — untested, and structurally unable to reach papers older than the window.
+  lookback_days: 36500
+  sort_by: relevance
 
 queries:
   seed: []
@@ -542,7 +563,7 @@ queries:
 ranking:
   w_keyword: 1.0
   w_category: 0.5
-  w_recency: 0.3
+  w_recency: 0.0
   w_embedding: 1.5
 
 output:
