@@ -515,6 +515,100 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Gating the whole pool: affordable, worth doing, and worth less than it sounds (2026-08-07)
+
+```bash
+uv run python evals/gate_full_pool.py --build     # 22 real pools from live arXiv, free
+uv run python evals/gate_full_pool.py             # ~$0.07 gate + ~$2.34 judge
+```
+
+`triage.top_k` is 15, set in the Feature 6 commit with **no recorded rationale**. The obvious
+objection to raising it is cost, and cost turns out not to be the reason.
+
+**First correction: the pool is ~227 papers per repo, not ~2,000.** The 2,030 figure quoted
+throughout this file is `diagnose_pool`'s *cross-case total* over 12 repos. Measured here
+across 22: **56 to 296 papers each, 4,984 total**, with three cases landing exactly on 296 —
+the ceiling of `#queries × max_results_per_query` minus duplicates. So `top_k: 15` shows the
+gate **6.6% of the pool**, and gating all of it costs **$0.05 per repo per run** and 5 minutes
+sequential (~20 s at 16-way concurrency). Cost was never the constraint.
+
+300 papers sampled uniformly, balanced across all 22 repos; every admit plus 40 non-admits
+judged.
+
+| | predicted | measured | |
+|---|---|---|---|
+| admit rate | 10–25% | **11.0%** [7.9%, 15.0%] | MET |
+| gate precision | ≥0.80 | **0.73** [0.56, 0.85] | below |
+| kill bars | >40% admit or <0.60 precision | neither | survives |
+
+**Precision was substantially a property of the strata.** 0.92 on the labelled set, 0.97 on
+P5's stratified wild sample, **0.73** on the real pool. The CI is wide (33 admits) and does
+not exclude 0.80, but it comfortably excludes 0.92.
+
+### The funnel, per repo
+
+| | papers |
+|---|---|
+| pool | **227** |
+| gate admits (11%) | 25 |
+| — of which actionable (0.73) | **18** |
+| gate rejects | 202 |
+| — of which actionable (12% leak) | **25** |
+| **actionable in the pool** | **~43 (19% base rate)** |
+| **gate recall** | **42%** |
+
+The gate finds fewer than half the actionable papers in the pool and pays 27% junk for the
+ones it finds. Both figures are consistent with P5's precision 0.97 / recall 0.60 once you
+account for P5 measuring on strata this run does not restrict to.
+
+### What raising `top_k` would actually buy
+
+| | net@2 per repo |
+|---|---|
+| show all 25 admits | **+5** |
+| show 15 of them at the same precision | **+3** |
+| measured Tier B Top Picks today | **+2.75** |
+
+**A modest gain, not a transformation.** It roughly quadruples the actionable papers reaching
+the digest stage — today's top-15 path can contain at most a handful — but 27% of the admits
+are junk, so the extra reach is partly spent on false positives. The honest summary: raise
+`top_k` because it is nearly free and strictly more informative, but expect single-digit
+net@2, and expect the win to come from what happens *after* the gate.
+
+### The ranker is not as bad as I have been saying
+
+`diagnose_ranker` measured ranks 1–10 at 31% actionable and 11–50 at 33%, and I have been
+quoting that as "the ranker is at chance". Against this run's **19% pool base rate**, the
+ranker's top-50 is about **1.7× denser than the pool**. It concentrates; what it cannot do is
+*order within* the band it concentrates. That is a narrower failure than the one I described,
+and it means replacing the ranker wholesale is not obviously right — bypassing it with a
+whole-pool gate is a different bet from improving it.
+
+### Eight repos admitted nothing
+
+`cli`, `compiler`, `http`, `linter`, `rag`, `speech`, `systems`, `webdev` — 0 admits from ~14
+sampled each. For the non-ML ones that is the correct answer and the negative controls working.
+`rag` and `speech` at 0/13 are surprising given their labelled-set base rates (26%, 38%) and
+are most likely small-sample noise, but they are worth a second look before any conclusion
+rests on per-repo admit rates.
+
+### Caveats
+
+- 300 papers, ~14 per repo. Per-repo admit rates carry no weight individually; the pooled
+  11% is the number with a usable CI.
+- The judged subsample is all 33 admits plus 40 random non-admits, so precision is exact on
+  the admits and the 12% leak is estimated from 40 papers.
+- All of it is at the judge's ≥2 bar. P7 measured a second judge one notch stricter, so a
+  ~0.55 multiplier applies to every absolute rate here; the comparisons are unaffected.
+
+> **Harness failure worth recording.** The first pool build hit arXiv's rate limit after ~15
+> cases. `collect_live_papers` swallows a 429 and returns an empty list **without raising**,
+> so the builder cached **seven empty pools** — and a cached empty pool is worse than a
+> missing one, because the next run skips it as "already built" and those repos vanish from
+> every downstream number while the report still prints a confident admit rate. Same class as
+> the citation hop's `failed_chunks`. Now refuses to persist an empty fetch, waits between
+> cases, and has four tests.
+
 ## Ranking diagnostic — the admitted set does not need re-ranking for precision; it needs ordering by the score-3 band (2026-08-07)
 
 $0 — every number here comes from labels already on disk (`diag_triage_*.json`, `label_pool.json`).
