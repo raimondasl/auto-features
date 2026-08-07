@@ -502,6 +502,11 @@ evals/
                      to run until it reproduces the publisher's own vectors bit-for-bit.
                      `--build` fetches the id+vector columns; the run compares hypothesis
                      abstracts against README and keyword queries on the same index
+  fetch_wants.py     free, P8: the top 15 open issues by reactions per repo, titles kept
+                     VERBATIM (the failed improvement_areas arm was paraphrased, and
+                     paraphrase-vocabulary loss was the diagnosis). Feeds the
+                     `--repo-context wants` arm of diagnose_triage.py, which measured
+                     +57 net@2 against prose-300's +95 — the worst arm in the study
   second_judge.py    ~$2, P7: the label-noise floor. Re-judges 200 of the 602 with Sonnet,
                      byte-identical rubric, after checking every case still reproduces its
                      stored _prompt_hash. kappa 0.51 on the shipped >=2 cut but 0.71 with

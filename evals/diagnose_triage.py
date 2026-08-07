@@ -155,6 +155,47 @@ def repo_section(profile: object, repo: Path, mode: str) -> str:
     return f"{kw}\n{header}\n{tagline}\n"
 
 
+def merge_rows(out: Path, rows: list[dict]) -> list[dict]:
+    """Write *rows* into *out*, MERGING by (case, id) rather than clobbering.
+
+    `--case` and `--limit` exist for cheap smoke runs, and until this existed a 3-paper
+    smoke run overwrote the 602-paper file for that arm — the same failure that cost
+    whole-set results twice in the hop-pool scripts, arriving here by a different door.
+    Merging is safe because the arm is already encoded in the filename, so every row in one
+    file answers the same question.
+    """
+    merged: dict[tuple[str, str], dict] = {}
+    if out.is_file():
+        merged = {(r["case"], r["id"]): r for r in json.loads(out.read_text(encoding="utf-8"))}
+    before = len(merged)
+    merged.update({(r["case"], r["id"]): r for r in rows})
+    if before > len(rows):
+        print(f"merged {len(rows)} new rows into {before} existing -> {len(merged)}")
+    ordered = [merged[k] for k in sorted(merged)]
+    out.write_text(json.dumps(ordered, indent=2), encoding="utf-8")
+    return ordered
+
+
+WANTS_CACHE = WORK / "repo_wants.json"
+
+
+def _wants_for(case: str) -> list[str]:
+    """Verbatim open-issue titles for one repo, from the cache `fetch_wants.py` writes.
+
+    Read from disk rather than fetched here: a tracker moves, and an arm whose prompt
+    changes between runs is not a paired comparison.
+    """
+    if not WANTS_CACHE.is_file():
+        raise SystemExit("no .work/repo_wants.json — run `uv run python evals/fetch_wants.py`")
+    return list(json.loads(WANTS_CACHE.read_text(encoding="utf-8")).get(case) or [])
+
+
+def _wants_block(titles: list[str]) -> str:
+    from fetch_wants import as_block
+
+    return as_block(titles)
+
+
 SUMMARY_CACHE = WORK / "repo_summaries.json"
 
 
@@ -195,6 +236,13 @@ def score_with(paper: dict, profile: object, repo: Path, mode: str, cfg: object)
         if mode == "summary_nogaps":
             full = replace(full, improvement_areas=[])
         return score_actionability(paper, profile, cfg, full)[0]
+    if mode == "wants":
+        # P8: prose-300 PLUS the repo's own open-issue titles, verbatim. Routed through the
+        # shipped scorer via the same shim `extractive` uses, so the only difference from
+        # the `prose` arm is one appended block — not a reimplemented prompt.
+        titles = _wants_for(repo.name)
+        shim = SimpleNamespace(as_prompt_block=lambda **_: _wants_block(titles))
+        return score_actionability(paper, profile, cfg, shim)[0]
     if mode == "extractive":
         # Verbatim sentences only: the repo's own words, semantically SELECTED. The
         # direct control for prose300, which is the same words positionally selected.
@@ -223,6 +271,7 @@ def main() -> int:
             "summary_nogaps",
             "summary_hedged",
             "extractive",
+            "wants",
         ),
         default="prose",
         help="how the repo is described to the gate; `prose` is what ships",
@@ -310,7 +359,11 @@ def main() -> int:
         tag = f"prose{args.prose_chars}"
     if args.model != DEFAULT_MODEL:
         tag = f"{tag}_{args.model}"
-    (WORK / f"diag_triage_{tag}.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    # MERGE, never clobber. `--case` and `--limit` exist for cheap smoke runs, and until now
+    # a 3-paper smoke run overwrote the 602-paper file for that arm — the same failure that
+    # cost whole-set results twice in the hop-pool scripts. Merging by (case, id) is safe
+    # because the arm is already in the filename, so everything here answers one question.
+    merge_rows(WORK / f"diag_triage_{tag}.json", rows)
     return 0
 
 
