@@ -48,19 +48,18 @@ from __future__ import annotations
 
 import logging
 import re
-import time
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any
 
+from reporadar import arxiv_rate
+
 logger = logging.getLogger(__name__)
 
-# arXiv asks for 3s between requests. ``arxiv.Client``'s own delay is *instance*
-# scoped (it guards on ``self._last_request_dt``) and collector.py builds its own
-# client, so two clients would mean two independent clocks and double the real
-# request rate. Hence a module-level interval, as in sources/dblp.py.
-_MIN_REQUEST_INTERVAL_S = 3.0
-_last_request_at = 0.0
+# This module used to keep its own 3-second clock, with a comment noting that two clients
+# would mean two independent clocks and double the real request rate — and then collector.py
+# kept the other one anyway. Both now share `reporadar.arxiv_rate`, which is the single
+# process-wide gate that comment was asking for.
 
 # Verified: 200 ids in a single id_list request. 100 keeps the URL well clear of
 # any server-side length limit.
@@ -160,12 +159,8 @@ def stale_ids(
 
 
 def _throttle() -> None:
-    """Block until at least ``_MIN_REQUEST_INTERVAL_S`` since the last request."""
-    global _last_request_at
-    wait = _MIN_REQUEST_INTERVAL_S - (time.monotonic() - _last_request_at)
-    if wait > 0:
-        time.sleep(wait)
-    _last_request_at = time.monotonic()
+    """Take a turn at the process-wide arXiv gate shared with the collector."""
+    arxiv_rate.wait_turn()
 
 
 def detect_withdrawal(
@@ -211,7 +206,11 @@ def _client() -> Any:
     """One shared ``arxiv.Client``, so its instance-scoped delay actually applies."""
     import arxiv
 
-    return arxiv.Client(page_size=ID_BATCH, delay_seconds=_MIN_REQUEST_INTERVAL_S, num_retries=3)
+    client = arxiv.Client(
+        page_size=ID_BATCH, delay_seconds=arxiv_rate.min_interval(), num_retries=3
+    )
+    arxiv_rate.identify(getattr(client, "_session", None))
+    return client
 
 
 def _base_id(arxiv_id: str) -> str:

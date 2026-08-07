@@ -24,6 +24,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
 - **Ranking eval** — `rr eval` scores the ranker against your own ratings, and `--compare a.yml b.yml` A/Bs two configs with a bootstrap interval, so "did that change help?" has an answer
 - **Privacy audit** — `rr audit` prints every network destination and the exact query strings your profile would transmit, without sending any of them; `privacy.redact` strips internal codenames from queries and LLM prompts
+- **Polite by design** — every arXiv request in the process passes one shared gate at arXiv's stated ceiling of 1 request / 3 s, identifies itself with a RepoRadar User-Agent, and backs off for 30 s (not 2 s) on a 429. One clock, not one per module
 - **No API keys required** for the default arXiv pipeline — every core source is free and keyless (OpenAlex is the one exception: since 2026-02-13 it throttles keyless callers, so set `openalex.api_key` if you enable that source)
 
 ## Installation
