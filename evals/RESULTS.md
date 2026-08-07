@@ -515,6 +515,71 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Gating the whole pool end to end: a wash (2026-08-07)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-sweep \
+    --rr-pool 300 --rr-prose-chars 300      # arm A: gate the whole pool
+uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-sweep \
+    --rr-pool 50  --rr-prose-chars 300      # arm B: the shipped depth
+```
+
+Both arms, **same 22 cases, same session, same code**, differing only in how many candidates
+the gate sees. The derived arithmetic predicted +3 against a measured +2.75 — a gain too
+small to see. Measured end to end, it is not there at all.
+
+| | mean net@2 |
+|---|---|
+| pool 300 (gate everything) | **+0.95** |
+| pool 50 (shipped depth) | **+1.91** |
+| paired delta | **−0.95** |
+
+**Two of the 22 cases collected nothing in arm A.** `db` and `storage` hit arXiv 429s during
+collection and judged 0 papers, against +10.0 and +7.0 in arm B — **−17 of the −21 total
+delta from a harness failure, not a treatment effect.** On the 20 cases that collected in
+both arms:
+
+| | |
+|---|---|
+| mean delta | **−0.20** |
+| per case | 6 better, 6 worse, 8 tied |
+| sd of the per-case delta | 1.67 |
+
+**A wash.** Not a win, not a loss — 0.20 against a per-case sd of 1.67.
+
+### Why, and it is the same answer as the ranking diagnostic
+
+The digest window is **10 papers**, applied after gating and reranking. Gating 300 candidates
+instead of 50 surfaces more admits, but the reader still sees 10, and the extra admits are
+not better *ordered* — the gate's own score is nearly binary (only 4–14% of admits get a 3),
+so ordering within the admitted set falls through to the heuristic ranker, which is flat.
+
+Deeper gating changes *which* arbitrary actionable-ish papers fill the window. It does not
+change how good the window is. That is exactly what the ranking diagnostic predicted from
+$0 of labels, and it is the same constraint from a third direction:
+
+* P5: the gate's failure is recall (0.60), not precision
+* the ranking diagnostic: 94–100% of admits are already actionable; the variance is in the
+  score-3 band
+* here: giving the gate 6× the candidates moves nothing, because nothing orders what it admits
+
+**The bottleneck is not how many papers the gate sees. It is that nothing ranks what it
+returns.**
+
+### What the harness could not tell us
+
+The Tier B results JSON records the *judged* pool (10–14 papers per case) and never the
+**candidate** count, so "how many papers did the gate actually see" is not answerable from
+the artifact — it had to be measured separately (`gate_full_pool`: 56–296 per repo, mean 227).
+Worth recording, since the whole comparison is about that number.
+
+### Also settled: nothing was silently capping the pool
+
+`--rr-pool 300` does reach the gate: `candidate_n` flows into `reporadar_ranked(top_n=...)`
+and every returned candidate is triaged. The `10/10 scored` line in the log counts the
+returned top-10, not the triage pool. I misread it as a silent cap on first inspection; it
+is not one.
+
 ## Gating the whole pool: affordable, worth doing, and worth less than it sounds (2026-08-07)
 
 ```bash
