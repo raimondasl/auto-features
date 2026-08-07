@@ -515,6 +515,69 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## The Opus baseline on all 22 repos: a dead heat, reached by opposite strategies (2026-08-07)
+
+The headline comparison has always been 12 cases. This is the first time RepoRadar and the
+Opus baseline have been scored against each other on the full 22-repo benchmark.
+
+| | mean net@2 |
+|---|---|
+| **RepoRadar** (Top Picks, min≥2) | **+1.91** |
+| **Opus 4.8 baseline** | **+1.82** |
+| paired delta | **+0.09** |
+
+8 cases better, 8 worse, 6 tied. A dead heat — and the means conceal two opposite strategies.
+
+| | Opus | RepoRadar |
+|---|---|---|
+| papers returned | 0–4, usually 2–3 | 10 |
+| precision | ~1.00 on all but one case | 0.73 at pool scale |
+| abstentions | **4/22** | rare |
+| false positives | **1/22** | 4 cases at −2 to −5 |
+
+**Opus is precise and shy; RepoRadar is broad and noisy.** They tie by cancelling out.
+
+| case | RepoRadar | Opus | | case | RepoRadar | Opus |
+|---|---|---|---|---|---|---|
+| `db` | **+10.0** | +3.0 | | `graph` | +1.0 | **+3.0** |
+| `diffusion` | **+10.0** | +2.0 | | `rag` | 0.0 | **+3.0** |
+| `peft` | **+7.0** | +2.0 | | `rl` | +2.0 | **+3.0** |
+| `storage` | **+7.0** | +2.0 | | `speech` | +2.0 | **+3.0** |
+| `ann` | +4.0 | +3.0 | | `llminfer` | +1.0 | **+4.0** |
+| `columnar` | +4.0 | +4.0 | | `numerics` | **−2.0** | +2.0 |
+| `cv` | +4.0 | +3.0 | | `linter` | −2.0 | **−6.0** |
+| `crypto` | +3.0 | +2.0 | | `compiler` | **−5.0** | +2.0 |
+| `systems` | +1.0 | +1.0 | | `vectordb` | **−5.0** | +4.0 |
+| `cli`/`encryption`/`http`/`webdev` | 0.0 | 0.0 (abstained) | | | | |
+
+**Where RepoRadar wins, it wins by volume** — 10 good papers against Opus's 2 or 3. **Where it
+loses, it loses on false positives** on repos with little to find, exactly where Opus returns
+two correct papers or abstains.
+
+### The one structural gap
+
+RepoRadar's four losing cases cost **−14 net@2**, or **−0.64 of the mean**. They are not
+retrieval failures; they are *output-size* failures — the digest returns 10 papers whether or
+not 10 good ones exist. Removing that cost alone would put RepoRadar at ~+2.55 against Opus's
++1.82, without touching retrieval.
+
+The sweep says a flat stricter gate is not the fix: `min≥3` reaches mean precision **0.97 with
+0 false positives** but abstains on **16/22** for a mean of +0.50. What is untested is a
+*variable* output size keyed on the confidence distribution rather than a fixed cut.
+
+> **A caveat on the metric, not the result.** net@2 charges 2 for a false positive and credits
+> 1 for a hit, so it rewards shyness. Opus's strategy is partly an artefact of that: returning
+> 2 papers it is sure of is close to optimal *for this scoring function*. P5 measured the
+> gate's real failure as **recall** (0.60), and a change that improves net@2 by returning less
+> makes that worse. Optimising net@2 and serving a reader who wants to find things are not the
+> same objective, and this table is evidence about the first one.
+
+### Cost, which the benchmark does not score
+
+The baseline costs **~$0.80 per repo per run** (Opus 4.8 with web search; the per-case figures
+are in the run log). RepoRadar's full path costs **~$0.05**. Parity at 6% of the cost is a
+result the mean does not show.
+
 ## Gating the whole pool end to end: a wash (2026-08-07)
 
 ```bash
