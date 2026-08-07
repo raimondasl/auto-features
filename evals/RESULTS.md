@@ -515,6 +515,104 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## P8 — killed: telling the gate what users want makes it strictly worse (2026-08-07)
+
+```bash
+uv run python evals/fetch_wants.py                                   # free, ~1 request/repo
+uv run python evals/diagnose_triage.py --repo-context wants          # ~$0.10
+uv run python evals/compare_triage.py \
+    evals/.work/diag_triage_{prose300,wants}.json
+```
+
+Five purpose-statement arms converge at **+73..+95** net@2, all derived from documents that
+describe what a project **is**. The rubric's score-3 band asks for evidence a paper "directly
+addresses a known limitation", and no document-derived arm supplies that. An issue tracker
+states it outright. P8 appended the **top 15 open issues by reaction count, verbatim**, to the
+shipped prose-300 prompt — deliberately not the failed `improvement_areas` arm (+70), which
+was LLM-inferred *and paraphrased*.
+
+**It is the worst arm ever measured.**
+
+| paired on 602 papers | precision | recall | net@2 |
+|---|---|---|---|
+| `prose 300` (baseline) | 0.92 | **0.68** | **+95** |
+| `wants` (prose 300 + verbatim issue titles) | 0.92 | **0.41** | **+57** |
+| delta | +0.00 | **−0.27** | **−38**, 95% CI **[−55, −21]**, P(Δ≤0) = 1.000 |
+
+7 papers fixed, **49 broke**. Against the `keywords` control it is still negative
+(+73 → +57, −16, CI [−40, +8]). All three pre-registered criteria fail, and the kill fires
+harder than it was written: P8 said "kill if it lands inside the +85..+95 band"; it landed
+**below every arm in the study**, including the one with no purpose statement at all.
+
+### The mechanism, and it is not the one I expected
+
+**Precision is unchanged and recall collapses.** The wants block does not fool the gate into
+admitting junk — it makes it reject work it previously accepted. My first guess was that
+most-reacted issues are engineering requests no paper addresses ("Python 3.10 support",
+"Support MergeOperator in Java", "Make age parallel"). The data refutes that: `peft` and
+`diffusion` have the *most* research-flavoured trackers in the set ("Add EWoRA to PEFT",
+"APG: Eliminating Oversaturation...") and they are where the damage is worst.
+
+The real pattern is that **damage scales with how much there was to lose**:
+
+| case | actionable base rate | prose300 recall | wants recall | Δ |
+|---|---|---|---|---|
+| `peft` | 84% | 0.92 | 0.55 | **−0.37** |
+| `diffusion` | 64% | 0.79 | 0.36 | **−0.43** |
+| `speech` | 38% | 0.60 | 0.55 | −0.05 |
+| `cv` | 33% | 0.61 | 0.39 | −0.22 |
+| `systems` | 31% | 0.58 | 0.42 | −0.17 |
+| `rag` | 26% | 0.75 | 0.50 | −0.25 |
+| `rl` | 24% | 0.47 | 0.12 | **−0.35** |
+| `graph` | 22% | 0.36 | 0.27 | −0.09 |
+| `crypto` | 14% | 0.57 | 0.29 | −0.29 |
+| `http` | 2% | 0.00 | 0.00 | 0.00 |
+
+Recall falls in **9 of 10 cases**, and base rate correlates with the loss at **r = −0.61**.
+
+The reading the evidence supports: a list of 15 named wants **replaces the question**. The
+gate stops asking "would this improve the project" and starts asking "is this on the list" —
+so every actionable paper that does not match one of 15 specific issues gets rejected. Repos
+where most papers are genuinely actionable have the most to lose, which is exactly the
+ordering above.
+
+**An internal control confirms the block is the cause.** `speech` (whisper) surfaced **zero**
+open issues, so its `wants` prompt is byte-identical to its `prose300` prompt. Its recall
+moved −0.05 — one paper, noise. The one case with an empty block is the one case that did not
+move.
+
+### Pre-registered scorecard
+
+| | predicted | measured | |
+|---|---|---|---|
+| net@2 | ≥+105, CI excluding 0 | **+57** | FAILED |
+| `graph` recall | 0.36 → ≥0.50 | **0.27** | FAILED |
+| negative controls stay clean | no new false positives | `http` 0/0, `webdev` 0 fixed 0 broke | held |
+
+**Kill clause fires.** Information *type* is not the gate's constraint — and P8 was the single
+gating bet in the plan. Per its own terms this "directly calibrates item 0's triage arm before
+item 0 spends on hand-authored goals": a user stating what they want, fed to the **gate**,
+should be expected to narrow it the same way. §5.3 already noted that `improvement_areas` had
+never been tried on *retrieval*, which P4 and P5 now show is where the reach actually is.
+**Stated wants belong in the query, not in the gate.**
+
+### Caveats
+
+- **The negative controls are weaker than P8 assumed.** It predicted their trackers would be
+  "full of feature requests, making them a sharp control". `webdev` (flask) surfaced 2 issues
+  and `speech` 0. The controls stayed clean, but they were not the sharp test intended.
+- Ranking by reactions is one selection rule among several. A tracker filtered to
+  algorithmic/long-open issues might behave differently — but that is a *new* arm, and this
+  one is dead as specified.
+- 602 paired papers, 12 repos. The labelled set has since grown to 920 across 17 cases; the
+  comparison is deliberately restricted to the 602 the +95 baseline was measured on.
+
+> **Harness fix on the way in.** `diagnose_triage.py` wrote its per-arm output
+> unconditionally, so a 3-paper `--case rag --limit 3` smoke run overwrote the arm's
+> 602-paper file — the same "partial run destroys whole-set results" failure that cost data
+> twice in the hop-pool scripts, arriving by a different door. It now merges by `(case, id)`,
+> which is safe because the arm is already encoded in the filename.
+
 ## P7 — the two judges rank the same papers the same way; they sit at different strictness (2026-08-06)
 
 ```bash

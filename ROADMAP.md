@@ -535,6 +535,35 @@ making them a sharp control). **Kill:** lands inside the band — then informati
 not the gate's constraint, and that negative directly calibrates item 0's triage arm
 before item 0 spends on hand-authored goals.
 
+> #### RESULT (2026-08-07) — KILLED. The worst arm ever measured, and the mechanism is the opposite of the one predicted.
+>
+> Top 15 open issues by reactions, verbatim, appended to the shipped prose-300 prompt. Paired
+> on the same 602 papers:
+>
+> | | precision | recall | net@2 |
+> |---|---|---|---|
+> | `prose 300` | 0.92 | **0.68** | **+95** |
+> | `wants` | 0.92 | **0.41** | **+57** |
+> | delta | +0.00 | −0.27 | **−38**, CI **[−55, −21]**, P(Δ≤0) = 1.000 |
+>
+> 7 fixed, 49 broke. It is below the `keywords` control too (+73 → +57). The kill said "lands
+> inside the +85..+95 band"; it landed **below every arm in the study**.
+>
+> **Precision is untouched and recall collapses**, so the block does not fool the gate — it
+> makes it reject work it used to accept. Not because trackers are full of engineering
+> requests (`peft` and `diffusion` have the most research-flavoured trackers and took the
+> worst damage) but because **15 named wants replace the question**: the gate stops asking
+> "would this improve the project" and starts asking "is this on the list". Damage scales with
+> how much there was to lose — base rate vs recall loss correlates at **r = −0.61** across 10
+> cases. `speech` surfaced zero issues, so its prompt is identical to prose-300's, and it is
+> the one case that did not move (−0.05, one paper).
+>
+> **What it calibrates.** P8 was the single gating bet, and it says information *type* is not
+> the gate's constraint. Per its own terms this "directly calibrates item 0's triage arm
+> before item 0 spends on hand-authored goals" — a user stating what they want, fed to the
+> **gate**, should be expected to narrow it the same way. Combined with P4/P5, the direction
+> is: **stated wants belong in the query, not in the gate.**
+
 ### P9. An "extend this project" mode — NOT justified yet; the instrument exists
 
 **Status: proposed, tested, and the test came back negative.** Recorded so the idea is not
