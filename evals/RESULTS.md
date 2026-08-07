@@ -528,24 +528,35 @@ Both arms, **same 22 cases, same session, same code**, differing only in how man
 the gate sees. The derived arithmetic predicted +3 against a measured +2.75 — a gain too
 small to see. Measured end to end, it is not there at all.
 
-| | mean net@2 |
+| all 22 cases | mean net@2 |
 |---|---|
-| pool 300 (gate everything) | **+0.95** |
+| pool 300 (gate everything) | **+1.73** |
 | pool 50 (shipped depth) | **+1.91** |
-| paired delta | **−0.95** |
+| paired delta | **−0.18** |
 
-**Two of the 22 cases collected nothing in arm A.** `db` and `storage` hit arXiv 429s during
-collection and judged 0 papers, against +10.0 and +7.0 in arm B — **−17 of the −21 total
-delta from a harness failure, not a treatment effect.** On the 20 cases that collected in
-both arms:
+Per case: **6 better with pool 300, 6 worse, 10 tied**, against a per-case sd of 1.67.
+**A wash.** Not a win, not a loss.
 
-| | |
-|---|---|
-| mean delta | **−0.20** |
-| per case | 6 better, 6 worse, 8 tied |
-| sd of the per-case delta | 1.67 |
-
-**A wash.** Not a win, not a loss — 0.20 against a per-case sd of 1.67.
+> #### Corrected 2026-08-07 — the first version of this table read −0.95
+>
+> `db` and `storage` hit arXiv 429s during collection in arm A, judged **0 papers**, and were
+> scored as an honest **net@2 = 0.0** that entered the mean — against +10.0 and +7.0 in arm B.
+> That single harness failure supplied **−17 of a −21 total delta**, and it removed two of the
+> benchmark's *strongest* cases rather than two average ones.
+>
+> Re-run on both arms after the fix (PR #94: throttles retried against a 15-minute time budget,
+> and a failed collection excluded rather than scored), all four collected cleanly with no
+> throttling:
+>
+> | | pool 300 | pool 50 |
+> |---|---|---|
+> | `db` | **+10.0** | **+10.0** |
+> | `storage` | **+7.0** | **+7.0** |
+>
+> Both are **exact ties** — the same wash the other 20 cases show, now on two cases that had
+> never been measured at all. The corrected delta is **−0.18**, and the conclusion is
+> unchanged; what changed is that it no longer rests on a number a failed fetch moved by
+> nearly a full point.
 
 ### Why, and it is the same answer as the ranking diagnostic
 
