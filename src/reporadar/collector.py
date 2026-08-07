@@ -10,6 +10,7 @@ from typing import Any
 
 import arxiv
 
+from reporadar import arxiv_rate
 from reporadar.config import ArxivConfig, QueriesConfig
 from reporadar.profiler import RepoProfile
 
@@ -152,6 +153,37 @@ def _result_to_paper(result: arxiv.Result) -> dict[str, Any]:
     }
 
 
+_CLIENTS: dict[tuple[int, int], arxiv.Client] = {}
+
+
+def _shared_client(page_size: int) -> arxiv.Client:
+    """One client per page size, reused for the life of the process.
+
+    `arxiv.Client` spaces its requests using a timestamp stored **on the instance**, so a
+    fresh client per call reset the clock and fired immediately. That is how a 22-repo
+    collection issued its first request per repo with no spacing and earned HTTP 429 on
+    everything after the fifteenth. Reusing the instance makes the library's own
+    `delay_seconds` carry across calls.
+
+    Keyed on `id(arxiv.Client)` as well as page size so a test that patches the class gets
+    its own entry instead of a cached real client — or, worse, a later test inheriting an
+    earlier test's mock.
+    """
+    key = (id(arxiv.Client), page_size)
+    client = _CLIENTS.get(key)
+    if client is None:
+        if len(_CLIENTS) > 64:  # only reachable under repeated patching; bound the dict
+            _CLIENTS.clear()
+        client = arxiv.Client(
+            page_size=page_size,
+            delay_seconds=arxiv_rate.min_interval(),
+            num_retries=3,
+        )
+        arxiv_rate.identify(getattr(client, "_session", None))
+        _CLIENTS[key] = client
+    return client
+
+
 def _query_with_retry(
     client: arxiv.Client,
     search: arxiv.Search,
@@ -164,6 +196,9 @@ def _query_with_retry(
     """
     last_exc: Exception | None = None
     for attempt in range(max_retries):
+        # Process-wide, shared with signals/integrity.py. Two independent 3-second
+        # limiters permit two requests per three seconds, which is not a limit.
+        arxiv_rate.wait_turn()
         try:
             return list(client.results(search))
         # `arxiv.ArxivError` is NOT an OSError — it subclasses Exception directly — so
@@ -175,7 +210,13 @@ def _query_with_retry(
         except (ConnectionError, TimeoutError, OSError, arxiv.ArxivError) as exc:
             last_exc = exc
             if attempt < max_retries - 1:
-                delay = base_delay * (2**attempt)
+                # A throttle response is not a flaky socket. Retrying a 429 after 2 s is
+                # impolite exactly when the server has said "slow down", and it is how a
+                # throttle turns into an IP block.
+                if getattr(exc, "status", None) in (429, 503):
+                    delay = arxiv_rate.THROTTLED_BACKOFF * (2**attempt)
+                else:
+                    delay = max(base_delay * (2**attempt), arxiv_rate.min_interval())
                 logger.warning(
                     "arXiv query failed (attempt %d/%d): %s. Retrying in %.1fs...",
                     attempt + 1,
@@ -199,11 +240,7 @@ def collect_papers(
     *on_query_start*, if provided, is called at the start of each query with
     ``(query_index, total_queries, query_string)``.
     """
-    client = arxiv.Client(
-        page_size=arxiv_cfg.max_results_per_query,
-        delay_seconds=3.0,
-        num_retries=3,
-    )
+    client = _shared_client(arxiv_cfg.max_results_per_query)
 
     cutoff = datetime.now(UTC) - timedelta(days=arxiv_cfg.lookback_days)
     seen_ids: set[str] = set()

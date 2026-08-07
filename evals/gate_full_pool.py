@@ -148,10 +148,9 @@ def build_pools(refresh: bool = False, pause: float = 10.0) -> None:
             f"[{name:10}] pool={len(rows):5,} papers  {time.perf_counter() - t0:5.1f}s",
             flush=True,
         )
-        # arXiv throttled this script at ~15 consecutive cases (~90 queries back to back)
-        # and returned 429 for every query after that. The per-query retry inside the
-        # collector cannot help once the whole client is throttled, so the fix is to be
-        # slower between cases rather than more persistent within one.
+        # Belt and braces on top of `reporadar.arxiv_rate`, which now spaces every request
+        # this process makes. Kept because the throttle that hit this script cost a whole
+        # rebuild, and an extra second per case is not worth arguing about.
         time.sleep(pause)
 
 

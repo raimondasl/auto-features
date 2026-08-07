@@ -62,6 +62,11 @@ _NOT_A_DESTINATION = {
     # with offline=True (evaluation.py:175) — `rr eval` re-scores historical papers and
     # must not make network calls to do it. Verified at specter.py:116-129.
     "evaluation",
+    # Rate limiter and User-Agent for arXiv. It SHAPES outbound calls — spacing them and
+    # labelling them — and makes none: the only `arxiv.Client` occurrences are prose
+    # describing the bug it fixes, which is exactly the false positive a text detector
+    # should be expected to produce.
+    "arxiv_rate",
 }
 
 # Text markers alone miss a module that reaches the network through a helper imported
