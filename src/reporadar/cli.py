@@ -192,8 +192,9 @@ def profile(config_path: str | None, verbose: bool) -> None:
 @click.option(
     "--foundational",
     is_flag=True,
-    help="Seed-corpus mode: fetch all-time, relevance-first (no recency window), so seminal "
-    "foundational papers surface. Use for a one-time deep sweep; the default is the recent digest.",
+    help="Force all-time, relevance-first discovery with the recency weight dropped. This is "
+    "now the DEFAULT; the flag remains so a config that narrows the window can be overridden "
+    "for one run without editing it.",
 )
 @click.option(
     "--rebuild-embeddings",

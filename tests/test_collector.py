@@ -216,11 +216,26 @@ class TestCollectPapers:
 
     @patch("reporadar.collector.arxiv.Search")
     @patch("reporadar.collector.arxiv.Client")
-    def test_sort_by_defaults_to_submitted_date(
+    def test_sort_by_defaults_to_relevance(
         self, MockClient: MagicMock, MockSearch: MagicMock
     ) -> None:
+        """The default flipped to relevance when the shipped config became all-time: a
+        newest-first sort over a 100-year window returns the last fortnight and nothing else,
+        which is the old default wearing a new lookback."""
         MockClient.return_value.results.return_value = iter([])
-        collect_papers(["q1"], ArxivConfig(max_results_per_query=50, lookback_days=14))
+        collect_papers(["q1"], ArxivConfig(max_results_per_query=50))
+        assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.Relevance
+
+    @patch("reporadar.collector.arxiv.Search")
+    @patch("reporadar.collector.arxiv.Client")
+    def test_an_explicit_submitted_sort_is_still_honoured(
+        self, MockClient: MagicMock, MockSearch: MagicMock
+    ) -> None:
+        """The recency digest is still supported, just no longer the default."""
+        MockClient.return_value.results.return_value = iter([])
+        collect_papers(
+            ["q1"], ArxivConfig(max_results_per_query=50, lookback_days=14, sort_by="submitted")
+        )
         assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.SubmittedDate
 
     @patch("reporadar.collector.arxiv.Search")

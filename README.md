@@ -80,7 +80,9 @@ Runs the full pipeline: profile repo, build queries, fetch papers from arXiv, st
 
 `--explain` prints a per-component score breakdown for the top papers, which is the only way to see why a paper ranked where it did.
 
-`--foundational` runs a one-time **seed-corpus sweep**: all-time, relevance-first (no recency window, recency weight dropped), so seminal foundational papers surface instead of only recent ones. Use it to seed the corpus; the default is the recent digest.
+`--foundational` forces **all-time, relevance-first** discovery with the recency weight dropped. **This is now the default** (`lookback_days: 36500`, `sort_by: relevance`, `w_recency: 0.0`); the flag remains so a config that narrows the window can be overridden for a single run.
+
+The default changed because the old one — a 14-day submitted-first window — was never the configuration the benchmark measured. Every headline Tier B number since 2026-07-06 was produced under all-time/relevance, and all 48 benchmark targets are ≥11 months old, so a fortnight's window cannot reach any of them. Repeat runs do not re-show the same papers: the store records `first_seen` and the digest marks what is new. For a strict recency digest, set `lookback_days: 14` and `sort_by: submitted` — that path is supported but has never been benchmarked.
 
 ### `rr digest [--config PATH] [--since 7d] [--run-id N] [-o PATH] [--format md|html|json|csv|rss] [--diff]`
 
@@ -405,7 +407,8 @@ repo_path: .                          # Path to the repo to profile (default: cu
 arxiv:
   categories: [cs.LG, cs.CL]        # arXiv categories to search
   max_results_per_query: 50          # Max papers per query
-  lookback_days: 14                  # Only fetch papers from this window
+  lookback_days: 36500               # All-time. Set to 14 for a strict recency digest
+  sort_by: relevance                 # or "submitted" for newest-first
 
 queries:
   seed:                               # Your own search terms (exact-match quoted)
