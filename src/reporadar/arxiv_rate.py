@@ -38,6 +38,15 @@ DEFAULT_MIN_REQUEST_INTERVAL = 3.0
 # "slow down", and it is how a throttle becomes a block.
 THROTTLED_BACKOFF = 30.0
 
+# A throttle outlasts three retries. 30 s then 60 s totals 90 seconds of patience, and a
+# real arXiv throttle observed from this machine ran for roughly fifteen minutes — so the
+# polite backoff was correct and gave up anyway, and two benchmark repos were dropped with
+# an empty pool that scored as a legitimate zero. Throttles are therefore retried against a
+# TIME budget rather than an attempt count, with each individual sleep capped so the process
+# stays interruptible and says what it is waiting for.
+THROTTLE_BUDGET_S = 900.0
+THROTTLE_MAX_SLEEP_S = 120.0
+
 # arXiv asks callers to identify themselves so they can be contacted rather than banned.
 USER_AGENT = f"RepoRadar/{__version__} (+https://github.com/raimondasl/auto-features)"
 

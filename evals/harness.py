@@ -151,7 +151,13 @@ def collect_live_papers(
     try:
         papers = collect_papers(queries, arxiv_cfg)
     except CollectionError as exc:
-        print(f"        ! arXiv collection failed: {exc}")
+        # RAISE, do not degrade. This used to print a warning and return whatever it had —
+        # which for a throttled case was nothing at all, and a 0-paper pool then scored as a
+        # legitimate net@2 of 0.0 and entered the mean. `db` and `storage` were dropped that
+        # way in the 2026-08-07 pool-300 arm and cost -17 of a -21 delta. A caller that
+        # wants to continue past a failed case must say so by catching this.
+        print(f"        ! arXiv collection FAILED (not an empty result): {exc}")
+        raise
 
     seen = {p["arxiv_id"] for p in papers}
     plain = [q.replace("all:", "").strip('"') for q in queries[:5]]

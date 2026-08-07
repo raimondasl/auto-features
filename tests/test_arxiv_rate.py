@@ -157,3 +157,52 @@ class TestThrottleResponsesBackOffProperly:
         ):
             collector._query_with_retry(client, MagicMock(), max_retries=3)
         assert len(turns) == 3, "a retry that skips the gate is a burst"
+
+
+class TestAThrottleIsWaitedOutNotGivenUpOn:
+    """30 s then 60 s is 90 seconds of patience. A real arXiv throttle from this machine ran
+    for roughly fifteen minutes, so the polite backoff was correct and gave up anyway — and
+    two benchmark repos were left with an empty pool that scored as a legitimate zero."""
+
+    def test_the_budget_outlasts_a_realistic_throttle(self) -> None:
+        assert arxiv_rate.THROTTLE_BUDGET_S >= 600
+        assert arxiv_rate.THROTTLE_MAX_SLEEP_S <= 180
+
+    def test_a_429_keeps_retrying_past_the_ordinary_attempt_limit(self) -> None:
+        slept: list[float] = []
+        client = MagicMock()
+        client.results.side_effect = collector.arxiv.HTTPError("http://x", 1, 429)
+        with (
+            patch.object(arxiv_rate, "wait_turn", return_value=0.0),
+            patch.object(collector.time, "sleep", side_effect=slept.append),
+            pytest.raises(collector.CollectionError),
+        ):
+            collector._query_with_retry(client, MagicMock(), max_retries=3)
+        assert len(slept) > 3, f"gave up after {len(slept)} sleeps, as before the fix"
+        assert sum(slept) >= arxiv_rate.THROTTLE_BUDGET_S
+
+    def test_every_throttle_sleep_is_capped_so_the_process_stays_interruptible(self) -> None:
+        slept: list[float] = []
+        client = MagicMock()
+        client.results.side_effect = collector.arxiv.HTTPError("http://x", 1, 503)
+        with (
+            patch.object(arxiv_rate, "wait_turn", return_value=0.0),
+            patch.object(collector.time, "sleep", side_effect=slept.append),
+            pytest.raises(collector.CollectionError),
+        ):
+            collector._query_with_retry(client, MagicMock(), max_retries=3)
+        assert max(slept) <= arxiv_rate.THROTTLE_MAX_SLEEP_S
+
+    def test_an_ordinary_error_still_stops_at_max_retries(self) -> None:
+        """The time budget is for throttles only — a genuinely broken query must not hang
+        the run for fifteen minutes."""
+        slept: list[float] = []
+        client = MagicMock()
+        client.results.side_effect = TimeoutError("boom")
+        with (
+            patch.object(arxiv_rate, "wait_turn", return_value=0.0),
+            patch.object(collector.time, "sleep", side_effect=slept.append),
+            pytest.raises(collector.CollectionError),
+        ):
+            collector._query_with_retry(client, MagicMock(), max_retries=3)
+        assert len(slept) == 2, f"{len(slept)} sleeps for 3 attempts"

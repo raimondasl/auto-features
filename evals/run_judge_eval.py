@@ -47,6 +47,7 @@ from harness import (  # noqa: E402
 from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
+from reporadar.collector import CollectionError  # noqa: E402
 from reporadar.config import QueriesConfig, RankingConfig  # noqa: E402
 from reporadar.digest import TOP_THRESHOLD  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
@@ -536,12 +537,32 @@ def main() -> int:
     bench = load_benchmark()
     WORK_DIR.mkdir(exist_ok=True)
     results = []
+    failed_collection: list[str] = []
     for case in bench["cases"]:
         if args.case and case["name"] != args.case:
             continue
-        r = run(case, keys, args)
+        try:
+            r = run(case, keys, args)
+        except CollectionError as exc:
+            # A case whose candidate fetch failed has NO measurement, and the one thing it
+            # must not do is contribute a 0.0 to the mean as though the system had honestly
+            # returned nothing. `db` and `storage` did exactly that on 2026-08-07 and moved
+            # a 22-case mean by nearly a full point.
+            print(f"[{case['name']}] EXCLUDED — collection failed, not scored: {exc}")
+            failed_collection.append(case["name"])
+            continue
         if r:
             results.append(r)
+
+    if failed_collection:
+        print(
+            f"\n!! {len(failed_collection)} case(s) EXCLUDED for failed collection: "
+            f"{', '.join(failed_collection)}"
+        )
+        print(
+            "   Every mean below is over the cases that actually collected. Re-run them "
+            "before comparing against another arm."
+        )
 
     if args.rr_sweep and results:
         key = "reporadar_toppicks_sweep"
