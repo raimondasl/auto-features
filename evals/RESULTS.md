@@ -515,6 +515,67 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Ranking diagnostic — the admitted set does not need re-ranking for precision; it needs ordering by the score-3 band (2026-08-07)
+
+$0 — every number here comes from labels already on disk (`diag_triage_*.json`, `label_pool.json`).
+
+P5 left the plan pointing at "ranking within the admitted set": the gate admits ~38 papers per
+repo from a 100-candidate band and a digest wants ~10. Before building a re-ranker, the cheap
+question is what there would be to rank *with*. The answer moves the target.
+
+### Among admitted papers, precision is already all but perfect
+
+| stratum (admitted only) | n | judge ≥2 | judge =3 |
+|---|---|---|---|
+| `hop-coupling3+` | 15 | 100% | **53%** |
+| `hyde-top100` | 36 | 94% | **22%** |
+| `hyde-100-1k` | 7 | 100% | 0% |
+| `hop-coupling1` | 6 | 100% | 0% |
+| `hyde-1k-10k` | 2 | 100% | 0% |
+
+**94–100% of what the gate admits is actionable.** There is nothing to gain by re-ranking for
+"actionable vs not" — the gate has solved that, which is the same thing P5 said from the other
+side (precision 0.97, recall 0.60). A re-ranker aimed at precision would be optimising a
+metric that is already at ceiling.
+
+**All the remaining variance is in the score-3 band**, and free structural features order it:
+53% for high-coupling papers, 22% for the HyDE head, **0% everywhere else**.
+
+### The gate's own score is a real signal that almost never fires
+
+| arm | admits | gate=2 → judge=3 | gate=3 → judge=3 |
+|---|---|---|---|
+| `prose 300` (602 labels) | 125 | 38% | **76%** (n=17) |
+| `wants` (920 labels) | 109 | 51% | **80%** (n=5) |
+| P5 wild sample | 66 | 22% | **67%** (n=3) |
+
+A gate verdict of 3 roughly doubles the chance the judge also says 3. But the gate says 3 on
+**4–14% of its admits**, so it cannot order 38 papers down to 10 on its own. Note it is *not*
+better at the ≥2 bar — 82% vs 94% on prose-300 — so it is specifically a top-band signal,
+not a general confidence score.
+
+### What a digest would actually gain
+
+| ordering of ~38 admits | score-3 papers in the top 10 |
+|---|---|
+| arbitrary | **~2.4** |
+| restricted to the two dense strata | **~3.1** |
+| high-coupling first (if enough exist per repo) | up to ~5.3 |
+
+### The restated problem
+
+**"Rank the admitted set" is the wrong objective; "surface the score-3 band" is the right
+one.** Score 3 is "directly addresses a known limitation" — the bar the 48 gold targets were
+drawn at, and the one P5 showed the pre-registered separation lands on. Ordering for it has a
+measured ceiling of roughly double the current rate, from features that cost nothing to
+compute.
+
+**This is a diagnostic, not a result.** Only **66** admitted papers carry a judge label, and
+the per-stratum admit counts are 36 / 15 / 7 / 6 / 2. The 0% cells are three-to-seven papers
+deep. It is enough to redirect the work and nowhere near enough to fit a ranker on: a properly
+powered version needs judge labels stratified over *admitted* papers specifically, which is
+P5's design pointed one stage further down the funnel.
+
 ## P8 — killed: telling the gate what users want makes it strictly worse (2026-08-07)
 
 ```bash
