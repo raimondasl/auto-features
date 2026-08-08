@@ -1757,6 +1757,10 @@ evals = [
     { name = "pyarrow" },
     { name = "snowballstemmer" },
 ]
+hyde = [
+    { name = "pyarrow" },
+    { name = "sentence-transformers" },
+]
 mcp = [
     { name = "mcp" },
 ]
@@ -1774,16 +1778,18 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
     { name = "openai", marker = "extra == 'evals'", specifier = ">=1.0" },
     { name = "pyarrow", marker = "extra == 'evals'", specifier = ">=15" },
+    { name = "pyarrow", marker = "extra == 'hyde'", specifier = ">=15" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
     { name = "scikit-learn", specifier = ">=1.3" },
     { name = "sentence-transformers", marker = "extra == 'embeddings'", specifier = ">=2.0" },
+    { name = "sentence-transformers", marker = "extra == 'hyde'", specifier = ">=2.0" },
     { name = "snowballstemmer", marker = "extra == 'evals'", specifier = ">=2.2" },
     { name = "sqlite-vec", marker = "extra == 'vectors'", specifier = ">=0.1" },
 ]
-provides-extras = ["embeddings", "evals", "mcp", "vectors", "dev"]
+provides-extras = ["embeddings", "hyde", "evals", "mcp", "vectors", "dev"]
 
 [[package]]
 name = "requests"

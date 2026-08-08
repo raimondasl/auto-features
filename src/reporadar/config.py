@@ -236,6 +236,31 @@ class SuggestionsConfig:
 
 
 @dataclass
+class HydeConfig:
+    """Dense-index discovery: search by the abstract of the paper this repo wishes existed.
+
+    Off by default because it needs a one-time ~1.1 GB local footprint (a 432 MB index sync
+    plus ~670 MB of embedding weights). What it buys is the channel keyword search cannot
+    be: measured 27 of 48 benchmark targets, **15 of them unreachable by any other channel**
+    including every repository with no arXiv bibliography. See reporadar/hyde.py.
+    """
+
+    enabled: bool = False
+    index_dir: str = "~/.cache/reporadar/hyde-index"
+    model: str = "mixedbread-ai/mxbai-embed-large-v1"
+    # Four diverse guesses measured far better than one (42/48 vs 23/48 reachable at an
+    # equal candidate budget) — the cost is one LLM call either way.
+    n_hypotheses: int = 4
+    top_k: int = 100  # candidates per hypothesis; the union feeds the normal ranker
+    # Reproduce stored vectors bit-for-bit before searching. Leave this on: a mismatched
+    # encoder returns confident nonsense and nothing downstream can detect it.
+    verify_encoder: bool = True
+    # Warn when the synced index is older than this. The index is a third-party mirror,
+    # republished periodically; a stale one silently stops seeing recent work.
+    stale_after_days: int = 60
+
+
+@dataclass
 class FinescaleConfig:
     """Second-stage rescore that orders the gate's near-binary score-2 band.
 
@@ -310,6 +335,7 @@ class RepoRadarConfig:
     recommendations: RecommendationsConfig = field(default_factory=RecommendationsConfig)
     signals: SignalsConfig = field(default_factory=SignalsConfig)
     privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
+    hyde: HydeConfig = field(default_factory=HydeConfig)
 
 
 def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
@@ -334,6 +360,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     )
     enrichment.provider = _normalize_off(enrichment.provider)
     signals = SignalsConfig(**data["signals"]) if "signals" in data else SignalsConfig()
+    hyde = HydeConfig(**data["hyde"]) if "hyde" in data else HydeConfig()
     privacy = PrivacyConfig(**data["privacy"]) if "privacy" in data else PrivacyConfig()
     sources = data.get("sources", ["arxiv"])
 
@@ -394,6 +421,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         recommendations=recommendations,
         signals=signals,
         privacy=privacy,
+        hyde=hyde,
     )
 
 

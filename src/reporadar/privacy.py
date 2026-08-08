@@ -84,6 +84,20 @@ DESTINATIONS: tuple[Destination, ...] = (
         enabled_by="always (the core source)",
     ),
     Destination(
+        module="hyde",
+        service="Hugging Face (dense arXiv index)",
+        endpoint="huggingface.co/datasets/bluuebunny/arxiv_abstract_embedding_...",
+        sends=(
+            "nothing about your repository - only HTTP Range requests for index "
+            "shards, identical for every user. Matching then happens locally, so "
+            "HyDE discovery is a NET REDUCTION in what leaves: the keyword path it "
+            "replaces transmits repo-derived queries to arXiv on every run"
+        ),
+        sensitivity=NONE,
+        enabled_by="hyde.enabled (and `rr sync-index`)",
+        active=lambda cfg: getattr(getattr(cfg, "hyde", None), "enabled", False),
+    ),
+    Destination(
         module="sources.semantic_scholar",
         service="Semantic Scholar",
         endpoint="api.semanticscholar.org/graph/v1/paper/search",

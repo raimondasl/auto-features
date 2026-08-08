@@ -13,7 +13,12 @@ from typing import Any
 import click
 
 from reporadar import finescale
-from reporadar.collector import CollectionError, build_queries, collect_papers
+from reporadar.collector import (
+    CollectionError,
+    build_queries,
+    collect_by_ids,
+    collect_papers,
+)
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
     ArxivConfig,
@@ -24,6 +29,7 @@ from reporadar.config import (
     validate_config,
 )
 from reporadar.digest import write_digest
+from reporadar.llm_client import LLMError
 from reporadar.output import error, info, muted, setup_verbose_logging, success, warn
 from reporadar.profiler import profile_repo
 from reporadar.ranker import format_score_explanation, rank_papers, score_distribution
@@ -268,6 +274,49 @@ def update(
         error("Check your network connection and try again.")
         raise SystemExit(1) from exc
     info(f"  Fetched {len(papers)} unique papers")
+
+    # 3a. HyDE dense discovery — the channel keyword search structurally cannot be.
+    #     Queries built from a repository describe what it HAS; the useful paper describes
+    #     what it should ADOPT, and across nine benchmark repos the keyword path reached 0
+    #     of 24 known-good papers. Searching by a hypothesised abstract sidesteps that: the
+    #     query is written in the literature's register by construction. Measured 27/48,
+    #     with 15 targets no other channel reaches. Offline once the index is synced.
+    if cfg.hyde.enabled:
+        from reporadar import hyde
+
+        index_dir = Path(cfg.hyde.index_dir).expanduser()
+        try:
+            age = hyde.index_age_days(index_dir)
+            if age is not None and age > cfg.hyde.stale_after_days:
+                warn(
+                    f"  HyDE index is {age:.0f} days old — it is a periodically republished "
+                    f"mirror, so recent papers may be missing. Refresh: rr sync-index --refresh"
+                )
+            info("Discovering papers by hypothesis (HyDE)...")
+            hyde_ids = hyde.discover(
+                repo_profile,
+                cfg.suggestions,
+                index_dir,
+                n_hypotheses=cfg.hyde.n_hypotheses,
+                top_k=cfg.hyde.top_k,
+                model_name=cfg.hyde.model,
+                verify=cfg.hyde.verify_encoder,
+                on_progress=lambda msg: info(f"  {msg}"),
+            )
+            known = {p["arxiv_id"].split("v")[0] for p in papers}
+            fresh = [pid for pid in hyde_ids if pid not in known]
+            hyde_papers = collect_by_ids(fresh)
+            papers.extend(p for p in hyde_papers if p["arxiv_id"].split("v")[0] not in known)
+            info(
+                f"  HyDE: {len(hyde_ids)} candidates, {len(fresh)} new, "
+                f"{len(hyde_papers)} resolved."
+            )
+        except hyde.HydeError as exc:
+            # Loud, and never silently degraded to the keyword-only path: that path is the
+            # one measured at 0/24, so a user who enabled HyDE and got it must be told.
+            warn(f"  HyDE discovery unavailable: {exc}")
+        except (CollectionError, LLMError) as exc:
+            warn(f"  HyDE discovery failed: {exc}")
 
     # 3b. Semantic Scholar source
     if "semantic_scholar" in cfg.sources:
@@ -2181,6 +2230,71 @@ def workspace_digest(run_id: int | None, output_path: str | None, fmt: str) -> N
         success(f"Workspace digest written to {dest}")
     finally:
         store.close()
+
+
+@cli.command(name="sync-index")
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+@click.option("--refresh", is_flag=True, help="Re-fetch shards already on disk.")
+@click.option("--verify", is_flag=True, help="Only check the encoder reproduces the index.")
+def sync_index(config_path: str | None, refresh: bool, verify: bool) -> None:
+    """Download the dense arXiv index that HyDE discovery searches.
+
+    ~432 MB of column-pruned range reads, one time, resumable — an interrupted sync
+    re-fetches only the shards it had not finished. `--verify` skips the download and
+    checks the thing that actually matters: that vectors computed here reproduce the
+    published ones bit-for-bit. If they do not, searching would return confident nonsense
+    and nothing downstream could tell.
+    """
+    from reporadar import hyde
+
+    cfg = load_config(config_path)
+    index_dir = Path(cfg.hyde.index_dir).expanduser()
+
+    if verify:
+        info(f"Loading {cfg.hyde.model} (~670 MB on first use)...")
+        try:
+            ok, dists = hyde.verify_encoder(hyde.load_encoder(cfg.hyde.model))
+        except hyde.HydeError as exc:
+            error(str(exc))
+            raise SystemExit(1) from exc
+        if ok:
+            success(f"Encoder reproduces the index exactly (Hamming {dists}).")
+            return
+        error(f"Encoder does NOT reproduce the index: Hamming {dists}, expected all 0.")
+        error(f"HyDE search would return noise. The index model is {hyde.MODEL_NAME}.")
+        raise SystemExit(1)
+
+    existing = len(hyde.index_shards(index_dir))
+    info(f"Syncing the HyDE index into {index_dir}")
+    if existing and not refresh:
+        info(f"  {existing} shards already present — fetching only what is missing.")
+    try:
+        stats = hyde.sync_index(
+            index_dir,
+            refresh=refresh,
+            on_shard=lambda year, rows, nbytes: info(
+                f"  {year}: {rows:>7,} vectors  {nbytes / 1e6:6.1f} MB"
+            ),
+        )
+    except hyde.HydeError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    total = len(hyde.index_shards(index_dir))
+    if stats["shards"]:
+        success(
+            f"Synced {stats['shards']} shards, {stats['rows']:,} vectors, "
+            f"{stats['bytes'] / 1e6:.0f} MB. Index now holds {total} shards."
+        )
+    else:
+        success(f"Index already complete: {total} shards.")
+    if not cfg.hyde.enabled:
+        info("Enable it with `hyde.enabled: true` in your config.")
 
 
 @cli.command()

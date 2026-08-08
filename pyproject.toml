@@ -24,6 +24,15 @@ rr = "reporadar.cli:cli"
 embeddings = [
     "sentence-transformers>=2.0",
 ]
+hyde = [
+    # HyDE dense discovery (`rr sync-index` + `hyde.enabled`). The encoder must be the
+    # one the published index was built with, or queries land in a different space —
+    # `reporadar.hyde.verify_encoder` refuses to search unless vectors match bit-for-bit.
+    "sentence-transformers>=2.0",
+    # Reads two columns out of remote Parquet shards over HTTP Range, which is what
+    # turns a 2,542 MB dataset into a 432 MB one-time sync.
+    "pyarrow>=15",
+]
 evals = [
     # Only needed for the Tier B LLM-judge benchmark (evals/run_judge_eval.py).
     "openai>=1.0",  # the neutral judge
@@ -76,7 +85,15 @@ warn_return_any = true
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["arxiv", "sklearn.*", "yaml", "sentence_transformers", "mcp.*", "sqlite_vec"]
+module = [
+    "arxiv",
+    "sklearn.*",
+    "yaml",
+    "sentence_transformers",
+    "mcp.*",
+    "sqlite_vec",
+    "pyarrow.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

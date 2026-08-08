@@ -20,6 +20,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
 - **SPECTER2 similarity** — citation-trained scientific embeddings (served free by Semantic Scholar, no local model) score how close each paper is to the work you starred/rated (`ranking.w_specter`)
 - **Community attention** — optionally rank on Hugging Face Papers upvotes, log-scaled against the run's own maximum (`ranking.w_community`)
+- **HyDE dense discovery** — queries built from a repository describe what it *has*; the paper that would improve it describes what it should *adopt*. Across nine benchmark repos, keyword search fetched 2,030 papers and reached **0** of 24 known-good ones. HyDE sidesteps that: an LLM writes the *abstract of the paper it wishes existed*, which is in the literature's register by construction, and that is matched against a local 3.1M-vector index of all arXiv. Measured **27 of 48** targets — **15 unreachable by any other channel** — and once synced, matching is fully offline (`hyde.enabled` + `rr sync-index`, opt-in, ~1.1 GB local)
 - **Fine-scale rescore** — the 0-3 actionability gate is near-binary, and its score-2 band ran anywhere from 0% to 100% useful depending on the repo. A second pass rescores that band on a 0-9 scale, reads the *distribution* over the answer token rather than the sampled digit, and admits a paper only above a calibrated P ≥ 2/3. Worth **+1.86 → +3.18 mean net@2** on a live 22-repo benchmark run, with every net-negative repo eliminated (`triage.finescale`, opt-in, needs `OPENAI_API_KEY`)
 - **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
@@ -436,6 +437,12 @@ ranking:
   hybrid: false                       # true: fuse the heuristic order with BM25 via RRF
   category_weights: {}                # per-category multipliers, e.g. {cs.CL: 2.0}
 
+hyde:                                 # dense discovery (see "HyDE discovery" below)
+  enabled: false                      # true: needs `rr sync-index` first (~432 MB, one time)
+  index_dir: ~/.cache/reporadar/hyde-index
+  n_hypotheses: 4                     # 4 diverse guesses measured far better than 1
+  top_k: 100                          # candidates per hypothesis; the union feeds the ranker
+
 triage:
   enabled: false                      # true: LLM-score each top paper 0-3 for actionability
   min_actionable: 2                   # llm_score >= this qualifies as a Top Pick
@@ -597,6 +604,53 @@ Papers are categorized into three tiers based on their combined score:
 
 With `triage.enabled`, the LLM actionability score replaces the heuristic score for
 tiering: `llm_score >= min_actionable` is a Top Pick, `>= 1` is Maybe, `0` is Muted.
+
+### HyDE discovery (`hyde`)
+
+The measurement that motivates this is the bluntest in the project: across nine benchmark
+repositories RepoRadar's own queries fetched **2,030 papers and reached 0** of the 24 that
+an independent agentic baseline recommended and a judge confirmed useful. Not a ranking
+miss — a disjoint set, with 23 of the 24 inside the categories being searched, and arXiv
+returning them at rank 1 given the right phrase.
+
+The cause is a **register mismatch**: a codebase's vocabulary, and anything derived from
+reading it, describes what the project *has*. The useful paper describes what it should
+*adopt*. Asking an LLM to name what the repo lacks does not help either — it names a
+plausible *different* research agenda, and ranks the true targets worse than random even
+after the phrasing gap is closed entirely.
+
+HyDE routes around the mismatch rather than trying to close it. The LLM writes the
+**abstract of a paper that does not exist** but which, if it did, would most improve this
+codebase. That text is in the literature's register by construction, so it can be matched
+against real abstracts in a dense space — where "experience replay prioritization methods"
+and "prioritized experience replay" are neighbours instead of disjoint strings.
+
+```bash
+rr sync-index          # one time: ~432 MB of column-pruned range reads, resumable
+rr sync-index --verify # check our vectors reproduce the index bit-for-bit
+```
+
+Then set `hyde.enabled: true`. Measured on the 22-repository benchmark (blind — the
+generator never saw the targets): **27 of 48** known-good papers in the top 1,000, median
+rank 837, against 10/48 for embedding the README and 3/48 for keyword queries *in the same
+index*. The count is not the main point: **15 of those targets are unreachable by the
+citation hop**, including every repository with no arXiv bibliography, so the channels are
+additive (union 36/48 = 75%).
+
+Three things worth knowing:
+
+- **Discovery becomes offline, which is a privacy improvement.** Once synced, matching
+  sends nothing — versus the keyword path, which transmits repo-derived queries to arXiv on
+  every run. `rr audit` reports it as such.
+- **A wrong encoder is undetectable downstream**, so it is checked rather than assumed:
+  before searching, RepoRadar reproduces published vectors bit-for-bit and **refuses to
+  run** if it cannot. Leave `verify_encoder` on.
+- **The index is a third-party mirror**, republished periodically. RepoRadar warns when the
+  local copy passes `stale_after_days` (default 60), because a stale index silently stops
+  seeing recent work.
+
+Costs ~1.1 GB local (432 MB index + ~670 MB model weights), one LLM call per run for the
+hypotheses, and a few seconds of CPU. Install with `uv pip install -e ".[hyde]"`.
 
 ### Fine-scale rescore (`triage.finescale`)
 
