@@ -394,7 +394,7 @@ keys only unlock extra live sources.
 
 | Env var | For | Cost | Get it from |
 |---------|-----|------|-------------|
-| `OPENAI_API_KEY` | **Tier B judge (GPT-5.5)** | **paid** (~$10–30/full run) | https://platform.openai.com/api-keys . Required for a real Tier B run; use `--mock` to dry-run without it. |
+| `OPENAI_API_KEY` | **Tier B judge (GPT-5.5)**, and the fine-scale rescore (`exp_finescale.py`, gpt-4o-mini) | **paid** (~$10–30/full run; the rescore is ~$1) | https://platform.openai.com/api-keys . Required for a real Tier B run; use `--mock` to dry-run without it. The rescore needs it for a different reason than the judge — token logprobs, which Anthropic does not expose. |
 | `ANTHROPIC_API_KEY` | **Tier B `--baseline api`** (Opus 4.8 + web_search) | **paid** | https://console.anthropic.com/ . The no-CLI baseline path. |
 | `OPENALEX_API_KEY` | live `openalex` source | **free** | https://openalex.org/ → sign in → **API key**. Recommended: since 2026-02-13 keyless callers are throttled to a tiny daily allowance. |
 | `SEMANTIC_SCHOLAR_API_KEY` | live `semantic_scholar` source | free | https://www.semanticscholar.org/product/api . Works **without** a key on a shared pool (best-effort); keys aren't granted to free-domain emails since 2024, so most people run keyless. |
@@ -527,6 +527,61 @@ evals/
                      floor. Established that the pool is dense (top band 58% actionable vs
                      2% floor) and that the gate's failure is recall (0.60), not precision
                      (0.97). `--dry-run` shows the sample and cost without calling anything
+  gate_full_pool.py  ~$1.20: what the gate does on REAL candidate pools rather than on what
+                     a ranker surfaced. 300 papers balanced across all 22 repos; 11% admit
+                     rate at 0.73 precision. Refuses to cache an empty fetch — seven pools
+                     were once cached empty after an arXiv 429 storm and scored as zeros
+
+  --- ranking the score-2 band (2026-08-07/08) ---
+  band_testbeds.py   $0, no LLM: the frozen testbeds every E-experiment below scores
+                     against, so they share one definition of the data and the metrics.
+                     Testbed A reconstructs per-paper gate bands POSITIONALLY from a run
+                     file's sweep counts (the files record judge scores but not gate
+                     scores); the reconstruction is verified against every case's own
+                     recorded net values in tests/. Also owns `repo_context_block`'s only
+                     eval-side caller, so the benchmark prompt cannot drift from the
+                     shipped one — the fine-scale probability map is fitted to that prompt
+  exp_finescale.py   ~$1, E2 — THE WINNER, now shipped as src/reporadar/finescale.py.
+                     Scores each paper 0-9 and reads the EXPECTATION over the answer
+                     token's logprob distribution (gpt-4o-mini; Anthropic exposes no
+                     logprobs). Band AUC 0.84, and through a frozen 2-parameter logistic
+                     at P >= 2/3 it takes mean net@2 +1.91 -> +3.14. `--arm haiku` is the
+                     Anthropic-native alternative — 10 samples per paper instead of exact
+                     logprobs — measured at AUC 0.59 and rejected: 44% of papers return
+                     the same digit on 9+ of 10 draws, so sampling re-reads the mode
+                     rather than the distribution
+  compare_finescale_baseline.py
+                     $0, calls nothing: the head-to-head against the Opus baseline on all
+                     22 repos. The baseline's picks and their verdicts are already in the
+                     frozen run file, so both systems are scored on the same candidates by
+                     the same judge. +3.14 vs +1.82, paired +1.32, 10/6/6 — sign test
+                     p = 0.45, so ahead on the mean and NOT established per repo. Uses the
+                     same model family as the shipped map, deliberately (see its docstring)
+  exp_select.py      ~$6 (Sonnet) / ~$0.50 (Haiku), E1: shuffled subset selection ("select
+                     what maintainers should act on — possibly none", R=15 shuffles, vote
+                     share as the score). NEGATIVE: AUC 0.64/0.62, policy below show-all.
+                     Abstention fires correctly but both models are far too strict —
+                     Sonnet selected nothing in 15/15 shuffles on two net-positive repos
+  exp_ensemble.py    ~$3, E3: 10 Haiku votes per paper under 10 different reviewer personas,
+                     each stating the strongest reason NOT to act, plus a verbalized
+                     probability. KILLED by its own pre-registered bar at ECE 0.425 — and
+                     in the direction the literature did not predict: chronic
+                     UNDER-confidence, P-hat collapsing toward 0 regardless of label
+  exp_pairwise.py    ~$3, E4: full round-robin pairwise comparison in BOTH orders (Claude
+                     position bias is severe), Bradley-Terry by MLE, plus template anchors
+                     meant to give the scale an absolute zero. Band AUC 0.64 misses the
+                     0.70 bar; the anchors failed outright — 128/128 real papers beat the
+                     borderline anchor, so it discriminates nothing
+  exp_features.py    $0, E5: L2 logistic over free metadata (age, S2 citations, HyDE rank,
+                     hop coupling), leave-one-repo-out throughout. Features alone reach
+                     AUC 0.585 — below the pre-registered 0.60, confirming the
+                     practitioner-relevance literature's warning that citation counts do
+                     not predict what engineers act on. `--combined` adds E1-E4 as columns
+                     and is beaten by E2 alone on every axis. NOTE: its inner-CV picks the
+                     L2 strength by AUC, which is rank-only and therefore blind to where
+                     P crosses a threshold — see RESULTS.md "Correction" before reusing it
+                     to evaluate a thresholded policy
+
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode
