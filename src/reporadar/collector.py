@@ -250,6 +250,37 @@ def _query_with_retry(
     )
 
 
+def collect_by_ids(ids: list[str], batch_size: int = 100) -> list[dict[str, Any]]:
+    """Fetch paper metadata for specific arXiv ids, in batches, through the shared gate.
+
+    The counterpart to :func:`collect_papers` for channels that discover *identifiers*
+    rather than run queries — the HyDE dense search and the citation hop both do. It
+    deliberately applies **no date cutoff**: those channels exist to reach the seminal
+    older work a recency window structurally cannot see, and re-filtering their output by
+    date here would undo the only thing they are for.
+
+    Missing ids are dropped silently by the API, so the result may be shorter than the
+    input; a batch that fails outright raises, rather than returning a short list that a
+    caller would read as "these papers do not exist".
+    """
+    if not ids:
+        return []
+    client = _shared_client(batch_size)
+    papers: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for start in range(0, len(ids), batch_size):
+        chunk = ids[start : start + batch_size]
+        search = arxiv.Search(id_list=chunk, max_results=len(chunk))
+        for result in _query_with_retry(client, search):
+            paper = _result_to_paper(result)
+            if paper["arxiv_id"] not in seen:
+                seen.add(paper["arxiv_id"])
+                paper["matched_query"] = "hyde"
+                papers.append(paper)
+    logger.info("Fetched %d of %d requested arXiv ids", len(papers), len(ids))
+    return papers
+
+
 def collect_papers(
     queries: list[str],
     arxiv_cfg: ArxivConfig,
