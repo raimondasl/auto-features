@@ -515,6 +515,62 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Adaptive digest size does not survive contact with the gate's score distribution (2026-08-07)
+
+$0 — derived from the sweep already in the 22-case run.
+
+The previous section proposed "show every score-3 paper; if there are none, show at most k
+score-2 papers, and abstain below some floor". A reader raised two objections before any of
+this was measured, and both are correct.
+
+**1. There is no interior optimum in k.** Expected net@2 per paper shown, at precision p, is
+
+    p·(+1) + (1−p)·(−2)  =  3p − 2
+
+which is positive above p = 0.67 and negative below it. If the papers are **unranked**,
+truncating to k scales the total by k without changing the sign: either show everything or
+show nothing. A "show at most k" rule is only meaningful if something orders the set, and
+nothing does — the gate gives them all a 2.
+
+**2. Choosing k per repo is fitting to the benchmark.** It would use the outcome to pick the
+knob that produces the outcome.
+
+### And the signal it would need does not exist
+
+Score distribution of admitted papers, per case, with the precision of each band:
+
+| case | score-3 | score-2 | actionable of the 10 | p@min≥2 | net@2 | net@2 if score-3 only |
+|---|---|---|---|---|---|---|
+| `diffusion` | **0** | **10** | 10 | **1.00** | **+10.0** | **0.0** (abstains) |
+| `vectordb` | **2** | **8** | 5 | **0.50** | **−5.0** | **+2.0** |
+| `columnar` | 0 | 10 | 8 | 0.80 | +4.0 | 0.0 |
+| `numerics` | 0 | 10 | 6 | 0.60 | −2.0 | 0.0 |
+| `db` | 9 | 1 | 10 | 1.00 | +10.0 | +9.0 |
+| `linter` | 0 | 1 | 0 | 0.00 | −2.0 | 0.0 |
+
+**`diffusion` and `vectordb` are the whole argument.** Both admit ten papers, both have almost
+no score-3s — and one is 100% actionable while the other is 50%. At gate time they are
+indistinguishable. Any rule that abstains on `vectordb` abstains on `diffusion` and gives back
++10 to save +7.
+
+The same holds for `columnar` (0.80) against `numerics` (0.60): identical distributions, 10
+score-2 papers each, opposite verdicts.
+
+Across the 17 cases that returned anything, the share of admits scoring 3 correlates with
+precision at **r = +0.30** — nowhere near enough to gate on.
+
+### What this leaves
+
+Truncation is a dead end and score-3-only is too shy — the sweep already measured it at mean
+**+0.50 with 16/22 abstentions**, giving away `diffusion` +10, `columnar` +4 and `crypto` +3 to
+avoid `vectordb` −5 and `compiler` −5.
+
+**The requirement is reliable ranking *within* the score-2 band**, which is where the variance
+lives: precision inside that band runs from 0.00 (`linter`) to 1.00 (`diffusion`, `crypto`).
+That is the same conclusion the ranking diagnostic reached from the other direction, and
+nothing measured so far can do it — not the gate's own score, not the heuristic ranker, and
+not a threshold on either.
+
 ## The Opus baseline on all 22 repos: a dead heat, reached by opposite strategies (2026-08-07)
 
 The headline comparison has always been 12 cases. This is the first time RepoRadar and the
