@@ -18,6 +18,15 @@ AUC <= 0.55. Validity landmine: the judge is GPT-5.5 — any win must survive th
 second-judge cross-check before being believed (same-family bias).
 
     uv run python evals/exp_finescale.py --testbed a a300 b c
+
+**The `haiku` arm** (added after E2 won, to answer whether shipping needs OpenAI at all):
+the same 0-9 prompt sent N times to Haiku at the API's default temperature, with the
+MEAN of the sampled digits standing in for the logprob expectation. Same prompt, same
+estimand, Monte-Carlo estimator instead of an exact one — so the comparison isolates
+what the logprobs buy. Its resolution is 1/N; the exact reading is continuous, which is
+the specific thing at issue.
+
+    uv run python evals/exp_finescale.py --arm haiku --samples 10 --testbed a a300
 """
 
 from __future__ import annotations
@@ -25,8 +34,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -108,6 +119,59 @@ def _p_true(logprob_content: list) -> float | None:
             total = p["true"] + p["false"]
             return p["true"] / total if total > 0 else None
     return None
+
+
+HAIKU_MODEL = "claude-haiku-4-5"
+
+
+def _sampled_digit(raw: str) -> int | None:
+    """The first 0-9 digit in a Haiku reply, or None if it did not answer as asked."""
+    m = re.search(r"\d", raw)
+    if not m:
+        return None
+    d = int(m.group(0))
+    return d if 0 <= d <= 9 else None
+
+
+def score_paper_haiku(case: str, paper: tb.Paper, samples: int, cache_dir: Path) -> dict:
+    """Monte-Carlo stand-in for the logprob expectation: N draws, take the mean.
+
+    Anthropic exposes no logprobs, so the only way to see the score *distribution* is to
+    sample it. Resolution is 1/N against the exact reading's continuous one — which is
+    precisely the quantity this arm exists to measure.
+    """
+    slot = cache_dir / f"{case}_{paper.id.replace('/', '_')}.json"
+    if slot.is_file():
+        cached = json.loads(slot.read_text(encoding="utf-8"))
+        if len(cached.get("draws", [])) >= samples:
+            return cached
+    from types import SimpleNamespace
+
+    from reporadar.llm_client import LLMError, complete
+
+    cfg = SimpleNamespace(provider="claude", claude_model=HAIKU_MODEL, timeout=60)
+    prompt = SCALE_PROMPT.format(
+        repo=tb.repo_block(case), title=paper.title, abstract=paper.abstract[:1500]
+    )
+
+    def one(_i: int) -> int | None:
+        for attempt in range(3):
+            try:
+                return _sampled_digit(complete(prompt, cfg, max_tokens=8))
+            except LLMError:
+                time.sleep(2 * (attempt + 1))
+        return None
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        draws = [d for d in pool.map(one, range(samples)) if d is not None]
+    rec: dict = {"draws": draws}
+    if draws:
+        rec["exp09"] = sum(draws) / len(draws)
+        # The same degeneracy probe as the logprob arm: how concentrated is the draw?
+        rec["modal_p"] = max(draws.count(d) for d in set(draws)) / len(draws)
+        slot.parent.mkdir(parents=True, exist_ok=True)
+        slot.write_text(json.dumps(rec, indent=1), encoding="utf-8")
+    return rec
 
 
 def score_paper(client, case: str, paper: tb.Paper, cache_dir: Path) -> dict:  # type: ignore[no-untyped-def]
@@ -233,36 +297,58 @@ def summarize(bed: str, papers: dict[str, list[tb.Paper]], scored: dict) -> dict
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--testbed", nargs="+", default=["a"], choices=["a", "a300", "b", "c"])
+    ap.add_argument(
+        "--arm",
+        default="openai",
+        choices=["openai", "haiku"],
+        help="openai = exact logprob expectation; haiku = N-sample Monte-Carlo mean",
+    )
+    ap.add_argument("--samples", type=int, default=10, help="draws per paper in the haiku arm")
     ap.add_argument("--case", help="single case, for a smoke run")
     ap.add_argument("--limit", type=int, help="max papers per case (smoke)")
     args = ap.parse_args()
 
     tb.load_env()
-    client = _client()
+    client = _client() if args.arm == "openai" else None
+    suffix = "" if args.arm == "openai" else f"_haiku{args.samples}"
     for bed in args.testbed:
         papers = papers_for(bed)
         if args.case:
             papers = {args.case: papers[args.case]}
-        cache_dir = tb.EXP / "cache" / "finescale" / bed
+        cache_dir = tb.EXP / "cache" / f"finescale{suffix}" / bed
         scored: dict[str, dict[str, dict]] = {}
         t0 = time.time()
-        from concurrent.futures import ThreadPoolExecutor
 
         for case in sorted(papers):
             todo = papers[case][: args.limit]
             with ThreadPoolExecutor(max_workers=8) as pool:
-                recs = list(
-                    pool.map(lambda p, c=case, cd=cache_dir: score_paper(client, c, p, cd), todo)
-                )
+                if args.arm == "openai":
+                    recs = list(
+                        pool.map(
+                            lambda p, c=case, cd=cache_dir: score_paper(client, c, p, cd), todo
+                        )
+                    )
+                else:
+                    recs = list(
+                        pool.map(
+                            lambda p, c=case, cd=cache_dir: score_paper_haiku(
+                                c, p, args.samples, cd
+                            ),
+                            todo,
+                        )
+                    )
             scored[case] = dict(zip((p.id for p in todo), recs, strict=True))
-            print(f"[{bed}:{case:10}] scored {len(todo)}", flush=True)
+            print(f"[{bed}:{case:10}] scored {len(todo)} ({time.time() - t0:.0f}s)", flush=True)
         summary = summarize(bed, papers, scored)
-        out = tb.EXP / f"finescale_{bed}.json"
+        summary["arm"] = args.arm
+        if args.arm == "haiku":
+            summary["samples"] = args.samples
+        out = tb.EXP / f"finescale{suffix}_{bed}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(
             json.dumps({"summary": summary, "scored": scored}, indent=1), encoding="utf-8"
         )
-        print(f"\n=== E2 {bed} ({time.time() - t0:.0f}s) ===")
+        print(f"\n=== E2[{args.arm}] {bed} ({time.time() - t0:.0f}s) ===")
         for k, v in summary.items():
             if k not in ("per_case", "reliability_p_true", "testbed", "model"):
                 print(f"  {k}: {v}")

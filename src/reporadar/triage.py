@@ -42,6 +42,30 @@ this code. A low score is the correct answer when the paper is not useful.
 Respond with ONLY a JSON object: {"score": 0|1|2|3, "reason": "<one sentence>"}"""
 
 
+def repo_context_block(profile: RepoProfile, summary: Any = None) -> str:
+    """The repository half of every gate prompt: what it contains, then what it is FOR.
+
+    Extracted so the 0-3 gate (:func:`build_triage_prompt`) and the fine-scale 0-9
+    rescore (:mod:`reporadar.finescale`) describe a repo with the *same bytes*. That is
+    not tidiness: the fine-scale stage's score→probability map is a frozen two-parameter
+    logistic fitted against this exact prompt shape (evals/RESULTS.md, "Ranking the
+    score-2 band"), so a repo block that drifted between the two would silently
+    invalidate the calibration. `evals/band_testbeds.py` calls this function too, so the
+    benchmark cannot drift from the product either.
+    """
+    anchors = ", ".join(profile.anchors[:12]) if profile.anchors else "none"
+    domains = ", ".join(profile.domains[:5]) if profile.domains else "general"
+    keywords = ", ".join(term for term, _ in profile.keywords[:12]) or "n/a"
+    block = f"Dependencies/libraries: {anchors}\nDomains: {domains}\nKey topics: {keywords}\n"
+    detail = summary.as_prompt_block().strip() if summary is not None else ""
+    if not detail:
+        prose = getattr(profile, "prose", "").strip()
+        detail = f"What this project is, in its own words:\n{prose}" if prose else ""
+    if detail:
+        block += f"\n{detail}\n"
+    return block
+
+
 def build_triage_prompt(paper: dict[str, Any], profile: RepoProfile, summary: Any = None) -> str:
     """The gate's prompt: the rubric, the repository, then one candidate paper.
 
@@ -60,21 +84,10 @@ def build_triage_prompt(paper: dict[str, Any], profile: RepoProfile, summary: An
     question, and sending both would double the repo half to say one thing twice. Nothing
     in ``rr update`` passes one today — the prefix is the shipped path.
     """
-    keywords = ", ".join(term for term, _ in profile.keywords[:12]) or "n/a"
-    domains = ", ".join(profile.domains[:5]) if profile.domains else "general"
-    anchors = ", ".join(profile.anchors[:12]) if profile.anchors else "none"
-    block = summary.as_prompt_block().strip() if summary is not None else ""
-    if not block:
-        prose = getattr(profile, "prose", "").strip()
-        block = f"What this project is, in its own words:\n{prose}" if prose else ""
-    detail = f"\n{block}\n" if block else ""
     return (
         f"{_RUBRIC}\n\n"
         f"# Repository\n"
-        f"Dependencies/libraries: {anchors}\n"
-        f"Domains: {domains}\n"
-        f"Key topics: {keywords}\n"
-        f"{detail}\n"
+        f"{repo_context_block(profile, summary)}\n"
         f"# Candidate paper\n"
         f"Title: {paper.get('title', 'Unknown')}\n"
         f"Abstract: {paper.get('abstract', '')[:1500]}\n\n"

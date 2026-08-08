@@ -96,6 +96,7 @@ def categorize_papers(
     maybe_threshold: float = MAYBE_THRESHOLD,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Split scored papers into three tiers: top_picks, maybe_relevant, muted.
 
@@ -107,6 +108,16 @@ def categorize_papers(
     = Maybe, ``0`` = Muted — so the digest abstains from "Top Picks" unless a
     paper is judged genuinely applicable. Papers without an ``llm_score`` fall
     back to the heuristic ``score_total`` thresholds.
+
+    When *finescale_threshold* is set, papers sitting *exactly at* the triage
+    threshold face a second bar: their calibrated ``finescale_p`` must reach it too, or
+    they drop to Maybe. Only that band is re-gated, because only that band needed it —
+    the gate's score-2 papers ran anywhere from 0% to 100% genuinely actionable while
+    its score-3 papers were reliable (evals/RESULTS.md, "Ranking the score-2 band").
+    A band paper with **no** ``finescale_p`` does not make Top Picks: an unscored paper
+    is unproven, and the benchmark's +2.91 measured it that way. The caller is
+    responsible for not passing a threshold at all when the stage broadly failed — see
+    :func:`reporadar.finescale.enough_scored`.
 
     When *rerank* is set (and triage scores are present), papers are reordered by
     ``llm_score`` *before* the *top_n* cut, so an actionable paper the heuristic
@@ -132,7 +143,14 @@ def categorize_papers(
         llm = paper.get("llm_score")
         if triage_threshold is not None and llm is not None:
             if llm >= triage_threshold:
-                top_picks.append(paper)
+                # Papers above the band are trusted on the gate's word; papers *at* it
+                # must also clear the calibrated probability when that stage ran.
+                at_band = llm == triage_threshold and finescale_threshold is not None
+                p = paper.get("finescale_p")
+                if at_band and (p is None or p < finescale_threshold):
+                    maybe_relevant.append(paper)
+                else:
+                    top_picks.append(paper)
             elif llm >= 1:
                 maybe_relevant.append(paper)
             else:
@@ -210,6 +228,7 @@ def _build_digest_context(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> dict[str, Any]:
     """Build the shared template context for a run (Markdown and HTML render it)."""
     all_scored = store.get_scores_for_run(run_id)
@@ -232,7 +251,11 @@ def _build_digest_context(
     annotate_signals(store, scored)
 
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+        scored,
+        top_n=top_n,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
@@ -318,6 +341,7 @@ def generate_digest(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> str:
     """Generate digest Markdown content for a given run.
 
@@ -337,6 +361,7 @@ def generate_digest(
         since_days=since_days,
         triage_threshold=triage_threshold,
         rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     rendered: str = _load_template().render(**context)
     return rendered
@@ -352,6 +377,7 @@ def generate_digest_html(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> str:
     """Generate a fully rendered HTML digest page (not markdown-in-<pre>).
 
@@ -368,6 +394,7 @@ def generate_digest_html(
         since_days=since_days,
         triage_threshold=triage_threshold,
         rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     rendered: str = _load_html_template("digest_page.html.j2").render(**context)
     return rendered
@@ -396,6 +423,7 @@ def generate_digest_json(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> str:
     """Generate digest as a JSON string.
 
@@ -411,7 +439,11 @@ def generate_digest_json(
             paper["is_new"] = paper["arxiv_id"] not in prev_ids
 
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+        scored,
+        top_n=top_n,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
@@ -463,11 +495,16 @@ def generate_digest_csv(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> str:
     """Generate digest as a CSV string."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+        scored,
+        top_n=top_n,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
 
     # Tag each paper with its tier
@@ -503,11 +540,16 @@ def generate_digest_rss(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> str:
     """Generate digest as an RSS 2.0 XML string."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, maybe_relevant, muted = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+        scored,
+        top_n=top_n,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     all_papers = top_picks + maybe_relevant + muted
 
@@ -532,6 +574,7 @@ def write_digest(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> tuple[Path, DigestSummary | None]:
     """Generate and write the digest to a file.
 
@@ -553,6 +596,7 @@ def write_digest(
             since_days=since_days,
             triage_threshold=triage_threshold,
             rerank=rerank,
+            finescale_threshold=finescale_threshold,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".json")
@@ -565,6 +609,7 @@ def write_digest(
             since_days=since_days,
             triage_threshold=triage_threshold,
             rerank=rerank,
+            finescale_threshold=finescale_threshold,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".csv")
@@ -577,6 +622,7 @@ def write_digest(
             since_days=since_days,
             triage_threshold=triage_threshold,
             rerank=rerank,
+            finescale_threshold=finescale_threshold,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".xml")
@@ -591,6 +637,7 @@ def write_digest(
             since_days=since_days,
             triage_threshold=triage_threshold,
             rerank=rerank,
+            finescale_threshold=finescale_threshold,
         )
         if output_path.suffix == ".md":
             output_path = output_path.with_suffix(".html")
@@ -605,6 +652,7 @@ def write_digest(
             since_days=since_days,
             triage_threshold=triage_threshold,
             rerank=rerank,
+            finescale_threshold=finescale_threshold,
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -614,7 +662,11 @@ def write_digest(
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     run = store.get_last_run()
     top_picks, _, _ = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+        scored,
+        top_n=top_n,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     summary = DigestSummary(
         digest_path=str(output_path),

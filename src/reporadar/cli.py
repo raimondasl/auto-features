@@ -12,6 +12,7 @@ from typing import Any
 
 import click
 
+from reporadar import finescale
 from reporadar.collector import CollectionError, build_queries, collect_papers
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
@@ -716,6 +717,51 @@ def update(
                     )
                 else:
                     info("  Triage produced no scores (all calls failed).")
+
+                # 8d. Fine-scale rescore of the band that sits exactly at the gate's
+                #     threshold. The 0-3 gate is near-binary, and within its score-2
+                #     band the share of genuinely actionable papers ran 0%-100% by repo
+                #     — the single biggest remaining error source in the digest. Asking
+                #     the same question on a 0-9 scale and reading the answer's token
+                #     distribution orders that band (AUC 0.84) and lifts mean net@2 from
+                #     +1.91 to +2.91 on the 22-repo benchmark.
+                if llm_scores and cfg.triage.finescale.enabled:
+                    from reporadar.finescale import enough_scored, score_papers
+
+                    band = [
+                        papers_by_id[pid]
+                        for pid, v in llm_scores.items()
+                        if v["llm_score"] == cfg.triage.min_actionable and pid in papers_by_id
+                    ]
+                    if band:
+                        info(f"  Rescoring {len(band)} band papers on the fine scale...")
+                        fine = score_papers(band, repo_profile, cfg.triage.finescale)
+                        if enough_scored(
+                            len(fine), len(band), cfg.triage.finescale.min_success_fraction
+                        ):
+                            # Persist ONLY when the gate will apply, so that a stored
+                            # `finescale_p` means "this run was fine-scale gated" for
+                            # every later reader (archive, notify, watcher). Half-written
+                            # scores from a failed run would make those readers apply a
+                            # gate `rr update` itself declined to apply.
+                            store.save_finescale_scores(run_id, fine)
+                            n_pass = sum(
+                                1
+                                for v in fine.values()
+                                if v["finescale_p"] >= cfg.triage.finescale.threshold
+                            )
+                            info(
+                                f"  Fine-scale: {n_pass}/{len(band)} band papers clear "
+                                f"P >= {cfg.triage.finescale.threshold:.2f}."
+                            )
+                        else:
+                            # Loudly, not silently: applying the gate here would demote
+                            # every band paper and produce an abstention that looks
+                            # deliberate. A broken key must not read as "nothing good".
+                            warn(
+                                f"  Fine-scale scored only {len(fine)}/{len(band)} papers "
+                                f"— skipping the gate for this run (check OPENAI_API_KEY)."
+                            )
             except Exception as exc:
                 info(f"  Triage failed: {exc}")
         elif cfg.triage.enabled:
@@ -885,6 +931,13 @@ def digest(
             profile=repo_profile,
             triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
             rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
+            # Read off the stored run, not off the config: `rr digest` is a separate
+            # command from `rr update`, so whether the fine-scale stage ran is a fact
+            # about the run being rendered. Scores are persisted only when the gate
+            # applies, which makes their presence the exact answer.
+            finescale_threshold=finescale.threshold_for_run(
+                store.get_scores_for_run(run_id), cfg.triage.finescale.threshold
+            ),
         )
 
     success(f"Digest written to {out}")
@@ -982,6 +1035,9 @@ def archive(
             since_days=since_days,
             triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
             rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
+            finescale_threshold=finescale.threshold_for_run(
+                store.get_scores_for_run(run_id), cfg.triage.finescale.threshold
+            ),
         )
 
     success(f"Archived digest -> {entry_path}")
@@ -1164,6 +1220,9 @@ def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
             top_n=cfg.output.top_n,
             triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
             rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
+            # Read off the run rather than the config: this count must match the digest
+            # the user is being notified about, whether or not the stage ran that run.
+            finescale_threshold=finescale.threshold_for_run(scored, cfg.triage.finescale.threshold),
         )
 
         summary = DigestSummary(

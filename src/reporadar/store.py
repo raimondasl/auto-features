@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-CURRENT_SCHEMA_VERSION = 14
+CURRENT_SCHEMA_VERSION = 15
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS papers (
@@ -68,6 +68,11 @@ CREATE TABLE IF NOT EXISTS paper_llm_scores (
     run_id      INTEGER NOT NULL,
     llm_score   INTEGER NOT NULL,
     llm_reason  TEXT,
+    -- Fine-scale rescore (reporadar.finescale): the 0-9 expectation and the
+    -- probability it maps to. NULL when the stage is off or the call failed —
+    -- which is not the same as a low score, and consumers must not conflate them.
+    finescale   REAL,
+    finescale_p REAL,
     PRIMARY KEY (arxiv_id, run_id)
 );
 
@@ -292,6 +297,14 @@ MIGRATIONS: dict[int, list[str]] = {
         # Community-attention component (Feature 1): HF Papers upvotes, persisted so
         # stored score explanations stay complete.
         "ALTER TABLE paper_scores ADD COLUMN community_score REAL",
+    ],
+    15: [
+        # Fine-scale actionability rescore (reporadar.finescale): the 0-9 expectation
+        # and its calibrated probability, kept alongside the 0-3 gate score rather than
+        # replacing it — the digest needs both (the gate decides admission, the
+        # probability decides whether a band paper is a Top Pick).
+        "ALTER TABLE paper_llm_scores ADD COLUMN finescale REAL",
+        "ALTER TABLE paper_llm_scores ADD COLUMN finescale_p REAL",
     ],
     14: [
         # `rr eval --baseline` snapshots (Feature 11).
@@ -705,7 +718,7 @@ class PaperStore:
                    pe.has_code, pe.code_urls AS enrichment_code_urls,
                    pe.datasets AS enrichment_datasets, pe.tasks AS enrichment_tasks,
                    pe.models AS enrichment_models, pe.upvotes AS enrichment_upvotes,
-                   pls.llm_score, pls.llm_reason,
+                   pls.llm_score, pls.llm_reason, pls.finescale, pls.finescale_p,
                    -- Integrity flag joined here rather than annotated by callers, so
                    -- EVERY consumer of a run's scores sees it: md/html/json/csv/rss
                    -- digests, rr open, rr gh-issues, notify, the MCP tools and the
@@ -753,6 +766,24 @@ class PaperStore:
                 INSERT OR REPLACE INTO paper_llm_scores (arxiv_id, run_id, llm_score, llm_reason)
                 VALUES (?, ?, ?, ?)""",
                 (arxiv_id, run_id, int(v["llm_score"]), v.get("llm_reason", "")),
+            )
+        self._conn.commit()
+
+    def save_finescale_scores(self, run_id: int, scores: dict[str, dict[str, float]]) -> None:
+        """Attach fine-scale rescores to a run's existing gate scores.
+
+        ``UPDATE`` rather than ``INSERT OR REPLACE``: the fine-scale stage runs *after*
+        the 0-3 gate and only ever rescores papers the gate already admitted, so a row
+        that is not there is a bug worth leaving visible rather than a half-populated
+        row worth inventing (an inserted row would carry a fabricated ``llm_score``,
+        which the digest reads).
+        """
+        for arxiv_id, v in scores.items():
+            self._conn.execute(
+                """\
+                UPDATE paper_llm_scores SET finescale = ?, finescale_p = ?
+                 WHERE arxiv_id = ? AND run_id = ?""",
+                (float(v["finescale"]), float(v["finescale_p"]), arxiv_id, run_id),
             )
         self._conn.commit()
 

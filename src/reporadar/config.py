@@ -236,6 +236,32 @@ class SuggestionsConfig:
 
 
 @dataclass
+class FinescaleConfig:
+    """Second-stage rescore that orders the gate's near-binary score-2 band.
+
+    Off by default because it is the one feature that needs a **different vendor**:
+    reading a score distribution requires logprobs, which only the OpenAI API exposes
+    (see reporadar/finescale.py). With it off nothing changes; with it on, papers
+    sitting exactly at `min_actionable` must also clear `threshold` to be a Top Pick.
+    """
+
+    enabled: bool = False
+    openai_api_key: str = ""  # falls back to $OPENAI_API_KEY
+    openai_model: str = "gpt-4o-mini"
+    timeout: int = 30
+    # P(actionable) a band paper must clear. The default is not a tuning knob: net@2
+    # values a shown paper at 3p-2, so showing pays exactly above p = 2/3. Raising it
+    # trades recall for precision; lowering it below 2/3 shows papers with negative
+    # expected value.
+    threshold: float = 0.6666666666666666
+    # Skip the gate (and warn) when fewer than this fraction of attempted calls
+    # succeeded, so a broken key cannot quietly empty the digest's Top Picks.
+    min_success_fraction: float = 0.5
+    # Populated from `privacy.redact` at load time, like SuggestionsConfig.
+    redact: list[str] = field(default_factory=list)
+
+
+@dataclass
 class TriageConfig:
     # LLM actionability triage. Uses the `suggestions` provider/model for the LLM
     # call, so it only runs when suggestions.provider is "ollama" or "claude".
@@ -245,6 +271,7 @@ class TriageConfig:
     # Reorder papers by llm_score before the Top-N digest window, so an actionable
     # paper the heuristic ranker buried isn't cut off before it can be a Top Pick.
     rerank: bool = True
+    finescale: FinescaleConfig = field(default_factory=FinescaleConfig)
 
 
 @dataclass
@@ -329,7 +356,19 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     # redaction applies by construction — a new caller gets it without opting in.
     suggestions.redact = list(privacy.redact)
     queries.redact = list(privacy.redact)
-    triage = TriageConfig(**data["triage"]) if "triage" in data else TriageConfig()
+    if "triage" in data:
+        triage_data = dict(data["triage"])
+        finescale_data = triage_data.pop("finescale", {})
+        triage = TriageConfig(
+            **triage_data,
+            finescale=FinescaleConfig(**finescale_data) if finescale_data else FinescaleConfig(),
+        )
+    else:
+        triage = TriageConfig()
+    # Same choke-point reasoning as `suggestions`: the fine-scale stage reaches the
+    # network with a prompt containing the repo profile, so the redaction list has to
+    # travel with its config or a new call site would ship un-redacted terms.
+    triage.finescale.redact = list(privacy.redact)
     feedback = FeedbackConfig(**data["feedback"]) if "feedback" in data else FeedbackConfig()
     recommendations = (
         RecommendationsConfig(**data["recommendations"])

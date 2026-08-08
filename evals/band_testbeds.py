@@ -255,25 +255,25 @@ def load_testbed_c() -> dict[str, list[Paper]]:
 
 @cache
 def repo_block(case: str) -> str:
-    """The gate-time repository description (keywords + prose-300), built once per case."""
+    """The gate-time repository description (keywords + prose-300), built once per case.
+
+    Delegates to the SHIPPED builder rather than reimplementing it. The fine-scale
+    stage's score→probability map was fitted against this exact prompt shape, so a
+    benchmark that described repos even slightly differently from the product would
+    report a calibration the product does not have. Sharing one function makes that
+    class of drift impossible rather than merely unlikely.
+    """
     import sys
 
     sys.path.insert(0, str(EVALS.parent / "src"))
     from reporadar.config import ProfilerConfig
     from reporadar.profiler import profile_repo
+    from reporadar.triage import repo_context_block
 
     repo = WORK / case
     if not repo.is_dir():
         raise FileNotFoundError(f"no clone for case {case!r} under {WORK}")
-    profile = profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=300))
-    anchors = ", ".join(profile.anchors[:12]) or "none"
-    domains = ", ".join(profile.domains[:5]) or "general"
-    keywords = ", ".join(t for t, _ in profile.keywords[:12]) or "n/a"
-    prose = getattr(profile, "prose", "")
-    block = f"Dependencies/libraries: {anchors}\nDomains: {domains}\nKey topics: {keywords}\n"
-    if prose:
-        block += f"\nWhat this project is, in its own words:\n{prose}\n"
-    return block
+    return repo_context_block(profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=300)))
 
 
 # ── Metrics ────────────────────────────────────────────────────────────────────────────

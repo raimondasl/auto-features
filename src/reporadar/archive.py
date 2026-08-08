@@ -65,6 +65,7 @@ def archive_digest(
     since_days: int | None = None,
     triage_threshold: int | None = None,
     rerank: bool = False,
+    finescale_threshold: float | None = None,
 ) -> tuple[Path, Path]:
     """Write a dated HTML digest into *archive_dir* and rebuild its index.
 
@@ -84,6 +85,7 @@ def archive_digest(
         since_days=since_days,
         triage_threshold=triage_threshold,
         rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     entry_file = f"{date_str}.html"
     entry_path = archive_dir / entry_file
@@ -92,7 +94,11 @@ def archive_digest(
     # Summary counts for the index card (mirror the digest's tiering).
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
     top_picks, _, _ = categorize_papers(
-        scored, top_n=top_n, triage_threshold=triage_threshold, rerank=rerank
+        scored,
+        top_n=top_n,
+        triage_threshold=triage_threshold,
+        rerank=rerank,
+        finescale_threshold=finescale_threshold,
     )
     generated_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     entry: dict[str, Any] = {
