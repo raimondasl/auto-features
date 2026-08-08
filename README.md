@@ -20,12 +20,13 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
 - **SPECTER2 similarity** — citation-trained scientific embeddings (served free by Semantic Scholar, no local model) score how close each paper is to the work you starred/rated (`ranking.w_specter`)
 - **Community attention** — optionally rank on Hugging Face Papers upvotes, log-scaled against the run's own maximum (`ranking.w_community`)
+- **Fine-scale rescore** — the 0-3 actionability gate is near-binary, and its score-2 band ran anywhere from 0% to 100% useful depending on the repo. A second pass rescores that band on a 0-9 scale, reads the *distribution* over the answer token rather than the sampled digit, and admits a paper only above a calibrated P ≥ 2/3. Worth **+1.91 → +3.14 mean net@2** on the 22-repo benchmark, with every net-negative repo eliminated (`triage.finescale`, opt-in, needs `OPENAI_API_KEY`)
 - **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
 - **Ranking eval** — `rr eval` scores the ranker against your own ratings, and `--compare a.yml b.yml` A/Bs two configs with a bootstrap interval, so "did that change help?" has an answer
 - **Privacy audit** — `rr audit` prints every network destination and the exact query strings your profile would transmit, without sending any of them; `privacy.redact` strips internal codenames from queries and LLM prompts
 - **Polite by design** — every arXiv request in the process passes one shared gate at arXiv's stated ceiling of 1 request / 3 s, identifies itself with a RepoRadar User-Agent, and backs off for 30 s (not 2 s) on a 429. One clock, not one per module
-- **No API keys required** for the default arXiv pipeline — every core source is free and keyless (OpenAlex is the one exception: since 2026-02-13 it throttles keyless callers, so set `openalex.api_key` if you enable that source)
+- **No API keys required** for the default arXiv pipeline — every core source is free and keyless. Three opt-in features need one: OpenAlex (`openalex.api_key`, since 2026-02-13 it throttles keyless callers), LLM triage (`ANTHROPIC_API_KEY` or a local Ollama), and the fine-scale rescore (`OPENAI_API_KEY` — it is the only feature that needs a *second* vendor, because it reads token logprobs and Anthropic does not expose them)
 
 ## Installation
 
@@ -615,9 +616,11 @@ The default threshold of **2/3 is derived, not tuned**: the benchmark metric val
 shown paper at `3p - 2`, so showing pays exactly above p = 2/3.
 
 Measured on the 22-repo benchmark: it orders the band at ROC-AUC 0.84 and lifts mean
-net@2 from **+1.91 to +2.91**, rescuing every net-negative repo. Papers shown drop
-132 → 100 while genuinely useful ones only drop 97 → 89 — precision 0.73 → **0.89**.
-Details, plus the four approaches that lost to it, are in
+net@2 from **+1.91 to +3.14**, rescuing every net-negative repo. Papers shown drop
+132 → 102 while genuinely useful ones only drop 97 → 91 — precision 0.73 → **0.89**.
+Against the Opus 4.8 baseline on the same 22 repos that is **+3.14 vs +1.82** (paired
++1.32; 10 better, 6 worse, 6 tied — a sign test at p = 0.45, so ahead on the mean but
+not established per repo). Details, plus the four approaches that lost to it, are in
 [evals/RESULTS.md](evals/RESULTS.md) under "Ranking the score-2 band".
 
 Two things to know before enabling it:

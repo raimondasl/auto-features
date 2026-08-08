@@ -1,6 +1,24 @@
 # Tier B benchmark — results
 
-> **Headline (2026-07-31, 12 cases):** RepoRadar Top Picks mean net@2 **+1.75** vs the Opus
+> **Headline (2026-08-08, 22 cases): RepoRadar + the fine-scale rescore reaches mean net@2
+> +3.14, against the Opus 4.8 baseline's +1.82** — paired **+1.32**, 10 cases better, 6 worse,
+> 6 tied. The sign test is **p = 0.45**, so read it as clearly ahead on the mean and *not*
+> established as reliably better per repo. It is an offline replay on a frozen run, not a live
+> end-to-end benchmark of the shipped path. See
+> [Against the Opus baseline, all 22 repos](#against-the-opus-baseline-all-22-repos-2026-08-08).
+>
+> The gain is all precision: **shown papers 132 → 102, genuinely actionable 97 → 91**
+> (precision 0.73 → **0.89**), and **every net-negative repo is gone** — `compiler` −5 → +2,
+> `vectordb` −5 → +1, `numerics` and `linter` → 0. That is the structural gap the
+> [dead-heat section](#the-opus-baseline-on-all-22-repos-a-dead-heat-reached-by-opposite-strategies-2026-08-07)
+> predicted was worth ~+0.64 of the mean; closing it was worth more.
+>
+> **What it does not fix is recall.** All six remaining losses to Opus are cases where the
+> admitted set never held the papers Opus found (`rag` admits nothing at all). P5 measured the
+> gate's recall at 0.60, and a precision stage cannot move that. Note also that net@2 charges 2
+> for a false positive, so it *rewards* a precision stage — this metric flatters the change.
+>
+> **Previous headline (2026-07-31, 12 cases):** RepoRadar Top Picks mean net@2 **+1.75** vs the Opus
 > baseline's **+1.83** — a **0.08 gap**, narrowed from 0.33. Measured after the query-construction
 > fix (PR #59), which changed **two thirds of the queries** the benchmark transmits.
 > **Read the per-case table, not the mean**: the improvement is concentrated where the bug was
@@ -536,7 +554,7 @@ frozen 08-07 file all experiments are scored against.)
 | Experiment | Band AUC (judge≥2, A) | Calibration | Policy net@2 (A) | Pre-registered verdict |
 |---|---|---|---|---|
 | **E2 fine-scale 0-9 logprob expectation** (gpt-4o-mini) | **0.841** (A300 0.761, B judge-3 0.760, C wild 0.949) | Brier 0.244 raw — over the 0.22 bar | +2.09 raw p_true | **Ordering: pass.** Raw calibration: miss |
-| **E2 + 2-param LORO logistic map** | 0.838 | **Brier 0.126** | **+2.91** (8+/2−, p=0.109); +3.05 with p_true | **The winner** — see below |
+| **E2 + 2-param LORO logistic map** | 0.838 | **Brier 0.126** | **+3.14** as shipped (+2.91 under the variant first recorded — see the correction below) | **The winner** — see below |
 | E1 subset-selection share, Sonnet | 0.635 | share is not a P | +1.23 (10/22 ≥0) | **Fail** (bar: AUC≥0.65 AND beat +1.91) |
 | E1 subset-selection share, Haiku | 0.616 | — | +1.18 (9/22, sign p=0.049 the wrong way) | **Fail** |
 | E3 ensemble votes + verbalized P, Haiku | 0.676 | **ECE 0.425** | +0.82 | **Killed** (ECE > 0.3) |
@@ -585,23 +603,25 @@ papers + band papers with P ≥ 2/3:
 |---|---|---|---|
 | compiler | **+2** | −5 | **+7** |
 | vectordb | **+1** | −5 | **+6** |
-| ann | +8 | +4 | +4 |
-| systems | +5 | +1 | +4 |
-| linter | 0 | −2 | +2 |
-| numerics | 0 | −2 | +2 |
-| llminfer, rl | +1 each | | |
-| columnar, diffusion | −1 each | | |
-| 12 others | unchanged | | |
+| ann | **+8** | +4 | +4 |
+| systems | **+5** | +1 | +4 |
+| linter | **0** | −2 | +2 |
+| numerics | **0** | −2 | +2 |
+| rl | +4 | +2 | +2 |
+| llminfer | +2 | +1 | +1 |
+| diffusion | +9 | +10 | −1 |
+| 13 others | unchanged | | |
 
-Mean **+2.91 vs +1.91** (exp09 alone; **+3.05** averaging in p_true), sign test 8+/2−,
-p = 0.109. Shown papers drop 132 → 100 while actionable shown only drops 97 → 89:
-precision 0.73 → **0.89**. Every negative case is rescued — including both members of
-the diffusion/vectordb pair, which was the exact failure adaptive digest size could not
-touch — and the toll on the all-good tail is one paper each on diffusion and columnar.
+Mean **+3.14 vs +1.91** for the map that ships (the +2.91 first recorded here scored a
+more-regularised variant — see the correction below). Shown papers drop 132 → 102 while
+actionable shown only drops 97 → 91: precision 0.73 → **0.89**. Every negative case is
+rescued — including both members of the diffusion/vectordb pair, which was the exact
+failure adaptive digest size could not touch — and the entire toll on the all-good tail
+is **one paper on `diffusion`**.
 
 **Replication on the other arm.** Freezing the map fitted on Testbed A and applying it
 unchanged to the pool-300 arm (different run, different shown sets): **+3.09 vs +1.73**,
-10+/3−, p = 0.092. Two independent draws, both ≈ +1.2 mean.
+10+/3−, p = 0.092. Two independent draws, gaining **+1.23** and **+1.36** of mean net@2.
 
 Neither arm alone clears p < 0.05 at n = 22 — read it as a strongly consistent
 direction measured twice, not a certainty.
@@ -639,6 +659,82 @@ age, HyDE rank and hop coupling are individually weak, as the practitioner-relev
 literature predicted. The combined model (features + all four method scores) reaches
 0.778/Brier 0.147/+2.50 — and is beaten by exp09 *alone* (0.838/0.126/+2.91) on every
 axis: at 22 queries, every added column is another way to overfit, even under LORO.
+
+### Correction — the recorded +2.91 evaluated a map that does not ship (2026-08-08)
+
+The figure above came from `exp_features.loro_fit`, which is the E5 feature-combination
+harness: it standardises features and picks the L2 strength `C` by an **inner LORO on
+AUC**. It chose C = 0.1 on every fold. The map that actually ships is a plain
+unstandardised logistic at the default C = 1.0 — so **+2.91 scored a more heavily
+shrunken map than the one in `finescale.py`**. Its LORO-honest counterpart:
+
+| LORO variant | policy mean net@2 |
+|---|---|
+| **plain LR, C = 1.0 — what ships** | **+3.14** |
+| StandardScaler + LR, C = 1.0 | +3.14 |
+| inner-CV C by AUC (selects C = 0.1) — what was recorded | +2.91 |
+
+Both are leave-one-repo-out and neither is wrong as arithmetic; they estimate different
+maps. The mechanism behind the gap is worth keeping, because it is a trap: **AUC is
+rank-only and invariant to any monotone transform of the score**, so selecting
+regularisation by AUC cannot see where P crosses 2/3 — the one thing a thresholded
+policy depends on. Shrinking the slope leaves AUC untouched and moves the decision
+boundary. Selecting a calibration by a ranking metric is choosing on a criterion blind
+to the quantity being used.
+
+So the honest number for the shipped configuration is **+3.14 vs +1.91 show-all**, and
+the earlier +2.91 stands as a conservative estimate of a nearby variant. The correction
+happens to be favourable, which is exactly when to state the mechanism rather than just
+the new figure.
+
+### Against the Opus baseline, all 22 repos (2026-08-08)
+
+$0 — the baseline's own picks and verdicts are in the same frozen run file, so this is
+the head-to-head the [dead-heat section](#the-opus-baseline-on-all-22-repos-a-dead-heat-reached-by-opposite-strategies-2026-08-07)
+left open, computed rather than projected.
+
+| | mean net@2 | vs Opus (paired) | precision | papers shown | abstentions | net-negative cases |
+|---|---|---|---|---|---|---|
+| **RepoRadar + fine-scale** | **+3.14** | **+1.32** | 0.89 | 102 | 7/22 | **0** |
+| RepoRadar, show-all | +1.91 | +0.09 | 0.73 | 132 | 5/22 | 4 |
+| Opus 4.8 baseline | +1.82 | — | 0.94 | 49 | 4/22 | 1 (`linter` −6) |
+
+Win/loss/tie against Opus goes from **8/8/6 to 10/6/6**. The sign test is **p = 0.45** —
+so on 22 paired cases this is *not* a statistically significant win, and should be read
+as "clearly ahead on the mean, not established as reliably better per repo".
+
+| case | show-all | +fine-scale | Opus | Δ vs Opus |
+|---|---|---|---|---|
+| `db` | +10 | **+10** | +3 | **+7** |
+| `diffusion` | +10 | +9 | +2 | **+7** |
+| `linter` | −2 | **0** | −6 | **+6** |
+| `ann` | +4 | **+8** | +3 | **+5** |
+| `peft` | +7 | +7 | +2 | **+5** |
+| `storage` | +7 | +7 | +2 | **+5** |
+| `systems` | +1 | **+5** | +1 | **+4** |
+| `crypto`, `cv`, `rl` | | +3 / +4 / **+4** | +2 / +3 / +3 | +1 each |
+| `columnar`, `compiler` | +4 / **−5** | +4 / **+2** | +4 / +2 | 0 each |
+| `speech` | +2 | +2 | +3 | −1 |
+| `graph`, `llminfer`, `numerics` | | +1 / +2 / **0** | +3 / +4 / +2 | −2 each |
+| `rag`, `vectordb` | 0 / **−5** | 0 / **+1** | +3 / +4 | −3 each |
+| `cli`, `encryption`, `http`, `webdev` | 0 | 0 | 0 (abstained) | 0 |
+
+**The prediction from the dead-heat section was that removing the four false-positive
+cases would put RepoRadar near +2.55 without touching retrieval. It removed all four and
+landed at +3.14** — the gate now has *zero* net-negative repos, against Opus's one. The
+remaining six losses are a different failure and not one this stage can fix: `rag`,
+`graph`, `llminfer`, `numerics`, `speech`, `vectordb` are cases where Opus finds two or
+three good papers that RepoRadar's admitted set either never contained (`rag` admits
+nothing at all) or where the band genuinely ran thin. That is recall, which P5 already
+identified as the gate's real weakness (0.60) and which a precision stage cannot help.
+
+**What this comparison is and is not.** It is a fair offline replay: same 22 repos, same
+candidate pools, same judge, same frozen file, and the fine-scale scores were computed
+from gate-time information only. It is **not** a fresh end-to-end run of the shipped
+code path — no live `rr update` with `triage.finescale.enabled` has been benchmarked, so
+collection-time variation is not in these numbers. And the caveat on the metric from the
+dead-heat section stands unchanged: net@2 charges 2 for a false positive, so it rewards
+shyness, and a precision stage is exactly the kind of change that metric flatters.
 
 ### Can the same thing be done without OpenAI? No — measured (2026-08-08)
 
