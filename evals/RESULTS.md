@@ -515,6 +515,142 @@ rests on that distinction. Coverage is 3 of 12 cases; only those have Tier A fix
 
 
 
+## Ranking the score-2 band: five pre-registered experiments; a fine-scale rescore wins (2026-08-07)
+
+~$14 of ranker inference; **zero new judge calls** — every experiment scored offline
+against the frozen labels in `results/judge-gpt-5.5-20260807T180938Z.json` (Testbed A:
+22 cases, 220 shown papers, 105 in the score-2 band) and its companions (A300
+replication arm, the 12-repo diag band B, the wild pools C), exactly as pre-registered
+in [RESEARCH-score2-ranking.md](RESEARCH-score2-ranking.md) §4. Scripts:
+`band_testbeds.py` (reconstruction + metrics, reconstruction verified against every
+case's recorded sweep nets), `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`,
+`exp_pairwise.py`, `exp_features.py`.
+
+Baselines on this exact file: show-all (min≥2) **+1.91** mean net@2; score-3-only
+**+0.82** with 14/22 abstentions. (The research doc quoted +0.50 / 16 abstentions for
+score-3-only — that number was the 2026-08-02 run; +0.82 is the same policy on the
+frozen 08-07 file all experiments are scored against.)
+
+### The scoreboard
+
+| Experiment | Band AUC (judge≥2, A) | Calibration | Policy net@2 (A) | Pre-registered verdict |
+|---|---|---|---|---|
+| **E2 fine-scale 0-9 logprob expectation** (gpt-4o-mini) | **0.841** (A300 0.761, B judge-3 0.760, C wild 0.949) | Brier 0.244 raw — over the 0.22 bar | +2.09 raw p_true | **Ordering: pass.** Raw calibration: miss |
+| **E2 + 2-param LORO logistic map** | 0.838 | **Brier 0.126** | **+2.91** (8+/2−, p=0.109); +3.05 with p_true | **The winner** — see below |
+| E1 subset-selection share, Sonnet | 0.635 | share is not a P | +1.23 (10/22 ≥0) | **Fail** (bar: AUC≥0.65 AND beat +1.91) |
+| E1 subset-selection share, Haiku | 0.616 | — | +1.18 (9/22, sign p=0.049 the wrong way) | **Fail** |
+| E3 ensemble votes + verbalized P, Haiku | 0.676 | **ECE 0.425** | +0.82 | **Killed** (ECE > 0.3) |
+| E4 pairwise + Bradley-Terry, Haiku | 0.643 (swap-inconsistency 0.322) | anchors: none | +2.00 (21/22 ties) | **Fail** (bar: AUC≥0.70); anchors non-discriminative |
+| E5 free features, LORO logistic | 0.585 | Brier 0.214 | +1.50 | **Below bar** (0.60) — metadata is weak |
+| E5 combined (features + E1-E4 columns) | 0.778 | Brier 0.147 | +2.50 | Worse than exp09 alone on every axis |
+
+### What won: de-quantizing the gate, not restructuring it
+
+The research pass's bet was that comparative structure (selection, pairwise) carries the
+signal absolute scores discard. What actually carried it is much cheaper: **ask for the
+same pointwise judgment on a 0-9 anchored scale and read the token distribution's
+expectation instead of the sampled digit** (G-Eval/TrustJudge mechanism; needs logprobs,
+so gpt-4o-mini — Anthropic exposes none). One call per paper, <$0.01 per repo.
+
+The de-quantization is real, not cosmetic: the modal digit carries p>0.9 for only 23% of
+papers (kill bar was 80%), and the motivating indistinguishable pair separates cleanly —
+
+| band paper scores (exp09/judge, sorted) | |
+|---|---|
+| **vectordb** | 8.0/**3** 8.0/**3** 7.9/**2** · 7.1/1 6.7/1 6.3/1 6.0/1 3.8/1 |
+| **diffusion** | 8.2/**3** 8.1/**2** 8.0/**2** 8.0/**3** 8.0/**2** 8.0/**2** 8.0/**2** 7.6/**2** 7.1/**2** · 5.4/**2** |
+| **numerics** | 6.6/**2** · 6.0/1 5.7/**2** 5.4/**2** 5.4/1 5.2/1 4.6/**2** 4.2/**2** 4.0/**2** |
+| **linter** | 4.1/1 |
+
+vectordb's three actionable papers are its top three scores; diffusion sits uniformly
+high; numerics and linter sit low. The 0.00-1.00 band-precision spread the coarse gate
+could not see is visible at the finer scale.
+
+**Validity checks, all passed.** (i) Same-family bias — the judge is GPT-5.5 and the
+ranker is gpt-4o-mini — was the pre-registered landmine: on the 74 dual-judged rows of
+`second_judge.json`, exp09 scores AUC 0.843 against the GPT judge and **0.896 against
+the Sonnet judge**. If anything the signal is stronger out-of-family. (ii) It
+replicates across testbeds it never touched during development: A300 0.761, B (judge-3
+ordering, different label target) 0.760, wild pools 0.949. (iii) The degenerate-
+distribution kill condition cleared.
+
+### The policy: exp09 → 2-parameter logistic → global P ≥ 2/3
+
+exp09 is a score, not a probability; the pre-registered path to a threshold is a
+logistic map, LORO cross-fitted (fit on 21 repos, predict the held-out one — the map's
+two parameters are the only fitted numbers anywhere in the winner). Digest = gate-3
+papers + band papers with P ≥ 2/3:
+
+| case | policy | show-all | Δ |
+|---|---|---|---|
+| compiler | **+2** | −5 | **+7** |
+| vectordb | **+1** | −5 | **+6** |
+| ann | +8 | +4 | +4 |
+| systems | +5 | +1 | +4 |
+| linter | 0 | −2 | +2 |
+| numerics | 0 | −2 | +2 |
+| llminfer, rl | +1 each | | |
+| columnar, diffusion | −1 each | | |
+| 12 others | unchanged | | |
+
+Mean **+2.91 vs +1.91** (exp09 alone; **+3.05** averaging in p_true), sign test 8+/2−,
+p = 0.109. Shown papers drop 132 → 100 while actionable shown only drops 97 → 89:
+precision 0.73 → **0.89**. Every negative case is rescued — including both members of
+the diffusion/vectordb pair, which was the exact failure adaptive digest size could not
+touch — and the toll on the all-good tail is one paper each on diffusion and columnar.
+
+**Replication on the other arm.** Freezing the map fitted on Testbed A and applying it
+unchanged to the pool-300 arm (different run, different shown sets): **+3.09 vs +1.73**,
+10+/3−, p = 0.092. Two independent draws, both ≈ +1.2 mean.
+
+Neither arm alone clears p < 0.05 at n = 22 — read it as a strongly consistent
+direction measured twice, not a certainty.
+
+### What failed, and the pattern in the failures
+
+**E1 (subset selection).** The abstention mechanism genuinely fires — numerics empty in
+13/15 shuffles, encryption 15/15, linter 9/15 — but both models are far too strict:
+Sonnet selected *nothing* in 15/15 shuffles on crypto (+3, all three papers actionable)
+and cv (+4), Haiku's policy lands at +1.18 with the sign test significant in the wrong
+direction. Share mean 0.16 (Sonnet) / 0.26 (Haiku); the predicted top-half-selection
+prior never appeared — the opposite failure did. Operational note: Sonnet's
+select-everything responses overflowed `max_tokens=2000` and the truncation was
+correlated with the verdict (the max_tokens=500 judge bug by another door); raised to
+4000 and re-run before reading any numbers.
+
+**E3 (ensemble votes).** Killed by its own bar, ECE 0.425 — but in the direction the
+literature did not predict: chronic *under*-confidence. Under skeptical personas plus
+consider-the-alternative elicitation, Haiku's P̂ collapses toward 0 regardless of label
+(all 10 linter papers at 0.03-0.07; policy +0.82). Same failure family as E1:
+**Claude-family models under maintainer framing default to "no"** — restructuring the
+judgment (selection, ensembles) amplifies strictness rather than extracting signal.
+
+**E4 (pairwise + BT).** Swap-inconsistency 0.322 — position bias is real but under the
+0.45 kill bar (both-order querying was doing its job). Band AUC 0.643 misses the 0.70
+backbone bar, well under E2. The anchor mechanism failed absolutely: **128/128 admitted
+papers beat the borderline anchor** — a real paper essentially always beats a synthetic
+survey, so the anchor provides no threshold. The pre-registered paraphrase-stability
+arm was not run: with zero discrimination there is nothing for paraphrase to
+destabilize. Testbed B ran for the record: judge-3 ordering AUC 0.731 (swap 0.268) —
+pairwise's best showing, still under E2's 0.760 on the same target at ~7× the calls.
+
+**E5 (features).** Features-only LORO band AUC 0.585, below the 0.60 bar — citations,
+age, HyDE rank and hop coupling are individually weak, as the practitioner-relevance
+literature predicted. The combined model (features + all four method scores) reaches
+0.778/Brier 0.147/+2.50 — and is beaten by exp09 *alone* (0.838/0.126/+2.91) on every
+axis: at 22 queries, every added column is another way to overfit, even under LORO.
+
+### What this changes
+
+The ranking diagnostic's conclusion — "nothing measured can order within the band" — is
+now false: a $0.01-per-repo rescore can. What ships is a decision for later, but the
+shape is: score each admitted paper once with the 0-9 anchored rubric via a
+logprobs-capable model, map through the frozen logistic, show at P ≥ 2/3. Costs one
+OpenAI dependency on the product path (today it is evals-only) and ~1s per paper.
+Caveats that stay attached: the map was fitted on judge labels (frozen thereafter;
+drift unmeasured), n = 22 keeps each arm's sign test at p ≈ 0.09-0.11, and all labels
+are GPT-5.5-relative — mitigated but not eliminated by the Sonnet cross-check.
+
 ## Adaptive digest size does not survive contact with the gate's score distribution (2026-08-07)
 
 $0 — derived from the sweep already in the 22-case run.
