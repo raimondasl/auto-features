@@ -439,6 +439,10 @@ triage:
   enabled: false                      # true: LLM-score each top paper 0-3 for actionability
   min_actionable: 2                   # llm_score >= this qualifies as a Top Pick
   rerank: true                        # reorder by llm_score before the top-N cut
+  finescale:                          # second-stage rescore of the score-2 band (see below)
+    enabled: false                    # true: needs OPENAI_API_KEY (logprobs; OpenAI-only)
+    openai_model: gpt-4o-mini
+    threshold: 0.667                  # P(actionable) a band paper must clear
 
 suggestions:
   provider: template                  # template | ollama | claude (triage needs ollama or claude)
@@ -589,6 +593,48 @@ Papers are categorized into three tiers based on their combined score:
 - **Top Picks** (score >= 0.5) — full details with score breakdown, abstract snippet, and action suggestions
 - **Maybe Relevant** (score >= 0.2) — condensed details
 - **Muted** (score < 0.2) — title and link only
+
+With `triage.enabled`, the LLM actionability score replaces the heuristic score for
+tiering: `llm_score >= min_actionable` is a Top Pick, `>= 1` is Maybe, `0` is Muted.
+
+### Fine-scale rescore (`triage.finescale`)
+
+The 0-3 triage gate turns out to be near-binary: almost everything it admits scores 2,
+score 3 is rare, and **within that score-2 band** the share of genuinely useful papers
+ranged from 0% to 100% across a 22-repo benchmark. Two repos could each admit ten papers
+with indistinguishable gate scores while one band was entirely useful and the other half
+noise — so on band-heavy repos, Top Picks was a coin flip.
+
+The fix is to ask the same question at a finer resolution and read the answer's
+*distribution* instead of its sample: the model emits one digit 0-9, and the score is the
+expectation over that digit's token probabilities, so "mostly 7, maybe 8" scores 7.3
+instead of collapsing to a rung. That expectation goes through a frozen two-parameter
+logistic to a probability, and a band paper is a Top Pick only if it clears `threshold`.
+
+The default threshold of **2/3 is derived, not tuned**: the benchmark metric values a
+shown paper at `3p - 2`, so showing pays exactly above p = 2/3.
+
+Measured on the 22-repo benchmark: it orders the band at ROC-AUC 0.84 and lifts mean
+net@2 from **+1.91 to +2.91**, rescuing every net-negative repo. Papers shown drop
+132 → 100 while genuinely useful ones only drop 97 → 89 — precision 0.73 → **0.89**.
+Details, plus the four approaches that lost to it, are in
+[evals/RESULTS.md](evals/RESULTS.md) under "Ranking the score-2 band".
+
+Two things to know before enabling it:
+
+- **It needs `OPENAI_API_KEY`, and only OpenAI.** Reading a token distribution requires
+  logprobs, which the Anthropic API does not expose. Approximating them by sampling Haiku
+  ten times was measured and is *much* worse (AUC 0.59 vs 0.84) — the model is nearly
+  deterministic at default temperature, so the samples re-read the mode rather than
+  revealing the distribution.
+- **The probability map is calibrated to a specific prompt.** Editing the rubric or the
+  repo-context block without refitting silently decalibrates the threshold. Both are
+  pinned by tests for that reason.
+
+Cost is roughly one gpt-4o-mini call per band paper (~15 per run, well under a cent). If
+the stage fails for more than half the band — a bad key, an outage — the gate is skipped
+for that run with a warning, rather than demoting everything and looking like a
+deliberate abstention.
 
 ### Action Suggestions
 

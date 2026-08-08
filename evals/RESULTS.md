@@ -640,16 +640,49 @@ literature predicted. The combined model (features + all four method scores) rea
 0.778/Brier 0.147/+2.50 — and is beaten by exp09 *alone* (0.838/0.126/+2.91) on every
 axis: at 22 queries, every added column is another way to overfit, even under LORO.
 
-### What this changes
+### Can the same thing be done without OpenAI? No — measured (2026-08-08)
+
+The one uncomfortable part of the winner is the vendor: reading a token distribution
+needs logprobs, and Anthropic exposes none. The obvious workaround is Monte Carlo —
+send the *same* 0-9 prompt to Haiku N times at the API's default temperature and take
+the mean of the sampled digits. Same prompt, same estimand, approximate estimator
+instead of an exact one (`exp_finescale.py --arm haiku --samples 10`, 10× the calls):
+
+| arm | band AUC (A) | band AUC (A300) | judge-3 AUC (A) | modal share > 0.9 |
+|---|---|---|---|---|
+| **gpt-4o-mini logprobs** | **0.841** | **0.761** | 0.879 | 0.233 |
+| Haiku, 10 samples | 0.590 | 0.547 | 0.778 | 0.438 |
+
+**The estimator is the problem, not the judge.** Haiku's judge-3 ordering is respectable
+(0.778), so it is reading the papers competently. What fails is the sampling: in 44% of
+papers, 9 or 10 of the 10 draws returned the *identical* digit — at default temperature
+the model is nearly deterministic on this task, so the draws re-read the mode instead of
+revealing the distribution around it. Monte Carlo cannot recover a distribution the
+sampler will not explore, and at N=10 the resolution is 0.1 against a continuous
+reading. Raising N buys resolution but not exploration, so it does not address the cause.
+
+So the OpenAI dependency is load-bearing rather than incidental, and the Anthropic-native
+fallback is measured-and-rejected rather than untried.
+
+### What this changes — shipped (2026-08-08)
 
 The ranking diagnostic's conclusion — "nothing measured can order within the band" — is
-now false: a $0.01-per-repo rescore can. What ships is a decision for later, but the
-shape is: score each admitted paper once with the 0-9 anchored rubric via a
-logprobs-capable model, map through the frozen logistic, show at P ≥ 2/3. Costs one
-OpenAI dependency on the product path (today it is evals-only) and ~1s per paper.
-Caveats that stay attached: the map was fitted on judge labels (frozen thereafter;
-drift unmeasured), n = 22 keeps each arm's sign test at p ≈ 0.09-0.11, and all labels
-are GPT-5.5-relative — mitigated but not eliminated by the Sonnet cross-check.
+now false: a $0.01-per-repo rescore can. Shipped as `reporadar/finescale.py`, opt-in via
+`triage.finescale.enabled`, off by default because of the vendor requirement above. Each
+paper the 0-3 gate scores *exactly at* `min_actionable` is rescored on the 0-9 rubric,
+mapped through the frozen logistic, and reaches Top Picks only at P ≥ 2/3; papers scoring
+3 are untouched, since only the band was unreliable.
+
+Three guards ride along, each against a failure that would otherwise be silent: the repo
+block is now one shared function (`triage.repo_context_block`) that both the product and
+`band_testbeds.py` call, so the prompt the map was fitted against cannot drift from the
+prompt that ships; a test asserts the product prompt is byte-identical to the benchmark's;
+and a run that scores under half its band skips the gate with a warning instead of
+demoting everything into an accidental abstention.
+
+Caveats that stay attached: the map was fitted on judge labels (frozen thereafter; drift
+unmeasured), n = 22 keeps each arm's sign test at p ≈ 0.09-0.11, and all labels are
+GPT-5.5-relative — mitigated but not eliminated by the Sonnet cross-check.
 
 ## Adaptive digest size does not survive contact with the gate's score distribution (2026-08-07)
 
