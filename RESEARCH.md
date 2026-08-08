@@ -5,6 +5,13 @@ A consolidated record of the retrieval, ranking and gating experiments run betwe
 rediscover a negative result, and so that the positive ones are stated with the caveats
 that were true when they were measured.
 
+> **Sections 1–6 are the record as of 2026-08-02 and are left as written.** The campaign
+> continued for six more days (ROADMAP P1–P9, then the score-2 band work) and **overturned
+> two of this document's load-bearing conclusions**: that the gate is at its ceiling, and
+> that search is the binding constraint. §7 and §8 have been rewritten to the current state;
+> where an earlier section contradicts them, §7 wins. The full later record is
+> [`evals/RESULTS.md`](evals/RESULTS.md) and [`paper/DRAFT.md`](paper/DRAFT.md).
+
 **Every number here is reproducible.** The commands are given inline; raw per-run detail
 lives in [`evals/RESULTS.md`](evals/RESULTS.md), which is chronological and much longer.
 This document is organised by *problem* instead.
@@ -609,44 +616,83 @@ and neither would have been legible if the prediction hadn't been written down f
 
 ---
 
-## 7. Where things stand
+## 7. Where things stand (rewritten 2026-08-09)
 
 | stage | status |
 |---|---|
-| **Search** | **Unsolved and the binding constraint.** Default keyword retrieval reaches 0/24. The citation hop reaches 18/24 but into a 92,014-paper pool at 1:5,111 density, and is unshipped. |
-| **Ranking** | Coarse ordering works (31% vs 7%); fine ordering does not (ranks 1–10 ≈ 11–50). Cannot order the citation-hop pool. Personalization (SPECTER2, citation proximity) helps where measured, on 3 of 12 cases. |
-| **Gating** | Works: precision 0.81 at a 28–32% base rate; digest junk halved. Bounded by repo description, which has hit a ceiling. |
-| **Overall** | Parity with an Opus-4.8-with-web-search baseline across 12 repos. |
+| **Search** | **Two channels reach the papers; neither ships yet.** Default keyword retrieval still reaches 0/24 — that never improved and is not expected to. The citation hop reaches **21/48 = 44%** across the expanded benchmark (18/24 was a favourable subset; seeds ≥7 → 89%, no bibliography → 0%). HyDE against a 3.1M-vector dense index reaches **27/48**, of which **15 are unreachable by the hop**; **union 36/48 = 75%**. Both live in `evals/` only. |
+| **Pool quality** | **Far better than every recall number implied.** The HyDE top-100 band is 58% actionable against a 2% random-arXiv floor (29× separation); the hop's high-coupling band is 67%. The "1 good paper per 5,111" figures measured distance to a *known gold target* — a top stratum — not to useful papers. |
+| **Ranking** | Coarse ordering works and is better than this document said: the heuristic ranker's top-50 is **1.7× denser** than the pool. Fine ordering within a band it cannot do, and that turned out to be the whole problem. |
+| **Gating** | **Not at its ceiling — the ceiling was an artifact of scale quantization.** Precision 0.97 / recall 0.60 on wild pools: the gate rejects actionable papers, it does not admit junk. Its 0–3 scores are near-binary, and within the modal band per-repo precision ran 0.00–1.00 invisibly. Re-asking the same question on a 0–9 scale and reading the answer token's *distribution* orders that band at AUC 0.84 and eliminates every net-negative repository. **Shipped** as `reporadar/finescale.py`. |
+| **Overall** | **+3.18 mean net@2 against the Opus-4.8 baseline's +1.82** on a live 22-repo run (paired +1.36; 10 win / 6 lose / 6 tie; sign p = 0.45, so ahead on the mean and not established per repo). Digest precision 0.91. Zero net-negative repositories, against the baseline's one. |
+
+**What overturned this document.** Two conclusions above are direct reversals of §5 and §6:
+
+- *"Gating is bounded by repo description, which has hit a ceiling"* — the four extraction
+  strategies really do converge (§5.3 stands), but the gate was never description-bound. It
+  was **resolution-bound**: the information was present and the 0–3 scale threw it away.
+  Three exhausted levers (threshold, bigger model, rubric) all operated on the wrong axis.
+- *"Search is the binding constraint"* — true when written, false now. Retrieval has two
+  measured channels at 75% union; the binding constraint moved to selection, and then to
+  **recall inside the gate**, which is where it sits today: every remaining loss to the
+  baseline is a case whose admitted set never contained what the baseline found.
 
 ---
 
-## 8. Open directions
+## 8. Open directions (rewritten 2026-08-09)
 
-Listed, not researched — deliberately brief.
+Four of the six directions listed here on 2026-08-02 were subsequently measured. They are
+kept with their answers, because a direction that came back negative is worth more than a
+blank line.
 
-**1. User-stated improvement goals.** Everything the system knows about a repo is inferred
-from its documentation, and §5.3 shows four extraction strategies converging on the same
-ceiling. A maintainer's own statement ("we want to cut index memory") is ground truth about
-intent, and is the only input that can express what a repo does *not* yet do. Note the
-evaluation trap: goals for the 12 benchmark cases must be authored from **issue trackers**,
-not READMEs, or the arm just re-measures document-derived description under a new name.
+**1. User-stated improvement goals — HALF ANSWERED, and the answered half is negative.**
+Fed to the **gate**, verbatim issue-tracker wants are the worst arm ever measured: −38 net@2,
+recall −0.27, damage proportional to how much a repo had to lose (P8). A want-list *replaces*
+the question — the gate stops asking "would this improve the project" and starts asking "is
+this on the list". The **retrieval** half remains untested and is now the more interesting
+one, since stated wants are shaped like queries.
 
-**2. Improvement areas as *search* queries, not gate context.** The LLM summarizer's
-`improvement_areas` ("adaptive quantization strategies", "pseudo-relevance feedback") were
-only ever tested on gating, where they hurt. They are shaped like search queries, and search
-is the binding constraint. Untested.
+**2. Improvement areas as *search* queries — still untested, and now lower value.** The
+mechanism was "search is the binding constraint"; it no longer is. Note also that
+`improvement_areas` has now failed twice as gate context (§5.3, and P8's harsher relative),
+and gap-phrase matching finished last of four arms as a *pool ranking* signal (P2). Three
+independent negatives on the same field argue against a fourth attempt without a new
+mechanism.
 
-**3. A filter for the citation-hop pool.** The hop makes selection tractable but the filter
-is unbuilt, and §4.1 says the current ranker cannot do it. See
-[`RETRIEVAL_DESIGN.md`](RETRIEVAL_DESIGN.md) for three sketched architectures.
+**3. A filter for the citation-hop pool — ANSWERED, negatively, then made moot.** Coupling
+degree cut 70% of the pool at 89% retention on 7 cases and **did not replicate** on 22
+(cut → 10%): it was a property of the case set. The larger point is that the filter question
+dissolved — P5 showed the pool is dense and the gate's problem is recall, and gating the
+*entire* pool end to end is a **wash** (−0.18 paired), because nothing orders what the gate
+admits. Filtering was never the missing stage; ordering was.
 
-**4. Validate generated phrases against the index.** §3.2's "lacks" prompt aimed correctly
-and emitted 83% zero-hit phrases. Discarding zero-hit phrases and retrying, or matching in
-embedding space rather than by exact phrase, attacks the actual gap. Untested.
+**4. Validate generated phrases against the index — ANSWERED, negatively, at the mechanism
+level.** P2 did exactly this: stemming plus BM25 closed the morphological gap completely
+(the canonical failing example now scores 2.79 against the paper it missed and 0.00 against
+distractors), and the "lacks" arm *still* ranked targets worse than random. It is not a
+phrasing failure but a **different-target failure**: the prompt names a plausible different
+research agenda. No retrieval space fixes that.
 
-**5. Shrink the paper side of the triage prompt.** `abstract[:1500]` is 54% of the prompt
-and has never been measured. Cheap to test on the labelled set.
+**5. Shrink the paper side of the triage prompt — deliberately dropped.** `abstract[:1500]`
+is still 54% of the prompt and still unmeasured. It was reclassified as third-order once the
+gate's real defect turned out to be scale resolution rather than prompt balance.
 
-**6. A benchmark case with bad documentation.** All 12 cases are well-documented OSS. The
-prefix strategy's success may be an artifact of that, and RepoRadar's target user has thin
-docs. Adding one such case would test a result nothing currently can.
+**6. A benchmark case with bad documentation — still open, and still the sharpest gap.**
+All 22 cases are popular OSS with maintained READMEs; the prose-300 prefix bet pays on 11 of
+12, and RepoRadar's actual target user — a private codebase with thin docs — is
+unrepresented. This is named as a limitation in [`paper/DRAFT.md`](paper/DRAFT.md) §11 and
+nothing in the benchmark can currently see it.
+
+### What is actually open now
+
+1. **Ship the two retrieval channels.** HyDE (27/48, 15 uniquely) and the bibliography-seeded
+   hop (44%) are both verified, replicated, and confined to `evals/`. Every remaining loss to
+   the baseline is a recall failure, which is exactly what they address. **Highest value.**
+2. **Non-arXiv sources for the repos that need them.** P3 concluded the IACR/DBLP/VLDB
+   adapters are "the only remaining route" for `crypto`, `systems`, `storage`, `compiler`,
+   `columnar` — disproportionately the repos in the loss column. DBLP and bioRxiv ship; IACR
+   does not.
+3. **Calibration drift.** `finescale.py`'s two frozen parameters are pinned to a prompt and a
+   judge vintage. Tests catch a prompt edit; nothing catches slow drift in what "actionable"
+   means.
+4. **A thin-docs benchmark case** (direction 6 above).

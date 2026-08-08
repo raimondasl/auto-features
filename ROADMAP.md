@@ -1219,6 +1219,70 @@ RepoRadar's core mechanic — deriving search queries from a repo's code and doc
 
 Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 
+> ## Items 14–20, re-derived against the measured record (2026-08-09)
+>
+> These seven were written in July 2026 from a **capability** sweep — what comparable tools
+> ship and what the literature says is possible — before the measurement campaign existed.
+> Five weeks of evidence now bears on most of them, in several cases decisively. Each is
+> re-derived below; the original entries are left intact underneath, because what a proposal
+> assumed is part of why it failed.
+>
+> | # | re-derived verdict |
+> |---|---|
+> | **14** `rr deepscan` | **Split it.** The query-refinement loop is measured-negative; the citation-trail half is the one channel with recall. |
+> | **15** `rr ask` | **Unaffected.** Nothing measured bears on it — a product bet, not a research one. Judge it on demand, not on evidence. |
+> | **16** technique fingerprinting | **Promoted.** It starts from what the repo *has*, which is the only register that ever worked. Its retrieval half is now redundant; its *relation* half is the open part. |
+> | **17** Zotero/BibTeX | **Unaffected.** Pure integration. |
+> | **18** implementability scoring | **Refuted as ranking.** Exactly these features measured AUC 0.585 (below bar). Survives only as a displayed badge. |
+> | **19** research-gap radar | **Dead.** The same "name what it lacks" mechanism has now failed four independent times. |
+> | **20** `rr apply` | **Unblocked, still a moonshot.** Its real precondition — input quality — is met for the first time. |
+>
+> ### 14 — split it
+> The loop is "inspect results, rewrite queries to fill gaps, expand along citations". Those
+> halves have opposite evidence. **Query rewriting is measured-negative three times**: LLM
+> phrases recovered 2/24 (`uses`) and 0/24 (`lacks`); gap-phrase matching lost to *pasting the
+> keyword profile*; and P2 proved the failure is not phrasing — with stemming and BM25 closing
+> the morphological gap entirely, `lacks` queries still rank targets **worse than random**,
+> because they name a plausible *different* agenda. More rounds of a mechanism that aims
+> wrongly do not converge. **Citation-trail expansion, by contrast, is the single channel with
+> demonstrated recall** (44%, and 89% on repos with ≥7 seeds). Ship the trail; drop the
+> refinement loop unless someone brings a mechanism that closes the register gap.
+>
+> ### 16 — promoted, and narrowed
+> "This paper supersedes algorithm X you import" seeds from the repo's imports — i.e. from
+> what it *has*. Everything that ever worked has that shape (P2: *"every channel that works is
+> one that starts from what the repo already does"*), and the judge's notion of actionable
+> skews toward improving existing components rather than adding capabilities (P9 found no
+> dissociation). So the premise is sound, unusually so. But its *retrieval* half is now
+> redundant — HyDE and the hop already reach these papers — and what stays distinctive is the
+> **relation classification** (improves / replaces / extends) with an evidence span. That is a
+> presentation layer on retrieval we have, which makes it much cheaper than written and
+> testable against the existing labels.
+>
+> ### 18 — refuted as a ranking signal
+> E5 measured precisely this feature family — code availability proxy, citation count,
+> influential citations, age — with leave-one-repo-out logistic regression: **AUC 0.585**,
+> below its own pre-registered 0.60 bar, and the combined model lost to a single fine-scale
+> score on every axis. This reproduces Lo et al.'s finding that practitioner relevance is
+> uncorrelated with citation metrics. An "effort to adopt" **badge** may still help a reader
+> decide; an "effort to adopt" **rank** is measured not to work.
+>
+> ### 19 — dead unless something new arrives
+> "Nobody has applied X to your Y" is the *lacks* direction wearing a product hat. That
+> direction has now failed four times independently: direct retrieval (0/24), gate context
+> (below the no-description control), pool ranking (worse than random), and the extend-vs-improve
+> control (P9: `lacks` papers are not extensions the improvement judge was blind to — they score
+> *lower* under a rubric written to reward new capability). Four negatives on one mechanism is
+> enough. Reviving it needs a preference signal from real maintainers that capability extensions
+> are wanted over component improvements — a user-research question, not a retrieval one.
+>
+> ### 20 — unblocked by measurement, unchanged in ambition
+> Nothing here bears on whether agents can implement papers. What *has* changed is the input:
+> `rr apply` on a digest of mean net@2 **−11** would have drafted branches from junk. At **+3.18
+> with 0.91 precision and zero net-negative repositories**, the precondition it always implicitly
+> had is met for the first time. Still gated on item 18's badge (now the cheap version) and still
+> a moonshot.
+
 ### 14. `rr deepscan`: agentic iterative search with query refinement and citation trails
 
 **Verification: feasible-with-caveats.**
@@ -1426,3 +1490,4 @@ Differentiation (corrected after verification): Paper2Agent turns papers into MC
 - **LLM claims need evidence anchors**: every LLM-derived assertion shown to users (suggestions, rerank justifications, supersedes-claims, gaps) must carry a quoted span and an "auto-generated" label.
 - **Model-ID rot**: the retired-default-model bug will recur; prefer alias IDs, validate at startup, and surface 4xx errors instead of silent fallbacks.
 - **Scope discipline**: features 14–20 are demos of agentic ambition; features 1–13 are what make the tool durably useful. Ship the boring tiers first — they are also what the experimental tiers stack on.
+- **Capability sweeps date faster than measurements** (added 2026-08-09): items 14–20 were derived from what comparable tools ship and what the literature claims is possible. Five weeks of measurement then refuted two of them outright (18, 19), split a third (14), promoted a fourth (16) and left three untouched. A proposal grounded in *"this is demonstrated to be feasible"* is not grounded in *"this addresses our measured constraint"*, and the difference showed up as a 2-of-7 hit rate. Re-derive against the record before building from a sweep.

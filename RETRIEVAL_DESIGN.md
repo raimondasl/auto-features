@@ -1,9 +1,22 @@
 # Retrieval design — where RepoRadar's candidate pool comes from, and what to do about it
 
-**Status: research, not a commitment.** This records three candidate architectures and the
-evidence for and against each, so the design work is not lost and is not redone. Nothing here
-is built. Read [`evals/RESULTS.md` → Candidate-pool diagnosis](evals/RESULTS.md) first — it
-holds the measurements this is reasoning about.
+**Status: three designs proposed 2026-08-02; all three now measured (2026-08-06/09).** This
+records the candidate architectures and the evidence for and against each, so the design work
+is not lost and is not redone. Read [`evals/RESULTS.md` → Candidate-pool
+diagnosis](evals/RESULTS.md) first — it holds the measurements this is reasoning about.
+
+> ### Verdicts, so nobody reads the sketches as open questions
+>
+> | design | verdict |
+> |---|---|
+> | **1 — coupling funnel** | **Filter refuted; channel confirmed.** The 70%-cut filter was a property of the 7-case set and fell to 10% on 22 cases. The *hop itself* is real (21/48 = 44%, and 89% where a repo has ≥7 arXiv-cited seeds) and remains unshipped. |
+> | **2 — HyDE against a dense index** | **Verified 4/4, replicated blind, best measured channel.** 27/48 in top-1k, median rank 837; **15 targets no other channel reaches**; union with the hop **36/48 = 75%**. Unshipped as of this writing. |
+> | **3 — persistent neighbourhood** | **Not built, and its own negative result held up.** Similarity — in *any* space, including citation-trained SPECTER2 — is the wrong relation for "would improve this repo". |
+>
+> **The question all three deferred to has been answered.** Every design ends in triage, and
+> this document said triage caps them all. It does not: the gate's ceiling was scale
+> quantization, not capability, and `reporadar/finescale.py` now ships the fix
+> (band ordering AUC 0.84; live 22-repo net@2 +3.18 vs an Opus baseline's +1.82).
 
 Provenance is marked throughout. **VERIFIED** = re-run by hand against the live API in the
 main session. **REPORTED** = measured by an investigating agent and not independently
@@ -132,6 +145,14 @@ triage was measured at chance on this exact benchmark — 50% precision against 
 40% recall, on the `speech` case. Every design in this document terminates in triage, and
 none of them fixes it.
 
+> **WITHDRAWN, 2026-08-02 and 2026-08-08.** "Triage is at chance" was an n=10 reading from one
+> case. On all 428 labelled papers the gate runs **precision 0.81 / recall 0.78** against a 32%
+> base rate, and on wild pools **0.97 / 0.60**. It is well above chance and its failure is
+> recall, not precision. The "none of them fixes it" clause is also now false — see the verdict
+> box at the top of this file. What survives is the *ordering* of concerns: a retrieval
+> improvement terminating in an unordered gate delivers a better pool and the same digest,
+> which is exactly what gating the whole pool measured (a wash, −0.18 paired).
+
 ---
 
 ## What all three agree on
@@ -140,17 +161,27 @@ none of them fixes it.
 2. **Coupling degree, SPECTER2 similarity and citation count all surface the repo's own
    ancestry** at the head of the ranking. Similarity is the wrong relation, however it is
    computed.
-3. **Triage is the terminal stage of every design and is currently at chance.** Improving
-   retrieval raises the ceiling; it does not deliver a better digest on its own.
+3. ~~**Triage is the terminal stage of every design and is currently at chance.**~~ Withdrawn
+   (see above). What holds is the ordering: improving retrieval raises the ceiling and does
+   not deliver a better digest on its own — measured, as a wash, when the whole pool was
+   gated.
 4. **All of it must live under `--foundational`.** Every target is ≥11 months old and
-   `lookback_days` defaults to 14, so the default path cannot see any of them regardless.
+   `lookback_days` defaulted to 14, so the default path could not see any of them.
+   **Resolved 2026-08-07**: the shipped default is now all-time relevance
+   (`lookback_days: 36500`, `sort_by: relevance`, `w_recency: 0.0`) — the configuration every
+   benchmark number had actually been measured under for a month.
 
-## What to settle before building
+## What to settle before building — all three settled
 
-- **Re-measure the citation-hop baseline.** The 14/24 that all three designs were calibrated
-  against was produced by a batching bug (**VERIFIED**: 18 seeds in one request returned
-  `[9999, 0, 0, …]`). Corrected numbers change the comparison and possibly the ranking.
-- **Verify Design 2's index dependency** — existence, licence, fetch method, query latency.
-- **Decide whether triage is fixable**, because it caps every design here. A retrieval
-  improvement that terminates in a chance-level gate delivers a better pool and the same
-  digest.
+- ~~**Re-measure the citation-hop baseline.**~~ **Done.** The 14/24 was a batching artifact;
+  corrected to 18/24, then re-measured on the expanded benchmark as **21/48 = 44%**, with seed
+  count as the whole story (≥7 seeds → 89%; no arXiv bibliography → 0% by construction).
+- ~~**Verify Design 2's index dependency.**~~ **Done, 4/4**, plus a fifth dependency this
+  document failed to name and which mattered more than the four: that a locally computed
+  vector is comparable to the stored ones. It is — Hamming 0/1024 — and without that check
+  every query would have measured nothing while looking healthy.
+- ~~**Decide whether triage is fixable.**~~ **Yes.** See the verdict box at the top.
+
+**What to settle before building is now empty. What remains is building it** — Designs 1 and 2
+are both verified channels living only in `evals/`, and every remaining loss to the Opus
+baseline is a recall failure they address.
