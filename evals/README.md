@@ -320,6 +320,15 @@ uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time -
 # Then lock in the winner for a normal run, e.g. the stricter gate:
 uv run python evals/run_judge_eval.py --baseline cli --rr-rerank --rr-all-time --rr-min-actionable 3
 
+# The SHIPPED configuration, end to end (--rr-finescale). After the 0-3 gate, papers
+# sitting exactly at --rr-min-actionable are rescored 0-9 and kept only above the
+# calibrated P >= 2/3 — the second stage that fixes the near-binary gate. Runs through
+# reporadar.finescale itself, never a local copy, because the probability map is
+# calibrated to that exact prompt. Needs OPENAI_API_KEY (logprobs); ~$0.01/case on top.
+# This is the command that produced the current headline (+3.18 vs the baseline's +1.82).
+uv run python evals/run_judge_eval.py --baseline cli --rr-pool 50 --rr-rerank \
+    --rr-all-time --rr-hybrid --rr-sweep --rr-finescale
+
 # Hybrid retrieval (roadmap #4): fuse the heuristic ranking with a BM25 lexical
 # ranking via RRF before the Top-N cut, so a paper buried on vocabulary mismatch
 # can surface. Measure-first — compare the RepoRadar columns with/without it.
