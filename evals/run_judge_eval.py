@@ -29,6 +29,7 @@ import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -202,6 +203,60 @@ def _triage_reporadar(
     return triage_papers(papers, profile, llm_cfg, top_k=len(papers))
 
 
+def _apply_finescale(
+    repo_dir: Path, rr_topn: list[dict[str, Any]], keys: dict[str, str], args: argparse.Namespace
+) -> list[dict[str, Any]]:
+    """Rescore the gate's threshold band and return the surviving Top Picks.
+
+    Routed through ``reporadar.finescale`` and ``reporadar.triage.repo_context_block``
+    rather than reimplemented, for the reason this file learned the hard way: a harness
+    that rebuilds a prompt measures the harness. It matters more here than anywhere else,
+    because the score→probability map is *calibrated to that exact prompt* — a local copy
+    that drifted by a newline would silently move where P crosses 2/3.
+
+    Mutates ``rr_topn`` in place with ``finescale``/``finescale_p`` so the per-paper
+    values land in the results file and the run can be re-analysed without re-calling.
+    """
+    from reporadar.config import ProfilerConfig
+    from reporadar.finescale import enough_scored, score_papers
+    from reporadar.profiler import profile_repo
+
+    above = [p for p in rr_topn if (p.get("llm_score") or 0) > args.rr_min_actionable]
+    band = [p for p in rr_topn if p.get("llm_score") == args.rr_min_actionable]
+    if not band:
+        print("        finescale: no papers in the gate's threshold band — nothing to rescore")
+        return above
+
+    profile = profile_repo(repo_dir, profiler_cfg=ProfilerConfig(prose_chars=args.rr_prose_chars))
+    cfg = SimpleNamespace(
+        openai_api_key=keys.get("OPENAI_API_KEY", ""),
+        openai_model=args.rr_finescale_model,
+        timeout=60,
+    )
+    scored = score_papers(band, profile, cfg)
+    for p in band:
+        got = scored.get(p["arxiv_id"])
+        if got:
+            p["finescale"] = got["finescale"]
+            p["finescale_p"] = got["finescale_p"]
+
+    if not enough_scored(len(scored), len(band)):
+        # Same rule the product applies: a stage that mostly failed must not be allowed
+        # to demote the whole band and pass it off as an abstention.
+        print(
+            f"        !! finescale scored only {len(scored)}/{len(band)} — gate NOT applied "
+            f"for this case (check OPENAI_API_KEY)"
+        )
+        return above + band
+
+    kept = [p for p in band if (p.get("finescale_p") or -1.0) >= args.rr_finescale_threshold]
+    print(
+        f"        finescale: {len(kept)}/{len(band)} band papers clear "
+        f"P >= {args.rr_finescale_threshold:.2f} (+{len(above)} above the band)"
+    )
+    return above + kept
+
+
 def is_recent(published: str) -> bool:
     if not published:
         return False
@@ -259,6 +314,12 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             f"{n_scored}/{len(rr_topn)} scored, {len(rr_toppicks)} actionable "
             f"(Top Picks, min>={args.rr_min_actionable})"
         )
+        if args.rr_finescale:
+            # The shipped second stage, through the shipped module. Everything measured
+            # so far about it was an offline replay of a stored run; this is the live
+            # path. Papers sitting exactly AT the gate threshold must also clear the
+            # calibrated probability — papers above it are trusted on the gate's word.
+            rr_toppicks = _apply_finescale(dest, rr_topn, keys, args)
     else:
         rr_topn = rr_candidates[:10]
         rr_toppicks = [p for p, s in rr_ranked[:10] if s >= TOP_THRESHOLD]
@@ -481,6 +542,30 @@ def main() -> int:
         "pre-2026-08-02 behaviour and the control arm for any prose measurement.",
     )
     parser.add_argument(
+        "--rr-finescale",
+        action="store_true",
+        help="Apply the shipped fine-scale rescore (reporadar.finescale) to the papers "
+        "sitting exactly at --rr-min-actionable: score each 0-9, read the expectation over "
+        "the answer token's logprob distribution, and keep only those clearing "
+        "--rr-finescale-threshold. Needs OPENAI_API_KEY (Anthropic exposes no logprobs). "
+        "Implies --rr-triage. ~$0.01 per case. Measured offline at +1.91 -> +3.14 mean "
+        "net@2; this flag is how that gets confirmed on a live run.",
+    )
+    parser.add_argument(
+        "--rr-finescale-model",
+        default="gpt-4o-mini",
+        help="Model for the fine-scale rescore. Must expose logprobs, and must be the one "
+        "the shipped probability map was fitted against unless you refit it.",
+    )
+    parser.add_argument(
+        "--rr-finescale-threshold",
+        type=float,
+        default=2.0 / 3.0,
+        help="P(actionable) a band paper must clear. The default is DERIVED, not tuned: "
+        "net@2 values a shown paper at 3p-2, so showing pays exactly above 2/3. Moving it "
+        "trades recall for precision and makes the run incomparable to the shipped policy.",
+    )
+    parser.add_argument(
         "--rr-pool",
         type=int,
         default=0,
@@ -505,11 +590,19 @@ def main() -> int:
     )
     args = parser.parse_args()
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
-    if args.rr_rerank or args.rr_sweep:
-        args.rr_triage = True  # reranking and the threshold sweep both need llm_scores
+    if args.rr_rerank or args.rr_sweep or args.rr_finescale:
+        # All three need llm_scores: rerank orders by them, the sweep re-gates on them,
+        # and the fine-scale stage only rescores the band the gate itself defines.
+        args.rr_triage = True
 
     load_dotenv(EVALS_DIR / ".env")
     keys = {k: os.environ[k] for k in ENV_KEYS if os.environ.get(k)}
+
+    if args.rr_finescale and not args.mock and "OPENAI_API_KEY" not in os.environ:
+        # Fail here, not 22 cases in: without the key every band paper would fail to
+        # score, every case would fall back to un-gated, and the run would look like a
+        # legitimate measurement of the old path under a new name.
+        raise SystemExit("--rr-finescale needs OPENAI_API_KEY (see evals/README.md)")
 
     judge_label = "mock" if args.mock else args.model
     baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"

@@ -1,15 +1,18 @@
 # Tier B benchmark — results
 
-> **Headline (2026-08-08, 22 cases): RepoRadar + the fine-scale rescore reaches mean net@2
-> +3.14, against the Opus 4.8 baseline's +1.82** — paired **+1.32**, 10 cases better, 6 worse,
-> 6 tied. The sign test is **p = 0.45**, so read it as clearly ahead on the mean and *not*
-> established as reliably better per repo. It is an offline replay on a frozen run, not a live
-> end-to-end benchmark of the shipped path. See
-> [Against the Opus baseline, all 22 repos](#against-the-opus-baseline-all-22-repos-2026-08-08).
+> **Headline (2026-08-08, 22 cases, LIVE end-to-end run): RepoRadar + the fine-scale rescore
+> reaches mean net@2 +3.18, against the Opus 4.8 baseline's +1.82** — paired **+1.36**, 10
+> cases better, 6 worse, 6 tied. The sign test is **p = 0.45**, so read it as clearly ahead on
+> the mean and *not* established as reliably better per repo. Against RepoRadar's own show-all
+> (+1.86) it is **+1.32**, p = 0.109. See
+> [The live run](#the-live-run-the-offline-replay-was-right-2026-08-08) — it reproduces the
+> offline replay's +3.14 / +1.32 / 0 negatives within noise, on a run whose per-case draws
+> moved substantially.
 >
-> The gain is all precision: **shown papers 132 → 102, genuinely actionable 97 → 91**
-> (precision 0.73 → **0.89**), and **every net-negative repo is gone** — `compiler` −5 → +2,
-> `vectordb` −5 → +1, `numerics` and `linter` → 0. That is the structural gap the
+> The gain is all precision: **shown papers 131 → 97, genuinely actionable 101 → 88**
+> (precision 0.77 → **0.91**), and **every net-negative repo is gone** — six of them on this
+> draw (`ann`, `compiler`, `crypto`, `encryption`, `graph`, `llminfer`). That is the structural
+> gap the
 > [dead-heat section](#the-opus-baseline-on-all-22-repos-a-dead-heat-reached-by-opposite-strategies-2026-08-07)
 > predicted was worth ~+0.64 of the mean; closing it was worth more.
 >
@@ -659,6 +662,53 @@ age, HyDE rank and hop coupling are individually weak, as the practitioner-relev
 literature predicted. The combined model (features + all four method scores) reaches
 0.778/Brier 0.147/+2.50 — and is beaten by exp09 *alone* (0.838/0.126/+2.91) on every
 axis: at 22 queries, every added column is another way to overfit, even under LORO.
+
+### The live run: the offline replay was right (2026-08-08)
+
+Everything above was an offline replay of a stored run. This is the shipped path executed
+end to end on all 22 repos — fresh arXiv collection, live ranking, live Haiku gate, live
+fine-scale rescore through `reporadar.finescale` itself — added to the harness as
+`--rr-finescale`. Same flags as the frozen run (`--rr-pool 50 --rr-rerank --rr-all-time
+--rr-hybrid`), 22/22 cases completed, no exclusions.
+
+| | replay (frozen run) | **live run** | Opus baseline |
+|---|---|---|---|
+| RepoRadar + fine-scale | +3.14 | **+3.18** | — |
+| RepoRadar, show-all | +1.91 | +1.86 | — |
+| baseline | — | — | +1.82 |
+| fine vs show-all | +1.23 | **+1.32** (8+/2−, p = 0.109) | |
+| fine vs Opus | +1.32 | **+1.36** (10/6/6, p = 0.45) | |
+| precision of the digest | 0.89 | **0.91** | 0.94 |
+| papers shown | 102 | 97 | 49 |
+| net-negative cases | 0 | **0** | 1 |
+
+Every headline number reproduces within noise, and the win/loss/tie record against Opus
+is identical (10/6/6). The sign tests are unchanged in character: **p = 0.109 against
+show-all and p = 0.45 against Opus**, so this remains a clear mean improvement that is
+*not* established as reliably per-repo at n = 22.
+
+**The per-case numbers moved a lot, and that is the finding.** Collection is stochastic,
+and a fresh fetch reshuffled individual repos hard — `ann` show-all went +4 → **−2**,
+`compiler` −5 → **−7**, `columnar` +4 → **+7**, `crypto` +3 → **−2**. Show-all had **six**
+net-negative repos this run rather than four. The aggregate held anyway, which is the
+useful part: the offline replay was measuring something stable, not one lucky draw. It
+also means per-case values in any single run should be read as draws, not properties.
+
+**The stage eliminated all six negatives**, including two the replay never had a chance
+to fix because that draw did not produce them (`crypto`, `encryption`). Its one real cost
+this run was `columnar`, where it dropped two genuinely actionable papers (+7 → +5) — and
+`diffusion` again gave up one. That is the shape of the trade: it pays for itself several
+times over on bad bands and occasionally clips a good one.
+
+Band behaviour was sensible across the spread: four cases had no band at all, four kept
+every band paper (5/5, 8/8, 4/4), and the two worst repos abstained almost completely —
+`compiler` kept **0 of 9** and `llminfer` **1 of 7**. Nothing saturated, nothing collapsed.
+
+**Cost of the run: about $0.30 in live calls.** All 22 Opus baselines came from cache
+(discriminators verified matching before launch), and 1,325 of the judge verdicts were
+already stored, so only **50 new judgements** were needed. The live spend was ~1,100 Haiku
+triage calls, ~150 gpt-4o-mini rescores, and those 50 judge calls. A cold run of the same
+thing would be roughly $20 in baselines plus judge.
 
 ### Correction — the recorded +2.91 evaluated a map that does not ship (2026-08-08)
 
