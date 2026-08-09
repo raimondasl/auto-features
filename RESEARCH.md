@@ -708,6 +708,22 @@ nothing in the benchmark can currently see it.
    distribution. `evals/calibrate_finescale.py` is the standing instrument; what a monitor
    should watch is the **AUC** (0.824 live vs 0.841 at fit time — the alarm), not the gap
    (a gauge). See [`evals/RESULTS.md`](evals/RESULTS.md).
-4. **A thin-docs benchmark case** (direction 6 above). Now the sharpest open gap by
-   elimination: retrieval shipped, ordering shipped, recalibration closed — and every
-   remaining claim rests on 22 repositories that all have good READMEs.
+4. **Thin docs — MEASURED 2026-08-09, and it is the worst result in the project.** Ablating
+   the profile's sources across four budgets on six repos (docs the only variable, judge on
+   the real repo): mean net@2 **+5.17 → −0.50**, pooled precision **0.925 → 0.636**. Both
+   pre-registered alarm conditions fired; the prediction of graceful abstention failed. The
+   mechanism is §1's register mismatch in pure form — strip a repo's prose and its profile
+   collapses to a self-description, so `speech` is served **the Whisper paper** for the
+   Whisper repo. **Nothing inside the system notices**: gate-3 precision 1.00 → 0.53 while
+   the gate issues *more* 3s, and the calibrated probability moves 0.799 → 0.709. Every
+   stage eats the same impoverished profile and they fail *coherently*. Two consequences:
+   a similarity floor on HyDE — the remedy this was built to test — is **refuted**, since
+   the papers are close to a query that is simply wrong; and the danger zone is *a little*
+   documentation, not none (`db`, whose profile ablates to literally nothing, correctly
+   abstains). See [`evals/RESULTS.md`](evals/RESULTS.md).
+
+   **Still open, and now with a measured reason:** (a) real obscure thin-docs cases —
+   ablation is a *ceiling*, since these models have memorised the benchmark repos; (b) a
+   **profile-information floor** so the system refuses rather than answers a question the
+   repo never asked; (c) roadmap item 0, user-stated goals, which P8 concluded belong in
+   the **query** — exactly where a thin-docs repo has nothing else to offer.
