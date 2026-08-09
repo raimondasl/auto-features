@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -329,6 +330,65 @@ def _apply_finescale(
     return above + kept
 
 
+README_NAMES = ("README.md", "README.rst", "README.txt", "README", "readme.md")
+MANIFESTS = ("requirements.txt", "pyproject.toml", "setup.py", "package.json")
+
+
+def ablate_docs(repo_dir: Path, budget: int) -> Path:
+    """A copy of *repo_dir* whose self-description is capped at *budget* characters.
+
+    The benchmark's thinnest README is 1,639 characters against a 300-character prose
+    budget — **no case is under 1,000, and none under 300** — so every measurement of
+    what to tell the system about a repository was made where supply exceeds demand by
+    5.5x. RepoRadar's actual target user is a private codebase with almost no prose.
+    This builds that case out of a real one.
+
+    Only the README and ``docs/`` are removed. Dependency manifests are copied verbatim,
+    because a repository with no documentation still declares its dependencies, and the
+    profile derived from them is the floor this experiment is trying to find.
+
+    **This is faithful only while the profiler reads a bounded document set.** With
+    ``scan_source=False`` it reads manifests, packaging metadata, the README and
+    ``docs/`` — all copied or deliberately withheld here. Turn source scanning on and
+    the copy would silently lose signal a real thin-docs repository *has*, making the
+    ablation look worse than the thing it models, so this refuses rather than drifts.
+
+    The copy is minimal by construction (a handful of files) rather than a tree copy,
+    and it is written to a scratch directory: the real clones gate the verdict cache and
+    are never touched.
+    """
+    from reporadar.config import ProfilerConfig
+
+    if ProfilerConfig().scan_source:
+        raise SystemExit(
+            "ablate_docs models a thin-docs repo by withholding prose only; with "
+            "scan_source on it would also withhold code, which a thin-docs repo has. "
+            "Copy the source tree here before running this arm again."
+        )
+
+    out = WORK_DIR / "ablated" / f"{repo_dir.name}-b{budget}"
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+
+    for manifest in MANIFESTS:
+        src = repo_dir / manifest
+        if src.is_file():
+            shutil.copy2(src, out / manifest)
+
+    kept = 0
+    if budget > 0:
+        for name in README_NAMES:
+            src = repo_dir / name
+            if src.is_file():
+                text = src.read_text(encoding="utf-8", errors="ignore")[:budget]
+                (out / name).write_text(text, encoding="utf-8")
+                kept = len(text)
+                break
+    print(f"        ablated docs: README {kept} chars, docs/ withheld (budget {budget})")
+    return out
+
+
 STAGE_FIELDS = ("llm_score", "finescale", "finescale_p")
 
 
@@ -386,7 +446,12 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     if dest is None:
         return None
 
+    # The judge's view is built from the REAL repository and stays that way under
+    # --rr-ablate-docs. Ablating it too would degrade the ground truth alongside the
+    # treatment, and the arm would then measure a confused judge agreeing with a
+    # confused system. "Useful for this repository" is a property of the repository.
     repo_context = assemble_repo_context(dest)
+    rr_dest = dest if args.rr_ablate_docs is None else ablate_docs(dest, args.rr_ablate_docs)
     categories = case["expected_categories"]
 
     # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (headline).
@@ -400,7 +465,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     # fixed digest size rather than simply returning more papers.
     candidate_n = args.rr_pool or (RERANK_POOL if args.rr_rerank else 10)
     rr_ranked = reporadar_ranked(
-        dest,
+        rr_dest,
         categories,
         args.sources,
         keys,
@@ -414,7 +479,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
         # heuristic 0.5 threshold, so the benchmark measures triage's effect.
         triaged = _triage_reporadar(
-            dest, rr_candidates, keys, args.rr_triage_model, args.rr_prose_chars
+            rr_dest, rr_candidates, keys, args.rr_triage_model, args.rr_prose_chars
         )
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
@@ -432,7 +497,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             # so far about it was an offline replay of a stored run; this is the live
             # path. Papers sitting exactly AT the gate threshold must also clear the
             # calibrated probability — papers above it are trusted on the gate's word.
-            rr_toppicks = _apply_finescale(dest, rr_topn, keys, args)
+            rr_toppicks = _apply_finescale(rr_dest, rr_topn, keys, args)
     else:
         rr_topn = rr_candidates[:10]
         rr_toppicks = [p for p, s in rr_ranked[:10] if s >= TOP_THRESHOLD]
@@ -580,7 +645,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--case", help="Only run this case.")
+    parser.add_argument("--case", help="Only run this case, or a comma-separated subset of cases.")
     parser.add_argument(
         "--mock", action="store_true", help="Mock judge + baseline (no keys/spend)."
     )
@@ -667,6 +732,20 @@ def main() -> int:
         "net@2; this flag is how that gets confirmed on a live run.",
     )
     parser.add_argument(
+        "--rr-ablate-docs",
+        type=int,
+        default=None,
+        metavar="CHARS",
+        help="Thin-docs arm: build RepoRadar's profile from a repo whose README is capped "
+        "at CHARS and whose docs/ is withheld (0 = manifests only). The judge still sees "
+        "the REAL repo, so ground truth does not degrade with the treatment. Every case in "
+        "the benchmark has a README of 1,639+ chars against a 300-char prose budget, so "
+        "nothing here has ever measured the regime RepoRadar's target user lives in. Note "
+        "that at CHARS >= 300 the gate's prose block is IDENTICAL to the control's (both "
+        "are README[:300]) and only the derived keywords, queries and HyDE hypotheses "
+        "thin out — which is what isolates retrieval degradation from prompt degradation.",
+    )
+    parser.add_argument(
         "--rr-finescale-model",
         default="gpt-4o-mini",
         help="Model for the fine-scale rescore. Must expose logprobs, and must be the one "
@@ -746,8 +825,15 @@ def main() -> int:
     WORK_DIR.mkdir(exist_ok=True)
     results = []
     failed_collection: list[str] = []
+    only = {c.strip() for c in args.case.split(",") if c.strip()} if args.case else None
+    if only:
+        # A typo'd name would otherwise silently shrink the run, and a 5-case arm
+        # reported as a 6-case arm is how a subset gets compared against a whole.
+        unknown = only - {c["name"] for c in bench["cases"]}
+        if unknown:
+            raise SystemExit(f"--case names not in the benchmark: {sorted(unknown)}")
     for case in bench["cases"]:
-        if args.case and case["name"] != args.case:
+        if only and case["name"] not in only:
             continue
         try:
             r = run(case, keys, args)

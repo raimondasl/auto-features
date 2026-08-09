@@ -559,6 +559,19 @@ evals/
                      logprobs — measured at AUC 0.59 and rejected: 44% of papers return
                      the same digit on 9+ of 10 draws, so sampling re-reads the mode
                      rather than the distribution
+  ablation_report.py $0, reads run files: the thin-docs dose response. Pair with
+                     `run_judge_eval.py --rr-ablate-docs CHARS`, which builds RepoRadar's
+                     profile from a repo whose README is capped at CHARS and whose docs/
+                     is withheld, while the JUDGE still sees the real repo — ablate that
+                     too and the ground truth degrades with the treatment, so a confused
+                     system and a confused judge agree and the arm measures nothing.
+                     Manifests are copied verbatim: a repo with no docs still declares
+                     its dependencies. Exists because the benchmark's thinnest README is
+                     1,639 chars against a 300-char prose budget, so nothing here has
+                     ever run in the regime the target user lives in. At CHARS >= 300 the
+                     gate's prose block is IDENTICAL to the control's, which is what
+                     separates retrieval degradation from prompt degradation — the older
+                     prose-budget arms could not, since docs were abundant either way
   calibrate_finescale.py
                      ~$0.30 (then $0 with --analyse): is the shipped probability map still
                      where it was fitted? Re-gates and re-scores the 220 top-10 papers of a

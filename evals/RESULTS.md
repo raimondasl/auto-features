@@ -754,6 +754,142 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### Thin docs: the ALARM fired, the prediction failed, and the danger zone is *some* documentation, not none (2026-08-09)
+
+```bash
+# four arms, back to back in one session, docs the only variable
+for B in control 1500 300 0; do
+  uv run python evals/run_judge_eval.py --baseline cli --case graph,speech,db,cv,rag,webdev \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      ${B:+--rr-ablate-docs $B}
+done
+uv run python evals/ablation_report.py control=…052546Z.json 1500=…054713Z.json \
+                                       300=…061027Z.json 0=…063210Z.json
+```
+
+**Why this is not the ablation the roadmap dropped.** ROADMAP dropped "thin-docs benchmark
+ablation" because *"the existing arms already bracket the answer"* — the prose-budget arms
+(0/300/2000/6000, keywords, tagline, extractive, paraphrase). Every one of those varied **gate
+context**. The profile has since acquired a consumer that did not exist when that was written:
+**HyDE hypothesis generation**, which is load-bearing for the p = 0.0075 result. Nothing
+brackets it. And the regime itself was never sampled — the thinnest README in the benchmark is
+**1,639 characters against a 300-character prose budget; zero cases under 1,000, zero under
+300**. Supply exceeds demand 5.5× at the minimum, so every prose measurement ever made here was
+truncating an abundance.
+
+`--rr-ablate-docs CHARS` caps the README and withholds `docs/` for **RepoRadar's profile only**
+— the judge keeps seeing the real repository, because ablating ground truth alongside the
+treatment produces a confused judge agreeing with a confused system. Manifests are copied
+verbatim: a repo with no docs still declares its dependencies. At CHARS ≥ 300 the gate's prose
+block is *identical* to the control's (both are `README[:300]`), so those arms move only the
+derived keywords, the queries, and the hypotheses — which separates **retrieval degradation from
+prompt degradation**.
+
+**Pre-registered before the numbers were read:** net@2 decays toward 0 by *abstention*, pooled
+precision holds ≥ 0.85 at every budget. **Alarm:** pooled precision < 0.80, or any arm with
+negative mean net@2.
+
+| arm | mean net@2 | shown | actionable | precision | abstained | net-negative | pool actionable share |
+|---|---|---|---|---|---|---|---|
+| control | **+5.17** | 40 | 37 | 0.925 | 1 | 0 | 0.840 |
+| 1500 | +3.00 | 45 | 36 | 0.800 | 1 | 1 | 0.712 |
+| 300 | +3.17 | 34 | 29 | 0.853 | 2 | 1 | 0.676 |
+| **0** | **−0.50** | 33 | 21 | **0.636** | 2 | 1 | 0.568 |
+
+**Both alarm conditions fired at budget 0. The prediction failed.** The actionable share of the
+judged pool falls monotonically (0.840 → 0.568), so this is **retrieval degradation**, not a
+selection failure — the gate is handed steadily worse pools.
+
+| case | control | 1500 | 300 | 0 |
+|---|---|---|---|---|
+| `cv` | 4.0 | 2.0 | 5.0 | 2.0 |
+| `db` | 10.0 | 9.0 | **0.0** | **0.0** |
+| `graph` | 7.0 | 6.0 | 6.0 | 4.0 |
+| `rag` | 4.0 | 7.0 | 10.0 | 4.0 |
+| `speech` | 6.0 | **−6.0** | **−2.0** | **−13.0** |
+| `webdev` (control) | 0.0 | 0.0 | 0.0 | 0.0 |
+
+#### The mechanism: the register mismatch, in its purest form
+
+At budget 0, `speech`'s profile is whatever Whisper's packaging metadata says: *"weak
+supervision, robust speech recognition"*. The digest it produces opens with **"Robust Speech
+Recognition via Large-Scale Weak Supervision"** — **the Whisper paper itself**, judged 1 — and
+continues with seven near-neighbours of Whisper's own method. Strip a repository's prose and its
+profile collapses to a bare self-description, so retrieval returns *what the repo already is*.
+That is [RESEARCH.md §1](../RESEARCH.md)'s founding diagnosis reproduced under laboratory
+conditions: the register mismatch is not a quirk of keyword search, it is what happens whenever
+the only thing describing a repository is the repository.
+
+#### The danger zone is a little documentation, not none
+
+`db` is DuckDB — a C++ project whose clone has no manifest the profiler can parse, so at budget
+0 its profile is **literally empty: 0 keywords, 0 domains, 0 prose**. The gate scored **all ten
+candidates 0** and the case abstained. Zero information produces no question, so nothing is
+retrieved and nothing is shown: net@2 0.0, safe.
+
+`speech` at the same budget had a *thin but entirely plausible* profile — and reached **−13.0**.
+The failure needs enough information to form a **plausible but wrong** question. That inverts the
+intuition the experiment was built on, and it means "how much does the profile contain" is the
+wrong safety axis.
+
+#### Nothing inside the system notices
+
+| arm | gate-3 papers | gate-3 precision | gate-2 precision | mean finescale P |
+|---|---|---|---|---|
+| control | 9 | **1.00** | 0.92 | 0.799 |
+| 1500 | 25 | 0.88 | 0.71 | 0.758 |
+| 300 | 16 | 0.88 | 0.83 | 0.782 |
+| **0** | 17 | **0.53** | 0.70 | **0.709** |
+
+The gate's **top confidence tier degrades to a coin flip** while it issues *more* 3s than the
+control, and the calibrated probability barely moves — 0.709 against a gate-3 precision of 0.53.
+P5 measured that tier at 76% judge-3 and gate precision at 0.97 on wild pools; both are
+irrelevant here. **The gate defends against off-topic junk, not against on-topic uselessness**,
+and these papers are maximally on-topic.
+
+The reason nothing notices is structural: **queries, HyDE hypotheses, the gate and the rescore
+all consume the same impoverished profile, so they fail coherently.** Internal consistency is
+fully preserved. The judge is the only component that sees the real repository, which is the
+only reason this is visible at all.
+
+**This refutes the remedy this experiment was opened to test.** The pre-registered alarm text
+said a firing precision bar meant `hyde.search_index` needed a similarity floor, since it is
+pure top-k by Hamming distance. It does not. The retrieved papers are **not distant** — they are
+the correct answer to the wrong question, and no distance threshold separates those.
+
+#### What it does mean
+
+RepoRadar's failure mode on its stated target user is **confident and internally undetectable**.
+The remedy is not a better filter but a different information source, and a previous negative
+already points at it: P8 killed user-stated wants as *gate* context and concluded **"stated
+wants belong in the query, not in the gate."** A thin-docs repository is precisely the case
+where the query has nothing else to work from. That is roadmap item 0, which now has a
+measured reason to exist. The nearer-term defensive move is a **profile-information floor** —
+refuse to run, the way `db` accidentally did, rather than answer a question the repo never
+asked.
+
+#### Caveats, and they are load-bearing
+
+**n = 6, and `speech` supplies most of the magnitude.** Excluding it, budget 0 is **+2.00 at
+precision 0.800** — degraded, exactly at the alarm boundary, but not negative. **The per-case
+sign tests do not clear significance** (1500: p = 0.375; 300: p = 1.000; 0: p = 0.125). The
+alarm is a *pre-registered decision rule on pooled precision*, not a p-value, and the
+dose-response is a pattern rather than an established effect. `rag` moved the *wrong* way
+(4.0 → 10.0 at budget 300), which is the variance the other numbers also sit inside.
+
+**The control drifted −1.33 from the previous day's run of the identical configuration**
+(`graph` −3, `speech` −4, same pool sizes) — which is why the control was re-run in-session
+rather than reused; that drift alone would have manufactured a first rung of damage before any
+documentation was removed.
+
+**And every number here is a ceiling, not an estimate.** Stripping detectron2's README does not
+make the hypothesis generator, the gate, or the judge forget detectron2; all of them have
+memorised these repositories, and a genuinely obscure private codebase gets none of that help.
+Real thin-docs performance sits at or below this by an unknown margin. **Ablation cannot be made
+to answer that**, which is exactly why the real thin-docs cases remain worth adding.
+
+**Cost** ~$11, 24 runs, ~2 h. All four arms clean: no HyDE degradations, no collection failures.
+
 ### Calibration audit — the map IS decalibrated, and it provably does not matter (2026-08-09)
 
 ```bash
