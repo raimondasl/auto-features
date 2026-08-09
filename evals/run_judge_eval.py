@@ -329,6 +329,46 @@ def _apply_finescale(
     return above + kept
 
 
+STAGE_FIELDS = ("llm_score", "finescale", "finescale_p")
+
+
+def returned_records(
+    papers: list[dict[str, Any]], verdicts: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Which papers a system actually returned, with the judge's verdict on each.
+
+    Counts alone make a regression undebuggable. When `speech` fell from net@2 +8.0 to
+    −2.0 between two runs, the artifacts could say *how many* papers the triage gate
+    admitted and how many the judge rejected, but not *which*, so there was no way to
+    tell a bad gate from a different candidate pool without paying to re-run.
+
+    The gate's own scores travel with the verdict for the same reason one step further
+    in: *why* a paper was or was not shown is a property of ``llm_score`` and
+    ``finescale_p``, and a run that records only the outcome cannot be asked whether the
+    probability map was still calibrated without re-scoring every paper. The 2026-08-09
+    calibration audit paid exactly that (`evals/calibrate_finescale.py`); it should not
+    have had to.
+
+    A stage field is emitted **only when that stage ran on that paper** — absent means
+    "not scored", present-and-null means "scoring failed". Collapsing those two into a
+    null would make a run in which triage never executed indistinguishable from one in
+    which it executed and failed, which is the same distinction
+    :func:`reporadar.finescale.score_papers` exists to preserve.
+    """
+    out = []
+    for p in papers:
+        v = verdicts.get(p["arxiv_id"].split("v")[0]) or {}
+        rec: dict[str, Any] = {
+            "arxiv_id": p["arxiv_id"],
+            "title": p.get("title", ""),
+            "judge_score": v.get("score"),
+            "judge_justification": v.get("justification", ""),
+        }
+        rec.update({f: p[f] for f in STAGE_FIELDS if f in p})
+        out.append(rec)
+    return out
+
+
 def is_recent(published: str) -> bool:
     if not published:
         return False
@@ -497,26 +537,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             _print_system(f"  min>={t}          ", sweep[t])
 
     def _returned(papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Which papers a system actually returned, with the judge's verdict on each.
-
-        Counts alone make a regression undebuggable. When `speech` fell from net@2 +8.0
-        to −2.0 between two runs, the artifacts could say *how many* papers the triage
-        gate admitted and how many the judge rejected, but not *which*, so there was no
-        way to tell a bad gate from a different candidate pool without paying to re-run.
-        """
-        out = []
-        for p in papers:
-            base = p["arxiv_id"].split("v")[0]
-            v = verdicts.get(base) or {}
-            out.append(
-                {
-                    "arxiv_id": p["arxiv_id"],
-                    "title": p.get("title", ""),
-                    "judge_score": v.get("score"),
-                    "judge_justification": v.get("justification", ""),
-                }
-            )
-        return out
+        return returned_records(papers, verdicts)
 
     result: dict[str, Any] = {
         "case": name,

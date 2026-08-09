@@ -559,6 +559,17 @@ evals/
                      logprobs — measured at AUC 0.59 and rejected: 44% of papers return
                      the same digit on 9+ of 10 draws, so sampling re-reads the mode
                      rather than the distribution
+  calibrate_finescale.py
+                     ~$0.30 (then $0 with --analyse): is the shipped probability map still
+                     where it was fitted? Re-gates and re-scores the 220 top-10 papers of a
+                     live run and checks the map against judge verdicts already on disk.
+                     Reports the REPRODUCTION first — 117/121 shown papers, 97% — because a
+                     reconstruction that does not reach the live decision is measuring
+                     itself. Verdict 2026-08-09: decalibrated (under-confident by -0.129,
+                     CI [-0.187, -0.067]) and worth +0.00 net@2 to fix under LORO, against
+                     an oracle-threshold ceiling of +0.27. Cannot tune the threshold: 2/3 is
+                     derived from 3p-2, so "the threshold that scores best here" is the
+                     metric fitted to itself, and the LORO refit is the only honest arm
   compare_finescale_baseline.py
                      $0, calls nothing: the head-to-head against the Opus baseline on all
                      22 repos. The baseline's picks and their verdicts are already in the

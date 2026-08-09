@@ -685,14 +685,29 @@ nothing in the benchmark can currently see it.
 
 ### What is actually open now
 
-1. **Ship the two retrieval channels.** HyDE (27/48, 15 uniquely) and the bibliography-seeded
-   hop (44%) are both verified, replicated, and confined to `evals/`. Every remaining loss to
-   the baseline is a recall failure, which is exactly what they address. **Highest value.**
+1. ~~**Ship the two retrieval channels.**~~ **HyDE shipped** (PRs #105/#106) and is measured
+   end to end: +4.55 vs the baseline's +1.82, paired +2.73, 15 w / 3 l, **p = 0.0075** — the
+   first result in the project's history to clear p < 0.05 against the baseline. The
+   bibliography-seeded hop remains in `evals/`, and the case for shipping it **weakened when
+   HyDE landed**: its 9 targets that HyDE misses sit in `cv`/`graph`/`llminfer`/`peft`/`rag`/
+   `rl`/`speech`, six of which now win and two of which (`graph`, `speech`) return ten
+   actionable papers out of ten, where nothing can be added. Of the three repos still losing,
+   it reaches **one** target in `llminfer`, zero in `compiler`, and zero in `numerics` — whose
+   bibliography yields a hop pool of four candidates. Worth shipping for repos unlike the
+   benchmark; **not** the highest-value next move, and the benchmark cannot currently measure
+   it either way.
 2. **Non-arXiv sources for the repos that need them.** P3 concluded the IACR/DBLP/VLDB
    adapters are "the only remaining route" for `crypto`, `systems`, `storage`, `compiler`,
-   `columnar` — disproportionately the repos in the loss column. DBLP and bioRxiv ship; IACR
-   does not.
-3. **Calibration drift.** `finescale.py`'s two frozen parameters are pinned to a prompt and a
-   judge vintage. Tests catch a prompt edit; nothing catches slow drift in what "actionable"
-   means.
-4. **A thin-docs benchmark case** (direction 6 above).
+   `columnar` — and post-HyDE the loss column is `llminfer`, `compiler`, `numerics`, of which
+   `compiler` is squarely in that set. 5 of the 6 targets those three repos miss are reached
+   by **neither** shipped channel.
+3. ~~**Calibration drift.**~~ **Measured 2026-08-09** and closed as a direction. The frozen map
+   *is* decalibrated — under-confident by −0.129, 95% CI [−0.187, −0.067], on the 126 band
+   papers of the live run — and recalibrating it is worth **+0.00 net@2 under LORO** against an
+   oracle ceiling of +0.27, because the threshold sits in the trough of a bimodal score
+   distribution. `evals/calibrate_finescale.py` is the standing instrument; what a monitor
+   should watch is the **AUC** (0.824 live vs 0.841 at fit time — the alarm), not the gap
+   (a gauge). See [`evals/RESULTS.md`](evals/RESULTS.md).
+4. **A thin-docs benchmark case** (direction 6 above). Now the sharpest open gap by
+   elimination: retrieval shipped, ordering shipped, recalibration closed — and every
+   remaining claim rests on 22 repositories that all have good READMEs.
