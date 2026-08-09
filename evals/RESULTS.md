@@ -1,25 +1,30 @@
 # Tier B benchmark — results
 
-> **Headline (2026-08-08, 22 cases, LIVE end-to-end run): RepoRadar + the fine-scale rescore
-> reaches mean net@2 +3.18, against the Opus 4.8 baseline's +1.82** — paired **+1.36**, 10
-> cases better, 6 worse, 6 tied. The sign test is **p = 0.45**, so read it as clearly ahead on
-> the mean and *not* established as reliably better per repo. Against RepoRadar's own show-all
-> (+1.86) it is **+1.32**, p = 0.109. See
-> [The live run](#the-live-run-the-offline-replay-was-right-2026-08-08) — it reproduces the
-> offline replay's +3.14 / +1.32 / 0 negatives within noise, on a run whose per-case draws
-> moved substantially.
+> **Headline (2026-08-09, 22 cases, live end-to-end): RepoRadar reaches mean net@2 +4.55
+> against the Opus 4.8 baseline's +1.82 — paired +2.73, 15 cases better, 3 worse, 4 tied,
+> sign test p = 0.0075.** The first result in this project's history that clears p < 0.05
+> against the baseline; every previous headline was "ahead on the mean, not established".
+> It now matches Opus's precision (**0.94**) while returning **2.5x as many papers**, with
+> **zero net-negative repositories** against the baseline's one. See
+> [HyDE measured end to end](#hyde-measured-end-to-end-the-first-result-that-clears-p--005-against-the-baseline-2026-08-09).
 >
-> The gain is all precision: **shown papers 131 → 97, genuinely actionable 101 → 88**
-> (precision 0.77 → **0.91**), and **every net-negative repo is gone** — six of them on this
-> draw (`ann`, `compiler`, `crypto`, `encryption`, `graph`, `llminfer`). That is the structural
-> gap the
-> [dead-heat section](#the-opus-baseline-on-all-22-repos-a-dead-heat-reached-by-opposite-strategies-2026-08-07)
-> predicted was worth ~+0.64 of the mean; closing it was worth more.
+> Two shipped changes got it there, each worth about the same and neither significant alone:
+> the **fine-scale rescore** (+1.36 over show-all, p = 0.109) and **HyDE dense discovery**
+> (+1.36 over the rescore alone, p = 0.092, measured in the same session with HyDE the only
+> variable). They compose rather than compete — precision *rose* 0.91 → 0.94 while the shown
+> set grew 97 → 121 — because the rescore orders what a bigger pool admits. The same pool
+> expansion without it was a
+> [measured wash](#gating-the-whole-pool-end-to-end-a-wash-2026-08-07).
 >
-> **What it does not fix is recall.** All six remaining losses to Opus are cases where the
-> admitted set never held the papers Opus found (`rag` admits nothing at all). P5 measured the
-> gate's recall at 0.60, and a precision stage cannot move that. Note also that net@2 charges 2
-> for a false positive, so it *rewards* a precision stage — this metric flatters the change.
+> **Recall, the standing open problem, is narrowed rather than closed.** HyDE was shipped to
+> fix the six losses that were pure retrieval misses; three are fixed outright — `speech`
+> 0 → +10, `graph` +1 → +10, and `rag` 0 → +4, the case that had been admitting *nothing* —
+> while `llminfer` and `numerics` remain genuine losses.
+>
+> **A caveat that applies to both changes.** net@2 charges 2 for a false positive, so it
+> rewards precision-preserving work — this metric flatters these results. And at n = 22 the
+> per-case values move substantially between collections; the aggregate has now held across
+> four runs, the individual repositories have not.
 >
 > **Previous headline (2026-07-31, 12 cases):** RepoRadar Top Picks mean net@2 **+1.75** vs the Opus
 > baseline's **+1.83** — a **0.08 gap**, narrowed from 0.33. Measured after the query-construction
@@ -662,6 +667,92 @@ age, HyDE rank and hop coupling are individually weak, as the practitioner-relev
 literature predicted. The combined model (features + all four method scores) reaches
 0.778/Brier 0.147/+2.50 — and is beaten by exp09 *alone* (0.838/0.126/+2.91) on every
 axis: at 22 queries, every added column is another way to overfit, even under LORO.
+
+### HyDE, measured end to end: the first result that clears p < 0.05 against the baseline (2026-08-09)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --rr-pool 50 --rr-rerank \
+    --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde   # arm A
+uv run python evals/run_judge_eval.py --baseline cli --rr-pool 50 --rr-rerank \
+    --rr-all-time --rr-hybrid --rr-sweep --rr-finescale             # arm B (control)
+```
+
+Both arms, **same session, back to back, HyDE the only variable** — not a comparison against
+the stored run from the day before, because that run demonstrated per-case swings of ±6 that
+would be attributed to the flag. 22/22 cases, **zero degradations** (the harness prints
+"this arm is NOT a clean HyDE measurement" and counts them; it printed nothing).
+
+| | control | **+ HyDE** | Opus 4.8 |
+|---|---|---|---|
+| mean net@2 | +3.18 | **+4.55** | +1.82 |
+| paired vs Opus | +1.36 (11/5/6, p = 0.21) | **+2.73 (15 w / 3 l / 4 t, p = 0.0075)** | — |
+| paired vs control | — | **+1.36** (10+/3−, p = 0.092) | |
+| digest precision | 0.91 | **0.94** | 0.94 |
+| papers shown / actionable | 97 / 88 | **121 / 114** | 49 / 46 |
+| abstentions | 7/22 | 4/22 | 4/22 |
+| net-negative repos | 0 | **0** | 1 |
+
+**This is the first time in the project's history that RepoRadar beats the baseline at
+p < 0.05.** Every previous headline — 12-case parity, the 22-case dead heat, yesterday's
++1.36 — was "ahead on the mean, not established". At 15 wins to 3 losses the sign test is
+**p = 0.0075**, and the system now matches Opus's precision (0.94) while returning **2.5×
+as many papers**.
+
+Read the attribution carefully: **HyDE's own increment is +1.36 at p = 0.092**, which is
+*not* significant on 22 paired cases. What crossed the line is the cumulative system. The
+honest statement is that HyDE is a consistent-direction improvement of the same size as the
+fine-scale rescore, and that the two together clear a bar neither clears alone.
+
+### It landed exactly where it was shipped to land
+
+The pre-registered expectation, written before the run: HyDE addresses **recall**, so the
+six recall-driven losses to Opus should narrow, and a mean gain without movement there
+would not be the win it was shipped for.
+
+| case | control | +HyDE | Opus | actionable papers in the judged pool |
+|---|---|---|---|---|
+| `speech` | 0.0 | **+10.0** | +3.0 | 5/10 → **12/12** |
+| `graph` | +1.0 | **+10.0** | +3.0 | 6/13 → **13/13** |
+| `rag` | 0.0 | **+4.0** | +3.0 | 3/13 → **11/13** |
+| `llminfer` | +1.0 | +1.0 | +4.0 | 10/14 → 12/14 |
+| `numerics` | 0.0 | +1.0 | +2.0 | 8/12 → 9/12 |
+| `vectordb` | +5.0 | +5.0 | +4.0 | 12/14 → 11/14 |
+
+**Three of the six are fixed outright**, including `rag` — the case that had been admitting
+*nothing* for weeks and was the standing example of a pool that never contained the answer.
+`speech` and `graph` went from near-abstention to a perfect ten. The other three moved
+little; `llminfer` and `numerics` remain genuine losses, so the recall problem is narrowed,
+not closed.
+
+The pool numbers are the mechanism, not decoration: HyDE roughly **doubled to tripled every
+candidate pool** (155→516, 296→687, and `numerics` 56→**452**), and the share of the judged
+pool that is genuinely actionable rose on 15 of 22 cases. More candidates *and* better ones.
+
+### Why this worked when gating the whole pool did not
+
+[Gating the whole pool](#gating-the-whole-pool-end-to-end-a-wash-2026-08-07) was a **wash**
+(−0.18 paired) and concluded: *"the bottleneck is not how many papers the gate sees. It is
+that nothing ranks what it returns."* HyDE is another pool expansion, and it works — because
+that sentence stopped being true. The fine-scale rescore now orders what the gate admits, so
+a bigger pool converts instead of merely reshuffling which arbitrary admits fill ten slots.
+
+The two changes are **complementary rather than additive by luck**: precision improved
+(0.91 → 0.94) *while* the shown set grew 97 → 121. Without the rescore, doubling the pool
+would have fed the old near-binary gate more borderline papers — exactly the failure BM25
+fusion produced in July, when better nDCG made the headline worse.
+
+Three cases returned *fewer* papers: `storage` 10→8, `diffusion` 10→9, `compiler` 2→1. All
+three kept 100% precision on what remained, so these are the rescore declining newly-admitted
+band papers, not lost recall.
+
+**Cost:** ~112 new judge verdicts (1,375 → 1,487) across both arms, 22 hypothesis calls, and
+the metadata fetches — roughly **$4**. The 417 MB index was already on disk from P4's
+replication; a cold start adds a one-time 432 MB sync.
+
+**Caveats.** The +1.36 increment is p = 0.092; only the cumulative comparison is significant.
+net@2 charges 2 per false positive and so rewards precision-preserving expansions — it
+flatters this result as it flattered the last one. And this is one paired session: the per-case
+values will move again on the next collection, as they did between the previous two runs.
 
 ### The live run: the offline replay was right (2026-08-08)
 

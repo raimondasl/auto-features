@@ -61,6 +61,9 @@ RECENT_DAYS = 180  # baseline papers newer than this count as "recent"
 # --rr-rerank triages this many candidates (vs the top-10) so the llm_score
 # reorder can pull a buried-but-actionable paper up into the returned Top-10.
 RERANK_POOL = 20
+# Cases where the HyDE arm degraded to the keyword pool. A run that quietly lost the
+# channel it exists to measure would be reported as a clean arm; this makes it visible.
+HYDE_FAILURES: list[str] = []
 # --rr-sweep re-gates Top Picks at each of these min_actionable thresholds. Triage
 # scores are computed once, so every threshold is free (no extra model calls).
 SWEEP_THRESHOLDS = (1, 2, 3)
@@ -88,6 +91,7 @@ def reporadar_ranked(
     *,
     all_time: bool = False,
     hybrid: bool = False,
+    hyde_cfg: Any | None = None,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
 
@@ -111,6 +115,8 @@ def reporadar_ranked(
     papers = collect_live_papers(
         profile, categories, sources=sources, keys=keys, lookback_days=lookback, sort_by=sort_by
     )
+    if hyde_cfg is not None:
+        papers = _add_hyde_candidates(papers, profile, keys, hyde_cfg)
     if not papers:
         return []
     ranking_cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=w_recency)
@@ -130,6 +136,72 @@ def reporadar_ranked(
         if s["arxiv_id"] in by_id:
             out.append((by_id[s["arxiv_id"]], s["score_total"]))
     return out
+
+
+def _hyde_cfg(args: argparse.Namespace) -> dict[str, Any] | None:
+    """The HyDE arm's settings, or None when the flag is off."""
+    if not args.rr_hyde:
+        return None
+    return {
+        "index_dir": Path(args.rr_hyde_index).expanduser(),
+        "model": args.rr_triage_model,
+        "n_hypotheses": args.rr_hyde_hypotheses,
+        "top_k": args.rr_hyde_top_k,
+        "verify": not args.rr_hyde_skip_verify,
+    }
+
+
+def _add_hyde_candidates(
+    papers: list[dict[str, Any]], profile: Any, keys: dict[str, str], hyde_cfg: Any
+) -> list[dict[str, Any]]:
+    """Extend the candidate pool with the shipped HyDE channel, before ranking.
+
+    Routed through `reporadar.hyde` and `reporadar.collector.collect_by_ids` rather than
+    reimplemented — the same discipline `--rr-finescale` follows, and for the same reason:
+    a harness that rebuilds the thing under test measures the harness. Here it matters
+    doubly, because the hypothesis prompt is what the 27/48 was measured with.
+
+    A HyDE failure is reported and the run continues on the keyword pool alone. That is a
+    DEGRADED arm, not a clean one — the whole point of the flag is the extra candidates —
+    so it prints loudly and the summary counts how many cases it happened to.
+    """
+    from reporadar import hyde
+    from reporadar.collector import collect_by_ids
+
+    cfg = SimpleNamespace(
+        provider="claude",
+        claude_api_key=keys.get("ANTHROPIC_API_KEY", ""),
+        claude_model=hyde_cfg["model"],
+        timeout=120,
+    )
+    try:
+        ids = hyde.discover(
+            profile,
+            cfg,
+            hyde_cfg["index_dir"],
+            n_hypotheses=hyde_cfg["n_hypotheses"],
+            top_k=hyde_cfg["top_k"],
+            verify=hyde_cfg["verify"],
+        )
+    except Exception as exc:  # noqa: BLE001 — a degraded arm must be visible, not fatal
+        print(f"        !! HyDE FAILED, continuing on the keyword pool alone: {exc}")
+        HYDE_FAILURES.append(str(exc))
+        return papers
+
+    known = {p["arxiv_id"].split("v")[0] for p in papers}
+    fresh = [pid for pid in ids if pid not in known]
+    try:
+        extra = collect_by_ids(fresh)
+    except CollectionError as exc:
+        print(f"        !! HyDE metadata fetch failed: {exc}")
+        HYDE_FAILURES.append(str(exc))
+        return papers
+    added = [p for p in extra if p["arxiv_id"].split("v")[0] not in known]
+    print(
+        f"        HyDE: {len(ids)} candidates, {len(fresh)} new, {len(added)} resolved "
+        f"(pool {len(papers)} -> {len(papers) + len(added)})"
+    )
+    return papers + added
 
 
 def sweep_top_picks(
@@ -295,6 +367,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         top_n=candidate_n,
         all_time=args.rr_all_time,
         hybrid=args.rr_hybrid,
+        hyde_cfg=_hyde_cfg(args),
     )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
@@ -542,6 +615,27 @@ def main() -> int:
         "pre-2026-08-02 behaviour and the control arm for any prose measurement.",
     )
     parser.add_argument(
+        "--rr-hyde",
+        action="store_true",
+        help="Add HyDE dense-index candidates to the pool before ranking, via the shipped "
+        "reporadar.hyde. Measured in isolation at 27/48 targets with 15 reachable by no "
+        "other channel; this flag is how that converts (or does not) into net@2. Needs a "
+        "synced index — see --rr-hyde-index.",
+    )
+    parser.add_argument(
+        "--rr-hyde-index",
+        default=str(EVALS_DIR / ".work" / "hyde_index"),
+        help="Index directory. Defaults to the one P4's replication already built.",
+    )
+    parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
+    parser.add_argument("--rr-hyde-top-k", type=int, default=100)
+    parser.add_argument(
+        "--rr-hyde-skip-verify",
+        action="store_true",
+        help="Skip the bit-exact encoder check. Only for a re-run in the same session that "
+        "already verified — a mismatched encoder makes every HyDE number noise.",
+    )
+    parser.add_argument(
         "--rr-finescale",
         action="store_true",
         help="Apply the shipped fine-scale rescore (reporadar.finescale) to the papers "
@@ -656,6 +750,17 @@ def main() -> int:
             "   Every mean below is over the cases that actually collected. Re-run them "
             "before comparing against another arm."
         )
+
+    if HYDE_FAILURES:
+        # Never let a degraded arm be reported as a clean one: if HyDE fell back to the
+        # keyword pool on some cases, those cases measure the OLD channel under the new
+        # flag's name, which is exactly how a null result gets manufactured.
+        print(
+            f"\n!! HyDE degraded to the keyword pool on {len(HYDE_FAILURES)} case(s). "
+            f"This arm is NOT a clean HyDE measurement."
+        )
+        for msg in dict.fromkeys(HYDE_FAILURES):
+            print(f"   {msg[:160]}")
 
     if args.rr_sweep and results:
         key = "reporadar_toppicks_sweep"
