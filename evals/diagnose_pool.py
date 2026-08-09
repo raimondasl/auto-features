@@ -40,7 +40,22 @@ ACTIONABLE = 2
 
 
 def actionable_baseline_ids(case: str) -> list[str]:
-    """arXiv ids the baseline recommended *and* the judge confirmed actionable."""
+    """arXiv ids the baseline recommended *and* the judge confirmed actionable.
+
+    **This is the benchmark's gold set, and it is derived from the baseline cache — so
+    re-running a baseline silently redefines ground truth.** On 2026-08-09 two thin-docs
+    cases exhausted the 12-turn agent limit, and re-running them at 30 turns changed the
+    cache discriminator (correctly — `baseline._discriminator` hashes the flags), which
+    invalidated *every* case in that run, not only the two that needed it. `graph`'s
+    gold set moved 3 ids -> 4, which would have shifted the denominator of every published
+    recall figure (21/48, 27/48, 36/48) for a reason unrelated to any research question.
+    The three affected caches were restored from the recorded run file and
+    `tests/test_eval_hop_pool.py` — which pins the frozen literal against this function —
+    is what caught it.
+
+    Before re-running a baseline for an existing case, decide whether you intend to move
+    the gold set. Usually you do not.
+    """
     f = BASELINE / f"{case}.json"
     if not f.is_file():
         return []
