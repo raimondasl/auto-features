@@ -445,3 +445,83 @@ cases:
       - reinforcement learning
     gold_n: 10
     distractor_n: 24
+
+  # --- thin-docs cohort (added 2026-08-09) -----------------------------------
+  # Every other case has a README of 1,639+ characters against a 300-character prose
+  # budget — none under 1,000 — so the regime RepoRadar's stated target user lives in
+  # was unsampled, not merely underrepresented. The ablation (evals/RESULTS.md,
+  # "Thin docs") measured that regime by stripping docs from these same repos and found
+  # precision 0.925 -> 0.636 with the gate's top tier at 0.53, but ablation yields a
+  # CEILING: stripping detectron2's README does not make the models forget detectron2.
+  # These are real repos, chosen obscure (14-19 stars) so they are plausibly unmemorised,
+  # actively maintained (last commits within days — `pushed_at` is unreliable, two
+  # otherwise-ideal candidates were rejected after `commits` showed them dead since 2019
+  # and 2024), and each PAIRED with a thick-docs case in the same domain so a thin-vs-thick
+  # difference is not confounded by domain or by whether literature exists at all.
+  #
+  # Read `shown` alongside net@2 here: abstention and "two good papers plus one dud" both
+  # score near zero and mean opposite things. Abstaining is a pass; confident junk is not.
+
+  - name: thin-lang
+    description: Compiled general-purpose programming language (native codegen)
+    criteria: [T, B, N]  # README 108 ch — the thinnest in the benchmark by 15x
+    repo_dir: repos/thin-lang
+    live_repo: https://github.com/fireball-lang/fireball
+    expected_categories: [cs.PL, cs.SE]
+    gold_queries:
+      - type inference for statically typed languages
+      - register allocation code generation
+      - parser error recovery diagnostics
+      - intermediate representation optimisation passes
+      - compiler testing and fuzzing
+    distractor_queries:
+      - object detection
+      - protein structure prediction
+      - speech recognition transformer
+    gold_n: 10
+    distractor_n: 24
+    # Pairs with `compiler` (numba, README 1,686 ch), the thick case currently LOSING
+    # to the baseline (+1.0 vs +2.0) — so a thin-docs loss here is not a new failure
+    # mode for this domain, and the comparison is against a case with known headroom.
+
+  - name: thin-kv
+    description: Fault-tolerant distributed transactional key-value store
+    criteria: [T, B, N, C]  # README 787 ch, no arXiv ids in docs
+    repo_dir: repos/thin-kv
+    live_repo: https://github.com/w41ter/sekas
+    expected_categories: [cs.DB, cs.DC]
+    gold_queries:
+      - distributed transaction concurrency control
+      - consensus replication group membership
+      - log-structured merge tree compaction
+      - multi-version concurrency control snapshot isolation
+      - data placement rebalancing sharded store
+    distractor_queries:
+      - object detection
+      - language model fine-tuning
+      - protein structure prediction
+    gold_n: 10
+    distractor_n: 24
+    # Pairs with `storage` (rocksdb, README 1,689 ch) at +8.0 — a strong thick winner,
+    # which makes it the sharpest available thick-vs-thin contrast.
+
+  - name: thin-gnn
+    description: Library for developing and deploying graph neural network models
+    criteria: [T, B, N]  # README 1,232 ch
+    repo_dir: repos/thin-gnn
+    live_repo: https://github.com/google/distributed_graph_flow
+    expected_categories: [cs.LG, cs.DC]
+    gold_queries:
+      - graph neural network sampling minibatch training
+      - distributed graph partitioning for GNNs
+      - scalable message passing over large graphs
+      - graph embedding inference serving
+      - heterogeneous graph representation learning
+    distractor_queries:
+      - object detection image
+      - speech recognition transformer
+      - machine translation
+    gold_n: 12
+    distractor_n: 24
+    # Pairs with `graph` (pytorch_geometric, README 60,559 ch) at +10.0 — the widest
+    # documentation gap in the benchmark, 49x.

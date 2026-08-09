@@ -754,6 +754,125 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### Three real thin-docs cases join the benchmark — and the ablation's ceiling holds up (2026-08-09)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli \
+    --case thin-lang,thin-kv,thin-gnn,compiler,storage,graph \
+    --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde
+```
+
+The ablation below is a **ceiling**, not an estimate — stripping detectron2's README does
+not make the gate, the hypothesis generator or the judge forget detectron2. Only real,
+unmemorised repositories can convert it into a number, so three joined the benchmark, each
+**paired with a thick-docs case in the same domain** so a thin-vs-thick difference is not
+confounded by domain or by whether literature exists at all. All six ran in one session
+with a uniform 30-turn baseline budget.
+
+**First, a correction to how "thin" was being measured.** Earlier sections quote the
+benchmark's thinnest README as **1,639 characters** (`webdev`). That is the right measure
+for the *gate's prose block* — `README[:300]` — but the wrong one for everything else: the
+profiler reads README **plus `docs/`**, and `webdev` carries 78 docs files totalling
+**384,456** characters. By corpus, the real floor was `db` at **1,857** and the median case
+is **194,999**. The benchmark was further from the target regime than reported, not closer.
+
+| case | corpus chars | | paired with | corpus chars |
+|---|---|---|---|---|
+| `thin-lang` (fireball, Go compiler) | **108** | ↔ | `compiler` (numba) | 1,034,113 |
+| `thin-gnn` (distributed_graph_flow) | **1,073** | ↔ | `graph` (pytorch_geometric) | 238,390 |
+| `thin-kv` (sekas, distributed KV) | 3,556 | ↔ | `storage` (rocksdb) | 196,067 |
+
+`thin-lang` at 108 characters is **1,800× below the median case** and 17× below the old
+floor. `thin-kv` is the weak member and is labelled as such: its 787-char README plus one
+`docs/` file totals 3,556, which sits *above* `db` and `numerics`, inside the existing
+distribution rather than below it.
+
+#### Result
+
+| | RepoRadar net@2 | baseline net@2 | digest precision | pool actionable share |
+|---|---|---|---|---|
+| thick trio | **+7.00** | +4.00 | **21/21 = 1.000** | 35/42 = 0.833 |
+| thin trio | **+2.00** | +1.67 | **14/18 = 0.778** | 23/37 = 0.622 |
+| degradation | **−5.00** | −2.33 | −0.222 | −0.211 |
+
+| case | shown | actionable | net@2 | vs baseline |
+|---|---|---|---|---|
+| `thin-lang` | 1 | 1 | +1.0 | +0.0 |
+| `compiler` | 1 | 1 | +1.0 | −2.0 |
+| `thin-kv` | 8 | 6 | +2.0 | +1.0 |
+| `storage` | 10 | 10 | +10.0 | +5.0 |
+| `thin-gnn` | 9 | 7 | +3.0 | +0.0 |
+| `graph` | 10 | 10 | +10.0 | +6.0 |
+
+**Precision is the clean signal, and it lands where the ablation said it would.** The thin
+trio shows four non-actionable papers in eighteen (**0.778**); the thick trio shows zero in
+twenty-one. Fisher's exact on shown papers gives p = 0.037 — reported with the caveat that
+**papers are not independent units**, since they cluster by repository, so that figure
+overstates the power. The ablation predicted 0.853 at its 300-character rung and 0.636 at
+zero; real thin repositories land at **0.778, inside that band**. That is the pre-registered
+check on NR-25, and it passes: had the thin cases scored like their thick partners, the
+ceiling would not have been a ceiling. They did not, so it stands — and the ablation looks
+like a *reasonable* proxy rather than a wildly optimistic one.
+
+**Both systems degrade; RepoRadar degrades about twice as hard.** The agentic baseline falls
++4.00 → +1.67 while RepoRadar falls +7.00 → +2.00. Thin documentation is a property of the
+*task*, not a defect unique to this system — but the margin RepoRadar holds on thick repos
+(+3.00 over the baseline) collapses to **+0.33** on thin ones.
+
+**And the retrieval story is confirmed on real repos.** The actionable share of the judged
+pool falls 0.833 → 0.622, the same direction and roughly the same size as the ablation's
+0.840 → 0.568. This is upstream of selection.
+
+#### Two things that did not replicate
+
+**`thin-lang`'s abstention is not a stable property.** In the first ground-truth draw it
+showed **nothing** — the gate admitted 5 papers and the fine-scale rescore cleared 0 of 5,
+which read as a clean demonstration that the shipped second stage is what stands between a
+108-character repository and a confident wrong digest. In this run it showed one paper,
+which was actionable. Both outcomes are safe, but "it abstains" is a claim this data does
+not support; "it does not produce junk" is.
+
+**`thin-gnn` moved 3 points between two runs 20 minutes apart** (+3.0 → +0.0 → +3.0 across
+three draws, precision 0.78 → 0.67 → 0.78). Per-case variance at this scale is the norm
+here, not the exception, and is why all six cases were finally re-run in a single session
+rather than assembled from the runs that happened to have valid baselines.
+
+#### What this cost, and what it costs from now on
+
+~$14 across three runs (two discarded for the reasons above), dominated by baseline calls at
+$1.50–1.95 each. **The standing cost is the one that matters: 22 → 25 cases is roughly 14%
+more per full benchmark run, forever.**
+
+#### Method notes
+
+The **agentic baseline failed on two of three thin cases at the shipped 12-turn limit**
+(`error_max_turns`, 13 turns, still calling tools) — something it has never done on the 22
+thick cases. Thin documentation is expensive for an agent that has to read code to learn
+what a repository is. Those cases were re-run at 30 turns; `evals/baseline.py` hashes the
+CLI flags into the cache discriminator, so raising the limit correctly invalidated **all
+six** baselines rather than silently mixing budgets, which is why the final run is uniform.
+
+**A near-miss worth recording: re-running a baseline silently redefines the gold set.** The
+30-turn retry was needed for two thin cases, but the discriminator correctly invalidated
+*all six* baselines — including the three thick ones, which had never hit the limit. The
+gold set is derived as `baseline picks ∩ judge ≥ 2`, so `graph`'s targets moved **3 ids →
+4**, which would have shifted the denominator of every published recall figure (21/48,
+27/48, 36/48) as a side effect of a turn-limit change. `tests/test_eval_hop_pool.py`, which
+pins the frozen `TARGETS` literal against the derivation, failed and caught it; the three
+caches were restored from the recorded run file and the gold set is byte-identical at 24
+targets. The hazard is now documented on `diagnose_pool.actionable_baseline_ids`. Note the
+comparison table above is unaffected — it reads the results artifact, not the cache.
+
+Candidate selection is recorded because two of its steps were wrong at first. A keyword
+search returned 110 repos whose *minimum* README was 1,261 characters and median 6,173 —
+an artifact, not a finding: **GitHub repository search matches the query against the
+README**, so keyword queries can only surface repos that describe themselves. Searching by
+curated `topic:` tags and `in:name` instead found 542 candidates with a minimum of 108.
+And `pushed_at` is not activity: `yetone/mirdb` (117★, LSM store, an otherwise ideal
+candidate) reports pushed 2026-05-29 but its last real commit is **2019-05-02**. Checking
+`commits` rejected it and `rust-storage-bench` (dead since 2024) — a repository with no
+maintainers cannot act on a recommendation, which breaks the task's premise.
+
 ### Thin docs: the ALARM fired, the prediction failed, and the danger zone is *some* documentation, not none (2026-08-09)
 
 ```bash

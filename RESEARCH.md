@@ -722,8 +722,23 @@ nothing in the benchmark can currently see it.
    documentation, not none (`db`, whose profile ablates to literally nothing, correctly
    abstains). See [`evals/RESULTS.md`](evals/RESULTS.md).
 
-   **Still open, and now with a measured reason:** (a) real obscure thin-docs cases —
-   ablation is a *ceiling*, since these models have memorised the benchmark repos; (b) a
-   **profile-information floor** so the system refuses rather than answers a question the
-   repo never asked; (c) roadmap item 0, user-stated goals, which P8 concluded belong in
-   the **query** — exactly where a thin-docs repo has nothing else to offer.
+   **(a) Real thin-docs cases — DONE 2026-08-09.** `thin-lang` (fireball, corpus **108
+   chars**), `thin-gnn` (distributed_graph_flow, 1,073) and `thin-kv` (sekas, 3,556) are in
+   the benchmark, each paired with a thick case in the same domain. Thin trio **+2.00 at
+   precision 0.778**; thick trio **+7.00 at 1.000** — *inside* the band the ablation
+   predicted (0.853 at its 300-char rung, 0.636 at zero), so the ceiling claim holds and
+   the ablation was a reasonable proxy. Both systems degrade and RepoRadar degrades ~2×
+   (−5.00 vs the baseline's −2.33); its +3.00 margin over the baseline collapses to +0.33.
+   **Correction:** "thinnest README = 1,639 chars" measured the wrong thing — the profiler
+   reads README *plus* `docs/`, and by corpus the old floor was `db` at 1,857 with a
+   **median of 194,999**. The gap was ~1,800×, not 5×. **And "an empty profile abstains
+   safely" did not replicate**: `thin-lang` abstained in one draw and returned one
+   (actionable) paper in another. What holds is "it does not produce junk", not "it
+   abstains". Benchmark is now **25 cases**, ~14% more per full run.
+
+   **Still open:** (b) a **profile-information floor** so the system refuses rather than
+   answers a question the repo never asked; (c) roadmap item 0, user-stated goals, which P8
+   concluded belong in the **query** — exactly where a thin-docs repo has nothing else to
+   offer. Note the agentic baseline **failed outright on 2 of 3 thin cases** at the 12-turn
+   limit that has never bound on the 22 thick ones, so this is a hard regime for agents
+   too, not a defect unique to RepoRadar.
