@@ -20,7 +20,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Learned recommendations** — your stars/ratings seed the free Semantic Scholar recommender; results are re-ranked locally before they reach the digest (`recommendations.enabled`)
 - **SPECTER2 similarity** — citation-trained scientific embeddings (served free by Semantic Scholar, no local model) score how close each paper is to the work you starred/rated (`ranking.w_specter`)
 - **Community attention** — optionally rank on Hugging Face Papers upvotes, log-scaled against the run's own maximum (`ranking.w_community`)
-- **HyDE dense discovery** — queries built from a repository describe what it *has*; the paper that would improve it describes what it should *adopt*. Across nine benchmark repos, keyword search fetched 2,030 papers and reached **0** of 24 known-good ones. HyDE sidesteps that: an LLM writes the *abstract of the paper it wishes existed*, which is in the literature's register by construction, and that is matched against a local 3.1M-vector index of all arXiv. Measured **27 of 48** targets — **15 unreachable by any other channel** — and once synced, matching is fully offline (`hyde.enabled` + `rr sync-index`, opt-in, ~1.1 GB local)
+- **HyDE dense discovery** — queries built from a repository describe what it *has*; the paper that would improve it describes what it should *adopt*. Across nine benchmark repos, keyword search fetched 2,030 papers and reached **0** of 24 known-good ones. HyDE sidesteps that: an LLM writes the *abstract of the paper it wishes existed*, which is in the literature's register by construction, and that is matched against a local 3.1M-vector index of all arXiv. Measured end to end on the 22-repo benchmark it is worth **+1.36 mean net@2**, and it takes the system to **+4.55 vs the Opus 4.8 baseline's +1.82** — 15 wins to 3, p = 0.0075, the first result here that clears p < 0.05 against the baseline. Once synced, matching is fully offline (`hyde.enabled` + `rr sync-index`, opt-in, ~1.1 GB local)
 - **Fine-scale rescore** — the 0-3 actionability gate is near-binary, and its score-2 band ran anywhere from 0% to 100% useful depending on the repo. A second pass rescores that band on a 0-9 scale, reads the *distribution* over the answer token rather than the sampled digit, and admits a paper only above a calibrated P ≥ 2/3. Worth **+1.86 → +3.18 mean net@2** on a live 22-repo benchmark run, with every net-negative repo eliminated (`triage.finescale`, opt-in, needs `OPENAI_API_KEY`)
 - **Withdrawal detection** — flags papers their own authors withdrew and demotes them out of Top Picks, so you never act on retracted work (on by default)
 - **Hacker News attention** — badges papers that were discussed, with points and a link to the thread (`signals.hackernews`)
@@ -630,12 +630,19 @@ rr sync-index          # one time: ~432 MB of column-pruned range reads, resumab
 rr sync-index --verify # check our vectors reproduce the index bit-for-bit
 ```
 
-Then set `hyde.enabled: true`. Measured on the 22-repository benchmark (blind — the
-generator never saw the targets): **27 of 48** known-good papers in the top 1,000, median
-rank 837, against 10/48 for embedding the README and 3/48 for keyword queries *in the same
-index*. The count is not the main point: **15 of those targets are unreachable by the
-citation hop**, including every repository with no arXiv bibliography, so the channels are
-additive (union 36/48 = 75%).
+Then set `hyde.enabled: true`.
+
+**Retrieval reach** (blind — the generator never saw the targets): **27 of 48** known-good
+papers in the top 1,000, median rank 837, against 10/48 for embedding the README and 3/48
+for keyword queries *in the same index*. **15 of those targets are unreachable by the
+citation hop**, including every repository with no arXiv bibliography.
+
+**End to end**, with HyDE the only variable in a paired 22-repo run: mean net@2
+**+3.18 → +4.55**, which takes the system past the Opus 4.8 baseline at **p = 0.0075**
+(15 wins / 3 losses). It roughly doubles every candidate pool, and precision *rises*
+(0.91 → 0.94) rather than falling — because the fine-scale rescore orders the extra
+admits. Three of the six repos that had been losing to the baseline on pure recall are
+fixed outright, including one that had been returning nothing at all.
 
 Three things worth knowing:
 
