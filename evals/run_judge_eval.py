@@ -139,7 +139,15 @@ def reporadar_ranked(
     return out
 
 
-def _hyde_cfg(args: argparse.Namespace) -> dict[str, Any] | None:
+def _load_goals(path: str | None) -> dict[str, str] | None:
+    """Case -> maintainer goal statement, for the stated-intent arm (roadmap item 0)."""
+    if not path:
+        return None
+    goals: dict[str, str] = json.loads(Path(path).read_text(encoding="utf-8"))
+    return goals
+
+
+def _hyde_cfg(args: argparse.Namespace, goal: str | None = None) -> dict[str, Any] | None:
     """The HyDE arm's settings, or None when the flag is off."""
     if not args.rr_hyde:
         return None
@@ -149,6 +157,7 @@ def _hyde_cfg(args: argparse.Namespace) -> dict[str, Any] | None:
         "n_hypotheses": args.rr_hyde_hypotheses,
         "top_k": args.rr_hyde_top_k,
         "verify": not args.rr_hyde_skip_verify,
+        "goal": goal,
     }
 
 
@@ -183,6 +192,7 @@ def _add_hyde_candidates(
             n_hypotheses=hyde_cfg["n_hypotheses"],
             top_k=hyde_cfg["top_k"],
             verify=hyde_cfg["verify"],
+            goal=hyde_cfg.get("goal"),
         )
     except Exception as exc:  # noqa: BLE001 — a degraded arm must be visible, not fatal
         print(f"        !! HyDE FAILED, continuing on the keyword pool alone: {exc}")
@@ -452,6 +462,14 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     # confused system. "Useful for this repository" is a property of the repository.
     repo_context = assemble_repo_context(dest)
     rr_dest = dest if args.rr_ablate_docs is None else ablate_docs(dest, args.rr_ablate_docs)
+    goal = None
+    if args.rr_goals is not None:
+        if name not in args.rr_goals:
+            # Silently running without it would measure the control arm under this arm's
+            # name — the degraded-arm failure this harness already guards for HyDE.
+            raise SystemExit(f"--rr-goals file has no goal for case {name!r}")
+        goal = args.rr_goals[name]
+        print(f'        goal: "{goal[:96]}"')
     categories = case["expected_categories"]
 
     # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (headline).
@@ -472,7 +490,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         top_n=candidate_n,
         all_time=args.rr_all_time,
         hybrid=args.rr_hybrid,
-        hyde_cfg=_hyde_cfg(args),
+        hyde_cfg=_hyde_cfg(args, goal),
     )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
@@ -507,16 +525,21 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         )
 
     # 2. Baseline (Opus, via Claude Code CLI or the Anthropic API) -> verify
-    b = baseline_mod.run_baseline(
-        dest,
-        repo_name=name,
-        repo_context=repo_context,
-        mode=args.baseline,
-        mock=args.mock,
-        use_cache=not args.no_cache,
-    )
+    if args.baseline == "none":
+        b: dict[str, Any] = {"ids": [], "titles": [], "status": "skipped", "cost_usd": 0.0}
+    else:
+        b = baseline_mod.run_baseline(
+            dest,
+            repo_name=name,
+            repo_context=repo_context,
+            mode=args.baseline,
+            mock=args.mock,
+            use_cache=not args.no_cache,
+        )
     baseline_status = b.get("status", "ok")
-    if baseline_status != "ok":
+    if baseline_status == "skipped":
+        print("        baseline skipped (--baseline none) — pool is RepoRadar's top-10 only")
+    elif baseline_status != "ok":
         print(f"        !! BASELINE DID NOT RUN [{baseline_status}]: {b.get('raw', '')[:200]}")
     b_papers, n_halluc, n_lookup_failed = resolve_references(b["ids"], b["titles"])
     if n_lookup_failed:
@@ -655,10 +678,14 @@ def main() -> int:
     parser.add_argument("--sources", default="arxiv", help="RepoRadar sources (comma-separated).")
     parser.add_argument(
         "--baseline",
-        choices=["cli", "api"],
+        choices=["cli", "api", "none"],
         default="cli",
         help="Opus baseline mode: 'cli' = Claude Code headless (needs `claude` on PATH); "
-        "'api' = Anthropic Messages API + web_search (needs ANTHROPIC_API_KEY, no CLI).",
+        "'api' = Anthropic Messages API + web_search (needs ANTHROPIC_API_KEY, no CLI); "
+        "'none' = skip it. Use 'none' only for RepoRadar-vs-RepoRadar arm comparisons, "
+        "where the baseline contributes nothing but cost — and note it also shrinks the "
+        "judged pool to RepoRadar's own top-10, so pool statistics are NOT comparable "
+        "with runs that included it.",
     )
     parser.add_argument("--no-cache", action="store_true", help="Ignore cached verdicts/baseline.")
     parser.add_argument(
@@ -732,6 +759,17 @@ def main() -> int:
         "net@2; this flag is how that gets confirmed on a live run.",
     )
     parser.add_argument(
+        "--rr-goals",
+        metavar="FILE",
+        help="Stated-intent arm (roadmap item 0): a JSON {case: goal} file, e.g. "
+        "evals/goals/blind.json. The goal reaches ONLY the HyDE hypothesis prompt — "
+        "reporadar.hyde appends it after the shared repo block, so it structurally cannot "
+        "enter the 0-3 gate or the fine-scale rescore. That placement is P8's result, not "
+        "a preference: stated wants fed to the GATE scored net@2 +57 against +95, the worst "
+        "arm in the campaign, and that experiment concluded wants belong in the query. A "
+        "case missing from the file is a hard error, never a silent fallback to control.",
+    )
+    parser.add_argument(
         "--rr-ablate-docs",
         type=int,
         default=None,
@@ -783,6 +821,7 @@ def main() -> int:
         "surface. Changes the candidate order (may shift which papers are judged/triaged).",
     )
     args = parser.parse_args()
+    args.rr_goals = _load_goals(args.rr_goals)
     args.sources = [s.strip() for s in args.sources.split(",") if s.strip()]
     if args.rr_rerank or args.rr_sweep or args.rr_finescale:
         # All three need llm_scores: rerank orders by them, the sweep re-gates on them,

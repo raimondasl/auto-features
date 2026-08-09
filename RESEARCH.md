@@ -736,9 +736,29 @@ nothing in the benchmark can currently see it.
    (actionable) paper in another. What holds is "it does not produce junk", not "it
    abstains". Benchmark is now **25 cases**, ~14% more per full run.
 
-   **Still open:** (b) a **profile-information floor** so the system refuses rather than
-   answers a question the repo never asked; (c) roadmap item 0, user-stated goals, which P8
-   concluded belong in the **query** — exactly where a thin-docs repo has nothing else to
-   offer. Note the agentic baseline **failed outright on 2 of 3 thin cases** at the 12-turn
-   limit that has never bound on the 22 thick ones, so this is a hard regime for agents
-   too, not a defect unique to RepoRadar.
+   **(b) A profile-information floor — REFUTED 2026-08-09.** Documentation size does not
+   predict danger. Across the ablation the spread *between repos at one budget* exceeds the
+   movement between budgets (at 1500 chars `speech` = −6.0, `db` = +9.0), and in the real
+   cohort precision *falls* as corpus grows (108 ch → 1.00, 1,073 → 0.78, 3,556 → 0.75,
+   while `db` at 1,857 → 1.00). Any threshold would refuse `thin-lang` and wave through
+   `thin-kv`. That is the **second** size-based remedy refuted, after HyDE's similarity
+   floor — both failed because the failure is about **register**, not volume.
+
+   **(c) Stated intent in the query — MEASURED 2026-08-09, directional, not established.**
+   Goals reach `hyde.generate_hypotheses` only, appended after `repo_context_block` (P8's
+   result plus the frozen calibration make that structural; `tests/test_goal_injection.py`
+   is mutation-verified). Thin trio: control +3.33 at precision 0.842 → **blind +5.00 at
+   1.000** (3+/0−) → oracle +4.33 at 0.895. **The blind arm beat the leaky oracle**, so
+   there is no gap for user input to close — a model reading the repo's own source suffices,
+   which makes this an inference problem rather than a product one. Pre-registered ≥0.90
+   for the oracle **missed by one paper**; the [0.70,0.85] kill did not fire. Nothing is
+   significant at n=3 (best possible p = 0.25, and it lands there). `thin-lang` was not
+   rescued — the blind goal turned −2.0 into an abstention, safe but not a recovery.
+
+   **Next:** the blind arm across all **25 cases** — three thin cases are the binding
+   constraint, and 25 paired cases is the first design here that could reach significance.
+   ~$15.
+
+   Note the agentic baseline **failed outright on 2 of 3 thin cases** at the 12-turn limit
+   that has never bound on the 22 thick ones, so this is a hard regime for agents too, not
+   a defect unique to RepoRadar.
