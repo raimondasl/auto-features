@@ -754,6 +754,111 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### Calibration audit — the map IS decalibrated, and it provably does not matter (2026-08-09)
+
+```bash
+uv run python evals/calibrate_finescale.py            # ~$0.30, cached after the first run
+uv run python evals/calibrate_finescale.py --analyse  # re-analyse the cache, $0
+```
+
+`finescale.SLOPE` and `finescale.INTERCEPT` are the only fitted numbers in the shipped method,
+frozen against one stored judge run. The +4.55 headline is downstream of them, and nothing in
+the test suite can catch them moving: the tests pin the prompt *bytes*, and this failure mode
+is semantic. So the 220 papers in RepoRadar's own top-10 across the 22-case HyDE run — every
+one of which the GPT-5.5 judge already scored, with no selection bias inside the top-10 — were
+re-gated (Haiku) and re-scored (gpt-4o-mini) and the map's predictions compared against verdicts
+already on disk.
+
+**Reproduction first, because nothing else is readable without it.** The rebuilt policy agrees
+with the live run on **117 of 121** shown papers (97%); the four misses are one paper each in
+`columnar`, `db`, `rl`, `vectordb`, all in the conservative direction. That is the re-run noise
+floor of two temperature-0 model calls, and it is why every counterfactual below is computed
+*within* the reconstruction (whose own net@2 is +4.36, not +4.55) rather than against the live
+figure.
+
+**The map is decalibrated, and the direction is under-confidence.**
+
+| | |
+|---|---|
+| band papers governed by the map | 126 |
+| observed actionable rate | **0.817** |
+| mean predicted P | **0.689** |
+| calibration gap (paired bootstrap) | **−0.129, 95% CI [−0.187, −0.067]** |
+| ECE / Brier | 0.128 / 0.138 |
+| band AUC — live vs at fit time | **0.824** vs 0.841 |
+
+| predicted P | n | mean P | actual | gap |
+|---|---|---|---|---|
+| 0.0–0.2 | 6 | 0.053 | 0.500 | −0.447 |
+| 0.2–0.4 | 17 | 0.298 | 0.529 | −0.231 |
+| 0.4–0.6 | 10 | 0.517 | 0.600 | −0.083 |
+| 0.6–0.8 | 29 | 0.715 | 0.759 | −0.043 |
+| 0.8–1.0 | 64 | 0.868 | 0.984 | −0.117 |
+
+The CI excludes zero, so this is not noise. **Every bin under-predicts, and so do 16 of 19
+repositories** (residual mean −0.117, sd 0.105) — it is a *global level shift, not per-repository
+dispersion*, which was the hypothesis this audit was opened to test. And the **ordering is
+intact**: band AUC 0.824 against 0.841 at fit time. Whatever moved, moved the level and left the
+rank alone.
+
+**And it is worth nothing.** Two counterfactuals, weakest claim first:
+
+| | mean net@2/case | |
+|---|---|---|
+| shipped, frozen map | **+4.36** | — |
+| LORO refit — fit on 21 repos, score the 22nd | **+4.36** | Δ **+0.00**, 6+/5−/11=, p = 1.00, CI [−0.45, +0.45] |
+| *oracle* threshold P ≥ 0.52, chosen on the test set | +4.64 | Δ +0.27 — **an unachievable ceiling** |
+
+The honest counterfactual (LORO, never sees the repository it grades) moves 11 repositories and
+helps and harms in equal measure. The oracle — which cheats, and is reported only as a bound —
+buys **+0.27 net@2/case**: it flips 12 papers into the digest, 10 of them actionable, +6 net
+across all 22 repositories. That is the *entire* recoverable value of fixing a calibration error
+whose existence is statistically solid.
+
+**Why a 13-point error costs almost nothing.** The threshold sits in the trough of a bimodal
+distribution. Of 126 band papers, **63 sit in [0.8, 0.9) and only 24 are within ±0.1 of 2/3**:
+
+```
+  0.0-0.1  #####                                                            5
+  0.2-0.3  ##########                                                      10
+  0.4-0.5  ####                                                             4
+  0.5-0.6  ######                                                           6
+  0.6-0.7  ##########                                                      10
+  0.7-0.8  ###################                                             19
+  0.8-0.9  ############################################################### 63
+```
+
+The near-binary shape of the 0–3 gate **reappears one level down**: the rescore de-quantized it
+enough to *order* the band (AUC 0.824) but not enough to spread it across the decision boundary.
+A calibration error can only cost where papers actually sit, and they do not sit there. The
+second reason is structural: P = 2/3 is the *derived* breakeven, so a paper at the boundary is
+worth 3p − 2 ≈ 0 by construction — moving a correctly-derived threshold across a well-ordered
+set has near-zero expected value almost regardless of where it moves.
+
+**The prediction that opened this audit was wrong, and the way it was wrong is instructive.** It
+came from reading `reporadar_top10` against `reporadar_toppicks`: 43 judge-actionable papers sit
+in RepoRadar's own top-10 unshown, worth +11 net@2 across the six repositories where showing more
+would help. That reading is unpaired. The same threshold move costs −80 across the nine
+repositories where the gate is correctly strict (`cli`/`http` −17 each), and showing the full
+top-10 everywhere scores **+1.41 against +4.55**. The LORO refit is the paired version of the
+same question and it nets to zero. *An accounting of only the upside of a threshold move is not
+a counterfactual.*
+
+**What this settles, and what it does not.** It closes recalibration as a direction: the ceiling
+is +0.27/case and no out-of-sample method reaches it. It does not identify the *cause* of the
+gap. The fit population's band was 74.3% actionable and the live band is 81.7% (Wilson
+[0.741, 0.875]) — consistent with HyDE having enriched the band, but the two are statistically
+indistinguishable at n = 126, so "shipping HyDE decalibrated the map by improving the pool" is a
+hypothesis this data cannot confirm. What it does give the drift monitor is a baseline and a
+split of concerns: **AUC is the alarm, the gap is a gauge.** Ordering holding at 0.824 means the
+scorer still works; the level drifting 13 points means only that a number nobody's decision
+depends on has moved.
+
+**Cost** ~$0.30 (220 Haiku gate calls + 220 gpt-4o-mini logprob calls), cached per case, and the
+analysis re-runs free. The harness now persists `llm_score`/`finescale`/`finescale_p` in the
+results file, so the next audit costs $0 — the docstring had claimed those fields landed there
+since the rescore shipped, and they did not.
+
 ### The live run: the offline replay was right (2026-08-08)
 
 Everything above was an offline replay of a stored run. This is the shipped path executed
