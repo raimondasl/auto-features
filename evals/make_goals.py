@@ -18,15 +18,32 @@ Three arms, and the difference between the last two is the whole design:
 
 ``control``
     No goal. Current behaviour.
+``docs``
+    A goal written from **exactly the bytes the system already has** —
+    :func:`~reporadar.triage.repo_context_block`, nothing else — asked the improvement
+    question. This is the arm that isolates *register* from *information*.
 ``blind``
-    A model reads the **repository only** — README, docs, manifests, and a sample of source
-    the profiler never sees — and answers what maintainers would most want to improve. It is
-    shown **no paper, no gold target, no judge verdict**. This is what could actually ship.
+    A model reads the **repository** — README at ``assemble_repo_context``'s 3,500-char
+    budget rather than the profile's 300, plus a sample of **source the profiler never
+    reads** (``scan_source`` is False) — and answers what maintainers would most want to
+    improve. It is shown **no paper, no gold target, no judge verdict**.
+
 ``oracle``
     A model is shown the papers a judge already confirmed actionable for that case and asked
     to recover the goal statement that would have led someone there. **Deliberately leaky**,
     reported only as an unachievable ceiling — the same device as the calibration audit's
     oracle threshold.
+
+**`docs` exists because `blind` alone cannot be attributed.** `blind` changes two things at
+once: it asks a different *question* (a need, not an identity) and it sees strictly more
+*information* (source the profiler never reads, and a README budget of 3,500 against the
+profile's 300). Those imply different products — a register flip is one cheap LLM call,
+while a source-code dependency means turning scanning on — so an experiment that moves both
+learns which is true about neither. `docs` holds information fixed at exactly what the
+pipeline already consumes and moves only the question. Read the three together:
+
+* ``docs`` ≈ ``blind`` → the win is the **question**, and it ships as one cheap call.
+* ``docs`` ≈ ``control`` → the win is the **source code**, a larger and different change.
 
 The oracle is generated rather than hand-written on purpose. Whoever ran the earlier
 experiments has already read these cases' judged papers, so anything they author carries an
@@ -48,10 +65,11 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from harness import WORK_DIR, assemble_repo_context, load_benchmark  # noqa: E402
+from harness import WORK_DIR, assemble_repo_context, load_benchmark, profile_case_repo  # noqa: E402
 from run_judge_eval import ENV_KEYS, RESULTS_DIR, load_dotenv  # noqa: E402
 
 from reporadar.llm_client import complete  # noqa: E402
+from reporadar.triage import repo_context_block  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 GOALS_DIR = EVALS / "goals"
@@ -142,7 +160,7 @@ def actionable_papers(case: str, run_file: Path) -> list[dict[str, Any]]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--arm", choices=("blind", "oracle"), required=True)
+    ap.add_argument("--arm", choices=("docs", "blind", "oracle"), required=True)
     ap.add_argument("--cases", default="thin-lang,thin-kv,thin-gnn,compiler,storage,graph")
     ap.add_argument("--run", default="judge-gpt-5.5-20260809T181850Z.json", help="oracle source")
     args = ap.parse_args()
@@ -175,7 +193,11 @@ def main() -> int:
             print(f"  {case:11} !! not cloned — run the benchmark first; SKIPPED")
             continue
         context = assemble_repo_context(repo_dir)
-        if args.arm == "blind":
+        if args.arm == "docs":
+            # Exactly what the gate, the rescore and the hypothesis prompt already see —
+            # no source, no longer README. Only the question changes.
+            prompt = BLIND_PROMPT.format(context=repo_context_block(profile_case_repo(repo_dir)))
+        elif args.arm == "blind":
             context = f"{context}\n\n## Source sample\n{source_sample(repo_dir)}"
             prompt = BLIND_PROMPT.format(context=context[:14000])
         else:

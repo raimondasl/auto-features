@@ -1,8 +1,27 @@
 {
+ "ann": "Improve search quality and recall rates for billion-scale vector similarity search without significantly increasing memory usage or query latency.",
+ "cli": "Improve type safety and validation by adding comprehensive support for custom type definitions, nested validation rules, and runtime schema enforcement across complex command hierarchies.",
+ "columnar": "Improve query execution performance and optimization capabilities for complex analytical workloads across distributed columnar data.",
  "compiler": "Numba needs improved compilation times and reduced memory overhead for large-scale numerical applications and complex nested function calls.",
+ "crypto": "The project needs better post-quantum cryptography support and algorithms to prepare for quantum-resistant encryption requirements.",
+ "cv": "The library needs better support for efficient inference optimization, model quantization, and deployment to resource-constrained edge devices.",
+ "db": "Improve support for distributed query execution and horizontal scaling across multiple nodes to handle larger-than-memory datasets efficiently.",
+ "diffusion": "The project needs better inference performance optimization and memory efficiency for running large diffusion models on resource-constrained devices.",
+ "encryption": "Improve interoperability and usability across diverse platforms by developing standardized integration plugins for common applications and workflows.",
  "graph": "The project needs better scalability and memory efficiency for training Graph Neural Networks on very large graphs with billions of nodes and edges.",
+ "http": "Requests needs to support HTTP/2 and HTTP/3 protocols for modern web communication requirements.",
+ "linter": "Improve cross-file and dependency analysis capabilities to detect complex issues spanning multiple modules, classes, and function calls.",
+ "llminfer": "Improve multi-GPU distributed inference performance and scaling to efficiently utilize multiple accelerators for larger models and higher throughput workloads.",
+ "numerics": "Improve performance and memory efficiency of numerical algorithms through better optimization, vectorization, and parallelization across diverse hardware architectures.",
+ "peft": "Improve support for seamlessly combining multiple PEFT methods on the same model and enable automatic hyperparameter tuning for different adapter configurations.",
+ "rag": "Improve memory efficiency and scalability of dense vector indexing and retrieval for extremely large corpora to enable sub-millisecond query latency with minimal storage overhead.",
+ "rl": "The project needs better support for distributed training across multiple machines and GPUs to handle large-scale reinforcement learning experiments more efficiently.",
+ "speech": "The project needs improved inference latency and reduced memory consumption to enable real-time transcription on resource-constrained devices.",
  "storage": "RocksDB needs improved cross-platform portability and reduced compilation complexity to simplify deployment across diverse hardware and operating system environments.",
+ "systems": "Improve cluster scaling and multi-node distributed deployment capabilities to handle larger datasets and higher throughput across multiple instances.",
  "thin-gnn": "The project needs better support for heterogeneous graph types and diverse node/edge feature representations beyond current capabilities.",
  "thin-kv": "Improve distributed transaction consistency guarantees and conflict resolution to handle complex multi-shard transactional workloads more robustly.",
- "thin-lang": "The project needs robust standard library functions and built-in implementations to make the language practical for real-world use."
+ "thin-lang": "The project needs robust standard library functions and built-in implementations to make the language practical for real-world use.",
+ "vectordb": "Improve query latency and throughput for large-scale distributed deployments with enhanced sharding strategies and cross-shard query optimization.",
+ "webdev": "Flask needs built-in support for async/await request handlers and middleware to fully leverage modern Python async capabilities beyond current limited ASGI support."
 }

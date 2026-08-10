@@ -754,6 +754,81 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### Stated intent at 25 cases: the REGISTER FLIP IS REFUTED, and what is left is unestablished (2026-08-10)
+
+```bash
+uv run python evals/make_goals.py --arm docs --cases <all 25>   # same bytes the pipeline has
+for ARM in control docs blind; do
+  uv run python evals/run_judge_eval.py --baseline none --case <all 25> \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      ${ARM:+--rr-goals evals/goals/$ARM.json}
+done
+```
+
+The 6-case run above could not be attributed, and the objection that exposed it is worth
+stating in full: **the `blind` arm changes two things at once.** It asks a different
+*question* (a need, not an identity) *and* it sees strictly more *information* — a sample of
+source the profiler never reads (`scan_source` is False) and a README budget of 3,500
+characters against the profile's 300. Those imply completely different products: a register
+flip is one cheap LLM call, a source-code dependency means turning scanning on. An experiment
+that moves both learns which is true about neither.
+
+So a third arm, **`docs`**, holds information fixed at exactly the bytes the pipeline already
+consumes — `repo_context_block` and nothing else — and moves only the question. Three arms ×
+25 cases, one session, 75 runs.
+
+| arm | all 25 net@2 | shown | precision | thin trio (3) | real cases (20) |
+|---|---|---|---|---|---|
+| control | +3.88 | 136 | 0.904 | +3.33 | +4.85 |
+| docs | +4.00 | 142 | 0.901 | +3.33 | +4.95 |
+| blind | **+4.32** | 138 | **0.928** | **+5.00** | +5.35 |
+
+| paired vs control | mean/case | sign test | bootstrap 95% CI | r(log corpus, gain) |
+|---|---|---|---|---|
+| **docs** | **+0.12** | 10+/7−/8= (p = 0.63) | **[−0.72, +0.96]** | **+0.085** (wrong sign) |
+| **blind** | **+0.44** | 8+/6−/11= (p = 0.79) | **[−0.20, +1.12]** | **−0.362** (as predicted) |
+
+#### The register flip alone does nothing
+
+`docs` — the cheap, shippable version — is **+0.12 net@2 per case with an interval from −0.72
+to +0.96**, and its correlation with documentation size is **+0.085, the wrong sign**: no
+concentration in thin repositories, no concentration anywhere. Asking the same information a
+better question buys nothing measurable. That is the arm this experiment existed to isolate,
+and it is refuted.
+
+#### What survives is the information, and it is not established
+
+`blind` is +0.44/case with an interval spanning zero and 8 wins to 6 losses — **not
+significant, and not close**. Its one encouraging property is the pre-registered one: the gain
+correlates with documentation thinness at **r = −0.362**, and that **survives dropping the
+three thin cases added for this purpose** (r = −0.390, n = 17), so it is not an artifact of
+the cohort. But t = −1.65 against a 2.11 bar; this is a direction, not an effect.
+
+Read together, the attribution is clean and unwelcome: **the benefit tracks the extra
+information, not the better question.** If this is worth having, the change is
+`scan_source=True` plus goal synthesis — not one cheap call.
+
+#### The 6-case result: the thin trio replicated exactly, the generalisation did not
+
+`blind` on the thin trio is **+1.67/case**, the same number as the 6-case run. What failed to
+appear is any broader effect: across all 25 the same arm is +0.44 with the interval spanning
+zero. The earlier headline was a real measurement of three repositories being read as a
+measurement of the system.
+
+**Pre-registration.** Predicted: positive mean paired delta on both arms *and* r < 0. `docs`
+fails both clauses; `blind` meets both directionally, neither significantly. The kill (delta
+≤ 0 on both arms overall and on the thin subset) did not fire. So item 0 is **neither
+established nor closed** — but its cheapest implementation is closed.
+
+**Caveats.** Eleven of 25 `blind` comparisons are ties, and the five negative controls are
+pinned at 0.0 by design, so the effective *n* for a sign test is nearer 20 than 25. `blind`
+does not win by shrinking the digest (138 shown against control's 136), which is the one
+flattery net@2 usually supplies and does not here. And `--baseline none` means the judged pool
+is RepoRadar's own top-10, so these three arms are comparable to each other and to nothing
+else.
+
+**Cost** ~$26, 75 runs, ~5 h, all arms clean.
+
 ### Stated intent in the query (roadmap item 0): directional, and the ORACLE LOSES TO THE BLIND ARM (2026-08-09)
 
 ```bash
