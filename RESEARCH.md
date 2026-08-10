@@ -755,9 +755,29 @@ nothing in the benchmark can currently see it.
    significant at n=3 (best possible p = 0.25, and it lands there). `thin-lang` was not
    rescued — the blind goal turned −2.0 into an abstention, safe but not a recovery.
 
-   **Next:** the blind arm across all **25 cases** — three thin cases are the binding
-   constraint, and 25 paired cases is the first design here that could reach significance.
-   ~$15.
+   **25-CASE RESULT (2026-08-10) — the register flip is REFUTED; the rest is unestablished.**
+   The 6-case run could not be attributed: `blind` changes the *question* AND adds
+   *information* (source the profiler never reads, a 3,500-char README against the profile's
+   300). A third arm, `docs`, holds information at exactly the bytes the pipeline already
+   consumes and moves only the question. Three arms × 25 cases:
+
+   | arm | net@2 | paired vs control | 95% CI | r(log corpus, gain) |
+   |---|---|---|---|---|
+   | control | +3.88 | — | — | — |
+   | docs | +4.00 | **+0.12** (10+/7−/8=) | [−0.72, +0.96] | **+0.085** (wrong sign) |
+   | blind | +4.32 | +0.44 (8+/6−/11=) | [−0.20, +1.12] | −0.362 (as predicted) |
+
+   **Asking the same information a better question buys nothing** — `docs` is +0.12 with an
+   interval from −0.72 to +0.96 and no concentration in thin repos. `blind`'s +0.44 is not
+   significant either, but its thinness correlation is in the predicted direction and
+   **survives dropping the three thin cases** (r = −0.390, n = 17), so the benefit — if real
+   — tracks the **extra information**, not the register flip. The implication is the
+   opposite of cheap: it means `scan_source=True` plus goal synthesis, not one LLM call.
+
+   The thin trio replicated exactly (+1.67/case, same as the 6-case run); what did not
+   replicate is any broader effect. The earlier headline was three repositories read as a
+   system. Pre-registered kill did not fire, so item 0 is **neither established nor closed**
+   — its cheapest implementation is.
 
    Note the agentic baseline **failed outright on 2 of 3 thin cases** at the 12-turn limit
    that has never bound on the 22 thick ones, so this is a hard regime for agents too, not
