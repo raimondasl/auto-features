@@ -1,0 +1,8 @@
+{
+ "compiler": "We need to improve code generation and optimization passes in our JIT compiler to better handle data locality, tensor operations, and distributed computing while maintaining compiler extensibility.",
+ "graph": "We need to improve training efficiency and scalability for large graphs through better sampling strategies, memory management, and distributed processing.",
+ "storage": "We need to optimize the performance tradeoffs between write amplification, read amplification, and space amplification in our LSM-tree design, and improve compaction efficiency for diverse workloads.",
+ "thin-gnn": "We need to improve training efficiency and scalability for large graph neural networks on distributed systems with better sampling and communication strategies.",
+ "thin-kv": "We need to improve transaction commit latency and throughput in our distributed key-value store, especially across geographically dispersed replicas.",
+ "thin-lang": "We need to improve function call overhead and code generation efficiency while supporting incremental type checking in our compiler."
+}

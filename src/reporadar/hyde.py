@@ -98,6 +98,16 @@ Repository:
 Respond with ONLY a JSON array of {n} strings.
 """
 
+# Appended AFTER the shared repository block, never inside it. See `generate_hypotheses`.
+GOAL_BLOCK = """\
+
+What the maintainers say they want to improve, in their own words:
+{goal}
+
+Weight the abstracts toward that stated goal. It describes what the project NEEDS, which
+the repository's own documentation cannot: documentation describes what a project IS.
+"""
+
 
 class HydeError(Exception):
     """Raised when HyDE cannot run — a missing index, a missing dependency, a bad encoder."""
@@ -293,13 +303,32 @@ def verify_encoder(model: Any, *, samples: int = 5) -> tuple[bool, list[int]]:
 # ── Hypotheses ─────────────────────────────────────────────────────────────────────────
 
 
-def generate_hypotheses(profile: RepoProfile, llm_cfg: Any, *, n: int = 4) -> list[str]:
+def generate_hypotheses(
+    profile: RepoProfile, llm_cfg: Any, *, n: int = 4, goal: str | None = None
+) -> list[str]:
     """Ask the LLM for *n* abstracts of papers that would most improve this repository.
 
     The repository is described with the same block the gate uses, so one description
     serves both stages and cannot drift between them.
+
+    *goal* is a maintainer's own statement of what they want to improve. It is appended
+    **after** :func:`~reporadar.triage.repo_context_block`, never merged into it, and two
+    separate results make that placement non-negotiable:
+
+    * a repo block that differed between stages would silently invalidate the fine-scale
+      stage's frozen probability map, which is fitted to those exact bytes; and
+    * feeding stated wants to the **gate** was measured at net@2 +57 against +95 for the
+      shipped prompt — the worst arm in the campaign — because 15 named wants replace the
+      gate's question ("would this improve the project?") with a checklist ("is this on
+      the list?"). That experiment's own conclusion was that wants belong in the *query*,
+      which is here, and nowhere else.
+
+    So a goal changes what RepoRadar goes looking for and never what it accepts.
     """
-    prompt = HYPOTHESIS_PROMPT.format(n=n, context=repo_context_block(profile)[:6000])
+    context = repo_context_block(profile)[:6000]
+    if goal and goal.strip():
+        context += GOAL_BLOCK.format(goal=goal.strip()[:600])
+    prompt = HYPOTHESIS_PROMPT.format(n=n, context=context)
     raw = complete(prompt, llm_cfg, max_tokens=2500)
     start, end = raw.find("["), raw.rfind("]")
     if start < 0 or end < 0:
@@ -388,6 +417,7 @@ def discover(
     model_name: str = MODEL_NAME,
     verify: bool = True,
     on_progress: Any = None,
+    goal: str | None = None,
 ) -> list[str]:
     """arXiv ids for this repository, discovered offline against the dense index.
 
@@ -402,7 +432,7 @@ def discover(
 
     if on_progress:
         on_progress(f"writing {n_hypotheses} hypothesis abstracts...")
-    hypotheses = generate_hypotheses(profile, llm_cfg, n=n_hypotheses)
+    hypotheses = generate_hypotheses(profile, llm_cfg, n=n_hypotheses, goal=goal)
 
     if on_progress:
         on_progress(f"loading {model_name}...")

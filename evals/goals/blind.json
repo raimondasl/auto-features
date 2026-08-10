@@ -1,0 +1,8 @@
+{
+ "compiler": "Numba needs improved compilation times and reduced memory overhead for large-scale numerical applications and complex nested function calls.",
+ "graph": "The project needs better scalability and memory efficiency for training Graph Neural Networks on very large graphs with billions of nodes and edges.",
+ "storage": "RocksDB needs improved cross-platform portability and reduced compilation complexity to simplify deployment across diverse hardware and operating system environments.",
+ "thin-gnn": "The project needs better support for heterogeneous graph types and diverse node/edge feature representations beyond current capabilities.",
+ "thin-kv": "Improve distributed transaction consistency guarantees and conflict resolution to handle complex multi-shard transactional workloads more robustly.",
+ "thin-lang": "The project needs robust standard library functions and built-in implementations to make the language practical for real-world use."
+}

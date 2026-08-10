@@ -754,6 +754,104 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### Stated intent in the query (roadmap item 0): directional, and the ORACLE LOSES TO THE BLIND ARM (2026-08-09)
+
+```bash
+uv run python evals/make_goals.py --arm blind    # repo only, no papers ever shown
+uv run python evals/make_goals.py --arm oracle   # shown the confirmed papers; leaky by design
+for ARM in control blind oracle; do
+  uv run python evals/run_judge_eval.py --baseline none --case thin-lang,thin-kv,thin-gnn,compiler,storage,graph \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      ${ARM:+--rr-goals evals/goals/$ARM.json}
+done
+```
+
+Two size-based remedies for the thin-docs failure are already refuted — a similarity floor on
+the dense search (the papers are *close*, the query is wrong) and a profile-information floor
+(across the ablation the spread *between repos at one budget* exceeds the movement between
+budgets: at 1500 chars `speech` scores −6.0 while `db` scores +9.0; and in the real cohort
+precision *falls* as corpus grows, 108 ch → 1.00, 3,556 ch → 0.75). What remains is not
+volume but **register**. A maintainer's stated goal is the one available input already in the
+second register: documentation says what a project *is*, a goal says what it should *adopt*.
+
+**Where the goal is allowed to go, and why that is not a preference.** It reaches
+`hyde.generate_hypotheses` only, appended *after* `repo_context_block` rather than merged into
+it. P8 measured stated wants fed to the **gate** at net@2 +57 against +95 — the worst arm in
+the campaign — and concluded they belong in the query; separately, the fine-scale map is a
+frozen logistic fitted to that block's exact bytes, so a goal merged in would move where P
+crosses 2/3 with nothing failing loudly. `tests/test_goal_injection.py` asserts the isolation
+and was mutation-verified: merging the goal into the shared block fails two of its nine tests.
+
+**The oracle is generated, not hand-written.** Whoever ran the earlier experiments has read
+these cases' judged papers, so anything they author carries an unmeasurable amount of that.
+Instead a model is shown the judge-confirmed-actionable papers and asked to recover the goal
+*a maintainer could have written before seeing them* — the leak becomes a documented input
+that re-derives identically. The two arms answer different questions: **blind** (repo only,
+including source the profiler never reads) asks whether a goal can be had *without the user*;
+**oracle** asks whether register-correct intent is a lever *at all*.
+
+| arm | thin net@2 | thin shown | thin precision | thick net@2 | thick precision |
+|---|---|---|---|---|---|
+| control | +3.33 | 19 | 0.842 | +6.00 | 1.000 |
+| **blind** | **+5.00** | 15 | **1.000** | +5.67 | 0.950 |
+| oracle | +4.33 | 19 | 0.895 | +6.33 | 0.955 |
+
+| paired vs control | thin | thick |
+|---|---|---|
+| blind | **+1.67/case, 3+/0−** (p = 0.25) | −0.33/case, 1+/2− |
+| oracle | +1.00/case, 1+/1−/1= | +0.33/case, 2+/1− |
+
+#### Pre-registration: the prediction MISSED by one paper; the kill did not fire
+
+Predicted: oracle lifts thin precision to **≥ 0.90** without degrading the thick trio.
+Measured **0.895** (17/19) — short by a single paper — and the thick trio slipped 1.000 →
+0.955. Kill band was [0.70, 0.85]; 0.895 sits above it, so **item 0 is not closed**.
+
+#### The unpredicted result is the useful one
+
+**The blind arm beat the oracle** — +5.00 against +4.33, precision 1.000 against 0.895, and
+3/3 cases improved against the oracle's 1+/1−/1=. The arm with *less* information did better,
+which inverts the entire point of running a ceiling.
+
+The decision-relevant consequence is favourable: **if the achievable arm is already at least
+as good as the leaky one, there is no gap for user input to close.** A goal written by a model
+reading the repository's own source is enough; the feature does not require asking the user.
+Speculatively, the oracle may underperform *because* it is derived from papers already found —
+its literature-vocabulary phrasing (`storage`'s oracle goal names "write amplification, read
+amplification, space amplification, LSM-tree compaction", the RocksDB literature's exact terms
+of art) aims HyDE at the neighbourhood already retrieved, while the blind goal, written from
+code, names a genuinely different need. That is a hypothesis this run cannot test.
+
+**Thick repos are unaffected to slightly worse** (+6.00 → +5.67 blind, +6.33 oracle), exactly
+what the register account predicts: a repository whose documentation already describes it well
+gains nothing from a goal and may take on noise.
+
+#### What this does not support
+
+**Nothing here is significant.** Three thin cases give a best-possible sign test of p = 0.25,
+and it lands there; Fisher on the precision jump (15/15 vs 16/19) is p = 0.238. This is a
+direction, not an effect.
+
+**`thin-lang` was not rescued.** The 108-character repo goes −2.0 (control) → **0.0** (blind,
+abstained) → −2.0 (oracle). The blind goal converted junk into an abstention, which is the safe
+direction and not a recovery.
+
+**Blind's precision is partly selectivity.** It shows 15 papers against control's 19 — one
+fewer actionable and three fewer duds. net@2 rewards exactly that trade, so it flatters this
+result as it has flattered every precision-preserving change in this project.
+
+**Pools are not comparable to the runs above.** `--baseline none` (added here, since this is a
+RepoRadar-vs-RepoRadar comparison where the baseline only burns money and would re-disturb the
+gold set) shrinks the judged pool to RepoRadar's own top-10. Read these three arms against each
+other and against nothing else — the control's thin precision reads 0.842 here against 0.778 in
+the ground-truth run for that reason alone.
+
+**Next, and it is cheap:** run the blind arm across all 25 cases. Three thin cases are the
+binding constraint on everything above, and 25 paired cases is the first design here that
+*could* reach significance. ~$15.
+
+**Cost** ~$7, 18 runs, ~70 min, all arms clean.
+
 ### Three real thin-docs cases join the benchmark — and the ablation's ceiling holds up (2026-08-09)
 
 ```bash
