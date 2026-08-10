@@ -754,6 +754,76 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### The 25-case headline: significance survives, and the +4.55 was a favourable draw (2026-08-10)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --case <all 25> \
+    --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde
+```
+
+Every published headline was measured on **22** cases; the benchmark has been **25** since the
+thin-docs cohort landed, and those three were chosen precisely because RepoRadar handles them
+badly. Running them was an obligation, not bookkeeping — the stale number flattered us, and
+the honest question was whether **p = 0.0075** survives a harder benchmark.
+
+The baseline was deliberately left at its **default 12 turns**, the configuration behind every
+prior headline. Raising it would make this number non-comparable with the ones it replaces,
+and would re-derive the gold set (that is how `graph`'s targets moved 3 → 4 last time).
+
+| | 22-case (2026-08-09) | **25-case (2026-08-10)** |
+|---|---|---|
+| RepoRadar mean net@2 | +4.55 | **+3.80** |
+| baseline mean | +1.82 | **+1.57** |
+| paired delta | +2.73 | **+2.26** |
+| sign test | 15 w / 3 l / 4 t, **p = 0.0075** | 15 w / 5 l / 3 t, **p = 0.0414** |
+| digest precision | 0.94 | **0.898** |
+| shown / actionable | 121 / 114 | **137 / 123** |
+| net-negative repos | 0 | **1** |
+
+**The result holds.** p = 0.0414 on the harder benchmark — weaker than 0.0075, still under
+0.05, and the paired advantage is +2.26 with 15 wins to 5.
+
+#### The drop is drift, not difficulty — and that is the finding
+
+The prediction going in was that the three hard cases would pull the mean from +4.55 to
++4.0–4.3. **The number landed at +3.80, and the reason is not the one predicted:**
+
+| | mean net@2 | contribution to the change |
+|---|---|---|
+| the same 22 cases, today | **+3.91** | **−0.64** vs the published +4.55 |
+| the 3 new cases | +3.00 | −0.11 |
+
+The added cases moved the mean by **one tenth of a point**. The rest is **run-to-run drift on
+identical repositories under an identical configuration** — which means the published **+4.55
+was a favourable draw**, and the same pipeline on the same benchmark scores +3.91 today. That
+is consistent with the ±6 per-case swings documented throughout, now visible in the aggregate.
+Any future headline should be read as a draw from a distribution roughly ±0.6 wide at the
+mean, not as a fixed property of the system.
+
+#### A published claim that does not survive this draw
+
+**"Zero net-negative repositories" is now false.** `numerics` shows **one** paper, the judge
+scores it 0, and the case lands at **−2.0** — the minimum possible negative, but negative. The
+fine-scale rescore's rescue of every net-negative repository was true of every run it had been
+measured on and is **a per-draw property, not a guarantee**: it takes one dud in a one-paper
+digest to break it. Corrected in `paper/DRAFT.md`.
+
+#### Method notes
+
+Two cases are excluded from the paired comparison, **for different reasons, and the harness
+distinguishes them on purpose**: `speech` is `arxiv_unverified` (the baseline produced
+references and arXiv verification failed on three of them — a transient network failure that
+must not be scored as a baseline error), and `thin-lang` is `error_max_turns` (genuine budget
+exhaustion, the failure mode already recorded for thin-docs repos). The 12-turn limit still
+has never bound on a thick case. A baseline that ran out of budget is not the same as one that
+abstained, so neither was converted into a 0 — which would have flattered RepoRadar by +1 and
++6 respectively.
+
+`linter` remains the sharpest single case for the abstention stance: the baseline scores
+**−6.0**, RepoRadar returns nothing and scores 0.
+
+**Cost** ~$13, 25 runs, ~2 h (22 baselines cache-valid; only the thin trio needed fresh calls).
+
 ### Stated intent at 25 cases: the REGISTER FLIP IS REFUTED, and what is left is unestablished (2026-08-10)
 
 ```bash
