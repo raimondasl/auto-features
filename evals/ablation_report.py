@@ -65,6 +65,21 @@ def sign_test(deltas: list[float]) -> tuple[int, int, int, float]:
     return pos, neg, ties, min(1.0, 2 * sum(math.comb(n, i) for i in range(k + 1)) / (2**n))
 
 
+def pool_mode(arm: dict[str, dict[str, Any]]) -> str:
+    """How this arm got its candidates: 'live', 'frozen:<fp>', 'unlabelled', or 'mixed'.
+
+    Runs predating `--rr-frozen-pool` carry no `pool_provenance` and read as 'unlabelled';
+    they were all live, and comparing them among themselves is fine — comparing one
+    against a frozen arm is not, which is what the caller checks.
+    """
+    seen = set()
+    for rec in arm.values():
+        prov = rec.get("pool_provenance") or {}
+        mode = prov.get("mode", "unlabelled")
+        seen.add(f"frozen:{prov.get('fingerprint', '')[:12]}" if mode == "frozen" else mode)
+    return seen.pop() if len(seen) == 1 else "mixed"
+
+
 def load_arm(path: str) -> dict[str, dict[str, Any]]:
     p = Path(path)
     if not p.is_file():
@@ -112,6 +127,16 @@ def main() -> int:
         if set(arms[label]) != base_cases:
             missing = base_cases ^ set(arms[label])
             raise SystemExit(f"arm {label!r} does not cover the same cases: {sorted(missing)}")
+    # ...and every arm must have obtained its candidates the same way. A frozen-pool arm
+    # compared against a live one differs by the benchmark's largest variance term before
+    # the treatment is even applied — see `--rr-frozen-pool` and evals/noise_floor.py.
+    modes = {label: pool_mode(arms[label]) for label in labels}
+    if len(set(modes.values())) > 1:
+        raise SystemExit(
+            "refusing to compare arms with different pool provenance: "
+            + ", ".join(f"{k}={v}" for k, v in modes.items())
+        )
+    print(f"pool provenance: {modes[control]}")
 
     print("=" * 78)
     print(f"THIN-DOCS DOSE RESPONSE — {len(base_cases)} cases, control arm = {control!r}")

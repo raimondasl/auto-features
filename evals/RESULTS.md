@@ -754,6 +754,81 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### The benchmark's noise floor, and a frozen-pool mode to lower it (2026-08-10)
+
+```bash
+uv run python evals/noise_floor.py A.json B.json        # $0, two runs of the SAME config
+uv run python evals/run_judge_eval.py ... --rr-frozen-pool evals/.work/pool-<name>
+```
+
+The headline run showed that **−0.64 of a 22-case mean was run-to-run drift on identical
+inputs**. That raised a question this project had never answered: *what is the smallest
+effect this benchmark can resolve at all?* A null result is only informative if the
+instrument could have found the effect had it been there, and that was never checked.
+
+Taking two runs of the shipped configuration, 22 shared cases, two days apart, and treating
+their per-case difference as pure noise:
+
+| | |
+|---|---|
+| per-case delta | mean −0.64, **sd 1.73**, range [−4, +3] |
+| identical cases | 11 / 22 |
+| cases moving ≥ 3 | 4 / 22 |
+| SE of the 22-case mean | **0.37** |
+| 95% interval on a single mean | **±0.72** |
+| **minimum resolvable effect** (80% power, α = 0.05) | **1.03 net@2 per case** |
+| Jaccard overlap, shown papers | 0.541 |
+| Jaccard overlap, ranked top-10 | **0.498** |
+
+#### What this says about results already published here
+
+| experiment | measured | vs the 1.03 floor |
+|---|---|---|
+| HyDE, end to end | +1.36 | **just above** — which is why it landed at p = 0.092, not at a clean win |
+| stated-intent `blind` goals | +0.44 | **below** — unresolvable at n = 25 |
+| register-flip `docs` goals | +0.12 | far below |
+
+**Two of those experiments could not have succeeded.** Their nulls are real but
+uninformative: the right response was a more sensitive instrument, not a firmer conclusion.
+The bootstrap intervals reported at the time were honest ([−0.20, +1.12] for `blind`), so
+nothing published needs retracting — but the experiments should not have been *run* in that
+form, and roughly $30 and eight hours went into questions this benchmark cannot answer.
+Future experiments get sized against 1.03 first.
+
+#### Where the noise comes from, and how much is removable
+
+The ranked top-10 overlaps only **0.498** between two runs of the same configuration — about
+a third of the papers a run shows are different next time. The dominant term is *which
+candidates were collected*, not the judge and not the gate. So `--rr-frozen-pool DIR`
+collects each case's ranked candidates once and reuses them, which removes that term for
+any treatment living **downstream of retrieval**.
+
+**Keeping frozen and live runs distinguishable is the whole design**, because a frozen run
+is not a live measurement and a reader who mistakes one for the other is worse off than
+before the mode existed. Five mechanisms, none of them optional:
+
+1. **A pool fingerprint** over every setting that can change what gets collected — sources,
+   pool depth, `--rr-all-time`, `--rr-hybrid`, prose budget, `--rr-ablate-docs`, all the
+   HyDE settings, the hypothesis model, **and the goal** (a stated-intent arm changes the
+   hypotheses, so it is a *retrieval* experiment and must collect live). A mismatch is a
+   **hard error** naming both fingerprints, never a silent reuse.
+2. **`pool_provenance` on every case** in the results file: `live`, `frozen`, or
+   `frozen-seeded` (the run that collected it — labelled separately, because that run *was*
+   live and calling it frozen would misdate its candidates).
+3. **A stdout banner** at run start and a per-case line naming the collection date.
+4. **A `-frozenpool-` filename tag**, so the mode is visible in `ls`.
+5. **`noise_floor.py` and `ablation_report.py` refuse to compare across modes** — and runs
+   predating the flag read as `unlabelled`, not `live`: they *were* live, but inferring that
+   from absent data is how a wrong assumption becomes a published number.
+
+24 tests, mutation-verified: dropping `rr_hyde` from the fingerprint fails two of them.
+
+**What this does not do.** Frozen pools are invalid for anything that changes retrieval —
+HyDE, all-time discovery, ablated docs, goals — which is exactly the set the fingerprint
+refuses. They are for gate models, `min_actionable`, thresholds, and rescore variants. And
+the sd itself rests on a **single pair of runs**, so 1.03 is an estimate with its own
+uncertainty; a third draw would tighten it.
+
 ### The 25-case headline: significance survives, and the +4.55 was a favourable draw (2026-08-10)
 
 ```bash
