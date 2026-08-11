@@ -559,6 +559,15 @@ evals/
                      logprobs — measured at AUC 0.59 and rejected: 44% of papers return
                      the same digit on 9+ of 10 draws, so sampling re-reads the mode
                      rather than the distribution
+  noise_floor.py     $0, reads two completed runs of the SAME config: what is the
+                     smallest effect this benchmark can resolve? Measured 2026-08-10 on
+                     the shipped path — per-case sd 1.73, SE of a 22-case mean 0.37,
+                     MINIMUM RESOLVABLE EFFECT 1.03 net@2/case. Size experiments against
+                     that number BEFORE running them: the stated-intent goal arms (+0.44,
+                     +0.12) were below the floor before they started, so their nulls cost
+                     ~$30 and told us nothing. Refuses to compare a frozen-pool run with
+                     a live one
+
   ablation_report.py $0, reads run files: the thin-docs dose response. Pair with
                      `run_judge_eval.py --rr-ablate-docs CHARS`, which builds RepoRadar's
                      profile from a repo whose README is capped at CHARS and whose docs/

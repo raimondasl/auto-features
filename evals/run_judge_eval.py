@@ -23,6 +23,7 @@ See evals/README.md for keys and cost.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -340,6 +341,87 @@ def _apply_finescale(
     return above + kept
 
 
+# Every flag that can change WHICH papers are collected or how they are ranked. A frozen
+# pool is only reusable when all of these match; anything downstream of here (the gate
+# model, min_actionable, the fine-scale threshold) may vary freely, and varying it is the
+# entire point of freezing.
+POOL_FLAGS = (
+    "sources",
+    "rr_pool",
+    "rr_rerank",
+    "rr_all_time",
+    "rr_hybrid",
+    "rr_prose_chars",
+    "rr_ablate_docs",
+    "rr_hyde",
+    "rr_hyde_index",
+    "rr_hyde_hypotheses",
+    "rr_hyde_top_k",
+    "rr_triage_model",  # HyDE writes its hypotheses with this model
+)
+
+
+def pool_fingerprint(args: argparse.Namespace, case: dict[str, Any], goal: str | None) -> str:
+    """Identity of everything upstream of selection, for --rr-frozen-pool.
+
+    A frozen pool reused under different retrieval settings would be the silent-staleness
+    failure this project has already paid for twice (a baseline cache that outlived its
+    flags; a verdict cache keyed without the prompt). So the key covers the case, its
+    categories, every collection/ranking flag, and the **goal** — a goal changes the HyDE
+    hypotheses, so a goal experiment is a retrieval experiment and must collect live.
+    """
+    parts = [case["name"], ",".join(case.get("expected_categories") or [])]
+    for flag in POOL_FLAGS:
+        parts.append(f"{flag}={getattr(args, flag, None)!r}")
+    parts.append(f"goal={goal!r}")
+    return hashlib.sha256("\0".join(parts).encode()).hexdigest()[:16]
+
+
+def frozen_pool_path(pool_dir: Path, case_name: str) -> Path:
+    return pool_dir / f"{case_name}.json"
+
+
+def load_frozen_pool(
+    pool_dir: Path, case_name: str, fingerprint: str
+) -> list[tuple[dict[str, Any], float]] | None:
+    """The stored ranked candidates, or None when absent. Raises on a fingerprint mismatch."""
+    path = frozen_pool_path(pool_dir, case_name)
+    if not path.is_file():
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("fingerprint") != fingerprint:
+        raise SystemExit(
+            f"frozen pool {path} was collected under different retrieval settings\n"
+            f"  stored:   {data.get('fingerprint')}  ({data.get('collected_at')})\n"
+            f"  this run: {fingerprint}\n"
+            "Reusing it would measure the old settings under the new run's name. Use a "
+            "different --rr-frozen-pool directory, or drop the flag to collect live."
+        )
+    return [(p, float(s)) for p, s in data["ranked"]]
+
+
+def save_frozen_pool(
+    pool_dir: Path,
+    case_name: str,
+    fingerprint: str,
+    ranked: list[tuple[dict[str, Any], float]],
+) -> None:
+    pool_dir.mkdir(parents=True, exist_ok=True)
+    frozen_pool_path(pool_dir, case_name).write_text(
+        json.dumps(
+            {
+                "case": case_name,
+                "fingerprint": fingerprint,
+                "collected_at": datetime.now(UTC).isoformat(),
+                "n": len(ranked),
+                "ranked": [[p, s] for p, s in ranked],
+            },
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
+
+
 README_NAMES = ("README.md", "README.rst", "README.txt", "README", "readme.md")
 MANIFESTS = ("requirements.txt", "pyproject.toml", "setup.py", "package.json")
 
@@ -482,16 +564,43 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     # per case. The returned set is still cut at 10, so this tests SELECTION quality at a
     # fixed digest size rather than simply returning more papers.
     candidate_n = args.rr_pool or (RERANK_POOL if args.rr_rerank else 10)
-    rr_ranked = reporadar_ranked(
-        rr_dest,
-        categories,
-        args.sources,
-        keys,
-        top_n=candidate_n,
-        all_time=args.rr_all_time,
-        hybrid=args.rr_hybrid,
-        hyde_cfg=_hyde_cfg(args, goal),
-    )
+    # --rr-frozen-pool: reuse one collection across arms so a downstream treatment is not
+    # measured through a fresh draw of candidates. Two runs of this identical config
+    # overlap only 0.50 by Jaccard on the ranked top-10 (evals/noise_floor.py), which is
+    # the single largest variance term in every paired comparison here.
+    fingerprint = pool_fingerprint(args, case, goal)
+    pool_mode, collected_at = "live", None
+    rr_ranked = None
+    if args.rr_frozen_pool is not None:
+        stored = load_frozen_pool(args.rr_frozen_pool, name, fingerprint)
+        if stored is not None:
+            rr_ranked = stored
+            pool_mode = "frozen"
+            collected_at = json.loads(
+                frozen_pool_path(args.rr_frozen_pool, name).read_text(encoding="utf-8")
+            )["collected_at"]
+            print(
+                f"        FROZEN POOL: {len(rr_ranked)} candidates reused, NOT collected "
+                f"live (collected {collected_at[:19]}, fingerprint {fingerprint})"
+            )
+    if rr_ranked is None:
+        rr_ranked = reporadar_ranked(
+            rr_dest,
+            categories,
+            args.sources,
+            keys,
+            top_n=candidate_n,
+            all_time=args.rr_all_time,
+            hybrid=args.rr_hybrid,
+            hyde_cfg=_hyde_cfg(args, goal),
+        )
+        if args.rr_frozen_pool is not None:
+            save_frozen_pool(args.rr_frozen_pool, name, fingerprint, rr_ranked)
+            pool_mode, collected_at = "frozen-seeded", datetime.now(UTC).isoformat()
+            print(
+                f"        FROZEN POOL SEEDED: {len(rr_ranked)} ranked candidates written "
+                f"({fingerprint}) — this run collected LIVE"
+            )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
@@ -630,6 +739,15 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     result: dict[str, Any] = {
         "case": name,
         "repo": case["live_repo"],
+        # Recorded on every case so no reader, and no aggregation script, can mistake a
+        # frozen-pool arm for a live one. `noise_floor.py` and `ablation_report.py` refuse
+        # to compare across modes.
+        "pool_provenance": {
+            "mode": pool_mode,
+            "fingerprint": fingerprint,
+            "collected_at": collected_at,
+            "pool_dir": str(args.rr_frozen_pool) if args.rr_frozen_pool else None,
+        },
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,
         "n_judge_failed": n_judge_failed,
@@ -759,6 +877,22 @@ def main() -> int:
         "net@2; this flag is how that gets confirmed on a live run.",
     )
     parser.add_argument(
+        "--rr-frozen-pool",
+        metavar="DIR",
+        type=Path,
+        default=None,
+        help="Collect each case's ranked candidates once into DIR, then REUSE them. Two runs "
+        "of the identical config overlap only 0.50 by Jaccard on the ranked top-10, and that "
+        "is the largest variance term in every paired comparison here — freezing it takes the "
+        "minimum resolvable effect from ~0.7 net@2 down toward ~0.2 (see evals/noise_floor.py). "
+        "VALID ONLY FOR TREATMENTS DOWNSTREAM OF RETRIEVAL (gate model, min_actionable, the "
+        "fine-scale threshold). Anything that changes what gets collected — --rr-hyde, "
+        "--rr-all-time, --rr-goals, --rr-ablate-docs — is part of the pool fingerprint and a "
+        "mismatch is a hard error, never a silent reuse. Frozen runs are labelled per case in "
+        "`pool_provenance`, banner-marked on stdout, and written to a `-frozenpool-` filename; "
+        "noise_floor.py and ablation_report.py refuse to compare across modes.",
+    )
+    parser.add_argument(
         "--rr-goals",
         metavar="FILE",
         help="Stated-intent arm (roadmap item 0): a JSON {case: goal} file, e.g. "
@@ -849,6 +983,12 @@ def main() -> int:
     print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
     print(f"judge={judge_label}  baseline={baseline_label}  reporadar_gate={rr_label}")
     print(f"reporadar_discovery={disco_label}")
+    if args.rr_frozen_pool is not None:
+        print(
+            "*** FROZEN POOL MODE — candidates are reused, NOT collected live. Valid only "
+            "for treatments downstream of retrieval; results are NOT comparable with "
+            f"live-collection runs. dir={args.rr_frozen_pool} ***"
+        )
     print(f"keys present: {', '.join(keys) or 'none'}")
     if not args.mock and "OPENAI_API_KEY" not in keys:
         print("\n! OPENAI_API_KEY not set. Set it (see evals/README.md) or use --mock.")
@@ -928,7 +1068,10 @@ def main() -> int:
     if results and not args.mock:
         RESULTS_DIR.mkdir(exist_ok=True)
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        out = RESULTS_DIR / f"judge-{args.model}-{stamp}.json"
+        # The filename carries the mode so a frozen-pool run cannot be mistaken for a
+        # live one at a glance, or picked up by a later script that assumes live.
+        tag = "-frozenpool" if args.rr_frozen_pool is not None else ""
+        out = RESULTS_DIR / f"judge-{args.model}{tag}-{stamp}.json"
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")
     return 0
