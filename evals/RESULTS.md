@@ -754,6 +754,68 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### A third draw: the floor holds, and a single run's *p-value* is worth even less than its mean (2026-08-11)
+
+```bash
+uv run python evals/noise_floor.py --assume-unlabelled-live A.json B.json C.json
+```
+
+The floor below rested on **one** pairwise difference. A third draw of the identical shipped
+config doubles the degrees of freedom, and the estimate barely moves:
+
+| | 2 draws | **3 draws** |
+|---|---|---|
+| residual sd (per case, per draw) | 1.23 (21 df) | **1.23 (42 df)** |
+| whole-run shift | sd 0.32 | sd 0.27, spread 0.64 |
+| **MRE, paired same session** | 1.03 | **1.04** |
+| MRE against a *stored* run | 1.07 | 1.07 |
+| Jaccard, ranked top-10 | 0.498 | 0.494 |
+
+**Nothing published needs revising** — 1.03 → 1.04 — but the floor is now a number with
+weight behind it rather than a single difference.
+
+#### The p-value is less stable than the mean
+
+| draw | 22-case mean | 25-case paired vs baseline | sign test |
+|---|---|---|---|
+| A (08-08) | **+4.55** | — | — |
+| B (08-10) | +3.91 | +2.26 | 15 w / 5 l / 3 t, **p = 0.0414** |
+| C (08-11) | +4.09 | +2.50 | 18 w / 1 l / 5 t, **p = 0.0001** |
+
+The mean of the headline moves 0.64 across draws. **Its significance moves two orders of
+magnitude** — 0.0414 to 0.0001 — on the same 25 repositories, same flags, two days apart.
+A single run's p-value is not a property of the system, and reporting one as if it were is
+a mistake this project made twice (the 22-case p = 0.0075 and the 25-case p = 0.0414 are
+both single draws).
+
+The honest headline is the **mean over draws**: **+4.18** on the 22 shared cases (range
++3.91 to +4.55), and **+3.84** on all 25 with a paired advantage of **+2.38** over the
+baseline. Three draws roughly halve a headline's standard error (0.38 → 0.22).
+
+#### Where the noise lives
+
+| | |
+|---|---|
+| cases identical across all three draws | **8 of 22** |
+| the three noisiest cases | `graph` (+10/+8/+5), `speech` (+10/+6/+6), `cv` (+5/+8/+4) |
+| share of total variance from those three | **47%** |
+
+The instability is concentrated, and — notably — in cases that score *well*. `graph` and
+`speech` are the two repositories most often quoted as saturated wins; they are also the two
+that move most between draws.
+
+#### A guard that fired on its own author
+
+Draw C is labelled `live` by the new provenance field; draws A and B predate it and read
+`unlabelled`, so `noise_floor.py` **refused to compare them**. That is correct behaviour —
+inferring "live" from absent data is exactly what the guard exists to prevent — and the fix
+was *not* to backfill the field into historical artifacts, which would make them claim
+something they never recorded. Instead `--assume-unlabelled-live` makes the assumption an
+explicit argument, printed on every run that uses it. Runs written before `--rr-frozen-pool`
+existed could not have been frozen, so the assumption is sound; it just has to be visible.
+
+**Cost** ~$13, 25 runs, ~2 h.
+
 ### The benchmark's noise floor, and a frozen-pool mode to lower it (2026-08-10)
 
 ```bash
