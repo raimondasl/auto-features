@@ -24,7 +24,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals"))
 
 from ablation_report import pool_mode  # noqa: E402
-from noise_floor import provenance  # noqa: E402
+from noise_floor import provenance, same_pool  # noqa: E402
 from run_judge_eval import (  # noqa: E402
     POOL_FLAGS,
     load_frozen_pool,
@@ -125,6 +125,56 @@ class TestRoundTrip:
 def run_with(mode: str | None, fp: str = "abc123def456") -> dict[str, dict[str, Any]]:
     prov = None if mode is None else {"mode": mode, "fingerprint": fp}
     return {"a": {"case": "a", "pool_provenance": prov} if prov else {"case": "a"}}
+
+
+def multi(mode: str, fps: dict[str, str]) -> dict[str, dict[str, Any]]:
+    """A run over several cases — each with its OWN fingerprint, as the harness writes."""
+    return {
+        c: {"case": c, "pool_provenance": {"mode": mode, "fingerprint": f}} for c, f in fps.items()
+    }
+
+
+class TestMultiCaseProvenance:
+    """The bug the single-case tests above could not see.
+
+    A pool fingerprint includes its case name, so a real 25-case frozen run carries 25
+    *different* fingerprints. The first version of `provenance` folded mode+fingerprint
+    per case and took the set, so every genuine frozen run reported 'mixed' — and two runs
+    off different pools then compared cleanly, which is precisely the failure the guard
+    exists to prevent. It shipped because every test used one case.
+    """
+
+    POOL_A = {"cv": "aaa", "rag": "bbb", "graph": "ccc"}
+    POOL_B = {"cv": "xxx", "rag": "yyy", "graph": "zzz"}
+
+    def test_a_multi_case_frozen_run_is_not_mixed(self) -> None:
+        assert provenance(multi("frozen", self.POOL_A)).startswith("frozen:")
+
+    def test_the_same_pool_gives_the_same_digest(self) -> None:
+        assert provenance(multi("frozen", self.POOL_A)) == provenance(
+            multi("frozen", dict(reversed(list(self.POOL_A.items()))))
+        )
+
+    def test_different_pools_give_different_digests(self) -> None:
+        assert provenance(multi("frozen", self.POOL_A)) != provenance(multi("frozen", self.POOL_B))
+
+    def test_same_pool_reports_the_cases_that_differ(self) -> None:
+        assert same_pool(multi("frozen", self.POOL_A), multi("frozen", self.POOL_A)) == []
+        assert same_pool(multi("frozen", self.POOL_A), multi("frozen", self.POOL_B)) == [
+            "cv",
+            "graph",
+            "rag",
+        ]
+
+    def test_a_partial_overlap_is_judged_on_shared_cases_only(self) -> None:
+        """A 25-case run and a 22-case run from one pool stay comparable on the 22."""
+        subset = {k: v for k, v in self.POOL_A.items() if k != "graph"}
+        assert same_pool(multi("frozen", self.POOL_A), multi("frozen", subset)) == []
+
+    def test_a_run_whose_cases_disagree_on_mode_is_mixed(self) -> None:
+        run = multi("frozen", self.POOL_A)
+        run["rag"]["pool_provenance"]["mode"] = "live"
+        assert provenance(run) == "mixed"
 
 
 class TestProvenanceIsUnmistakable:

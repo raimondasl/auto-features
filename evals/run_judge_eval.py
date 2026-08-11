@@ -883,8 +883,10 @@ def main() -> int:
         default=None,
         help="Collect each case's ranked candidates once into DIR, then REUSE them. Two runs "
         "of the identical config overlap only 0.50 by Jaccard on the ranked top-10, and that "
-        "is the largest variance term in every paired comparison here — freezing it takes the "
-        "minimum resolvable effect from ~0.7 net@2 down toward ~0.2 (see evals/noise_floor.py). "
+        "is the largest variance term in every paired comparison here. MEASURED 2026-08-11: "
+        "freezing takes the minimum resolvable effect from 1.04 to 0.48 net@2/case — it HALVES "
+        "the floor rather than quartering it. An earlier version of this help claimed ~0.2, "
+        "which was an unmeasured guess and wrong by about 2x (see evals/noise_floor.py). "
         "VALID ONLY FOR TREATMENTS DOWNSTREAM OF RETRIEVAL (gate model, min_actionable, the "
         "fine-scale threshold). Anything that changes what gets collected — --rr-hyde, "
         "--rr-all-time, --rr-goals, --rr-ablate-docs — is part of the pool fingerprint and a "

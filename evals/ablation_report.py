@@ -72,12 +72,11 @@ def pool_mode(arm: dict[str, dict[str, Any]]) -> str:
     they were all live, and comparing them among themselves is fine — comparing one
     against a frozen arm is not, which is what the caller checks.
     """
-    seen = set()
-    for rec in arm.values():
-        prov = rec.get("pool_provenance") or {}
-        mode = prov.get("mode", "unlabelled")
-        seen.add(f"frozen:{prov.get('fingerprint', '')[:12]}" if mode == "frozen" else mode)
-    return seen.pop() if len(seen) == 1 else "mixed"
+    from noise_floor import provenance
+
+    # Delegates so the two reports cannot disagree about what a run's provenance is —
+    # and so the multi-case bug fixed in noise_floor cannot survive in a second copy.
+    return provenance(arm)
 
 
 def load_arm(path: str) -> dict[str, dict[str, Any]]:
