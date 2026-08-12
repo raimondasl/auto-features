@@ -365,11 +365,20 @@ class TestQueryWithRetry:
 
 
 class TestBigramQueries:
+    """The pairing mechanics, under the `adjacent` policy that shipped until 2026-08-12.
+
+    Every test here passes `mode="adjacent"` explicitly. That is not ceremony: the default
+    is now `verified`, under which a synthetic profile carrying no `corpus_phrases` emits
+    nothing at all — so these tests would still pass while asserting nothing. A vacuous
+    test that reads as a passing one is the failure mode this file has already been bitten
+    by (see TestPlainKeywordTranslation).
+    """
+
     def test_bigrams_generated_from_top_keywords(self) -> None:
         profile = _make_profile(
             keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
         )
-        bigrams = _generate_bigram_queries(profile)
+        bigrams = _generate_bigram_queries(profile, mode="adjacent")
         assert len(bigrams) >= 1
         assert '"retrieval augmented"' in bigrams
 
@@ -377,20 +386,21 @@ class TestBigramQueries:
         profile = _make_profile(
             keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
         )
-        bigrams = _generate_bigram_queries(profile)
+        bigrams = _generate_bigram_queries(profile, mode="adjacent")
+        assert bigrams
         for b in bigrams:
             assert b.startswith('"') and b.endswith('"')
 
     def test_no_bigrams_from_single_keyword(self) -> None:
         profile = _make_profile(keywords=[("retrieval", 0.9)])
-        bigrams = _generate_bigram_queries(profile)
+        bigrams = _generate_bigram_queries(profile, mode="adjacent")
         assert bigrams == []
 
     def test_bigrams_added_to_build_queries(self) -> None:
         profile = _make_profile(
             keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
         )
-        queries_cfg = QueriesConfig()
+        queries_cfg = QueriesConfig(bigrams="adjacent")
         arxiv_cfg = ArxivConfig(categories=["cs.CL"])
 
         queries = build_queries(profile, queries_cfg, arxiv_cfg)
@@ -399,16 +409,34 @@ class TestBigramQueries:
         has_bigram = any('"retrieval augmented"' in q for q in queries)
         assert has_bigram
 
+    def test_shipped_default_needs_the_phrase_to_exist(self) -> None:
+        """The same profile under the shipped policy: no corpus evidence, no phrase query.
+
+        Pins the behaviour change itself, so the new default cannot be reverted silently.
+        """
+        profile = _make_profile(
+            keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)]
+        )
+        queries = build_queries(profile, QueriesConfig(), ArxivConfig(categories=["cs.CL"]))
+        assert not any('"retrieval augmented"' in q for q in queries), queries
+        # ...and with the evidence present, it comes back.
+        seen = _make_profile(
+            keywords=[("retrieval", 0.9), ("augmented", 0.8), ("generation", 0.7)],
+            corpus_phrases=["retrieval augmented"],
+        )
+        queries = build_queries(seen, QueriesConfig(), ArxivConfig(categories=["cs.CL"]))
+        assert any('"retrieval augmented"' in q for q in queries), queries
+
     def test_short_words_filtered(self) -> None:
         profile = _make_profile(keywords=[("an", 0.9), ("to", 0.8), ("transformers", 0.7)])
-        bigrams = _generate_bigram_queries(profile)
+        bigrams = _generate_bigram_queries(profile, mode="adjacent")
         # "an to" should be filtered (both < 4 chars)
         assert '"an to"' not in bigrams
 
     def test_max_bigrams_respected(self) -> None:
         keywords = [(f"word{i:02d}", 0.9 - i * 0.05) for i in range(10)]
         profile = _make_profile(keywords=keywords)
-        bigrams = _generate_bigram_queries(profile, max_bigrams=2)
+        bigrams = _generate_bigram_queries(profile, max_bigrams=2, mode="adjacent")
         assert len(bigrams) <= 2
 
 
@@ -473,7 +501,12 @@ class TestBigramQueriesAreRealPhrases:
             domains=[],
             source_signals={},
         )
-        for phrase in _generate_bigram_queries(profile):
+        # `adjacent` explicitly: this class is about the PAIRING, and under the shipped
+        # `verified` policy a fixture with no corpus_phrases emits nothing, which would
+        # satisfy the loop below without exercising anything.
+        emitted = _generate_bigram_queries(profile, mode="adjacent")
+        assert emitted
+        for phrase in emitted:
             words = phrase.strip('"').split()
             assert len(words) == 2, f"{phrase} is not a two-word phrase"
             assert len(set(words)) == 2, f"{phrase} repeats a word"
@@ -486,7 +519,7 @@ class TestBigramQueriesAreRealPhrases:
             domains=[],
             source_signals={},
         )
-        assert _generate_bigram_queries(profile)
+        assert _generate_bigram_queries(profile, mode="adjacent")
 
 
 class TestArxivThrottlingIsRetriedNotRaised:

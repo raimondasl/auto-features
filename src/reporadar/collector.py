@@ -25,28 +25,37 @@ class CollectionError(Exception):
 def _generate_bigram_queries(
     profile: RepoProfile,
     max_bigrams: int = 3,
-    mode: str = "adjacent",
+    # Kept in step with QueriesConfig.bigrams deliberately. A private helper whose default
+    # differs from the shipped config is a trap: `_generate_bigram_queries(profile)` in a
+    # future test or diagnostic would silently measure a policy the product does not use.
+    mode: str = "verified",
 ) -> list[str]:
     """Bigram phrase queries from the top keywords, under one of three policies.
 
-    ``adjacent`` (the original, and still the default until measured) pairs each keyword
-    with its neighbour in the TF-IDF ranking. **Nothing in that pairing requires the two
-    words to belong together** — they merely scored next to each other — so it emits
-    phrases the repository never contains. Measured 2026-08-12, it built ``"use page"``
-    and ``"page refer"`` for duckdb, ``"server code"`` for ruff, ``"data cd"`` for redis.
-    Asked those, DBLP returned a content analysis of social-media posts, serverless
-    computing, and a chemical-compound database; asked the benchmark's hand-written
-    queries instead, it returned *Incremental Fusion: Unifying Compiled and Vectorized
-    Query Execution*. The source was answering exactly what it was asked.
+    ``adjacent`` (the original behaviour) pairs each keyword with its neighbour in the
+    TF-IDF ranking. **Nothing in that pairing requires the two words to belong together** —
+    they merely scored next to each other — so it emits phrases the repository never
+    contains. Measured 2026-08-12, it built ``"use page"`` and ``"page refer"`` for duckdb,
+    ``"server code"`` for ruff, ``"data cd"`` for redis. Asked those, DBLP returned a
+    content analysis of social-media posts, serverless computing, and a chemical-compound
+    database; asked the benchmark's hand-written queries instead, it returned *Incremental
+    Fusion: Unifying Compiled and Vectorized Query Execution*. The source was answering
+    exactly what it was asked.
 
     arXiv hides this: a category clause (``AND (cat:cs.DB)``) keeps results in the right
     field however meaningless the phrase. Keyword sources have no category to fall back
-    on — :func:`to_plain_keywords` correctly strips it — so they get the bare phrase.
+    on — :func:`to_plain_keywords` correctly strips it — so they get the bare phrase. That
+    asymmetry is why the 25-case benchmark, which runs on arXiv, cannot resolve a defect
+    this visible: **all three arms tie there** (see below).
 
-    ``verified`` keeps the same candidates but emits one only if it occurs, literally and
-    adjacently, in the profiled text (:attr:`RepoProfile.corpus_phrases`).
+    ``verified`` (the default since 2026-08-12) keeps the same candidates but emits one only
+    if it occurs, literally and adjacently, in the profiled text
+    (:attr:`RepoProfile.corpus_phrases`).
 
-    ``none`` emits nothing, leaving single keywords and anchors to carry retrieval.
+    ``none`` emits nothing, leaving single keywords and anchors to carry retrieval. It was
+    **measured worse** — −0.48 net@2/case and precision 0.914 → 0.880 across 25 cases — so
+    the obvious "just delete the junk phrases" fix is refuted rather than untested. A
+    meaningless phrase is still a query, and dropping three of five shrinks the pool.
 
     Only *single-word* terms are paired, under every mode. The profiler's TF-IDF emits
     bigrams of its own, and concatenating those with a neighbour produced three-word

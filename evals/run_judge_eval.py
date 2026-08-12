@@ -873,12 +873,15 @@ def main() -> int:
     parser.add_argument(
         "--rr-bigrams",
         choices=BIGRAM_MODES,
-        default="adjacent",
-        help="Phrase-query policy. `adjacent` (default, and what every published number "
-        "was measured with) pairs each keyword with its TF-IDF neighbour whether or not "
-        'the two words belong together — it built "use page" for duckdb and "data cd" '
-        "for redis. `verified` keeps only pairs that occur literally in the repo text; "
-        "`none` drops phrase queries entirely. A retrieval setting: it is in POOL_FLAGS.",
+        default="verified",
+        help="Phrase-query policy, defaulting to the shipped one. `adjacent` pairs each "
+        "keyword with its TF-IDF neighbour whether or not the two words belong together — "
+        'it built "use page" for duckdb and "data cd" for redis, and it is what every '
+        "number published before 2026-08-12 was measured with. `verified` (shipped) keeps "
+        "only pairs occurring literally in the repo text. `none` drops phrase queries and "
+        "was measured WORSE (-0.48 net@2/case). On 25 arXiv cases all three tie inside the "
+        "1.04 floor; the difference shows on keyword sources, which have no category clause "
+        "to fall back on. A retrieval setting: it is in POOL_FLAGS.",
     )
     parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
     parser.add_argument("--rr-hyde-top-k", type=int, default=100)

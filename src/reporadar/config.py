@@ -92,9 +92,17 @@ class QueriesConfig:
     #   adjacent — pair each keyword with its TF-IDF neighbour (the original behaviour)
     #   verified — the same pairs, but only those that occur literally in the repo text
     #   none     — no phrase queries; single keywords and anchors carry retrieval
-    # Defaults to `adjacent` because that is what every published benchmark number was
-    # measured with. See collector._generate_bigram_queries for what it actually emits.
-    bigrams: str = "adjacent"
+    #
+    # Default changed to `verified` 2026-08-12, and **not** because it scores better: on 25
+    # cases it is +0.04 net@2/case against `adjacent`, sign p = 0.55, well inside the 1.04
+    # noise floor. The reasons are that `adjacent` demonstrably asks for phrases no
+    # repository contains ("use page" for duckdb), that the repair costs nothing measurable
+    # on arXiv, and that arXiv is the only place it costs nothing — a category clause keeps
+    # arXiv results in the right field however meaningless the phrase, and keyword sources
+    # have no such fallback. `none` was measured WORSE (-0.48/case, precision 0.914 ->
+    # 0.880), so deleting phrase queries is refuted, not merely unsupported.
+    # Full three-arm result: evals/RESULTS.md, "Phrase queries".
+    bigrams: str = "verified"
 
 
 @dataclass
