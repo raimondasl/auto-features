@@ -210,7 +210,12 @@ def collect_live(
     lookback_days: int,
 ) -> list[dict[str, Any]]:
     """Mirror the live collection path: build queries, fetch from each source."""
-    from reporadar.collector import CollectionError, build_queries, collect_papers
+    from reporadar.collector import (
+        CollectionError,
+        build_queries,
+        collect_papers,
+        to_plain_keywords,
+    )
     from reporadar.config import ArxivConfig, QueriesConfig
 
     categories = case["expected_categories"] or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"]
@@ -226,7 +231,7 @@ def collect_live(
         print(f"        ! arXiv collection failed: {exc}")
 
     seen = {p["arxiv_id"] for p in papers}
-    plain_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+    plain_queries = [to_plain_keywords(q) for q in queries[:5]]
 
     if "openalex" in sources:
         from reporadar.sources.openalex import collect_papers as oa_collect

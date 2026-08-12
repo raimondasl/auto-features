@@ -65,18 +65,35 @@ def to_plain_keywords(query: str) -> str:
 
     Every non-arXiv source — DBLP, bioRxiv, OpenAlex, Semantic Scholar, IACR — takes a
     plain keyword string, while :func:`build_queries` emits arXiv's boolean grammar.
-    Callers used to bridge that with ``q.replace("all:", "").strip('"')``, which was
-    written for an older query shape and silently stopped working: the current form,
+    Callers used to bridge that with ``q.replace("all:", "").strip('"')``, which leaves
+    the current form,
 
         (all:"key cryptography") AND (cat:cs.CR)
 
-    survives that transform as ``("key cryptography") AND (cat:cs.CR)`` and was being sent
-    verbatim as a search string. Measured 2026-08-12, IACR ePrint returns **zero** results
-    for it, and every other non-arXiv source received the same malformed input.
+    as ``("key cryptography") AND (cat:cs.CR)`` — sent verbatim as a search string.
+
+    **It was never right, and the first telling of this was wrong.** That transform was
+    described here as "written for an older query shape" and broken later by drift. Git
+    says otherwise: ``build_queries`` emitted the parenthesised ``(...) AND (...)`` form in
+    `29ecffa` (2026-02-22), and the one-liner was written the *next day* in `18dfe51`
+    against a builder that already produced it. There was no working era to regress from,
+    so the blast radius is every non-arXiv fetch this project has ever made, not a window.
+
+    Measured 2026-08-12 against real ``build_queries`` output, the two failure modes are
+    opposite and the quiet one is worse:
+
+    - **DBLP and IACR return nothing.** All-time lookback, so no date filter is involved:
+      0 hits on every malformed query; 1 and 4 hits on the repaired ones.
+    - **bioRxiv returns everything.** Its filter keeps a paper if any query word of more
+      than two characters appears in the title or abstract, and the surviving word is the
+      boolean operator ``AND``. Every real term matched 0/90 papers; ``and`` matched 90/90.
+      Enabling bioRxiv did not add biology papers, it disabled the topical filter.
 
     The fix lives here, beside the function whose output it consumes, so the two cannot
     drift apart again — and `tests/test_collector.py` pins it against real `build_queries`
-    output rather than hand-written strings, which is what let the drift go unnoticed.
+    output rather than hand-written strings, which is what let this go unnoticed. It also
+    asserts every bridging call site *uses* this function: routing two of five sources
+    through it and leaving three on the one-liner is the state that shipped once already.
     """
     # Category terms are dropped whole — `cat:cs.CR` carries no keyword, and stripping only
     # the prefix would turn the no-keyword fallback query `cat:cs.CR OR cat:cs.LG` into a

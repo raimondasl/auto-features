@@ -599,6 +599,20 @@ evals/
                      an oracle-threshold ceiling of +0.27. Cannot tune the threshold: 2/3 is
                      derived from 3p-2, so "the threshold that scores best here" is the
                      metric fitted to itself, and the LORO refit is the only honest arm
+  audit_query_transform.py
+                     $0, no LLM, free APIs: what did the broken arXiv-to-keyword bridge
+                     (C-9) actually do to each non-arXiv source? Runs REAL build_queries
+                     output through the old and new transforms and asks DBLP, bioRxiv and
+                     optionally S2 for both. Verdict 2026-08-12: DBLP returns 0 for every
+                     malformed query (0 -> 1 and 0 -> 4 hits once repaired, at all-time
+                     lookback so its year filter is not what is being measured), while
+                     bioRxiv keeps its ENTIRE window — its local filter admits any query
+                     word over two characters, and the surviving word was the boolean
+                     operator AND, matching 90/90 abstracts where every real term matched
+                     0/90. Enabling bioRxiv did not add biology papers, it turned the
+                     topical filter off. Treats a refused request as unmeasured, never as
+                     a zero: the first pass at this reported "0 vs 0" for DBLP after it
+                     silently refused 12 of 18 requests
   compare_finescale_baseline.py
                      $0, calls nothing: the head-to-head against the Opus baseline on all
                      22 repos. The baseline's picks and their verdicts are already in the
