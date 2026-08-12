@@ -51,7 +51,7 @@ from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
 from reporadar.collector import CollectionError  # noqa: E402
-from reporadar.config import QueriesConfig, RankingConfig  # noqa: E402
+from reporadar.config import BIGRAM_MODES, QueriesConfig, RankingConfig  # noqa: E402
 from reporadar.digest import TOP_THRESHOLD  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 from reporadar.retrieval import hybrid_reorder  # noqa: E402
@@ -94,6 +94,7 @@ def reporadar_ranked(
     all_time: bool = False,
     hybrid: bool = False,
     hyde_cfg: Any | None = None,
+    bigrams: str = "adjacent",
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
 
@@ -115,7 +116,13 @@ def reporadar_ranked(
     sort_by = "relevance" if all_time else "submitted"
     w_recency = 0.0 if all_time else 0.3
     papers = collect_live_papers(
-        profile, categories, sources=sources, keys=keys, lookback_days=lookback, sort_by=sort_by
+        profile,
+        categories,
+        sources=sources,
+        keys=keys,
+        lookback_days=lookback,
+        sort_by=sort_by,
+        bigrams=bigrams,
     )
     if hyde_cfg is not None:
         papers = _add_hyde_candidates(papers, profile, keys, hyde_cfg)
@@ -358,6 +365,7 @@ POOL_FLAGS = (
     "rr_hyde_hypotheses",
     "rr_hyde_top_k",
     "rr_triage_model",  # HyDE writes its hypotheses with this model
+    "rr_bigrams",  # changes the query strings, therefore the pool
 )
 
 
@@ -593,6 +601,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             all_time=args.rr_all_time,
             hybrid=args.rr_hybrid,
             hyde_cfg=_hyde_cfg(args, goal),
+            bigrams=args.rr_bigrams,
         )
         if args.rr_frozen_pool is not None:
             save_frozen_pool(args.rr_frozen_pool, name, fingerprint, rr_ranked)
@@ -748,6 +757,9 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             "collected_at": collected_at,
             "pool_dir": str(args.rr_frozen_pool) if args.rr_frozen_pool else None,
         },
+        # The phrase-query arm, recorded per case so a three-arm comparison never has to
+        # infer the arm from a filename someone may have renamed.
+        "bigram_mode": args.rr_bigrams,
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,
         "n_judge_failed": n_judge_failed,
@@ -857,6 +869,16 @@ def main() -> int:
         "--rr-hyde-index",
         default=str(EVALS_DIR / ".work" / "hyde_index"),
         help="Index directory. Defaults to the one P4's replication already built.",
+    )
+    parser.add_argument(
+        "--rr-bigrams",
+        choices=BIGRAM_MODES,
+        default="adjacent",
+        help="Phrase-query policy. `adjacent` (default, and what every published number "
+        "was measured with) pairs each keyword with its TF-IDF neighbour whether or not "
+        'the two words belong together — it built "use page" for duckdb and "data cd" '
+        "for redis. `verified` keeps only pairs that occur literally in the repo text; "
+        "`none` drops phrase queries entirely. A retrieval setting: it is in POOL_FLAGS.",
     )
     parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
     parser.add_argument("--rr-hyde-top-k", type=int, default=100)
@@ -1073,6 +1095,10 @@ def main() -> int:
         # The filename carries the mode so a frozen-pool run cannot be mistaken for a
         # live one at a glance, or picked up by a later script that assumes live.
         tag = "-frozenpool" if args.rr_frozen_pool is not None else ""
+        # Same reasoning for the phrase-query arm: three runs of one experiment differ only
+        # in this flag, and telling them apart from the filename beats opening each one.
+        if args.rr_bigrams != "adjacent":
+            tag += f"-bigrams_{args.rr_bigrams}"
         out = RESULTS_DIR / f"judge-{args.model}{tag}-{stamp}.json"
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")

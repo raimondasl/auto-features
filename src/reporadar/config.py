@@ -74,13 +74,27 @@ class ArxivConfig:
     sort_by: str = "relevance"
 
 
+# Phrase-query policies. See collector._generate_bigram_queries for what each emits and
+# the measurement that made the choice worth exposing.
+BIGRAM_MODES = ("adjacent", "verified", "none")
+
+
 @dataclass
 class QueriesConfig:
+    """How arXiv query strings are assembled from a repo profile."""
+
     seed: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
     # Not user-set under `queries:` — populated from `privacy.redact` at load time
     # so `build_queries` strips the terms from every query string it hands out.
     redact: list[str] = field(default_factory=list)
+    # How phrase queries are built from the keyword profile:
+    #   adjacent — pair each keyword with its TF-IDF neighbour (the original behaviour)
+    #   verified — the same pairs, but only those that occur literally in the repo text
+    #   none     — no phrase queries; single keywords and anchors carry retrieval
+    # Defaults to `adjacent` because that is what every published benchmark number was
+    # measured with. See collector._generate_bigram_queries for what it actually emits.
+    bigrams: str = "adjacent"
 
 
 @dataclass
@@ -342,6 +356,14 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     """Build a RepoRadarConfig from a raw dict (parsed YAML)."""
     arxiv = ArxivConfig(**data["arxiv"]) if "arxiv" in data else ArxivConfig()
     queries = QueriesConfig(**data["queries"]) if "queries" in data else QueriesConfig()
+    # Fail on an unknown mode rather than silently falling back to `adjacent` — a typo that
+    # quietly restores the default would look like a measurement of the mode asked for. Same
+    # reasoning as the unknown-source guard in evals/harness.py, which exists because
+    # `--sources arxiv,dblp` once ran as arXiv-only and was written up as a DBLP result.
+    if queries.bigrams not in BIGRAM_MODES:
+        raise ValueError(
+            f"queries.bigrams must be one of {', '.join(BIGRAM_MODES)}; got {queries.bigrams!r}"
+        )
     if "ranking" in data:
         ranking_data = dict(data["ranking"])
         cat_weights = ranking_data.pop("category_weights", {})

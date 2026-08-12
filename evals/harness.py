@@ -130,11 +130,17 @@ def collect_live_papers(
     keys: dict[str, str],
     lookback_days: int,
     sort_by: str = "submitted",
+    bigrams: str = "adjacent",
 ) -> list[dict[str, Any]]:
     """Build queries and fetch papers from the requested live sources.
 
     ``sort_by="relevance"`` with a large ``lookback_days`` lets RepoRadar reach
     seminal older papers instead of only the recent fetch window.
+
+    ``bigrams`` selects the phrase-query policy under test — see
+    ``reporadar.collector._generate_bigram_queries``. It is a *retrieval* setting, so
+    ``run_judge_eval.POOL_FLAGS`` carries it and a frozen pool cannot be reused across
+    values of it.
     """
     from reporadar.collector import (
         CollectionError,
@@ -150,7 +156,7 @@ def collect_live_papers(
         lookback_days=lookback_days,
         sort_by=sort_by,
     )
-    queries = build_queries(profile, QueriesConfig(), arxiv_cfg)
+    queries = build_queries(profile, QueriesConfig(bigrams=bigrams), arxiv_cfg)
 
     papers: list[dict[str, Any]] = []
     try:

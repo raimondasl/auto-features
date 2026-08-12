@@ -27,6 +27,12 @@ class RepoProfile:
     # README and declares no packaging description. Budgeted at profile time, not at use
     # time, so a 41k-character README cannot reach a prompt by accident.
     prose: str = ""
+    # Two-word phrases from the keyword vocabulary that ACTUALLY OCCUR, adjacently, in the
+    # profiled text. Query building pairs adjacent keywords into quoted phrases, and nothing
+    # ever required the two words to belong together — "use page" and "data cd" were sent to
+    # real search APIs as phrase queries. Verifying is only possible here, because the corpus
+    # does not survive profiling. Empty when nothing was read.
+    corpus_phrases: list[str] = field(default_factory=list)
 
 
 # Mapping from common package names to domain labels.
@@ -498,6 +504,39 @@ def _repo_prose(repo_path: Path, budget: int) -> str:
     return _packaging_metadata_text(repo_path).strip()[:budget]
 
 
+# Matches TfidfVectorizer's token_pattern below, so "occurs in the corpus" is judged on
+# the same tokens the keywords were drawn from.
+_TOKEN_RE = re.compile(r"(?u)\b[a-zA-Z][a-zA-Z0-9_-]{1,}\b")
+
+
+def _observed_phrases(documents: list[str], keywords: list[tuple[str, float]]) -> list[str]:
+    """Adjacent keyword pairs that literally occur in the text, as "a b" strings.
+
+    Adjacency is **literal** — stop words are not skipped over. A quoted phrase query is
+    matched literally by every search API it is sent to, so "use page" must really be
+    followed by "page" in some document to be worth asking for. Skipping stop words here
+    would re-admit exactly the phrases this is meant to reject: "use OF page" would
+    license the query `"use page"`, which no paper title contains.
+
+    Restricted to the keyword vocabulary, so the result is a few dozen pairs at most
+    rather than every bigram in a 60k-character README.
+    """
+    vocab = {term for term, _weight in keywords if " " not in term}
+    if len(vocab) < 2:
+        return []
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for document in documents:
+        tokens = _TOKEN_RE.findall(document.lower())
+        for first, second in zip(tokens, tokens[1:], strict=False):
+            if first in vocab and second in vocab:
+                phrase = f"{first} {second}"
+                if phrase not in seen:
+                    seen.add(phrase)
+                    ordered.append(phrase)
+    return ordered
+
+
 def _extract_keywords(
     documents: list[str],
     anchors: list[str],
@@ -620,4 +659,5 @@ def profile_repo(
         domains=domains,
         source_signals=source_signals,
         prose=_repo_prose(repo_path, getattr(profiler_cfg, "prose_chars", 300)),
+        corpus_phrases=_observed_phrases(documents, keywords),
     )
