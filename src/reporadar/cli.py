@@ -18,6 +18,7 @@ from reporadar.collector import (
     build_queries,
     collect_by_ids,
     collect_papers,
+    to_plain_keywords,
 )
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
@@ -379,13 +380,28 @@ def update(
         except Exception as exc:
             info(f"  bioRxiv collection failed: {exc}")
 
+    # 3d-bis. IACR ePrint (cryptography — a literature that is largely NOT on arXiv)
+    if "iacr" in cfg.sources:
+        try:
+            from reporadar.sources.iacr import collect_papers as iacr_collect
+
+            info("Fetching papers from IACR ePrint...")
+            iacr_queries = [to_plain_keywords(q) for q in queries[:5]]
+            iacr_papers = iacr_collect(iacr_queries, lookback_days=cfg.arxiv.lookback_days)
+            existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
+            new_from_iacr = [p for p in iacr_papers if _dedup_id(p["arxiv_id"]) not in existing_ids]
+            papers.extend(new_from_iacr)
+            info(f"  {len(new_from_iacr)} additional papers from IACR ePrint")
+        except Exception as exc:
+            info(f"  IACR ePrint collection failed: {exc}")
+
     # 3e. DBLP source (systems / PL / DB / theory repos)
     if "dblp" in cfg.sources:
         try:
             from reporadar.sources.dblp import collect_papers as dblp_collect
 
             info("Fetching papers from DBLP...")
-            dblp_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            dblp_queries = [to_plain_keywords(q) for q in queries[:5]]
             dblp_papers = dblp_collect(dblp_queries, lookback_days=cfg.arxiv.lookback_days)
             # Version-insensitive dedup so a DBLP CoRR paper collapses onto its
             # arXiv copy (which carries a version suffix).

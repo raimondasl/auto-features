@@ -476,7 +476,7 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
     warnings: list[str] = []
 
     # Check sources
-    known_sources = {"arxiv", "semantic_scholar", "openalex", "biorxiv", "dblp"}
+    known_sources = {"arxiv", "semantic_scholar", "openalex", "biorxiv", "dblp", "iacr"}
     for src in cfg.sources:
         if src not in known_sources:
             known = ", ".join(sorted(known_sources))

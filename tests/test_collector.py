@@ -16,6 +16,7 @@ from reporadar.collector import (
     _result_to_paper,
     build_queries,
     collect_papers,
+    to_plain_keywords,
 )
 from reporadar.config import ArxivConfig, QueriesConfig
 from reporadar.profiler import RepoProfile
@@ -536,3 +537,57 @@ class TestArxivThrottlingIsRetriedNotRaised:
 
         monkeypatch.setattr(collector.time, "sleep", lambda _s: None)
         assert collector._query_with_retry(Flaky(), object(), max_retries=3) == ["paper"]
+
+
+class TestPlainKeywordTranslation:
+    """arXiv's boolean grammar is not a keyword query, and every non-arXiv source needs one.
+
+    This drifted silently once. Callers bridged the gap with
+    ``q.replace("all:", "").strip('"')``, written for an older query shape; when
+    `build_queries` began wrapping queries as ``(all:"x") AND (cat:y)`` the transform
+    stopped removing anything meaningful, and DBLP, bioRxiv, OpenAlex and Semantic Scholar
+    were all sent arXiv syntax as a search string. IACR ePrint returns **zero** results for
+    it, which is how it was finally noticed.
+
+    So these tests are written against the **real output of build_queries**, not against
+    hand-written strings. A hand-written fixture is exactly what would have kept passing.
+    """
+
+    def _real_queries(self) -> list[str]:
+        profile = RepoProfile(
+            keywords=[("key cryptography", 0.9), ("openssl", 0.8), ("bytes", 0.7)],
+            anchors=["cryptography"],
+            domains=["security"],
+        )
+        return build_queries(
+            profile,
+            QueriesConfig(seed=["side channel"]),
+            ArxivConfig(categories=["cs.CR", "cs.LG"]),
+        )
+
+    def test_no_arxiv_syntax_survives_translation(self) -> None:
+        for query in self._real_queries():
+            plain = to_plain_keywords(query)
+            assert "cat:" not in plain, plain
+            assert "all:" not in plain, plain
+            assert " AND " not in plain and " OR " not in plain, plain
+            assert "(" not in plain and '"' not in plain, plain
+
+    def test_the_actual_search_terms_survive(self) -> None:
+        """Stripping syntax must not strip the words — an empty query finds nothing."""
+        plains = [to_plain_keywords(q) for q in self._real_queries()]
+        assert all(p.strip() for p in plains), plains
+        assert any("cryptography" in p for p in plains)
+        assert any("side channel" in p for p in plains)
+
+    def test_category_only_queries_do_not_become_empty_searches(self) -> None:
+        """A profile with no keywords falls back to a bare category filter; that carries
+        no search terms at all, and sending '' to a keyword API is not a query."""
+        assert to_plain_keywords("cat:cs.CR OR cat:cs.LG") == ""
+
+    def test_the_old_one_liner_would_fail_these(self) -> None:
+        """Pins the regression itself, so the fix cannot be quietly reverted."""
+        query = '(all:"key cryptography") AND (cat:cs.CR)'
+        old = query.replace("all:", "").strip('"')
+        assert "cat:" in old and " AND " in old, "the old transform left syntax behind"
+        assert to_plain_keywords(query) == "key cryptography"

@@ -754,6 +754,80 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### IACR ePrint shipped and measured on two cases — no detectable effect, and a query bug that broke every non-arXiv source (2026-08-12)
+
+```bash
+uv run python evals/verify_iacr_deps.py           # $0 stage-1, run BEFORE the adapter existed
+for S in arxiv arxiv,iacr; do
+  uv run python evals/run_judge_eval.py --baseline none --case crypto,encryption --sources $S       --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde
+done
+```
+
+Cryptography's literature is largely not on arXiv, and `crypto`/`encryption` have been the
+benchmark's steadiest under-performers. **The subset was pre-registered before the adapter
+existed** (`evals/verify_iacr_deps.py`), chosen by domain: on the 25-case mean a perfect
+adapter caps at +0.68, below the 1.04 floor and undetectable by construction; on the two
+cases it serves, the MRE is 3.44 against 8.5 of headroom.
+
+#### The first run was VOID, not null
+
+Both arms scored identically, and the reason was that **zero IACR papers reached the top-10
+in either case**. Reported as "no effect" that would have been a manufactured null. The
+degraded-arm check — count whether the channel's papers actually arrived — is the same one
+`--rr-hyde` carries, and it is the only reason this was caught.
+
+#### The cause was not IACR
+
+Queries arriving at ePrint were arXiv boolean syntax: `(all:"key cryptography") AND
+(cat:cs.CR)`. Callers bridged arXiv grammar to keyword APIs with
+`q.replace("all:", "").strip('"')` — written for an older query shape, and **silently
+inert** once `build_queries` began wrapping queries in parentheses with a category clause.
+
+**That transform feeds DBLP, bioRxiv, OpenAlex and Semantic Scholar too.** All four shipped;
+all four have been receiving malformed queries. ePrint is simply the first source that
+returns *zero* for it rather than degrading quietly, which is how a bug that has been live
+across Features 10 and 12 finally surfaced. Fixed as one shared
+`collector.to_plain_keywords`, beside the function whose output it consumes, routed through
+all three call sites. IACR goes 0 → 5 papers on the identical query.
+
+The new test caught a defect in **that fix**: stripping only *parenthesised* category groups
+turned the no-keyword fallback `cat:cs.CR OR cat:cs.LG` into a literal search for
+`cs.CR cs.LG`. The tests run against real `build_queries` output rather than hand-written
+strings — a hand-written fixture is exactly what kept passing through the original drift.
+
+#### The valid measurement
+
+| case | control | +IACR | delta |
+|---|---|---|---|
+| `crypto` | +2.0 | +1.0 | −1.0 |
+| `encryption` | +1.0 | +1.0 | +0.0 |
+| **mean** | | | **−0.50/case** against MRE **3.44** |
+
+Arm validity confirmed: **6 IACR papers reached the ranked top-10** (3 per case), one
+reached a digest. **No detectable effect** — −0.50 is deep inside noise at n = 2.
+
+**The mechanism is informative even though the number is not.** Of the six papers that
+reached contention, **five were judged 1**: topically exact, not actionable. Only
+*Cache-Timing Attacks on RSA Key Generation* scored 2. ePrint is dominated by papers
+describing **attacks on** primitives rather than improvements a library should **adopt** —
+the register mismatch of §1, reappearing in a source chosen specifically to fix a coverage
+gap. And on this draw the three IACR papers per case *displaced* arXiv papers that scored
+better, which is why `crypto` fell.
+
+#### A sizing error of mine, worth recording
+
+The subset was justified by comparing the MRE (3.44) against the **headroom** (8.5) — the
+distance to a perfect score. That is the *ceiling*, not a plausible effect. A realistic
+channel gain of +1 to +2 per case was never detectable at n = 2, and I sized the experiment
+as though a perfect adapter were the expected outcome. The right bar is a *plausible* effect,
+and by that bar two cases was never enough: detecting +1.5/case needs roughly **n = 11**.
+
+**Shipping decision.** The adapter is opt-in (`sources: [iacr]`), off by default, and stays
+that way: nothing here justifies enabling it, and nothing rules out a real effect below the
+floor either. It is documented as **built and unvalidated**.
+
+**Cost** ~$3.
+
 ### Frozen pools measured: the floor halves to 0.48 — and the guard I shipped to protect it was broken (2026-08-11)
 
 ```bash

@@ -128,6 +128,15 @@ DESTINATIONS: tuple[Destination, ...] = (
         active=_source_enabled("dblp"),
     ),
     Destination(
+        module="sources.iacr",
+        service="IACR Cryptology ePrint Archive",
+        endpoint="eprint.iacr.org/search",
+        sends="repo-derived query strings",
+        sensitivity=REPO_DERIVED,
+        enabled_by="sources: [iacr]",
+        active=_source_enabled("iacr"),
+    ),
+    Destination(
         module="sources.biorxiv",
         service="bioRxiv",
         endpoint="api.biorxiv.org/details/{server}/{date-interval}",
