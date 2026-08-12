@@ -834,6 +834,108 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Phrase queries: the generator was broken, the repair is free, and the benchmark cannot see either (2026-08-12)
+
+```bash
+for MODE in adjacent verified none; do
+  uv run python evals/run_judge_eval.py --baseline none \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid \
+      --rr-sweep --rr-finescale --rr-hyde --rr-bigrams $MODE
+done
+uv run python evals/bigram_report.py adjacent=<A> verified=<B> none=<C>
+```
+
+`build_queries` pairs each keyword with its **TF-IDF neighbour** and sends the pair as a
+quoted phrase. Nothing ever required the two words to belong together — they merely scored
+next to each other. It emits `"use page"` and `"page refer"` for duckdb, `"data cd"` for
+redis, `"server code"` for ruff. Three of the five queries every source receives are these,
+and they come first.
+
+**The defect is not in doubt; it was measured directly.** Asking DBLP the generated queries
+and the benchmark's own hand-written `gold_queries`, same repos, same day:
+
+| case | generated query → returned | gold query → returned |
+|---|---|---|
+| `db` | `use page` → *Use of simulation to estimate Economic performances of two phenotypes of sows* | `vectorized query execution` → *Incremental Fusion: Unifying Compiled and Vectorized Query Execution* |
+| `linter` | `server code` → *Operationalization of Machine Learning with Serverless Architecture* | `incremental program analysis` → *An Incremental Algorithm for Algebraic Program Analysis* |
+| `systems` | `source data` → *NPBS database: a chemical data resource* | `log-structured storage engine` → *FlatStore: An Efficient Log-Structured Key-Value Storage Engine* |
+
+#### The three-arm result: nothing resolves
+
+25 cases, `--baseline none`, three arms back to back in one session (3 h 52 m, ~$26).
+Both treatment arms are **valid, not void**: 25/25 cases changed their returned top-10,
+mean Jaccard 0.50 and 0.47.
+
+| arm | net@2 | shown | actionable | precision | abstained | net-negative |
+|---|---|---|---|---|---|---|
+| `adjacent` (control) | +4.12 | 139 | 127 | 0.914 | 4 | 2 |
+| **`verified`** | **+4.16** | 137 | 126 | **0.920** | 5 | **0** |
+| `none` | +3.64 | 142 | 125 | 0.880 | 5 | 1 |
+
+| paired vs control | mean | 95% CI | sign | p | verdict |
+|---|---|---|---|---|---|
+| `verified` | **+0.04** | [−0.64, +0.88] | 4+/7−/14= | 0.55 | inside the 1.04 floor |
+| `none` | **−0.48** | [−1.00, +0.04] | 4+/12−/9= | 0.077 | inside the floor |
+
+A gate-independent retrieval measure — actionable papers reaching the ranked top-10 — gives
+the same ordering and the same non-significance: `verified` **6.80**/case, `adjacent` 6.56,
+`none` 6.28 (`verified` +0.24, p = 0.58; `none` −0.28, p = 0.18).
+
+#### Why the benchmark is blind to a defect this obvious
+
+**arXiv rescues the bad queries and nothing else does.** Every arXiv query carries
+`AND (cat:cs.DB)`, which keeps results in the right field however meaningless the phrase, so
+`"use page"` still returns database papers. `to_plain_keywords` correctly strips that clause
+for keyword sources, which have no equivalent — they receive the bare phrase and answer it
+literally. The benchmark runs on arXiv. **It is measuring the one channel where the bug does
+not bite**, which is why a defect visible at a glance on DBLP ties three ways here.
+
+#### What is refuted
+
+**Deleting the phrase queries.** `none` is the worst arm on every axis: −0.48 net@2/case,
+precision 0.914 → 0.880, fewest actionable papers retrieved. A meaningless phrase is still a
+query returning up to 50 candidates, and dropping three of five shrinks the pool. The obvious
+fix is not merely unsupported, it is measured backwards.
+
+**My own framing of the experiment.** I proposed this as the highest-value direction
+available because it touches 25 cases rather than DBLP's 10 or bioRxiv's 0. That reasoning
+was about *coverage* and ignored *effect size*: a defect the category filter neutralises has
+no headroom on arXiv no matter how many cases it runs on. The IACR sizing error was
+comparing an effect against the ceiling; this one was assuming breadth implies power.
+
+#### An attractive pattern I am not claiming
+
+`verified` took both net-negative repositories to zero (`speech` −1.0 → +6.0, `thin-lang`
+−2.0 → 0.0), which would read as the fix repairing the failures rather than the mean. Three
+reasons not to believe it. `speech` is documented swinging +8.0 → −2.0 between runs of an
+*identical* configuration. The 25-case headline run had exactly one net-negative case and it
+was `numerics` — a different repo than either of today's, confirming C-7's finding that
+net-negativity is a per-draw property. And `none` did **not** repair `thin-lang` (still
+−2.0) despite also removing the offending phrases. Consistent with noise.
+
+#### Shipping decision, and the one judgment call
+
+**The default changes to `verified`, and not because it scores better.** +0.04 at p = 0.55
+justifies nothing. The argument is:
+
+1. `adjacent` demonstrably asks for phrases the repository does not contain — not a
+   statistical claim, a direct observation.
+2. The repair costs nothing measurable on arXiv, with the 95% CI bounding worst-case harm at
+   −0.64/case, and it is *directionally* better on all four quality measures.
+3. arXiv is the only channel where it costs nothing. Every non-arXiv source — the whole point
+   of Feature 10 — receives the bare phrase.
+4. `none`, the alternative repair, is measured worse.
+
+This is the one place here where the evidence does not compel the conclusion, so it is
+flagged rather than buried: `queries.bigrams: adjacent` restores the old behaviour in one
+line, and **every number published before 2026-08-12 was measured under `adjacent`**.
+
+Logged as **C-10** (the phrase generator never checked co-occurrence) and **NR-29** (repairing
+it is unresolvable on the arXiv benchmark; deleting phrase queries is worse).
+
+**Cost** ~$26, 75 runs, 3 h 52 m, all three arms clean — no HyDE degradations, no collection
+failures, no judge failures, 25/25 cases in every arm.
+
 ### C-9 audit: the fix was two-fifths applied, and bioRxiv failed the other way (2026-08-12)
 
 Follow-up to the section above, asking two questions: did the fix change what DBLP and

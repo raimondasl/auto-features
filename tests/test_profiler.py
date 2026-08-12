@@ -410,6 +410,52 @@ class TestQueriesAreAboutTheRepo:
         assert any("diffusion" in q.lower() for q in queries), queries
 
 
+class TestCorpusPhrases:
+    """`RepoProfile.corpus_phrases` — the phrases the repo actually contains.
+
+    Query building pairs adjacent keywords into quoted phrases, and nothing ever checked
+    that the two words belong together. Only the profiler can check: the corpus does not
+    survive profiling. So the field is computed here, and these tests pin the property
+    that makes it worth having — a pair that occurs is kept, a pair that does not is not.
+    """
+
+    def _repo(self, tmp_path: Path, readme: str) -> Path:
+        repo = tmp_path / "proj"
+        repo.mkdir()
+        (repo / "README.md").write_text(readme, encoding="utf-8")
+        return repo
+
+    def test_records_pairs_that_occur_and_omits_pairs_that_do_not(self, tmp_path: Path) -> None:
+        repo = self._repo(
+            tmp_path,
+            "# duckdb\n\nduckdb sql engine for analytics. duckdb sql runs fast.\n"
+            "Vectorized execution over columnar storage, repeatedly: vectorized execution.\n",
+        )
+        phrases = set(profile_repo(repo).corpus_phrases)
+        assert "duckdb sql" in phrases, phrases
+        # "sql vectorized" never appears adjacently anywhere in that README.
+        assert "sql vectorized" not in phrases, phrases
+
+    def test_adjacency_is_literal_not_stopword_skipping(self, tmp_path: Path) -> None:
+        """ "use of page" must NOT license the phrase query `"use page"`.
+
+        Every search API this reaches matches a quoted phrase literally, so skipping over
+        stop words would re-admit exactly the queries this exists to reject.
+        """
+        repo = self._repo(
+            tmp_path,
+            "# tool\n\nMake use of page tables for caching. use of page tables again.\n"
+            "page tables are the unit. use it wisely, page it out.\n",
+        )
+        phrases = set(profile_repo(repo).corpus_phrases)
+        assert "use page" not in phrases, phrases
+
+    def test_empty_repo_yields_no_phrases_rather_than_failing(self, tmp_path: Path) -> None:
+        repo = tmp_path / "bare"
+        repo.mkdir()
+        assert profile_repo(repo).corpus_phrases == []
+
+
 class TestRepoProse:
     """`RepoProfile.prose` — the repo described in its own words.
 

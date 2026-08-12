@@ -420,8 +420,12 @@ queries:
   exclude:                            # Terms to penalize in ranking (0.5x per match)
     - "survey"
     - "benchmark"
+  bigrams: verified                   # phrase queries: verified | adjacent | none
+                                      #   verified — only phrases your repo actually contains
+                                      #   adjacent — pair keywords by TF-IDF rank (pre-2026-08-12)
+                                      #   none     — no phrase queries (measured worse)
 
-sources: [arxiv]                      # add: semantic_scholar, openalex, biorxiv, dblp
+sources: [arxiv]                      # add: semantic_scholar, openalex, biorxiv, dblp, iacr
 
 ranking:
   w_keyword: 1.0                      # Weight for keyword overlap score
@@ -559,12 +563,21 @@ The profiler scans your repo for text to build a topic profile:
 
 ### Query Building
 
-Queries are built from two sources:
+Queries are built from three sources:
 
 1. **Seed queries** from config — wrapped in exact-match quotes (e.g., `all:"retrieval augmented generation"`)
-2. **Auto-generated** — top 5 profile keywords as individual queries (e.g., `all:transformers`)
+2. **Phrase queries** — pairs of adjacent profile keywords, quoted (e.g., `all:"speech recognition"`)
+3. **Auto-generated** — top 5 profile keywords as individual queries (e.g., `all:transformers`)
 
 All queries are scoped to your configured arXiv categories (e.g., `cat:cs.LG OR cat:cs.CL`).
+
+`queries.bigrams` controls step 2, and defaults to **`verified`**: a pair is only asked for if
+it occurs, literally, in your repo's own text. The original behaviour (`adjacent`) paired
+keywords by TF-IDF rank alone, which produced phrases no repository contains — `"use page"` for
+duckdb, `"data cd"` for redis. On arXiv this barely matters, because the category clause keeps
+results in the right field regardless; on `sources:` like DBLP or bioRxiv, which have no
+category to fall back on, it is the whole query. `none` disables phrase queries and measured
+*worse* than either. Full three-arm measurement in `evals/RESULTS.md`.
 
 ### Scoring
 

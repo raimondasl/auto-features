@@ -12,7 +12,7 @@ from typing import Any
 import arxiv
 
 from reporadar import arxiv_rate
-from reporadar.config import ArxivConfig, QueriesConfig
+from reporadar.config import BIGRAM_MODES, ArxivConfig, QueriesConfig
 from reporadar.profiler import RepoProfile
 
 logger = logging.getLogger(__name__)
@@ -25,28 +25,63 @@ class CollectionError(Exception):
 def _generate_bigram_queries(
     profile: RepoProfile,
     max_bigrams: int = 3,
+    # Kept in step with QueriesConfig.bigrams deliberately. A private helper whose default
+    # differs from the shipped config is a trap: `_generate_bigram_queries(profile)` in a
+    # future test or diagnostic would silently measure a policy the product does not use.
+    mode: str = "verified",
 ) -> list[str]:
-    """Generate bigram phrase queries from adjacent top keywords.
+    """Bigram phrase queries from the top keywords, under one of three policies.
 
-    Takes the top keywords and generates adjacent pairs as quoted phrases.
-    Filters out bigrams where both words are short (< 4 chars).
+    ``adjacent`` (the original behaviour) pairs each keyword with its neighbour in the
+    TF-IDF ranking. **Nothing in that pairing requires the two words to belong together** —
+    they merely scored next to each other — so it emits phrases the repository never
+    contains. Measured 2026-08-12, it built ``"use page"`` and ``"page refer"`` for duckdb,
+    ``"server code"`` for ruff, ``"data cd"`` for redis. Asked those, DBLP returned a
+    content analysis of social-media posts, serverless computing, and a chemical-compound
+    database; asked the benchmark's hand-written queries instead, it returned *Incremental
+    Fusion: Unifying Compiled and Vectorized Query Execution*. The source was answering
+    exactly what it was asked.
 
-    Only pairs *single-word* terms. The profiler's TF-IDF already emits bigrams of its
-    own, and concatenating those with a neighbour produced three-word phrases that no
-    paper contains — `"speech speech recognition"` and `"speech recognition recognition"`
-    were two of the three phrase queries built for the whisper repo. A multi-word term is
-    already a phrase, and reaches arXiv as one via the keyword path below.
+    arXiv hides this: a category clause (``AND (cat:cs.DB)``) keeps results in the right
+    field however meaningless the phrase. Keyword sources have no category to fall back
+    on — :func:`to_plain_keywords` correctly strips it — so they get the bare phrase. That
+    asymmetry is why the 25-case benchmark, which runs on arXiv, cannot resolve a defect
+    this visible: **all three arms tie there** (see below).
+
+    ``verified`` (the default since 2026-08-12) keeps the same candidates but emits one only
+    if it occurs, literally and adjacently, in the profiled text
+    (:attr:`RepoProfile.corpus_phrases`).
+
+    ``none`` emits nothing, leaving single keywords and anchors to carry retrieval. It was
+    **measured worse** — −0.48 net@2/case and precision 0.914 → 0.880 across 25 cases — so
+    the obvious "just delete the junk phrases" fix is refuted rather than untested. A
+    meaningless phrase is still a query, and dropping three of five shrinks the pool.
+
+    Only *single-word* terms are paired, under every mode. The profiler's TF-IDF emits
+    bigrams of its own, and concatenating those with a neighbour produced three-word
+    phrases that no paper contains — ``"speech speech recognition"`` and ``"speech
+    recognition recognition"`` were two of the three phrase queries built for the whisper
+    repo. A multi-word term is already a phrase and reaches arXiv as one via the keyword
+    path in :func:`build_queries`.
     """
+    if mode not in BIGRAM_MODES:
+        raise ValueError(f"Unknown bigram mode {mode!r}; expected one of {BIGRAM_MODES}")
+    if mode == "none":
+        return []
     if not profile.keywords or len(profile.keywords) < 2:
         return []
 
     terms = [term for term, _weight in profile.keywords if " " not in term]
+    # A set, not a list scan: `corpus_phrases` is small but this runs per candidate pair.
+    observed = set(profile.corpus_phrases)
     bigrams: list[str] = []
 
     for i in range(len(terms) - 1):
         a, b = terms[i], terms[i + 1]
         # Skip if both words are short/common
         if len(a) < 4 and len(b) < 4:
+            continue
+        if mode == "verified" and f"{a} {b}" not in observed:
             continue
         bigrams.append(f'"{a} {b}"')
         if len(bigrams) >= max_bigrams:
@@ -147,7 +182,7 @@ def build_queries(
         queries.append(q)
 
     # Bigram phrase queries (higher priority than single keywords)
-    for phrase in _generate_bigram_queries(profile):
+    for phrase in _generate_bigram_queries(profile, mode=queries_cfg.bigrams):
         q = f"all:{phrase}"
         if cat_filter:
             q = f"({q}) AND ({cat_filter})"

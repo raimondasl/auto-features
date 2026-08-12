@@ -599,6 +599,20 @@ evals/
                      an oracle-threshold ceiling of +0.27. Cannot tune the threshold: 2/3 is
                      derived from 3p-2, so "the threshold that scores best here" is the
                      metric fitted to itself, and the LORO refit is the only honest arm
+  bigram_report.py   $0, reads three run files: the phrase-query arms. `build_queries`
+                     paired each keyword with its TF-IDF NEIGHBOUR and sent the pair as a
+                     quoted phrase, with nothing requiring the two words to belong
+                     together — "use page" for duckdb, "data cd" for redis. Verdict
+                     2026-08-12 on 25 cases: `verified` (only phrases the repo actually
+                     contains) +0.04 net@2/case vs the old behaviour, p = 0.55, INSIDE the
+                     1.04 floor; `none` (no phrase queries) -0.48 and precision 0.914 ->
+                     0.880, so deleting them is refuted rather than untested. The reason
+                     nothing resolves is that arXiv's category clause keeps results in the
+                     right field however meaningless the phrase — the benchmark measures
+                     the one channel where the bug does not bite. Checks arm VALIDITY
+                     (top-10 divergence) before believing any delta, so a flag that
+                     changed nothing reads VOID rather than "no effect", and refuses an arm
+                     whose run file records a different `bigram_mode` than its label
   audit_query_transform.py
                      $0, no LLM, free APIs: what did the broken arXiv-to-keyword bridge
                      (C-9) actually do to each non-arXiv source? Runs REAL build_queries

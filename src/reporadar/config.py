@@ -74,13 +74,35 @@ class ArxivConfig:
     sort_by: str = "relevance"
 
 
+# Phrase-query policies. See collector._generate_bigram_queries for what each emits and
+# the measurement that made the choice worth exposing.
+BIGRAM_MODES = ("adjacent", "verified", "none")
+
+
 @dataclass
 class QueriesConfig:
+    """How arXiv query strings are assembled from a repo profile."""
+
     seed: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
     # Not user-set under `queries:` — populated from `privacy.redact` at load time
     # so `build_queries` strips the terms from every query string it hands out.
     redact: list[str] = field(default_factory=list)
+    # How phrase queries are built from the keyword profile:
+    #   adjacent — pair each keyword with its TF-IDF neighbour (the original behaviour)
+    #   verified — the same pairs, but only those that occur literally in the repo text
+    #   none     — no phrase queries; single keywords and anchors carry retrieval
+    #
+    # Default changed to `verified` 2026-08-12, and **not** because it scores better: on 25
+    # cases it is +0.04 net@2/case against `adjacent`, sign p = 0.55, well inside the 1.04
+    # noise floor. The reasons are that `adjacent` demonstrably asks for phrases no
+    # repository contains ("use page" for duckdb), that the repair costs nothing measurable
+    # on arXiv, and that arXiv is the only place it costs nothing — a category clause keeps
+    # arXiv results in the right field however meaningless the phrase, and keyword sources
+    # have no such fallback. `none` was measured WORSE (-0.48/case, precision 0.914 ->
+    # 0.880), so deleting phrase queries is refuted, not merely unsupported.
+    # Full three-arm result: evals/RESULTS.md, "Phrase queries".
+    bigrams: str = "verified"
 
 
 @dataclass
@@ -342,6 +364,14 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     """Build a RepoRadarConfig from a raw dict (parsed YAML)."""
     arxiv = ArxivConfig(**data["arxiv"]) if "arxiv" in data else ArxivConfig()
     queries = QueriesConfig(**data["queries"]) if "queries" in data else QueriesConfig()
+    # Fail on an unknown mode rather than silently falling back to `adjacent` — a typo that
+    # quietly restores the default would look like a measurement of the mode asked for. Same
+    # reasoning as the unknown-source guard in evals/harness.py, which exists because
+    # `--sources arxiv,dblp` once ran as arXiv-only and was written up as a DBLP result.
+    if queries.bigrams not in BIGRAM_MODES:
+        raise ValueError(
+            f"queries.bigrams must be one of {', '.join(BIGRAM_MODES)}; got {queries.bigrams!r}"
+        )
     if "ranking" in data:
         ranking_data = dict(data["ranking"])
         cat_weights = ranking_data.pop("category_weights", {})
