@@ -626,7 +626,14 @@ evals/
                      0/90. Enabling bioRxiv did not add biology papers, it turned the
                      topical filter off. Treats a refused request as unmeasured, never as
                      a zero: the first pass at this reported "0 vs 0" for DBLP after it
-                     silently refused 12 of 18 requests
+                     silently refused 12 of 18 requests.
+                     `--sources s2` needs SEMANTIC_SCHOLAR_API_KEY in evals/.env (keyless
+                     callers share one pool with every unauthenticated user and were
+                     refused 20/20 twice). Verdict 2026-08-12 on the 12 original cases:
+                     S2 returns 0 papers for the malformed query in 11 of 12, 20 for the
+                     repaired one in 12 of 12, ZERO overlap — so RESULTS.md finding 3
+                     ("adding Semantic Scholar did not help") measured an arm that
+                     contributed no papers. VOID, not null
   compare_finescale_baseline.py
                      $0, calls nothing: the head-to-head against the Opus baseline on all
                      22 repos. The baseline's picks and their verdicts are already in the
