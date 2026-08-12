@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -52,6 +53,39 @@ def _generate_bigram_queries(
             break
 
     return bigrams
+
+
+_CAT_TERM_RE = re.compile(r"\bcat:\S+")
+_FIELD_PREFIX_RE = re.compile(r"\b(?:all|ti|abs|au|co|jr|rn|id):")
+_BOOLEAN_RE = re.compile(r"\b(?:AND NOT|ANDNOT|AND|OR|NOT)\b")
+
+
+def to_plain_keywords(query: str) -> str:
+    """Strip arXiv query syntax down to the words a keyword search can use.
+
+    Every non-arXiv source — DBLP, bioRxiv, OpenAlex, Semantic Scholar, IACR — takes a
+    plain keyword string, while :func:`build_queries` emits arXiv's boolean grammar.
+    Callers used to bridge that with ``q.replace("all:", "").strip('"')``, which was
+    written for an older query shape and silently stopped working: the current form,
+
+        (all:"key cryptography") AND (cat:cs.CR)
+
+    survives that transform as ``("key cryptography") AND (cat:cs.CR)`` and was being sent
+    verbatim as a search string. Measured 2026-08-12, IACR ePrint returns **zero** results
+    for it, and every other non-arXiv source received the same malformed input.
+
+    The fix lives here, beside the function whose output it consumes, so the two cannot
+    drift apart again — and `tests/test_collector.py` pins it against real `build_queries`
+    output rather than hand-written strings, which is what let the drift go unnoticed.
+    """
+    # Category terms are dropped whole — `cat:cs.CR` carries no keyword, and stripping only
+    # the prefix would turn the no-keyword fallback query `cat:cs.CR OR cat:cs.LG` into a
+    # search for the literal words "cs.CR cs.LG".
+    text = _CAT_TERM_RE.sub(" ", query)
+    text = _BOOLEAN_RE.sub(" ", text)
+    text = _FIELD_PREFIX_RE.sub(" ", text)
+    text = re.sub(r'[()"]', " ", text)
+    return " ".join(text.split())
 
 
 def build_queries(

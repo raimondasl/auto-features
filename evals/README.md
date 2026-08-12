@@ -559,6 +559,13 @@ evals/
                      logprobs — measured at AUC 0.59 and rejected: 44% of papers return
                      the same digit on 9+ of 10 draws, so sampling re-reads the mode
                      rather than the distribution
+  verify_iacr_deps.py
+                     $0, keyless: stage-1 dependency checks for the IACR ePrint source,
+                     run BEFORE the adapter existed. Also where the two-case subset
+                     (crypto, encryption) was PRE-REGISTERED — on the 25-case mean a
+                     perfect adapter caps at +0.68, under the 1.04 floor, so the whole
+                     benchmark cannot see this change however good it is
+
   noise_floor.py     $0, reads two completed runs of the SAME config: what is the
                      smallest effect this benchmark can resolve? Measured 2026-08-10 on
                      the shipped path — per-case sd 1.73, SE of a 22-case mean 0.37,

@@ -136,7 +136,12 @@ def collect_live_papers(
     ``sort_by="relevance"`` with a large ``lookback_days`` lets RepoRadar reach
     seminal older papers instead of only the recent fetch window.
     """
-    from reporadar.collector import CollectionError, build_queries, collect_papers
+    from reporadar.collector import (
+        CollectionError,
+        build_queries,
+        collect_papers,
+        to_plain_keywords,
+    )
     from reporadar.config import ArxivConfig
 
     arxiv_cfg = ArxivConfig(
@@ -160,7 +165,10 @@ def collect_live_papers(
         raise
 
     seen = {p["arxiv_id"] for p in papers}
-    plain = [q.replace("all:", "").strip('"') for q in queries[:5]]
+    # arXiv's boolean grammar is not a keyword query; every non-arXiv source below needs
+    # the words out of it. See reporadar.collector.to_plain_keywords for what this
+    # replaced and why the old one-liner silently stopped working.
+    plain = [to_plain_keywords(q) for q in queries[:5]]
 
     if "openalex" in sources:
         from reporadar.sources.openalex import collect_papers as oa_collect
@@ -190,6 +198,14 @@ def collect_live_papers(
                 papers.append(p)
                 seen.add(p["arxiv_id"])
 
+    if "iacr" in sources:
+        from reporadar.sources.iacr import collect_papers as iacr_collect
+
+        for p in iacr_collect(plain, lookback_days=lookback_days):
+            if p["arxiv_id"] not in seen:
+                papers.append(p)
+                seen.add(p["arxiv_id"])
+
     if "biorxiv" in sources:
         from reporadar.sources.biorxiv import collect_papers as bx_collect
 
@@ -201,7 +217,7 @@ def collect_live_papers(
     # Fail loudly on a source the harness can't fetch: silently ignoring it makes
     # a benchmark run look like a valid measurement of that source when it is a
     # no-op (exactly what happened the first time `--sources arxiv,dblp` was run).
-    unknown = set(sources) - {"arxiv", "openalex", "semantic_scholar", "dblp", "biorxiv"}
+    unknown = set(sources) - {"arxiv", "openalex", "semantic_scholar", "dblp", "biorxiv", "iacr"}
     if unknown:
         raise ValueError(
             f"Unknown eval source(s): {', '.join(sorted(unknown))}. "
