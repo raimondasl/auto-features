@@ -11,6 +11,8 @@ import urllib.request
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from reporadar import s2_rate
+
 logger = logging.getLogger(__name__)
 
 SS_API_BASE = "https://api.semanticscholar.org/graph/v1"
@@ -31,12 +33,17 @@ def _request_json(
     last_exc: Exception | None = None
     for attempt in range(max_retries):
         try:
+            # Every S2 request in this process queues here, including retries — a retry is
+            # another request against the same 1 RPS budget, not a free pass.
+            s2_rate.wait_turn()
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json_mod.loads(resp.read())
         except urllib.error.HTTPError as exc:
             last_exc = exc
             if exc.code == 429 or exc.code >= 500:
+                if exc.code == 429:
+                    s2_rate.note_throttled()
                 delay = base_delay * (2**attempt)
                 logger.warning(
                     "Semantic Scholar API error %d (attempt %d/%d). Retrying in %.1fs...",
@@ -145,17 +152,22 @@ def collect_papers(
     queries: list[str],
     api_key: str | None = None,
     lookback_days: int = 14,
-    rate_limit: float = 1.0,
 ) -> list[dict[str, Any]]:
     """Collect papers from Semantic Scholar for multiple queries.
 
     Deduplicates by arxiv_id, filters by date.
+
+    Spacing is :mod:`reporadar.s2_rate`'s job, not this function's. The `rate_limit`
+    parameter this used to take slept *between* queries within one call — never before the
+    first, never after the last, and never across calls — so a caller looping over repos
+    (the eval sweeps 25) opened each one with an unspaced request, and the three other
+    modules that talk to S2 were not covered at all.
     """
     seen: dict[str, dict[str, Any]] = {}
     cutoff = datetime.now(UTC) - timedelta(days=lookback_days)
     cutoff_year = cutoff.year
 
-    for i, query in enumerate(queries):
+    for query in queries:
         papers = search_papers(query, api_key=api_key)
         for paper in papers:
             aid = paper["arxiv_id"]
@@ -169,9 +181,5 @@ def collect_papers(
             except (ValueError, IndexError):
                 pass
             seen[aid] = paper
-
-        # Rate limiting between queries
-        if i < len(queries) - 1 and rate_limit > 0:
-            time.sleep(rate_limit)
 
     return list(seen.values())

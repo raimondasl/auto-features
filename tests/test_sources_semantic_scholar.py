@@ -119,7 +119,8 @@ class TestCollectPapers:
         }
         mock_search.return_value = [paper]
 
-        results = collect_papers(["query1", "query2"], rate_limit=0.0)
+        # Spacing is s2_rate's job now, and conftest zeroes it for the suite.
+        results = collect_papers(["query1", "query2"])
 
         assert len(results) == 1  # deduped
 
@@ -150,7 +151,7 @@ class TestCollectPapers:
         }
         mock_search.return_value = [old_paper, new_paper]
 
-        results = collect_papers(["q1"], lookback_days=365, rate_limit=0.0)
+        results = collect_papers(["q1"], lookback_days=365)
 
         arxiv_ids = [p["arxiv_id"] for p in results]
         assert "new" in arxiv_ids

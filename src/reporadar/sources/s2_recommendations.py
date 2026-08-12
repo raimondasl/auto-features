@@ -31,6 +31,8 @@ import urllib.request
 from datetime import UTC, datetime
 from typing import Any
 
+from reporadar import s2_rate
+
 logger = logging.getLogger(__name__)
 
 S2_RECS_URL = "https://api.semanticscholar.org/recommendations/v1/papers/"
@@ -151,12 +153,17 @@ def fetch_recommendations(
     data: Any = None
     for attempt in range(max_retries):
         try:
+            # Shared 1 RPS gate: this endpoint counts against the same per-key budget as
+            # search and /paper/batch, and `rr update` can call all three in one run.
+            s2_rate.wait_turn()
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = json_mod.loads(resp.read())
             break
         except urllib.error.HTTPError as exc:
             if exc.code == 429 or exc.code >= 500:
+                if exc.code == 429:
+                    s2_rate.note_throttled()
                 if attempt < max_retries - 1:
                     time.sleep(base_delay * (2**attempt))
                     continue
