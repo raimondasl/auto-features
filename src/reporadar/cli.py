@@ -327,7 +327,7 @@ def update(
             )
 
             info("Fetching papers from Semantic Scholar...")
-            ss_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            ss_queries = [to_plain_keywords(q) for q in queries[:5]]
             api_key = cfg.semantic_scholar.api_key or None
             ss_papers = ss_collect(
                 ss_queries,
@@ -351,7 +351,7 @@ def update(
             from reporadar.sources.openalex import collect_papers as oa_collect
 
             info("Fetching papers from OpenAlex...")
-            oa_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            oa_queries = [to_plain_keywords(q) for q in queries[:5]]
             oa_papers = oa_collect(
                 oa_queries,
                 email=cfg.openalex.email or None,
@@ -371,7 +371,7 @@ def update(
             from reporadar.sources.biorxiv import collect_papers as bx_collect
 
             info("Fetching papers from bioRxiv...")
-            bx_queries = [q.replace("all:", "").strip('"') for q in queries[:5]]
+            bx_queries = [to_plain_keywords(q) for q in queries[:5]]
             bx_papers = bx_collect(bx_queries, lookback_days=cfg.arxiv.lookback_days)
             existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
             new_from_bx = [p for p in bx_papers if _dedup_id(p["arxiv_id"]) not in existing_ids]

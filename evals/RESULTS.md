@@ -795,6 +795,12 @@ turned the no-keyword fallback `cat:cs.CR OR cat:cs.LG` into a literal search fo
 `cs.CR cs.LG`. The tests run against real `build_queries` output rather than hand-written
 strings — a hand-written fixture is exactly what kept passing through the original drift.
 
+> **Two corrections to the paragraphs above, from the follow-up audit (2026-08-12).**
+> "Written for an older query shape" is **false** — git dates the parenthesised form to
+> 2026-02-22 and the one-liner to 2026-02-23, so it never worked. And "routed through all
+> three call sites" undercounts: there were **five**, and this PR routed two. See
+> *C-9 audit* below.
+
 #### The valid measurement
 
 | case | control | +IACR | delta |
@@ -827,6 +833,137 @@ that way: nothing here justifies enabling it, and nothing rules out a real effec
 floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
+
+### C-9 audit: the fix was two-fifths applied, and bioRxiv failed the other way (2026-08-12)
+
+Follow-up to the section above, asking two questions: did the fix change what DBLP and
+bioRxiv return, and which past conclusions rest on the broken queries. **Cost $0** — no LLM,
+both APIs free. Scripts: `evals/audit_query_transform.py`.
+
+#### 1. The fix reached two of five call sites
+
+The PR that introduced `to_plain_keywords` claimed it was "routed through all three call
+sites." There were five, and it routed two — IACR and DBLP. Still hand-rolling the broken
+one-liner afterwards:
+
+| call site | source | state after the "fix" |
+|---|---|---|
+| `cli.py:330` | Semantic Scholar | broken |
+| `cli.py:354` | OpenAlex | broken |
+| `cli.py:374` | bioRxiv | broken |
+| `evals/run_eval.py:229` | Tier A/S runner (OpenAlex, S2) | broken |
+| `evals/harness.py:171` | Tier B harness (all five) | fixed |
+
+The function was correct and unused. **A unit test of a translator cannot detect that**, and
+the one shipped alongside it passed on this state — so the guard added now asserts the
+*wiring*: `TestEveryBridgeUsesTheSharedTranslator` parses `cli.py`, `harness.py` and
+`run_eval.py` and fails any comprehension over `queries` that does not call
+`to_plain_keywords`. Mutation-verified against the exact shipped state; it names the line.
+
+#### 2. It was never right — no drift, no working era
+
+The earlier account said the transform was written for an older query shape. Git refutes it:
+
+| | commit | date |
+|---|---|---|
+| `build_queries` emits `(all:"x") AND (cat:y)` | `29ecffa` | 2026-02-22 |
+| the one-liner is written | `18dfe51` | **2026-02-23** |
+
+Checked out at `18dfe51`, the builder already produced the parenthesised form. The bridge was
+wrong on the day it was written. Every non-arXiv fetch in the product's history is affected —
+not a regression window.
+
+#### 3. Did results change? DBLP yes, bioRxiv catastrophically
+
+Real `build_queries` output from real benchmark repos, all-time lookback so DBLP's year
+filter is not what is being measured.
+
+**DBLP** — total hits reported, old transform vs new:
+
+| case | query (repaired) | OLD | NEW |
+|---|---|---|---|
+| `db` | `duckdb sql` | 0 | 1 |
+| `columnar` | `arrow file` | 0 | 0 |
+| `compiler` | `numba pr` | 0 | **4** |
+
+DBLP returns **zero for every malformed query**, exactly like ePrint. `columnar`'s 0 → 0 is a
+genuine empty: DBLP searches titles only and no title carries that phrase.
+
+*A first pass reported 0 vs 0 everywhere; DBLP had refused 12 of its 18 requests and those
+zeros were rate-limiting wearing a zero's clothes. Redone one query at a time, 10 s apart,
+with refusals retried and reported — a 0 above means DBLP answered and the answer was empty.*
+
+**bioRxiv fails in the opposite direction, and it is worse.** Its filter keeps a paper if any
+query word longer than two characters occurs in the title or abstract. Over a 90-paper window:
+
+| case | OLD kept | NEW kept |
+|---|---|---|
+| `db` | **90 / 90** | 43 / 90 |
+| `columnar` | **90 / 90** | 43 / 90 |
+| `compiler` | **90 / 90** | 35 / 90 |
+
+Term by term, for `(all:"duckdb sql") AND (cat:cs.LG OR cat:cs.CL)`:
+
+| term | matches |
+|---|---|
+| `("duckdb` | 0 / 90 |
+| `sql")` | 0 / 90 |
+| `(cat:cs.lg` | 0 / 90 |
+| `cat:cs.cl)` | 0 / 90 |
+| **`and`** | **90 / 90** |
+
+Without `and`: **0 / 90**. The boolean operator is three characters, so it cleared the
+`len > 2` filter and matched every abstract in English. **Enabling bioRxiv did not add biology
+papers to the pool — it turned the topical filter off and merged the entire recent window.**
+DBLP contributed nothing; bioRxiv contributed noise at full volume. A source that returns
+nothing announces itself. A source that returns everything looks like it is working.
+
+#### 4. Which conclusions this touches
+
+**None of the benchmark numbers, and this is checkable rather than argued.** No `dblp:` or
+`biorxiv:` id appears in any of the 78 recorded run files in `evals/results/` — neither source
+ever contributed a paper to a scored pool, so no published net@2, precision, or recall figure
+was computed from their output.
+
+What the audit does revise:
+
+- **"DBLP: still unmeasured after four attempts — and now we know why"** — there was a
+  **fifth** blocker, and it was upstream of the other four. Attempt 4 concluded DBLP is
+  *structurally* mismatched to recency windows because it exposes only a year. That reasoning
+  about the adapter's filter is still correct on its own terms, but it was **not what made
+  DBLP return nothing**: the measurement above ran at all-time lookback, removing the year
+  filter entirely, and the malformed query still returned 0. The heading's "now we know why"
+  was premature — the year-granularity finding was diagnosed by reading the adapter, never by
+  observing DBLP answer a well-formed query.
+- **"`collect_papers` now returns papers where it returned 0"** (the 2026-07-29 TLS fix) —
+  cannot have been true through `build_queries` output. The TLS fix was real and necessary;
+  the verification behind that sentence must have used a hand-written query, which is the same
+  drift that hid C-9 for six months.
+- **The ±1 noise floor from the two "same effective configuration" runs** — *unaffected, and
+  in fact strengthened*. The pairing was justified by the harness silently dropping `dblp`.
+  C-9 means that even with the dblp branch present the runs would have been identical, because
+  DBLP returns 0 either way.
+- **Feature 10's status.** ROADMAP and README describe bioRxiv and DBLP as serving repos whose
+  literature is not on arXiv. On the evidence they have never served anyone: one returns
+  nothing, the other returns everything. Both are now marked **built, wired, never validated**.
+
+#### 5. Undetermined, and stated as undetermined
+
+**Semantic Scholar's exposure is unresolved.** It is the one source with a *published* number
+downstream of the bug — "adding Semantic Scholar did not help" (mean net@2 +0.83 → +0.58,
+precision 0.91 → 0.76), and `git show 4d5416e:evals/harness.py` confirms that run used the
+broken one-liner. Whether S2 tolerates the malformed query matters: the finding reports that
+outcomes *moved*, which is only possible if S2 returned papers, yet DBLP and IACR return zero
+for the same input.
+
+Two attempts to measure it were **refused by rate limiting** — keyless S2 returned 429 on all
+20 requests across both passes. The fast pass produced an apparent `OLD → 0, NEW → 50`, and
+that zero is discarded: it was a 429, not an empty result. **No claim is made about the S2
+finding in either direction.** Resolving it needs an S2 key or a patient off-peak retry, and
+until then finding 3 stands as *measured through malformed queries, effect unknown*.
+
+**Logged as C-9a** (fix applied to two of five call sites), **C-9b** (the "older query shape"
+account was false), and **NR-28** (bioRxiv's boolean-operator pass-through).
 
 ### Frozen pools measured: the floor halves to 0.48 — and the guard I shipped to protect it was broken (2026-08-11)
 
@@ -4231,6 +4368,15 @@ DBLP evaluation. Fixed: `dblp`/`biorxiv` branches added, plus a `ValueError` on 
 source so a typo or unsupported adapter can never again masquerade as a measurement.
 
 ### DBLP: still unmeasured after four attempts — and now we know why (2026-07-29)
+
+> **Correction (2026-08-12): there was a fifth blocker, upstream of all four.** Every query
+> DBLP ever received was arXiv boolean syntax (C-9), for which it returns zero — measured, at
+> all-time lookback so the year filter below is not involved. The heading's "now we know why"
+> was premature. Attempt 4's year-granularity reasoning is still correct *about the adapter*,
+> but it was diagnosed by reading the code, never by watching DBLP answer a well-formed query,
+> and it was not what made DBLP return nothing. Likewise "`collect_papers` now returns papers
+> where it returned 0" at the end of this section cannot have held for `build_queries` output.
+> See *C-9 audit* above.
 
 The DBLP arm of this comparison has never produced a number. Each attempt hit a *different*
 blocker, and all four were real:

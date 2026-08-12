@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ast
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import arxiv
@@ -591,3 +593,69 @@ class TestPlainKeywordTranslation:
         old = query.replace("all:", "").strip('"')
         assert "cat:" in old and " AND " in old, "the old transform left syntax behind"
         assert to_plain_keywords(query) == "key cryptography"
+
+
+# Every module that bridges arXiv's query grammar to a keyword source. Adding a source
+# outside this list is fine; bridging queries in a module outside it is what this guard
+# is for, so a new entry here is the deliberate way to say "this file does that too".
+_BRIDGING_MODULES = (
+    ("src", "reporadar", "cli.py"),
+    ("evals", "harness.py"),
+    ("evals", "run_eval.py"),
+)
+
+
+class TestEveryBridgeUsesTheSharedTranslator:
+    """The bug was never one bad transform — it was five call sites each free to invent one.
+
+    Fixing `to_plain_keywords` fixed nothing on its own: the first attempt routed only
+    IACR and DBLP through it and left Semantic Scholar, OpenAlex, bioRxiv (in `cli.py`)
+    and the Tier A/S runner (`evals/run_eval.py`) still hand-rolling the broken one-liner.
+    A test of the translator passes happily in that state, because the translator was
+    correct and unused.
+
+    So this asserts the *wiring*, by reading the source: any comprehension that maps over
+    `queries` to feed a keyword API must call `to_plain_keywords`. It is the only check
+    here that would have failed on the half-finished fix.
+    """
+
+    def _list_comps_over_queries(self, path: Path) -> list[ast.ListComp]:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        found = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ListComp) or len(node.generators) != 1:
+                continue
+            source = node.generators[0].iter
+            # `queries[:5]` is a Subscript wrapping the Name; `queries` is the Name itself.
+            if isinstance(source, ast.Subscript):
+                source = source.value
+            if isinstance(source, ast.Name) and source.id == "queries":
+                found.append(node)
+        return found
+
+    @pytest.mark.parametrize("parts", _BRIDGING_MODULES, ids=lambda p: p[-1])
+    def test_no_hand_rolled_query_translation(self, parts: tuple[str, ...]) -> None:
+        path = Path(__file__).resolve().parents[1].joinpath(*parts)
+        comps = self._list_comps_over_queries(path)
+        assert comps, f"{path.name} no longer maps over `queries` — has the bridge moved?"
+        for comp in comps:
+            call = comp.elt
+            rendered = ast.unparse(comp)
+            assert isinstance(call, ast.Call), (
+                f"{path.name}:{comp.lineno} maps over queries without calling anything: {rendered}"
+            )
+            name = call.func.id if isinstance(call.func, ast.Name) else None
+            assert name == "to_plain_keywords", (
+                f"{path.name}:{comp.lineno} hand-rolls query translation instead of using "
+                f"the shared translator: {rendered}"
+            )
+
+    @pytest.mark.parametrize("parts", _BRIDGING_MODULES, ids=lambda p: p[-1])
+    def test_the_broken_one_liner_is_gone(self, parts: tuple[str, ...]) -> None:
+        """Belt to the AST braces: the exact defective expression, in any spelling."""
+        path = Path(__file__).resolve().parents[1].joinpath(*parts)
+        text = path.read_text(encoding="utf-8")
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if line.lstrip().startswith("#"):
+                continue  # a comment may quote the bug; only live code is the failure
+            assert 'replace("all:"' not in line, f"{path.name}:{line_no}: {line.strip()}"

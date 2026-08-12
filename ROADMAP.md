@@ -135,11 +135,15 @@ repaired, and `speech` regressed 10 points for reasons not yet understood — se
   badge, and the count in `rr notify` (message tail + `RR_EXTENDS_STARRED_COUNT`), so the alert is pushed
   rather than only rendered. *Remaining:* the OpenAlex `cites:` fallback, a co-citation-graph SVG, and
   one-hop citation expansion.
-- **Feature 10 — domain source adapters**: `sources/dblp.py` (keyword-search JSON, systems/PL/DB, title-only)
-  and `sources/biorxiv.py` (date-interval listing + local query filter, biology) — opt in via `sources:`,
-  merged with arXiv priority. `sources/suggest.py` reads the repo profile and **suggests** a matching source
-  in `rr profile` / `rr update`. *Remaining:* the IACR ePrint adapter, DOI abstract-backfill for DBLP, and
-  medRxiv/category config.
+- **Feature 10 — domain source adapters**: `sources/dblp.py` (keyword-search JSON, systems/PL/DB, title-only),
+  `sources/biorxiv.py` (date-interval listing + local query filter, biology) and `sources/iacr.py` (ePrint
+  HTML search, cryptography) — opt in via `sources:`, merged with arXiv priority. `sources/suggest.py` reads
+  the repo profile and **suggests** a matching source in `rr profile` / `rr update`.
+  **Built, wired, never validated** — and until 2026-08-12 never actually functional: every non-arXiv source
+  received arXiv boolean syntax instead of keywords (C-9), which DBLP answers with nothing and bioRxiv answers
+  with its entire recent window. Only IACR has a measurement, and it is a two-case null too small to resolve a
+  plausible effect. *Remaining:* re-measure DBLP and bioRxiv now that they receive real queries, DOI
+  abstract-backfill for DBLP, and medRxiv/category config.
 - **Feature 7 — SPECTER2 similarity** (`specter.py`, `ranking.w_specter`): citation-trained vectors served free
   by S2, cached under a distinct `specter_v2` key in `paper_embeddings`, queried by the centroid of your
   starred/highly-rated papers (no local model), pool-normalized, persisted via store v11 `specter_score`.
