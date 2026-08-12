@@ -25,7 +25,9 @@ own experiments were below that floor before they started (stated-intent goals a
 the register-flip arm at +0.12); their nulls are real but uninformative, and the right
 response was a more sensitive instrument, not a firmer conclusion. Freezing the candidate
 pool (`--rr-frozen-pool`) removes the dominant term for any treatment *downstream* of
-retrieval.
+retrieval: **measured at residual sd 0.61 and an MRE of 0.48**, roughly half the live floor
+rather than the ~0.2 first guessed. Gate, threshold and rescore questions are now resolvable
+at less than half the effect size they needed before.
 
 **A single run's p-value is not a property of the system.** The same 25-case configuration
 scored p = 0.0414 (15 w / 5 l) on one draw and p = 0.0001 (18 w / 1 l) two days later. Report
@@ -38,6 +40,7 @@ reused the *same* frozen pool. This script refuses to mix them.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import statistics
@@ -57,18 +60,46 @@ def load(path: str) -> dict[str, dict[str, Any]]:
     return {r["case"]: r for r in json.loads(p.read_text(encoding="utf-8"))}
 
 
-def provenance(run: dict[str, dict[str, Any]]) -> str:
-    """'live', 'frozen:<fingerprint>', or 'mixed'/'unlabelled' — see --rr-frozen-pool."""
-    seen = {
-        (r.get("pool_provenance") or {}).get("mode", "unlabelled")
-        + (
-            ":" + (r.get("pool_provenance") or {}).get("fingerprint", "")[:12]
-            if (r.get("pool_provenance") or {}).get("mode") == "frozen"
-            else ""
-        )
-        for r in run.values()
+def fingerprints(run: dict[str, dict[str, Any]]) -> dict[str, str]:
+    """Per-case pool fingerprint. Empty for runs predating --rr-frozen-pool."""
+    return {
+        c: (r.get("pool_provenance") or {}).get("fingerprint", "")
+        for c, r in run.items()
+        if (r.get("pool_provenance") or {}).get("fingerprint")
     }
-    return seen.pop() if len(seen) == 1 else "mixed"
+
+
+def provenance(run: dict[str, dict[str, Any]]) -> str:
+    """'live', 'frozen:<digest>', 'frozen-seeded', 'unlabelled', or 'mixed'.
+
+    The digest covers the **whole set** of per-case fingerprints, not one of them. The
+    first version of this took a single fingerprint, and since a fingerprint includes its
+    case name, every frozen run over more than one case reported 'mixed' — which made two
+    runs off *different* pools compare cleanly, the precise failure the guard exists to
+    stop. It survived review because the tests used single-case runs. See
+    `same_pool` for the check that actually matters.
+    """
+    modes = {(r.get("pool_provenance") or {}).get("mode", "unlabelled") for r in run.values()}
+    if len(modes) != 1:
+        return "mixed"
+    mode = modes.pop()
+    if mode != "frozen":
+        return mode
+    fps = fingerprints(run)
+    digest = hashlib.sha256("\0".join(f"{c}={fps[c]}" for c in sorted(fps)).encode()).hexdigest()[
+        :12
+    ]
+    return f"frozen:{digest}"
+
+
+def same_pool(a: dict[str, dict[str, Any]], b: dict[str, dict[str, Any]]) -> list[str]:
+    """Cases the two runs share whose frozen pools differ. Empty means comparable.
+
+    Checked over the intersection rather than the whole run, so a 25-case frozen run and a
+    22-case one drawn from the same pool remain comparable on their shared cases.
+    """
+    fa, fb = fingerprints(a), fingerprints(b)
+    return sorted(c for c in set(fa) & set(fb) if fa[c] != fb[c])
 
 
 def jaccard(a: set[str], b: set[str]) -> float | None:
@@ -155,6 +186,15 @@ def main() -> int:
             "their candidate pools were produced differently, so the difference between "
             "them is not this benchmark's noise."
         )
+    # Same mode is not enough for frozen runs: they must be the SAME pool, checked over
+    # the cases they share.
+    for i, x in enumerate(runs):
+        for j, y in enumerate(runs[i + 1 :], start=i + 1):
+            if differing := same_pool(x, y):
+                raise SystemExit(
+                    f"runs {i} and {j} are both frozen but drew from different pools on "
+                    f"{len(differing)} shared case(s): {differing[:5]}"
+                )
 
     shared = sorted(set.intersection(*(set(r) for r in runs)))
     if len(shared) < 3:

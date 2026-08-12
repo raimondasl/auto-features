@@ -754,6 +754,77 @@ net@2 charges 2 per false positive and so rewards precision-preserving expansion
 flatters this result as it flattered the last one. And this is one paired session: the per-case
 values will move again on the next collection, as they did between the previous two runs.
 
+### Frozen pools measured: the floor halves to 0.48 — and the guard I shipped to protect it was broken (2026-08-11)
+
+```bash
+# seed once (live collection), then two passes that reuse it
+for PASS in seed reuse-1 reuse-2; do
+  uv run python evals/run_judge_eval.py --baseline none --case <all 25> \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      --rr-frozen-pool evals/.work/pool-floor
+done
+uv run python evals/noise_floor.py <reuse-1> <reuse-2>
+```
+
+`--rr-frozen-pool` shipped with an **unmeasured claim**: that it takes the resolvable effect
+"toward 0.2–0.3". That is exactly the kind of assertion this project does not accept
+elsewhere, so it gets measured. Two passes reusing one pool, with the seeding pass excluded
+because it collected live — which is what the separate `frozen-seeded` label is for.
+
+| | live (3 draws) | **frozen (2 reuse passes)** |
+|---|---|---|
+| residual sd (per case, per draw) | 1.23 | **0.61** |
+| whole-run shift | sd 0.27 | **sd 0.10** |
+| **MRE, paired same session** | 1.04 | **0.48** |
+| MRE against a stored run | 1.07 | 0.49 |
+| cases identical across draws | 8 / 22 | **20 / 25** |
+
+**The diagnosis was right and my number was not.** Freezing the pool removes just over half
+the residual noise, confirming that *which candidates were collected* is the dominant term.
+But the pre-registered prediction (sd ≤ 0.5, MRE ≤ 0.42) **missed**, and the "0.2–0.3" in the
+`--rr-frozen-pool` help text was **roughly half the truth**. The floor is **0.48**, and the
+help text now says so. The alarm (sd ≥ 1.0, meaning freezing bought nothing) did not fire.
+
+What survives freezing is temperature-0 model jitter in the gate and the rescore: `columnar`
+(+5/+2), `cv` (+5/+3) and `rag` (+4/+2) carry **89%** of the remaining variance between them,
+and 20 of 25 cases are bit-identical across passes.
+
+#### What 0.48 reopens
+
+| experiment | measured | live floor 1.04 | **frozen floor 0.48** |
+|---|---|---|---|
+| stated-intent `blind` goals | +0.44 | unresolvable | **borderline — worth re-running** |
+| register-flip `docs` goals | +0.12 | unresolvable | still unresolvable |
+
+The `blind` arm sits just under 0.48, so a frozen-pool re-run would be close to decisive
+rather than uninformative — **except that it cannot use one.** A goal changes the HyDE
+hypotheses, so the pool fingerprint changes and the harness refuses to reuse: stated-intent
+is a *retrieval* experiment. The frozen floor applies to gate models, `min_actionable`,
+thresholds and rescore variants, and those are now measurable at less than half the effect
+size they needed a day ago.
+
+#### The guard was broken, and the tests could not see it
+
+`noise_floor.py` reported **`mixed`** for both frozen runs. The cause: a pool fingerprint
+includes its own case name, so a genuine 25-case frozen run carries 25 *different*
+fingerprints, and the first version folded mode+fingerprint per case and took the set —
+which is `mixed` for any run over more than one case.
+
+That is not cosmetic. Two runs drawn from **different pools** would both have reported
+`mixed`, matched, and compared cleanly — **precisely the failure the guard exists to
+prevent.** It shipped because every test in `test_eval_frozen_pool.py` used a single-case
+run, where the bug is invisible.
+
+Fixed: `provenance` now digests the *whole set* of per-case fingerprints, and a new
+`same_pool` check compares runs pairwise over the cases they **share**, so a 25-case and a
+22-case run from one pool stay comparable on their 22. `ablation_report.pool_mode` now
+delegates to the same helper rather than keeping a second copy that could rot separately.
+Six tests added, all over multi-case runs.
+
+**Cost** ~$11: the seed is a full live collection, the two reuse passes skip arXiv and the
+index scan entirely and cost about $1.50 each. My earlier "$4 and 40 minutes" estimate
+forgot the seed.
+
 ### A third draw: the floor holds, and a single run's *p-value* is worth even less than its mean (2026-08-11)
 
 ```bash
