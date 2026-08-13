@@ -51,7 +51,12 @@ from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
 from reporadar.collector import CollectionError  # noqa: E402
-from reporadar.config import BIGRAM_MODES, QueriesConfig, RankingConfig  # noqa: E402
+from reporadar.config import (  # noqa: E402
+    ABSENT_CATEGORY_MODES,
+    BIGRAM_MODES,
+    QueriesConfig,
+    RankingConfig,
+)
 from reporadar.digest import TOP_THRESHOLD  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 from reporadar.retrieval import hybrid_reorder  # noqa: E402
@@ -84,37 +89,27 @@ def load_dotenv(path: Path) -> None:
             os.environ[key] = val
 
 
-def reporadar_ranked(
+def collect_candidates(
     repo_dir: Path,
     categories: list[str],
     sources: list[str],
     keys: dict[str, str],
-    top_n: int = 10,
     *,
     all_time: bool = False,
-    hybrid: bool = False,
     hyde_cfg: Any | None = None,
     bigrams: str = "adjacent",
-) -> list[tuple[dict[str, Any], float]]:
-    """RepoRadar's real ranking: top-N (paper, score) best-first.
+) -> list[dict[str, Any]]:
+    """Everything retrieval found, before any ranking — the unit a frozen pool stores.
 
-    Top Picks (the abstention-respecting output) = those with score >= 0.5.
-    Returning the top-N regardless lets us tell a conservative threshold apart
-    from genuinely shallow ranking.
-
-    ``all_time=True`` switches discovery from the 90-day recency window to an
-    all-time, relevance-sorted fetch and drops the recency weight from ranking,
-    so seminal older papers can surface and compete on relevance alone. This
-    tests whether the baseline's edge is a discovery-window artifact.
-
-    ``hybrid=True`` fuses the heuristic ranking with a BM25 lexical ranking via
-    RRF before the top-N cut, so a paper the keyword ranker buried on vocabulary
-    mismatch can still surface (roadmap #4).
+    Split out from :func:`reporadar_ranked` so `--rr-frozen-pool` can freeze *candidates*
+    rather than a ranked list. Freezing the ranked output made every ranking experiment
+    collect live at the 1.04 floor, which is the opposite of what the flag exists for: the
+    pool is the dominant variance term and ranking is deterministic given it, so a ranking
+    arm is exactly the case freezing should make cheap and sensitive.
     """
     profile = profile_case_repo(repo_dir)
-    lookback = 36500 if all_time else 90  # ~100 years = effectively no date cutoff
+    lookback = 36500 if all_time else 90
     sort_by = "relevance" if all_time else "submitted"
-    w_recency = 0.0 if all_time else 0.3
     papers = collect_live_papers(
         profile,
         categories,
@@ -126,9 +121,36 @@ def reporadar_ranked(
     )
     if hyde_cfg is not None:
         papers = _add_hyde_candidates(papers, profile, keys, hyde_cfg)
+    return papers
+
+
+def rank_candidates(
+    repo_dir: Path,
+    papers: list[dict[str, Any]],
+    categories: list[str],
+    top_n: int = 10,
+    *,
+    all_time: bool = False,
+    hybrid: bool = False,
+    absent_category: str = "omit",
+) -> list[tuple[dict[str, Any], float]]:
+    """RepoRadar's ranking over an already-collected pool: top-N (paper, score) best-first.
+
+    Deterministic given *papers*, which is what makes a frozen candidate pool sound: the
+    same pool re-ranked under the same flags reproduces the stored run exactly, and under
+    different flags isolates the ranking change with the collection noise removed.
+
+    The profile is recomputed rather than stored — it is local, free, and a function of
+    flags the pool fingerprint already covers.
+    """
     if not papers:
         return []
-    ranking_cfg = RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=w_recency)
+    profile = profile_case_repo(repo_dir)
+    lookback = 36500 if all_time else 90
+    w_recency = 0.0 if all_time else 0.3
+    ranking_cfg = RankingConfig(
+        w_keyword=1.0, w_category=0.5, w_recency=w_recency, absent_category=absent_category
+    )
     ranked = rank_papers(
         papers,
         profile,
@@ -145,6 +167,57 @@ def reporadar_ranked(
         if s["arxiv_id"] in by_id:
             out.append((by_id[s["arxiv_id"]], s["score_total"]))
     return out
+
+
+def reporadar_ranked(
+    repo_dir: Path,
+    categories: list[str],
+    sources: list[str],
+    keys: dict[str, str],
+    top_n: int = 10,
+    *,
+    all_time: bool = False,
+    hybrid: bool = False,
+    hyde_cfg: Any | None = None,
+    bigrams: str = "adjacent",
+    absent_category: str = "omit",
+) -> list[tuple[dict[str, Any], float]]:
+    """RepoRadar's real ranking: top-N (paper, score) best-first.
+
+    Top Picks (the abstention-respecting output) = those with score >= 0.5.
+    Returning the top-N regardless lets us tell a conservative threshold apart
+    from genuinely shallow ranking.
+
+    ``all_time=True`` switches discovery from the 90-day recency window to an
+    all-time, relevance-sorted fetch and drops the recency weight from ranking,
+    so seminal older papers can surface and compete on relevance alone. This
+    tests whether the baseline's edge is a discovery-window artifact.
+
+    ``hybrid=True`` fuses the heuristic ranking with a BM25 lexical ranking via
+    RRF before the top-N cut, so a paper the keyword ranker buried on vocabulary
+    mismatch can still surface (roadmap #4).
+
+    Kept as the collect-then-rank composition so existing callers and diagnostics read
+    unchanged; the two halves are separately callable for frozen-pool runs.
+    """
+    papers = collect_candidates(
+        repo_dir,
+        categories,
+        sources,
+        keys,
+        all_time=all_time,
+        hyde_cfg=hyde_cfg,
+        bigrams=bigrams,
+    )
+    return rank_candidates(
+        repo_dir,
+        papers,
+        categories,
+        top_n=top_n,
+        all_time=all_time,
+        hybrid=hybrid,
+        absent_category=absent_category,
+    )
 
 
 def _load_goals(path: str | None) -> dict[str, str] | None:
@@ -354,10 +427,7 @@ def _apply_finescale(
 # entire point of freezing.
 POOL_FLAGS = (
     "sources",
-    "rr_pool",
-    "rr_rerank",
-    "rr_all_time",
-    "rr_hybrid",
+    "rr_all_time",  # sets the lookback window and the arXiv sort order
     "rr_prose_chars",
     "rr_ablate_docs",
     "rr_hyde",
@@ -367,6 +437,21 @@ POOL_FLAGS = (
     "rr_triage_model",  # HyDE writes its hypotheses with this model
     "rr_bigrams",  # changes the query strings, therefore the pool
 )
+
+# Flags that change how the pool is ORDERED, not what is in it. Deliberately absent from
+# the fingerprint: varying one against a frozen pool is the point of freezing, and ranking
+# is deterministic given the pool, so the same flags reproduce the seeding run exactly.
+#
+# `rr_all_time` is in POOL_FLAGS above rather than here even though it also sets
+# `w_recency`, because it changes the fetch window — a pool collected over 90 days cannot
+# answer an all-time question, whatever the ranker then does with it.
+RANKING_FLAGS = ("rr_pool", "rr_rerank", "rr_hybrid", "rr_absent_category")
+
+# Frozen pools stored the RANKED top-N until 2026-08-13, which made every ranking
+# experiment collect live at the 1.04 floor — the opposite of the flag's purpose. Version 2
+# stores the candidates instead. Bumped rather than silently reinterpreted: a v1 file read
+# as v2 would hand a 20-paper ranked list to the ranker as if it were the whole pool.
+FROZEN_POOL_VERSION = 2
 
 
 def pool_fingerprint(args: argparse.Namespace, case: dict[str, Any], goal: str | None) -> str:
@@ -391,38 +476,60 @@ def frozen_pool_path(pool_dir: Path, case_name: str) -> Path:
 
 def load_frozen_pool(
     pool_dir: Path, case_name: str, fingerprint: str
-) -> list[tuple[dict[str, Any], float]] | None:
-    """The stored ranked candidates, or None when absent. Raises on a fingerprint mismatch."""
+) -> list[dict[str, Any]] | None:
+    """The stored candidate pool, or None when absent. Raises on mismatch or old format."""
     path = frozen_pool_path(pool_dir, case_name)
     if not path.is_file():
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
+    version = data.get("version", 1)
+    if version != FROZEN_POOL_VERSION:
+        raise SystemExit(
+            f"frozen pool {path} is format v{version}; this run needs "
+            f"v{FROZEN_POOL_VERSION}.\n"
+            "v1 stored the RANKED top-N, v2 stores the candidate pool. Reading a v1 file "
+            "as v2 would hand a 20-paper ranked list to the ranker as if it were the whole "
+            "pool, and every metric would be computed over a pool that had already been "
+            "cut by the settings under test. Re-seed into a fresh directory."
+        )
     if data.get("fingerprint") != fingerprint:
         raise SystemExit(
             f"frozen pool {path} was collected under different retrieval settings\n"
             f"  stored:   {data.get('fingerprint')}  ({data.get('collected_at')})\n"
             f"  this run: {fingerprint}\n"
             "Reusing it would measure the old settings under the new run's name. Use a "
-            "different --rr-frozen-pool directory, or drop the flag to collect live."
+            "different --rr-frozen-pool directory, or drop the flag to collect live.\n"
+            f"Note that ranking flags ({', '.join(RANKING_FLAGS)}) are NOT part of the "
+            "fingerprint — varying one against a frozen pool is what freezing is for."
         )
-    return [(p, float(s)) for p, s in data["ranked"]]
+    papers: list[dict[str, Any]] = data["candidates"]
+    return papers
 
 
 def save_frozen_pool(
     pool_dir: Path,
     case_name: str,
     fingerprint: str,
-    ranked: list[tuple[dict[str, Any], float]],
+    candidates: list[dict[str, Any]],
 ) -> None:
+    """Store the pool as collected, before ranking.
+
+    Never stores an empty pool: an empty candidate list and a failed collection are the
+    same bytes on disk, and a frozen empty would score as a legitimate 0.0 on every later
+    run that reused it — the mistake that once cost two benchmark cases.
+    """
+    if not candidates:
+        return
     pool_dir.mkdir(parents=True, exist_ok=True)
     frozen_pool_path(pool_dir, case_name).write_text(
         json.dumps(
             {
+                "version": FROZEN_POOL_VERSION,
                 "case": case_name,
                 "fingerprint": fingerprint,
                 "collected_at": datetime.now(UTC).isoformat(),
-                "n": len(ranked),
-                "ranked": [[p, s] for p, s in ranked],
+                "n": len(candidates),
+                "candidates": candidates,
             },
             indent=1,
         ),
@@ -578,38 +685,48 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     # the single largest variance term in every paired comparison here.
     fingerprint = pool_fingerprint(args, case, goal)
     pool_mode, collected_at = "live", None
-    rr_ranked = None
+    candidates = None
     if args.rr_frozen_pool is not None:
         stored = load_frozen_pool(args.rr_frozen_pool, name, fingerprint)
         if stored is not None:
-            rr_ranked = stored
+            candidates = stored
             pool_mode = "frozen"
             collected_at = json.loads(
                 frozen_pool_path(args.rr_frozen_pool, name).read_text(encoding="utf-8")
             )["collected_at"]
             print(
-                f"        FROZEN POOL: {len(rr_ranked)} candidates reused, NOT collected "
+                f"        FROZEN POOL: {len(candidates)} candidates reused, NOT collected "
                 f"live (collected {collected_at[:19]}, fingerprint {fingerprint})"
             )
-    if rr_ranked is None:
-        rr_ranked = reporadar_ranked(
+    if candidates is None:
+        candidates = collect_candidates(
             rr_dest,
             categories,
             args.sources,
             keys,
-            top_n=candidate_n,
             all_time=args.rr_all_time,
-            hybrid=args.rr_hybrid,
             hyde_cfg=_hyde_cfg(args, goal),
             bigrams=args.rr_bigrams,
         )
         if args.rr_frozen_pool is not None:
-            save_frozen_pool(args.rr_frozen_pool, name, fingerprint, rr_ranked)
+            save_frozen_pool(args.rr_frozen_pool, name, fingerprint, candidates)
             pool_mode, collected_at = "frozen-seeded", datetime.now(UTC).isoformat()
             print(
-                f"        FROZEN POOL SEEDED: {len(rr_ranked)} ranked candidates written "
+                f"        FROZEN POOL SEEDED: {len(candidates)} candidates written "
                 f"({fingerprint}) — this run collected LIVE"
             )
+    # Ranking always runs, frozen or not. It is deterministic given the pool, so a reused
+    # pool reproduces its seeding run exactly under the same flags — and isolates the
+    # change under test when a ranking flag differs, which is the whole point of freezing.
+    rr_ranked = rank_candidates(
+        rr_dest,
+        candidates,
+        categories,
+        top_n=candidate_n,
+        all_time=args.rr_all_time,
+        hybrid=args.rr_hybrid,
+        absent_category=args.rr_absent_category,
+    )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
@@ -760,6 +877,8 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # The phrase-query arm, recorded per case so a three-arm comparison never has to
         # infer the arm from a filename someone may have renamed.
         "bigram_mode": args.rr_bigrams,
+        "absent_category": args.rr_absent_category,
+        "sources": list(args.sources),
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,
         "n_judge_failed": n_judge_failed,
@@ -882,6 +1001,18 @@ def main() -> int:
         "was measured WORSE (-0.48 net@2/case). On 25 arXiv cases all three tie inside the "
         "1.04 floor; the difference shows on keyword sources, which have no category clause "
         "to fall back on. A retrieval setting: it is in POOL_FLAGS.",
+    )
+    parser.add_argument(
+        "--rr-absent-category",
+        choices=ABSENT_CATEGORY_MODES,
+        default="omit",
+        help="How w_category treats a paper with NO categories — every paper from every "
+        "non-arXiv source. `omit` (default, shipped) drops the component, which was meant "
+        "to avoid handicapping those papers and instead advantages them: at equal keyword "
+        "relevance an uncategorised paper scores 0.600 against an arXiv paper's 0.567, and "
+        "0.600 against 0.400 when the arXiv paper matches no target category. `zero` "
+        "scores the absence as 0; `impute` scores it at the pool's mean category score. A "
+        "RANKING flag, so a frozen pool can be reused across values of it.",
     )
     parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
     parser.add_argument("--rr-hyde-top-k", type=int, default=100)
@@ -1102,6 +1233,8 @@ def main() -> int:
         # in this flag, and telling them apart from the filename beats opening each one.
         if args.rr_bigrams != "adjacent":
             tag += f"-bigrams_{args.rr_bigrams}"
+        if args.rr_absent_category != "omit":
+            tag += f"-abscat_{args.rr_absent_category}"
         out = RESULTS_DIR / f"judge-{args.model}{tag}-{stamp}.json"
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")
