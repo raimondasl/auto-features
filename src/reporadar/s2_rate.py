@@ -83,7 +83,11 @@ def wait_turn() -> float:
     """Block until this process may issue another S2 request. Returns seconds slept."""
     global _next_allowed_at
     with _lock:
-        start = time.monotonic()
+        # Accumulated sleep, not elapsed wall time. Returning `monotonic() - start` counts
+        # this function's own overhead as time slept, which is a different claim: on Linux
+        # a no-wait turn reported ~7e-07 s while on Windows the coarser clock reported a
+        # clean 0.0, so the same code disagreed with itself across platforms.
+        slept = 0.0
         # Loop, don't sleep once: a short sleep leaves the deadline unmet and would issue
         # the request early. This is the difference between honouring the interval and
         # honouring it on average.
@@ -92,8 +96,9 @@ def wait_turn() -> float:
             if remaining <= 0:
                 break
             time.sleep(remaining)
+            slept += remaining
         _next_allowed_at = time.monotonic() + _min_interval
-        return max(0.0, time.monotonic() - start)
+        return slept
 
 
 def note_throttled() -> None:

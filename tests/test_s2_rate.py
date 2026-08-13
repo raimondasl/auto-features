@@ -38,6 +38,13 @@ class TestTheGate:
         assert s2_rate.DEFAULT_MIN_REQUEST_INTERVAL >= 1.0
 
     def test_first_call_does_not_wait(self) -> None:
+        """Exactly 0.0, not "about zero".
+
+        `wait_turn` reports accumulated *sleep*, so a turn that did not sleep returns
+        exactly zero on every platform. Reporting elapsed wall time instead made this
+        0.0 on Windows (coarse clock) and ~7e-07 on Linux — the version that passed
+        locally and failed CI three ways.
+        """
         s2_rate.set_min_interval(0.05)
         s2_rate._next_allowed_at = 0.0
         assert s2_rate.wait_turn() == 0.0
