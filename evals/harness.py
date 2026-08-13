@@ -158,6 +158,7 @@ def collect_live_papers(
         CollectionError,
         build_queries,
         collect_papers,
+        dedup_id,
         to_plain_keywords,
     )
     from reporadar.config import ArxivConfig
@@ -182,7 +183,12 @@ def collect_live_papers(
         print(f"        ! arXiv collection FAILED (not an empty result): {exc}")
         raise
 
-    seen = {p["arxiv_id"] for p in papers}
+    # Version-insensitive, matching cli.update. arXiv hands back `2605.23815v1` where
+    # Semantic Scholar says `2605.23815`, so merging on raw ids admits both copies of one
+    # paper — and a duplicate scored 1 costs net@2 twice over. cli.py was fixed for this
+    # and the harness was not: the 2026-08-13 S2 A/B showed 6 duplicates across 4 cases in
+    # the treatment arm and none in the control.
+    seen = {dedup_id(p["arxiv_id"]) for p in papers}
     # arXiv's boolean grammar is not a keyword query; every non-arXiv source below needs
     # the words out of it. See reporadar.collector.to_plain_keywords for what this
     # replaced and why the old one-liner silently stopped working.
@@ -194,9 +200,9 @@ def collect_live_papers(
         for p in oa_collect(
             plain, lookback_days=lookback_days, api_key=keys.get("OPENALEX_API_KEY")
         ):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     if "semantic_scholar" in sources:
         from reporadar.sources.semantic_scholar import collect_papers as ss_collect
@@ -204,33 +210,33 @@ def collect_live_papers(
         for p in ss_collect(
             plain, api_key=keys.get("SEMANTIC_SCHOLAR_API_KEY"), lookback_days=lookback_days
         ):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     if "dblp" in sources:
         from reporadar.sources.dblp import collect_papers as dblp_collect
 
         for p in dblp_collect(plain, lookback_days=lookback_days):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     if "iacr" in sources:
         from reporadar.sources.iacr import collect_papers as iacr_collect
 
         for p in iacr_collect(plain, lookback_days=lookback_days):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     if "biorxiv" in sources:
         from reporadar.sources.biorxiv import collect_papers as bx_collect
 
         for p in bx_collect(plain, lookback_days=lookback_days):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     # Fail loudly on a source the harness can't fetch: silently ignoring it makes
     # a benchmark run look like a valid measurement of that source when it is a

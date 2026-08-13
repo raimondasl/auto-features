@@ -140,6 +140,27 @@ def to_plain_keywords(query: str) -> str:
     return " ".join(text.split())
 
 
+# Modern arXiv id with a version suffix, for version-insensitive cross-source dedup.
+_ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
+
+
+def dedup_id(arxiv_id: str) -> str:
+    """Version-strip a modern arXiv id for cross-source dedup; leave others as-is.
+
+    Sources disagree about versions for the same paper — arXiv hands back ``2605.23815v1``
+    where Semantic Scholar says ``2605.23815`` — so a merge on raw equality admits both
+    copies and the digest shows one paper twice.
+
+    Lives here, beside :func:`to_plain_keywords`, because it had already drifted once:
+    ``cli.py`` was fixed to use it while ``evals/harness.py`` kept merging on raw ids, and
+    the 2026-08-13 Semantic Scholar A/B consequently showed **6 duplicate papers across 4
+    cases** in the treatment arm and **none** in the control. Two implementations of one
+    invariant is the same as none — the lesson C-9 taught with the query bridge.
+    """
+    match = _ARXIV_VER_RE.match(arxiv_id)
+    return match.group(1) if match else arxiv_id
+
+
 def build_queries(
     profile: RepoProfile,
     queries_cfg: QueriesConfig,

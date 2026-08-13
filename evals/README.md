@@ -613,6 +613,20 @@ evals/
                      (top-10 divergence) before believing any delta, so a flag that
                      changed nothing reads VOID rather than "no effect", and refuses an arm
                      whose run file records a different `bigram_mode` than its label
+  source_ab_report.py
+                     $0, reads two run files: does adding a paper source help? Verifies the
+                     arms from their CONTENT (a source stamps `ss:`/`dblp:`/`iacr:` on what
+                     it contributes, so a swapped pair is caught even though run files do
+                     not record their --sources), then reports the mean THREE ways: all
+                     cases, excluding negative controls, and controls only — read from
+                     benchmark.yaml, never hardcoded. For the controls it prints the
+                     judge's score distribution on exactly the papers the treatment added,
+                     because `gold_n: 0` encodes "no gold ARXIV papers" and Tier B never
+                     sees the label. Verdict 2026-08-13 for Semantic Scholar: -1.05
+                     net@2/case on the 22 real cases, precision 0.908 -> 0.854, two repos
+                     net-negative where the control had none. Distinguishes "past the
+                     floor" from "established" — a mean beyond the MRE whose CI still spans
+                     zero is suggestive, not resolved
   (arXiv cache)      Not a script: importing `harness` enables `reporadar.arxiv_cache`
                      into evals/.work/arxiv-cache, so every eval and diagnostic shares one
                      set of arXiv responses. A 25-case sweep is 174 queries, byte-identical
