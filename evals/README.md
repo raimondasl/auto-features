@@ -613,6 +613,17 @@ evals/
                      (top-10 divergence) before believing any delta, so a flag that
                      changed nothing reads VOID rather than "no effect", and refuses an arm
                      whose run file records a different `bigram_mode` than its label
+  s2_yield.py        $0, no LLM, needs SEMANTIC_SCHOLAR_API_KEY: can S2's papers reach a
+                     ranked top-10 at all? The stage-1 gate before the ~$26 judged A/B —
+                     the same check that, run earlier, would have caught DBLP returning
+                     nothing before four attempts to benchmark it. Verdict 2026-08-12 on
+                     23 of 25 cases (arXiv throttled the other two, reported FAILED rather
+                     than empty): S2 delivers ~211 new papers per case, ~175 of them
+                     non-arXiv, and 73 reach a top-10 across 16 cases. But 22 of those 73
+                     land in the three NEGATIVE CONTROLS — `webdev` took 10/10 slots,
+                     `http` 9/10 — where the correct output is nothing. Optimistic by
+                     construction: no HyDE (~100 more competing candidates) and no triage
+                     rerank, so treat the counts as an UPPER bound
   audit_query_transform.py
                      $0, no LLM, free APIs: what did the broken arXiv-to-keyword bridge
                      (C-9) actually do to each non-arXiv source? Runs REAL build_queries
