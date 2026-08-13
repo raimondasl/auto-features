@@ -834,6 +834,87 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### S2 stage-1: the channel works, and it floods the negative controls (2026-08-12)
+
+```bash
+uv run python evals/s2_yield.py     # $0, no LLM
+```
+
+With C-9 fixed and a key in place, S2 returns papers again — so the judged A/B that finding
+3 only *appeared* to run is now possible. It costs ~$26 and ~4 h. This is the $0 check that
+comes first (the P4 protocol: verify every dependency before building), and it changed what
+the A/B should be looking for.
+
+**23 of 25 cases measured.** `thin-kv` and `thin-gnn` are **unmeasured, not zero** — arXiv
+threw a sustained throttle and the collector reported failure after 930 s of waiting rather
+than returning an empty pool. That guard exists because two cases were once scored as honest
+zeros after a 429 storm.
+
+#### The channel delivers, generously
+
+| | per case |
+|---|---|
+| S2 papers arriving | 218.6 |
+| new after dedup against the arXiv pool | 211.0 |
+| of those, non-arXiv (`ss:` ids) | 174.5 |
+| **reaching the ranked top-10** | **73 papers across 16/23 cases** |
+
+Nothing like DBLP (zero) or IACR (six papers, two cases). S2 contributes real volume, most of
+it content arXiv does not have, and it competes on rank.
+
+#### Where those top-10 slots land is the finding
+
+| case | arXiv pool it outranked | S2 papers in top-10 |
+|---|---|---|
+| **`webdev`** (negative control) | 287 | **10 / 10** |
+| **`http`** (negative control) | 257 | **9 / 10** |
+| `systems` | 249 | 7 |
+| `numerics` | 55 | 7 |
+| **`cli`** (negative control) | 250 | **3 / 10** |
+| … 11 more cases | | 1–5 |
+| `cv`, `rl`, `graph`, `crypto`, `db`, `linter`, `encryption` | | 0 |
+
+**22 of the 73 appearances — 30% — come from the three negative controls, which are 3 of 23
+cases.** Those are the repos defined by the benchmark as having almost no research overlap,
+where the correct output is *nothing*. On `webdev`, S2 papers took **every slot in the
+top-10**, outranking 287 arXiv papers on a Flask app.
+
+#### Finding 3's mechanism was right about a world that did not exist
+
+Finding 3 explained its (void) precision drop this way: *S2 papers carry no arXiv categories,
+and the absent-category-is-not-a-zero ranker rule (correctly) stops penalising them — which
+makes them more competitive and puts more weight on the triage gate to reject the
+non-actionable ones.*
+
+That reasoning is sound, and it was applied to data that did not exist, because S2 returned
+nothing. **Now the data exists and the mechanism is visible**: `w_category` cannot penalise a
+paper with no categories, S2 supplies ~175 uncategorised papers per case, and the queries
+reaching S2 carry no category clause to constrain them either (`to_plain_keywords` strips it,
+correctly — S2 has no such field). A repo with a thin or generic profile has nothing to push
+them back with.
+
+#### What this changes about the A/B — and a pre-registered prediction
+
+This measures the **ranked top-10, before the triage gate**. The gate is precisely what is
+supposed to catch this, and today it does: with S2 off, `webdev`, `cli`, `http` and `linter`
+all score net@2 **0.0** — correct abstention. So the judged experiment now has a sharp
+question rather than a vague one.
+
+Pre-registered, before spending anything:
+
+* **Prediction** — the gate holds. Negative controls stay at 0.0 and mean net@2 moves less
+  than the 1.04 floor.
+* **Alarm** — any negative control goes net-negative, or pooled precision drops below 0.85.
+  That would mean 175 uncategorised papers per case are reaching digests, and the fix is a
+  ranker change (penalise absent categories for uncategorised *sources*, rather than treating
+  the signal as merely missing) — not a source decision.
+
+The probe is **optimistic by construction**: no HyDE (~100 further candidates S2 would have
+to outrank) and no triage rerank, because both cost money. Real top-10 share under the
+shipped configuration is lower than these numbers.
+
+Logged as **NR-31**. **Cost** $0, ~35 minutes, two cases lost to an arXiv throttle.
+
 ### S2 resolved: the one published number downstream of C-9 was VOID, and four modules had no rate limiter (2026-08-12)
 
 ```bash
