@@ -42,10 +42,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ablation_report import load_arm, pool_mode, sign_test, summarise  # noqa: E402
 
-# evals/noise_floor.py, three live draws, paired within one session.
-MRE_PAIRED = 1.04
+# evals/noise_floor.py, paired within one session. Which floor applies depends on how the
+# arms got their candidates, and using the wrong one is a live way to overstate a result:
+# a frozen-pool arm compared against the live floor calls a real effect unresolvable.
+MRE_PAIRED = 1.04  # live collection, three draws
+MRE_FROZEN = 0.48  # one pool reused, two passes
 BOOTSTRAP_N = 10000
 BOOTSTRAP_SEED = 20260812
+
+
+def mre_for(provenance: str) -> tuple[float, str]:
+    """The floor that applies to arms with this pool provenance, and why.
+
+    Derived rather than passed in. The floor is a property of how the arms were collected,
+    and a flag would let a frozen comparison be read against the live floor by omission —
+    the same shape as every other silently-wrong default this project has paid for.
+    """
+    if provenance.startswith("frozen"):
+        return MRE_FROZEN, "frozen pool, reused"
+    return MRE_PAIRED, "live collection"
 
 
 def top10_ids(record: dict[str, Any]) -> set[str]:
@@ -85,15 +100,20 @@ def paired_bootstrap(deltas: list[float], n: int = BOOTSTRAP_N) -> tuple[float, 
     return means[int(0.025 * n)], means[int(0.975 * n)]
 
 
-def check_labels(label: str, arm: dict[str, dict[str, Any]]) -> None:
-    """The run files record their own arm; a mislabelled file is a silent swap."""
-    recorded = {r.get("bigram_mode") for r in arm.values()}
+def check_labels(label: str, arm: dict[str, dict[str, Any]], field: str = "bigram_mode") -> None:
+    """The run files record their own arm; a mislabelled file is a silent swap.
+
+    *field* names the result key that identifies the arm, so this serves any single-flag
+    experiment — `bigram_mode` for the phrase-query arms, `absent_category` for the ranker
+    ones. Files differing by one flag are easy to pass in the wrong order.
+    """
+    recorded = {r.get(field) for r in arm.values()}
     if recorded == {None}:
-        print(f"  ! {label}: no `bigram_mode` recorded (run predates the flag) — trusting label")
+        print(f"  ! {label}: no `{field}` recorded (run predates the flag) — trusting label")
         return
     if recorded != {label}:
         raise SystemExit(
-            f"arm labelled {label!r} contains bigram_mode={sorted(map(str, recorded))} — "
+            f"arm labelled {label!r} contains {field}={sorted(map(str, recorded))} — "
             "refusing to report an arm under a name its own run file contradicts"
         )
 
@@ -102,6 +122,13 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("arms", nargs="+", metavar="LABEL=FILE", help="control arm first")
     ap.add_argument("--out", default="evals/.work/bigrams.json")
+    ap.add_argument(
+        "--label-field",
+        default="bigram_mode",
+        help="Result key identifying the arm, so a file cannot be reported under a name it "
+        "contradicts. `bigram_mode` for the phrase-query arms, `absent_category` for the "
+        "ranker ones.",
+    )
     args = ap.parse_args()
 
     arms: dict[str, dict[str, dict[str, Any]]] = {}
@@ -126,7 +153,9 @@ def main() -> int:
             + ", ".join(f"{k}={v}" for k, v in modes.items())
         )
     for label in labels:
-        check_labels(label, arms[label])
+        check_labels(label, arms[label], args.label_field)
+    # Derived from how the arms were collected, never passed in — see `mre_for`.
+    mre, floor_why = mre_for(modes[control])
 
     cases = sorted(base)
     print("=" * 78)
@@ -164,7 +193,7 @@ def main() -> int:
         )
         print(f"{case:11}{row}")
 
-    print(f"\npaired against {control!r}, same session (MRE = {MRE_PAIRED:.2f} net@2/case):")
+    print(f"\npaired against {control!r}, same session (MRE = {mre:.2f} net@2/case — {floor_why}):")
     paired = {}
     for label in labels[1:]:
         deltas = [
@@ -175,7 +204,9 @@ def main() -> int:
         mean = statistics.mean(deltas)
         lo, hi = paired_bootstrap(deltas)
         pos, neg, ties, p = sign_test(deltas)
-        resolvable = "RESOLVED" if abs(mean) >= MRE_PAIRED else "inside the floor"
+        # Magnitude only. Whether THIS draw established it is the CI's question, printed
+        # beside it — source_ab_report.py conflated the two once and overstated a result.
+        resolvable = "past the floor" if abs(mean) >= mre else "inside the floor"
         paired[label] = {"mean": mean, "ci": [lo, hi], "sign_p": p, "resolvable": resolvable}
         print(
             f"  {label:>10}  {mean:+6.2f}  95% CI [{lo:+.2f}, {hi:+.2f}]  "
@@ -186,11 +217,18 @@ def main() -> int:
     for label in labels[1:]:
         if not divs[label]["changed_cases"]:
             print(f"{label}: VOID. The arm did not change retrieval; nothing was measured.")
-        elif paired[label]["resolvable"] == "RESOLVED":
-            print(f"{label}: effect {paired[label]['mean']:+.2f}/case, outside the noise floor.")
+        elif paired[label]["resolvable"] == "past the floor":
+            lo, hi = paired[label]["ci"]
+            clear = lo > 0 or hi < 0
+            shown = "and the CI excludes 0" if clear else "but the CI spans 0"
+            verdict = "established" if clear else "suggestive, not established"
+            print(
+                f"{label}: {paired[label]['mean']:+.2f}/case is past the {mre} floor "
+                f"{shown} — {verdict}."
+            )
         else:
             print(
-                f"{label}: {paired[label]['mean']:+.2f}/case is INSIDE the {MRE_PAIRED} floor — "
+                f"{label}: {paired[label]['mean']:+.2f}/case is INSIDE the {mre} floor — "
                 "unresolvable at this n, which is not the same as absent."
             )
 

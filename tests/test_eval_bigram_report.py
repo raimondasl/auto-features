@@ -22,7 +22,13 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals"))
 
-from bigram_report import check_labels, divergence, paired_bootstrap, top10_ids  # noqa: E402
+from bigram_report import (  # noqa: E402
+    check_labels,
+    divergence,
+    mre_for,
+    paired_bootstrap,
+    top10_ids,
+)
 
 
 def _case(name: str, ids: list[str], net: float = 0.0, mode: str = "adjacent") -> dict[str, Any]:
@@ -82,6 +88,42 @@ class TestLabelCheck:
         arm = {"a": {"case": "a", "reporadar_toppicks": {"net_value@2": 0.0}}}
         check_labels("adjacent", arm)
         assert "no `bigram_mode` recorded" in capsys.readouterr().out
+
+
+class TestTheFloorIsDerivedNotChosen:
+    """Which MRE applies is a property of how the arms were collected.
+
+    A frozen-pool comparison read against the live floor would call a real effect
+    unresolvable — and a flag defaulting to the live value would do exactly that by
+    omission, which is the shape of every silently-wrong default this project has paid for.
+    """
+
+    def test_live_arms_get_the_live_floor(self) -> None:
+        assert mre_for("live")[0] == 1.04
+
+    def test_unlabelled_runs_are_treated_as_live(self) -> None:
+        """Runs predating `--rr-frozen-pool` carry no provenance and were all live."""
+        assert mre_for("unlabelled")[0] == 1.04
+
+    @pytest.mark.parametrize("mode", ["frozen", "frozen:abc123", "frozen-seeded"])
+    def test_frozen_arms_get_the_frozen_floor(self, mode: str) -> None:
+        assert mre_for(mode)[0] == 0.48
+
+    def test_the_frozen_floor_is_the_tighter_one(self) -> None:
+        """Freezing removes the dominant variance term; if this inverts, something is wrong."""
+        assert mre_for("frozen")[0] < mre_for("live")[0]
+
+
+class TestLabelFieldIsConfigurable:
+    def test_a_different_field_identifies_a_different_experiment(self) -> None:
+        arm = {"a": {"case": "a", "absent_category": "zero", "bigram_mode": "verified"}}
+        check_labels("zero", arm, "absent_category")
+        with pytest.raises(SystemExit, match="refusing to report an arm"):
+            check_labels("impute", arm, "absent_category")
+
+    def test_the_default_field_is_still_bigram_mode(self) -> None:
+        arm = {"a": {"case": "a", "bigram_mode": "none"}}
+        check_labels("none", arm)
 
 
 class TestPairedBootstrap:
