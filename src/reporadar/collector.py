@@ -11,7 +11,7 @@ from typing import Any
 
 import arxiv
 
-from reporadar import arxiv_rate
+from reporadar import arxiv_cache, arxiv_rate
 from reporadar.config import BIGRAM_MODES, ArxivConfig, QueriesConfig
 from reporadar.profiler import RepoProfile
 
@@ -239,6 +239,25 @@ def _result_to_paper(result: arxiv.Result) -> dict[str, Any]:
     }
 
 
+def _published_before(published: str | None, cutoff: datetime) -> bool:
+    """Is this paper older than the window? Unparseable or missing dates are KEPT.
+
+    The stored `published` is whatever `_result_to_paper` wrote, and the arxiv library has
+    handed back both naive and aware datetimes over its life — so a naive string is
+    assumed UTC rather than allowed to raise mid-collection. A date we cannot read is not
+    evidence the paper is old, and dropping it would quietly shrink a pool.
+    """
+    if not published:
+        return False
+    try:
+        when = datetime.fromisoformat(published)
+    except ValueError:
+        return False
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=UTC)
+    return when < cutoff
+
+
 _CLIENTS: dict[tuple[int, int], arxiv.Client] = {}
 
 
@@ -356,13 +375,18 @@ def collect_by_ids(ids: list[str], batch_size: int = 100) -> list[dict[str, Any]
     seen: set[str] = set()
     for start in range(0, len(ids), batch_size):
         chunk = ids[start : start + batch_size]
-        search = arxiv.Search(id_list=chunk, max_results=len(chunk))
-        for result in _query_with_retry(client, search):
-            paper = _result_to_paper(result)
+        # Sorted, so the same set of ids in a different order is one cache entry rather
+        # than a new fetch — HyDE's id lists come back ranked and the order varies.
+        cache_fields = {"kind": "ids", "ids": sorted(chunk)}
+        cached = arxiv_cache.get(cache_fields)
+        if cached is None:
+            search = arxiv.Search(id_list=chunk, max_results=len(chunk))
+            cached = [_result_to_paper(r) for r in _query_with_retry(client, search)]
+            arxiv_cache.put(cache_fields, cached, empty_is_real=True)
+        for paper in cached:
             if paper["arxiv_id"] not in seen:
                 seen.add(paper["arxiv_id"])
-                paper["matched_query"] = "hyde"
-                papers.append(paper)
+                papers.append({**paper, "matched_query": "hyde"})
     logger.info("Fetched %d of %d requested arXiv ids", len(papers), len(ids))
     return papers
 
@@ -396,23 +420,38 @@ def collect_papers(
             if arxiv_cfg.sort_by == "relevance"
             else arxiv.SortCriterion.SubmittedDate
         )
-        search = arxiv.Search(
-            query=query_str,
-            max_results=arxiv_cfg.max_results_per_query,
-            sort_by=sort_criterion,
-            sort_order=arxiv.SortOrder.Descending,
-        )
+        # Everything that can change the response. `lookback_days` is deliberately NOT
+        # here: it filters results below rather than changing the request, so a 90-day run
+        # can reuse an all-time fetch, and including it would split the cache pointlessly.
+        cache_fields = {
+            "kind": "search",
+            "query": query_str,
+            "max_results": arxiv_cfg.max_results_per_query,
+            "sort_by": arxiv_cfg.sort_by,
+        }
+        cached = arxiv_cache.get(cache_fields)
+        if cached is not None:
+            fresh_papers = cached
+        else:
+            search = arxiv.Search(
+                query=query_str,
+                max_results=arxiv_cfg.max_results_per_query,
+                sort_by=sort_criterion,
+                sort_order=arxiv.SortOrder.Descending,
+            )
+            # `_query_with_retry` raises rather than returning [] when it gives up, so
+            # reaching this line means arXiv answered — an empty answer included.
+            fresh_papers = [_result_to_paper(r) for r in _query_with_retry(client, search)]
+            arxiv_cache.put(cache_fields, fresh_papers, empty_is_real=True)
 
-        results = _query_with_retry(client, search)
-        for result in results:
-            # Skip papers older than lookback window
-            if result.published.replace(tzinfo=UTC) < cutoff:
+        for paper in fresh_papers:
+            # Skip papers older than lookback window. Applied AFTER the cache so one stored
+            # response serves any window.
+            if _published_before(paper.get("published"), cutoff):
                 continue
-
-            paper = _result_to_paper(result)
             if paper["arxiv_id"] not in seen_ids:
                 seen_ids.add(paper["arxiv_id"])
-                paper["matched_query"] = query_str
+                paper = {**paper, "matched_query": query_str}
                 papers.append(paper)
 
     logger.info("Collected %d unique papers from %d queries", len(papers), len(queries))

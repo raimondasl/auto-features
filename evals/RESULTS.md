@@ -834,6 +834,89 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### The arXiv throttle was volume, not rate — and the negative-control premise needs testing (2026-08-12)
+
+#### Why we were throttled while obeying the rate limit
+
+The S2 yield probe lost its last two cases to an arXiv throttle, which looked like a
+politeness failure. It was not one. The rate limiter is correct and was applied throughout:
+`_query_with_retry` takes a turn at the process-wide 3-second gate before **every** attempt,
+retries included; `_shared_client` is reused for the life of the process with its own
+`delay_seconds` set from the same interval; `page_size=100` against `max_results=50` means
+one HTTP request per query, with no hidden pagination.
+
+**The evidence that it was volume:** the failures arrived at cases **24 and 25**, after ~162
+requests in that run had already succeeded. A rate violation fails early and uniformly; a
+volume ceiling fails late. The day's cumulative total from this machine:
+
+| run | arXiv requests |
+|---|---|
+| three phrase-query arms (3 × 174 queries + ~75 HyDE id lookups) | ~597 |
+| S2 yield probe, before it was cut off | ~162 |
+| **total** | **~760** |
+
+arXiv's published guidance is a *rate*. `export.arxiv.org` additionally protects against
+sustained bulk usage, and a 3-second gate cannot express "and no more than N per day".
+
+#### The waste was total, and it is now fixed
+
+A 25-case sweep is **174 queries**, and they are byte-identical between runs — same repos,
+same profiles, same `build_queries` output. The three arms fetched the same pool three
+times; the probe fetched it a fourth. **~700 requests where ~174 would do.**
+
+`reporadar/arxiv_cache.py` caches responses keyed on query, `max_results` and `sort_by`.
+`lookback_days` is deliberately **not** in the key: it filters results after the fetch
+rather than changing the request, so one stored all-time response serves any window.
+Measured on `rag`:
+
+| | papers | time | arXiv requests |
+|---|---|---|---|
+| cold | 150 | 12.2 s | 5 |
+| **warm** | **150** | **0.1 s** | **0** |
+
+**Off unless asked.** `evals/harness.py` enables it; the product does not, because serving a
+six-hour-old answer to a daily digest is a behaviour change nobody measured. Same reasoning
+as `--rr-frozen-pool`: reuse is a deliberate, labelled act.
+
+One design point worth recording, because the first version got it wrong. The cache
+initially refused to store *any* empty result, on the rule that "arXiv found nothing" and
+"arXiv refused" are the same bytes on disk — the mistake that once cached seven pools of
+429-storm zeros as honest measurements. But `_query_with_retry` **raises** rather than
+returning `[]` when it exhausts its retries, so an empty list from it is an answer arXiv
+actually gave. The blanket rule was re-fetching 2 of `rag`'s 5 queries on every run to guard
+against a failure that cannot reach it from there. Now `put(..., empty_is_real=True)` states
+the guarantee at the call site that can prove it, and defaults to the safe behaviour for any
+caller that cannot.
+
+#### Are the negative controls really supposed to return nothing?
+
+Raised as a challenge to the benchmark's premise, and it is a fair one that changes the S2
+A/B. `webdev` (Flask), `cli` (click) and `http` (requests) are labelled negative controls on
+the reasoning that they have "almost no arXiv research overlap" — and **`gold_n: 0` encodes
+"no gold *arXiv* papers", which is a claim about coverage, not about whether research that
+could improve these repos exists.** Plausible literature does exist for at least two of them:
+TLS handshake and connection-pool policy, retry/backoff, certificate validation for
+`requests`; session security, CSRF, WSGI/ASGI performance for Flask. Most of it lives in
+USENIX/CCS/WWW proceedings — which S2 indexes and arXiv largely does not.
+
+**The judged eval does not beg this question.** `negative_control` and `max_score_threshold`
+are read only by `run_eval.py` (Tier A, offline fixtures). Tier B — the judged path that
+produces net@2 — passes every paper to the judge with no knowledge of the label, and the
+rubric asks whether it could *genuinely improve this repository*. So the judge decides on
+merit.
+
+That **corrects the prediction pre-registered in the stage-1 entry below**, which treated S2
+papers reaching negative-control top-10s as presumptively an alarm:
+
+* If those papers are genuinely useful, the judge scores them 2–3, they count as actionable,
+  and net@2 on those cases goes **up**. That is S2 filling a real coverage gap, and it would
+  mean the "negative control" label is arXiv-specific rather than true.
+* If they are topically loose, the judge scores 0–1 and precision falls.
+
+Both are informative and they are distinguishable — but only by reading the judge's scores
+and justifications on those three cases, not by reading the mean. The A/B should report them
+separately.
+
 ### S2 stage-1: the channel works, and it floods the negative controls (2026-08-12)
 
 ```bash

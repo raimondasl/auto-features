@@ -13,12 +13,24 @@ from typing import Any
 
 import yaml
 
+from reporadar import arxiv_cache
 from reporadar.config import ProfilerConfig, QueriesConfig, RankingConfig
 from reporadar.profiler import RepoProfile, profile_repo
 from reporadar.ranker import rank_papers
 
 EVALS_DIR = Path(__file__).resolve().parent
 WORK_DIR = EVALS_DIR / ".work"
+ARXIV_CACHE_DIR = WORK_DIR / "arxiv-cache"
+
+# Every eval and diagnostic shares one arXiv response cache. A 25-case sweep is 174
+# queries, byte-identical between runs because the repos and profiles do not change — and
+# on 2026-08-12 four such sweeps in a day (three phrase-query arms plus a yield probe, ~760
+# requests) got the last two cases refused after 930 s of waiting out throttles. The rate
+# limiter was correct throughout; nothing in this project was tracking VOLUME.
+#
+# Enabled here rather than in `reporadar.collector`, so the product keeps fetching fresh:
+# serving a six-hour-old answer to a daily digest is a behaviour change nobody measured.
+arxiv_cache.configure(ARXIV_CACHE_DIR)
 
 
 def load_benchmark(path: str | Path | None = None) -> dict[str, Any]:

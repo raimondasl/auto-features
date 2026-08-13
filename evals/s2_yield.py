@@ -45,9 +45,11 @@ EVALS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(EVALS_DIR))
 sys.path.insert(0, str(EVALS_DIR.parent / "src"))
 
+# Importing harness also enables the shared arXiv response cache (see harness.py) — which
+# is why this script no longer costs 174 arXiv requests on a re-run.
 from harness import WORK_DIR, load_benchmark, profile_case_repo  # noqa: E402
 
-from reporadar import s2_rate  # noqa: E402
+from reporadar import arxiv_cache, s2_rate  # noqa: E402
 from reporadar.collector import (  # noqa: E402
     CollectionError,
     build_queries,
@@ -192,6 +194,11 @@ def main() -> int:
     print(f"mean NEW after dedup          : {mean_new:.1f}")
     print(f"  of which non-arXiv (ss:)    : {mean_non_arxiv:.1f}")
     print(f"S2 papers reaching a top-{TOP_N}   : {total_top} across {cases_with}/{len(rows)} cases")
+    cache = arxiv_cache.stats()
+    print(
+        f"arXiv requests saved by cache : {cache['hits']} hits, {cache['misses']} misses, "
+        f"{cache['writes']} written"
+    )
 
     print("\n" + "-" * 78)
     if total_top == 0:
