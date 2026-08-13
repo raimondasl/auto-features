@@ -18,6 +18,7 @@ from reporadar.collector import (
     _result_to_paper,
     build_queries,
     collect_papers,
+    dedup_id,
     to_plain_keywords,
 )
 from reporadar.config import ArxivConfig, QueriesConfig
@@ -695,6 +696,45 @@ class TestBigramModes:
                 self._profile(), QueriesConfig(bigrams=mode), ArxivConfig(categories=[])
             )
             assert any("duckdb" in q for q in queries), (mode, queries)
+
+
+class TestCrossSourceDedup:
+    """`dedup_id` — the invariant that one paper appears once, however sources spell it.
+
+    It drifted the same way the query bridge did: `cli.py` version-strips before merging a
+    non-arXiv source, `evals/harness.py` merged on the raw id, and the 2026-08-13 Semantic
+    Scholar A/B consequently returned **6 duplicate papers across 4 cases** in the
+    treatment arm and **none** in the control — arXiv saying `2605.23815v1` where S2 says
+    `2605.23815`. A duplicate judged 1 costs net@2 twice over, so this quietly moved
+    per-case results in an experiment about something else.
+    """
+
+    def test_versioned_and_unversioned_ids_collapse(self) -> None:
+        assert dedup_id("2605.23815v1") == dedup_id("2605.23815") == "2605.23815"
+
+    def test_five_digit_ids_are_handled(self) -> None:
+        assert dedup_id("2502.08832v2") == "2502.08832"
+
+    @pytest.mark.parametrize(
+        "other", ["ss:abc123", "dblp:conf/x/Y", "iacr:2026/1373", "cs/0301001"]
+    )
+    def test_non_arxiv_ids_are_left_alone(self, other: str) -> None:
+        """A synthetic id has no version to strip, and mangling one would merge two
+        genuinely different papers into one."""
+        assert dedup_id(other) == other
+
+    def test_the_harness_merges_are_version_insensitive(self) -> None:
+        """Reads the source, because the drift was between two files that each looked fine.
+
+        A unit test of `dedup_id` passes whether or not anyone calls it — which is exactly
+        how the query bridge stayed broken while its translator was correct.
+        """
+        harness = Path(__file__).resolve().parents[1] / "evals" / "harness.py"
+        text = harness.read_text(encoding="utf-8")
+        assert 'if p["arxiv_id"] not in seen' not in text, (
+            "a source merge in evals/harness.py still dedups on the raw id"
+        )
+        assert text.count('dedup_id(p["arxiv_id"]) not in seen') >= 4
 
 
 # Every module that bridges arXiv's query grammar to a keyword source. Adding a source

@@ -834,6 +834,114 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### S2 measured at last: it does not help, it displaces — and the controls answer a different question (2026-08-13)
+
+```bash
+for SOURCES in arxiv arxiv,semantic_scholar; do
+  uv run python evals/run_judge_eval.py --baseline none --sources $SOURCES \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde
+done
+uv run python evals/source_ab_report.py arxiv=<A> +s2=<B>
+```
+
+The experiment finding 3 only appeared to run. Two arms, 25 cases each, same session, arm A
+collecting arXiv live and arm B serving it from the cache. **Both arms complete — no case
+lost**, unlike the probe that preceded the cache.
+
+**Arm VALID, emphatically**: 122 papers returned by the treatment that the control never
+returned, across **25/25** cases. Nothing here is the void that finding 3 was.
+
+| arm | net@2 | shown | actionable | precision | abstained | net-negative |
+|---|---|---|---|---|---|---|
+| `arxiv` | **+4.12** | 142 | 129 | **0.908** | 5 | **0** |
+| `+s2` | **+3.24** | 144 | 123 | **0.854** | 4 | **2** |
+
+| paired | n | mean | 95% CI | sign | p |
+|---|---|---|---|---|---|
+| all cases | 25 | **−0.88** | [−1.84, +0.04] | 5+/10−/10= | 0.30 |
+| **excluding controls** | 22 | **−1.05** | [−2.14, +0.00] | 4+/10−/8= | 0.18 |
+| controls only | 3 | +0.33 | [+0.00, +1.00] | 1+/0−/2= | 1.00 |
+
+**−1.05 on the 22 real cases is past the 1.04 floor, and its interval still touches zero.**
+Those are two different claims and the first version of `source_ab_report.py` conflated
+them, printing "RESOLVED" on magnitude alone — and calling `[−2.14, +0.00]` an interval that
+excludes zero, because its containment test was really a sign-agreement test. The honest
+reading: **big enough to see, not yet established**, and pointing down.
+
+#### The mechanism is displacement, not addition
+
+`thin-kv` shows it cleanly: **8 papers shown in both arms**, actionable 8 → 6. S2 did not add
+noise beside the good papers, it **pushed two of them out of the top-10**. `llminfer` is the
+extreme (−7.0 raw): S2 supplied five quantization papers, four judged **1** — topically
+exact, not actionable. The register mismatch again, now with a fuller candidate pool to
+express itself through.
+
+#### A dedup bug found by reading the shown lists
+
+The treatment showed **6 duplicate papers across 4 cases**; the control showed **none**. The
+ids give it away — `2605.23815v1` beside `2605.23815`. `cli.py` version-strips before merging
+a non-arXiv source; **`evals/harness.py` merged on the raw id**, so arXiv's versioned copy and
+S2's unversioned copy both survived. Same shape as C-9: one invariant, two implementations,
+one of them fixed. `dedup_id` now lives in `collector.py` beside `to_plain_keywords`, and a
+test reads `harness.py` to assert no merge is left on raw equality.
+
+**It does not change the headline.** Removing each duplicate's contribution moves four cases
+(`storage` 0.0 → −3.0, `compiler` +4.0 → +3.0, `llminfer` −7.0 → −5.0, `vectordb` −3.0 → −1.0)
+and the corrections cancel: the mean stays −0.88 and −1.05 exactly, with the interval
+tightening to [−2.00, −0.14]. Per-case results were contaminated; the conclusion was not.
+
+#### The negative controls: the premise was half right
+
+The question was whether `gold_n: 0` means "no research could help this repo" or merely "no
+gold *arXiv* papers". Tier B never reads the label, so the judge answered it directly, on the
+17 papers S2 added to those three cases:
+
+| case | added | judge scores | net@2 |
+|---|---|---|---|
+| `webdev` | 7 | **1 × 7** | 0.0 → 0.0 |
+| `http` | 8 | 0×2, 1×3, **2×3** | **0.0 → +1.0** |
+| `cli` | 2 | 1×1, **2×1** | 0.0 → 0.0 |
+
+**4 actionable, 13 loose.** So: *partially vindicated*. `webdev` is a real negative control —
+seven papers on-topic enough to retrieve, every one judged "no concrete actionable
+improvement". But `http` is not: three papers judged 2, and one reached the digest —
+*PyTrim: A Practical Tool for Reducing Python Dependency Bloat*, which is a genuinely
+plausible change for `requests`.
+
+The label is not uniformly wrong, and it is not uniformly right. It encodes arXiv coverage,
+and for one of the three repos that understates what exists. But the density is the point:
+**4 of 17 added papers (24%) against a 0.854 pooled precision** — the controls are where S2's
+papers are *least* likely to be useful, not most.
+
+#### The alarm I pre-registered did not fire, and I had picked the wrong indicators
+
+I said: alarm if a negative control goes net-negative, or pooled precision drops below 0.85.
+Precision landed at **0.854** and no control went negative — so by the letter, no alarm. Yet
+**two ordinary repos went net-negative** (`llminfer`, `numerics`) where the control arm had
+none, and the effect on real cases is −1.05. I had aimed the alarm at the controls because
+that is where the stage-1 probe found S2 concentrated; the damage landed on the repos that
+have genuine literature, where S2's papers compete with *better* papers rather than with
+nothing.
+
+#### Shipping decision
+
+**`sources: [arxiv]` stays the default — now on measured grounds rather than a void.** The
+recommendation is unchanged from finding 3 and its basis is completely different: not "S2
+adds competitive junk" (that arm returned nothing), but "S2 returns 122 real papers and
+displaces better ones".
+
+This does not condemn the source. The stage-1 probe showed ~175 non-arXiv papers per case
+arriving, and `compiler` (+4.0), `graph` (+2.0) and `rag` (+2.0) gained. What is refuted is
+**adding S2 to the pool undifferentiated**. The plausible next move is a ranker change —
+uncategorised papers currently escape `w_category` under the absent-signal rule, which is
+exactly the advantage that lets a loose S2 paper outrank a good arXiv one — not a bigger
+source list.
+
+Logged as **NR-32** (S2 measured, −1.05 on real cases, displacement not addition) and
+**C-12** (the harness merged non-arXiv sources on raw ids).
+
+**Cost** ~$18, two arms, ~3 h 15 m, all 25 cases in both.
+
 ### The arXiv throttle was volume, not rate — and the negative-control premise needs testing (2026-08-12)
 
 #### Why we were throttled while obeying the rate limit

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import re
 import webbrowser
 from collections.abc import Iterator
 from dataclasses import asdict, replace
@@ -18,6 +17,7 @@ from reporadar.collector import (
     build_queries,
     collect_by_ids,
     collect_papers,
+    dedup_id,
     to_plain_keywords,
 )
 from reporadar.config import (
@@ -41,9 +41,6 @@ from reporadar.store import PaperStore, StoreError
 # window (the baseline's edge on the Tier B benchmark). ~100 years ≈ no cutoff.
 _FOUNDATIONAL_LOOKBACK = 36500
 
-# Modern arXiv id with a version suffix, for version-insensitive cross-source dedup.
-_ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
-
 # The only ranking weights feedback.compute_adjusted_weights learns; every other
 # RankingConfig field is passed through untouched (see stage 7 in `update`).
 _LEARNED_WEIGHTS = ("w_keyword", "w_category", "w_recency", "w_embedding", "w_citations")
@@ -52,10 +49,10 @@ _LEARNED_WEIGHTS = ("w_keyword", "w_category", "w_recency", "w_embedding", "w_ci
 _HISTORY_LIMIT = 10
 
 
-def _dedup_id(arxiv_id: str) -> str:
-    """Version-strip a modern arXiv id for cross-source dedup; leave others as-is."""
-    match = _ARXIV_VER_RE.match(arxiv_id)
-    return match.group(1) if match else arxiv_id
+# Re-exported under its old private name so the many call sites below read unchanged.
+# The definition moved to `collector` after the eval harness was found merging on raw ids
+# while this module version-stripped — see `collector.dedup_id`.
+_dedup_id = dedup_id
 
 
 def _apply_foundational(
