@@ -613,6 +613,17 @@ evals/
                      (top-10 divergence) before believing any delta, so a flag that
                      changed nothing reads VOID rather than "no effect", and refuses an arm
                      whose run file records a different `bigram_mode` than its label
+  (arXiv cache)      Not a script: importing `harness` enables `reporadar.arxiv_cache`
+                     into evals/.work/arxiv-cache, so every eval and diagnostic shares one
+                     set of arXiv responses. A 25-case sweep is 174 queries, byte-identical
+                     between runs, and on 2026-08-12 four sweeps in a day (~760 requests)
+                     had their last two cases refused after 930s of waiting out throttles —
+                     the rate limiter was correct throughout, nothing tracked VOLUME.
+                     Measured on `rag`: cold 5 requests / 12.2s, warm 0 requests / 0.1s,
+                     identical 150 papers. Keyed on query + max_results + sort_by;
+                     lookback_days is NOT in the key because it filters after the fetch, so
+                     one all-time response serves any window. OFF in the product — a
+                     six-hour-old answer to a daily digest is an unmeasured behaviour change
   s2_yield.py        $0, no LLM, needs SEMANTIC_SCHOLAR_API_KEY: can S2's papers reach a
                      ranked top-10 at all? The stage-1 gate before the ~$26 judged A/B —
                      the same check that, run earlier, would have caught DBLP returning
