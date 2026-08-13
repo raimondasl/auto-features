@@ -11,6 +11,8 @@ import urllib.request
 from collections.abc import Iterator
 from typing import Any
 
+from reporadar import s2_rate
+
 logger = logging.getLogger(__name__)
 
 _S2_BATCH_URL = "https://api.semanticscholar.org/graph/v1/paper/batch"
@@ -57,6 +59,10 @@ def _s2_batch_post(
 
     for attempt in range(max_retries):
         try:
+            # Shared 1 RPS gate. This function serves BOTH the citation hop and specter.py
+            # (which imports it), and S2's limit is per key across all endpoints — so the
+            # clock has to be shared with the search and recommendation paths too.
+            s2_rate.wait_turn()
             req = urllib.request.Request(
                 f"{_S2_BATCH_URL}?fields={fields}",
                 data=payload,
@@ -68,6 +74,7 @@ def _s2_batch_post(
             return data
         except urllib.error.HTTPError as exc:
             if exc.code == 429:
+                s2_rate.note_throttled()
                 delay = base_delay * (2**attempt)
                 logger.warning(
                     "Semantic Scholar rate limited (attempt %d/%d). Retrying in %.1fs...",

@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from reporadar import arxiv_rate
+from reporadar import arxiv_rate, s2_rate
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -74,6 +74,23 @@ def _no_arxiv_throttle_sleep() -> Iterator[None]:
         yield
     finally:
         arxiv_rate.set_min_interval(previous)
+
+
+@pytest.fixture(autouse=True)
+def _no_s2_throttle_sleep() -> Iterator[None]:
+    """Same, for the Semantic Scholar 1 RPS gate.
+
+    Needed for a second reason beyond speed: a mocked 429 calls
+    ``s2_rate.note_throttled()``, which parks the shared clock 30 seconds into the future.
+    Without this the retry tests would really sleep for half a minute each, and the *next*
+    test touching S2 would inherit the hold. The shipped interval is asserted in
+    tests/test_s2_rate.py so this fixture cannot quietly become the product's behaviour.
+    """
+    previous = s2_rate.set_min_interval(0.0)
+    try:
+        yield
+    finally:
+        s2_rate.set_min_interval(previous)
 
 
 @pytest.fixture()

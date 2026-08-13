@@ -834,6 +834,96 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### S2 resolved: the one published number downstream of C-9 was VOID, and four modules had no rate limiter (2026-08-12)
+
+```bash
+uv run python evals/audit_query_transform.py --sources s2 \
+    --cases rag,cv,rl,webdev,peft,diffusion,graph,speech,crypto,systems,cli,http
+```
+
+The C-9 audit left one thing undetermined and said so: Semantic Scholar was the only source
+with a **published** number measured through the broken transform — finding 3, "adding
+Semantic Scholar did not help". Two attempts to resolve it were refused by rate limiting
+(keyless S2 answered 429 to all 20 requests), and the apparent zeros were discarded rather
+than reported. With an API key, it resolves.
+
+#### Before spending the key: three of four S2 modules had no rate limiter
+
+S2's documented key limit is **1 request per second across all endpoints**, per key. Four
+modules here call it, and an audit found:
+
+| module | endpoint | rate limiting before this |
+|---|---|---|
+| `sources/semantic_scholar.py` | `/paper/search` | slept *between* queries in one call only |
+| `sources/s2_recommendations.py` | `/recommendations/v1/papers` | **none** (retry backoff only) |
+| `specter.py` | `/paper/batch` | **none** |
+| `citations.py` | `/paper/batch` | **none** (retry backoff only) |
+
+Retry backoff is not rate limiting — it fires *after* the server has been hit too fast. And
+the one limiter that existed never spaced a call's first request, so an eval sweeping 25
+repos opened each with an unspaced request. This is what `arxiv_rate` exists for, in its own
+words: *"Two independent 3-second limiters permit two requests per three seconds."* Four
+independent ones permit four per second. `s2_rate` now gates all four (`specter` imports
+`citations._s2_batch_post`, so one gate covers both).
+
+**Two defects surfaced only against the live API**, which is the argument for probing before
+measuring:
+
+- **The interval was undershot.** `time.sleep(d)` sleeps *at least* d but is not guaranteed
+  to; on Windows it returned ~7 ms early, turning a 1.1 s interval into **1.093 s** gaps.
+  Still inside S2's real 1.0 s limit, but a limiter that misses its own target by 7 ms would
+  miss a tighter one by the same margin. `wait_turn` now sleeps toward a deadline in a loop.
+  Re-probed live: **1.109–1.110 s**, no undershoot.
+- **`set_min_interval(0)` did not disable the gate** while a throttle hold was pending, so
+  "no rate limiting" still waited 30 s — a knob that did not do what it said, and a
+  cross-test leak from whichever test mocked a 429 first.
+
+#### The measurement
+
+12 cases, real `build_queries` output, one query each, both transforms. Spaced at **3.0 s**
+— deliberately slower than the 1 RPS floor, because S2 throttles beyond its documented limit
+under load and every 429 risks a refusal being counted as a zero. **12/12 measured, no
+refusals.**
+
+| | OLD transform | NEW transform | shared |
+|---|---|---|---|
+| `rag` | 1 | 20 | 0 |
+| the other 11 cases | **0** | **20** | **0** |
+
+**Semantic Scholar answers the malformed query with nothing** — the same failure as DBLP and
+IACR, and the third source to show it. Zero overlap in all 12.
+
+#### What this does to finding 3
+
+**It makes it VOID rather than null.** Finding 3 reported mean net@2 +0.83 → +0.58, precision
+0.91 → 0.76, and `rl` −2.0 / `diffusion` −1.0, and explained them: *S2 papers carry no arXiv
+categories, the absent-category rule stops penalising them, so they compete harder and one
+non-actionable paper got through the gate.* **That mechanism requires S2 papers in the pool.
+There were none.** The moves were run-to-run drift — later measured at ±0.6 at the mean and
+±6 per case — attributed to a channel that never delivered a paper.
+
+The headline is accidentally right and its reasoning is wrong. The recommendation ("leave
+`sources: [arxiv]` as the default for ML repos") survives on different grounds: not *S2
+hurts*, but *S2 has never been tested*.
+
+**The limit of this measurement, stated:** S2 is being asked **today**, not in July 2026, and
+its query parser may have changed. That cannot be ruled out. What makes the reading solid
+anyway is that the finding's own proposed mechanism is falsified independently — it needs
+papers that three sources now agree the malformed query does not return.
+
+#### Third time for the same shape
+
+Void-not-null has now cost this project three findings: the first IACR arm (zero papers
+reached a top-10), the phrase-query arms (checked and clean, because `bigram_report` was
+built to check), and now finding 3. The lesson has been paid for often enough to state
+plainly: **an arm is not a measurement until you have counted whether the channel delivered
+anything.** Every future source arm gets a divergence check before its delta is read.
+
+Logged as **C-11** (no S2 rate limiter in three of four modules; the interval undershot) and
+**NR-30** (finding 3 void).
+
+**Cost** $0 — no LLM, 24 S2 requests, ~2 minutes.
+
 ### Phrase queries: the generator was broken, the repair is free, and the benchmark cannot see either (2026-08-12)
 
 ```bash
@@ -4445,6 +4535,16 @@ and it is the yardstick for reading everything above: a per-case Δ of ±1 means
 regression in finding 3 (−2.0) is outside it.
 
 ### 3. Adding Semantic Scholar as a source did not help
+
+> **VOID, not null (corrected 2026-08-12).** The S2 arm added **no papers**. Measured with a
+> real API key, S2 returns **0 results for 11 of these 12 cases** when given the malformed
+> query this run sent it (C-9); the repaired query returns 20 everywhere, with **zero
+> overlap**. The mechanism proposed below — S2 papers competing harder because the ranker
+> stopped penalising their missing categories — requires S2 papers in the pool, and there
+> were none. The per-case moves and the precision drop are run-to-run drift attributed to a
+> channel that never delivered. The **recommendation survives, its basis does not**: leave
+> `sources: [arxiv]` as the default not because S2 hurt, but because S2 was never tested.
+> See *S2 resolved* below.
 
 A clean A/B — same day, identical flags (`--rr-triage --rr-hybrid`), only `--sources` differs:
 
