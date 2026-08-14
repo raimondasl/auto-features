@@ -57,14 +57,14 @@ The shipped pipeline is a funnel:
 ```
 profile(R) ──► queries ──► collect (~227 papers; range 56–296)
    ──► heuristic rank (keyword/category/recency/embedding + BM25-RRF fusion)
-   ──► top-k (15) ──► LLM gate: 0–3 actionability, Haiku      [stage 1]
+   ──► top-k (50) ──► LLM gate: 0–3 actionability, Haiku      [stage 1]
    ──► papers scoring exactly 2: fine-scale 0–9 rescore,
         expectation over answer-token distribution,
         frozen logistic → P(actionable), show iff P ≥ 2/3      [stage 2]
    ──► three-tier digest (Top Picks / Maybe / Muted)
 ```
 
-Stage 1 (0–3 gate; "triage") asks whether a paper proposes a method with a concrete implementation path for *this* repository, described by a keyword profile plus the first 300 characters of its README — a budget chosen by experiment (§6.3). Stage 2 exists because of the central selection finding of this paper (§7) and is detailed in §8. Politeness is engineered, not aspirational: one process-wide arXiv rate gate at the stated 1 request / 3 s ceiling, identifying User-Agent, 30 s minimum backoff on HTTP 429 with a 15-minute patience budget — added after sustained polling earned the development machine a ~70-minute IP block, and after a 429 storm was silently cached as seven empty candidate pools (§11). A rate gate is not a volume gate, and we later paid for the difference: a correct 3-second limiter cannot express *and no more than N per day*, and four sweeps of the same 174-query benchmark in one day were throttled at ~760 requests (§11, lesson 9).
+Stage 1 (0–3 gate; "triage") asks whether a paper proposes a method with a concrete implementation path for *this* repository, described by a keyword profile plus the first 300 characters of its README — a budget chosen by experiment (§6.3). Its depth of 50 is also a measured value, and only became one late: it shipped at 15 for most of the campaign, on no measurement at all, and moving it is worth +1.00 net@2 per repository (§8.9). Stage 2 exists because of the central selection finding of this paper (§7) and is detailed in §8. Politeness is engineered, not aspirational: one process-wide arXiv rate gate at the stated 1 request / 3 s ceiling, identifying User-Agent, 30 s minimum backoff on HTTP 429 with a 15-minute patience budget — added after sustained polling earned the development machine a ~70-minute IP block, and after a 429 storm was silently cached as seven empty candidate pools (§11). A rate gate is not a volume gate, and we later paid for the difference: a correct 3-second limiter cannot express *and no more than N per day*, and four sweeps of the same 174-query benchmark in one day were throttled at ~760 requests (§11, lesson 9).
 
 ---
 
