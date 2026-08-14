@@ -169,3 +169,41 @@ class TestTheBaselineCannotBlockOnStdin:
         assert "stdin=subprocess.DEVNULL" in src, (
             "the baseline CLI call inherits stdin again — it will hang any non-interactive run"
         )
+
+
+class TestTheDigestCannotBeNarrowerThanItClaims:
+    """`--rr-window` is cut from the ranked candidate list, so a window wider than the
+    candidate depth silently yields a NARROWER digest — while the artifact still records
+    `digest_window: 15`. An arm asserting a width it did not have is worse than one that
+    crashes, and it is the same failure family as truncation correlated with the verdict.
+
+    It bites precisely when the gate is off, which is the out-of-the-box arm: `candidate_n`
+    then defaults to 10 while `--rr-window` defaults to 15. Found on 2026-08-16 while
+    setting that arm up, before it ran — no recorded run is affected (all five runs
+    carrying a `digest_window` were at gate depth 50).
+    """
+
+    def test_the_run_refuses_rather_than_quietly_truncating(self) -> None:
+        import inspect
+
+        import run_judge_eval
+
+        src = inspect.getsource(run_judge_eval.run)
+        assert "args.rr_window > candidate_n" in src, (
+            "the window-vs-depth guard is gone — a 15-wide flag can silently measure 10"
+        )
+        # A warning here would be read past. This must stop the run.
+        guard = src.split("args.rr_window > candidate_n")[1][:600]
+        assert "raise SystemExit" in guard, "the guard warns instead of refusing"
+
+    def test_the_default_depth_really_is_narrower_than_the_default_window(self) -> None:
+        """The premise. If the ungated candidate default ever rises above the window
+        default the guard stops being reachable, and this says so rather than leaving a
+        check that can no longer fire."""
+        import inspect
+
+        import run_judge_eval
+
+        src = inspect.getsource(run_judge_eval.run)
+        assert "RERANK_POOL if args.rr_rerank else 10" in src
+        assert run_judge_eval.RERANK_POOL == 20
