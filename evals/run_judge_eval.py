@@ -450,7 +450,7 @@ POOL_FLAGS = (
 # `rr_all_time` is in POOL_FLAGS above rather than here even though it also sets
 # `w_recency`, because it changes the fetch window — a pool collected over 90 days cannot
 # answer an all-time question, whatever the ranker then does with it.
-RANKING_FLAGS = ("rr_pool", "rr_rerank", "rr_hybrid", "rr_absent_category")
+RANKING_FLAGS = ("rr_pool", "rr_rerank", "rr_hybrid", "rr_absent_category", "rr_window")
 
 # Frozen pools stored the RANKED top-N until 2026-08-13, which made every ranking
 # experiment collect live at the 1.04 floor — the opposite of the flag's purpose. Version 2
@@ -742,7 +742,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
         ordered = rerank_by_actionability(rr_candidates) if args.rr_rerank else rr_candidates
-        rr_topn = ordered[:10]
+        rr_topn = ordered[: args.rr_window]
         rr_toppicks = [p for p in rr_topn if (p.get("llm_score") or 0) >= args.rr_min_actionable]
         n_scored = sum(1 for p in rr_topn if p.get("llm_score") is not None)
         print(
@@ -757,8 +757,8 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             # calibrated probability — papers above it are trusted on the gate's word.
             rr_toppicks = _apply_finescale(rr_dest, rr_topn, keys, args)
     else:
-        rr_topn = rr_candidates[:10]
-        rr_toppicks = [p for p, s in rr_ranked[:10] if s >= TOP_THRESHOLD]
+        rr_topn = rr_candidates[: args.rr_window]
+        rr_toppicks = [p for p, s in rr_ranked[: args.rr_window] if s >= TOP_THRESHOLD]
         print(
             f"        RepoRadar: {len(rr_topn)} ranked, "
             f"{len(rr_toppicks)} in Top Picks tier (>=0.5)"
@@ -889,6 +889,10 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # from; neither answers "how deep did we gate", and that is both the arm of the
         # depth experiment and a shipped default no measurement has ever included.
         "gate_depth": candidate_n,
+        # How many ranked papers could reach a tier — the product spells it
+        # `output.top_n`. Recorded so an arm cannot be reported under a window its own
+        # run file contradicts.
+        "digest_window": args.rr_window,
         "sources": list(args.sources),
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,
@@ -1107,6 +1111,18 @@ def main() -> int:
         help="how many candidates to triage before the Top-10 cut (default: 20 with "
         "--rr-rerank, else 10). Deeper costs more triage calls, not more judge calls, "
         "unless the deeper papers actually reach the returned set.",
+    )
+    parser.add_argument(
+        "--rr-window",
+        type=int,
+        default=15,
+        help="how many ranked papers may reach a tier — the product's `output.top_n`. "
+        "Defaulted to 10 until 2026-08-15, when widening it to the shipped 15 measured "
+        "+1.24 net@2/case (CI [+0.48, +2.08]) against a 0.48 frozen floor; the benchmark "
+        "now describes what ships. RUNS BEFORE THAT DATE ARE WINDOW-10 and not comparable "
+        "— every run records `digest_window` so a report can refuse to mix them. Unlike "
+        "--rr-pool this DOES cost judge calls: the judged pool is the returned set, so "
+        "each extra slot is a new verdict per case.",
     )
     parser.add_argument(
         "--rr-all-time",
