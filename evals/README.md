@@ -649,6 +649,24 @@ evals/
                      `http` 9/10 — where the correct output is nothing. Optimistic by
                      construction: no HyDE (~100 more competing candidates) and no triage
                      rerank, so treat the counts as an UPPER bound
+  audit_product_divergence.py
+                     $0, no network, no LLM: where does the benchmark stop measuring the
+                     PRODUCT? C-9 (the query bridge at five call sites) and C-12 (the
+                     version-strip fixed in cli.py, not in harness.py) are the same defect
+                     — one invariant, two implementations — and both were found by
+                     accident while looking for something else. Three passes: the WIRING
+                     (every arXiv-id normalisation and source merge, read out of the AST,
+                     with which of the competing rules it uses), the CONFIGURATION (shipped
+                     defaults against the benchmark's headline flags, where a difference is
+                     fine and an UNDECLARED one fails a test), and the BLAST RADIUS (how
+                     much of it reached a published number, read off evals/results/).
+                     Verdict 2026-08-14: five divergences, of which one was a live product
+                     bug (an ungated paper could reach Top Picks on the 0.5 heuristic —
+                     the threshold Feature 6 replaced at net@2 -11) and one was C-12 again,
+                     unfixed in run_eval.py because the guard named harness.py explicitly.
+                     Zero published numbers move: the gate never once failed on a paper
+                     across 87 runs and 6,420 top-10 records. Run it before believing a
+                     benchmark number
   audit_query_transform.py
                      $0, no LLM, free APIs: what did the broken arXiv-to-keyword bridge
                      (C-9) actually do to each non-arXiv source? Runs REAL build_queries

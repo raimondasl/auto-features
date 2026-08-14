@@ -11,6 +11,7 @@ from typing import Any
 
 from jinja2 import Environment, PackageLoader
 
+from reporadar.collector import dedup_id
 from reporadar.notify import DigestSummary
 from reporadar.store import PaperStore
 from reporadar.suggestions import enrich_papers_with_suggestions
@@ -89,6 +90,24 @@ def filter_since(
     return kept
 
 
+def mark_new_papers(
+    store: PaperStore, scored: list[dict[str, Any]], run_id: int
+) -> list[dict[str, Any]]:
+    """Set ``is_new`` on each paper: was it absent from the previous run?
+
+    One implementation for the two renderers that need it. It was two, and they answered
+    "is this the same paper" on the *raw* id — so a paper arXiv returned as ``v1`` last
+    week and ``v2`` this week read as brand new in the diff. ``dedup_id`` is the same
+    normaliser every merge uses; the alternative is a third rule for one question.
+    """
+    prev_id = store.get_previous_run_id(run_id)
+    prev = store.get_scored_paper_ids_for_run(prev_id) if prev_id is not None else set()
+    prev_ids = {dedup_id(pid) for pid in prev}
+    for paper in scored:
+        paper["is_new"] = dedup_id(paper["arxiv_id"]) not in prev_ids
+    return scored
+
+
 def categorize_papers(
     scored_papers: list[dict[str, Any]],
     top_n: int = 15,
@@ -106,8 +125,17 @@ def categorize_papers(
     When *triage_threshold* is set, papers that carry an LLM actionability score
     (``llm_score``) are tiered by it — ``>= triage_threshold`` = Top Pick, ``>= 1``
     = Maybe, ``0`` = Muted — so the digest abstains from "Top Picks" unless a
-    paper is judged genuinely applicable. Papers without an ``llm_score`` fall
-    back to the heuristic ``score_total`` thresholds.
+    paper is judged genuinely applicable. A paper the gate did **not** score reaches
+    Maybe at best: it is unproven, not endorsed. That rule used to be a fall-back to the
+    heuristic ``score_total`` thresholds, which meant an ungated paper could enter Top
+    Picks on the 0.5 threshold — the very threshold Feature 6 replaced after it measured
+    net@2 −11. It bites whenever ``output.top_n`` exceeds ``triage.top_k`` (papers past
+    the gate's window fill the digest ungated) or a gate call fails. The benchmark has
+    always scored the stricter rule, and `evals/audit_product_divergence.py` is what
+    found the two disagreeing.
+
+    When *triage_threshold* is ``None`` the gate did not run at all, and the heuristic
+    thresholds are the only rule there is — unchanged.
 
     When *finescale_threshold* is set, papers sitting *exactly at* the triage
     threshold face a second bar: their calibrated ``finescale_p`` must reach it too, or
@@ -141,6 +169,10 @@ def categorize_papers(
 
     for paper in limited:
         llm = paper.get("llm_score")
+        if triage_threshold is not None and llm is None:
+            # The gate ran and this paper has no verdict. Unproven is not a Top Pick.
+            maybe_relevant.append(paper)
+            continue
         if triage_threshold is not None and llm is not None:
             if llm >= triage_threshold:
                 # Papers above the band are trusted on the gate's word; papers *at* it
@@ -241,10 +273,7 @@ def _build_digest_context(
     diff_mode = False
     if diff:
         diff_mode = True
-        prev_id = store.get_previous_run_id(run_id)
-        prev_ids = store.get_scored_paper_ids_for_run(prev_id) if prev_id is not None else set()
-        for paper in scored:
-            paper["is_new"] = paper["arxiv_id"] not in prev_ids
+        mark_new_papers(store, scored, run_id)
 
     # Before tiering: categorize_papers needs the withdrawal flag, since the LLM
     # triage branch decides a paper's tier without consulting score_total.
@@ -433,10 +462,7 @@ def generate_digest_json(
     run = store.get_run(run_id)
 
     if diff:
-        prev_id = store.get_previous_run_id(run_id)
-        prev_ids = store.get_scored_paper_ids_for_run(prev_id) if prev_id is not None else set()
-        for paper in scored:
-            paper["is_new"] = paper["arxiv_id"] not in prev_ids
+        mark_new_papers(store, scored, run_id)
 
     top_picks, maybe_relevant, muted = categorize_papers(
         scored,

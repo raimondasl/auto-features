@@ -42,6 +42,8 @@ from harness import (  # noqa: E402  (needs evals/ on sys.path first)
 )
 from metrics import evaluate_ranking  # noqa: E402
 
+from reporadar.collector import CollectionError  # noqa: E402
+
 FIXTURES_DIR = EVALS_DIR / "fixtures"
 WORK_DIR = EVALS_DIR / ".work"
 
@@ -214,6 +216,7 @@ def collect_live(
         CollectionError,
         build_queries,
         collect_papers,
+        dedup_id,
         to_plain_keywords,
     )
     from reporadar.config import ArxivConfig, QueriesConfig
@@ -228,9 +231,17 @@ def collect_live(
     try:
         papers = collect_papers(queries, arxiv_cfg)
     except CollectionError as exc:
-        print(f"        ! arXiv collection failed: {exc}")
+        # RAISE, do not degrade — the rule `evals/harness.py` already follows and the one
+        # C-4 was paid for. Swallowing this scored a throttled arXiv fetch as an honest
+        # result; with a second source enabled it is worse than an empty pool, because
+        # the case then runs on the non-arXiv half alone and looks like a measurement.
+        print(f"        ! arXiv collection FAILED (not an empty result): {exc}")
+        raise
 
-    seen = {p["arxiv_id"] for p in papers}
+    # Version-insensitive, like cli.update and evals/harness.py. This was the third copy
+    # of the C-12 merge and the only one left on raw equality; the guard in
+    # tests/test_collector.py checked the harness by name and never looked here.
+    seen = {dedup_id(p["arxiv_id"]) for p in papers}
     plain_queries = [to_plain_keywords(q) for q in queries[:5]]
 
     if "openalex" in sources:
@@ -241,9 +252,9 @@ def collect_live(
             lookback_days=lookback_days,
             api_key=keys.get("OPENALEX_API_KEY"),
         ):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     if "semantic_scholar" in sources:
         from reporadar.sources.semantic_scholar import collect_papers as ss_collect
@@ -253,9 +264,9 @@ def collect_live(
             api_key=keys.get("SEMANTIC_SCHOLAR_API_KEY"),
             lookback_days=lookback_days,
         ):
-            if p["arxiv_id"] not in seen:
+            if dedup_id(p["arxiv_id"]) not in seen:
                 papers.append(p)
-                seen.add(p["arxiv_id"])
+                seen.add(dedup_id(p["arxiv_id"]))
 
     return papers
 
@@ -306,7 +317,14 @@ def run_live(
             continue
 
         profile = profile_case_repo(dest)
-        papers = collect_live(profile, case, sources, keys, lookback_days=90)
+        try:
+            papers = collect_live(profile, case, sources, keys, lookback_days=90)
+        except CollectionError as exc:
+            # Skipped, and said so. The alternative — scoring the case on whatever the
+            # other sources returned — is a domain-purity number for a pool missing its
+            # arXiv half, indistinguishable in the output from a real one.
+            print(f"        SKIPPED (collection failed, not scored): {exc}\n")
+            continue
         if not papers:
             print("        no papers collected.\n")
             continue

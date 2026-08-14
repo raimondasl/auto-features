@@ -723,18 +723,90 @@ class TestCrossSourceDedup:
         genuinely different papers into one."""
         assert dedup_id(other) == other
 
-    def test_the_harness_merges_are_version_insensitive(self) -> None:
-        """Reads the source, because the drift was between two files that each looked fine.
+    @pytest.mark.parametrize(
+        ("versioned", "base"),
+        [
+            ("cs/0602007v4", "cs/0602007"),
+            ("cs/0007008v1", "cs/0007008"),
+            ("math.GT/0309136v2", "math.GT/0309136"),
+            ("cond-mat.supr-con/9501001v1", "cond-mat.supr-con/9501001"),
+        ],
+    )
+    def test_old_style_ids_version_strip_too(self, versioned: str, base: str) -> None:
+        """Pre-2007 ids, which the first version of this function left versioned.
 
-        A unit test of `dedup_id` passes whether or not anyone calls it — which is exactly
-        how the query bridge stayed broken while its translator was correct.
+        Five of them sit in this project's judged pools. Leaving their versions on was not
+        merely incomplete — it made `dedup_id` DISAGREE with the bare `split("v")[0]` doing
+        the same job at eight other call sites, so which rule a merge happened to use
+        decided whether one paper counted once or twice.
         """
-        harness = Path(__file__).resolve().parents[1] / "evals" / "harness.py"
-        text = harness.read_text(encoding="utf-8")
-        assert 'if p["arxiv_id"] not in seen' not in text, (
-            "a source merge in evals/harness.py still dedups on the raw id"
-        )
-        assert text.count('dedup_id(p["arxiv_id"]) not in seen') >= 4
+        assert dedup_id(versioned) == dedup_id(base) == base
+
+    @pytest.mark.parametrize(
+        "tricky", ["solv-int/9801001", "ss:vector-db-7", "dblp:journals/vldb/Abc"]
+    )
+    def test_an_id_containing_a_v_is_not_truncated(self, tricky: str) -> None:
+        """The failure mode of the rule this one replaces.
+
+        ``"solv-int/9801001".split("v")[0]`` is ``"sol"``, and ``"ss:vector-db-7"`` becomes
+        ``"ss:"`` — which would merge every such paper into a single phantom. Consolidating
+        on the shared helper is only safe because it is anchored; this is that claim.
+        """
+        assert dedup_id(tricky) == tricky
+        assert dedup_id(tricky) != tricky.split("v")[0]
+
+    def test_it_is_idempotent(self) -> None:
+        """Merges apply it to both sides and to already-normalised sets."""
+        for aid in ("2605.23815v1", "cs/0602007v4", "ss:abc", "2605.23815"):
+            assert dedup_id(dedup_id(aid)) == dedup_id(aid)
+
+
+# Every module in the collect -> rank -> gate -> show pipeline, on either side of the
+# product/benchmark line. `evals/run_eval.py` is on this list because it was the third
+# copy of the C-12 merge and the guard that replaced this one checked `harness.py` by
+# name — so it looked green while a runner two files away still merged on raw ids.
+_PIPELINE_MODULES = (
+    ("src", "reporadar", "cli.py"),
+    ("src", "reporadar", "digest.py"),
+    ("evals", "harness.py"),
+    ("evals", "run_eval.py"),
+    ("evals", "run_judge_eval.py"),
+)
+
+
+class TestOneNormaliserForOneInvariant:
+    """No module in the pipeline may hand-roll "is this the same paper".
+
+    Two rules coexisted for months — `dedup_id` and a bare ``arxiv_id.split("v")[0]`` —
+    and they disagreed on exactly the ids nobody looks at. This reads the source, because
+    both rules are individually correct-looking and the defect is that there are two.
+    """
+
+    @pytest.mark.parametrize("parts", _PIPELINE_MODULES, ids=lambda p: p[-1])
+    def test_no_hand_rolled_version_strip(self, parts: tuple[str, ...]) -> None:
+        path = Path(__file__).resolve().parents[1].joinpath(*parts)
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if line.lstrip().startswith("#"):
+                continue  # a comment may quote the old rule; only live code fails
+            assert '.split("v")[0]' not in line, (
+                f"{path.name}:{line_no} hand-rolls a version strip instead of calling "
+                f"collector.dedup_id: {line.strip()}"
+            )
+
+    @pytest.mark.parametrize("parts", _PIPELINE_MODULES, ids=lambda p: p[-1])
+    def test_no_source_merge_on_a_raw_id(self, parts: tuple[str, ...]) -> None:
+        """The C-12 shape itself: ``p["arxiv_id"] not in seen``, in any spelling."""
+        path = Path(__file__).resolve().parents[1].joinpath(*parts)
+        text = path.read_text(encoding="utf-8")
+        for bad in ('p["arxiv_id"] not in seen', 'p["arxiv_id"] not in existing_ids'):
+            assert bad not in text, f"{path.name}: a source merge still dedups on the raw id"
+
+    def test_every_collector_merges_version_insensitively(self) -> None:
+        """Counted, so deleting the calls cannot make the assertions above vacuously true."""
+        root = Path(__file__).resolve().parents[1]
+        for parts, minimum in ((("evals", "harness.py"), 4), (("evals", "run_eval.py"), 2)):
+            text = root.joinpath(*parts).read_text(encoding="utf-8")
+            assert text.count('dedup_id(p["arxiv_id"]) not in ') >= minimum, parts
 
 
 # Every module that bridges arXiv's query grammar to a keyword source. Adding a source
