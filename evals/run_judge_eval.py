@@ -882,6 +882,12 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # infer the arm from a filename someone may have renamed.
         "bigram_mode": args.rr_bigrams,
         "absent_category": args.rr_absent_category,
+        # How many ranked candidates went forward — the number the gate sees when
+        # `--rr-triage` is on, which is what the product spells `triage.top_k`. `pool_size`
+        # below is the *judged* pool and `pool_provenance` is where the candidates came
+        # from; neither answers "how deep did we gate", and that is both the arm of the
+        # depth experiment and a shipped default no measurement has ever included.
+        "gate_depth": candidate_n,
         "sources": list(args.sources),
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,

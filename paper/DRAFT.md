@@ -151,6 +151,8 @@ The most instructive gate-context negative is **P8 [NR-14]**: appending the repo
 
 Two symmetric experiments closed the "just show the gate more" direction. Widening the triage window 20 → 50 bought 2 actionable papers across 12 cases **[NR-15]**. Gating the **entire** candidate pool (~227/repo, trivially affordable at $0.05) against the shipped depth-50, both arms same session on all 22 cases: **−0.18 paired, 6 better / 6 worse / 10 ties — a wash** **[NR-16]**. (The first version of that comparison read −0.95; an arXiv throttle had zeroed two of the strongest cases, supplying −17 of the −21 total delta — corrected after collection failures were made loud and excluded rather than scored **[C-4]**.) The mechanism unifies §5.5 and §6: the digest shows 10; deeper gating changes *which* arbitrary admits fill the window, because **nothing orders what the gate admits**.
 
+**Both of these were later reversed by the stage that made their premise false**, and we leave them here in their original form because the reversal is the point rather than an embarrassment. §8.5 records the first: HyDE's pool expansion converted at +1.36 once the rescore ordered what the gate returned, where the identical expansion had been NR-16's wash a month earlier. §8.9 records the second and sharper one — re-measured on a frozen pool with depth as the only variable, gating 50 rather than 15 is worth **+1.00 net@2 per case**. Every conclusion in this subsection was true of a system without a within-band ordering, and none of it survived acquiring one.
+
 ### 6.5 The distribution that explains the stall
 
 The gate's scores are near-binary: on real pools 0–14% of admits receive a 3, everything else a 2. Within that score-2 band, true precision per repository runs **0.00 to 1.00** — `diffusion`'s ten band papers were all genuinely actionable (+10) while `vectordb`'s eight contained five duds (−5) — and the two are **indistinguishable at gate time**: the share of 3s among admits correlates with band precision at r = +0.30, the heuristic ranker is flat inside the band (its real contribution is concentration: top-50 density 1.7× the pool, with no ordering within), and the gate's own 3, though genuinely predictive (gate-3 → 76% judge-3), fires far too rarely to order anything. A back-of-envelope "adaptive digest size" proposal — show every 3; at most *k* 2s — died on arithmetic and on the data: with 3p−2 economics an unranked set has no interior optimum in *k*, per-repository *k* is reward hacking, and the abstention signal the rule needs does not exist (`diffusion`, 0×3/10×2/p=1.00, is identical at gate time to `numerics`, 0×3/10×2/p=0.60) **[NR-17]**. What survived was the requirement: **rank — or better, calibrate — the score-2 band.**
@@ -275,6 +277,26 @@ A 1.04 floor makes most component-level work unmeasurable — a plausible rankin
 | cases identical across draws | 8 / 22 | **20 / 25** |
 
 Freezing removes just over half the residual noise, confirming the diagnosis; the pre-registered prediction (MRE ≤ 0.42) still **missed**. What survives is temperature-0 model jitter in the gate and the rescore, concentrated in three repositories that carry 89% of the remaining variance. Two design points matter for reuse. The pool is frozen **before** ranking, not after, so ranking flags can vary across arms that share one pool — otherwise the mode is useless for exactly the experiments it was built for. And provenance is a refusal, not a label: the harness will not compare a frozen arm against a live one, and a report script derives its floor from provenance rather than accepting it as an argument, because a frozen comparison read against the live floor calls a real effect unresolvable. The first version of that guard was itself broken in a way its tests could not see (§11, lesson 10).
+
+### 8.9 What the lower floor bought first: a shipped default nobody had measured
+
+A static audit of where the benchmark stops measuring the product (§11, lesson 10) turned up a configuration field neither side could justify: the gate's depth shipped at 15 while every headline was measured at 50. Checking the record made it worse — **no experiment had ever included 15.** The nearest, NR-15, compared windows 20 and 50, so the shipped default was shallower than the shallowest arm ever run, in a comparison confounded with a prompt change and predating the rescore.
+
+Three arms over one frozen pool, gate depth the only variable, pre-registered with its alarm written down first: *if 50 loses, the shallow default is vindicated and it is the benchmark that should change, because every headline since 2026-08-07 was measured at 50.*
+
+| gate depth | mean net@2 | shown | actionable | precision | actionable in the returned top-10 |
+|---|---|---|---|---|---|
+| **15** (shipped) | +2.72 | 101 | 90 | 0.891 | 5.00 |
+| 25 | +3.16 | 124 | 109 | 0.879 | 5.76 |
+| **50** (measured) | **+3.72** | 141 | 125 | 0.887 | **6.52** |
+
+Paired against 15, depth 50 is **+1.00 net@2 per case, 95% CI [+0.12, +1.92]** against a frozen floor of 0.48 — and **+1.23, CI [+0.27, +2.27], sign p = 0.035** on the 22 non-control repositories. Depth 25, at +0.44, sits inside the floor and is unresolved rather than equal, so only the endpoints are characterised.
+
+Three things make this more than one number. The **gate-free measure moves with it**: actionable papers reaching the returned top-10 rise 5.00 → 5.76 → 6.52, and that same measure moved 0.00 in the ranking experiment of §9.6, where it correctly predicted a null for $0. **Precision is flat while the shown set grows 40%** (0.891 → 0.887 at 101 → 141 papers), which is the compositional signature of §8.5 rather than dilution. And the **mechanism was already established**: the rescore orders what a wider gate admits, which is exactly why NR-16's "nothing orders what the gate admits" had to be discarded rather than trusted.
+
+The blemish is stated rather than averaged away. `webdev`, a negative control, goes 0.0 → −2.0 at depth 50: a deeper gate on a repository with no applicable literature has more chances to be wrong, and the controls-only delta is −0.67 on three cases. The 22 real repositories pay for that three times over.
+
+**Two things generalize.** First, freezing the pool is what made this affordable to ask at all — at the live floor of 1.04 a +1.00 effect is unresolvable, and the question would have stayed closed on evidence that had already expired. Second, and less comfortable: *a default set before a system acquires a capability does not update itself when the capability arrives.* Both of this system's depth defaults were set when nothing ordered the gate's output, and both were still in place two shipped stages later. We found this one by auditing configuration against the configuration we were measuring, not by suspecting it.
 
 ---
 
@@ -409,7 +431,7 @@ Positive results say what to build; negatives say where the walls are. Ours, wit
 - **NR-12** LLM paraphrase of the README as gate context: below *no description at all*. Paraphrase destroys term-of-art vocabulary; verbatim extraction recovers +21.
 - **NR-13** Semantic sentence selection vs first-300-chars: −4 (p = 0.78), a mechanism-backed prediction that failed.
 - **NR-14** Verbatim user wants (top issues) in the gate: −38 net@2, recall −0.27 — a want-list *replaces* the question.
-- **NR-15** Triage window 20→50: 2 papers across 12 cases.
+- **NR-15** Triage window 20→50: 2 papers across 12 cases. **Reversed 2026-08-14** (§8.9): re-measured on a frozen pool with depth the only variable, 50 beats 15 by **+1.00 net@2/case**, CI [+0.12, +1.92]. The original arm was confounded with a prompt change, ran at n = 12, and — decisively — predated the stage that orders what the gate admits.
 - **NR-16** Gating the whole pool: −0.18 paired on 22 cases — a wash; nothing orders what the gate admits.
 - **NR-17** Adaptive digest size: no interior optimum exists on an unranked set (3p−2), and the abstention signal it needs does not exist (r = +0.30).
 

@@ -105,13 +105,19 @@ def check_labels(label: str, arm: dict[str, dict[str, Any]], field: str = "bigra
 
     *field* names the result key that identifies the arm, so this serves any single-flag
     experiment — `bigram_mode` for the phrase-query arms, `absent_category` for the ranker
-    ones. Files differing by one flag are easy to pass in the wrong order.
+    ones, `gate_depth` for the triage-depth ones. Files differing by one flag are easy to
+    pass in the wrong order.
+
+    Recorded values are compared as strings because a command-line label always is one and
+    the arm it names may not be: `gate_depth` is an int. Comparing raw would make the guard
+    fire on every numeric arm — a check that always fails gets deleted, which is worse than
+    one that never does.
     """
     recorded = {r.get(field) for r in arm.values()}
     if recorded == {None}:
         print(f"  ! {label}: no `{field}` recorded (run predates the flag) — trusting label")
         return
-    if recorded != {label}:
+    if {str(v) for v in recorded} != {str(label)}:
         raise SystemExit(
             f"arm labelled {label!r} contains {field}={sorted(map(str, recorded))} — "
             "refusing to report an arm under a name its own run file contradicts"

@@ -125,6 +125,20 @@ class TestLabelFieldIsConfigurable:
         arm = {"a": {"case": "a", "bigram_mode": "none"}}
         check_labels("none", arm)
 
+    def test_a_numeric_arm_matches_its_command_line_label(self) -> None:
+        """`gate_depth` is an int and a CLI label is a string.
+
+        Compared raw, the guard would fire on every arm of the depth experiment — and a
+        check that always fails gets deleted, which is worse than one that never fires.
+        """
+        arm = {"a": {"case": "a", "gate_depth": 50}}
+        check_labels("50", arm, "gate_depth")
+
+    def test_a_numeric_arm_still_catches_a_swap(self) -> None:
+        arm = {"a": {"case": "a", "gate_depth": 15}}
+        with pytest.raises(SystemExit, match="refusing to report an arm"):
+            check_labels("50", arm, "gate_depth")
+
 
 class TestPairedBootstrap:
     def test_is_deterministic(self) -> None:

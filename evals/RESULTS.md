@@ -834,6 +834,144 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Gate depth: the shipped default was never measured, and it was costing +1.00 net@2 per case (2026-08-14)
+
+```bash
+# one live seeding pass fills the pool; three arms then read it
+for DEPTH in 15 25 50; do
+  uv run python evals/run_judge_eval.py --baseline none --sources arxiv \
+      --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      --rr-frozen-pool evals/.work/pool-depth --rr-pool $DEPTH
+done
+uv run python evals/bigram_report.py --label-field gate_depth 15=<A> 25=<B> 50=<C>
+```
+
+**The pre-registration below was committed before the run** (`742834e`), including the
+alarm that pointed at us. The prediction held.
+
+#### The result
+
+| arm | net@2 | shown | actionable | precision | abstained | net-negative |
+|---|---|---|---|---|---|---|
+| **15** (was shipped) | +2.72 | 101 | 90 | 0.891 | 6 | 2 |
+| 25 | +3.16 | 124 | 109 | 0.879 | 6 | 0 |
+| **50** (was measured) | **+3.72** | 141 | 125 | 0.887 | 4 | 1 |
+
+| paired vs `15` | n | mean | 95% CI | sign | p | |
+|---|---|---|---|---|---|---|
+| `25` | 25 | +0.44 | [−0.24, +1.20] | 8+/4−/13= | 0.39 | inside the 0.48 floor |
+| **`50`** | 25 | **+1.00** | **[+0.12, +1.92]** | 12+/4−/9= | 0.077 | **past the floor, CI excludes 0** |
+| `50`, excluding controls | 22 | **+1.23** | [+0.27, +2.27] | 12+/3−/7= | **0.035** | |
+| `50`, controls only | 3 | −0.67 | [−2.00, +0.00] | 0+/1−/2= | 1.00 | |
+
+Arms **VALID**: 21/25 and 23/25 cases changed their returned top-10, mean Jaccard 0.68 and
+0.48. Nothing here is the void that has cost this project three findings.
+
+**The gate-free check I pre-committed agrees, and this time it moves.** Actionable papers
+reaching the *returned* top-10, before the digest gate: **5.00 → 5.76 → 6.52** per case.
+In the last ranking experiment that same measure moved 0.00 and correctly predicted a null
+for $0; here it rises 30% monotonically with depth. A cheap check earns its keep by being
+right in both directions.
+
+**Precision is flat while the shown set grows 40%** — 0.891 / 0.879 / 0.887 against 101 →
+141 papers shown and 90 → 125 actionable. That is the §8.5 signature: the rescore orders
+what a wider gate admits, so more candidates convert instead of diluting. It is the same
+mechanism that made HyDE worth +1.36 where the identical expansion had been a wash before
+the rescore existed, and it is why the pre-rescore depth evidence had to be discarded rather
+than trusted.
+
+#### One blemish, named rather than buried
+
+`webdev` (Flask, a negative control) goes **0.0 → 0.0 → −2.0**: at depth 50 the gate admitted
+one paper the judge scored 0 on a repository whose correct output is nothing. That is
+precisely the alarm the S2 experiment pre-registered, firing here. Three things bound it —
+it is one case, in one draw, and C-7 established that *which* repository goes net-negative
+is a per-draw property — but the direction is real: a deeper gate on a repository with no
+applicable literature has more chances to be wrong, and the controls-only delta is −0.67.
+The 22 real cases pay for it three times over (+1.23, p = 0.035), so the trade is worth
+making and the cost is stated rather than averaged away.
+
+#### Shipping decision
+
+**`triage.top_k` moves 15 → 50.** This is the first shipped default in the project changed
+on a frozen-pool measurement, and the bar it cleared is the strongest available: past the
+0.48 floor, CI excluding zero, monotone across three arms, corroborated by a gate-independent
+measure, with the mechanism already established elsewhere.
+
+The cost is **~3.3× the gate calls per run** — Haiku, and the fine-scale band grows with the
+triaged set — against a system currently measured at roughly $0.01 per repository versus the
+agentic baseline's $0.80. Two orders of magnitude of headroom.
+
+**Depth 25 is unresolved, not equal.** +0.44 sits just inside the floor, so the curve between
+15 and 50 is not characterised; only the endpoints are.
+
+#### A cost divergence found while reasoning about shipping, not by measurement
+
+The product rescores **every** band paper across the whole triaged set; the benchmark
+rescores only the band inside the returned top-10. At depth 15 those are close. At depth 50
+the product would pay for fine-scale calls on papers `categorize_papers` discards before
+tiering, since it cuts to `output.top_n` after reranking. Outcome-neutral — a paper outside
+the window reaches no tier either way — but pure waste, and it grows with the default this
+entry just raised.
+
+It is **not** fixed here, and the reason is worth recording: computing the window inside
+`cli.update` means duplicating the ordering `categorize_papers` performs, which drops
+withdrawn papers *before* the cut. A second implementation of that ordering is the C-9 shape
+this project has now paid for four times, so the fix is to share the ordering, not to
+re-derive it. Logged for its own change.
+
+Logged as the reversal of **NR-15** — 4× the candidates bought two papers across 12 cases in
+2026-08-02; 3.3× the candidates buys +1.00 net@2 per case today, because the thing that
+orders them did not exist then.
+
+**Cost** ~$19: one seeding pass (51 min) plus three arms (15, 17, 34 min), 25/25 cases in
+every arm, no collection failures, no HyDE degradations, no judge failures.
+
+---
+
+#### The pre-registration, as committed before the run
+
+**Written before spending anything.** `triage.top_k` ships at **15**, and the
+[product/benchmark audit](#looking-for-the-c-9-shape-on-purpose-five-divergences-one-of-them-a-live-product-bug-2026-08-14)
+found that no experiment has ever included that value. The closest is
+[NR-15](#negative-result-5--widening-the-triage-window-from-20-to-50-does-not-pay-2026-08-02),
+which compared windows **20 and 50** on 12 cases — so the shipped default is *shallower than
+the shallowest arm ever run*. That comparison is also doubly superseded: its treatment arm
+carried a prompt change as well (`--rr-readme-context`), and it predates the fine-scale
+rescore.
+
+The mechanism matters more than the history. NR-16 closed pool depth with *"the bottleneck
+is not how many papers the gate sees, it is that nothing orders what it returns."* The
+rescore made that sentence false — HyDE doubled the pool and converted **+1.36** where the
+identical expansion had been a measured wash a month before. Every default resting on
+pre-rescore depth evidence is unsupported, and this is one of them.
+
+**Design.** One live seeding pass, three arms reading the frozen pool, gate depth the only
+variable. `rr_pool` is in `RANKING_FLAGS`, which is exactly why one pool serves all three
+and the floor is **MRE 0.48** rather than 1.04. `--sources arxiv`, the shipped default.
+Each run now records `gate_depth`, so the report can refuse an arm whose own file
+contradicts its label.
+
+**Prediction.** Depth 50 beats depth 15 by **more than 0.48/case**. If the rescore really
+converts a wider candidate set, 3.3× the candidates at a fixed digest size of 10 should show.
+*(Confirmed: +1.00/case, CI [+0.12, +1.92].)*
+
+**Alarm, and it points at us.** If depth 50 is *worse* than 15 by more than the floor, the
+shallow shipped default is vindicated and it is the **benchmark** that should change — every
+headline since 2026-08-07 was measured at `--rr-pool 50`, which would then be a depth that
+flatters the published numbers. Naming that before the run so it cannot be reframed after.
+*(It did not fire: 50 won. The published headlines were measured at the better depth, and
+what that indicts is the shipped default, not the benchmark.)*
+
+**Validity checks, pre-committed.** 25/25 cases must change their returned top-10 between
+arms — identical output is VOID, not null, which has cost this project three findings. And
+the gate-free measure (actionable papers reaching the returned top-10) is reported beside
+net@2, because it moved 0.00 in the last ranking experiment and would have predicted that
+null for $0.
+
+**Estimated cost** ~$15–20: 2,250 Haiku gate calls, plus judge verdicts on whatever the
+deeper arms newly surface (cached across arms), plus the seeding pass. *(Actual: ~$19.)*
+
 ### OpenAlex, the last unmeasured channel: it delivers, and it places where placing is worthless (2026-08-14)
 
 ```bash
