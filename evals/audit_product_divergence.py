@@ -21,6 +21,11 @@ looks for the shape on purpose, in three passes:
 2. **Configuration** — the shipped defaults against the configuration the benchmark's
    headline actually runs. `arxiv.lookback_days` already drifted this way for a month
    (14 days shipped, all-time measured); a difference is fine, an *undeclared* one is not.
+   This pass is **exhaustive over every config leaf and over both shipped surfaces**, for
+   the reason its first version demonstrates: it compared twelve hand-listed fields against
+   the dataclass defaults, reported clean, and was asking the wrong object. `rr init` writes
+   a *template*, and where the template sets a value that is what a user runs — a scope
+   chosen by whoever last edited the list is the C-14b defect wearing a different hat.
 3. **Blast radius** — how much any of it touched a published number, read off the recorded
    runs in ``evals/results/`` rather than argued.
 
@@ -32,6 +37,7 @@ from __future__ import annotations
 
 import ast
 import collections
+import dataclasses
 import json
 import re
 import sys
@@ -41,13 +47,16 @@ from typing import Any, NamedTuple
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from reporadar.config import (  # noqa: E402
-    ArxivConfig,
-    OutputConfig,
-    ProfilerConfig,
-    RankingConfig,
-    TriageConfig,
-)
+# This script's own findings are prose, and the prose has em-dashes in it. A Windows
+# console defaults to cp1252, which renders every one of them as a replacement character
+# — including inside the reasons a declared divergence gives for itself, which is the part
+# a reader most needs to be able to read.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+import yaml  # noqa: E402
+
+from reporadar.config import RepoRadarConfig, default_config_yaml  # noqa: E402
 from reporadar.paper_id import dedup_id  # noqa: E402
 
 # Modules that participate in the collect -> rank -> gate -> show pipeline on either side.
@@ -279,76 +288,313 @@ def pass_wiring() -> list[Divergence]:
 
 
 # ── pass 2: configuration ──────────────────────────────────────────────────
+#
+# "The shipped default" is not one object. There are two surfaces and they can disagree:
+#
+#   1. the dataclass default — what a field is worth when the yml omits it, and
+#   2. `default_config_yaml()` — what `rr init` WRITES into `.reporadar.yml`.
+#
+# Where the template sets a value, that value is what a user runs, and the dataclass
+# default is dead text. The first version of this pass compared twelve hand-listed fields
+# against surface 1 and reported clean; `ranking.w_embedding` is 0.0 there and **1.5** in
+# the template, so the audit was clean about a field on which the product and the benchmark
+# disagree by the largest ranking weight in the file. Both halves of that failure are
+# structural — the wrong surface, and a hand-written list — so both are closed here:
+# every leaf is compared, and the comparison uses the effective value.
+
+
+def config_leaves() -> dict[str, Any]:
+    """Every leaf field of the config tree, dotted, with its dataclass default.
+
+    Recursive, so `triage.finescale.threshold` and `hooks.email.smtp_port` are leaves like
+    any other. Nothing here is hand-listed: adding a field to any config dataclass adds it
+    to this dict, which is what makes the coverage check below unforgeable.
+
+    The recursion is an inner function on purpose — a module-level self-call would make
+    this unpatchable in the mutation test that proves the coverage check can fail.
+    """
+
+    def walk(obj: Any, prefix: str) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        for f in dataclasses.fields(obj):
+            value = getattr(obj, f.name)
+            key = f"{prefix}{f.name}"
+            if dataclasses.is_dataclass(value):
+                out.update(walk(value, key + "."))
+            else:
+                out[key] = value
+        return out
+
+    return walk(RepoRadarConfig(repo_path="."), "")
+
+
+def template_values() -> dict[str, Any]:
+    """What `rr init` writes into `.reporadar.yml`, flattened to the same dotted keys.
+
+    Parsed rather than duplicated, so the template and this audit cannot drift apart —
+    the failure mode the audit exists to catch, applied to the audit itself.
+    """
+
+    def flatten(node: dict[str, Any], prefix: str = "") -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        for key, value in node.items():
+            if isinstance(value, dict):
+                out.update(flatten(value, f"{prefix}{key}."))
+            else:
+                out[f"{prefix}{key}"] = value
+        return out
+
+    return flatten(yaml.safe_load(default_config_yaml()) or {})
+
+
+def effective_shipped() -> dict[str, Any]:
+    """What a user actually runs after `rr init`: the template, falling back to the class."""
+    return {**config_leaves(), **template_values()}
+
 
 # What the benchmark's headline command actually sets, from evals/RESULTS.md:
 #   --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde
+#
+# The rule for what belongs here: the benchmark's code path READS the field. A field the
+# benchmark reads at its default value still belongs here — that is a measurement, and
+# recording it means a future change to that default gets caught rather than assumed
+# harmless. Fields the benchmark never reaches, or always overrides per case, go in
+# NOT_UNDER_TEST with the reason.
 BENCHMARK_HEADLINE: dict[str, Any] = {
+    "sources": ["arxiv"],  # --sources arxiv
     "arxiv.lookback_days": 36500,  # --rr-all-time
     "arxiv.sort_by": "relevance",  # --rr-all-time
     "arxiv.max_results_per_query": 50,
-    "ranking.w_recency": 0.0,  # --rr-all-time
+    "queries.seed": [],  # harness builds queries from the profile alone
+    "queries.bigrams": "verified",  # --rr-bigrams default
     "ranking.w_keyword": 1.0,
     "ranking.w_category": 0.5,
-    "ranking.absent_category": "omit",
-    "profiler.prose_chars": 300,  # --rr-prose-chars default
-    "triage.min_actionable": 2,  # --rr-min-actionable default
-    "triage.top_k": 50,  # --rr-pool 50
+    "ranking.absent_category": "omit",  # --rr-absent-category default
+    "ranking.w_recency": 0.0,  # --rr-all-time
+    # run_judge_eval._rank builds RankingConfig(w_keyword=, w_category=, w_recency=,
+    # absent_category=) and leaves every other weight at the dataclass default, so these
+    # are measured at 0.0 — not un-measured. The template disagrees on w_embedding.
+    "ranking.w_embedding": 0.0,
+    "ranking.w_citations": 0.0,
+    "ranking.w_citation_proximity": 0.0,
+    "ranking.w_specter": 0.0,
+    "ranking.w_community": 0.0,
+    "ranking.w_attention": 0.0,
+    "ranking.withdrawn_penalty": 0.1,
+    "ranking.category_weights": {},
+    "ranking.hybrid": True,  # --rr-hybrid (applied by hybrid_reorder, not the flag)
     "output.top_n": 15,  # --rr-window default since 2026-08-15
+    "profiler.scan_source": False,  # harness.profile_case_repo default
+    "profiler.prose_chars": 300,  # --rr-prose-chars default
+    "suggestions.provider": "claude",  # the gate's SuggestionsConfig(provider="claude")
+    "suggestions.claude_model": "claude-haiku-4-5",  # --rr-triage-model default
+    "suggestions.timeout": 30,
+    "triage.enabled": True,  # the gate runs in every headline
+    "triage.top_k": 50,  # --rr-pool 50
+    "triage.min_actionable": 2,  # --rr-min-actionable default
+    "triage.rerank": True,  # --rr-rerank
+    "triage.finescale.enabled": True,  # --rr-finescale
+    "triage.finescale.openai_model": "gpt-4o-mini",  # --rr-finescale-model default
+    "triage.finescale.timeout": 60,
     "triage.finescale.threshold": 2 / 3,  # --rr-finescale-threshold default
+    "triage.finescale.min_success_fraction": 0.5,  # enough_scored() default
+    "hyde.enabled": True,  # --rr-hyde
+    "hyde.model": "mixedbread-ai/mxbai-embed-large-v1",  # hyde.discover(model_name=) default
+    "hyde.n_hypotheses": 4,  # --rr-hyde-hypotheses default
+    "hyde.top_k": 100,  # --rr-hyde-top-k default
+    "hyde.verify_encoder": True,  # --rr-hyde-skip-verify not passed
+}
+
+# Fields whose SHIPPED DEFAULT the benchmark does not put under test, each with the reason.
+# Two distinct cases, both of which mean "no number here says anything about this value":
+# the benchmark never reaches the code that reads it, or it always supplies a per-case
+# value so the default is never the thing being measured.
+NOT_UNDER_TEST: dict[str, str] = {
+    "repo_path": "per case — the benchmark points at its own mini-repos",
+    "arxiv.categories": (
+        "per case, from the benchmark YAML. The shipped [cs.LG, cs.CL] is therefore "
+        "unmeasured, and it is a domain guess a fresh install applies to any repository"
+    ),
+    "queries.exclude": "per case — `harness.rank_pool(exclude=)` supplies the case's list",
+    "queries.redact": "mirror of privacy.redact, populated at load; not settable directly",
+    "suggestions.redact": "mirror of privacy.redact, populated at load",
+    "triage.finescale.redact": "mirror of privacy.redact, populated at load",
+    "privacy.redact": "redaction is measured by rr audit's drift guard, not by net@2",
+    "output.digest_path": "the benchmark reads returned papers from the store, not a file",
+    "semantic_scholar.api_key": "credential",
+    "openalex.email": "credential/politeness header",
+    "openalex.api_key": "credential",
+    "suggestions.claude_api_key": "credential",
+    "triage.finescale.openai_api_key": "credential",
+    "enrichment.hf_token": "credential",
+    "hooks.email.password": "credential",
+    "enrichment.provider": "enrichment runs after selection; changes no returned paper",
+    "hooks.on_digest": "notification, downstream of every measured number",
+    "hooks.slack_webhook_url": "notification",
+    "hooks.discord_webhook_url": "notification",
+    "hooks.email.smtp_host": "notification",
+    "hooks.email.smtp_port": "notification",
+    "hooks.email.from_addr": "notification",
+    "hooks.email.to": "notification",
+    "hooks.email.username": "notification",
+    "hooks.email.use_tls": "notification",
+    "profiler.max_files": "only read when profiler.scan_source is on, which no arm sets",
+    "profiler.source_extensions": "only read when profiler.scan_source is on",
+    "suggestions.ollama_model": "the benchmark's gate is provider='claude'",
+    "suggestions.ollama_url": "the benchmark's gate is provider='claude'",
+    "suggestions.max_suggestions": "governs `rr suggest`; triage_papers does not read it",
+    "feedback.enabled": "star-feedback reweighting has no benchmark arm at all",
+    "feedback.min_ratings": "feedback has no benchmark arm",
+    "feedback.learning_rate": "feedback has no benchmark arm",
+    "recommendations.enabled": (
+        "the S2 recommendations channel is measured through --sources, not this flag"
+    ),
+    "recommendations.limit": "see recommendations.enabled",
+    "recommendations.max_seeds": "see recommendations.enabled",
+    "signals.integrity": (
+        "no eval run has ever carried a withdrawn_in field, so the digest window's "
+        "drop-withdrawn half is exercised by tests and by the product, never by a number"
+    ),
+    "signals.hackernews": "w_attention is 0.0 in every arm, so the signal cannot move a rank",
+    "hyde.index_dir": "path — the benchmark points at its own synced index",
+    "hyde.stale_after_days": "staleness warning only; does not change which ids come back",
 }
 
 # Differences that are deliberate and have a reason. Anything NOT listed here and not
-# equal is an undeclared divergence, which is the whole point of the pass.
+# equal is an undeclared divergence, which is the whole point of the pass. A test asserts
+# every entry here still differs, so a stale exemption fails rather than quietly covering
+# the next drift.
 #
-# EMPTY as of 2026-08-15, and that is a state worth naming rather than a gap in the file:
-# every field this audit compares now agrees between the product and the benchmark. Both
-# entries it once held were closed by measuring them — `triage.top_k` because the shipped 15
-# was worse than the measured 50 (+1.00 net@2/case), `output.top_n` because the shipped 15
-# was BETTER than the measured 10 (+1.24). Neither was closed by picking a side.
+# The five stage flags below are the reason this file's previous version reported "every
+# compared field agrees" while the product shipped with none of the pipeline the paper
+# measures. They are declared, not fixed, because each has a cost a default cannot assume
+# — and declaring them is what makes "what does a keyless install actually score?" a
+# question with a written-down answer instead of an assumption.
 DECLARED: dict[str, str] = {
-    # `triage.top_k` was declared here on 2026-08-14 and un-declared the same day: this
-    # audit is what noticed the shipped 15 had never been in an experiment, the depth arms
-    # measured 50 at +1.00/case over it, and the default moved to match. Removing the entry
-    # is the required half of that — a test asserts every DECLARED field still differs, so a
-    # stale exemption fails rather than quietly covering the next drift.
+    "triage.enabled": (
+        "the gate needs an LLM key (or a local Ollama) and costs ~$0.01/run; a default "
+        "that fails without a credential is worse than one that under-delivers. But the "
+        "ungated digest IS the configuration measured at mean net@2 -11 (paper §6.1), so "
+        "this is the single largest gap between the shipped product and every number "
+        "published about it"
+    ),
+    "suggestions.provider": (
+        "'template' is the keyless default, and cli.update requires ollama|claude before "
+        "it will gate at all — so `triage.enabled: true` alone is a no-op that prints one "
+        "info line. Enabling the gate takes TWO fields, which is worth knowing"
+    ),
+    "triage.finescale.enabled": (
+        "needs a SECOND vendor's key (OpenAI, for token logprobs Anthropic does not "
+        "expose). Cannot be a default at any price"
+    ),
+    "hyde.enabled": (
+        "needs `rr sync-index` and ~1.1 GB on disk plus the `hyde` extra. Opt-in is right; "
+        "that every headline includes it is the part to keep visible"
+    ),
+    "ranking.hybrid": (
+        "BM25-RRF fusion, and the ONE flag here with no cost excuse — retrieval.py is "
+        "dependency-free plain Python. It stays off because its measured value is "
+        "entangled with the stages above: NR-11 recorded it as better nDCG everywhere and "
+        "a LOWER headline, and the headline cost was only recovered once the rescore "
+        "ordered what the gate admits. Turning it on for a product that gates nothing "
+        "would ship the NR-11 loss, so flipping this blind repeats the gate-depth error "
+        "in the opposite direction. It needs the out-of-the-box arm, not a guess"
+    ),
+    "ranking.w_embedding": (
+        "1.5 in the template, 0.0 in the dataclass and in every published number. "
+        "Unmeasured AS A RANKING WEIGHT in either direction — the one arm that touched "
+        "this channel measured README embeddings as a QUERY (7/48 at top-100, median rank "
+        "46,656), which says nothing about weighting it against keywords at digest time. "
+        "It is also the only field whose behaviour depends on the install: it does nothing "
+        "without the `embeddings` extra, so the same config ranks two ways. Left at 1.5 "
+        "because swapping one unmeasured default for another buys nothing and loses the "
+        "record of which one shipped"
+    ),
+    "triage.finescale.timeout": (
+        "60 in the eval against 30 shipped, and bounded by a guard both sides run: "
+        "enough_scored() refuses the whole stage below 50% success, so a timeout "
+        "difference cannot quietly demote a band — it either changes nothing or is loud"
+    ),
 }
 
 
-def _product_defaults() -> dict[str, Any]:
-    triage = TriageConfig()
-    return {
-        "arxiv.lookback_days": ArxivConfig().lookback_days,
-        "arxiv.sort_by": ArxivConfig().sort_by,
-        "arxiv.max_results_per_query": ArxivConfig().max_results_per_query,
-        "ranking.w_recency": RankingConfig().w_recency,
-        "ranking.w_keyword": RankingConfig().w_keyword,
-        "ranking.w_category": RankingConfig().w_category,
-        "ranking.absent_category": RankingConfig().absent_category,
-        "profiler.prose_chars": ProfilerConfig().prose_chars,
-        "triage.min_actionable": triage.min_actionable,
-        "triage.top_k": triage.top_k,
-        "output.top_n": OutputConfig().top_n,
-        "triage.finescale.threshold": triage.finescale.threshold,
-    }
+def coverage_gaps() -> list[Divergence]:
+    """Config leaves that are neither compared nor excused.
 
-
-def config_divergences() -> list[Divergence]:
-    """Fields where the shipped default and the measured configuration disagree."""
-    product = _product_defaults()
+    This is the check that makes the pass exhaustive rather than hand-scoped: a new config
+    field fails the audit until somebody decides whether the benchmark measures it. C-14b
+    is the argument — a guard that reads only where a bug was last found reports clean
+    about everywhere it never looked.
+    """
+    classified = set(BENCHMARK_HEADLINE) | set(NOT_UNDER_TEST)
     out = []
-    for key, measured in BENCHMARK_HEADLINE.items():
-        shipped = product[key]
-        same = (
-            abs(shipped - measured) < 1e-9
-            if isinstance(shipped, float) and isinstance(measured, float)
-            else shipped == measured
+    for key in sorted(set(config_leaves()) - classified):
+        out.append(
+            Divergence(
+                key,
+                repr(effective_shipped()[key]),
+                "unclassified",
+                "UNCLASSIFIED",
+                "new config field: add it to BENCHMARK_HEADLINE or NOT_UNDER_TEST",
+            )
         )
-        if same:
+    for key in sorted(classified - set(config_leaves())):
+        out.append(
+            Divergence(
+                key,
+                "gone",
+                "still classified",
+                "UNCLASSIFIED",
+                "classified field no longer exists in the config tree — stale entry",
+            )
+        )
+    return out
+
+
+def _same(a: Any, b: Any) -> bool:
+    if isinstance(a, float) or isinstance(b, float):
+        try:
+            return abs(float(a) - float(b)) < 1e-9
+        except (TypeError, ValueError):
+            return False
+    return bool(a == b)
+
+
+def surface_divergences() -> list[Divergence]:
+    """Fields where `rr init`'s template and the dataclass default disagree.
+
+    Not automatically wrong — a template is allowed to be opinionated — but it makes
+    "the shipped default" ambiguous, and an ambiguous baseline is what let the config
+    pass answer the wrong question for a month.
+    """
+    classes, template = config_leaves(), template_values()
+    out = []
+    for key, written in sorted(template.items()):
+        if key not in classes or _same(classes[key], written):
             continue
         out.append(
             Divergence(
                 key,
-                repr(shipped),
+                repr(classes[key]),
+                repr(written),
+                "declared" if key in DECLARED else "DIVERGENT",
+                DECLARED.get(key, "template overrides the dataclass with no reason recorded"),
+            )
+        )
+    return out
+
+
+def config_divergences() -> list[Divergence]:
+    """Fields where what a user runs and what the benchmark measures disagree."""
+    shipped = effective_shipped()
+    out = []
+    for key, measured in sorted(BENCHMARK_HEADLINE.items()):
+        if key not in shipped or _same(shipped[key], measured):
+            continue
+        out.append(
+            Divergence(
+                key,
+                repr(shipped[key]),
                 repr(measured),
                 "declared" if key in DECLARED else "DIVERGENT",
                 DECLARED.get(key, "not declared — the benchmark is not measuring the default"),
@@ -357,20 +603,46 @@ def config_divergences() -> list[Divergence]:
     return out
 
 
+def _print_table(title: str, divs: list[Divergence], left: str, right: str) -> None:
+    print(f"\n  {title}")
+    if not divs:
+        print("     (none)")
+        return
+    print(f"     {'field':<34} {left:>14} {right:>14}  status")
+    for d in divs:
+        print(f"     {d.name:<34} {d.product:>14} {d.benchmark:>14}  {d.status}")
+
+
 def pass_config() -> list[Divergence]:
     print("\n" + "=" * 78)
-    print("2. CONFIGURATION — is the benchmark measuring the shipped defaults?")
+    print("2. CONFIGURATION — is the benchmark measuring what a user actually runs?")
     print("=" * 78)
+
+    leaves, template = config_leaves(), template_values()
+    print(
+        f"\n  {len(leaves)} config leaves: {len(BENCHMARK_HEADLINE)} compared against the "
+        f"benchmark, {len(NOT_UNDER_TEST)} excused."
+    )
+    print(f"  `rr init` writes {len(template)} of them; the rest fall back to the dataclass.")
+
+    gaps = coverage_gaps()
+    _print_table("a) coverage — every leaf classified?", gaps, "shipped", "bucket")
+
+    surfaces = surface_divergences()
+    _print_table("b) surfaces — template vs dataclass", surfaces, "dataclass", "rr init")
+
     divs = config_divergences()
-    if not divs:
-        print("\n  every compared field agrees.")
-        return []
-    print(f"\n  {'field':<32} {'shipped':>12} {'measured':>12}  status")
-    for d in divs:
-        print(f"  {d.name:<32} {d.product:>12} {d.benchmark:>12}  {d.status}")
-    for d in divs:
-        print(f"\n  {d.name}: {d.note}")
-    return [d for d in divs if d.status == "DIVERGENT"]
+    _print_table("c) measurement — effective vs benchmark", divs, "user runs", "measured")
+
+    findings = [d for d in gaps + surfaces + divs if d.status != "declared"]
+    # A field can be flagged by both (b) and (c) — `ranking.w_embedding` is — and the
+    # reason is one reason, so print it once.
+    seen: set[str] = set()
+    for d in surfaces + divs:
+        if d.status == "declared" and d.name not in seen:
+            seen.add(d.name)
+            print(f"\n  declared  {d.name}: {d.note}")
+    return findings
 
 
 # ── pass 3: blast radius ───────────────────────────────────────────────────
@@ -380,6 +652,52 @@ _MODERN = re.compile(r"^\d{4}\.\d{4,5}(v\d+)?$")
 
 def _split_v(arxiv_id: str) -> str:
     return arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
+
+
+# The commit that gave the HyDE candidate merge the shared id rule. Duplicates in a run
+# recorded BEFORE this are the C-12 defect's history; duplicates after it are a live bug,
+# and a reader cannot tell which without the date. Reporting a raw count conflates them.
+HYDE_MERGE_FIX = "2026-08-14T03:35Z"  # cae8c88, `known = {dedup_id(...)}`
+_RUN_STAMP = re.compile(r"(\d{8}T\d{6})Z")
+
+
+def _run_stamp(fname: str) -> str:
+    """The run's UTC timestamp, from its filename, as an ISO-ish string for comparison."""
+    m = _RUN_STAMP.search(fname)
+    if not m:
+        return ""
+    raw = m.group(1)
+    return f"{raw[0:4]}-{raw[4:6]}-{raw[6:8]}T{raw[9:11]}:{raw[11:13]}Z"
+
+
+def _frozen_pool_papers(blob: Any) -> tuple[list[dict[str, Any]], str]:
+    """Papers out of a frozen-pool file, with the format it was read as.
+
+    Two formats exist: v1 froze the pool AFTER ranking (`ranked`), v2 freezes it before
+    (`candidates`, the change §8.8 argues for). A scanner that knows only the current key
+    reports the older pools as *empty*, which reads identically to *clean* — void, not
+    null, applied to this project's own artifacts. So the format is returned, an
+    unrecognised one says so, and a shape that only PARTLY parses is reported as partial
+    rather than as however many papers happened to come out. The first version of this
+    function made exactly that mistake: v1 stores ``[paper, score]`` pairs, not papers, so
+    it read 1,250 papers as 0 and printed "0 dup" about a pool it had not looked at.
+    """
+    if not isinstance(blob, dict):
+        return [], "unrecognised"
+    if isinstance(blob.get("candidates"), list):
+        items = blob["candidates"]
+        papers = [p for p in items if isinstance(p, dict) and p.get("arxiv_id")]
+        return papers, "v2/candidates" if len(papers) == len(items) else "v2/PARTIAL"
+    if isinstance(blob.get("ranked"), list):
+        items = blob["ranked"]
+        papers = []
+        for entry in items:
+            # v1 rows are (paper, score) pairs; unwrap before looking for an id.
+            paper = entry[0] if isinstance(entry, list) and entry else entry
+            if isinstance(paper, dict) and paper.get("arxiv_id"):
+                papers.append(paper)
+        return papers, "v1/ranked" if len(papers) == len(items) else "v1/PARTIAL"
+    return [], "unrecognised"
 
 
 def _recorded_runs() -> list[tuple[str, list[dict[str, Any]]]]:
@@ -445,8 +763,34 @@ def pass_blast_radius() -> None:
     print(f"     of those, the two rules disagree on: {len(disagree)}")
 
     print(f"\n  d) surviving duplicate groups in a returned top-10: {len(dup_groups)}")
-    for fname, case, base in dup_groups[:10]:
-        print(f"       {fname[-28:]:<30} {case:<10} {base}")
+    by_run: collections.Counter[str] = collections.Counter()
+    for fname, _case, _base in dup_groups:
+        by_run[fname] += 1
+    for fname, n in by_run.most_common():
+        stamp = _run_stamp(fname)
+        era = "PRE-FIX" if stamp and stamp < HYDE_MERGE_FIX else "LIVE DEFECT"
+        print(f"       {n:>3} in {fname[-34:]:<36} {stamp or '(no stamp)':<18} {era}")
+    if by_run:
+        print(f"       (the HyDE candidate merge got the shared id rule at {HYDE_MERGE_FIX})")
+
+    print("\n  e) frozen pools — a duplicate here is reused by every arm that shares it:")
+    for pool_dir in sorted((ROOT / "evals" / ".work").glob("pool-*")):
+        n_papers = n_dups = 0
+        formats: collections.Counter[str] = collections.Counter()
+        for path in sorted(pool_dir.glob("*.json")):
+            try:
+                blob = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                formats["unreadable"] += 1
+                continue
+            papers, fmt = _frozen_pool_papers(blob)
+            formats[fmt] += 1
+            n_papers += len(papers)
+            counted = collections.Counter(dedup_id(p["arxiv_id"]) for p in papers)
+            n_dups += sum(1 for n in counted.values() if n > 1)
+        shape = ", ".join(f"{k}x{v}" for k, v in sorted(formats.items()))
+        flag = " !" if n_dups or "unrecognised" in formats or "unreadable" in formats else "  "
+        print(f"     {flag} {pool_dir.name:<14} {n_papers:>6} papers  {n_dups} dup  [{shape}]")
 
 
 def main() -> int:
@@ -463,7 +807,10 @@ def main() -> int:
     else:
         print("No undeclared divergence between the product and the benchmark.")
     print("=" * 78)
-    return 0
+    # Non-zero on a finding, so this can be a gate rather than a wall of text somebody
+    # skims. The same reasoning as the pool-provenance and digest-width guards: a check
+    # that reports a problem and then says everything is fine gets read as fine.
+    return 1 if findings else 0
 
 
 if __name__ == "__main__":

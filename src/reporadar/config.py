@@ -700,9 +700,36 @@ ranking:
   w_keyword: 1.0
   w_category: 0.5
   w_recency: 0.0
+  # Unmeasured as a ranking weight, in either direction: every benchmark number in this
+  # project was measured at 0.0, and the one experiment that touched this channel scored
+  # README embeddings as a *query*, not as a weight. It also does nothing unless the
+  # `embeddings` extra is installed, so the same config ranks two ways. Left as-is rather
+  # than swapped for another unmeasured value; see evals/audit_product_divergence.py.
   w_embedding: 1.5
 
 output:
   digest_path: ./reporadar_digest.md
   top_n: 15
+
+# ---------------------------------------------------------------------------
+# The three stages every published number in this project was measured WITH, and
+# which this file leaves OFF, because each needs something a default cannot assume.
+# Without them `rr update` is the keyword-ranked digest, which is the configuration
+# the benchmark scores at mean net@2 -11. See README "Fine-scale rescore" and
+# "HyDE discovery" for what each costs and how to turn it on.
+#
+# triage:                  # LLM actionability gate  (+ needs suggestions.provider!)
+#   enabled: true
+# suggestions:
+#   provider: claude       # 'template' does NOT gate -- triage.enabled alone is a no-op
+#   claude_api_key: ${ANTHROPIC_API_KEY}
+#
+# triage:
+#   finescale:
+#     enabled: true        # rescore of the gate's threshold band; needs OPENAI_API_KEY
+#     openai_api_key: ${OPENAI_API_KEY}
+#
+# hyde:
+#   enabled: true          # dense discovery; run `rr sync-index` first (~1.1 GB)
+# ---------------------------------------------------------------------------
 """

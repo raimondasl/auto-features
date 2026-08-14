@@ -857,6 +857,89 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### The audit was asking the wrong object: `rr init` writes a config nobody measured (2026-08-15)
+
+```bash
+uv run python evals/audit_product_divergence.py     # $0, offline, exits non-zero on a finding
+```
+
+The product/benchmark audit's configuration pass compared **12 hand-listed fields** and
+reported "every compared field agrees". Both halves of that sentence were wrong.
+
+**Wrong scope.** The config tree has **79 leaves**. Twelve were compared; the other
+sixty-seven were neither compared nor excused, so the pass reported clean about fields it
+had never heard of. This is C-14b one level up — a guard scoped to where a bug was last
+found — and the fix is the same: every leaf must now be in `BENCHMARK_HEADLINE` (the
+benchmark reads it) or `NOT_UNDER_TEST` (with a written reason). A new config field fails
+the audit until somebody classifies it.
+
+**Wrong object.** "The shipped default" is not one thing. There are two surfaces:
+
+| | dataclass default | `default_config_yaml()` — what `rr init` writes |
+|---|---|---|
+| `ranking.w_embedding` | 0.0 | **1.5** |
+
+Where the template sets a value, that value is what a user runs and the dataclass default
+is dead text. The old pass compared the dataclass column, so it was clean about a field on
+which the product and every published number differ by **the largest ranking weight in the
+file** — 1.5 against `w_keyword`'s 1.0. The pass now compares the *effective* value
+(template first) and reports template-vs-dataclass disagreement separately.
+
+**What the exhaustive pass found: every stage this project is about is off by default.**
+
+| field | a user runs | measured | why it is declared |
+|---|---|---|---|
+| `triage.enabled` | `False` | `True` | needs an LLM key |
+| `suggestions.provider` | `template` | `claude` | the gate's *second* required field |
+| `triage.finescale.enabled` | `False` | `True` | needs a **second** vendor's key (logprobs) |
+| `hyde.enabled` | `False` | `True` | needs `rr sync-index`, ~1.1 GB |
+| `ranking.hybrid` | `False` | `True` | **no cost excuse** — see below |
+| `ranking.w_embedding` | `1.5` | `0.0` | unmeasured in this role, both ways |
+| `triage.finescale.timeout` | `30` | `60` | bounded by `enough_scored()` on both sides |
+
+`rr init && rr update` is therefore the ungated heuristic digest — **the configuration
+§6.1 measures at mean net@2 −11** — while the paper says "the shipped system" reaches
++5.42. Each opt-in is individually defensible (a default that fails without a credential
+is worse than one that under-delivers) and the README documents all of them. What was not
+defensible is that the audit built to catch exactly this shape reported clean.
+
+Two details worth their own line. `triage.enabled: true` **alone is a no-op**: `cli.update`
+requires `cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude")`, so
+enabling the gate takes two fields and the config alone does not say so. And
+`ranking.w_embedding` is the only field whose behaviour depends on the *install* — it does
+nothing without the `embeddings` extra, so one config ranks two ways.
+
+**No default was flipped, and that is the finding's other half.** The temptation was
+`ranking.hybrid`: dependency-free, and in every headline. But NR-11 measured it as better
+nDCG everywhere and a *lower* headline, with the headline cost recovered only once the
+rescore ordered what the gate admits — a stage the shipped default does not run. Turning it
+on for a product that gates nothing would ship the NR-11 loss. Same for `w_embedding`: the
+only arm that ever touched that channel measured README embeddings as a *query* (7/48 at
+top-100, median rank 46,656), which says nothing about weighting it against keywords at
+digest time. **Swapping one unmeasured default for another buys nothing and destroys the
+record of which one shipped.** Both are declared with their reasons, and the declared
+*values* are pinned by a test, so editing 1.5 to 2.5 fails rather than inheriting the
+exemption.
+
+**Blast radius, and a defect in the checker that found it.** The same run surfaced 8
+duplicate groups in a recorded top-10 — the C-12 shape at a *third* merge site, the HyDE
+`collect_by_ids` path. Dated rather than counted, it is history: all 8 sit in one run
+(2026-08-13T17:13Z), which predates the fix that gave that merge the shared id rule
+(`cae8c88`, 2026-08-14T03:35Z) by ten hours. Collapsing the duplicates moves four cases
+(−3.0, −1.0, +2.0, +2.0) and the mean by **+0.00** — the second time this defect's
+corrections have cancelled exactly at the mean, and the run was never published in any case.
+All three frozen pools are clean, including the two collected before the fix, which matters
+more than a single run: a duplicate in a frozen pool is inherited by every arm sharing it.
+
+Except the pool scanner reported `pool-floor` as **0 papers, 0 duplicates** — and it holds
+1,250. v1 froze `[paper, score]` *pairs* after ranking; v2 freezes paper dicts before it,
+and the scanner knew only v2. It read an unparsed pool as a clean one: **void, not null,
+inside the audit's own blast-radius pass**, written the same week that lesson was published.
+It now names the format it read and reports `PARTIAL` when the counts disagree, rather than
+however many papers happened to fall out.
+
+**Cost** $0 — no network, no LLM, no judge.
+
 ### The baseline comparison at the width that ships — and read the precision line first (2026-08-15)
 
 ```bash

@@ -524,10 +524,47 @@ class TestShippedDefaultsMatchTheMeasuredConfiguration:
 
     def test_the_generated_template_agrees_with_the_dataclass_defaults(self) -> None:
         """`rr init` writes the template; a template that disagrees with the code ships a
-        different product than the tests exercise."""
+        different product than the tests exercise.
+
+        This assertion used to name three fields, and `ranking.w_embedding` — the one
+        field where the two surfaces actually disagree — was not one of them. So it read
+        as a general guarantee while checking a hand-picked corner of it. It now walks
+        every key the template sets, and a disagreement must be listed with its reason.
+        """
         import yaml
 
+        # Fields where the template deliberately overrides the dataclass. The reason lives
+        # in the template itself, next to the value; this list only pins THAT the
+        # disagreement is intended, so an accidental one fails.
+        INTENDED_OVERRIDES = {"ranking.w_embedding"}
+
+        cfg = RepoRadarConfig(repo_path=".")
         parsed = yaml.safe_load(default_config_yaml())
-        assert parsed["arxiv"]["lookback_days"] == ArxivConfig().lookback_days
-        assert parsed["arxiv"]["sort_by"] == ArxivConfig().sort_by
-        assert parsed["ranking"]["w_recency"] == RankingConfig().w_recency
+        mismatches = []
+        for section, body in parsed.items():
+            if not isinstance(body, dict):
+                continue
+            for key, written in body.items():
+                default = getattr(getattr(cfg, section), key)
+                if written != default and f"{section}.{key}" not in INTENDED_OVERRIDES:
+                    mismatches.append(f"{section}.{key}: template={written!r} code={default!r}")
+        assert mismatches == [], "template disagrees with the dataclass: " + "; ".join(mismatches)
+
+    def test_the_template_signposts_the_stages_it_leaves_off(self) -> None:
+        """The shipped default enables neither the gate, the rescore, nor HyDE — each for a
+        good reason (a credential, a second vendor, 1.1 GB of index). A template that says
+        nothing about them hands a new user the ungated digest with no hint that the rest
+        exists, which is how the product came to differ from every published number.
+
+        The commented block is prose, so it can rot silently; this checks the field paths
+        it names are real, which is the part that would mislead if it drifted.
+        """
+        text = default_config_yaml()
+        for path in ("triage:", "finescale:", "hyde:", "provider: claude"):
+            assert path in text, f"the template no longer signposts {path}"
+        cfg = RepoRadarConfig(repo_path=".")
+        # Every field the signpost tells a user to set must still exist under that name.
+        assert hasattr(cfg.triage, "enabled")
+        assert hasattr(cfg.triage.finescale, "enabled")
+        assert hasattr(cfg.hyde, "enabled")
+        assert hasattr(cfg.suggestions, "provider")
