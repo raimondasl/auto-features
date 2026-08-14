@@ -27,6 +27,7 @@ from ablation_report import pool_mode  # noqa: E402
 from noise_floor import provenance, same_pool  # noqa: E402
 from run_judge_eval import (  # noqa: E402
     POOL_FLAGS,
+    RANKING_FLAGS,
     load_frozen_pool,
     pool_fingerprint,
     save_frozen_pool,
@@ -49,6 +50,8 @@ def args(**over: Any) -> Namespace:
         "rr_hyde_hypotheses": 4,
         "rr_hyde_top_k": 100,
         "rr_triage_model": "claude-haiku-4-5",
+        "rr_bigrams": "verified",
+        "rr_absent_category": "omit",
     }
     base.update(over)
     return Namespace(**base)
@@ -63,18 +66,37 @@ class TestFingerprint:
         [
             {"rr_hyde": False},
             {"rr_all_time": False},
-            {"rr_hybrid": False},
-            {"rr_pool": 20},
             {"rr_prose_chars": 0},
             {"rr_ablate_docs": 300},
             {"rr_hyde_top_k": 50},
             {"rr_hyde_hypotheses": 1},
             {"sources": ["arxiv", "dblp"]},
             {"rr_triage_model": "claude-sonnet-4-5"},
+            {"rr_bigrams": "none"},
         ],
     )
-    def test_every_retrieval_setting_changes_it(self, change: dict[str, Any]) -> None:
+    def test_every_collection_setting_changes_it(self, change: dict[str, Any]) -> None:
         assert pool_fingerprint(args(**change), CASE, None) != pool_fingerprint(args(), CASE, None)
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            {"rr_hybrid": False},
+            {"rr_pool": 20},
+            {"rr_rerank": False},
+            {"rr_absent_category": "zero"},
+            {"rr_absent_category": "impute"},
+        ],
+    )
+    def test_ranking_settings_do_NOT_change_it(self, change: dict[str, Any]) -> None:
+        """Varying a ranking flag against a frozen pool is what freezing is FOR.
+
+        The pool used to store the ranked top-N, so every ranking experiment collected
+        live at the 1.04 floor — the opposite of the flag's purpose, since the pool is the
+        dominant variance term and ranking is deterministic given it. v2 stores the
+        candidates, and these flags moved out of the fingerprint.
+        """
+        assert pool_fingerprint(args(**change), CASE, None) == pool_fingerprint(args(), CASE, None)
 
     def test_a_goal_changes_it_because_a_goal_changes_the_hypotheses(self) -> None:
         """A stated-intent experiment is a RETRIEVAL experiment and must collect live."""
@@ -99,22 +121,49 @@ class TestFingerprint:
         ):
             assert downstream not in POOL_FLAGS
 
+    def test_ranking_flags_and_pool_flags_are_disjoint(self) -> None:
+        """A flag in both would be silently un-varyable against a frozen pool."""
+        assert not set(POOL_FLAGS) & set(RANKING_FLAGS)
+
+
+POOL = [{"arxiv_id": "2401.00001", "title": "A"}, {"arxiv_id": "2401.00002", "title": "B"}]
+
 
 class TestRoundTrip:
     def test_a_saved_pool_reloads_identically(self, tmp_path: Path) -> None:
-        ranked = [({"arxiv_id": "2401.00001", "title": "A"}, 0.9)]
         fp = pool_fingerprint(args(), CASE, None)
-        save_frozen_pool(tmp_path, "demo", fp, ranked)
-        assert load_frozen_pool(tmp_path, "demo", fp) == ranked
+        save_frozen_pool(tmp_path, "demo", fp, POOL)
+        assert load_frozen_pool(tmp_path, "demo", fp) == POOL
 
     def test_absent_is_none_not_empty(self, tmp_path: Path) -> None:
         """None means 'collect'; [] would mean 'this repo has no candidates' and abstain."""
         assert load_frozen_pool(tmp_path, "demo", "abc") is None
 
-    def test_a_mismatched_fingerprint_refuses(self, tmp_path: Path) -> None:
+    def test_an_empty_pool_is_never_stored(self, tmp_path: Path) -> None:
+        """An empty pool and a failed collection are the same bytes on disk.
+
+        A frozen empty would score 0.0 on every later run that reused it — the mistake
+        that cost `db` and `storage` in the 2026-08-07 arm.
+        """
         save_frozen_pool(tmp_path, "demo", pool_fingerprint(args(), CASE, None), [])
+        assert not list(tmp_path.glob("*.json"))
+
+    def test_a_mismatched_fingerprint_refuses(self, tmp_path: Path) -> None:
+        save_frozen_pool(tmp_path, "demo", pool_fingerprint(args(), CASE, None), POOL)
         with pytest.raises(SystemExit, match="different retrieval settings"):
             load_frozen_pool(tmp_path, "demo", pool_fingerprint(args(rr_hyde=False), CASE, None))
+
+    def test_a_v1_pool_is_refused_not_reinterpreted(self, tmp_path: Path) -> None:
+        """v1 stored the RANKED top-N; reading it as a candidate pool would hand the
+        ranker a list already cut by the settings under test, and every metric would be
+        computed over it as though it were everything retrieval found."""
+        fp = pool_fingerprint(args(), CASE, None)
+        (tmp_path / "demo.json").write_text(
+            json.dumps({"case": "demo", "fingerprint": fp, "ranked": [[POOL[0], 0.9]]}),
+            encoding="utf-8",
+        )
+        with pytest.raises(SystemExit, match="format v1"):
+            load_frozen_pool(tmp_path, "demo", fp)
 
     def test_the_stored_record_names_when_it_was_collected(self, tmp_path: Path) -> None:
         save_frozen_pool(tmp_path, "demo", "fp", [({"arxiv_id": "1"}, 1.0)])

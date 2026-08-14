@@ -151,10 +151,15 @@ def score_paper(
     attention_score: float | None = None,
     withdrawn: bool = False,
     now: datetime | None = None,
+    absent_category_score: float | None = None,
 ) -> dict[str, Any]:
     """Compute a combined score for a single paper.
 
     Returns a score dict suitable for PaperStore.save_scores().
+
+    *absent_category_score* is only read under ``ranking.absent_category: impute``: it is a
+    property of the pool, not of this paper, so :func:`rank_papers` computes it once and
+    passes it in rather than each paper guessing at it.
     """
     kw = score_keyword_overlap(paper, profile)
     cat = score_category_match(
@@ -165,12 +170,27 @@ def score_paper(
     raw_total = ranking_cfg.w_keyword * kw + ranking_cfg.w_recency * rec
     weight_sum = ranking_cfg.w_keyword + ranking_cfg.w_recency
 
-    # Only count the category component when the paper actually has categories.
-    # Non-arXiv sources (Semantic Scholar, DBLP, bioRxiv, recommendations) carry
-    # none, and scoring a *missing* signal as a zero would silently handicap them
-    # against arXiv papers — same treatment as the optional components below.
+    # How the category component treats a paper with NO categories — every paper from
+    # every non-arXiv source. `omit` (the shipped default) drops the component, which was
+    # meant to avoid handicapping those papers and instead *advantages* them: an arXiv
+    # paper is averaged over keyword AND category while an uncategorised one is averaged
+    # over keyword alone, so at equal keyword relevance the uncategorised paper scores
+    # higher (0.600 vs 0.567 at the shipped weights; 0.600 vs 0.400 when the arXiv paper
+    # matches no target category). The absent-signal rule is correct when missingness is
+    # random — a paper SPECTER2 has never seen — and wrong here, because having categories
+    # is perfectly correlated with being an arXiv paper.
+    #
+    # `zero` scores the absence as a real 0. `impute` scores it at *absent_category_score*,
+    # the mean category score of the categorised papers in the same pool, so an
+    # uncategorised paper is treated as an average paper on this axis rather than as the
+    # best or the worst.
     if paper.get("categories"):
         raw_total += ranking_cfg.w_category * cat
+        weight_sum += ranking_cfg.w_category
+    elif getattr(ranking_cfg, "absent_category", "omit") == "zero":
+        weight_sum += ranking_cfg.w_category
+    elif getattr(ranking_cfg, "absent_category", "omit") == "impute":
+        raw_total += ranking_cfg.w_category * (absent_category_score or 0.0)
         weight_sum += ranking_cfg.w_category
 
     w_embedding = getattr(ranking_cfg, "w_embedding", 0.0)
@@ -304,6 +324,21 @@ def rank_papers(
     from the persistent cache, so vectors are not re-encoded on every run.
     *citation_proximity* rewards papers that cite a starred/highly-rated paper.
     """
+    # Under `impute`, an uncategorised paper is scored on this axis as an average
+    # categorised paper in the same pool. Computed once over the pool because it is a
+    # property of the pool; falls back to 0.0 (i.e. `zero`) when nothing is categorised,
+    # since a mean over an empty set is not a number and imputing 1.0 there would hand
+    # every non-arXiv paper a perfect category score.
+    absent_cat = 0.0
+    if getattr(ranking_cfg, "absent_category", "omit") == "impute":
+        cats = [
+            score_category_match(
+                p, arxiv_categories, category_weights=ranking_cfg.category_weights or None
+            )
+            for p in papers
+            if p.get("categories")
+        ]
+        absent_cat = sum(cats) / len(cats) if cats else 0.0
     scores = []
     for paper in papers:
         emb_score = None
@@ -358,6 +393,7 @@ def rank_papers(
                 attention_score=att_score,
                 withdrawn=bool(withdrawn and paper["arxiv_id"] in withdrawn),
                 now=(now_by_id or {}).get(paper["arxiv_id"]),
+                absent_category_score=absent_cat,
             )
         )
     # Tie-break on arxiv_id so the order never depends on the order papers were

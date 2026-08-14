@@ -231,8 +231,83 @@ class TestMissingCategories:
             _make_paper(categories=["q-bio.NC"]), profile, cfg, QueriesConfig(), ["cs.CL"]
         )
         absent = score_paper(_make_paper(categories=[]), profile, cfg, QueriesConfig(), ["cs.CL"])
-        # A real non-match is penalized; an absent signal is not.
+        # A real non-match is penalized; an absent signal is not. Under `omit` — the
+        # shipped default — that IS the bias: see TestAbsentCategoryPolicy below, which
+        # measures how large it is rather than only noting its direction.
         assert mismatch["score_total"] < absent["score_total"]
+
+
+class TestAbsentCategoryPolicy:
+    """`ranking.absent_category` — what happens to `w_category` with no categories.
+
+    `omit` was chosen so a missing signal would not handicap non-arXiv papers, and it does
+    the reverse: an arXiv paper is averaged over keyword AND category, an uncategorised one
+    over keyword alone, so at equal keyword relevance the uncategorised paper wins. The
+    absent-signal rule is right when missingness is random and wrong here, because having
+    categories is perfectly correlated with being an arXiv paper.
+
+    The arithmetic is the whole claim, so it is asserted exactly rather than by direction.
+    """
+
+    def _cfg(self, mode: str) -> RankingConfig:
+        # w_recency 0 to isolate the category axis: with recency in the mix the numbers
+        # below would still order the same way but would stop being checkable by hand.
+        return RankingConfig(w_keyword=1.0, w_category=0.5, w_recency=0.0, absent_category=mode)
+
+    def _score(self, mode: str, categories: list[str]) -> float:
+        paper = _make_paper(categories=categories)
+        profile = _make_profile()
+        out = score_paper(
+            paper, profile, self._cfg(mode), QueriesConfig(), ["cs.CL"], absent_category_score=0.5
+        )
+        return float(out["score_total"])
+
+    def test_the_advantage_appears_exactly_when_the_category_match_is_weak(self) -> None:
+        """The precise rule, which is narrower than "uncategorised papers win".
+
+        With weights w_kw and w_cat the two totals are (kw + w·cat)/(1 + w) and kw, so the
+        uncategorised paper wins **iff kw > cat**. A paper in exactly the right category
+        still beats it; a paper in a merely adjacent one does not. Partial and zero
+        category matches are the common case in a real pool, which is why this shows up as
+        systematic displacement rather than as an occasional upset.
+        """
+        absent = self._score("omit", [])
+        assert absent > self._score("omit", ["cs.LG"])  # no match: cat 0.0 < kw
+        assert absent < self._score("omit", ["cs.CL"])  # full match: cat 1.0 > kw
+
+    def test_zero_removes_the_advantage(self) -> None:
+        """Even against a non-matching arXiv paper, absence no longer wins."""
+        assert self._score("zero", []) <= self._score("zero", ["cs.LG"])
+
+    def test_zero_is_the_harshest_treatment(self) -> None:
+        """It scores absence as a real non-match, which is the handicap `omit` avoided."""
+        assert self._score("zero", []) < self._score("omit", [])
+
+    def test_impute_sits_between_zero_and_omit(self) -> None:
+        """An uncategorised paper is treated as an AVERAGE paper on this axis.
+
+        Not the best (omit, which is what a perfect category match would earn) and not the
+        worst (zero, a non-match) — the only one of the three that does not encode a claim
+        about non-arXiv papers being systematically better or worse than arXiv ones.
+        """
+        assert self._score("zero", []) <= self._score("impute", []) <= self._score("omit", [])
+
+    def test_a_categorised_paper_is_unaffected_by_the_policy(self) -> None:
+        """The knob must only touch papers with nothing to score."""
+        scores = {mode: self._score(mode, ["cs.CL"]) for mode in ("omit", "zero", "impute")}
+        assert len(set(scores.values())) == 1, scores
+
+    def test_impute_falls_back_to_zero_when_nothing_in_the_pool_has_categories(self) -> None:
+        """A mean over an empty set is not a number, and imputing 1.0 there would hand
+        every paper in an all-non-arXiv pool a perfect category score."""
+        from reporadar.ranker import rank_papers
+
+        papers = [_make_paper(arxiv_id=f"ss:{i}", categories=[]) for i in range(3)]
+        ranked = rank_papers(
+            papers, _make_profile(), self._cfg("impute"), QueriesConfig(), ["cs.CL"]
+        )
+        zeroed = rank_papers(papers, _make_profile(), self._cfg("zero"), QueriesConfig(), ["cs.CL"])
+        assert [r["score_total"] for r in ranked] == [r["score_total"] for r in zeroed]
 
 
 class TestSpecterComponent:

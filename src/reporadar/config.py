@@ -78,6 +78,9 @@ class ArxivConfig:
 # the measurement that made the choice worth exposing.
 BIGRAM_MODES = ("adjacent", "verified", "none")
 
+# How `w_category` treats a paper with no categories. See RankingConfig.absent_category.
+ABSENT_CATEGORY_MODES = ("omit", "zero", "impute")
+
 
 @dataclass
 class QueriesConfig:
@@ -109,6 +112,20 @@ class QueriesConfig:
 class RankingConfig:
     w_keyword: float = 1.0
     w_category: float = 0.5
+    # What to do with `w_category` for a paper that has NO categories — every paper from
+    # every non-arXiv source.
+    #   omit   — drop the component (the shipped behaviour since Feature 10)
+    #   zero   — score it 0 and keep the component in the average
+    #   impute — score it the mean category score of the categorised papers in the pool
+    #
+    # `omit` was chosen so a missing signal would not handicap non-arXiv papers, and it
+    # does the opposite: an arXiv paper is scored on keyword AND category while an
+    # uncategorised one is scored on keyword alone, so at equal keyword relevance the
+    # uncategorised paper wins (0.600 vs 0.567 at the shipped weights, 0.600 vs 0.400 when
+    # the arXiv paper's category match is 0). The absent-signal rule is right when
+    # missingness is random; here it is perfectly correlated with the source.
+    # See ranker.score_paper and evals/RESULTS.md.
+    absent_category: str = "omit"
     # 0.0, not 0.3: with an all-time `arxiv.lookback_days` a recency weight ranks a
     # forgettable preprint from last week above the paper that would actually change
     # the project. This is the third of the three knobs `--foundational` turns, and
@@ -378,6 +395,13 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         ranking = RankingConfig(**ranking_data, category_weights=cat_weights or {})
     else:
         ranking = RankingConfig()
+    # Same reasoning as queries.bigrams above: an unrecognised mode must not fall back to
+    # the default, or a typo reads as a measurement of the policy that was asked for.
+    if ranking.absent_category not in ABSENT_CATEGORY_MODES:
+        raise ValueError(
+            f"ranking.absent_category must be one of {', '.join(ABSENT_CATEGORY_MODES)}; "
+            f"got {ranking.absent_category!r}"
+        )
     output = OutputConfig(**data["output"]) if "output" in data else OutputConfig()
     semantic_scholar = (
         SemanticScholarConfig(**data["semantic_scholar"])

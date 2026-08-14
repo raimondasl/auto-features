@@ -834,6 +834,108 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### The absent-category bias is real, changes retrieval a lot, and changes nothing — and it undermines yesterday's S2 result (2026-08-13)
+
+```bash
+# one live seeding pass fills the pool; three arms then read it
+for MODE in omit zero impute; do
+  uv run python evals/run_judge_eval.py --baseline none --sources arxiv,semantic_scholar \
+      --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      --rr-frozen-pool evals/.work/pool-abscat --rr-absent-category $MODE
+done
+uv run python evals/bigram_report.py --label-field absent_category omit=<A> zero=<B> impute=<C>
+```
+
+`ranker.score_paper` drops `w_category` when a paper has no categories — every paper from
+every non-arXiv source. Writing the two totals out, `(kw + w·cat)/(1+w)` against `kw`, the
+uncategorised paper wins **iff `kw > cat`**: not the flat advantage first claimed here (a
+paper in exactly the right category still wins, 0.893 to 0.840), but the common case in a
+real pool, where category matches are partial or absent.
+
+The frozen pool made this cheap and sensitive: **MRE 0.48 instead of 1.04**, one live
+seeding pass and three arms that collect nothing. Arms **VALID** — 25/25 cases changed
+their returned top-10, mean Jaccard 0.66 and 0.69.
+
+#### The flag does a great deal to what is retrieved
+
+| arm | non-arXiv papers in the ranked top-10 |
+|---|---|
+| `omit` (shipped) | **32** |
+| `zero` | **14** |
+| `impute` | **39** |
+
+`zero` more than halves them. This is not a subtle reordering.
+
+#### And nothing at all to what comes out
+
+| arm | net@2 | shown | actionable | precision | net-negative |
+|---|---|---|---|---|---|
+| `omit` | +4.04 | 149 | 133 | 0.893 | 1 |
+| `zero` | +4.04 | 146 | 131 | 0.897 | 0 |
+| `impute` | +4.08 | 147 | 132 | 0.898 | 1 |
+
+| paired vs `omit` | mean | 95% CI | sign | p |
+|---|---|---|---|---|
+| `zero` | **+0.00** | [−0.72, +0.76] | 6+/6−/13= | 1.00 |
+| `impute` | **+0.04** | [−0.40, +0.48] | 5+/6−/14= | 1.00 |
+
+A gate-free measure agrees: actionable papers reaching the ranked top-10 are **6.60 / 6.60
+/ 6.36** per case. So this is not the triage gate absorbing a ranking change — the change
+never mattered.
+
+**My hypothesis is refuted, and the refutation is more informative than the fix would have
+been.** The bias is real, it moves 18 of 32 non-arXiv papers out of the top-10, and the
+papers that replace them are **neither better nor worse**. Non-arXiv and arXiv candidates
+at that rank are interchangeable in actionability.
+
+#### Which undermines yesterday's displacement story
+
+The same `+s2` configuration, two draws:
+
+| | net@2 | precision | net-negative |
+|---|---|---|---|
+| arXiv only (live, 2026-08-13) | +4.12 | 0.908 | 0 |
+| **+s2 (live, 2026-08-13)** | **+3.24** | 0.854 | 2 |
+| **+s2 (frozen, same day, later)** | **+4.04** | 0.893 | 1 |
+
+**+0.80/case apart, for the same configuration.** And the second draw lands 0.08 from the
+arXiv-only arm — inside any floor this benchmark has.
+
+Two known differences beyond the draw itself: the C-12 dedup fix landed in between (the
+naive post-hoc correction cancelled at the mean, but the real fix changes the *pool*, and
+that second-order effect could not be computed after the fact), and today's arms are frozen
+where yesterday's were live — which changes variance, not expectation, but is not a clean
+paired comparison either.
+
+**So NR-32's −1.05 is a single draw, and it does not reproduce.** The displacement
+mechanism it proposed is independently undercut by the result above: displacing S2 papers
+back out, which `zero` does at scale, buys nothing. Recorded as a correction to NR-32
+rather than a replacement — settling it needs paired live arms in one session, which is
+what NR-32 was and which one draw cannot establish.
+
+The shipping decision is unchanged and its basis is now weaker still: `sources: [arxiv]`
+stays the default because **S2 has not been shown to help**, not because it was shown to
+hurt.
+
+#### What this says about ranking work generally
+
+Two ranking policies that produce visibly different top-10s produce statistically identical
+output. Anything downstream of the heuristic ranker — the triage gate, the fine-scale
+rescore, the 2/3 threshold — is doing the work that decides quality. **A heuristic-ranker
+change now has to clear a high bar to be worth measuring**, and the cheap way to check
+before spending is the gate-free actionable-in-top-10 count, which moved 0.00 and −0.24
+here.
+
+`ranking.absent_category` ships defaulting to `omit`, unchanged: nothing measured justifies
+moving it, and `zero`'s marginally better precision (0.897 vs 0.893) and zero net-negative
+repos are both inside noise.
+
+Logged as **NR-33** (the absent-category bias is real, large in effect on composition, null
+on outcomes) and as a **correction to NR-32**.
+
+**Cost** ~$14, one seeding pass (2 h 10 m, S2-throttle-bound) plus three arms at ~35 min
+each, all 25 cases in every arm, no failures.
+
 ### S2 measured at last: it does not help, it displaces — and the controls answer a different question (2026-08-13)
 
 ```bash
@@ -847,6 +949,12 @@ uv run python evals/source_ab_report.py arxiv=<A> +s2=<B>
 The experiment finding 3 only appeared to run. Two arms, 25 cases each, same session, arm A
 collecting arXiv live and arm B serving it from the cache. **Both arms complete — no case
 lost**, unlike the probe that preceded the cache.
+
+> **Correction (later the same day): −1.05 is one draw and it does not reproduce.** A
+> second draw of this configuration scored **+4.04**, 0.08 from the arXiv-only arm. The
+> displacement mechanism proposed below is separately undercut: halving the non-arXiv
+> papers in the top-10 (`--rr-absent-category zero`) changes net@2 by **+0.00**. See *The
+> absent-category bias* above. The recommendation survives; the evidence for it does not.
 
 **Arm VALID, emphatically**: 122 papers returned by the treatment that the control never
 returned, across **25/25** cases. Nothing here is the void that finding 3 was.
