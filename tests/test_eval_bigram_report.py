@@ -22,6 +22,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals"))
 
+from ablation_report import digest_width  # noqa: E402
 from bigram_report import (  # noqa: E402
     check_labels,
     divergence,
@@ -146,6 +147,34 @@ class TestLabelFieldIsConfigurable:
         check_labels("15", arm, "digest_window")
         with pytest.raises(SystemExit, match="refusing to report an arm"):
             check_labels("10", arm, "digest_window")
+
+
+class TestTheDigestWidthGuard:
+    """A width mismatch is worth more than any treatment this project has published.
+
+    The returned-set cut moved 10 -> 15 on 2026-08-15 at **+1.24 net@2/case**, and 91 of the
+    92 runs on disk at that moment were the narrower one. Comparing across it measures the
+    width and reports it under whatever the arms were named — the same shape as comparing a
+    frozen arm against a live one, which the provenance guard already refuses.
+    """
+
+    def test_runs_predating_the_flag_read_as_ten(self) -> None:
+        """Unlike pool provenance, the pre-flag value is KNOWN: it was a literal in the
+        source, not a default anyone could have passed. So these read '10', not
+        'unlabelled' — there is nothing to assume."""
+        assert digest_width({"a": {"case": "a"}}) == "10"
+
+    def test_a_recorded_width_is_used(self) -> None:
+        assert digest_width({"a": {"case": "a", "digest_window": 15}}) == "15"
+
+    def test_a_run_with_two_widths_is_mixed(self) -> None:
+        """One run cannot have two windows unless something rewrote it; say so rather than
+        silently picking one."""
+        arm = {"a": {"case": "a", "digest_window": 10}, "b": {"case": "b", "digest_window": 15}}
+        assert digest_width(arm) == "mixed"
+
+    def test_none_is_treated_as_the_pre_flag_default(self) -> None:
+        assert digest_width({"a": {"case": "a", "digest_window": None}}) == "10"
 
 
 class TestPairedBootstrap:
