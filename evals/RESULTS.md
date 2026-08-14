@@ -834,6 +834,56 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### PRE-REGISTERED, not yet run — how deep should the gate look? (2026-08-14)
+
+```bash
+# one live seeding pass fills the pool; three arms then read it
+for DEPTH in 15 25 50; do
+  uv run python evals/run_judge_eval.py --baseline none --sources arxiv \
+      --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde \
+      --rr-frozen-pool evals/.work/pool-depth --rr-pool $DEPTH
+done
+uv run python evals/bigram_report.py --label-field gate_depth 15=<A> 25=<B> 50=<C>
+```
+
+**Written before spending anything.** `triage.top_k` ships at **15**, and the
+[product/benchmark audit](#looking-for-the-c-9-shape-on-purpose-five-divergences-one-of-them-a-live-product-bug-2026-08-14)
+found that no experiment has ever included that value. The closest is
+[NR-15](#negative-result-5--widening-the-triage-window-from-20-to-50-does-not-pay-2026-08-02),
+which compared windows **20 and 50** on 12 cases — so the shipped default is *shallower than
+the shallowest arm ever run*. That comparison is also doubly superseded: its treatment arm
+carried a prompt change as well (`--rr-readme-context`), and it predates the fine-scale
+rescore.
+
+The mechanism matters more than the history. NR-16 closed pool depth with *"the bottleneck
+is not how many papers the gate sees, it is that nothing orders what it returns."* The
+rescore made that sentence false — HyDE doubled the pool and converted **+1.36** where the
+identical expansion had been a measured wash a month before. Every default resting on
+pre-rescore depth evidence is unsupported, and this is one of them.
+
+**Design.** One live seeding pass, three arms reading the frozen pool, gate depth the only
+variable. `rr_pool` is in `RANKING_FLAGS`, which is exactly why one pool serves all three
+and the floor is **MRE 0.48** rather than 1.04. `--sources arxiv`, the shipped default.
+Each run now records `gate_depth`, so the report can refuse an arm whose own file
+contradicts its label.
+
+**Prediction.** Depth 50 beats depth 15 by **more than 0.48/case**. If the rescore really
+converts a wider candidate set, 3.3× the candidates at a fixed digest size of 10 should show.
+
+**Alarm, and it points at us.** If depth 50 is *worse* than 15 by more than the floor, the
+shallow shipped default is vindicated and it is the **benchmark** that should change — every
+headline since 2026-08-07 was measured at `--rr-pool 50`, which would then be a depth that
+flatters the published numbers. Naming that before the run so it cannot be reframed after.
+
+**Validity checks, pre-committed.** 25/25 cases must change their returned top-10 between
+arms — identical output is VOID, not null, which has cost this project three findings. And
+the gate-free measure (actionable papers reaching the returned top-10) is reported beside
+net@2, because it moved 0.00 in the last ranking experiment and would have predicted that
+null for $0.
+
+**Estimated cost** ~$15–20: 2,250 Haiku gate calls, plus judge verdicts on whatever the
+deeper arms newly surface (cached across arms), plus the seeding pass.
+
 ### OpenAlex, the last unmeasured channel: it delivers, and it places where placing is worthless (2026-08-14)
 
 ```bash
