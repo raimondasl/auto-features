@@ -60,10 +60,10 @@ from reporadar.collector import (  # noqa: E402
     CollectionError,
     build_queries,
     collect_papers,
-    dedup_id,
     to_plain_keywords,
 )
 from reporadar.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 from reporadar.retrieval import hybrid_reorder  # noqa: E402
 from reporadar.sources import openalex  # noqa: E402

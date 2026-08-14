@@ -11,8 +11,8 @@ from typing import Any
 
 from jinja2 import Environment, PackageLoader
 
-from reporadar.collector import dedup_id
 from reporadar.notify import DigestSummary
+from reporadar.paper_id import dedup_id
 from reporadar.store import PaperStore
 from reporadar.suggestions import enrich_papers_with_suggestions
 

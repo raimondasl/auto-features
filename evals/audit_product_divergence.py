@@ -13,10 +13,11 @@ two implementations, one of them fixed**:
 Both were found by accident, months apart, while looking for something else. This script
 looks for the shape on purpose, in three passes:
 
-1. **Wiring** — every place an arXiv id is normalised or a source merge is deduped, read out
-   of the AST, with whichever of the competing rules it uses. Two rules coexist in this
-   codebase (`collector.dedup_id` and a bare ``split("v")[0]``) and they disagree on
-   old-style ids, so *which* one a call site uses is the finding, not whether it has one.
+1. **Wiring** — every place an arXiv id is normalised, a source merge is deduped, or the
+   digest window is derived, read out of the AST with whichever of the competing rules it
+   uses. The id survey covers **every** module this project wrote, not the pipeline: scoping
+   it to the five files C-9 and C-12 lived in reported clean while three rules coexisted
+   across eight modules it never opened.
 2. **Configuration** — the shipped defaults against the configuration the benchmark's
    headline actually runs. `arxiv.lookback_days` already drifted this way for a month
    (14 days shipped, all-time measured); a difference is fine, an *undeclared* one is not.
@@ -40,7 +41,6 @@ from typing import Any, NamedTuple
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from reporadar.collector import dedup_id  # noqa: E402
 from reporadar.config import (  # noqa: E402
     ArxivConfig,
     OutputConfig,
@@ -48,8 +48,11 @@ from reporadar.config import (  # noqa: E402
     RankingConfig,
     TriageConfig,
 )
+from reporadar.paper_id import dedup_id  # noqa: E402
 
 # Modules that participate in the collect -> rank -> gate -> show pipeline on either side.
+# The merge and digest-window passes are about how THIS pipeline behaves, so they are
+# scoped to it deliberately.
 PIPELINE_MODULES = (
     ("src", "reporadar", "cli.py"),
     ("src", "reporadar", "digest.py"),
@@ -57,6 +60,23 @@ PIPELINE_MODULES = (
     ("evals", "run_eval.py"),
     ("evals", "run_judge_eval.py"),
 )
+
+
+def all_modules() -> list[Path]:
+    """Everything this project wrote, on either side of the line.
+
+    The id-normalisation survey uses this rather than `PIPELINE_MODULES`, and the reason is
+    the finding that produced it: the first version of that survey looked at the five files
+    C-9 and C-12 happened to live in, and a sweep on 2026-08-15 then turned up three
+    competing rules across eight product modules it had never opened — the MCP server, two
+    signal collectors, three source adapters. A survey scoped to where you last found a bug
+    reports clean about everywhere you did not look.
+
+    `evals/.work/` holds cloned benchmark repositories, which are other people's source.
+    """
+    files = sorted((ROOT / "src" / "reporadar").rglob("*.py"))
+    files += sorted((ROOT / "evals").glob("*.py"))
+    return [p for p in files if ".work" not in p.parts]
 
 
 class Divergence(NamedTuple):
@@ -176,14 +196,28 @@ def pass_wiring() -> list[Divergence]:
     print("=" * 78)
 
     by_rule: collections.Counter[str] = collections.Counter()
-    print("\n  arXiv-id normalisation, by call site:")
-    for parts in PIPELINE_MODULES:
-        path = ROOT.joinpath(*parts)
+    by_module: collections.Counter[str] = collections.Counter()
+    offenders: list[str] = []
+    modules = all_modules()
+    print(f"\n  arXiv-id normalisation, across all {len(modules)} modules:")
+    for path in modules:
+        # `paper_id.py` IS the rule; this file keeps a copy of the OLD rule on purpose,
+        # because pass 3 reports the ids the two disagree on and cannot do that with
+        # only one of them. Both exemptions are mirrored in tests/test_paper_id.py.
+        if path.name in ("paper_id.py", "audit_product_divergence.py"):
+            continue
+        rel = path.relative_to(ROOT).as_posix()
         for line, rule, text in _norm_calls(path):
             by_rule[rule] += 1
-            flag = "   " if rule == "dedup_id" else " ! "
-            print(f"  {flag}{'/'.join(parts[-2:])}:{line:<5} [{rule:8}] {text[:56]}")
-    print(f"\n  -> {by_rule['dedup_id']} via the shared helper, {by_rule['split-v']} hand-rolled")
+            by_module[rel] += 1
+            if rule != "dedup_id":
+                offenders.append(f"{rel}:{line}  {text[:52]}")
+    print(f"     {by_rule['dedup_id']} call(s) via the shared rule, across {len(by_module)} files")
+    for line in offenders:
+        print(f"   ! {line}")
+    print(
+        f"\n  -> {by_rule['split-v']} hand-rolled (the enforcing guard is tests/test_paper_id.py)"
+    )
 
     print("\n  Membership tests on a raw arXiv id:")
     raw = []

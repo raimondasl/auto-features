@@ -22,7 +22,10 @@ from typing import Any
 import arxiv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from harness import EVALS_DIR, load_benchmark  # noqa: E402  (needs evals/ on sys.path first)
+
+from reporadar.paper_id import dedup_id  # noqa: E402
 
 FIXTURES_DIR = EVALS_DIR / "fixtures"
 
@@ -67,7 +70,7 @@ def build_case(client: arxiv.Client, case: dict[str, Any]) -> list[dict[str, Any
     per_gold = max(1, case.get("gold_n", 0) // max(1, len(case.get("gold_queries", []) or [1])))
     for q in case.get("gold_queries", []) or []:
         for p in _fetch(client, q, per_gold + 2, label=1):
-            pool.setdefault(p["arxiv_id"].split("v")[0], p)
+            pool.setdefault(dedup_id(p["arxiv_id"]), p)
 
     gold_ids = set(pool.keys())
     per_dist = max(
@@ -75,7 +78,7 @@ def build_case(client: arxiv.Client, case: dict[str, Any]) -> list[dict[str, Any
     )
     for q in case.get("distractor_queries", []) or []:
         for p in _fetch(client, q, per_dist + 2, label=0):
-            base = p["arxiv_id"].split("v")[0]
+            base = dedup_id(p["arxiv_id"])
             if base in gold_ids:
                 continue  # ambiguous — skip to keep labels clean
             pool.setdefault(base, p)

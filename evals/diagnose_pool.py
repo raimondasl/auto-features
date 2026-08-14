@@ -32,6 +32,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from harness import collect_live_papers, profile_case_repo  # noqa: E402
 
+from reporadar.paper_id import dedup_id  # noqa: E402
+
 EVALS = Path(__file__).resolve().parent
 BASELINE = EVALS / "cache" / "baseline" / "cli"
 JUDGE = EVALS / "cache" / "judge" / "v1" / "gpt-5.5"
@@ -96,7 +98,7 @@ def main() -> int:
             lookback_days=3650,
             sort_by="relevance",
         )
-        pool = {p["arxiv_id"].split("v")[0] for p in papers}
+        pool = {dedup_id(p["arxiv_id"]) for p in papers}
         hit = [i for i in wanted if i in pool]
         miss = [i for i in wanted if i not in pool]
         rows.append({"case": name, "pool": len(pool), "wanted": wanted, "hit": hit, "miss": miss})

@@ -34,6 +34,7 @@ from typing import NamedTuple
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from reporadar.citations import _s2_batch_post, _s2_id  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 
 TARGETS = {
     "rag": ["2409.14683", "2404.02805", "2501.17788", "2304.01982", "2505.11471"],
@@ -134,7 +135,7 @@ def hop(arxiv_ids: list[str], direction: str, cap: int = 60) -> HopResult:
         # so a candidate cited twice by one seed still scores degree 1 for it.
         for entry in data:
             per_seed = {
-                ax.split("v")[0]
+                dedup_id(ax)
                 for ref in (entry or {}).get(direction) or []
                 if (ax := ((ref or {}).get("externalIds") or {}).get("ArXiv"))
             }

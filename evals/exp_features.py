@@ -38,6 +38,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import band_testbeds as tb  # noqa: E402
 
+from reporadar.paper_id import dedup_id  # noqa: E402
+
 S2_CACHE = tb.EXP / "s2_meta.json"
 S2_URL = (
     "https://api.semanticscholar.org/graph/v1/paper/batch"
@@ -104,7 +106,7 @@ def hop_coupling(case: str) -> dict[str, float]:
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             row = json.loads(line)
-            out[row["id"].split("v")[0]] = float(
+            out[dedup_id(row["id"])] = float(
                 (row.get("fwd_degree") or 0) + (row.get("back_degree") or 0)
             )
     return out

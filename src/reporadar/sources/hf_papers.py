@@ -25,6 +25,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from reporadar.paper_id import dedup_id
+
 logger = logging.getLogger(__name__)
 
 HF_API_BASE = "https://huggingface.co/api"
@@ -87,8 +89,11 @@ def _request_json(
 
 
 def _base_arxiv_id(arxiv_id: str) -> str:
-    """Strip a version suffix (e.g. ``2401.12345v2`` -> ``2401.12345``)."""
-    return arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
+    """Strip a version suffix (e.g. ``2401.12345v2`` -> ``2401.12345``).
+
+    Delegates to :func:`reporadar.paper_id.dedup_id`; see that module for why one rule.
+    """
+    return dedup_id(arxiv_id)
 
 
 def _repo_ids(items: Any) -> list[str]:

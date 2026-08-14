@@ -52,6 +52,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from run_judge_eval import RESULTS_DIR  # noqa: E402
 
+from reporadar.paper_id import dedup_id  # noqa: E402
+
 
 def load(path: str) -> dict[str, dict[str, Any]]:
     p = Path(path)
@@ -107,7 +109,7 @@ def jaccard(a: set[str], b: set[str]) -> float | None:
 
 
 def ids(rec: dict[str, Any], key: str) -> set[str]:
-    return {p["arxiv_id"].split("v")[0] for p in rec["returned"].get(key, [])}
+    return {dedup_id(p["arxiv_id"]) for p in rec["returned"].get(key, [])}
 
 
 def decompose(by_case: dict[str, list[float]]) -> dict[str, float]:

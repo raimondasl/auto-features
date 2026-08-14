@@ -53,6 +53,7 @@ from functools import lru_cache
 from typing import Any
 
 from reporadar import arxiv_rate
+from reporadar.paper_id import dedup_id
 
 logger = logging.getLogger(__name__)
 
@@ -214,8 +215,14 @@ def _client() -> Any:
 
 
 def _base_id(arxiv_id: str) -> str:
-    """Strip a version suffix: ``1407.6496v2`` -> ``1407.6496``."""
-    return re.sub(r"v\d+$", "", arxiv_id)
+    """Strip a version suffix: ``1407.6496v2`` -> ``1407.6496``.
+
+    Delegates to :func:`reporadar.paper_id.dedup_id`. This was a third rule for one
+    invariant — anchored at the end, so it survived the ``split("v")[0]`` failure mode, but
+    it would still edit a synthetic ``ss:``/``dblp:`` id that merely ended in a
+    version-shaped suffix. Those ids are opaque and must pass through untouched.
+    """
+    return dedup_id(arxiv_id)
 
 
 def fetch_comments(arxiv_ids: list[str]) -> dict[str, str]:

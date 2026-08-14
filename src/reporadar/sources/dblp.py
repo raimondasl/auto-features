@@ -33,6 +33,8 @@ from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any
 
+from reporadar.paper_id import dedup_id
+
 logger = logging.getLogger(__name__)
 
 DBLP_SEARCH_URL = "https://dblp.org/search/publ/api"
@@ -102,7 +104,7 @@ def _arxiv_id(info: dict[str, Any]) -> str | None:
         return doi.split("arxiv.")[-1]
     for link in (_text(info.get("ee")), _text(info.get("url"))):
         if "arxiv.org/abs/" in link:
-            return link.split("arxiv.org/abs/")[-1].split("v")[0]
+            return dedup_id(link.split("arxiv.org/abs/")[-1])
     match = _CORR_KEY_RE.search(str(info.get("key") or ""))
     return f"{match.group(1)}.{match.group(2)}" if match else None
 

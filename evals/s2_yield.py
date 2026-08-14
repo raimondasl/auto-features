@@ -57,6 +57,7 @@ from reporadar.collector import (  # noqa: E402
     to_plain_keywords,
 )
 from reporadar.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 from reporadar.retrieval import hybrid_reorder  # noqa: E402
 from reporadar.sources.semantic_scholar import collect_papers as s2_collect  # noqa: E402
@@ -67,11 +68,6 @@ from reporadar.sources.semantic_scholar import collect_papers as s2_collect  # n
 S2_INTERVAL_S = 2.0
 ALL_TIME_DAYS = 36500
 TOP_N = 10
-
-
-def _dedup_id(arxiv_id: str) -> str:
-    """Version-insensitive id, matching cli.update's merge."""
-    return arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
 
 
 def load_key() -> str | None:
@@ -116,8 +112,8 @@ def measure(case: dict[str, Any], key: str | None) -> dict[str, Any] | None:
         lookback_days=ALL_TIME_DAYS,
     )
 
-    known = {_dedup_id(p["arxiv_id"]) for p in arxiv_papers}
-    new = [p for p in s2_papers if _dedup_id(p["arxiv_id"]) not in known]
+    known = {dedup_id(p["arxiv_id"]) for p in arxiv_papers}
+    new = [p for p in s2_papers if dedup_id(p["arxiv_id"]) not in known]
     new_ids = {p["arxiv_id"] for p in new}
     non_arxiv = [p for p in new if p["arxiv_id"].startswith("ss:")]
 

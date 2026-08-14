@@ -50,7 +50,7 @@ from harness import (  # noqa: E402
 from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
-from reporadar.collector import CollectionError, dedup_id  # noqa: E402
+from reporadar.collector import CollectionError  # noqa: E402
 from reporadar.config import (  # noqa: E402
     ABSENT_CATEGORY_MODES,
     BIGRAM_MODES,
@@ -58,6 +58,7 @@ from reporadar.config import (  # noqa: E402
     RankingConfig,
 )
 from reporadar.digest import TOP_THRESHOLD  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 from reporadar.retrieval import hybrid_reorder  # noqa: E402
 from reporadar.triage import rerank_by_actionability  # noqa: E402

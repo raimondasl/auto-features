@@ -13,6 +13,8 @@ from typing import Any
 
 import arxiv
 
+from reporadar.paper_id import dedup_id
+
 
 class ArxivUnavailable(Exception):
     """Raised when an arXiv lookup *errors* (network/HTTP), as opposed to
@@ -62,7 +64,7 @@ def _normalize(result: arxiv.Result) -> dict[str, Any]:
 
 
 def resolve_by_id(client: arxiv.Client, arxiv_id: str) -> dict[str, Any] | None:
-    base = arxiv_id.split("v")[0]
+    base = dedup_id(arxiv_id)
     try:
         result = next(client.results(arxiv.Search(id_list=[base])), None)
     except arxiv.UnexpectedEmptyPageError:
@@ -118,7 +120,7 @@ def resolve_references(
         if paper is None:
             hallucinated += 1
         else:
-            resolved.setdefault(paper["arxiv_id"].split("v")[0], paper)
+            resolved.setdefault(dedup_id(paper["arxiv_id"]), paper)
 
     for arxiv_id in ids:
         try:

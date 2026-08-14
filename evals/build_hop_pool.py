@@ -46,6 +46,7 @@ from diagnose_citation_hop import hop, seeds_for  # noqa: E402
 from diagnose_pool import actionable_baseline_ids  # noqa: E402
 
 from reporadar.citations import _s2_batch_post, _s2_id  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 OUT_DIR = EVALS / ".work" / "hop_pool"
@@ -121,7 +122,7 @@ def fetch_metadata(arxiv_ids: list[str], cache: dict[str, dict]) -> dict[str, di
         for entry in data:
             if not entry:
                 continue
-            ax = ((entry.get("externalIds") or {}).get("ArXiv") or "").split("v")[0]
+            ax = dedup_id(str((entry.get("externalIds") or {}).get("ArXiv") or ""))
             if not ax:
                 continue
             cache[ax] = {
