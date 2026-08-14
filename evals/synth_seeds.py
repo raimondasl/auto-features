@@ -45,6 +45,7 @@ from diagnose_citation_hop import hop, seeds_for  # noqa: E402
 
 from reporadar.config import SuggestionsConfig  # noqa: E402
 from reporadar.llm_client import complete  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.profiler import _collect_text_corpus, profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
@@ -112,7 +113,7 @@ def citation_counts(ids: list[str]) -> dict[str, int]:
         for entry in data or []:
             if not entry:
                 continue
-            ax = ((entry.get("externalIds") or {}).get("ArXiv") or "").split("v")[0]
+            ax = dedup_id(str((entry.get("externalIds") or {}).get("ArXiv") or ""))
             if ax:
                 out[ax] = entry.get("citationCount") or 0
     return out

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from reporadar.config import ProfilerConfig, RankingConfig
+from reporadar.paper_id import dedup_id
 from reporadar.profiler import profile_repo
 from reporadar.ranker import format_score_explanation
 from reporadar.search import search_corpus
@@ -74,9 +75,9 @@ def explain_relevance_payload(
     run = store.get_last_run()
     if run is None:
         return {"error": "No runs yet — run `rr update` first."}
-    want = arxiv_id.split("v")[0]
+    want = dedup_id(arxiv_id)
     match = next(
-        (s for s in store.get_scores_for_run(run["run_id"]) if s["arxiv_id"].split("v")[0] == want),
+        (s for s in store.get_scores_for_run(run["run_id"]) if dedup_id(s["arxiv_id"]) == want),
         None,
     )
     if match is None:
@@ -106,12 +107,10 @@ def rate_paper_action(store: PaperStore, arxiv_id: str, rating: int) -> dict[str
     # create an orphan row that other features seed from — e.g. SPECTER2 would
     # then try to cache a vector for a paper that doesn't exist and hit the
     # paper_embeddings foreign key.
-    want = arxiv_id.split("v")[0]
+    want = dedup_id(arxiv_id)
     stored = store.get_paper(arxiv_id)
     if stored is None:
-        stored = next(
-            (p for p in store.get_all_papers() if p["arxiv_id"].split("v")[0] == want), None
-        )
+        stored = next((p for p in store.get_all_papers() if dedup_id(p["arxiv_id"]) == want), None)
     if stored is None:
         return {"error": f"{arxiv_id} is not in this repo's paper store — nothing to rate."}
     resolved = str(stored["arxiv_id"])

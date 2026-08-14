@@ -15,14 +15,19 @@ class TestBaseId:
 
 
 class TestBuildSeedSet:
+    # Ids here are real arXiv shape (four digits after the dot), not the `2401.1v1`
+    # shorthand they used to use. `base_id` now delegates to `reporadar.paper_id.dedup_id`,
+    # which is anchored against the two genuine id formats precisely so it cannot edit an
+    # opaque `ss:`/`dblp:` id — and that anchoring also declines to touch a shape no arXiv
+    # paper has. A fixture that only passes under a looser rule was testing the looseness.
     def test_starred_and_high_ratings_only(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
-            store.star_paper("2401.1v1")
-            store.save_rating("2401.2v1", 5)  # >= 4 → seed
-            store.save_rating("2401.3v1", 4)  # >= 4 → seed
-            store.save_rating("2401.4v1", 2)  # < 4 → not a seed
+            store.star_paper("2401.0001v1")
+            store.save_rating("2401.0002v1", 5)  # >= 4 → seed
+            store.save_rating("2401.0003v1", 4)  # >= 4 → seed
+            store.save_rating("2401.0004v1", 2)  # < 4 → not a seed
             seeds = build_seed_set(store)
-        assert seeds == {"2401.1", "2401.2", "2401.3"}
+        assert seeds == {"2401.0001", "2401.0002", "2401.0003"}
 
     def test_empty(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
@@ -30,8 +35,8 @@ class TestBuildSeedSet:
 
     def test_custom_min_rating(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
-            store.save_rating("2401.2v1", 3)
-            assert build_seed_set(store, min_rating=3) == {"2401.2"}
+            store.save_rating("2401.0002v1", 3)
+            assert build_seed_set(store, min_rating=3) == {"2401.0002"}
             assert build_seed_set(store, min_rating=4) == set()
 
 

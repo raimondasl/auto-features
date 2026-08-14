@@ -69,6 +69,7 @@ from harness import WORK_DIR, assemble_repo_context, load_benchmark, profile_cas
 from run_judge_eval import ENV_KEYS, RESULTS_DIR, load_dotenv  # noqa: E402
 
 from reporadar.llm_client import complete  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.triage import repo_context_block  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
@@ -154,7 +155,7 @@ def actionable_papers(case: str, run_file: Path) -> list[dict[str, Any]]:
     for group in rec["returned"].values():
         for p in group:
             if (p.get("judge_score") or 0) >= 2:
-                seen.setdefault(p["arxiv_id"].split("v")[0], p)
+                seen.setdefault(dedup_id(p["arxiv_id"]), p)
     return list(seen.values())
 
 

@@ -216,10 +216,10 @@ def collect_live(
         CollectionError,
         build_queries,
         collect_papers,
-        dedup_id,
         to_plain_keywords,
     )
     from reporadar.config import ArxivConfig, QueriesConfig
+    from reporadar.paper_id import dedup_id
 
     categories = case["expected_categories"] or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"]
     arxiv_cfg = ArxivConfig(

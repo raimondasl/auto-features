@@ -75,6 +75,7 @@ from harness import (  # noqa: E402
 from label_pool import balanced_draw, wilson  # noqa: E402
 
 from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.profiler import profile_repo  # noqa: E402
 from reporadar.triage import score_actionability  # noqa: E402
 
@@ -138,7 +139,7 @@ def build_pools(refresh: bool = False, pause: float = 10.0) -> None:
         seen: set[str] = set()
         rows = []
         for p in papers:
-            pid = str(p.get("arxiv_id", "")).split("v")[0]
+            pid = dedup_id(str(p.get("arxiv_id", "")))
             if not pid or pid in seen or not p.get("abstract"):
                 continue
             seen.add(pid)

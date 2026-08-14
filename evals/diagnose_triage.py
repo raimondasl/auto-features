@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
 from reporadar.llm_client import complete  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.profiler import (
     _collect_text_corpus,  # noqa: E402
     profile_repo,  # noqa: E402
@@ -78,7 +79,7 @@ def labels() -> dict[str, dict[str, int]]:
         if not case.is_dir():
             continue
         out[case.name] = {
-            f.stem.split("v")[0]: json.loads(f.read_text(encoding="utf-8"))["score"]
+            dedup_id(f.stem): json.loads(f.read_text(encoding="utf-8"))["score"]
             for f in case.glob("*.json")
         }
     return out
@@ -107,7 +108,7 @@ def fetch_papers(ids: list[str]) -> dict[str, dict[str, str]]:
             m_id, m_t, m_s = _ID.search(entry), _TITLE.search(entry), _SUMMARY.search(entry)
             if not (m_id and m_t and m_s):
                 continue
-            cache[m_id.group(1).split("v")[0]] = {
+            cache[dedup_id(m_id.group(1))] = {
                 "title": " ".join(m_t.group(1).split()),
                 "abstract": " ".join(m_s.group(1).split()),
             }

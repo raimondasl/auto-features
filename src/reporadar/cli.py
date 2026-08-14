@@ -17,7 +17,6 @@ from reporadar.collector import (
     build_queries,
     collect_by_ids,
     collect_papers,
-    dedup_id,
     to_plain_keywords,
 )
 from reporadar.config import (
@@ -32,6 +31,7 @@ from reporadar.config import (
 from reporadar.digest import write_digest
 from reporadar.llm_client import LLMError
 from reporadar.output import error, info, muted, setup_verbose_logging, success, warn
+from reporadar.paper_id import dedup_id
 from reporadar.profiler import profile_repo
 from reporadar.ranker import format_score_explanation, rank_papers, score_distribution
 from reporadar.store import PaperStore, StoreError

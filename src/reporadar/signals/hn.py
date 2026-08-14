@@ -39,6 +39,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from reporadar.paper_id import dedup_id
+
 logger = logging.getLogger(__name__)
 
 HN_SEARCH_URL = "https://hn.algolia.com/api/v1/search"
@@ -87,8 +89,14 @@ def _throttle() -> None:
 
 
 def _base_id(arxiv_id: str) -> str:
-    """Strip a version suffix: ``2501.12948v2`` -> ``2501.12948``."""
-    return re.sub(r"v\d+$", "", arxiv_id)
+    """Strip a version suffix: ``2501.12948v2`` -> ``2501.12948``.
+
+    Delegates to :func:`reporadar.paper_id.dedup_id`. This was a third rule for one
+    invariant — anchored at the end, so it survived the ``split("v")[0]`` failure mode, but
+    it would still edit a synthetic ``ss:``/``dblp:`` id that merely ended in a
+    version-shaped suffix. Those ids are opaque and must pass through untouched.
+    """
+    return dedup_id(arxiv_id)
 
 
 def _search(query: str, hits_per_page: int = 20) -> tuple[list[dict[str, Any]], int]:

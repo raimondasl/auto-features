@@ -12,6 +12,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from reporadar import s2_rate
+from reporadar.paper_id import dedup_id
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +31,12 @@ _MAX_SPLIT_DEPTH = 4
 
 
 def _s2_id(arxiv_id: str) -> str:
-    """arXiv id → Semantic Scholar id (version-stripped): ``2401.1v2`` → ``ARXIV:2401.1``."""
-    base_id = arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
-    return f"ARXIV:{base_id}"
+    """arXiv id → Semantic Scholar id: ``2401.12345v2`` → ``ARXIV:2401.12345``.
+
+    Version-stripping is :func:`reporadar.paper_id.dedup_id`, not a local rule — S2 is one
+    of the sources whose id spelling disagrees with arXiv's in the first place.
+    """
+    return f"ARXIV:{dedup_id(arxiv_id)}"
 
 
 def _chunks(items: list[str], size: int) -> Iterator[tuple[int, list[str]]]:
@@ -195,7 +199,7 @@ def fetch_references(
                 ext = (ref or {}).get("externalIds") or {}
                 arxiv = ext.get("ArXiv")
                 if arxiv:
-                    cited.append(str(arxiv).split("v")[0])
+                    cited.append(dedup_id(str(arxiv)))
             if cited:
                 result[original_ids[start + i]] = cited
 

@@ -49,6 +49,7 @@ from reporadar.collector import collect_by_ids  # noqa: E402
 from reporadar.config import ProfilerConfig  # noqa: E402
 from reporadar.finescale import INTERCEPT, SHOW_THRESHOLD, SLOPE, score_paper  # noqa: E402
 from reporadar.llm_client import LLMError  # noqa: E402
+from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.profiler import profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
@@ -81,7 +82,8 @@ def _save_cache(case: str, rows: dict[str, dict[str, Any]]) -> None:
 
 
 def base_id(arxiv_id: str) -> str:
-    return arxiv_id.split("v")[0]
+    """Delegates to the one shared rule; see reporadar.paper_id."""
+    return dedup_id(arxiv_id)
 
 
 def score_case(

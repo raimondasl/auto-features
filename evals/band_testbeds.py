@@ -32,9 +32,14 @@ from __future__ import annotations
 import json
 import math
 import os
+import sys
 from dataclasses import dataclass, field
 from functools import cache, lru_cache
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from reporadar.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
@@ -107,7 +112,8 @@ class CaseBand:
 
 
 def _base(arxiv_id: str) -> str:
-    return arxiv_id.split("v")[0]
+    """Delegates to the one shared rule; see reporadar.paper_id."""
+    return dedup_id(arxiv_id)
 
 
 @cache
@@ -266,6 +272,7 @@ def repo_block(case: str) -> str:
     import sys
 
     sys.path.insert(0, str(EVALS.parent / "src"))
+
     from reporadar.config import ProfilerConfig
     from reporadar.profiler import profile_repo
     from reporadar.triage import repo_context_block

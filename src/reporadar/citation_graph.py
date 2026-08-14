@@ -8,12 +8,18 @@ and the digest reads the stored edges back.
 
 from __future__ import annotations
 
+from reporadar.paper_id import dedup_id
 from reporadar.store import PaperStore
 
 
 def base_id(arxiv_id: str) -> str:
-    """Strip the version suffix (``2401.00001v2`` -> ``2401.00001``)."""
-    return arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
+    """Strip the version suffix (``2401.00001v2`` -> ``2401.00001``).
+
+    Delegates to :func:`reporadar.paper_id.dedup_id`. The name stays because it reads well
+    where it is used and callers import it; what does not stay is a second *implementation*
+    of the rule — this one used to truncate at the first lowercase ``v`` anywhere.
+    """
+    return dedup_id(arxiv_id)
 
 
 def build_seed_set(store: PaperStore, min_rating: int = 4) -> set[str]:

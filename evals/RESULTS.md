@@ -834,6 +834,74 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Three rules for "same paper", and a guard that had been looking in five files (2026-08-15)
+
+```bash
+uv run python evals/audit_product_divergence.py     # the id survey now covers 102 modules
+uv run pytest tests/test_paper_id.py                # and the enforcing guard with it
+```
+
+The lesson from the divergence audit — *a guard scoped to the site you found the bug at is
+a guard against finding it again* — turned out to describe the guard itself. It listed
+**five pipeline modules**, the files C-9 and C-12 happened to live in. A sweep across
+everything else found **three competing rules** for one invariant:
+
+| rule | where | what it does to a non-arXiv id |
+|---|---|---|
+| `dedup_id` | the shared one | leaves it alone (anchored against both arXiv id eras) |
+| `arxiv_id.split("v")[0]` | 6 product sites, 14 eval modules | truncates at the **first** lowercase `v`: `solv-int/9801001` → `sol`, `dblp:conf/vldb/X` → `dblp:conf/` |
+| `re.sub(r"v\d+$", "", …)` | `signals/hn.py`, `signals/integrity.py` | survives the above, then edits any opaque id that merely *ends* version-shaped |
+
+**All three agree on `2401.12345v2`**, which is why nobody noticed: every rule is correct on
+the ids anyone actually looks at. Nothing but a survey was going to find this.
+
+#### It was found while writing something else, again
+
+The OpenAlex probe needed to dedup against the arXiv pool, and `s2_yield.py` — the probe it
+was modelled on — turned out to carry its own `_dedup_id` copy. That is three for three:
+C-9, C-12 and this were all found sideways, by someone working on a different problem.
+
+#### Consolidated, and the shared rule moved house
+
+Every site now calls `reporadar.paper_id.dedup_id`: **71 calls across 27 files, 0
+hand-rolled.** The eight product modules were the ones that mattered — the MCP server
+matching a user-typed id against stored ones, the citation graph keying its nodes, two
+signal collectors, three source adapters — none of which the old guard had ever opened.
+
+The rule moved out of `collector.py` into its own module, and the reason is measured rather
+than aesthetic: **importing `collector` costs ~1.9 s and pulls in 1,250 modules** (it
+imports the arXiv client), against **17 ms and 62 modules** for a module that imports only
+`re`. Eight callers would have paid the former to normalise a string, and the lazily-imported
+ones would have stopped being lazy. *A shared rule nobody can afford to import grows local
+copies again* — which is how this started, since `dedup_id` was originally placed beside
+`to_plain_keywords` specifically so it could not drift.
+
+#### Two tests changed their fixtures, and that is the finding in miniature
+
+`test_citation_graph.py` seeded ids like `2401.2v1` — one digit after the dot, a shape no
+arXiv paper has. They passed under `split("v")[0]`, which will truncate anything, and fail
+under an anchored rule. The fixtures were shorthand, and the shorthand was quietly the only
+thing keeping the loose rule looking correct. Rewritten to real ids, with the reason noted
+in place.
+
+#### The guard now looks everywhere, and says what it deliberately skips
+
+`tests/test_paper_id.py` reads **all 102 modules** in `src/reporadar/` and `evals/` for any
+of the three rules, and asserts the twelve modules that need it still call it — because
+forbidding copies passes happily on a file that deleted the call, which is exactly how
+`to_plain_keywords` sat correct and unused through C-9. One exemption is declared:
+`audit_product_divergence.py` keeps the old rule on purpose, since its blast-radius pass
+reports the ids on which the two **disagree** and cannot do that with only one of them.
+Exemptions are declared by their exact source line rather than by line number, so an edit
+elsewhere in the file cannot silently widen the hole, and a stale one fails.
+
+**No behaviour changed for any real arXiv id**, which is the honest summary: the
+consolidation removes a class of latent disagreement rather than fixing an observed wrong
+number. The old-style ids where the rules genuinely differ are 5 of 1,271 in the recorded
+corpus, and none of them has yet duplicated.
+
+Logged as **C-14b**. **Cost** $0 — no run, no LLM. Gate green at **1,687 tests** (was 1,578).
+
 ### The fine-scale stage stops paying for papers the digest cannot show (2026-08-14)
 
 ```bash
