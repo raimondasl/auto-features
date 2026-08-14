@@ -91,6 +91,42 @@ class TestLabelCheck:
         assert "no `bigram_mode` recorded" in capsys.readouterr().out
 
 
+class TestTheFloorTracksTheWidthToo:
+    """The floor is a property of the whole configuration, not one axis of it.
+
+    `mre_for` keyed on pool provenance alone until 2026-08-15, when re-measuring at the new
+    returned-set cut gave **0.74 against 0.48** on the same frozen pool — more papers per
+    case means more chances for temperature-0 jitter to move one across the display
+    threshold, and each is worth +1 or −2. A guard that is precise about one dimension and
+    silent about another reads as authority on both, and this one was returning a floor 35%
+    too tight for every future window-15 experiment.
+    """
+
+    def test_the_wider_window_has_the_wider_floor(self) -> None:
+        assert mre_for("frozen", "15")[0] > mre_for("frozen", "10")[0]
+
+    def test_the_measured_values(self) -> None:
+        assert mre_for("frozen", "10")[0] == 0.48
+        assert mre_for("frozen", "15")[0] == 0.74
+
+    def test_an_unmeasured_width_falls_back_to_the_widest_known(self) -> None:
+        """Not the nearest. Under-reporting the floor turns noise into a finding, and that
+        is the direction that costs a published claim."""
+        floor, why = mre_for("frozen", "25")
+        assert floor == 0.74
+        assert "UNMEASURED" in why
+
+    def test_width_defaults_to_the_pre_flag_value(self) -> None:
+        """Every run before the flag was cut at 10, so the default cannot silently widen
+        the floor for the corpus it was measured on."""
+        assert mre_for("frozen") == mre_for("frozen", "10")
+
+    def test_live_arms_are_unaffected_by_width(self) -> None:
+        """The live floor was measured at window 10 and no live window-15 draw exists;
+        claiming otherwise would invent a number."""
+        assert mre_for("live", "15")[0] == 1.04
+
+
 class TestTheFloorIsDerivedNotChosen:
     """Which MRE applies is a property of how the arms were collected.
 

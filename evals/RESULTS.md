@@ -1,5 +1,28 @@
 # Tier B benchmark — results
 
+> ## ⚠ Every number below this line was measured at a digest window of **10**
+>
+> On **2026-08-15** the benchmark's returned-set cut moved 10 → 15, to match the shipped
+> `output.top_n`, because widening it measured **+1.24 net@2/case** (CI [+0.48, +2.08]) —
+> larger than any treatment effect published in this file. **91 of the 92 runs recorded
+> before that date are window-10**, and every headline, precision figure and shown/actionable
+> count below therefore describes a *narrower* system than the one that ships.
+>
+> What this does and does not invalidate:
+>
+> * **Levels understate.** Means, shown counts and the paired-vs-baseline advantage all
+>   grow with the width. The one measured shift is +1.24/case on an arXiv-only frozen pool.
+> * **Paired deltas stand.** HyDE +1.36, the rescore +1.36, gate depth +1.00,
+>   absent-category +0.00, phrase queries +0.04, S2 — both arms of each were window-10, so
+>   each is a sound estimate *at window 10*. None is re-run, and each is labelled rather
+>   than restated.
+> * **Nothing else moved.** `triage.top_k` 15 → 50 changed the product to match what the
+>   benchmark already ran; C-13, the fine-scale scoping and the `paper_id` consolidation are
+>   all outcome-neutral for the benchmark.
+>
+> Runs record `digest_window`, and the reports **refuse** to compare across it without an
+> explicit `--across-windows`.
+
 > **Headline (2026-08-09, 22 cases, live end-to-end): RepoRadar reaches mean net@2 +4.55
 > against the Opus 4.8 baseline's +1.82 — paired +2.73, 15 cases better, 3 worse, 4 tied,
 > sign test p = 0.0075.** The first result in this project's history that clears p < 0.05
@@ -833,6 +856,123 @@ that way: nothing here justifies enabling it, and nothing rules out a real effec
 floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
+
+### The baseline comparison at the width that ships — and read the precision line first (2026-08-15)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline cli --sources arxiv     --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde     --rr-frozen-pool evals/.work/pool-depth --rr-window 15 < /dev/null
+```
+
+Every paired-vs-Opus number in this file was measured at a digest of 10; the product ships
+15. This is the comparison at the shipped width, on the frozen pool the window and depth
+experiments used. **The Opus responses are served from cache**, so the baseline is the same
+agent output already judged in earlier runs — only RepoRadar's side is new.
+
+| | RepoRadar (window 15) | Opus 4.8 baseline |
+|---|---|---|
+| mean net@2 | **+5.42** | +1.62 |
+| shown / actionable | 196 / 174 | 48 / 45 |
+| **precision** | 0.888 | **0.938** |
+| net-negative repos | 1 | 1 |
+
+**Paired +3.79, 95% CI [+2.17, +5.58], 18 w / 1 l / 5 t, sign p = 0.0001** — five times the
+window-15 frozen floor of 0.74.
+
+#### The caveat is larger than the result and goes first
+
+**RepoRadar returns 4× as many papers at five points *lower* precision.** Opus is the more
+precise system, 0.938 against 0.888. net@2 rewards each actionable paper linearly and charges
+2 per dud, so 8.2 papers per case at 0.89 beats 2.0 at 0.94 by a wide margin — and widening
+the digest made that sensitivity *larger*, not smaller.
+
+Whether a maintainer would rather read eight papers at 0.89 or two at 0.94 is a question this
+metric does not answer. What defends showing them is that marginal precision sits above the
+2/3 breakeven net@2 itself derives; what it does not license is the sentence *"RepoRadar is
+better for a reader"*. **"Beats the baseline by +3.79" and "is better to read" are different
+claims and only the first is measured.**
+
+#### Two limits, stated
+
+* **24 of 25 cases.** `thin-lang`'s baseline returned `error_max_turns` after 13 turns — the
+  thin-docs failure already documented, where the agent's turn limit binds on repositories
+  whose code it has to read to learn what they are. Excluded, never scored as a zero.
+* **Frozen pool, so this does not replace the live headline** (+3.80 vs +1.57, paired +2.26).
+  Different provenance and a different draw; it adds a paired measurement at the shipped
+  width rather than restating one.
+
+#### A defect found by the run refusing to start
+
+The first attempt sat at **0.0 seconds of CPU for nine minutes** on a single thread having
+produced nothing. `evals/baseline.py:_run_cli` called `subprocess.run` without redirecting
+stdin, so `claude -p` inherited the parent's and blocked on it forever.
+
+Every context this benchmark actually runs in is non-interactive — nohup, CI, cron — so the
+terminal that hid this in development is the exception rather than the rule. And `timeout=`
+does not cover it: **a process blocked on a read it will never satisfy is indistinguishable
+from one doing slow work**, which is this project's recurring failure shape in its
+process-control form. It was caught by checking CPU time rather than believing "slow".
+Now `stdin=subprocess.DEVNULL`, pinned by a test that reads the source.
+
+**Cost** ~$5, 25 cases, Opus served from cache, ~125 judge verdicts already warm from the
+window-15 arm.
+
+### The floor is a property of the configuration, and widening the digest loosened it (2026-08-15)
+
+```bash
+# two reuse passes over the SAME frozen pool, at the new window
+uv run python evals/noise_floor.py <reuse-1> <reuse-2>
+```
+
+MRE **0.48** was measured on 2026-08-11 with the returned set cut at 10. The cut is now 15,
+and the floor is a property of the measurement configuration rather than a constant — so it
+was re-measured before being cited again.
+
+| | window 10 | **window 15** |
+|---|---|---|
+| residual sd (per case, per draw) | 0.61 | **0.93** |
+| whole-run shift | sd 0.10 | sd 0.08 |
+| **MRE, paired same session** | 0.48 | **0.74** |
+| cases identical across draws | 20 / 25 | 15 / 25 |
+| Jaccard, shown | — | 0.877 |
+
+**Widening the digest made the instrument 54% less sensitive**, which inverts the usual
+more-data intuition. The mechanism is direct: more papers per case is more chances for
+temperature-0 jitter in the gate and the rescore to move one across the display threshold,
+and each such paper is worth +1 or −2. Averaging does not help because the variance is in
+the count of shown papers, not in a mean over them.
+
+#### A correction to yesterday's verdict
+
+The window result was printed as *"+1.24 is past the **0.48** floor"*. That floor belongs
+to window-10 arms, and one of the two arms was window-15. Re-derived against the correct
+floor: **+1.24 is past 0.74** — the conclusion is unchanged and the CI still excludes zero,
+but the margin is **1.7× the floor, not the 2.6× reported**.
+
+The cause is worth more than the correction. `mre_for` derived the floor from *pool
+provenance* and nothing else, so it was confidently returning a value 35% too tight for
+every future window-15 experiment. It was built to stop exactly this class of error in the
+frozen-versus-live dimension and was silent about a second one — **a guard that is precise
+about one axis and silent about another reads as authority on both.** It now keys on
+`(provenance, width)`, an unrecognised width falls back to the *widest* floor measured
+rather than the nearest (under-reporting a floor turns noise into a finding), and a
+mixed-width comparison is read against the wider of its two arms.
+
+#### What this re-sizes
+
+| experiment | measured | 0.48 verdict | **0.74 verdict** |
+|---|---|---|---|
+| digest window 15 vs 10 | +1.24 | past | **past** |
+| gate depth 50 vs 15 | +1.00 | past | **past** |
+| stated-intent `blind` | +0.44 | borderline, worth re-running | **unresolvable** |
+| absent-category `impute` | +0.04 | inside | inside |
+| phrase queries `verified` | +0.04 | inside | inside |
+
+Both shipped decisions survive. The one casualty is the stated-intent re-run this file had
+listed as "close to decisive rather than uninformative" at the old floor — it is not, and
+that plan is withdrawn rather than left standing on a number that has since moved.
+
+**Cost** ~$3, two reuse passes, 25/25 cases, judge verdicts served from the cache the
+window-15 run had already written.
 
 ### The digest window: I predicted +0.1 as a ceiling and it came in at +1.24 (2026-08-15)
 
@@ -2168,6 +2308,11 @@ and 20 of 25 cases are bit-identical across passes.
 |---|---|---|---|
 | stated-intent `blind` goals | +0.44 | unresolvable | **borderline — worth re-running** |
 | register-flip `docs` goals | +0.12 | unresolvable | still unresolvable |
+
+> **Withdrawn 2026-08-15.** This table reads +0.44 against a 0.48 floor. Re-measured at the
+> benchmark's new returned-set width the frozen floor is **0.74**, so the `blind` arm is
+> plainly unresolvable and the "worth re-running" plan below rests on a number that has since
+> moved. See *The floor is a property of the configuration* above.
 
 The `blind` arm sits just under 0.48, so a frozen-pool re-run would be close to decisive
 rather than uninformative — **except that it cannot use one.** A goal changes the HyDE

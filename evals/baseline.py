@@ -181,7 +181,21 @@ def _run_cli(repo_dir: Path, *, flags: list[str] | None, timeout: int) -> dict[s
             env.pop("ANTHROPIC_API_KEY", None)
         try:
             proc = subprocess.run(
-                cmd, cwd=str(repo_dir), capture_output=True, text=True, timeout=timeout, env=env
+                cmd,
+                cwd=str(repo_dir),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env=env,
+                # DEVNULL, not inherited. Without this the CLI inherits the parent's stdin
+                # and blocks on it forever when there is no terminal — which is every
+                # non-interactive context this benchmark actually runs in: nohup, CI, cron.
+                # Measured 2026-08-15: a backgrounded 25-case run sat at 0.0 s of CPU for
+                # nine minutes on a single thread, having produced nothing. `timeout=` does
+                # not save you, because a process blocked on a read it will never satisfy
+                # looks identical to one doing slow work — the failure this project keeps
+                # paying for, in its process-control form.
+                stdin=subprocess.DEVNULL,
             )
         except FileNotFoundError:
             return _empty(
