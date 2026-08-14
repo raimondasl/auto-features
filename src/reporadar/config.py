@@ -330,7 +330,22 @@ class TriageConfig:
     # LLM actionability triage. Uses the `suggestions` provider/model for the LLM
     # call, so it only runs when suggestions.provider is "ollama" or "claude".
     enabled: bool = False
-    top_k: int = 15  # how many top-ranked papers to triage per run
+    # 50, not 15. This shipped at 15 and NO experiment had ever included that value: the
+    # closest (NR-15, 2026-08-02) compared windows 20 and 50, so the default was shallower
+    # than the shallowest arm ever run — and that comparison was confounded with a prompt
+    # change and predates the fine-scale rescore, which falsified the mechanism NR-16 used
+    # to close pool depth ("nothing orders what the gate admits").
+    #
+    # Measured 2026-08-14 on one frozen pool, three arms, gate depth the only variable:
+    # 15 -> +2.72, 25 -> +3.16, 50 -> +3.72 mean net@2. Paired 50 vs 15 is +1.00/case
+    # (95% CI [+0.12, +1.92]) against a frozen floor of 0.48, and +1.23 (CI [+0.27, +2.27],
+    # sign p = 0.035) on the 22 non-control cases. A gate-free measure agrees: actionable
+    # papers reaching the returned top-10 go 5.00 -> 5.76 -> 6.52 per case.
+    #
+    # The cost is ~3.3x the gate calls per run (Haiku, and the fine-scale band grows with
+    # it), which is still two orders of magnitude below the agentic baseline this system is
+    # compared against. Depth 25 is INSIDE the floor and therefore unresolved, not equal.
+    top_k: int = 50  # how many top-ranked papers to triage per run
     min_actionable: int = 2  # llm_score >= this qualifies as a Top Pick
     # Reorder papers by llm_score before the Top-N digest window, so an actionable
     # paper the heuristic ranker buried isn't cut off before it can be a Top Pick.

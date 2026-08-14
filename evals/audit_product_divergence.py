@@ -203,11 +203,11 @@ BENCHMARK_HEADLINE: dict[str, Any] = {
 # Differences that are deliberate and have a reason. Anything NOT listed here and not
 # equal is an undeclared divergence, which is the whole point of the pass.
 DECLARED: dict[str, str] = {
-    "triage.top_k": (
-        "the benchmark gates a 50-deep pool and the product ships 15. Chosen for the "
-        "experiment (NR-15/NR-16 measured depth 20->50 and whole-pool), never re-derived "
-        "as a default after the rescore made a deeper pool convert (§8.5)."
-    ),
+    # `triage.top_k` was declared here on 2026-08-14 and un-declared the same day: this
+    # audit is what noticed the shipped 15 had never been in an experiment, the depth arms
+    # measured 50 at +1.00/case over it, and the default moved to match. Removing the entry
+    # is the required half of that — a test asserts every DECLARED field still differs, so a
+    # stale exemption fails rather than quietly covering the next drift.
     "output.top_n": (
         "the benchmark cuts the returned set at 10 to hold digest size fixed while "
         "testing selection; the product shows up to 15."
