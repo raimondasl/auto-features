@@ -293,22 +293,24 @@ BENCHMARK_HEADLINE: dict[str, Any] = {
     "profiler.prose_chars": 300,  # --rr-prose-chars default
     "triage.min_actionable": 2,  # --rr-min-actionable default
     "triage.top_k": 50,  # --rr-pool 50
-    "output.top_n": 10,  # the harness cuts the returned set at 10
+    "output.top_n": 15,  # --rr-window default since 2026-08-15
     "triage.finescale.threshold": 2 / 3,  # --rr-finescale-threshold default
 }
 
 # Differences that are deliberate and have a reason. Anything NOT listed here and not
 # equal is an undeclared divergence, which is the whole point of the pass.
+#
+# EMPTY as of 2026-08-15, and that is a state worth naming rather than a gap in the file:
+# every field this audit compares now agrees between the product and the benchmark. Both
+# entries it once held were closed by measuring them — `triage.top_k` because the shipped 15
+# was worse than the measured 50 (+1.00 net@2/case), `output.top_n` because the shipped 15
+# was BETTER than the measured 10 (+1.24). Neither was closed by picking a side.
 DECLARED: dict[str, str] = {
     # `triage.top_k` was declared here on 2026-08-14 and un-declared the same day: this
     # audit is what noticed the shipped 15 had never been in an experiment, the depth arms
     # measured 50 at +1.00/case over it, and the default moved to match. Removing the entry
     # is the required half of that — a test asserts every DECLARED field still differs, so a
     # stale exemption fails rather than quietly covering the next drift.
-    "output.top_n": (
-        "the benchmark cuts the returned set at 10 to hold digest size fixed while "
-        "testing selection; the product shows up to 15."
-    ),
 }
 
 

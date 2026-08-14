@@ -139,6 +139,14 @@ class TestLabelFieldIsConfigurable:
         with pytest.raises(SystemExit, match="refusing to report an arm"):
             check_labels("50", arm, "gate_depth")
 
+    def test_the_digest_window_is_checkable_too(self) -> None:
+        """`--rr-window` costs judge calls, so an arm reported under the wrong window
+        would attribute one run's verdicts to a digest size that never produced them."""
+        arm = {"a": {"case": "a", "digest_window": 15}}
+        check_labels("15", arm, "digest_window")
+        with pytest.raises(SystemExit, match="refusing to report an arm"):
+            check_labels("10", arm, "digest_window")
+
 
 class TestPairedBootstrap:
     def test_is_deterministic(self) -> None:

@@ -1115,9 +1115,12 @@ def main() -> int:
     parser.add_argument(
         "--rr-window",
         type=int,
-        default=10,
-        help="how many ranked papers may reach a tier — the product's `output.top_n`, "
-        "which ships at 15 while every published number was measured at 10. Unlike "
+        default=15,
+        help="how many ranked papers may reach a tier — the product's `output.top_n`. "
+        "Defaulted to 10 until 2026-08-15, when widening it to the shipped 15 measured "
+        "+1.24 net@2/case (CI [+0.48, +2.08]) against a 0.48 frozen floor; the benchmark "
+        "now describes what ships. RUNS BEFORE THAT DATE ARE WINDOW-10 and not comparable "
+        "— every run records `digest_window` so a report can refuse to mix them. Unlike "
         "--rr-pool this DOES cost judge calls: the judged pool is the returned set, so "
         "each extra slot is a new verdict per case.",
     )

@@ -834,7 +834,96 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
-### PRE-REGISTERED, not yet run — should the digest show 15 papers or 10? (2026-08-15)
+### The digest window: I predicted +0.1 as a ceiling and it came in at +1.24 (2026-08-15)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline none --sources arxiv     --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde     --rr-frozen-pool evals/.work/pool-depth --rr-window 15
+uv run python evals/bigram_report.py --label-field digest_window 10=<stored> 15=<new>
+```
+
+| arm | net@2 | shown | actionable | precision | net-negative |
+|---|---|---|---|---|---|
+| **10** (measured) | +3.72 | 141 | 125 | 0.887 | 1 |
+| **15** (shipped) | **+4.96** | 196 | 172 | 0.878 | 1 |
+
+Paired: **+1.24/case, 95% CI [+0.48, +2.08], 12+/3−/10=, sign p = 0.0352** — past the 0.48
+frozen floor with the interval excluding zero. Arm valid (25/25 changed, Jaccard 0.59).
+
+**The pre-registration below predicted ≈ +0.1 *as a ceiling*. The answer is twelve times
+that**, and larger than the gate-depth gain this project shipped a default on yesterday.
+
+#### Why the prediction was wrong
+
+I computed two precision-by-rank curves and extrapolated from the wrong one. The **raw
+window** decays 0.68 → 0.48 by rank 10, and I projected ranks 11–15 below that. The **shown**
+curve — papers that clear the gate — is 0.75–1.00 and **flat**. It was in the same output,
+two commands apart, and it is the one that governs net@2 because net@2 only counts shown
+papers.
+
+The mechanism is this project's own central finding turned against my reasoning. **The gate
+is near-binary** (§6.5): within the gated set almost everything is a 2, so "ranks 11–15 have
+lower `llm_score`" is technically true and nearly vacuous. The thing that actually
+discriminates is the fine-scale rescore, and it is applied to every band paper regardless of
+its heuristic rank. Rank ordering carries far less information than I assumed, which is the
+same conclusion NR-33 reached about the heuristic ranker — I had the finding and did not
+apply it.
+
+The marginal papers bear it out: **55 added, 47 actionable — 85.5%**, against a 2/3
+breakeven. Each added paper is worth **+0.56** by the metric's own arithmetic, and precision
+across the whole digest barely moved (0.887 → 0.878).
+
+#### The control worked, and I over-claimed it
+
+Pre-registered: the 11 cases whose rank-10 paper already fails the gate cannot move, because
+`rerank_by_actionability` sorts by `llm_score` and everything below a failing paper also
+fails. **Nine of eleven held exactly.** Two moved — `thin-kv` +4.0 → +5.0 and `systems`
++5.0 → +3.0.
+
+The sorting argument is fine; the claim that they "must be **identical**" was not. A frozen
+pool freezes retrieval and ranking, **not the LLM stages** — the fine-scale pass re-runs, and
+temperature-0 jitter moves a band paper across P = 2/3. §8.8 measured exactly this as the
+residual that survives freezing (0.61 sd/case). Both movers are inside it, and `rag` shows
+the same signature from the other side: shown 8 → 7 while net@2 rose +5 → +7.
+
+#### What this does to every published number
+
+**All of them understate the shipped system.** Every net@2 in this file was measured at
+window 10; the product ships 15. The depth-50 configuration reads +3.72 here and **+4.96**
+at the window users actually get. This is the exact mirror of the gate-depth finding —
+there the shipped default was *worse* than the measured one, here it is *better* — and both
+came from the same audit noticing the two numbers lived in different files.
+
+#### The caveat that does not go away
+
+net@2 has no model of reader attention beyond charging 2 for a dud, so it structurally
+rewards precision-preserving expansion. That is the same bias flagged for HyDE in §8.5, and
+it is doing real work in a +1.24 that comes entirely from showing more papers. What defends
+the result is that the marginal precision (0.855) sits well above the display threshold the
+metric *derives* (P ≥ 2/3, from 3p − 2 = 0) — by the system's own decision rule those papers
+should be shown. A reader who wants a shorter digest wants a different λ, and nothing here
+measures reading time.
+
+#### Decision, per the rule fixed before the run
+
+The rule said: *delta past the floor and positive → keep 15, and move the benchmark to 15.*
+
+* **`output.top_n` stays at 15.** The question that prompted this — should we default to 10
+  because 15 is unmeasured and probably marginal — is answered no on the measurement.
+* **The benchmark's `--rr-window` default moves 10 → 15**, so future headlines describe what
+  ships. This **breaks comparability** with every run recorded before today, exactly as the
+  `--rr-bigrams` default change did on 2026-08-12; runs carry `digest_window` so the
+  report refuses to compare across it.
+
+Logged as the reversal of my own prediction, and as **NR-35**'s inverse: a shipped default
+that was *better* than the measured one, found by the same configuration audit.
+
+**Cost** ~$6, one arm, 25/25 cases, ~125 new judge verdicts (the cache covered ranks 1–10).
+
+---
+
+#### The pre-registration, as committed before the run
+
+### PRE-REGISTERED — should the digest show 15 papers or 10? (2026-08-15)
 
 ```bash
 uv run python evals/run_judge_eval.py --baseline none --sources arxiv     --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde     --rr-frozen-pool evals/.work/pool-depth --rr-window 15
