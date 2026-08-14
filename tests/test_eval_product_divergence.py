@@ -29,9 +29,11 @@ from audit_product_divergence import (  # noqa: E402
     DECLARED,
     PIPELINE_MODULES,
     SAME_VINTAGE_CONTAINERS,
+    _hand_rolled_windows,
     _norm_calls,
     _product_defaults,
     _raw_merges,
+    _window_callers,
     config_divergences,
 )
 
@@ -68,6 +70,38 @@ class TestTheCheckersSeeTheDefect:
         f.write_text('x = s["arxiv_id"] in papers_by_id\n', encoding="utf-8")
         assert [kind for _, kind, _ in _raw_merges(f)] == ["declared"]
 
+    def test_a_re_derived_digest_window_is_found(self, tmp_path: Path) -> None:
+        """The drop-withdrawn-then-cut rule, copied instead of called."""
+        f = tmp_path / "copy.py"
+        f.write_text(
+            'window = [p for p in scored if not p.get("withdrawn_in")][:top_n]\n',
+            encoding="utf-8",
+        )
+        assert [line for line, _ in _hand_rolled_windows(f)] == [1]
+
+    def test_the_module_that_owns_the_rule_is_exempt(self, tmp_path: Path) -> None:
+        """`digest.py` IS the implementation; flagging it would make the check unusable."""
+        f = tmp_path / "digest.py"
+        f.write_text(
+            'window = [p for p in scored if not p.get("withdrawn_in")][:top_n]\n',
+            encoding="utf-8",
+        )
+        assert _hand_rolled_windows(f) == []
+
+    def test_a_commented_out_copy_is_not_a_defect(self, tmp_path: Path) -> None:
+        """Comments quote the rule to explain it; only live code is the failure."""
+        f = tmp_path / "commented.py"
+        f.write_text(
+            '# window = [p for p in scored if not p.get("withdrawn_in")][:top_n]\n',
+            encoding="utf-8",
+        )
+        assert _hand_rolled_windows(f) == []
+
+    def test_calling_the_shared_helper_is_recognised(self, tmp_path: Path) -> None:
+        f = tmp_path / "caller.py"
+        f.write_text("w, _ = digest_window(scored, top_n)\n", encoding="utf-8")
+        assert _window_callers(f) == [1]
+
 
 class TestTheCurrentTreeIsClean:
     """The audit's own verdict, asserted — so a regression fails CI, not a later reader."""
@@ -83,6 +117,18 @@ class TestTheCurrentTreeIsClean:
         path = Path(__file__).resolve().parents[1].joinpath(*parts)
         offenders = [(line, text) for line, kind, text in _raw_merges(path) if kind == "RAW MERGE"]
         assert offenders == [], f"{path.name}: {offenders}"
+
+    @pytest.mark.parametrize("parts", PIPELINE_MODULES, ids=lambda p: p[-1])
+    def test_no_module_re_derives_the_digest_window(self, parts: tuple[str, ...]) -> None:
+        path = Path(__file__).resolve().parents[1].joinpath(*parts)
+        assert _hand_rolled_windows(path) == [], f"{path.name} grew a second window rule"
+
+    def test_both_callers_actually_share_the_window(self) -> None:
+        """The other half: a guard that only forbids copies passes on a file that deleted
+        the call entirely, which is how `to_plain_keywords` sat correct and unused."""
+        root = Path(__file__).resolve().parents[1]
+        for parts in ((("src", "reporadar", "cli.py")), ("src", "reporadar", "digest.py")):
+            assert _window_callers(root.joinpath(*parts)), f"{parts[-1]} no longer calls it"
 
     def test_every_config_difference_is_declared(self) -> None:
         """The durable half of the audit.

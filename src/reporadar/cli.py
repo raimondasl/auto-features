@@ -791,12 +791,41 @@ def update(
                 #     distribution orders that band (AUC 0.84) and lifts mean net@2 from
                 #     +1.91 to +2.91 on the 22-repo benchmark.
                 if llm_scores and cfg.triage.finescale.enabled:
+                    from reporadar.digest import digest_window
                     from reporadar.finescale import enough_scored, score_papers
 
+                    # Scope the band to papers the digest can still SHOW. Everything
+                    # outside `digest_window` is dropped before tiering, so rescoring it
+                    # buys nothing — and the waste tripled on 2026-08-14 when the measured
+                    # depth experiment moved `triage.top_k` from 15 to 50.
+                    #
+                    # The window comes from `store.get_scores_for_run`, which is the exact
+                    # list `rr digest` reads: same ordering (`COALESCE(rrf_score,
+                    # score_total) DESC`), same llm_score join, same withdrawn flag. Read
+                    # back rather than rebuilt from `scores` in memory, because rebuilding
+                    # it would be a second implementation of the digest's input — and this
+                    # project has paid for that shape four times (C-9, C-12, C-14).
+                    #
+                    # Known residual: `rr update` has no `--since`, so a later
+                    # `rr digest --since` can promote a band paper past this window, and it
+                    # will have no `finescale_p` and reach Maybe rather than Top Picks.
+                    # Conservative, and the same rule ungated papers already follow — see
+                    # tests/test_finescale_window.py, which pins it.
+                    showable = {
+                        r["arxiv_id"]
+                        for r in digest_window(
+                            store.get_scores_for_run(run_id),
+                            cfg.output.top_n,
+                            triage_threshold=cfg.triage.min_actionable,
+                            rerank=cfg.triage.rerank,
+                        )[0]
+                    }
                     band = [
                         papers_by_id[pid]
                         for pid, v in llm_scores.items()
-                        if v["llm_score"] == cfg.triage.min_actionable and pid in papers_by_id
+                        if v["llm_score"] == cfg.triage.min_actionable
+                        and pid in papers_by_id
+                        and pid in showable
                     ]
                     if band:
                         info(f"  Rescoring {len(band)} band papers on the fine scale...")

@@ -131,6 +131,45 @@ def _raw_merges(path: Path) -> list[tuple[int, str, str]]:
     return out
 
 
+# The digest's ordering: rerank by `llm_score`, drop withdrawn papers, THEN cut to
+# `output.top_n`. Two callers need it — `digest.categorize_papers` to tier, and
+# `cli.update` to decide which papers are worth a fine-scale call — and the rule they must
+# agree on is subtle enough to re-derive wrongly: a withdrawn paper leaves before the cut,
+# so each one pulls the next paper up into the window. `digest_window` is the one home.
+WINDOW_HELPER = "digest_window"
+# The rule's two halves in source form. A second implementation would need both, so a file
+# outside the helper containing either is the thing to look at.
+WINDOW_FRAGMENTS = ('withdrawn_in")][:', "withdrawn_in')][:")
+
+
+def _hand_rolled_windows(path: Path) -> list[tuple[int, str]]:
+    """Re-implementations of the digest's drop-withdrawn-then-cut rule.
+
+    `digest.py` is where the rule lives, so it is exempt by construction; any other file
+    slicing a list it has just filtered on ``withdrawn_in`` has grown a second copy.
+    """
+    if path.name == "digest.py":
+        return []
+    out: list[tuple[int, str]] = []
+    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if line.lstrip().startswith("#"):
+            continue
+        if any(fragment in line for fragment in WINDOW_FRAGMENTS):
+            out.append((line_no, line.strip()))
+    return out
+
+
+def _window_callers(path: Path) -> list[int]:
+    """Lines where *path* calls the shared window helper."""
+    return [
+        node.lineno
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == WINDOW_HELPER
+    ]
+
+
 def pass_wiring() -> list[Divergence]:
     print("=" * 78)
     print("1. WIRING — one invariant, how many implementations?")
@@ -157,7 +196,31 @@ def pass_wiring() -> list[Divergence]:
             print(f"  {flag}{'/'.join(parts[-2:])}:{line:<5} [{kind:10}] {text[:52]}")
     print(f"\n  -> {len(raw)} unrepaired merge(s) on raw ids (the C-12 defect)")
 
+    print("\n  The digest window (drop withdrawn, THEN cut to top_n):")
+    hand_rolled: list[tuple[tuple[str, ...], int, str]] = []
+    callers = 0
+    for parts in PIPELINE_MODULES:
+        path = ROOT.joinpath(*parts)
+        for line in _window_callers(path):
+            callers += 1
+            print(f"     {'/'.join(parts[-2:])}:{line:<5} [{WINDOW_HELPER:10}] shared")
+        for line, text in _hand_rolled_windows(path):
+            hand_rolled.append((parts, line, text))
+            print(f"   ! {'/'.join(parts[-2:])}:{line:<5} [re-derived] {text[:48]}")
+    print(f"\n  -> {callers} caller(s) share it, {len(hand_rolled)} re-derive it")
+
     out = []
+    if hand_rolled:
+        out.append(
+            Divergence(
+                "digest window",
+                f"digest.{WINDOW_HELPER}",
+                f"{len(hand_rolled)} re-derived site(s)",
+                "DIVERGENT",
+                "a copy that forgets withdrawn-before-the-cut is off by one paper per "
+                "withdrawal, and only on runs where a retraction lands in the top slots",
+            )
+        )
     if by_rule["split-v"]:
         out.append(
             Divergence(
