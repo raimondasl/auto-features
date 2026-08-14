@@ -301,10 +301,13 @@ def update(
                 verify=cfg.hyde.verify_encoder,
                 on_progress=lambda msg: info(f"  {msg}"),
             )
-            known = {p["arxiv_id"].split("v")[0] for p in papers}
+            # Same normaliser as every other merge in this function. It used to be a bare
+            # `split("v")[0]` here and `_dedup_id` five lines down, which is one invariant
+            # with two implementations — the shape that produced C-9 and C-12.
+            known = {_dedup_id(p["arxiv_id"]) for p in papers}
             fresh = [pid for pid in hyde_ids if pid not in known]
             hyde_papers = collect_by_ids(fresh)
-            papers.extend(p for p in hyde_papers if p["arxiv_id"].split("v")[0] not in known)
+            papers.extend(p for p in hyde_papers if _dedup_id(p["arxiv_id"]) not in known)
             info(
                 f"  HyDE: {len(hyde_ids)} candidates, {len(fresh)} new, "
                 f"{len(hyde_papers)} resolved."
@@ -2159,9 +2162,11 @@ def workspace_update(verbose: bool) -> None:
                 try:
                     papers = collect_papers(queries, cfg.arxiv)
                     for p in papers:
-                        if p["arxiv_id"] not in seen_ids:
+                        # Version-insensitive, like every other merge: two workspace
+                        # members can be handed the same paper at different versions.
+                        if _dedup_id(p["arxiv_id"]) not in seen_ids:
                             all_papers.append(p)
-                            seen_ids.add(p["arxiv_id"])
+                            seen_ids.add(_dedup_id(p["arxiv_id"]))
                 except CollectionError as exc:
                     warn(f"  Collection failed for {repo['repo_id']}: {exc}")
 

@@ -142,10 +142,16 @@ def to_plain_keywords(query: str) -> str:
 
 # Modern arXiv id with a version suffix, for version-insensitive cross-source dedup.
 _ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
+# Pre-2007 ids: `cs/0602007v4`, `math.GT/0309136v2`, `cond-mat.supr-con/9501001v1`. Five of
+# them sit in this project's judged pools, and the first version of this function left
+# their versions on — which is how it came to disagree with the `split("v")[0]` rule used
+# elsewhere for the same job. Both halves are anchored and neither can match a synthetic
+# `ss:`/`dblp:`/`oa:`/`iacr:`/`biorxiv:` id, which must pass through untouched.
+_ARXIV_OLD_VER_RE = re.compile(r"^([a-z-]+(?:\.[A-Za-z-]+)?/\d{7})v\d+$")
 
 
 def dedup_id(arxiv_id: str) -> str:
-    """Version-strip a modern arXiv id for cross-source dedup; leave others as-is.
+    """Version-strip an arXiv id for cross-source dedup; leave every other id as-is.
 
     Sources disagree about versions for the same paper — arXiv hands back ``2605.23815v1``
     where Semantic Scholar says ``2605.23815`` — so a merge on raw equality admits both
@@ -156,8 +162,16 @@ def dedup_id(arxiv_id: str) -> str:
     the 2026-08-13 Semantic Scholar A/B consequently showed **6 duplicate papers across 4
     cases** in the treatment arm and **none** in the control. Two implementations of one
     invariant is the same as none — the lesson C-9 taught with the query bridge.
+
+    It had drifted a second way, found by `evals/audit_product_divergence.py`: a bare
+    ``arxiv_id.split("v")[0]`` was doing the same job at eight other call sites (the HyDE
+    merge in both the product and the harness, the benchmark's judge pool). That rule
+    strips old-style versions this one used to keep, and truncates any id that happens to
+    contain a lowercase ``v`` anywhere — ``solv-int/9801001`` becomes ``sol``. Handling
+    both id eras here makes the shared helper strictly better than the copy it replaces,
+    which is the only way a consolidation actually sticks.
     """
-    match = _ARXIV_VER_RE.match(arxiv_id)
+    match = _ARXIV_VER_RE.match(arxiv_id) or _ARXIV_OLD_VER_RE.match(arxiv_id)
     return match.group(1) if match else arxiv_id
 
 

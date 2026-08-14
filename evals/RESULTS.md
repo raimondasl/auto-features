@@ -834,6 +834,120 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Looking for the C-9 shape on purpose: five divergences, one of them a live product bug (2026-08-14)
+
+```bash
+uv run python evals/audit_product_divergence.py     # $0, no network, no LLM
+```
+
+C-9 (the query bridge, hand-rolled at five call sites) and C-12 (the version-strip before a
+source merge, fixed in `cli.py` and not in `evals/harness.py`) are the same defect: **one
+invariant, two implementations, one of them fixed**. Both were found by accident, months
+apart, while looking for something else. This is the pass that looks for the shape on
+purpose, across every module in the collect → rank → gate → show pipeline on both sides of
+the product/benchmark line. It is free, and it found five.
+
+#### 1. The gate's own docstring described a rule the product does not implement
+
+`triage.triage_papers` omits a paper whose scoring failed, and says why: *"downstream
+tiering treats 'couldn't judge' as 'not a confident Top Pick', not as a confident
+rejection."* That is what the benchmark does. It is **not** what `digest.categorize_papers`
+did — a paper with no `llm_score` fell through to the heuristic `score_total >= 0.5`
+threshold and could reach Top Picks on it.
+
+That threshold is the one Feature 6 was built to replace, at mean net@2 **−11** on the
+user-facing output. So the fall-back path promoted ungated papers using the single worst
+selection rule this project has measured, and it fires in two situations:
+
+* **`output.top_n > triage.top_k`** — the digest window is wider than the gate's. Every
+  paper past rank `top_k` arrives ungated and is tiered heuristically, rendered
+  indistinguishable from papers an LLM endorsed. Both default to 15, so a stock install is
+  safe; raising `output.top_n` alone silently turns the gate off for the tail.
+* **a failed gate call** — one paper, same promotion.
+
+Fixed: when the gate ran, an unscored paper reaches **Maybe**, never Top Picks. With
+`triage_threshold=None` (the gate never ran) the heuristic remains the only rule, which a
+test now pins — demoting everything there would empty Top Picks for every user with triage
+off.
+
+**Blast radius on published numbers: zero, and checkably so.** Across **87 recorded runs and
+6,420 returned top-10 papers**, `llm_score` is *present-and-null* — the gate ran and failed
+— exactly **0 times**. The benchmark has always scored the strict rule and never had cause
+to exercise the other one. The divergence is real, the correction is to the product, and no
+result moves.
+
+#### 2. A third implementation of "is this the same paper"
+
+`collector.dedup_id` was the shared rule after C-12. It was not the only one: a bare
+`arxiv_id.split("v")[0]` was doing the same job at **8 further call sites** — the HyDE merge
+in *both* `cli.py` and `run_judge_eval.py`, the benchmark's judge pool, and its verdict
+lookups. The two rules agree on modern ids, which is why the split survived C-12 untouched.
+
+They disagree on old-style ids, and the disagreement is not hypothetical: **5 old-style ids
+sit in this project's judged pools** (`cs/0602007v4`, `cs/0007008v1`, …). `dedup_id` left
+their versions on; `split("v")[0]` stripped them. So arXiv's `cs/0602007v4` beside Semantic
+Scholar's `cs/0602007` would have survived a source merge as two papers — C-12 exactly,
+still live — while the judge pool five steps later collapsed them into one. No duplicate
+pair has actually occurred yet; the audit found the loaded gun, not a wound.
+
+The split rule is also unsafe in a way `dedup_id` is not: it truncates at *any* lowercase
+`v`. `solv-int/9801001` becomes `sol`, and `ss:vector-db-7` becomes `ss:`.
+
+Fixed by making the shared helper strictly better than the copy it replaces — `dedup_id` now
+handles both id eras, anchored so no synthetic `ss:`/`dblp:`/`iacr:` id can be truncated —
+and routing all 8 sites through it. A consolidation only sticks when the survivor is better.
+
+#### 3. C-12, unfixed at a third call site
+
+`evals/run_eval.py` — the Tier A/S runner — still merged OpenAlex and Semantic Scholar on
+raw ids. The guard written when C-12 was found reads `evals/harness.py` **by name**, so it
+was green while a runner two files away had the identical bug. This is the C-9 pattern
+recursing one level: a fix applied to the sites we were looking at, and a guard scoped to
+the file we were looking at.
+
+The replacement guard is parameterised over every pipeline module and is mutation-verified
+against the exact defective state.
+
+#### 4. Two eval runners, opposite failure policies
+
+`evals/harness.py` raises on `CollectionError`, with a comment naming the reason: scoring a
+throttled arXiv fetch as an honest zero once supplied **−17 of a −21 delta** (C-4).
+`evals/run_eval.py` printed a warning and carried on. With arXiv alone that yields an empty
+pool and the case is skipped — survivable. With a second source enabled it is worse than
+C-4: the case runs on the non-arXiv half of its pool and prints a domain-purity number that
+looks like every other one. Now it raises, and `run_live` skips the case out loud.
+
+#### 5. Two configuration fields where the benchmark is not measuring the default
+
+| field | shipped | measured |
+|---|---|---|
+| `triage.top_k` | **15** | **50** (`--rr-pool 50`) |
+| `output.top_n` | **15** | **10** (the harness cuts the returned set at 10) |
+
+Neither is wrong and both are on purpose — the benchmark holds digest size fixed to test
+selection rather than volume, and depth 50 came out of NR-15/NR-16. But `arxiv.lookback_days`
+shipped at 14 days for a month while every headline was measured all-time, and nobody was
+lying then either: the two numbers simply lived in different files. So the audit now carries
+the benchmark's headline configuration next to the product defaults, with a written reason
+required for each difference, and a test fails on any **undeclared** one. Note what this
+implies about depth: the shipped gate is *shallower* than anything measured since the
+fine-scale rescore made a deeper pool convert ([HyDE end to
+end](#hyde-measured-end-to-end-the-first-result-that-clears-p--005-against-the-baseline-2026-08-09))
+— worth revisiting on evidence, not here.
+
+#### What the audit deliberately cannot see
+
+Stated because a clean report is the dangerous kind. The benchmark never runs the withdrawal
+/ integrity stage, so a retracted paper reaching the top-10 is judged and scored where the
+product would mute it before the window. Product-only stages are invisible to it by
+construction, and no amount of static analysis changes that.
+
+Logged as **C-13** (the ungated-paper promotion), **C-14** (a third id normaliser, and
+`dedup_id` too narrow for old-style ids), **C-12b** (the third raw-id merge), and **C-15**
+(the Tier A runner degrading where Tier B raises). Gate green at **1,543 tests**.
+
+**Cost** $0 — no network, no LLM, ~2 seconds.
+
 ### The absent-category bias is real, changes retrieval a lot, and changes nothing — and it undermines yesterday's S2 result (2026-08-13)
 
 ```bash

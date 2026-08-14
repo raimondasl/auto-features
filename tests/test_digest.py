@@ -13,6 +13,7 @@ from reporadar.digest import (
     generate_digest_html,
     generate_digest_json,
     generate_digest_rss,
+    mark_new_papers,
     markdown_to_html,
     write_digest,
 )
@@ -138,17 +139,62 @@ class TestCategorizePapers:
             {"arxiv_id": "a", "score_total": 0.9, "llm_score": 2},  # actionable -> top
             {"arxiv_id": "b", "score_total": 0.9, "llm_score": 1},  # related -> maybe
             {"arxiv_id": "c", "score_total": 0.9, "llm_score": 0},  # unrelated -> muted
-            {"arxiv_id": "d", "score_total": 0.9},  # untriaged -> heuristic fallback (top)
+            {"arxiv_id": "d", "score_total": 0.9},  # gate ran, no verdict -> maybe
         ]
         top, maybe, muted = categorize_papers(scored, triage_threshold=2)
-        assert [p["arxiv_id"] for p in top] == ["a", "d"]
-        assert [p["arxiv_id"] for p in maybe] == ["b"]
+        assert [p["arxiv_id"] for p in top] == ["a"]
+        assert [p["arxiv_id"] for p in maybe] == ["b", "d"]
         assert [p["arxiv_id"] for p in muted] == ["c"]
+
+    def test_an_ungated_paper_does_not_reach_top_picks(self) -> None:
+        """`d` above, stated as its own claim, because the expectation used to be the
+        opposite and the change is a real one to the shipped digest.
+
+        When the gate ran, a paper it did not score used to fall back to the heuristic
+        0.5 threshold — the threshold Feature 6 replaced after it measured net@2 −11 on
+        the user-facing output. That fall-back fires whenever `output.top_n` exceeds
+        `triage.top_k` (papers past the gate's window fill the digest ungated) or a gate
+        call fails. The benchmark has always scored the strict rule; see
+        `evals/audit_product_divergence.py`, which is what found the two disagreeing.
+        """
+        ungated = [{"arxiv_id": "x", "score_total": 0.99}]
+        top, maybe, muted = categorize_papers(ungated, triage_threshold=2)
+        assert top == []
+        assert [p["arxiv_id"] for p in maybe] == ["x"]
+        assert muted == []
 
     def test_no_triage_threshold_ignores_llm_score(self) -> None:
         scored = [{"arxiv_id": "a", "score_total": 0.9, "llm_score": 0}]
         top, _, _ = categorize_papers(scored)  # no threshold -> heuristic wins
         assert [p["arxiv_id"] for p in top] == ["a"]
+
+    def test_with_the_gate_off_the_heuristic_is_still_the_only_rule(self) -> None:
+        """The strict rule must not leak into runs that never gated anything.
+
+        `triage_threshold=None` means the gate did not run, so every paper is "ungated" —
+        demoting them all would empty Top Picks for every user with triage disabled.
+        """
+        scored = [{"arxiv_id": "a", "score_total": 0.9}, {"arxiv_id": "b", "score_total": 0.05}]
+        top, _, muted = categorize_papers(scored, triage_threshold=None)
+        assert [p["arxiv_id"] for p in top] == ["a"]
+        assert [p["arxiv_id"] for p in muted] == ["b"]
+
+    def test_a_paper_beyond_the_gate_window_is_not_promoted(self) -> None:
+        """The configuration that makes this bite: a digest wider than the gate.
+
+        With `output.top_n = 4` and a gate that scored 2 papers, the two unscored ones used
+        to enter Top Picks on `score_total` alone, indistinguishable in the rendered digest
+        from papers an LLM had actually endorsed.
+        """
+        scored = [
+            {"arxiv_id": "a", "score_total": 0.9, "llm_score": 2},
+            {"arxiv_id": "b", "score_total": 0.9, "llm_score": 3},
+            {"arxiv_id": "c", "score_total": 0.8},
+            {"arxiv_id": "d", "score_total": 0.7},
+        ]
+        top, maybe, _ = categorize_papers(scored, top_n=4, triage_threshold=2)
+        assert [p["arxiv_id"] for p in top] == ["a", "b"]
+        assert [p["arxiv_id"] for p in maybe] == ["c", "d"]
 
     def test_rerank_surfaces_buried_actionable_paper(self) -> None:
         # In score_total order the actionable paper (c) is beyond top_n=2, so
@@ -790,6 +836,39 @@ class TestDiffMode:
             content = generate_digest(store, r1, diff=False)
 
         assert "[NEW]" not in content
+
+    def test_a_new_version_of_a_known_paper_is_not_new(self, tmp_path: Path) -> None:
+        """ "Is this the same paper" has one answer, and the diff used to give another.
+
+        arXiv hands back whatever the current version is, so a paper seen as ``v1`` last
+        week arrives as ``v2`` this week. Comparing raw ids badged it [NEW] — a third rule
+        for the invariant `dedup_id` exists to hold.
+        """
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.00001v1", title="Revised Paper"))
+            store.upsert_paper(_make_paper("2401.00001v2", title="Revised Paper"))
+            r1 = store.record_run(["q1"], 1, 0)
+            store.save_scores(r1, [_make_score("2401.00001v1", 0.8)])
+            r2 = store.record_run(["q2"], 1, 0)
+            store.save_scores(r2, [_make_score("2401.00001v2", 0.8)])
+
+            scored = mark_new_papers(store, store.get_scores_for_run(r2), r2)
+
+        assert [p["is_new"] for p in scored] == [False]
+
+    def test_a_genuinely_unseen_paper_is_still_new(self, tmp_path: Path) -> None:
+        """The other half: normalising must not swallow the signal it exists to give."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            store.upsert_paper(_make_paper("2401.00001v1"))
+            store.upsert_paper(_make_paper("2401.00009v1"))
+            r1 = store.record_run(["q1"], 1, 0)
+            store.save_scores(r1, [_make_score("2401.00001v1", 0.8)])
+            r2 = store.record_run(["q2"], 1, 0)
+            store.save_scores(r2, [_make_score("2401.00009v1", 0.8)])
+
+            scored = mark_new_papers(store, store.get_scores_for_run(r2), r2)
+
+        assert [p["is_new"] for p in scored] == [True]
 
 
 class TestWriteDigest:

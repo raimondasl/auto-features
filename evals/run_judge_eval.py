@@ -50,7 +50,7 @@ from harness import (  # noqa: E402
 from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
-from reporadar.collector import CollectionError  # noqa: E402
+from reporadar.collector import CollectionError, dedup_id  # noqa: E402
 from reporadar.config import (  # noqa: E402
     ABSENT_CATEGORY_MODES,
     BIGRAM_MODES,
@@ -280,7 +280,11 @@ def _add_hyde_candidates(
         HYDE_FAILURES.append(str(exc))
         return papers
 
-    known = {p["arxiv_id"].split("v")[0] for p in papers}
+    # `dedup_id`, not a local `split("v")[0]`. Both normalise an arXiv id and they disagree
+    # on the old-style ones (`cs/0602007v4`), five of which sit in this benchmark's judged
+    # pools — so which rule a call site picked was itself a silent divergence. See
+    # `evals/audit_product_divergence.py`.
+    known = {dedup_id(p["arxiv_id"]) for p in papers}
     fresh = [pid for pid in ids if pid not in known]
     try:
         extra = collect_by_ids(fresh)
@@ -288,7 +292,7 @@ def _add_hyde_candidates(
         print(f"        !! HyDE metadata fetch failed: {exc}")
         HYDE_FAILURES.append(str(exc))
         return papers
-    added = [p for p in extra if p["arxiv_id"].split("v")[0] not in known]
+    added = [p for p in extra if dedup_id(p["arxiv_id"]) not in known]
     print(
         f"        HyDE: {len(ids)} candidates, {len(fresh)} new, {len(added)} resolved "
         f"(pool {len(papers)} -> {len(papers) + len(added)})"
@@ -624,7 +628,7 @@ def returned_records(
     """
     out = []
     for p in papers:
-        v = verdicts.get(p["arxiv_id"].split("v")[0]) or {}
+        v = verdicts.get(dedup_id(p["arxiv_id"])) or {}
         rec: dict[str, Any] = {
             "arxiv_id": p["arxiv_id"],
             "title": p.get("title", ""),
@@ -792,7 +796,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     #    A judge failure drops the paper from the pool — never fabricate a 0.
     pool: dict[str, dict[str, Any]] = {}
     for p in rr_topn + b_papers:
-        pool.setdefault(p["arxiv_id"].split("v")[0], p)
+        pool.setdefault(dedup_id(p["arxiv_id"]), p)
     verdicts: dict[str, dict[str, Any]] = {}
     n_judge_failed = 0
     for base_id, paper in list(pool.items()):
@@ -816,7 +820,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         return [
             int(verdicts[bid]["score"])
             for p in papers
-            if (bid := p["arxiv_id"].split("v")[0]) in verdicts
+            if (bid := dedup_id(p["arxiv_id"])) in verdicts
         ]
 
     pool_gains = [int(v["score"]) for v in verdicts.values()]
@@ -825,7 +829,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
 
     if baseline_ok:
         # Restrict to papers still in the pool (a dropped one has no gain).
-        b_present = [p for p in b_papers if p["arxiv_id"].split("v")[0] in verdicts]
+        b_present = [p for p in b_papers if dedup_id(p["arxiv_id"]) in verdicts]
         b_gains = gains_for(b_papers)
         b_metrics = summarize_system(b_gains, pool_gains, n_hallucinated=n_halluc)
         recent_gains = [
