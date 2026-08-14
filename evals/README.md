@@ -1,5 +1,53 @@
 # RepoRadar evaluation benchmark
 
+## Which script re-derives which section of the paper
+
+`paper/DRAFT.md` claims every quantitative result maps to a script here. This is that
+mapping — written 2026-08-16, because the claim had been made for weeks against an index
+that did not exist, which is the same unverifiable-assertion shape the paper spends §10
+cataloguing. Each row is the script whose output the section's numbers come from; the
+numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
+
+| paper section | scripts |
+|---|---|
+| §4.1 metric | `metrics.py` |
+| §4.2 headline provenance | `run_judge_eval.py`, `noise_floor.py` |
+| §4.3 benchmark, judge, baseline | `harness.py`, `judge.py`, `baseline.py`, `verify.py`, `build_fixtures.py` |
+| §4.4 judge validity | `second_judge.py` (κ), `mine_adoptions.py` (adoption ground truth) |
+| §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
+| §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
+| §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
+| §5.4 HyDE | `verify_hyde_deps.py` (stage 1), `hyde_replication.py` (stage 2) |
+| §5.5 pool density | `diagnose_pool.py`, `label_pool.py` |
+| §6.1–6.2 the gate | `compare_triage.py`, `diagnose_triage.py` |
+| §6.3 gate context | `compare_triage.py`, `fetch_wants.py` |
+| §6.4 gate depth | `gate_full_pool.py`, `run_judge_eval.py --rr-pool` |
+| §6.5 near-binary distribution | `diagnose_triage.py`, `diagnose_ranker.py` |
+| §7 E1–E5 band ranking | `band_testbeds.py` (shared), `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`, `exp_pairwise.py`, `exp_features.py` |
+| §8.1–8.3 calibration | `exp_finescale.py`, `compare_finescale_baseline.py` |
+| §8.4 live run | `run_judge_eval.py --rr-finescale` |
+| §8.5 dense channel end to end | `run_judge_eval.py --rr-hyde` |
+| §8.6 calibration audit | `calibrate_finescale.py` |
+| §8.7 headline and its weather | `run_judge_eval.py`, `noise_floor.py` |
+| §8.8 frozen pool | `noise_floor.py`, `run_judge_eval.py --rr-frozen-pool` |
+| §8.9 two unmeasured defaults | `run_judge_eval.py` (`--rr-pool`/`--rr-window`), `audit_product_divergence.py` |
+| §9.1–9.3 the query bridge | `audit_query_transform.py`, `bigram_report.py` |
+| §9.4 IACR ePrint | `verify_iacr_deps.py`, `source_ab_report.py` |
+| §9.5 Semantic Scholar | `s2_yield.py` (stage 1), `source_ab_report.py` (A/B) |
+| §9.6 absent-category bias | `run_judge_eval.py --rr-absent-category`, `ablation_report.py` |
+| §9 OpenAlex | `openalex_yield.py` |
+| §10 corrections, blast radius | `audit_product_divergence.py` |
+| §12.1–12.2 thin documentation | `run_judge_eval.py --rr-ablate-docs`, `ablation_report.py` |
+| stated-intent experiment (NR-26) | `make_goals.py`, `run_judge_eval.py --rr-goals` |
+| personalization (Tier S) | `seeded.py`, `run_seeded_eval.py` |
+
+Scripts prefixed `verify_*` are the **$0 stage-1 dependency probes** that precede a paid
+experiment; `diagnose_*` answer a question without changing anything; `exp_*` are the
+pre-registered band-ranking experiments; `audit_*` are the free static checks that look for
+a known defect shape on purpose.
+
+---
+
 A **manually-run** benchmark (deliberately **not** in CI) that measures how well
 RepoRadar surfaces papers for a repository. It profiles real repos with the
 shipping profiler and ranks with the shipping ranker, so it measures the actual
