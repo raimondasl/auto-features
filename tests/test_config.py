@@ -21,6 +21,7 @@ from reporadar.config import (
     TriageConfig,
     default_config_yaml,
     load_config,
+    measured_config_yaml,
     validate_config,
 )
 
@@ -550,21 +551,42 @@ class TestShippedDefaultsMatchTheMeasuredConfiguration:
                     mismatches.append(f"{section}.{key}: template={written!r} code={default!r}")
         assert mismatches == [], "template disagrees with the dataclass: " + "; ".join(mismatches)
 
-    def test_the_template_signposts_the_stages_it_leaves_off(self) -> None:
+    def test_the_default_template_says_how_weak_it_is_and_where_to_go(self) -> None:
         """The shipped default enables neither the gate, the rescore, nor HyDE — each for a
         good reason (a credential, a second vendor, 1.1 GB of index). A template that says
         nothing about them hands a new user the ungated digest with no hint that the rest
-        exists, which is how the product came to differ from every published number.
+        exists, which is how the product came to differ from every number published about it.
 
-        The commented block is prose, so it can rot silently; this checks the field paths
-        it names are real, which is the part that would mislead if it drifted.
+        It points at `rr init --measured` rather than inlining a commented copy of that
+        config, because a commented copy is a second implementation of the recommendation
+        and would drift from the first — the defect this project keeps finding.
         """
         text = default_config_yaml()
-        for path in ("triage:", "finescale:", "hyde:", "provider: claude"):
-            assert path in text, f"the template no longer signposts {path}"
+        assert "-11" in text and "+5.42" in text
+        assert "rr init --measured" in text
+
+    def test_the_measured_template_names_every_stage_it_turns_on(self) -> None:
+        """The paths it sets must be real. A recommended config naming a renamed field is
+        worse than none: it looks authoritative and silently does nothing."""
+        import yaml
+
+        data = yaml.safe_load(measured_config_yaml())
         cfg = RepoRadarConfig(repo_path=".")
-        # Every field the signpost tells a user to set must still exist under that name.
-        assert hasattr(cfg.triage, "enabled")
+        for section, field in (
+            ("triage", "enabled"),
+            ("hyde", "enabled"),
+            ("suggestions", "provider"),
+            ("ranking", "hybrid"),
+        ):
+            assert field in data[section], f"measured config lost {section}.{field}"
+            assert hasattr(getattr(cfg, section), field)
+        assert "enabled" in data["triage"]["finescale"]
         assert hasattr(cfg.triage.finescale, "enabled")
-        assert hasattr(cfg.hyde, "enabled")
-        assert hasattr(cfg.suggestions, "provider")
+
+    def test_the_measured_template_states_its_dependencies_and_price(self) -> None:
+        """Four paid/heavy stages recommended without naming the bill is worse than
+        silence, so the file itself must carry the keys, the download and the cost."""
+        text = measured_config_yaml()
+        for needed in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "rr sync-index", "1.1 GB"):
+            assert needed in text, f"the measured config never mentions {needed}"
+        assert "$0.01" in text

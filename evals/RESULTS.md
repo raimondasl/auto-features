@@ -857,6 +857,49 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Shipping the measured configuration instead of flipping defaults (2026-08-15)
+
+```bash
+rr init --measured      # the config behind +5.42, with every value's citation inline
+```
+
+The previous entry found that the shipped default enables none of the stages this
+benchmark measures, and deliberately changed nothing — flipping an unmeasured default to
+another unmeasured value buys nothing. The alternative is to make the measured
+configuration a *thing you can ask for*, and to say plainly how weak the default is.
+
+**What ships.** `measured_config_yaml()` is a second template, written by `rr init
+--measured`, in which every value carries the measurement that justifies it — `top_k: 50`
+cites the +1.00 depth result, `threshold: 2/3` cites the metric's own breakeven, `top_n:
+15` cites +1.24, `w_embedding: 0.0` cites the fact that 1.5 is unmeasured in that role.
+It states its prerequisites (both keys, `rr sync-index`, ~1.1 GB) and its price
+(~$0.01–0.02/repo/run, against ~$0.80 for the agentic baseline) in the file itself.
+
+**The part that makes it more than documentation.** The audit gained a fourth check:
+every one of the **39** fields in `BENCHMARK_HEADLINE` must be reproduced by the preset,
+**with no exemption mechanism at all**. The default template may differ from the benchmark
+for declared reasons; this one may not, because its entire purpose is to be the
+configuration behind the published number. A test asserts `DECLARED` is not even
+referenced in that function, so the recommendation cannot be excused away from the
+measurement it cites. Told a user "this gets you +5.42", we owe them the actual arms of
+that run — and now a script checks that we delivered them.
+
+Setting the preset's `finescale.timeout` to the eval's 60 rather than the product's 30 was
+the one edit needed to make the check exact. An exemption would have been easier and would
+have started the list that ends in a preset nobody has run.
+
+**Where the default is now labelled.** Three places, because a user who never opens the
+config should still hear it: the template's own header, `rr init`'s output (`-11` against
+`+5.42`, with the pointer), and `rr update` at the point the gate would have run. The
+last one also names the two-field trap — `triage.enabled: true` with `suggestions.provider`
+left at `template` gates nothing — which previously printed a mild "skipping".
+
+**What this is not.** It is not a measurement. The out-of-the-box arm is still unrun, so
+"−11" remains the pre-gate figure measured during development rather than a fresh draw of
+today's keyword-only path, and it is labelled that way in the README. No default changed.
+
+**Cost** $0.
+
 ### The audit was asking the wrong object: `rr init` writes a config nobody measured (2026-08-15)
 
 ```bash

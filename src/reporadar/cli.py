@@ -26,6 +26,7 @@ from reporadar.config import (
     RepoRadarConfig,
     default_config_yaml,
     load_config,
+    measured_config_yaml,
     validate_config,
 )
 from reporadar.digest import write_digest
@@ -110,10 +111,25 @@ def cli() -> None:
     type=click.Path(exists=True, file_okay=False),
     help="Repo directory to initialize in.",
 )
-def init(path: str) -> None:
+@click.option(
+    "--measured",
+    is_flag=True,
+    help=(
+        "Write the configuration every published number was measured under "
+        "(mean net@2 +5.42 vs an agentic Opus baseline's +1.62). Needs an Anthropic key, "
+        "an OpenAI key, and `rr sync-index` (~1.1 GB); ~$0.01-0.02 per repo per run."
+    ),
+)
+def init(path: str, measured: bool) -> None:
     """Initialize RepoRadar in a repository.
 
     Creates .reporadar.yml and the .reporadar/ storage directory.
+
+    The default config runs no LLM stage and is measurably weak — the benchmark scores it
+    at mean net@2 −11, worse than showing nothing, because the metric charges 2 for each
+    unactionable paper shown. `--measured` writes the configuration behind +5.42 instead.
+    It is not the default only because each of its stages needs a credential or a download
+    that a first run cannot assume.
     """
     repo = Path(path).resolve()
     config_file = repo / DEFAULT_CONFIG_NAME
@@ -122,7 +138,8 @@ def init(path: str) -> None:
     if config_file.exists():
         warn(f"Config already exists: {config_file}")
     else:
-        config_file.write_text(default_config_yaml(), encoding="utf-8")
+        body = measured_config_yaml() if measured else default_config_yaml()
+        config_file.write_text(body, encoding="utf-8")
         success(f"Created {config_file}")
 
     if storage_dir.exists():
@@ -132,6 +149,24 @@ def init(path: str) -> None:
         success(f"Created {storage_dir}/")
 
     success("RepoRadar initialized. Edit .reporadar.yml to customize.")
+
+    if measured:
+        info("")
+        info("This is the measured configuration. Before the first run:")
+        info("  1. set ANTHROPIC_API_KEY and OPENAI_API_KEY")
+        info('  2. uv pip install -e ".[hyde]" && rr sync-index    # one time, ~1.1 GB')
+        info("  3. set `arxiv.categories` to YOUR fields - the cs.LG/cs.CL default is a")
+        info("     guess that fits an ML repository and no other.")
+        info("Cost: roughly $0.01-0.02 per repository per run.")
+    else:
+        # Said here rather than only in the file, because the number is large enough that
+        # a user who never opens the config should still hear it once.
+        info("")
+        warn("This default configuration ranks by keyword overlap and runs no LLM stage.")
+        warn("On this project's own benchmark that configuration scores mean net@2 -11,")
+        warn("against +5.42 for the measured one. Two flags of difference are a credential")
+        warn("and a ~1.1 GB index, not an opinion:")
+        info("    rr init --measured        # see README, 'The measured configuration'")
 
 
 @cli.command()
@@ -859,7 +894,20 @@ def update(
             except Exception as exc:
                 info(f"  Triage failed: {exc}")
         elif cfg.triage.enabled:
-            info("  Triage enabled but suggestions.provider is not an LLM — skipping.")
+            # The two-field trap: `triage.enabled: true` alone gates nothing, and the
+            # config gives no hint of the second field. Name it rather than say "skipping".
+            warn("  Triage is enabled but `suggestions.provider` is 'template', so NO")
+            warn("  actionability gate ran. Set `suggestions.provider: claude` (or ollama)")
+            warn("  Enabling the gate takes BOTH fields.")
+        else:
+            # Said once per run, because this is the difference between the configuration
+            # the benchmark scores at -11 and the one it scores at +5.42, and a user who
+            # never opens the config file would otherwise never learn which one they have.
+            info(
+                "  Ranking by keyword overlap only (no actionability gate). "
+                "`rr init --measured` writes the configuration behind the published "
+                "+5.42; this one measures -11."
+            )
 
         # 8. Save keyword frequencies for trend detection
         try:

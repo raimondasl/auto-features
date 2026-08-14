@@ -41,6 +41,7 @@ from audit_product_divergence import (  # noqa: E402
     config_leaves,
     coverage_gaps,
     effective_shipped,
+    preset_divergences,
     surface_divergences,
     template_values,
 )
@@ -260,6 +261,52 @@ class TestTheConfigSurfacesAreBothRead:
 
         monkeypatch.setitem(audit.NOT_UNDER_TEST, "gone.field", "deleted last week")
         assert [d.name for d in audit.coverage_gaps()] == ["gone.field"]
+
+
+class TestTheRecommendedConfigIsTheMeasuredOne:
+    """`rr init --measured` tells a user this configuration reaches +5.42. That is a claim
+    about a specific run, and claims decay the way code does — `arxiv.lookback_days`
+    shipped at 14 days for a month while every headline ran all-time. So it is checked
+    against `BENCHMARK_HEADLINE` field by field, with **no exemption mechanism**: unlike
+    the default template, which may differ for declared reasons, this file's whole purpose
+    is to reproduce the measured run, so any difference is a documentation defect.
+    """
+
+    def test_the_preset_reproduces_every_measured_field(self) -> None:
+        drift = preset_divergences()
+        assert drift == [], "rr init --measured no longer matches the benchmark: " + ", ".join(
+            f"{d.name} (preset={d.product}, measured={d.benchmark})" for d in drift
+        )
+
+    def test_the_preset_check_has_no_exemption_mechanism(self) -> None:
+        """DECLARED must not silence preset drift. If it could, the recommendation could
+        be excused away from the measurement it cites, which is the one thing this check
+        exists to prevent."""
+        assert all(d.status == "PRESET DRIFT" for d in preset_divergences())
+        source = (
+            Path(__file__).resolve().parents[1] / "evals" / "audit_product_divergence.py"
+        ).read_text(encoding="utf-8")
+        body = source.split("def preset_divergences(")[1].split("\ndef ")[0]
+        assert "DECLARED" not in body
+
+    def test_preset_drift_is_caught(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Mutation: edit the measured config away from the benchmark and this must fail."""
+        import audit_product_divergence as audit
+
+        drifted = {**audit.measured_preset(), "triage.top_k": 15}
+        monkeypatch.setattr(audit, "measured_preset", lambda: drifted)
+        assert [d.name for d in audit.preset_divergences()] == ["triage.top_k"]
+
+    def test_a_field_missing_from_the_preset_is_drift_not_a_pass(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The preset may omit a field only when the dataclass default already matches.
+        A field the dataclass gets wrong and the preset omits must not read as agreement."""
+        import audit_product_divergence as audit
+
+        monkeypatch.setattr(audit, "config_leaves", lambda: {})
+        monkeypatch.setattr(audit, "measured_preset", lambda: {})
+        assert len(audit.preset_divergences()) == len(BENCHMARK_HEADLINE)
 
 
 class TestTheStagesTheProductShipsWithout:
