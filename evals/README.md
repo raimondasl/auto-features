@@ -671,8 +671,9 @@ evals/
                      version-strip fixed in cli.py, not in harness.py) are the same defect
                      — one invariant, two implementations — and both were found by
                      accident while looking for something else. Three passes: the WIRING
-                     (every arXiv-id normalisation and source merge, read out of the AST,
-                     with which of the competing rules it uses), the CONFIGURATION (shipped
+                     (every arXiv-id normalisation, source merge and digest-window
+                     derivation, read out of the AST, with which of the competing rules it
+                     uses), the CONFIGURATION (shipped
                      defaults against the benchmark's headline flags, where a difference is
                      fine and an UNDECLARED one fails a test), and the BLAST RADIUS (how
                      much of it reached a published number, read off evals/results/).

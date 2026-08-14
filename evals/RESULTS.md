@@ -834,6 +834,59 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### The fine-scale stage stops paying for papers the digest cannot show (2026-08-14)
+
+```bash
+uv run python evals/audit_product_divergence.py     # the wiring pass now covers this too
+```
+
+Recorded as a follow-up in the gate-depth entry below and now done. `cli.update` built the
+fine-scale band over **every** triaged paper, while `digest.categorize_papers` drops
+withdrawn papers and then cuts to `output.top_n`. Anything outside that window reaches no
+tier, so the product was buying gpt-4o-mini calls for papers it would never display —
+cheap at `triage.top_k` 15, and **tripled** when the depth experiment moved the default
+to 50 the same day.
+
+**Outcome-neutral, which is exactly why it survived.** A paper outside the window reached
+no tier before and reaches none now; nothing a user sees changes. Only the bill did, and a
+bill is not something the benchmark measures.
+
+#### The fix is a shared window, not a second one
+
+The obvious repair — compute the window inside `cli.update` — would have been the fourth
+instance of this project's most expensive shape. The rule has a subtlety a re-derivation
+gets wrong: **withdrawn papers leave *before* the cut**, so each one pulls the next paper
+up into the window. A copy that filtered after the cut would silently shrink the window by
+one per withdrawal, and the two implementations would disagree *only* on runs where a
+retraction landed in the top slots — the rarest and least testable case there is.
+
+So `digest.digest_window` is now the one home, and both callers use it. `cli.update` feeds
+it `store.get_scores_for_run(run_id)` — the exact list `rr digest` reads, same ordering,
+same joins — rather than rebuilding the digest's input from the in-memory `scores`, which
+would have been the same defect one level up.
+
+The audit's wiring pass covers it: it counts the callers that share the helper and flags
+any file that re-derives the drop-withdrawn-then-cut rule, mutation-verified against a
+plausible copy planted in `cli.py`. It checks **both** halves — copies forbidden *and*
+callers present — because a guard that only forbids copies passes happily on a file that
+deleted the call entirely, which is precisely how `to_plain_keywords` sat correct and
+unused through C-9.
+
+#### One residual, pinned rather than discovered later
+
+`rr update` has no `--since`, so it scopes the band to the unfiltered top-`output.top_n`. A
+later `rr digest --since 7` removes papers from that window, and removal **promotes**
+whatever sat below it. A band paper promoted that way has no `finescale_p` and so reaches
+Maybe rather than Top Picks, where before it would have carried a score.
+
+The direction is conservative and it is the same rule C-13 established for ungated papers —
+unproven is not endorsed — but it is a real reduction in Top Picks for since-filtered
+digests, and it is now a test rather than a surprise. Removing it would mean either scoring
+the whole triaged set again (the waste this change exists to delete) or inventing a margin
+constant with nothing to derive it from.
+
+**Cost** $0 — no run, no LLM. Nineteen tests, three mutation-verified. Gate green at 1,578.
+
 ### Gate depth: the shipped default was never measured, and it was costing +1.00 net@2 per case (2026-08-14)
 
 ```bash

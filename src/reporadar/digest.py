@@ -108,6 +108,45 @@ def mark_new_papers(
     return scored
 
 
+def digest_window(
+    scored_papers: list[dict[str, Any]],
+    top_n: int = 15,
+    *,
+    triage_threshold: int | None = None,
+    rerank: bool = False,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """The papers a digest can actually show, and the withdrawn ones it removed first.
+
+    Returns ``(window, withdrawn)``. *window* is what reaches a tier; anything outside it
+    is dropped before tiering and can never be displayed, whatever its scores say.
+
+    Two rules, in this order, and the order is the whole reason this is one function:
+
+    1. **Rerank before the cut.** With triage scores present, `llm_score` decides the
+       ordering (`score_total` breaks ties), so a paper the heuristic ranker buried can
+       still enter the window.
+    2. **Withdrawn papers leave before the cut, not after.** They are muted regardless, and
+       taking them out first means the slot they would have occupied goes to the next
+       paper rather than being wasted — so the identity of the *last* paper in the window
+       depends on how many withdrawn papers preceded it.
+
+    That second rule is why `cli.update` must not re-derive this to decide which papers to
+    spend fine-scale calls on. A local reimplementation that forgot it would scope the band
+    to a window off by one paper per withdrawal, and the two would disagree only on runs
+    where a retraction happened to land in the top slots — the rarest and least testable
+    case. One invariant, two implementations, is the shape behind C-9, C-12 and C-14; this
+    is the same invariant given one home before it becomes the fourth.
+    """
+    if rerank and triage_threshold is not None:
+        from reporadar.triage import rerank_by_actionability
+
+        scored_papers = rerank_by_actionability(scored_papers)
+
+    withdrawn = [p for p in scored_papers if p.get("withdrawn_in")]
+    window = [p for p in scored_papers if not p.get("withdrawn_in")][:top_n]
+    return window, withdrawn
+
+
 def categorize_papers(
     scored_papers: list[dict[str, Any]],
     top_n: int = 15,
@@ -151,17 +190,14 @@ def categorize_papers(
     ``llm_score`` *before* the *top_n* cut, so an actionable paper the heuristic
     ranker buried below the window isn't dropped before it can be a Top Pick.
     """
-    if rerank and triage_threshold is not None:
-        from reporadar.triage import rerank_by_actionability
-
-        scored_papers = rerank_by_actionability(scored_papers)
-
-    # Withdrawn papers are separated out *before* the top_n cut. Two reasons: the
-    # triage branch below tiers by llm_score and never reads score_total, so the
-    # ranking penalty alone would not stop a withdrawn paper reaching Top Picks; and
-    # letting one occupy a slot would evict a good paper from the digest entirely.
-    withdrawn = [p for p in scored_papers if p.get("withdrawn_in")]
-    limited = [p for p in scored_papers if not p.get("withdrawn_in")][:top_n]
+    # Ordering and the top_n cut live in `digest_window`, shared with `cli.update` so the
+    # fine-scale stage spends only on papers this function can still show. Withdrawn papers
+    # are separated out *before* the cut: the triage branch below tiers by llm_score and
+    # never reads score_total, so the ranking penalty alone would not stop a withdrawn
+    # paper reaching Top Picks, and letting one occupy a slot would evict a good paper.
+    limited, withdrawn = digest_window(
+        scored_papers, top_n, triage_threshold=triage_threshold, rerank=rerank
+    )
 
     top_picks = []
     maybe_relevant = []
