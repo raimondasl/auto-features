@@ -834,6 +834,48 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### PRE-REGISTERED, not yet run — should the digest show 15 papers or 10? (2026-08-15)
+
+```bash
+uv run python evals/run_judge_eval.py --baseline none --sources arxiv     --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde     --rr-frozen-pool evals/.work/pool-depth --rr-window 15
+uv run python evals/bigram_report.py --label-field digest_window 10=<stored> 15=<new>
+```
+
+The last declared product/benchmark divergence: `output.top_n` ships at **15** while every
+published number was measured at **10**. Unlike the gate-depth question, this one has an
+expected effect that can be computed *before* spending, and it was.
+
+**What the recorded runs already say ($0, from the depth-50 arm).** The digest shows 5.64 of
+10 papers per case. A wider window can only help where **all ten window papers clear the
+gate** — `rerank_by_actionability` sorts by `llm_score`, so if the rank-10 paper fails, every
+paper below it fails too. That holds for **14 of 25 cases**; the other 11 are structurally
+incapable of gaining a single paper. Among *shown* papers precision holds 0.75–1.00 at every
+rank, but the raw window decays 0.68 → 0.48 and the rank-10 `llm_score` mix is 0:2 / 1:9 /
+2:14 / **3:0**. Ranks 11–15 sit below that by construction.
+
+**Prediction: ≈ +0.1 net@2/case, and that is a CEILING** — it assumes the gate-pass rate and
+the marginal precision hold past the last observed rank, and both must decay. Against the
+frozen floor of **0.48**, the expected effect is a quarter of what the benchmark can resolve.
+
+**So why run it at all.** Because the alternative was an extrapolation past the last judged
+paper, and 70-odd new verdicts turn a projection into an observation. The 11 structurally
+incapable cases are a built-in control: their net@2 must be **identical**, and if any moves,
+the sorting argument above is wrong.
+
+**The decision rule, fixed now so the result cannot pick it.**
+
+* **|delta| inside the floor** (expected): net@2 cannot justify either value. The tie-break
+  is then a stated product judgement rather than a measurement — and the judgement is to
+  **default to 10**, on the ground that it is the configuration every published number in
+  this file describes, not on the ground that it scores better. Recorded as an alignment,
+  not a finding.
+* **delta past the floor and positive**: keep 15, and move the *benchmark* to 15 — the
+  divergence closes the other way, and every future headline is measured on what ships.
+* **delta past the floor and negative**: default to 10 on the measurement.
+
+**Estimated cost** ~$4: 1,250 Haiku gate calls, fine-scale on the widened band, and ~70 new
+judge verdicts (the cache covers ranks 1–10 already).
+
 ### Three rules for "same paper", and a guard that had been looking in five files (2026-08-15)
 
 ```bash
