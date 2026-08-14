@@ -834,6 +834,92 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### OpenAlex, the last unmeasured channel: it delivers, and it places where placing is worthless (2026-08-14)
+
+```bash
+uv run python evals/openalex_yield.py                                    # $0, ~25 min
+uv run python evals/openalex_yield.py --from-json evals/.work/openalex_yield.json
+```
+
+OpenAlex was the one source of five with **no measurement of any kind** — DBLP was caught
+returning nothing, bioRxiv returning everything, IACR measured at n = 2, Semantic Scholar
+measured three times, and every statement about OpenAlex was about an adapter. It also
+spent six months on the malformed bridge query (C-9), so nothing predating 2026-08-12 says
+anything either. This is the $0 stage-1 probe that comes before proposing a ~$25 A/B.
+
+**25 of 25 cases measured, no refusals, and zero arXiv requests** — 174 cache hits, the
+whole sweep served from the response cache built after the volume throttle.
+
+#### The channel delivers, generously
+
+| | per case |
+|---|---|
+| OpenAlex papers arriving | **229.8** |
+| new after dedup against the arXiv pool | 229.7 |
+| of those, non-arXiv (`oa:` ids) | **229.4** |
+| already in the pool under another id (title match) | 1.3 |
+
+Comparable volume to Semantic Scholar (218.6 arriving, 174.5 non-arXiv). And the coverage
+is *real*: only 32 of 5,746 papers across all 25 cases turn out to be a paper the arXiv pool
+already held, arriving under an `oa:` id nothing could match it against. That check exists
+because OpenAlex mints a synthetic id for any work whose DOI is not an arXiv DOI — including
+the published version of a preprint — so "new by id" and "new by content" are different
+claims. Here they agree.
+
+#### And then it competes badly, in a specific way
+
+**14 papers reach a ranked top-10, across 7 of 25 cases.** Semantic Scholar reached 73
+across 16 of 23 on the same measure. But the count is not the finding — *where* they land is:
+
+| bucket | appearances | |
+|---|---|---|
+| **negative controls** (`webdev` 3, `cli` 2, `http` 1) | **6** | 43% of all appearances, from 3 of 25 cases |
+| **thin-pool cases** (`numerics`, arXiv pool 55 against a median of 235) | **5** | half the usual competition |
+| **elsewhere, on merit** (`systems`, `linter`, `ann`, 1 each) | **3** | |
+
+Eleven of fourteen slots are won in repositories whose correct output is *nothing*, or in
+the one repository whose arXiv pool was too small to defend them. Three are won on merit,
+across 25 cases, under settings chosen to flatter the source (no HyDE, ~100 further
+candidates it would have to outrank; no triage rerank).
+
+#### The verdict my own script printed was wrong
+
+The first version tested `cases_with >= n/4`. Seven of twenty-five cleared that bar by three
+quarters of a case, and it printed **"OpenAlex competes — a judged A/B is justified"** while
+the deciding numbers sat unread in the table directly above it. **Counting cases *touched*
+is not counting cases where touching is *good*** — the same shape as `source_ab_report.py`
+printing "RESOLVED" on magnitude while its interval spanned zero.
+
+Fixed rather than overridden by hand: the control/thin/merit split is now the computation,
+the verdict reads it, and `--from-json` re-derives both at $0 from the stored run so a
+correction never needs the network. Six tests pin the split, including that a thin-pooled
+negative control lands in exactly one bucket — double-counting it drives `on_merit` negative
+and makes the verdict read better than the data.
+
+#### Decision
+
+**Do not spend on the judged A/B.** Not because OpenAlex is a bad source — it supplies more
+genuinely non-arXiv content per case than anything else measured here — but because a
+25-case mean cannot resolve an effect concentrated in three papers, and the one comparable
+channel that *did* compete broadly (S2: 73 appearances, 16 cases) was taken all the way to a
+judged A/B and did not help. `sources: [arxiv]` stays the default, and OpenAlex joins DBLP
+and bioRxiv as **built, wired, never validated** — with the difference that this time we
+know what it would deliver.
+
+The $0 probe has now paid for itself three times: it would have caught DBLP before four
+attempts to benchmark it, it sized the S2 experiment, and it has just declined a ~$25 one.
+
+#### A defect noted, not fixed
+
+`openalex.search_papers` returns `[]` both when the API refused and when it honestly found
+nothing, so the product cannot tell a throttled fetch from an empty one — the
+failure-is-absence class that has cost this project two published numbers. The probe works
+around it by wrapping the adapter's own request function and counting `None` returns, and
+reports any case with a refusal as **UNMEASURED** rather than zero. The adapter itself
+should report failure structurally; that is a separate change.
+
+Logged as **NR-34**. **Cost** $0 — 125 OpenAlex requests, 0 arXiv requests, no LLM, ~25 min.
+
 ### Looking for the C-9 shape on purpose: five divergences, one of them a live product bug (2026-08-14)
 
 ```bash
