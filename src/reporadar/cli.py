@@ -126,8 +126,8 @@ def init(path: str, measured: bool) -> None:
     Creates .reporadar.yml and the .reporadar/ storage directory.
 
     The default config runs no LLM stage and is measurably weak — the benchmark scores it
-    at mean net@2 −11, worse than showing nothing, because the metric charges 2 for each
-    unactionable paper shown. `--measured` writes the configuration behind +5.42 instead.
+    at mean net@2 −8.12, worse than showing nothing, because the metric charges 2 for each
+    unactionable paper shown. `--measured` writes the configuration behind +5.12 instead.
     It is not the default only because each of its stages needs a credential or a download
     that a first run cannot assume.
     """
@@ -163,9 +163,10 @@ def init(path: str, measured: bool) -> None:
         # a user who never opens the config should still hear it once.
         info("")
         warn("This default configuration ranks by keyword overlap and runs no LLM stage.")
-        warn("On this project's own benchmark that configuration scores mean net@2 -11,")
-        warn("against +5.42 for the measured one. Two flags of difference are a credential")
-        warn("and a ~1.1 GB index, not an opinion:")
+        warn("On this project's own benchmark it scores mean net@2 -8.12 against +5.12 for")
+        warn("the measured one, and is net-negative on 19 of 25 repositories. It finds")
+        warn("papers; what it lacks is the stage that declines to show them. The difference")
+        warn("is a credential and a ~1.1 GB index, not an opinion:")
         info("    rr init --measured        # see README, 'The measured configuration'")
 
 
@@ -901,12 +902,12 @@ def update(
             warn("  Enabling the gate takes BOTH fields.")
         else:
             # Said once per run, because this is the difference between the configuration
-            # the benchmark scores at -11 and the one it scores at +5.42, and a user who
+            # the benchmark scores at -8.12 and the one it scores at +5.12, and a user who
             # never opens the config file would otherwise never learn which one they have.
             info(
                 "  Ranking by keyword overlap only (no actionability gate). "
                 "`rr init --measured` writes the configuration behind the published "
-                "+5.42; this one measures -11."
+                "+5.12; this one measures -8.12 (precision 0.379 against 0.883)."
             )
 
         # 8. Save keyword frequencies for trend detection

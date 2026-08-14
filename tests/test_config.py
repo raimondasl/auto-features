@@ -562,7 +562,11 @@ class TestShippedDefaultsMatchTheMeasuredConfiguration:
         and would drift from the first — the defect this project keeps finding.
         """
         text = default_config_yaml()
-        assert "-11" in text and "+5.42" in text
+        # Both halves of the measured pair, from the 2026-08-16 run of each configuration
+        # on all 25 cases at width 15. This asserted "-11" and "+5.42" until C-17: the
+        # first had been measured on four repositories in July and the second is the
+        # 24-case vs-baseline figure, so the pair was not comparable in either direction.
+        assert "-8.12" in text and "+5.12" in text
         assert "rr init --measured" in text
 
     def test_the_measured_template_names_every_stage_it_turns_on(self) -> None:

@@ -269,8 +269,9 @@ class TestInitCommand:
         hear it. Silence here is how the product came to differ from every number
         published about it."""
         result = CliRunner().invoke(cli, ["init", "--path", str(tmp_path)])
-        assert "-11" in result.output
-        assert "+5.42" in result.output
+        # The measured pair, not the July four-case figure this used to quote (C-17).
+        assert "-8.12" in result.output
+        assert "+5.12" in result.output
         assert "rr init --measured" in result.output
 
     def test_measured_writes_the_measured_config_and_its_prerequisites(

@@ -684,6 +684,18 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     # per case. The returned set is still cut at 10, so this tests SELECTION quality at a
     # fixed digest size rather than simply returning more papers.
     candidate_n = args.rr_pool or (RERANK_POOL if args.rr_rerank else 10)
+    if args.rr_window > candidate_n:
+        # The digest cannot be wider than the ranked list it is cut from, so a window
+        # larger than the candidate depth silently produces a NARROWER digest than the
+        # flag says — and the run records `digest_window: 15` either way, which is the
+        # worst version: the artifact asserts a width the run did not have. It bites
+        # exactly when the gate is off, because `candidate_n` then defaults to 10 while
+        # `--rr-window` defaults to 15. Refuse rather than warn.
+        raise SystemExit(
+            f"--rr-window {args.rr_window} exceeds the candidate depth {candidate_n}: the "
+            f"digest would be cut at {candidate_n} and recorded as {args.rr_window}.\n"
+            f"Pass --rr-pool {args.rr_window} (or more) to rank at least that many."
+        )
     # --rr-frozen-pool: reuse one collection across arms so a downstream treatment is not
     # measured through a fresh draw of candidates. Two runs of this identical config
     # overlap only 0.50 by Jaccard on the ranked top-10 (evals/noise_floor.py), which is

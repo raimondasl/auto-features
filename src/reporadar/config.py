@@ -715,9 +715,10 @@ output:
 # THIS CONFIGURATION IS THE WEAK ONE, AND WE MEASURED HOW WEAK.
 #
 # It runs no LLM stage, so papers are ordered by keyword overlap alone. That is the
-# configuration the benchmark scores at mean net@2 -11 -- i.e. actively worse than
+# configuration the benchmark scores at mean net@2 -8.12 -- i.e. actively worse than
 # showing nothing, because the metric charges 2 for each unactionable paper shown.
-# The measured configuration reaches +5.42 on the same benchmark. It is not enabled
+# It is net-negative on 19 of the 25 repositories. Measured 2026-08-16 on all 25 at
+# this width; the measured configuration scores +5.12 on the same 25. It is not enabled
 # by default only because each stage needs a credential or a download that a default
 # cannot assume, and a tool that fails on first run without a key is worse.
 #
@@ -749,7 +750,8 @@ def measured_config_yaml() -> str:
 # This is the configuration behind the published result: mean net@2 +5.42 against an
 # agentic Claude Opus 4.8 baseline's +1.62 on a 25-repository benchmark (paired +3.79,
 # 95% CI [+2.17, +5.58], sign test p = 0.0001). `rr init` without --measured writes a
-# keyword-only config that the same benchmark scores at -11.
+# keyword-only config that the same benchmark scores at -8.12 (precision 0.379 against
+# 0.883 here, and net-negative on 19 of 25 repositories).
 #
 # WHAT IT NEEDS
 #   ANTHROPIC_API_KEY   the actionability gate + HyDE's hypothesis writer (Claude Haiku)

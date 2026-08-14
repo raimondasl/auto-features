@@ -857,6 +857,130 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### PRE-REGISTERED — what does the out-of-the-box configuration actually score? (2026-08-16)
+
+**Why this is being run at all.** PR #134 shipped a README table row reading
+"mean net@2 on the 25-repo benchmark | **−11** | **+5.42**", and **−11 was never measured
+on the 25-repo benchmark.** It is the mean of four cases from 2026-07-05 — `rag` 0,
+`cv` −4, `rl` −20, `webdev` −20 — one of which (`webdev`) is a negative control, i.e. a
+repository with no applicable literature, contributing a quarter of that mean. It also
+predates all-time discovery (NR-5), the C-9 query-bridge repair, the C-10 phrase fix,
+verified bigrams, and the 10 → 15 digest width. The two numbers in that row share a metric
+and nothing else. This run replaces the left column with something that belongs beside the
+right one.
+
+**The arm.** The configuration `rr init` writes, at the width it writes, on all 25 cases:
+
+```bash
+uv run python evals/run_judge_eval.py --baseline none --sources arxiv \
+    --rr-all-time --rr-bigrams verified --rr-absent-category omit \
+    --rr-pool 15 --rr-window 15 < /dev/null
+```
+
+No `--rr-triage`, so the returned set is the product's own ungated tiering — the harness
+imports `TOP_THRESHOLD` from the shipped `digest.py` and returns papers scoring ≥ 0.5,
+which is exactly what `rr update` does with the gate off. No HyDE, no hybrid, no rescore.
+
+**Two fidelity limits, stated before the number exists.**
+
+1. `--rr-pool 15` is **required**, not cosmetic. With the gate off, the harness's candidate
+   depth defaults to 10, so `--rr-window 15` would have cut the digest at 10 while
+   recording `digest_window: 15` — an artifact asserting a width the run did not have.
+   The harness now refuses that combination instead of warning. No recorded run was
+   affected (all five window-carrying runs have gate depth 50).
+2. The default template sets `ranking.w_embedding: 1.5` and the harness **cannot reproduce
+   it** (`evaluation.UNMODELLED_KNOBS`). So this measures the default *as installed without
+   the `embeddings` extra* — the common case, not every case. That gap is the same
+   install-dependent divergence the config audit flagged, now costing a measurement.
+
+**Prediction, written first.** The gate is worth more than everything else combined, so the
+ungated arm should land **well below +5.42** — I expect somewhere in **−2 to +2**, not −11.
+Reasoning: the −11 era had a 90-day recency window that structurally excluded the gold set
+and a broken query bridge, both since repaired, so retrieval is far better; but the digest
+is now 15 wide instead of 10, and at low precision each extra paper costs 2. I expect
+those to partly cancel, leaving a number that is *bad* but not *catastrophic*.
+
+**Kill / surprise conditions.** If the arm scores **above +3**, the gate's contribution is
+much smaller than this project has claimed for six weeks and the claim needs re-examining,
+not just the README. If it scores **below −5**, my "retrieval got better" reasoning is
+wrong and the −11 was closer to right than I thought. Either outcome is reportable; the
+prediction above is what I am betting.
+
+**What the number will and will not license.** It is a *level* from a single live draw, so
+it carries the ±0.6 whole-run drift documented in §8.7 and is not paired with the +5.42
+run (which was frozen-pool). Given an expected gap of several points that is immaterial;
+if the arm lands close enough to +5.42 for session drift to matter, a paired same-session
+re-run is the follow-up, and I will say so rather than quietly compare across sessions.
+
+**Estimated cost** $10–15 — no Haiku and no OpenAI at all, since nothing gates or rescores.
+The entire bill is judge verdicts on papers the cached pool has not seen.
+
+> #### RESULT (2026-08-16) — **−8.12**. My prediction missed and my own surprise condition fired.
+>
+> `judge-gpt-5.5-bigrams_verified-20260814T194558Z.json`. 25/25 cases, 375 papers pooled
+> and judged, **0 judge failures**, live pool.
+>
+> | | **default (`rr init`)** | **measured (`rr init --measured`)** |
+> |---|---|---|
+> | mean net@2, 25 cases | **−8.12** | **+5.12** |
+> | papers shown | 235 | **197** |
+> | of those, actionable | 89 | **174** |
+> | precision | **0.379** | **0.883** |
+> | net-negative repositories | **19 / 25** | 2 / 25 |
+> | abstentions | 3 | — |
+>
+> **Gap: +13.24 net@2 per case.** (The +5.42 quoted elsewhere is the *24*-case figure from
+> the vs-baseline run, restricted to cases where the Opus baseline completed; on all 25 the
+> same arm is +5.12. Both arms here are window 15. The default is live and the measured one
+> frozen, so this compares **levels, not a paired delta** — legitimate for a 13-point gap
+> against ±0.6 whole-run drift, and it is why no CI is quoted.)
+>
+> **I predicted −2 to +2 and wrote "below −5 means my reasoning is wrong."** It came in at
+> −8.12. The condition fired; the reasoning was wrong.
+>
+> **Where it was wrong, precisely.** I reasoned about the *pool* and forgot the *display
+> rule*. Retrieval really did improve since July — this arm finds **89 actionable papers**,
+> which the −11-era configuration could not have done. But net@2 pays `3p − 2` per shown
+> paper, so at p = 0.379 **every paper shown costs 0.86 on average**, and the ungated
+> digest has no way to stop: the 0.5 heuristic admitted all 15 in 17 of 25 cases. Better
+> retrieval fed a display rule that cannot decline, and the extra papers were charged for.
+>
+> The single line that captures it: **the measured configuration shows fewer papers (197 vs
+> 235) and delivers nearly twice as many actionable ones (174 vs 89).** The gate's value is
+> not finding papers. It is declining to show them — which is what §6.1 said in July
+> ("mostly by converting false-positive floods into correct abstentions"), and I still
+> predicted wrong, because I was thinking about the numerator.
+>
+> **The stale number was better than my reasoning about it.** The 2026-07-05 figure I set
+> out to correct (−11, four cases, one a negative control) sits **2.9** from the true
+> 25-case value. My prediction's midpoint sits **8.1** away. The provenance criticism stands
+> — it was never measured on this benchmark and had no business in that table — but it was
+> the *more accurate* of the two numbers on offer, and I should record that I replaced a
+> well-attributed guess with a badly-attributed measurement, not the reverse.
+>
+> **What it licenses.** "Worse than emitting nothing" is now measured rather than asserted:
+> abstaining everywhere scores 0, the default scores −8.12, and it is net-negative on 19 of
+> 25 repositories. The README's comparison row is now true as written for the first time.
+>
+> **Worst cases**, all showing 15 papers with 0 actionable: `crypto`, `encryption`,
+> `thin-lang` at −30.0 each. `thin-lang` is the thin-documentation cohort behaving exactly
+> as §12.1 predicts; `crypto` and `encryption` are the arXiv-coverage gap of §9.4. Neither
+> is new — but ungated, each failure is shown to the user at full width.
+>
+> **A harness defect found while setting this up, before it could bite.** `--rr-window` is
+> cut from the ranked candidate list, and with the gate off the candidate depth defaults to
+> **10** while `--rr-window` defaults to **15** — so this run would have produced a 10-paper
+> digest and recorded `digest_window: 15`, an artifact asserting a width it did not have.
+> The harness now refuses that combination. No recorded run is affected: all five runs
+> carrying a `digest_window` ran at gate depth 50.
+>
+> **Fidelity limit, stated in the pre-registration and unchanged by the result.** The
+> default template sets `ranking.w_embedding: 1.5`, which the harness cannot reproduce
+> (`evaluation.UNMODELLED_KNOBS`), so this measures the default *as installed without the
+> `embeddings` extra*.
+>
+> **Cost** ~$10 of judge verdicts; $0 of Haiku and OpenAI, since nothing gated or rescored.
+
 ### Shipping the measured configuration instead of flipping defaults (2026-08-15)
 
 ```bash
