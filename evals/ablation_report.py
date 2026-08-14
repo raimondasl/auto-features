@@ -79,6 +79,24 @@ def pool_mode(arm: dict[str, dict[str, Any]]) -> str:
     return provenance(arm)
 
 
+def digest_width(arm: dict[str, dict[str, Any]]) -> str:
+    """How many papers this arm was allowed to return: '10', '15', … or 'mixed'.
+
+    A second refusal beside pool provenance, and for the same reason. On 2026-08-15 the
+    benchmark's returned-set cut moved 10 -> 15 because the shipped `output.top_n` was
+    measured at **+1.24 net@2/case** over the value the benchmark had been using — which
+    means **91 of the 92 runs then on disk describe a narrower system than the 92nd**.
+    Comparing across that is not a small error: it is larger than any treatment effect this
+    project has ever published.
+
+    Runs predating the flag carry no `digest_window` and were all cut at 10, so they read
+    '10' rather than 'unlabelled' — unlike pool provenance, the pre-flag value is known
+    exactly, because it was a literal in the source rather than a default anyone could pass.
+    """
+    widths = {str(r.get("digest_window") or 10) for r in arm.values()}
+    return widths.pop() if len(widths) == 1 else "mixed"
+
+
 def load_arm(path: str) -> dict[str, dict[str, Any]]:
     p = Path(path)
     if not p.is_file():

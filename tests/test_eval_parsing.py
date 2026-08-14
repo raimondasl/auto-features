@@ -145,3 +145,27 @@ class TestRunCliRetry:
             out = _run_cli(SimpleNamespace(), flags=[], timeout=10)
         assert out["status"] == "error"
         assert run.call_count == baseline._CLI_MAX_RETRIES + 1
+
+
+class TestTheBaselineCannotBlockOnStdin:
+    """`claude -p` inherits stdin unless told not to, and then waits on it forever.
+
+    Measured 2026-08-15: a backgrounded 25-case run sat at **0.0 seconds of CPU for nine
+    minutes** on a single thread having produced nothing. Every context this benchmark
+    actually runs in is non-interactive — nohup, CI, cron — so the terminal that made this
+    invisible in development is the exception, not the rule.
+
+    `timeout=` does not cover it either. A process blocked on a read it will never satisfy
+    is indistinguishable from one doing slow work, which is this project's recurring failure
+    shape (failure that looks like absence) in its process-control form.
+    """
+
+    def test_the_subprocess_gets_devnull(self) -> None:
+        import inspect
+
+        import baseline
+
+        src = inspect.getsource(baseline._run_cli)
+        assert "stdin=subprocess.DEVNULL" in src, (
+            "the baseline CLI call inherits stdin again — it will hang any non-interactive run"
+        )

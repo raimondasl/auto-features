@@ -40,27 +40,54 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from ablation_report import load_arm, pool_mode, sign_test, summarise  # noqa: E402
+from ablation_report import (  # noqa: E402
+    digest_width,
+    load_arm,
+    pool_mode,
+    sign_test,
+    summarise,
+)
 
 # evals/noise_floor.py, paired within one session. Which floor applies depends on how the
 # arms got their candidates, and using the wrong one is a live way to overstate a result:
 # a frozen-pool arm compared against the live floor calls a real effect unresolvable.
-MRE_PAIRED = 1.04  # live collection, three draws
-MRE_FROZEN = 0.48  # one pool reused, two passes
+# The floor is a property of the whole MEASUREMENT CONFIGURATION, not of one axis of it.
+# `mre_for` originally keyed on pool provenance alone, and widening the returned set on
+# 2026-08-15 showed that was one dimension short: more papers per case means more chances
+# for temperature-0 jitter in the gate and the rescore to move a paper across the display
+# threshold, and each such paper is worth +1 or -2. The instrument got LESS sensitive as
+# the digest got wider, which is the opposite of the usual more-data intuition.
+MRE_PAIRED = 1.04  # live collection, window 10, three draws
+MRE_FROZEN = 0.48  # one pool reused, window 10, two passes
+MRE_FROZEN_W15 = 0.74  # one pool reused, window 15, two passes (residual sd 0.61 -> 0.93)
 BOOTSTRAP_N = 10000
 BOOTSTRAP_SEED = 20260812
 
 
-def mre_for(provenance: str) -> tuple[float, str]:
-    """The floor that applies to arms with this pool provenance, and why.
+def mre_for(provenance: str, width: str = "10") -> tuple[float, str]:
+    """The floor that applies to arms with this provenance and digest width, and why.
 
-    Derived rather than passed in. The floor is a property of how the arms were collected,
-    and a flag would let a frozen comparison be read against the live floor by omission —
-    the same shape as every other silently-wrong default this project has paid for.
+    Derived rather than passed in. A flag would let a frozen comparison be read against the
+    live floor by omission — the same shape as every other silently-wrong default this
+    project has paid for.
+
+    *width* was added on 2026-08-15 after measuring the floor at the new returned-set cut:
+    **0.48 at window 10, 0.74 at window 15** on the same frozen pool. Keying on provenance
+    alone had this function confidently returning a floor 35% too tight for every future
+    window-15 experiment — a guard that is precise about one dimension and silent about
+    another reads as authority on both.
+
+    An unrecognised width falls back to the widest floor measured rather than the nearest,
+    because under-reporting the floor turns noise into a finding, and that is the direction
+    that costs a published claim.
     """
-    if provenance.startswith("frozen"):
-        return MRE_FROZEN, "frozen pool, reused"
-    return MRE_PAIRED, "live collection"
+    if not provenance.startswith("frozen"):
+        return MRE_PAIRED, "live collection, window 10"
+    if width == "10":
+        return MRE_FROZEN, "frozen pool, reused, window 10"
+    if width == "15":
+        return MRE_FROZEN_W15, "frozen pool, reused, window 15"
+    return MRE_FROZEN_W15, f"frozen pool, reused, window {width} — UNMEASURED, widest known"
 
 
 def top10_ids(record: dict[str, Any]) -> set[str]:
@@ -129,6 +156,14 @@ def main() -> int:
     ap.add_argument("arms", nargs="+", metavar="LABEL=FILE", help="control arm first")
     ap.add_argument("--out", default="evals/.work/bigrams.json")
     ap.add_argument(
+        "--across-windows",
+        action="store_true",
+        help="Permit arms with different `digest_window` values. Refused by default: the "
+        "returned-set width moved 10 -> 15 on 2026-08-15 and is worth +1.24 net@2/case by "
+        "itself, so mixing widths measures the width and reports it under the arms' names. "
+        "The one experiment this is for is the width experiment.",
+    )
+    ap.add_argument(
         "--label-field",
         default="bigram_mode",
         help="Result key identifying the arm, so a file cannot be reported under a name it "
@@ -158,10 +193,34 @@ def main() -> int:
             "refusing to compare arms with different pool provenance: "
             + ", ".join(f"{k}={v}" for k, v in modes.items())
         )
+    # The same refusal for the returned-set width. Widening it 10 -> 15 was worth +1.24
+    # net@2/case — bigger than any treatment effect published here — so a mixed-width
+    # comparison measures the width and attributes it to whatever the arms were named.
+    widths = {label: digest_width(arms[label]) for label in labels}
+    if len(set(widths.values())) > 1:
+        if not args.across_windows:
+            raise SystemExit(
+                "refusing to compare arms with different digest windows: "
+                + ", ".join(f"{k}={v}" for k, v in widths.items())
+                + " — widening 10 to 15 is worth +1.24 net@2/case on its own. Pass "
+                "--across-windows if the WIDTH is the treatment under test."
+            )
+        # Loud, every time, like noise_floor's --assume-unlabelled-live. An experiment
+        # whose treatment IS the width has to say so out loud rather than inherit silence.
+        print(
+            "  ! --across-windows: arms differ in returned-set width ("
+            + ", ".join(f"{k}={v}" for k, v in widths.items())
+            + "). Valid only if the width is what is being measured."
+        )
     for label in labels:
         check_labels(label, arms[label], args.label_field)
     # Derived from how the arms were collected, never passed in — see `mre_for`.
-    mre, floor_why = mre_for(modes[control])
+    # The WIDEST floor across the arms, not the control's. A mixed-width comparison
+    # (permitted only under --across-windows) has the noisier arm's variance in its
+    # difference, so reading it against the narrower arm's floor would understate what the
+    # instrument can see — the exact direction that turns noise into a finding.
+    floors = [mre_for(modes[label], widths[label]) for label in labels]
+    mre, floor_why = max(floors, key=lambda pair: pair[0])
 
     cases = sorted(base)
     print("=" * 78)

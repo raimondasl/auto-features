@@ -22,6 +22,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals"))
 
+from ablation_report import digest_width  # noqa: E402
 from bigram_report import (  # noqa: E402
     check_labels,
     divergence,
@@ -90,6 +91,42 @@ class TestLabelCheck:
         assert "no `bigram_mode` recorded" in capsys.readouterr().out
 
 
+class TestTheFloorTracksTheWidthToo:
+    """The floor is a property of the whole configuration, not one axis of it.
+
+    `mre_for` keyed on pool provenance alone until 2026-08-15, when re-measuring at the new
+    returned-set cut gave **0.74 against 0.48** on the same frozen pool — more papers per
+    case means more chances for temperature-0 jitter to move one across the display
+    threshold, and each is worth +1 or −2. A guard that is precise about one dimension and
+    silent about another reads as authority on both, and this one was returning a floor 35%
+    too tight for every future window-15 experiment.
+    """
+
+    def test_the_wider_window_has_the_wider_floor(self) -> None:
+        assert mre_for("frozen", "15")[0] > mre_for("frozen", "10")[0]
+
+    def test_the_measured_values(self) -> None:
+        assert mre_for("frozen", "10")[0] == 0.48
+        assert mre_for("frozen", "15")[0] == 0.74
+
+    def test_an_unmeasured_width_falls_back_to_the_widest_known(self) -> None:
+        """Not the nearest. Under-reporting the floor turns noise into a finding, and that
+        is the direction that costs a published claim."""
+        floor, why = mre_for("frozen", "25")
+        assert floor == 0.74
+        assert "UNMEASURED" in why
+
+    def test_width_defaults_to_the_pre_flag_value(self) -> None:
+        """Every run before the flag was cut at 10, so the default cannot silently widen
+        the floor for the corpus it was measured on."""
+        assert mre_for("frozen") == mre_for("frozen", "10")
+
+    def test_live_arms_are_unaffected_by_width(self) -> None:
+        """The live floor was measured at window 10 and no live window-15 draw exists;
+        claiming otherwise would invent a number."""
+        assert mre_for("live", "15")[0] == 1.04
+
+
 class TestTheFloorIsDerivedNotChosen:
     """Which MRE applies is a property of how the arms were collected.
 
@@ -146,6 +183,34 @@ class TestLabelFieldIsConfigurable:
         check_labels("15", arm, "digest_window")
         with pytest.raises(SystemExit, match="refusing to report an arm"):
             check_labels("10", arm, "digest_window")
+
+
+class TestTheDigestWidthGuard:
+    """A width mismatch is worth more than any treatment this project has published.
+
+    The returned-set cut moved 10 -> 15 on 2026-08-15 at **+1.24 net@2/case**, and 91 of the
+    92 runs on disk at that moment were the narrower one. Comparing across it measures the
+    width and reports it under whatever the arms were named — the same shape as comparing a
+    frozen arm against a live one, which the provenance guard already refuses.
+    """
+
+    def test_runs_predating_the_flag_read_as_ten(self) -> None:
+        """Unlike pool provenance, the pre-flag value is KNOWN: it was a literal in the
+        source, not a default anyone could have passed. So these read '10', not
+        'unlabelled' — there is nothing to assume."""
+        assert digest_width({"a": {"case": "a"}}) == "10"
+
+    def test_a_recorded_width_is_used(self) -> None:
+        assert digest_width({"a": {"case": "a", "digest_window": 15}}) == "15"
+
+    def test_a_run_with_two_widths_is_mixed(self) -> None:
+        """One run cannot have two windows unless something rewrote it; say so rather than
+        silently picking one."""
+        arm = {"a": {"case": "a", "digest_window": 10}, "b": {"case": "b", "digest_window": 15}}
+        assert digest_width(arm) == "mixed"
+
+    def test_none_is_treated_as_the_pre_flag_default(self) -> None:
+        assert digest_width({"a": {"case": "a", "digest_window": None}}) == "10"
 
 
 class TestPairedBootstrap:
