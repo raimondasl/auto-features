@@ -56,7 +56,11 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import yaml  # noqa: E402
 
-from reporadar.config import RepoRadarConfig, default_config_yaml  # noqa: E402
+from reporadar.config import (  # noqa: E402
+    RepoRadarConfig,
+    default_config_yaml,
+    measured_config_yaml,
+)
 from reporadar.paper_id import dedup_id  # noqa: E402
 
 # Modules that participate in the collect -> rank -> gate -> show pipeline on either side.
@@ -328,13 +332,7 @@ def config_leaves() -> dict[str, Any]:
     return walk(RepoRadarConfig(repo_path="."), "")
 
 
-def template_values() -> dict[str, Any]:
-    """What `rr init` writes into `.reporadar.yml`, flattened to the same dotted keys.
-
-    Parsed rather than duplicated, so the template and this audit cannot drift apart —
-    the failure mode the audit exists to catch, applied to the audit itself.
-    """
-
+def _flatten_yaml(text: str) -> dict[str, Any]:
     def flatten(node: dict[str, Any], prefix: str = "") -> dict[str, Any]:
         out: dict[str, Any] = {}
         for key, value in node.items():
@@ -344,7 +342,28 @@ def template_values() -> dict[str, Any]:
                 out[f"{prefix}{key}"] = value
         return out
 
-    return flatten(yaml.safe_load(default_config_yaml()) or {})
+    return flatten(yaml.safe_load(text) or {})
+
+
+def template_values() -> dict[str, Any]:
+    """What `rr init` writes into `.reporadar.yml`, flattened to the same dotted keys.
+
+    Parsed rather than duplicated, so the template and this audit cannot drift apart —
+    the failure mode the audit exists to catch, applied to the audit itself.
+    """
+    return _flatten_yaml(default_config_yaml())
+
+
+def measured_preset() -> dict[str, Any]:
+    """What `rr init --measured` writes: the configuration we tell users reaches +5.42.
+
+    Kept honest by :func:`preset_divergences` below rather than by intent. A recommended
+    configuration is a claim about a measurement, and claims in this project decay the
+    same way code does — `arxiv.lookback_days` shipped at 14 days for a month while every
+    headline ran all-time. The difference here is that the claim is machine-checkable
+    against the measurement it cites, so it fails instead of aging.
+    """
+    return _flatten_yaml(measured_config_yaml())
 
 
 def effective_shipped() -> dict[str, Any]:
@@ -584,6 +603,32 @@ def surface_divergences() -> list[Divergence]:
     return out
 
 
+def preset_divergences() -> list[Divergence]:
+    """Fields where `rr init --measured` does NOT reproduce the measured configuration.
+
+    Exact, with **no exemption mechanism at all** — unlike the default template, which is
+    allowed to differ from the benchmark for reasons it declares. This one is not: its
+    entire purpose is to be the configuration behind the published number, so any
+    difference is a documentation defect by definition. Told a user "this gets you
+    +5.42", we owe them the actual arms of that run.
+    """
+    effective = {**config_leaves(), **measured_preset()}
+    out = []
+    for key, measured in sorted(BENCHMARK_HEADLINE.items()):
+        if key in effective and _same(effective[key], measured):
+            continue
+        out.append(
+            Divergence(
+                key,
+                repr(effective.get(key, "<missing>")),
+                repr(measured),
+                "PRESET DRIFT",
+                "rr init --measured no longer reproduces the configuration it cites",
+            )
+        )
+    return out
+
+
 def config_divergences() -> list[Divergence]:
     """Fields where what a user runs and what the benchmark measures disagree."""
     shipped = effective_shipped()
@@ -634,7 +679,15 @@ def pass_config() -> list[Divergence]:
     divs = config_divergences()
     _print_table("c) measurement — effective vs benchmark", divs, "user runs", "measured")
 
-    findings = [d for d in gaps + surfaces + divs if d.status != "declared"]
+    preset = preset_divergences()
+    _print_table("d) `rr init --measured` — preset vs benchmark", preset, "preset", "measured")
+    if not preset:
+        print(
+            f"        all {len(BENCHMARK_HEADLINE)} measured fields reproduced — the "
+            "configuration we recommend is the one we measured."
+        )
+
+    findings = [d for d in gaps + surfaces + divs + preset if d.status != "declared"]
     # A field can be flagged by both (b) and (c) — `ranking.w_embedding` is — and the
     # reason is one reason, so print it once.
     seen: set[str] = set()

@@ -712,24 +712,153 @@ output:
   top_n: 15
 
 # ---------------------------------------------------------------------------
-# The three stages every published number in this project was measured WITH, and
-# which this file leaves OFF, because each needs something a default cannot assume.
-# Without them `rr update` is the keyword-ranked digest, which is the configuration
-# the benchmark scores at mean net@2 -11. See README "Fine-scale rescore" and
-# "HyDE discovery" for what each costs and how to turn it on.
+# THIS CONFIGURATION IS THE WEAK ONE, AND WE MEASURED HOW WEAK.
 #
-# triage:                  # LLM actionability gate  (+ needs suggestions.provider!)
-#   enabled: true
-# suggestions:
-#   provider: claude       # 'template' does NOT gate -- triage.enabled alone is a no-op
-#   claude_api_key: ${ANTHROPIC_API_KEY}
+# It runs no LLM stage, so papers are ordered by keyword overlap alone. That is the
+# configuration the benchmark scores at mean net@2 -11 -- i.e. actively worse than
+# showing nothing, because the metric charges 2 for each unactionable paper shown.
+# The measured configuration reaches +5.42 on the same benchmark. It is not enabled
+# by default only because each stage needs a credential or a download that a default
+# cannot assume, and a tool that fails on first run without a key is worse.
 #
-# triage:
-#   finescale:
-#     enabled: true        # rescore of the gate's threshold band; needs OPENAI_API_KEY
-#     openai_api_key: ${OPENAI_API_KEY}
-#
-# hyde:
-#   enabled: true          # dense discovery; run `rr sync-index` first (~1.1 GB)
+# To get the measured configuration:      rr init --measured
+# What it needs and what it costs:        README, "The measured configuration"
 # ---------------------------------------------------------------------------
+"""
+
+
+def measured_config_yaml() -> str:
+    """The configuration every headline number in this project was measured under.
+
+    Written by ``rr init --measured``. This is not a suggestion assembled from taste: it
+    is the configuration behind **+5.42 mean net@2 against the Opus 4.8 baseline's +1.62**
+    (paired +3.79, 95% CI [+2.17, +5.58], sign p = 0.0001) on the 25-repository benchmark,
+    and `evals/audit_product_divergence.py` asserts field-by-field that this file still
+    reproduces `BENCHMARK_HEADLINE`. If somebody edits one without the other, that check
+    fails — which is the only way a recommended configuration stays true rather than
+    becoming a stale copy of one.
+
+    The default from :func:`default_config_yaml` is the *weak* configuration and is
+    labelled as such in the file it writes. Both are shipped rather than one, because the
+    stages that make up the difference cost money and disk, and choosing to spend those is
+    the user's call to make knowingly.
+    """
+    return """\
+# RepoRadar -- the measured configuration.
+#
+# This is the configuration behind the published result: mean net@2 +5.42 against an
+# agentic Claude Opus 4.8 baseline's +1.62 on a 25-repository benchmark (paired +3.79,
+# 95% CI [+2.17, +5.58], sign test p = 0.0001). `rr init` without --measured writes a
+# keyword-only config that the same benchmark scores at -11.
+#
+# WHAT IT NEEDS
+#   ANTHROPIC_API_KEY   the actionability gate + HyDE's hypothesis writer (Claude Haiku)
+#   OPENAI_API_KEY      the fine-scale rescore. A SECOND vendor is structural, not a
+#                       preference: the rescore reads token logprobs and only OpenAI
+#                       exposes them. Without it, drop `finescale` and lose ~+1.36.
+#   uv pip install -e ".[hyde]"     sentence-transformers + pyarrow
+#   rr sync-index                   one time, ~1.1 GB on disk (432 MB index +
+#                                   ~670 MB model weights). Offline after that.
+#
+# WHAT IT COSTS PER `rr update`, PER REPOSITORY
+#   gate         ~$0.01   Haiku over `triage.top_k` papers (measured ~$0.02/100)
+#   rescore      <$0.01   gpt-4o-mini, one call per paper in the threshold band only
+#   HyDE         <$0.01   4 Haiku hypotheses per run; the index search itself is free
+#   ------------------------------------------------------------------------------
+#   total        ~$0.01-0.02, against ~$0.80/repo for the agentic baseline it beats.
+#
+# Every value below that carries a measurement cites it. Fields with no citation were
+# measured at the value shown but not varied, which is a weaker claim and marked as such.
+
+repo_path: .
+
+sources: [arxiv]
+
+arxiv:
+  # CHANGE THIS. cs.LG/cs.CL is a guess that fits an ML repository and no other; it is
+  # the one field here that no benchmark number justifies, because the benchmark supplies
+  # per-repository categories. A wrong category list quietly starves everything downstream.
+  categories: [cs.LG, cs.CL]
+  max_results_per_query: 50
+  # All-time and relevance-first. A 14-day recency window structurally excludes every
+  # paper in the gold set (all >= 11 months old) -- NR-5.
+  lookback_days: 36500
+  sort_by: relevance
+
+queries:
+  seed: []
+  exclude: []
+  # Quoted phrase queries are emitted only when the two words actually co-occur in the
+  # repository. Unverified pairs produced `"use page"` and `"data cd"` -- C-10.
+  bigrams: verified
+
+ranking:
+  w_keyword: 1.0
+  w_category: 0.5
+  # Recency carries no weight: it is already handled by the all-time discovery above,
+  # and weighting it again re-introduces the window NR-5 rules out.
+  w_recency: 0.0
+  # 0.0, NOT the 1.5 the default template writes. Every published number was measured
+  # here; 1.5 is unmeasured as a ranking weight and does nothing unless the `embeddings`
+  # extra is installed, so it makes the same config rank two different ways.
+  w_embedding: 0.0
+  # BM25 + reciprocal-rank fusion over the heuristic ranking. Present in every headline.
+  # Worth keeping ONLY with the gate below: on its own it measured better nDCG and a
+  # LOWER headline (NR-11), and the cost was recovered only once the rescore ordered
+  # what the gate admits.
+  hybrid: true
+  # Papers whose arXiv category is absent from the pool are omitted from the category
+  # component rather than imputed. Measured +0.00 either way (NR-33); kept because it is
+  # what every published number ran.
+  absent_category: omit
+
+profiler:
+  # Verbatim README prose sent to the gate. An LLM paraphrase of the same text measured
+  # BELOW sending no description at all -- paraphrase destroys terms of art (NR-12).
+  prose_chars: 300
+
+suggestions:
+  # BOTH of these are required for the gate to run. `triage.enabled: true` with
+  # provider left at 'template' is a silent no-op that prints one line and gates nothing.
+  provider: claude
+  claude_api_key: ${ANTHROPIC_API_KEY}
+  claude_model: claude-haiku-4-5
+
+triage:
+  enabled: true
+  # Gate depth. The shipped default was 15 until it was measured: 50 beats it by
+  # +1.00 net@2/case, 95% CI [+0.12, +1.92]. Deeper costs proportionally more Haiku.
+  top_k: 50
+  # A paper is a Top Pick at gate score >= 2. Tightening to 3 was measured to buy
+  # nothing and cost recall (P5: the gate's precision is 0.97, its recall 0.60).
+  min_actionable: 2
+  rerank: true
+  finescale:
+    enabled: true
+    openai_api_key: ${OPENAI_API_KEY}
+    openai_model: gpt-4o-mini
+    # 60, matching the eval harness rather than the 30-second product default, so that
+    # this file reproduces the measured run exactly and the audit needs no exemption.
+    timeout: 60
+    # DERIVED, not tuned: net@2 values a shown paper at 3p-2, so showing pays exactly
+    # above p = 2/3. Moving this moves the metric's own breakeven, not a preference.
+    threshold: 0.6666666666666666
+    # If fewer than half the band scored, skip the stage rather than let a mostly-failed
+    # rescore silently demote the band and pass it off as an abstention.
+    min_success_fraction: 0.5
+
+hyde:
+  # Dense discovery against a local 3.1M-vector arXiv index. Worth +1.36 mean net@2 end
+  # to end. Requires `rr sync-index` first; without the index this raises rather than
+  # quietly degrading to the keyword path that reached 0 of 24 targets.
+  enabled: true
+  n_hypotheses: 4
+  top_k: 100
+
+output:
+  digest_path: ./reporadar_digest.md
+  # 15, not 10. Every number in the paper was measured at 10; widening to the shipped 15
+  # is worth +1.24 net@2/case (CI [+0.48, +2.08]) because the papers it adds are 85.5%
+  # actionable, well above the 2/3 the metric breaks even at.
+  top_n: 15
 """

@@ -264,6 +264,58 @@ class TestInitCommand:
         assert data["repo_path"] == "."
         assert "arxiv" in data
 
+    def test_the_default_says_how_weak_it_is(self, tmp_path: Path) -> None:
+        """The number is large enough that a user who never opens the config should still
+        hear it. Silence here is how the product came to differ from every number
+        published about it."""
+        result = CliRunner().invoke(cli, ["init", "--path", str(tmp_path)])
+        assert "-11" in result.output
+        assert "+5.42" in result.output
+        assert "rr init --measured" in result.output
+
+    def test_measured_writes_the_measured_config_and_its_prerequisites(
+        self, tmp_path: Path
+    ) -> None:
+        import yaml
+
+        result = CliRunner().invoke(cli, ["init", "--path", str(tmp_path), "--measured"])
+        assert result.exit_code == 0
+        data = yaml.safe_load((tmp_path / ".reporadar.yml").read_text(encoding="utf-8"))
+        assert data["triage"]["enabled"] is True
+        assert data["triage"]["finescale"]["enabled"] is True
+        assert data["hyde"]["enabled"] is True
+        assert data["ranking"]["hybrid"] is True
+        assert data["suggestions"]["provider"] == "claude"
+        # Telling somebody to enable four paid stages without naming the bill is worse
+        # than not telling them at all.
+        for needed in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "rr sync-index", "$0.01"):
+            assert needed in result.output, f"init --measured never mentions {needed}"
+
+    def test_the_measured_config_loads_and_enables_every_stage(self, tmp_path: Path) -> None:
+        """A recommended config that does not round-trip through the real loader is a
+        suggestion nobody has run."""
+        from reporadar.config import load_config
+
+        CliRunner().invoke(cli, ["init", "--path", str(tmp_path), "--measured"])
+        cfg = load_config(tmp_path / ".reporadar.yml")
+        assert cfg.triage.enabled and cfg.triage.finescale.enabled
+        assert cfg.hyde.enabled and cfg.ranking.hybrid
+        assert cfg.suggestions.provider == "claude"
+        assert cfg.output.top_n == 15
+        assert cfg.triage.top_k == 50
+        # 0.0, not the 1.5 the DEFAULT template writes -- the measured value.
+        assert cfg.ranking.w_embedding == 0.0
+
+    def test_the_two_configs_are_actually_different_files(self, tmp_path: Path) -> None:
+        """Mutation guard: if --measured silently fell back to the default template, every
+        assertion above about stages would fail, but a future refactor could make them
+        both write the measured one and nothing would notice."""
+        from reporadar.config import default_config_yaml, measured_config_yaml
+
+        assert default_config_yaml() != measured_config_yaml()
+        assert "enabled: true" not in default_config_yaml()
+        assert "enabled: true" in measured_config_yaml()
+
 
 class TestProfileCommand:
     def test_prints_keywords(self, tmp_path: Path) -> None:
