@@ -649,6 +649,22 @@ evals/
                      `http` 9/10 — where the correct output is nothing. Optimistic by
                      construction: no HyDE (~100 more competing candidates) and no triage
                      rerank, so treat the counts as an UPPER bound
+  openalex_yield.py  $0, no LLM, needs OPENALEX_API_KEY: the same stage-1 question for the
+                     one source of five never measured in any form. Verdict 2026-08-14 on
+                     25/25 cases (no refusals, 0 arXiv requests — the response cache served
+                     all 174): OpenAlex delivers ~230 papers per case, ~229 of them
+                     genuinely non-arXiv (only 32 across the whole sweep are a pool paper
+                     re-badged under an `oa:` id), and **14 reach a ranked top-10 across 7
+                     cases**. But 6 of those land in the three NEGATIVE CONTROLS and 5 in
+                     `numerics`, whose arXiv pool (55) is a quarter of the median — leaving
+                     THREE won on merit across 25 cases. Do not spend on the A/B.
+                     Reports a case with any refused request as UNMEASURED, never zero:
+                     the adapter returns [] for both a refusal and an empty answer, so this
+                     wraps its request function and counts None returns. `--from-json`
+                     re-derives the summary and verdict at $0 from a stored run, which is
+                     how the FIRST verdict here got corrected — it read `cases_with >= n/4`,
+                     cleared it by three quarters of a case, and said "a judged A/B is
+                     justified" while 11 of the 14 slots sat where placing is worthless
   audit_product_divergence.py
                      $0, no network, no LLM: where does the benchmark stop measuring the
                      PRODUCT? C-9 (the query bridge at five call sites) and C-12 (the
