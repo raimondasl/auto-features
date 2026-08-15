@@ -82,7 +82,20 @@ def mre_for(provenance: str, width: str = "10") -> tuple[float, str]:
     that costs a published claim.
     """
     if not provenance.startswith("frozen"):
-        return MRE_PAIRED, "live collection, window 10"
+        # The live branch was width-BLIND until 2026-08-15 and returned the label
+        # "window 10" whatever the arm's actual width — so the C-8 fix covered the frozen
+        # path and left this one committing the identical error. It surfaced on the
+        # scan-source arms, a live window-15 comparison read against the window-10 live
+        # floor. The live floor at 15 has never been measured; the frozen one rose 0.48 ->
+        # 0.74 (x1.54) when the cut widened, so 1.04 is a LOWER BOUND here, and under-
+        # reporting a floor turns noise into a finding. Said out loud rather than scaled:
+        # inventing 1.60 would be an unmeasured number wearing a measurement's authority.
+        if width == "10":
+            return MRE_PAIRED, "live collection, window 10"
+        return MRE_PAIRED, (
+            f"live collection, window {width} — UNMEASURED; {MRE_PAIRED} is the window-10 "
+            "value and a LOWER BOUND"
+        )
     if width == "10":
         return MRE_FROZEN, "frozen pool, reused, window 10"
     if width == "15":
@@ -289,6 +302,11 @@ def main() -> int:
         # Magnitude only. Whether THIS draw established it is the CI's question, printed
         # beside it — source_ab_report.py conflated the two once and overstated a result.
         resolvable = "past the floor" if abs(mean) >= mre else "inside the floor"
+        # "Past the floor" against a floor that is only a lower bound is not a finding:
+        # the true floor may be above the effect. "Inside" stays sound, because inside a
+        # lower bound is inside anything larger.
+        if resolvable == "past the floor" and "LOWER BOUND" in floor_why:
+            resolvable = "past a LOWER-BOUND floor — NOT resolved"
         paired[label] = {"mean": mean, "ci": [lo, hi], "sign_p": p, "resolvable": resolvable}
         print(
             f"  {label:>10}  {mean:+6.2f}  95% CI [{lo:+.2f}, {hi:+.2f}]  "

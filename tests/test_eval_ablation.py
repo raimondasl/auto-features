@@ -87,23 +87,22 @@ class TestAblateDocs:
     def test_budgets_get_separate_directories(self, repo: Path) -> None:
         assert ablate_docs(repo, 300) != ablate_docs(repo, 1500)
 
-    def test_it_refuses_when_the_profiler_would_read_source(
-        self, repo: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_it_refuses_when_the_profiler_would_read_source(self, repo: Path) -> None:
         """Withholding code as well as prose would model a repo that does not exist.
 
-        The real trigger is the shipped default flipping in config.py. Setting the class
-        attribute would not simulate it — a dataclass bakes its defaults into the
-        generated ``__init__`` at class-creation time — so the class itself is replaced.
+        This used to simulate the trigger by *replacing the ProfilerConfig class*, because
+        the guard consulted `ProfilerConfig().scan_source` — a dataclass default that is
+        False and always has been. The real trigger arrived on 2026-08-16 as
+        `--rr-scan-source`, at which point the guard would have kept passing while the
+        incoherence it exists to stop became reachable for the first time. It now reads the
+        arm's own setting, and this test passes that setting instead of faking a global.
         """
-        from reporadar import config
+        with pytest.raises(SystemExit, match="thin-docs repo"):
+            ablate_docs(repo, 300, scan_source=True)
 
-        class ScanningConfig:
-            scan_source = True
-
-        monkeypatch.setattr(config, "ProfilerConfig", ScanningConfig)
-        with pytest.raises(SystemExit, match="scan_source"):
-            ablate_docs(repo, 300)
+    def test_it_permits_the_arm_that_does_not_scan(self, repo: Path) -> None:
+        """The other half: a guard that refused both ways would just disable the flag."""
+        assert ablate_docs(repo, 300, scan_source=False).exists()
 
     def test_the_ablated_profile_is_actually_thinner(self, repo: Path) -> None:
         """The treatment has to be a treatment — an ablation that changes nothing is a
