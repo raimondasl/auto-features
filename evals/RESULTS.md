@@ -857,6 +857,48 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Re-analysis, $0 — the thin-docs deficit is real, replicates, and rests on one repository (2026-08-16)
+
+No new run. Three existing draws re-read before committing to a thin-documentation work
+programme, because "handle thin repos better" is the kind of goal that is easy to adopt and
+hard to measure.
+
+| draw | thin-lang | thin-kv | thin-gnn | **cohort** | other 22 |
+|---|---|---|---|---|---|
+| shipped config, 2026-08-14 | −2.0 | +5.0 | +5.0 | **+2.67** | +5.45 |
+| shipped config, 2026-08-16 | −2.0 | +5.0 | +2.0 | **+1.67** | +5.32 |
+| no-fusion variant (NR-35, +0.00) | −4.0 | +5.0 | +5.0 | **+2.00** | +5.27 |
+
+**Three things, and they point in different directions.**
+
+**The deficit is real and it replicates.** ~3 net@2/case under the other 22, across three
+draws. §12.2 reported +2.00 from a single session; a single draw of this benchmark is
+weather (§8.7, C-7), and this is the first evidence the number is climate.
+
+**It is not a failure.** The cohort is **positive** in every draw. The paper's Limitations
+preamble said the system "fails on them silently" while the section it cited reported
++2.00 — corrected to "degrades sharply and silently". No published *number* was wrong, so
+this takes no C-entry; inflating the correction count would be its own small dishonesty.
+
+**One repository of three carries all of it.** `thin-kv` is +5.0 in all three draws and
+`thin-gnn` +2.0 to +5.0 — both healthy. `thin-lang`, the 108-character case, is −2.0, −4.0,
+−2.0. The cohort mean is one repository's problem averaged with two non-problems.
+
+**What that settles about the work programme.** A thin-docs remedy **cannot be measured on
+this cohort**: n = 3, one dominant case, against a 0.74 floor. Only a multi-point effect
+would clear it, and a subgroup claim resting on a single repository is the fragility the
+jackknife exposed at n = 12. So the deficit is recorded as real and its *remediation* as
+currently unmeasurable — two claims a blanket "thin docs is broken" would have merged, and
+the reason the next experiment is aimed at the whole benchmark rather than at these three.
+
+**The lead it hands over.** NR-26 found that whatever benefit lived in its richer arm
+"tracks the extra *information* — source code the profiler never reads". `profiler.scan_source`
+is a shipped capability **no benchmark arm has ever enabled**, and `_ablate_docs`'s own guard
+states the mechanism: a thin-docs repository is thin in prose but *has code*. `thin-lang` has
+108 characters of prose and an entire compiler. That is the next experiment.
+
+**Cost** $0 — re-read of runs already paid for.
+
 ### PRE-REGISTERED — does BM25-RRF fusion still earn its place? (2026-08-16)
 
 **The question, and why it is not the one I said I would ask.** The `ranking.hybrid`
