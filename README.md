@@ -27,7 +27,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 - **Ranking eval** — `rr eval` scores the ranker against your own ratings, and `--compare a.yml b.yml` A/Bs two configs with a bootstrap interval, so "did that change help?" has an answer
 - **Privacy audit** — `rr audit` prints every network destination and the exact query strings your profile would transmit, without sending any of them; `privacy.redact` strips internal codenames from queries and LLM prompts
 - **Polite by design** — every arXiv request in the process passes one shared gate at arXiv's stated ceiling of 1 request / 3 s, identifies itself with a RepoRadar User-Agent, and backs off for 30 s (not 2 s) on a 429. One clock, not one per module
-- **No API keys required** for the default arXiv pipeline — every core source is free and keyless. That default is also the configuration this project's own benchmark scores at mean net@2 **−8.12**, against **+5.12** with the LLM stages on, so "keyless" and "good" are not the same setting and we do not present them as one: see [The measured configuration](#the-measured-configuration). Three opt-in features need a key: OpenAlex (`openalex.api_key`, since 2026-02-13 it throttles keyless callers), LLM triage (`ANTHROPIC_API_KEY` or a local Ollama), and the fine-scale rescore (`OPENAI_API_KEY` — it is the only feature that needs a *second* vendor, because it reads token logprobs and Anthropic does not expose them)
+- **No API keys required** for the default arXiv pipeline — every core source is free and keyless. That default is also the configuration this project's own benchmark scores at mean net@2 **−8.12**, against **+5.72** with the LLM stages on, so "keyless" and "good" are not the same setting and we do not present them as one: see [The measured configuration](#the-measured-configuration). Three opt-in features need a key: OpenAlex (`openalex.api_key`, since 2026-02-13 it throttles keyless callers), LLM triage (`ANTHROPIC_API_KEY` or a local Ollama), and the fine-scale rescore (`OPENAI_API_KEY` — it is the only feature that needs a *second* vendor, because it reads token logprobs and Anthropic does not expose them)
 
 ## Installation
 
@@ -52,14 +52,26 @@ the weak one.
 |---|---|---|
 | how papers are ordered | keyword overlap | keyword + BM25 fusion, LLM actionability gate, fine-scale rescore |
 | where papers come from | arXiv keyword queries | the same, plus HyDE dense discovery over 3.1M arXiv abstracts |
-| **mean net@2 on the 25-repo benchmark** | **−8.12** | **+5.12** |
-| papers shown / of those actionable | 235 / 89 | **197 / 174** |
-| precision | 0.379 | **0.883** |
-| repositories where it scores negative | **19 of 25** | 2 of 25 |
-| against the agentic Opus 4.8 baseline | — | +1.62 (paired **+3.79**, 95% CI [+2.17, +5.58], sign *p* = 0.0001) |
+| **mean net@2 on the 25-repo benchmark** | **−8.12** | **+5.72** |
+| papers shown / of those actionable | 235 / 89 | **212 / 189** |
+| precision | 0.379 | **0.892** |
+| repositories where it scores negative | **19 of 25** | 0 of 25 *(this draw; see below)* |
+| against the agentic Opus 4.8 baseline | — | +1.56 (paired **+4.16**, 95% CI [+2.44, +6.00], sign *p* = 0.0004) |
 | API keys | none | Anthropic **and** OpenAI |
 | disk | none | ~1.1 GB (one time) |
 | cost per repo per run | $0 | **~$0.01–0.02** |
+
+**"0 of 25" is this draw's value, not a property of the method.** The same configuration has
+produced 1 and 2 net-negative repositories on other draws; a run that happens to have none
+is a favourable draw, and reporting it as "never scores negative" is a mistake this project
+has already made once and corrected (C-7 in [evals/RESULTS.md](evals/RESULTS.md)). What
+replicates is the mean and the paired delta.
+
+**One line in that configuration depends on your install.** `ranking.w_embedding: 1.5` is
+worth about +1 net@2 per repository over the 0.0 it carried until 2026-08-16 — but only
+with the `embeddings` extra present. Without it the weight is silently inert and you get
+the lower-scoring configuration. `uv pip install -e ".[hyde]"` already supplies it, so
+following the setup below is enough; setting the weight without the extra is not.
 
 **The default is not a recommendation; it is what works without credentials.** A digest
 ranked by keyword overlap alone scores *worse than emitting nothing*, because `net@2`
@@ -91,7 +103,7 @@ downstream.
 
 | stage | needs | cost per repo per run | measured worth |
 |---|---|---|---|
-| actionability gate (`triage`) | `ANTHROPIC_API_KEY` or local Ollama | ~$0.01 (Haiku over 50 papers; measured ~$0.02/100) | most of the −8.12 → +5.12 gap; it is what declines to show a paper |
+| actionability gate (`triage`) | `ANTHROPIC_API_KEY` or local Ollama | ~$0.01 (Haiku over 50 papers; measured ~$0.02/100) | most of the −8.12 → +5.72 gap; it is what declines to show a paper |
 | fine-scale rescore (`triage.finescale`) | `OPENAI_API_KEY` | <$0.01 (one call per band paper) | +1.36 mean net@2; eliminates net-negative repos |
 | HyDE discovery (`hyde`) | `.[hyde]` + `rr sync-index`, ~1.1 GB | <$0.01 (4 Haiku hypotheses/run) | +1.36 mean net@2; keyword search alone reached **0 of 24** targets |
 | hybrid fusion (`ranking.hybrid`) | nothing — plain Python | $0 | better nDCG; keep it **with** the gate, see NR-11 |
@@ -140,7 +152,7 @@ silently drift from the run it cites.
 # 1. Initialize RepoRadar in your repo
 cd /path/to/your/repo
 rr init                  # keyword-only; see "The measured configuration" above
-# rr init --measured     # the configuration behind +5.42 (needs 2 API keys + ~1.1 GB)
+# rr init --measured     # the configuration behind +5.72 (needs 2 API keys + ~1.1 GB)
 
 # 2. (Optional) Edit .reporadar.yml to add seed queries and categories
 
@@ -163,7 +175,7 @@ rr open --top 5
 
 Creates `.reporadar.yml` config and `.reporadar/` storage directory. Safe to run multiple times — skips files that already exist.
 
-`--measured` writes the configuration every published number in this project was measured under (mean net@2 **+5.42** against the agentic baseline's +1.62) instead of the keyword-only default (**−8.12**). It needs an Anthropic key, an OpenAI key and `rr sync-index`, and costs ~$0.01–0.02 per repository per run — see [The measured configuration](#the-measured-configuration). Without the flag, `rr init` prints what the default gives up.
+`--measured` writes the configuration every published number in this project was measured under (mean net@2 **+5.72** against the agentic baseline's +1.56) instead of the keyword-only default (**−8.12**). It needs an Anthropic key, an OpenAI key and `rr sync-index`, and costs ~$0.01–0.02 per repository per run — see [The measured configuration](#the-measured-configuration). Without the flag, `rr init` prints what the default gives up.
 
 ### `rr profile [--config PATH]`
 

@@ -116,7 +116,7 @@ def cli() -> None:
     is_flag=True,
     help=(
         "Write the configuration every published number was measured under "
-        "(mean net@2 +5.42 vs an agentic Opus baseline's +1.62). Needs an Anthropic key, "
+        "(mean net@2 +5.72 vs an agentic Opus baseline's +1.56). Needs an Anthropic key, "
         "an OpenAI key, and `rr sync-index` (~1.1 GB); ~$0.01-0.02 per repo per run."
     ),
 )
@@ -127,7 +127,7 @@ def init(path: str, measured: bool) -> None:
 
     The default config runs no LLM stage and is measurably weak — the benchmark scores it
     at mean net@2 −8.12, worse than showing nothing, because the metric charges 2 for each
-    unactionable paper shown. `--measured` writes the configuration behind +5.12 instead.
+    unactionable paper shown. `--measured` writes the configuration behind +5.72 instead.
     It is not the default only because each of its stages needs a credential or a download
     that a first run cannot assume.
     """
@@ -155,6 +155,9 @@ def init(path: str, measured: bool) -> None:
         info("This is the measured configuration. Before the first run:")
         info("  1. set ANTHROPIC_API_KEY and OPENAI_API_KEY")
         info('  2. uv pip install -e ".[hyde]" && rr sync-index    # one time, ~1.1 GB')
+        info("     This also supplies `embeddings`, which `ranking.w_embedding: 1.5`")
+        info("     needs. Without it that weight is inert and you get the configuration")
+        info("     measured ~1 net@2 per repository lower - a quiet loss, not an error.")
         info("  3. set `arxiv.categories` to YOUR fields - the cs.LG/cs.CL default is a")
         info("     guess that fits an ML repository and no other.")
         info("Cost: roughly $0.01-0.02 per repository per run.")
@@ -163,7 +166,7 @@ def init(path: str, measured: bool) -> None:
         # a user who never opens the config should still hear it once.
         info("")
         warn("This default configuration ranks by keyword overlap and runs no LLM stage.")
-        warn("On this project's own benchmark it scores mean net@2 -8.12 against +5.12 for")
+        warn("On this project's own benchmark it scores mean net@2 -8.12 against +5.72 for")
         warn("the measured one, and is net-negative on 19 of 25 repositories. It finds")
         warn("papers; what it lacks is the stage that declines to show them. The difference")
         warn("is a credential and a ~1.1 GB index, not an opinion:")
