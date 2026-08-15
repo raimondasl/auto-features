@@ -230,6 +230,18 @@ def main() -> int:
         # reuses — is unreportable, and every such pair needs a throwaway collection first.
         # Found on 2026-08-16 by the w_embedding arms: refused despite identical
         # fingerprints and identical pool sizes on all 25 cases.
+        #
+        # The absent-category experiment hit this in August and paid the throwaway pass,
+        # noting the refusal was right. It was right *then*: there was no fingerprint check
+        # at this decision point, so mode equality was the only evidence available. The
+        # workaround was sufficient, not necessary.
+        #
+        # What makes the relaxation safe is that the one way a seeding arm and a reuse arm
+        # can rank different candidates is an EMPTY pool: `save_frozen_pool` refuses to
+        # store one (an empty pool and a failed collection are the same bytes), so the
+        # reuse arm re-collects that case live and reports `frozen-seeded` for it — which
+        # makes the run's own modes mixed, and `provenance` already returns "mixed" and is
+        # refused above. So the divergence this check would have caught is caught anyway.
         from noise_floor import same_pool
 
         families = {m.split(":")[0].replace("frozen-seeded", "frozen") for m in modes.values()}

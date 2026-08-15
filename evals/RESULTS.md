@@ -997,6 +997,19 @@ to the comparability check, **not** to the shared `provenance` function — blur
 would misdate the seeding run everywhere it is used. Left unfixed, the natural shape of a
 frozen experiment (arm 1 seeds, arm 2 reuses) would need a throwaway collection every time.
 
+**This overturns a decision recorded in August, and the reconciliation matters more than
+the fix.** The absent-category experiment hit the identical refusal, paid for a discarded
+seeding pass, and left a note in its runner reading *"they are right to."* That was right
+**then**: with no fingerprint check at the decision point, mode equality was the only
+evidence available, so the workaround was *sufficient* — but it was never *necessary*, and
+nobody went back to ask which. What licenses the relaxation now is a specific argument
+rather than convenience: the one way a seeding arm and a reuse arm can rank different
+candidates is an **empty pool**, and `save_frozen_pool` refuses to store one (an empty pool
+and a failed collection are the same bytes on disk). So that case is re-collected live by
+the "reuse" arm, which makes the run's own modes mixed — and mixed provenance is already
+refused. The divergence this check would have caught is caught anyway. The August runner's
+note is now marked superseded rather than left to contradict the code.
+
 ### Documentation volume does not predict anything, and it closes the thin-docs axis (2026-08-16) **[NR-37]**
 
 ```bash
