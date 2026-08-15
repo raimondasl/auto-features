@@ -895,6 +895,13 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # infer the arm from a filename someone may have renamed.
         "bigram_mode": args.rr_bigrams,
         "absent_category": args.rr_absent_category,
+        # The remaining two RANKING_FLAGS, for the same reason as every field above it:
+        # both change the returned set, and neither was recorded until an ablation was set
+        # up whose two arms would have produced run files identical in every recorded
+        # field except the numbers — the artifact could not say which arm it was. Added
+        # 2026-08-16, before that experiment ran rather than after.
+        "hybrid": bool(args.rr_hybrid),
+        "rerank": bool(args.rr_rerank),
         # How many ranked candidates went forward — the number the gate sees when
         # `--rr-triage` is on, which is what the product spells `triage.top_k`. `pool_size`
         # below is the *judged* pool and `pool_provenance` is where the candidates came
@@ -1274,6 +1281,10 @@ def main() -> int:
             tag += f"-bigrams_{args.rr_bigrams}"
         if args.rr_absent_category != "omit":
             tag += f"-abscat_{args.rr_absent_category}"
+        # Fusion is on in every headline, so the *absence* is the notable arm — the same
+        # convention as `abscat`, which tags the two modes that are not the default.
+        if args.rr_triage and not args.rr_hybrid:
+            tag += "-nohybrid"
         out = RESULTS_DIR / f"judge-{args.model}{tag}-{stamp}.json"
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")
