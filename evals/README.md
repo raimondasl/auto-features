@@ -39,6 +39,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §10 corrections, blast radius | `audit_product_divergence.py` |
 | §12.1–12.2 thin documentation | `run_judge_eval.py --rr-ablate-docs`, `ablation_report.py` |
 | source scanning (`profiler.scan_source`) | `scan_source_probe.py` (stage 1, $0), `run_judge_eval.py --rr-scan-source` |
+| thin-docs detection (NR-37) | `thin_docs_detector.py` ($0; also carries the ablation-arm → budget mapping) |
 | stated-intent experiment (NR-26) | `make_goals.py`, `run_judge_eval.py --rr-goals` |
 | personalization (Tier S) | `seeded.py`, `run_seeded_eval.py` |
 

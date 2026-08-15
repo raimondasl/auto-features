@@ -857,6 +857,87 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### Documentation volume does not predict anything, and it closes the thin-docs axis (2026-08-16) **[NR-37]**
+
+```bash
+uv run python evals/thin_docs_detector.py     # $0, no network, no LLM
+```
+
+Three thin-docs remedies had failed (NR-25 similarity floor, NR-26 stated intent, NR-36
+source scanning). The proposal here was not a remedy but a **detector**: §12.1 says the
+system fails *coherently* on thin repositories — every internal signal looks healthy —
+because queries, hypotheses, gate and rescore all read the same impoverished profile.
+Documentation corpus size is the one signal from *outside* that loop: known before a
+profile exists, deterministic, free, and structurally unable to be fooled by a
+plausible-but-wrong profile. Measured with the profiler's own `_collect_text_corpus`, not
+a re-implementation.
+
+**On induced thinness the signal works.** Across the 24-point ablation grid (6 repositories
+× 4 documentation budgets), the 8 materially degraded points have a **median corpus of 115
+characters** against **1,076** for the 16 intact ones — a 9× separation.
+
+**On real repositories it predicts nothing.**
+
+| | |
+|---|---|
+| Pearson r(log₁₀ corpus, net@2), n = 25 | **+0.14** |
+| Spearman ρ | **+0.20** |
+| bottom quintile by corpus (< 5k chars, n = 5) | **+5.60** |
+| the other 20 | **+5.25** |
+
+The thinnest repositories score *slightly better*. The four thinnest, in order:
+
+| repo | corpus | net@2 |
+|---|---|---|
+| `thin-lang` | 108 | +0.0 |
+| `thin-gnn` | 1,073 | **+9.0** |
+| `db` (DuckDB) | 1,857 | **+14.0** — the best case in the run |
+| `numerics` | 2,205 | +1.0 |
+
+`db` is the demonstration on its own: 1,857 profiler-visible characters, no parseable
+manifest (§12.1 noted it profiles to almost nothing under ablation), and it scores the
+**highest net@2 in the benchmark**. Meanwhile `webdev` (384,456 chars), `cli` (193,932),
+`linter` (197,023) and `http` (77,873) all score 0.0. Corpus size points the wrong way at
+both ends.
+
+**Every abstention threshold either does nothing or destroys value:**
+
+| threshold | flagged | delta |
+|---|---|---|
+| 500 | 1 | **+0.00** |
+| 2,000 | 3 | **−0.92** |
+| 10,000 | 8 | **−1.64** |
+| 50,000 | 11 | **−2.20** |
+
+**Weight the two results differently.** The sweep is *weak* evidence and was flagged as
+such before running: this draw has zero net-negative repositories, so there is nothing for
+abstention to rescue and the sweep can only lose. The **correlation is the substantive
+finding**, and it does not depend on that — corpus size simply does not track outcome.
+
+**What this actually closes.** Not one remedy — the axis. The ablation grid and real
+repositories are **different populations**, and for the purpose of predicting which
+repositories the system serves badly, the ablation is not a proxy at all. §12.2 validated
+it as a proxy on *precision* and that stands; nothing licensed extending it to
+identification, and this is what the extension would have got wrong. Ablating a rich
+repository's prose strips what retrieval needs while the models still recognise the
+repository — "the correct answer to the wrong question" (NR-25). A genuinely small
+repository with 1,073 well-chosen characters describes itself perfectly well. **Volume is
+not quality of description**, and only volume is what "thin documentation" ever measured.
+
+The four repositories that score 0.0 in this run are the negative controls; the weak ones
+after that are the arXiv coverage gap (`crypto`, `encryption`, `compiler`). Those are
+properties of the *domain*, not of the documentation — which is where any further work on
+"repositories we serve badly" should look.
+
+**No product change.** The detector is refuted; nothing ships. The `--rr-ablate-docs`
+budget is now recorded in run artifacts — the last `POOL_FLAG` that was not — because the
+four grid arms could only be identified by matching their means against a derived summary
+file, and `evals/thin_docs_detector.py` carries that mapping so it survives independently.
+Past artifacts are left untouched: rewriting recorded runs to add a field would be editing
+history, and the mapping is documented instead.
+
+**Cost** $0.
+
 ### PRE-REGISTERED — should the profiler read source code? (2026-08-16)
 
 ```bash
