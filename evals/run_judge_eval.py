@@ -45,7 +45,6 @@ from harness import (  # noqa: E402
     clone_repo,
     collect_live_papers,
     load_benchmark,
-    profile_case_repo,
 )
 from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
@@ -90,6 +89,31 @@ def load_dotenv(path: Path) -> None:
             os.environ[key] = val
 
 
+def case_profile(repo_dir: Path, *, scan_source: bool, prose_chars: int | None = None) -> Any:
+    """The one place this harness builds a repository profile.
+
+    Four stages need one — collection, ranking, the gate and the rescore — and they must
+    agree about what the profiler is allowed to read. An arm where retrieval sees source
+    code and the gate does not is not a configuration anyone ships; it is two experiments
+    averaged and reported as one. `digest_window` and `dedup_id` have a single home for
+    the same reason, and `tests/test_eval_scan_source.py` forbids a fifth site from
+    growing its own.
+
+    *prose_chars* is left at the profiler's default for the retrieval stages and set from
+    `--rr-prose-chars` for the two LLM stages, because it governs only how much README
+    prose reaches a prompt — the split predates this helper and is deliberate.
+    """
+    from reporadar.config import ProfilerConfig
+    from reporadar.profiler import profile_repo
+
+    cfg = (
+        ProfilerConfig(scan_source=scan_source)
+        if prose_chars is None
+        else ProfilerConfig(scan_source=scan_source, prose_chars=prose_chars)
+    )
+    return profile_repo(repo_dir, profiler_cfg=cfg)
+
+
 def collect_candidates(
     repo_dir: Path,
     categories: list[str],
@@ -99,6 +123,7 @@ def collect_candidates(
     all_time: bool = False,
     hyde_cfg: Any | None = None,
     bigrams: str = "adjacent",
+    scan_source: bool = False,
 ) -> list[dict[str, Any]]:
     """Everything retrieval found, before any ranking — the unit a frozen pool stores.
 
@@ -108,7 +133,7 @@ def collect_candidates(
     pool is the dominant variance term and ranking is deterministic given it, so a ranking
     arm is exactly the case freezing should make cheap and sensitive.
     """
-    profile = profile_case_repo(repo_dir)
+    profile = case_profile(repo_dir, scan_source=scan_source)
     lookback = 36500 if all_time else 90
     sort_by = "relevance" if all_time else "submitted"
     papers = collect_live_papers(
@@ -134,6 +159,7 @@ def rank_candidates(
     all_time: bool = False,
     hybrid: bool = False,
     absent_category: str = "omit",
+    scan_source: bool = False,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's ranking over an already-collected pool: top-N (paper, score) best-first.
 
@@ -146,7 +172,7 @@ def rank_candidates(
     """
     if not papers:
         return []
-    profile = profile_case_repo(repo_dir)
+    profile = case_profile(repo_dir, scan_source=scan_source)
     lookback = 36500 if all_time else 90
     w_recency = 0.0 if all_time else 0.3
     ranking_cfg = RankingConfig(
@@ -182,6 +208,7 @@ def reporadar_ranked(
     hyde_cfg: Any | None = None,
     bigrams: str = "adjacent",
     absent_category: str = "omit",
+    scan_source: bool = False,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
 
@@ -209,6 +236,7 @@ def reporadar_ranked(
         all_time=all_time,
         hyde_cfg=hyde_cfg,
         bigrams=bigrams,
+        scan_source=scan_source,
     )
     return rank_candidates(
         repo_dir,
@@ -218,6 +246,7 @@ def reporadar_ranked(
         all_time=all_time,
         hybrid=hybrid,
         absent_category=absent_category,
+        scan_source=scan_source,
     )
 
 
@@ -351,6 +380,7 @@ def _triage_reporadar(
     keys: dict[str, str],
     model: str,
     prose_chars: int = 300,
+    scan_source: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic).
 
@@ -361,11 +391,10 @@ def _triage_reporadar(
     12 benchmark repos, and it silently dropped the domains/key-topics block as well. A
     harness that rebuilds the prompt measures the harness. See evals/RESULTS.md.
     """
-    from reporadar.config import ProfilerConfig, SuggestionsConfig
-    from reporadar.profiler import profile_repo
+    from reporadar.config import SuggestionsConfig
     from reporadar.triage import triage_papers
 
-    profile = profile_repo(repo_dir, profiler_cfg=ProfilerConfig(prose_chars=prose_chars))
+    profile = case_profile(repo_dir, scan_source=scan_source, prose_chars=prose_chars)
     llm_cfg = SuggestionsConfig(
         provider="claude", claude_api_key=keys.get("ANTHROPIC_API_KEY", ""), claude_model=model
     )
@@ -386,9 +415,7 @@ def _apply_finescale(
     Mutates ``rr_topn`` in place with ``finescale``/``finescale_p`` so the per-paper
     values land in the results file and the run can be re-analysed without re-calling.
     """
-    from reporadar.config import ProfilerConfig
     from reporadar.finescale import enough_scored, score_papers
-    from reporadar.profiler import profile_repo
 
     above = [p for p in rr_topn if (p.get("llm_score") or 0) > args.rr_min_actionable]
     band = [p for p in rr_topn if p.get("llm_score") == args.rr_min_actionable]
@@ -396,7 +423,9 @@ def _apply_finescale(
         print("        finescale: no papers in the gate's threshold band — nothing to rescore")
         return above
 
-    profile = profile_repo(repo_dir, profiler_cfg=ProfilerConfig(prose_chars=args.rr_prose_chars))
+    profile = case_profile(
+        repo_dir, scan_source=args.rr_scan_source, prose_chars=args.rr_prose_chars
+    )
     cfg = SimpleNamespace(
         openai_api_key=keys.get("OPENAI_API_KEY", ""),
         openai_model=args.rr_finescale_model,
@@ -441,6 +470,10 @@ POOL_FLAGS = (
     "rr_hyde_top_k",
     "rr_triage_model",  # HyDE writes its hypotheses with this model
     "rr_bigrams",  # changes the query strings, therefore the pool
+    # Source scanning changes the PROFILE, which changes the queries, which changes the
+    # pool. A frozen pool reused across it would compare two arms over one arm's
+    # candidates and call the difference a treatment effect.
+    "rr_scan_source",
 )
 
 # Flags that change how the pool is ORDERED, not what is in it. Deliberately absent from
@@ -546,7 +579,7 @@ README_NAMES = ("README.md", "README.rst", "README.txt", "README", "readme.md")
 MANIFESTS = ("requirements.txt", "pyproject.toml", "setup.py", "package.json")
 
 
-def ablate_docs(repo_dir: Path, budget: int) -> Path:
+def ablate_docs(repo_dir: Path, budget: int, *, scan_source: bool = False) -> Path:
     """A copy of *repo_dir* whose self-description is capped at *budget* characters.
 
     The benchmark's thinnest README is 1,639 characters against a 300-character prose
@@ -569,9 +602,12 @@ def ablate_docs(repo_dir: Path, budget: int) -> Path:
     and it is written to a scratch directory: the real clones gate the verdict cache and
     are never touched.
     """
-    from reporadar.config import ProfilerConfig
-
-    if ProfilerConfig().scan_source:
+    # Reads the ARM's setting, not `ProfilerConfig().scan_source`. The original guard
+    # asked the dataclass default, which is False and always was — so the moment
+    # `--rr-scan-source` existed, the guard would have gone on passing while the exact
+    # incoherence it was written to stop became reachable for the first time. A guard
+    # that consults a constant is a guard against nothing.
+    if scan_source:
         raise SystemExit(
             "ablate_docs models a thin-docs repo by withholding prose only; with "
             "scan_source on it would also withhold code, which a thin-docs repo has. "
@@ -663,7 +699,11 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     # treatment, and the arm would then measure a confused judge agreeing with a
     # confused system. "Useful for this repository" is a property of the repository.
     repo_context = assemble_repo_context(dest)
-    rr_dest = dest if args.rr_ablate_docs is None else ablate_docs(dest, args.rr_ablate_docs)
+    rr_dest = (
+        dest
+        if args.rr_ablate_docs is None
+        else ablate_docs(dest, args.rr_ablate_docs, scan_source=args.rr_scan_source)
+    )
     goal = None
     if args.rr_goals is not None:
         if name not in args.rr_goals:
@@ -724,6 +764,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             all_time=args.rr_all_time,
             hyde_cfg=_hyde_cfg(args, goal),
             bigrams=args.rr_bigrams,
+            scan_source=args.rr_scan_source,
         )
         if args.rr_frozen_pool is not None:
             save_frozen_pool(args.rr_frozen_pool, name, fingerprint, candidates)
@@ -743,13 +784,19 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         all_time=args.rr_all_time,
         hybrid=args.rr_hybrid,
         absent_category=args.rr_absent_category,
+        scan_source=args.rr_scan_source,
     )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
         # heuristic 0.5 threshold, so the benchmark measures triage's effect.
         triaged = _triage_reporadar(
-            rr_dest, rr_candidates, keys, args.rr_triage_model, args.rr_prose_chars
+            rr_dest,
+            rr_candidates,
+            keys,
+            args.rr_triage_model,
+            args.rr_prose_chars,
+            scan_source=args.rr_scan_source,
         )
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
@@ -902,6 +949,9 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # 2026-08-16, before that experiment ran rather than after.
         "hybrid": bool(args.rr_hybrid),
         "rerank": bool(args.rr_rerank),
+        # What the profiler was allowed to read. Recorded because it changes the pool,
+        # the ranking, the gate prompt and the rescore prompt at once.
+        "scan_source": bool(args.rr_scan_source),
         # How many ranked candidates went forward — the number the gate sees when
         # `--rr-triage` is on, which is what the product spells `triage.top_k`. `pool_size`
         # below is the *judged* pool and `pool_provenance` is where the candidates came
@@ -1047,6 +1097,14 @@ def main() -> int:
         "0.600 against 0.400 when the arXiv paper matches no target category. `zero` "
         "scores the absence as 0; `impute` scores it at the pool's mean category score. A "
         "RANKING flag, so a frozen pool can be reused across values of it.",
+    )
+    parser.add_argument(
+        "--rr-scan-source",
+        action="store_true",
+        help="Let the profiler read source files as well as prose (the shipped "
+        "`profiler.scan_source`, which no benchmark arm has ever enabled). A thin-docs "
+        "repository is thin in prose but has code; NR-26 found its richer arm's benefit "
+        "tracked that extra information rather than the question asked of it.",
     )
     parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
     parser.add_argument("--rr-hyde-top-k", type=int, default=100)
@@ -1285,6 +1343,8 @@ def main() -> int:
         # convention as `abscat`, which tags the two modes that are not the default.
         if args.rr_triage and not args.rr_hybrid:
             tag += "-nohybrid"
+        if args.rr_scan_source:
+            tag += "-scansource"
         out = RESULTS_DIR / f"judge-{args.model}{tag}-{stamp}.json"
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")

@@ -126,6 +126,38 @@ class TestTheFloorTracksTheWidthToo:
         claiming otherwise would invent a number."""
         assert mre_for("live", "15")[0] == 1.04
 
+    def test_a_live_arm_at_an_unmeasured_width_says_the_floor_is_a_lower_bound(self) -> None:
+        """The value being right is not the same as the report being right.
+
+        Until 2026-08-15 the live branch returned the *label* "window 10" whatever the
+        arm's width — so the C-8 repair fixed the frozen path and left the identical
+        defect in the live one, and the scan-source arms (live, window 15) printed a
+        window-10 floor. The frozen floor rose 0.48 → 0.74 when the cut widened, so 1.04
+        under-states the live floor at 15, and under-stating a floor turns noise into a
+        finding.
+        """
+        floor, why = mre_for("live", "15")
+        assert floor == 1.04
+        assert "UNMEASURED" in why and "LOWER BOUND" in why
+        assert "window 15" in why
+
+    def test_the_measured_live_width_is_not_flagged(self) -> None:
+        """A caveat on every line is a caveat nobody reads."""
+        _, why = mre_for("live", "10")
+        assert "LOWER BOUND" not in why
+
+    def test_a_lower_bound_floor_cannot_produce_a_past_the_floor_verdict(self) -> None:
+        """ "Past the floor" against a floor that is only a lower bound is not a finding —
+        the true floor may sit above the effect. Pinned at the source because the verdict
+        string is what a reader acts on."""
+        import inspect
+
+        import bigram_report
+
+        src = inspect.getsource(bigram_report.main)
+        assert 'if resolvable == "past the floor" and "LOWER BOUND" in floor_why:' in src
+        assert "NOT resolved" in src
+
 
 class TestTheFloorIsDerivedNotChosen:
     """Which MRE applies is a property of how the arms were collected.

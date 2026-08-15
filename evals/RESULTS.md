@@ -857,6 +857,166 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### PRE-REGISTERED — should the profiler read source code? (2026-08-16)
+
+```bash
+uv run python evals/scan_source_probe.py       # the $0 stage-1 probe, run first
+```
+
+`profiler.scan_source` is shipped and **no benchmark arm has ever enabled it** — the class
+of never-measured default that already produced +1.00 (gate depth) and +1.24 (digest
+width). NR-26 pointed at it: whatever benefit lived in its richer arm "tracks the extra
+*information* — source code the profiler never reads". And it is the obvious thin-docs
+remedy, because `ablate_docs`'s own guard states the mechanism — such a repository is thin
+in prose but **has code**.
+
+#### Stage 1, $0: what it does to the profile
+
+| | mean |
+|---|---|
+| top-20 keyword overlap, on vs off | **84%** (range 7/20 to 20/20) |
+| implementation-vocabulary share | 2% → **3%** |
+| cases gaining anchors | **24 / 25** |
+| cases with **zero** anchors that gain them | **8** (`compiler` 0→43, `db` 0→35, `columnar` 0→32, `storage` 0→31, `linter` 0→19, `cli` 0→16, `systems` 0→11, `vectordb` 0→7) |
+
+**The probe overturned the hypothesis that motivated it.** From `thin-lang` alone — prose
+gives `programming language`, `native binaries`; scanning gives `vscode`, `net`,
+`child_process` — I expected source code to *drown* conceptual vocabulary, the register
+mismatch one level lower. Across 25 cases that is not what happens: keywords are 84%
+stable and implementation vocabulary barely moves. One case was an anecdote.
+
+**And it found a larger effect the hypothesis never mentioned.** The real change is in
+**anchors**, not keywords: eight repositories have *no anchors at all* without scanning and
+acquire 7–43 with it. Those are the repos whose dependency manifests the profiler cannot
+parse — C, C++, Rust. My headline metric measured the wrong field, and only the per-field
+dump showed it.
+
+**The benefit looks inverted from where it was aimed.** For the thin cohort — the reason
+this was proposed — scanning looks unhelpful or harmful: `thin-lang` gains 4 anchors while
+its top terms become `vscode`/`child_process`, and `thin-kv` gains 2 while its terms become
+`grafanalib`/`executor_panels`, which are its Grafana dashboards rather than its storage
+engine. `thin-gnn` barely changes. The repositories that gain most are *rich* ones with
+unparseable manifests.
+
+#### Stage 2: the judged arms
+
+Two arms, same session, **live** (scanning changes the profile → the queries → the pool, so
+`rr_scan_source` is in `POOL_FLAGS` and a frozen pool cannot be shared; the live floor
+applies, ~1.04 at width 10 and larger at 15).
+
+```bash
+COMMON="--baseline none --sources arxiv --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid
+        --rr-sweep --rr-finescale --rr-hyde --rr-window 15"
+uv run python evals/run_judge_eval.py $COMMON                     # control
+uv run python evals/run_judge_eval.py $COMMON --rr-scan-source    # treatment
+```
+
+**Prediction, revised by the probe and written before the run.** Primary, all 25:
+**−0.5 to +1.5, most likely a small positive, and quite possibly inside the floor** — the
+eight zero-anchor repositories are the mechanism, and against them sits the fact that two
+prior composition changes (absent-category NR-33, fusion NR-35) each reshuffled the digest
+substantially and moved the outcome by **+0.00**. This would be the third instance of that
+shape, and I would not be surprised.
+
+**Secondary, pre-registered and openly underpowered: the thin cohort.** I predict it does
+**not** help and may hurt, on the probe's evidence above. n = 3 with one dominant case
+against a 0.74-plus floor cannot establish that either way — it is reported as suggestive,
+never as a result, and the prediction is recorded so a favourable draw cannot be read as
+confirmation after the fact.
+
+**Gate-free secondary:** actionable papers reaching the ranked top-15 before gating. It
+moved 0.00 in NR-33, −0.08 in NR-35, and 5.00 → 6.52 where the depth effect was real.
+
+**A coverage limit worth stating before the number exists.** `profiler.source_extensions`
+defaults to `.py/.js/.ts/.tsx/.jsx`, so a C, C++, Rust or Go repository is scanned only
+through whatever tooling scripts it happens to carry. Six of 25 cases produce a
+byte-identical profile either way. The treatment is unevenly applied by construction, and a
+null could mean "source scanning does not help" or "it barely ran" — the per-case profile
+dump distinguishes them.
+
+**Estimated cost** $20–30, two live 25-case arms.
+
+> #### RESULT (2026-08-16) — **−0.52/case.** Source scanning does not help, and it is worst where it was aimed. **[NR-36]**
+>
+> `…-20260815T041237Z.json` (control) and `…-scansource-20260815T053404Z.json`. 25/25 both
+> arms, live.
+>
+> | arm | net@2 | shown | actionable | precision | net-negative |
+> |---|---|---|---|---|---|
+> | prose only (shipped) | **+5.32** | 187 | 169 | **0.904** | **0** |
+> | `--rr-scan-source` | **+4.80** | 189 | 166 | 0.878 | 2 |
+>
+> **Paired −0.52/case, 95% CI [−1.72, +0.72], 6 better / 11 worse / 8 tied, sign p = 0.33 —
+> inside the floor.** Valid, not void: 25/25 cases changed, mean Jaccard **0.34**.
+>
+> **Every measure points the same way, and none of them reaches the floor.**
+>
+> | measure | prose only | scanning | delta |
+> |---|---|---|---|
+> | net@2, all 25 | +5.32 | +4.80 | **−0.52** |
+> | gate-free: actionable in the ranked top-15 | 9.00 | 8.80 | −0.20 |
+> | thin cohort *(pre-registered, n = 3)* | +4.33 | +2.33 | **−2.00** |
+> | other 22 | +5.45 | +5.14 | −0.32 |
+>
+> **The pre-registered secondary came in as predicted, and the primary did not.** I wrote
+> "−0.5 to +1.5, most likely a small positive": the result sits at the extreme bottom of
+> that interval with the sign opposite to my point estimate. But for the thin cohort I
+> wrote, from the $0 probe, "I predict it does not help and may hurt" — `thin-gnn` 9→5,
+> `thin-kv` 4→2, `thin-lang` 0→0. The probe's evidence (`thin-kv` acquiring `grafanalib`
+> and `executor_panels` — its Grafana dashboards, not its storage engine) predicted the
+> direction correctly. **At n = 3 this remains suggestive, exactly as pre-registered; it is
+> recorded because the prediction was written first, not because three cases settle
+> anything.**
+>
+> **The verdict is "no", not "harmful".** −0.52 is inside the floor, and the floor here is
+> itself a lower bound (below). Consistent negative signs across three measures are weak
+> evidence — they come from the same two runs and are not independent. What the arm
+> establishes is that source scanning **does not pay for itself**, which is the question a
+> default has to answer.
+>
+> **The shipped default is vindicated, and that is a first.** Every other never-measured
+> default this campaign examined turned out to be wrong — `triage.top_k` too shallow by
+> +1.00, `output.top_n` too narrow by +1.24. `profiler.scan_source: False` is right. Worth
+> recording so the class is not over-generalised into "unmeasured defaults are always
+> wrong": it is now two wrong and one right, and the only way to tell which is to measure.
+>
+> **What the $0 probe bought.** It cost nothing, overturned my own mechanism hypothesis
+> (I expected source vocabulary to *drown* the concepts; keywords are 84% stable and
+> implementation vocabulary moves 2% → 3%), found a larger effect I had not predicted
+> (anchors: 24/25 cases gain them, eight from zero), and predicted the thin-cohort
+> direction that the paid run then confirmed. The one thing it could not do was give the
+> sign of the outcome — which is the thing that needed $26.
+>
+> **A coverage caveat that survives the result.** `profiler.source_extensions` is
+> `.py/.js/.ts/.tsx/.jsx`, so six of 25 cases produce a byte-identical profile either way.
+> This measures source scanning *as shipped*, not source scanning in principle: a version
+> that read C, C++, Rust and Go might behave differently, and nothing here speaks to that.
+>
+> **Cost** ~$26, two live arms.
+
+#### The floor guard had the same defect in the half I did not fix **[C-18]**
+
+The report printed **"MRE = 1.04 — live collection, window 10"** for a comparison at
+window 15. `mre_for` was made width-aware on 2026-08-15 to fix C-8 — and only its *frozen*
+branch was. The live branch returned early, ignoring width, and hard-coded the label
+"window 10".
+
+The direction is the costly one. The frozen floor rose **0.48 → 0.74 (×1.54)** when the cut
+widened; the live floor at 15 has never been measured, so 1.04 **understates** it, and
+under-stating a floor turns noise into a finding. It changed nothing here — −0.52 is inside
+1.04 and inside anything larger — but any live window-15 result between 1.04 and roughly
+1.6 would have been reported as resolved when it was not.
+
+Fixed by keying the live branch on width too, labelling an unmeasured width as
+`UNMEASURED; 1.04 is the window-10 value and a LOWER BOUND`, and making the verdict line
+refuse: "past the floor" against a lower-bound floor now prints **NOT resolved**. No
+estimate was invented — scaling 1.04 by 1.54 would be an unmeasured number wearing a
+measurement's authority.
+
+Recorded as a correction, unlike the thin-docs wording of the same week, because this is an
+*instrument* returning a confident wrong value with forward blast radius on every future
+live comparison — not a characterisation in prose.
+
 ### Re-analysis, $0 — the thin-docs deficit is real, replicates, and rests on one repository (2026-08-16)
 
 No new run. Three existing draws re-read before committing to a thin-documentation work
