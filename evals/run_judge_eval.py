@@ -952,6 +952,14 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # What the profiler was allowed to read. Recorded because it changes the pool,
         # the ranking, the gate prompt and the rescore prompt at once.
         "scan_source": bool(args.rr_scan_source),
+        # The documentation budget this arm ran under, or None for an unablated run.
+        # The last POOL_FLAG that was not recorded: the four arms of the thin-docs
+        # grid could only be told apart on 2026-08-16 by matching their means against
+        # a derived summary file, so deleting that file would have made four runs
+        # mutually unidentifiable. Adding the field changes no past number -- it is an
+        # output on new artifacts, not an input to anything -- and the pool fingerprint
+        # is untouched because rr_ablate_docs was always in POOL_FLAGS.
+        "ablate_docs": args.rr_ablate_docs,
         # How many ranked candidates went forward — the number the gate sees when
         # `--rr-triage` is on, which is what the product spells `triage.top_k`. `pool_size`
         # below is the *judged* pool and `pool_provenance` is where the candidates came
