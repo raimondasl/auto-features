@@ -536,14 +536,19 @@ DECLARED: dict[str, str] = {
         "documented uncertainty for an undocumented divergence"
     ),
     "ranking.w_embedding": (
-        "1.5 in the template, 0.0 in the dataclass and in every published number. "
-        "Unmeasured AS A RANKING WEIGHT in either direction — the one arm that touched "
-        "this channel measured README embeddings as a QUERY (7/48 at top-100, median rank "
-        "46,656), which says nothing about weighting it against keywords at digest time. "
-        "It is also the only field whose behaviour depends on the install: it does nothing "
-        "without the `embeddings` extra, so the same config ranks two ways. Left at 1.5 "
-        "because swapping one unmeasured default for another buys nothing and loses the "
-        "record of which one shipped"
+        "1.5 in the template, 0.0 in the dataclass and in every published number — and as "
+        "of 2026-08-16 the template's value is the MEASURED-BETTER one. Two paired draws "
+        "over one frozen pool put 1.5 at **+1.00 net@2/case** over 0.0 (CI [+0.14, +2.08], "
+        "sign p = 0.035, past the two-draw floor of 0.52) [NR-38]. The divergence therefore "
+        "stays, but its meaning has inverted: this entry used to say the template shipped "
+        "an unmeasured value, and now says the BENCHMARK is the side carrying the worse "
+        "one. It is not closed by moving either value, because `BENCHMARK_HEADLINE` "
+        "records what the published headlines actually ran, and they ran at 0.0 — "
+        "editing it to 1.5 would assert a run that never happened. Closing this properly "
+        "needs a headline re-measured at 1.5; until then the honest state is a known, "
+        "quantified, deliberately unclosed gap. Note also that this field is the only one "
+        "whose behaviour depends on the install: it does nothing without the `embeddings` "
+        "extra, so the +1.00 applies to users who have it and not to those who do not"
     ),
     "triage.finescale.timeout": (
         "60 in the eval against 30 shipped, and bounded by a guard both sides run: "
