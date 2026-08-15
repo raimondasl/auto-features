@@ -284,3 +284,38 @@ class TestReportsRefuseToMixModes:
         monkeypatch.setattr(sys, "argv", ["p", str(a), str(b)])
         with pytest.raises(SystemExit, match="refusing to compare"):
             noise_floor.main()
+
+
+class TestSeedAndReuseAreComparableButNotIdentical:
+    """A frozen experiment's natural shape is: arm 1 seeds the pool, arm 2 reuses it.
+
+    Those are different *histories* — the seeding arm collected live — and `provenance`
+    says so, correctly. But comparability asks a narrower question: did the arms rank the
+    same candidates? The seeding run ranks exactly what it wrote, so identical fingerprints
+    settle it. Conflating the two questions made that shape unreportable and would have
+    forced a throwaway collection before every frozen pair; found on 2026-08-16 when the
+    w_embedding arms were refused despite identical fingerprints on all 25 cases.
+    """
+
+    def test_provenance_still_distinguishes_them(self) -> None:
+        """The fix belongs at the comparability check, not in the descriptive function —
+        `provenance` is shared, and blurring it would misdate the seeding run everywhere."""
+        from noise_floor import provenance
+
+        assert provenance(run_with("frozen-seeded")) == "frozen-seeded"
+        assert provenance(run_with("frozen", "aaaaaaaaaaaa")).startswith("frozen:")
+
+    def test_same_pool_sees_no_difference_when_fingerprints_agree(self) -> None:
+        from noise_floor import same_pool
+
+        seeded = run_with("frozen-seeded", "abc123abc123")
+        reused = run_with("frozen", "abc123abc123")
+        assert same_pool(seeded, reused) == []
+
+    def test_same_pool_still_catches_a_genuine_mismatch(self) -> None:
+        """The relaxation must not survive a real difference in candidates."""
+        from noise_floor import same_pool
+
+        seeded = run_with("frozen-seeded", "abc123abc123")
+        other = run_with("frozen", "different999")
+        assert same_pool(seeded, other) != []

@@ -219,9 +219,48 @@ def main() -> int:
             )
     modes = {label: pool_mode(arms[label]) for label in labels}
     if len(set(modes.values())) > 1:
-        raise SystemExit(
-            "refusing to compare arms with different pool provenance: "
-            + ", ".join(f"{k}={v}" for k, v in modes.items())
+        # `frozen-seeded` (the arm that collected the pool and saved it) and `frozen:<fp>`
+        # (an arm that reused it) are different *histories* and `provenance` rightly says
+        # so — the seeding run did collect live. But comparability asks a narrower
+        # question: did these arms rank the same candidates? The seeding run ranks exactly
+        # what it wrote, so when every shared case has an identical fingerprint the answer
+        # is yes, and `same_pool` is the check that decides it.
+        #
+        # Without this the natural shape of a frozen experiment — arm 1 seeds, arm 2
+        # reuses — is unreportable, and every such pair needs a throwaway collection first.
+        # Found on 2026-08-16 by the w_embedding arms: refused despite identical
+        # fingerprints and identical pool sizes on all 25 cases.
+        #
+        # The absent-category experiment hit this in August and paid the throwaway pass,
+        # noting the refusal was right. It was right *then*: there was no fingerprint check
+        # at this decision point, so mode equality was the only evidence available. The
+        # workaround was sufficient, not necessary.
+        #
+        # What makes the relaxation safe is that the one way a seeding arm and a reuse arm
+        # can rank different candidates is an EMPTY pool: `save_frozen_pool` refuses to
+        # store one (an empty pool and a failed collection are the same bytes), so the
+        # reuse arm re-collects that case live and reports `frozen-seeded` for it — which
+        # makes the run's own modes mixed, and `provenance` already returns "mixed" and is
+        # refused above. So the divergence this check would have caught is caught anyway.
+        from noise_floor import same_pool
+
+        families = {m.split(":")[0].replace("frozen-seeded", "frozen") for m in modes.values()}
+        differing = [
+            case for label in labels[1:] for case in same_pool(arms[labels[0]], arms[label])
+        ]
+        if families != {"frozen"} or differing:
+            raise SystemExit(
+                "refusing to compare arms with different pool provenance: "
+                + ", ".join(f"{k}={v}" for k, v in modes.items())
+                + (
+                    f"\n  cases whose frozen pools differ: {sorted(set(differing))}"
+                    if differing
+                    else ""
+                )
+            )
+        print(
+            "  note: one arm seeded the frozen pool and the other reused it; every shared "
+            "case has an identical fingerprint, so they rank the same candidates."
         )
     # The same refusal for the returned-set width. Widening it 10 -> 15 was worth +1.24
     # net@2/case — bigger than any treatment effect published here — so a mixed-width
