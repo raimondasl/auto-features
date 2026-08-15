@@ -800,10 +800,13 @@ ranking:
   # Recency carries no weight: it is already handled by the all-time discovery above,
   # and weighting it again re-introduces the window NR-5 rules out.
   w_recency: 0.0
-  # 0.0, NOT the 1.5 the default template writes. Every published number was measured
-  # here; 1.5 is unmeasured as a ranking weight and does nothing unless the `embeddings`
-  # extra is installed, so it makes the same config rank two different ways.
-  w_embedding: 0.0
+  # 1.5, and this line was 0.0 until 2026-08-16 for the stated reason that 1.5 was
+  # unmeasured. It is measured now: +1.00 net@2/case over 0.0 across two paired draws on
+  # one frozen pool (CI [+0.14, +2.08], sign p = 0.035), and the headline was then re-run
+  # here rather than inferred from the delta. REQUIRES the `embeddings` extra --
+  # without it the weight is inert and you get the 0.0 configuration, which measured
+  # roughly a point per repository worse. `.[hyde]` already pulls it in.
+  w_embedding: 1.5
   # BM25 + reciprocal-rank fusion over the heuristic ranking. Present in every headline.
   # Worth keeping ONLY with the gate below: on its own it measured better nDCG and a
   # LOWER headline (NR-11), and the cost was recovered only once the rescore ordered

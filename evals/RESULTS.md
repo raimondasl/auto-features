@@ -1024,6 +1024,14 @@ draw", the same lesson C-7 recorded when a +4.55 headline re-ran at +3.91.
 > at 1.5, roughly $25 with the agentic baseline, after which preset, headline and audit all
 > agree again.
 >
+> > **Both halves of that last sentence were wrong, and the run below is what showed it.**
+> > The `$25` is the *sunk* cost of the 25 cached Opus answers ($24.98, $1.00/repo), not the
+> > marginal cost of a re-run: `baseline._discriminator` keys the cache on model, prompt,
+> > mode and flags, so with the model unchanged the baseline re-runs at **$0**. The real
+> > marginal cost was **$4.38**, and all of it went on one case whose cache entry was stale.
+> > $25 is what *switching the baseline model* would cost — a different decision entirely,
+> > and quoting one as the other made the cheap option look expensive for a day.
+>
 > **The inversion is the finding.** I opened this line suspecting the template was shipping
 > a ranking degradation to every user with the `embeddings` extra installed. The opposite
 > holds: **the default template's 1.5 is the better value, and the configuration we
@@ -1043,6 +1051,77 @@ draw", the same lesson C-7 recorded when a +4.55 headline re-ran at +3.91.
 > so the per-case effect is concentrated in the cases where the signal exists at all.
 >
 > **Cost** ~$8, no collection.
+
+### The headline re-measured at `w_embedding: 1.5` — the gap above is closed (2026-08-16)
+
+```bash
+uv run python evals/join_wemb_headline.py         # $0 -- the prediction, written first
+uv run python evals/run_judge_eval.py --baseline cli --sources arxiv     --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid --rr-sweep --rr-finescale --rr-hyde     --rr-frozen-pool evals/.work/pool-wemb --rr-window 15 --rr-w-embedding 1.5 < /dev/null
+```
+
+`…-wemb1.5-20260815T225831Z.json`. Identical to draw 2's treatment arm except `--baseline
+cli` replaces `--baseline none`: one variable.
+
+**A free prediction was made first, and it is the reason this cost $4.38 instead of $13.**
+The two existing draws already measured RepoRadar at 1.5; what they lacked was a
+paired-vs-Opus column, because both ran `--baseline none`. That column does not need a new
+baseline run, because **net@2 is a function of a system's own returned papers** —
+`summarize_system` feeds `pool_gains` to `ndcg@k` and `pool_has_relevant` and to nothing
+else. So the baseline's per-case net@2 measured on `pool-depth` is arithmetically the same
+number it takes on `pool-wemb`. `join_wemb_headline.py` states that invariant, predicts the
+paid run from it, and exists so the prediction can be scored rather than admired.
+
+| | predicted (free) | actual (paid) |
+|---|---|---|
+| RepoRadar net@2, 24 cases | +6.23, range [+5.49, +6.97] | **+5.92** |
+| paired vs Opus | +4.60 | **+4.29**, sign *p* = 0.0007 |
+| baseline column, 24 shared cases | +1.62 · 48 shown · 45 actionable | **+1.62 · 48 · 45** |
+
+**The invariant held to the digit** across two different pools — the join's assumption is
+now demonstrated rather than asserted, and the miss on RepoRadar's own side (0.31) is well
+inside the one-draw floor of 0.74.
+
+**The headline, and it is a 25-case one for the first time.** `thin-lang`'s baseline had a
+stale cache discriminator — it errored in the published run, and failures are never cached,
+so it never got refreshed. It re-ran here and succeeded, which is where the $4.38 went. The
+published +5.42/+5.12 split existed only because one baseline was missing; that split is now
+gone.
+
+| | RepoRadar (window 15) | Opus 4.8 baseline |
+|---|---|---|
+| mean net@2, **25 cases** | **+5.72** | +1.56 |
+| shown / actionable | 212 / 189 | 51 / 47 |
+| precision | 0.892 | **0.922** |
+| net-negative repositories | 0 | 1 |
+
+**Paired +4.16, 95% CI [+2.44, +6.00], 18 w / 2 l / 5 t, sign *p* = 0.0004.**
+
+**What this changes, and what it does not.** `BENCHMARK_HEADLINE`, the measured preset and
+the audit now agree at 1.5; pass (d) reports all 39 measured fields reproduced. The
+remaining divergence is dataclass-vs-template only, and it is deliberate — the dataclass
+value is what the keyless −8.12 arm was measured at, and raising it would put an unmeasured
+value under a published negative number. What has *not* changed is NR-38: this is a third
+draw of the 1.5 arm and it is **not** averaged into the +1.00, which stays closed at the two
+pre-registered draws. Its consistency with them (+5.72 against +5.80 and +6.20, every one
+above every control draw) is a check, not additional evidence.
+
+**A claim I made from the free join and then withdrew.** The two draws showed precision
+0.899 and 0.913 against the published 0.888, and I reported that the precision gap to Opus
+narrows at 1.5 — a real effect, in the direction that would have softened this project's
+largest caveat. The paid draw reads **0.891**. Three draws of a two-draw pattern is how that
+should have been read in the first place: the volume increase replicates (208, 208, 211
+against 195, 193, 196), the precision change does not. It is not in the paper.
+
+**Two per-draw properties reported as such.** "0 net-negative repositories" is this draw's
+value, not the method's — the same configuration gave 1 and 2 on other draws, and C-7
+records what happens when that distinction is dropped. Precision 0.892 against the
+baseline's 0.922 leaves the headline caveat where it was: RepoRadar returns **four times as
+many papers at three points lower precision**, and whether a maintainer prefers that is a
+question net@2 does not answer.
+
+**Cost** $4.38, one case's baseline. No collection: 24 of 25 baseline answers and most judge
+verdicts were already cached, and the cache-hit rate was verified *before* launching rather
+than discovered after.
 
 #### Three guards fired during this experiment. Two were right, one was mine to fix. **[C-19]**
 

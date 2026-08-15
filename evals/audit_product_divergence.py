@@ -392,8 +392,17 @@ BENCHMARK_HEADLINE: dict[str, Any] = {
     "ranking.w_recency": 0.0,  # --rr-all-time
     # run_judge_eval._rank builds RankingConfig(w_keyword=, w_category=, w_recency=,
     # absent_category=) and leaves every other weight at the dataclass default, so these
-    # are measured at 0.0 — not un-measured. The template disagrees on w_embedding.
-    "ranking.w_embedding": 0.0,
+    # are measured at 0.0 — not un-measured.
+    #
+    # `w_embedding` is the exception, and it moved here on 2026-08-16 only because a run
+    # was paid for. Two paired draws put 1.5 at +1.00/case over 0.0 [NR-38], but a delta
+    # is not a headline: this dict records what the published run SET, so flipping it on
+    # the strength of the delta would have asserted a run that never happened — the C-17
+    # error inside the file whose job is preventing it. The headline was re-measured
+    # instead (`…-wemb1.5-20260815T225831Z.json`, 25 cases, window 15, `--baseline cli`,
+    # +5.72 against the baseline's +1.56, paired +4.16, sign p = 0.0004), and this is
+    # that run's value.
+    "ranking.w_embedding": 1.5,
     "ranking.w_citations": 0.0,
     "ranking.w_citation_proximity": 0.0,
     "ranking.w_specter": 0.0,
@@ -493,9 +502,12 @@ DECLARED: dict[str, str] = {
     "triage.enabled": (
         "the gate needs an LLM key (or a local Ollama) and costs ~$0.01/run; a default "
         "that fails without a credential is worse than one that under-delivers. But the "
-        "ungated digest IS the configuration measured at mean net@2 -11 (paper §6.1), so "
-        "this is the single largest gap between the shipped product and every number "
-        "published about it"
+        "ungated digest IS the configuration measured at mean net@2 **-8.12** over the 25 "
+        "repositories, net-negative on 19 of them, so this is the single largest gap "
+        "between the shipped product and every number published about it. (This entry "
+        "quoted -11 until 2026-08-16. That figure was a FOUR-case July mean, one of them a "
+        "negative control, and quoting it as a benchmark headline is the C-17 error "
+        "itself — surviving here, uncorrected, in the file whose purpose is catching it.)"
     ),
     "suggestions.provider": (
         "'template' is the keyless default, and cli.update requires ollama|claude before "
@@ -536,19 +548,18 @@ DECLARED: dict[str, str] = {
         "documented uncertainty for an undocumented divergence"
     ),
     "ranking.w_embedding": (
-        "1.5 in the template, 0.0 in the dataclass and in every published number — and as "
-        "of 2026-08-16 the template's value is the MEASURED-BETTER one. Two paired draws "
-        "over one frozen pool put 1.5 at **+1.00 net@2/case** over 0.0 (CI [+0.14, +2.08], "
-        "sign p = 0.035, past the two-draw floor of 0.52) [NR-38]. The divergence therefore "
-        "stays, but its meaning has inverted: this entry used to say the template shipped "
-        "an unmeasured value, and now says the BENCHMARK is the side carrying the worse "
-        "one. It is not closed by moving either value, because `BENCHMARK_HEADLINE` "
-        "records what the published headlines actually ran, and they ran at 0.0 — "
-        "editing it to 1.5 would assert a run that never happened. Closing this properly "
-        "needs a headline re-measured at 1.5; until then the honest state is a known, "
-        "quantified, deliberately unclosed gap. Note also that this field is the only one "
-        "whose behaviour depends on the install: it does nothing without the `embeddings` "
-        "extra, so the +1.00 applies to users who have it and not to those who do not"
+        "1.5 in the template, 1.5 in the preset, 1.5 in the headline since 2026-08-16 — and "
+        "still 0.0 in the DATACLASS, which is what this entry now covers and all it covers. "
+        "The measurement side is closed: two paired draws put 1.5 at +1.00/case over 0.0 "
+        "[NR-38] and the headline was then re-measured there (+5.72 over 25 repositories, "
+        "paired +4.16 against the agentic baseline). What remains is a genuine "
+        "surface split, and it is deliberate. The dataclass default is what a user gets "
+        "for a key they never wrote, including in the keyless out-of-the-box arm that "
+        "scores −8.12; that arm was measured at 0.0, so raising the dataclass would put an "
+        "unmeasured value under a published negative number. This field is also the only "
+        "one whose behaviour depends on the INSTALL — without the `embeddings` extra it is "
+        "inert, and the product says so at `cli.py` rather than failing, so a dataclass "
+        "default of 1.5 would read as a promise the install may not keep"
     ),
     "triage.finescale.timeout": (
         "60 in the eval against 30 shipped, and bounded by a guard both sides run: "

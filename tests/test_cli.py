@@ -271,7 +271,7 @@ class TestInitCommand:
         result = CliRunner().invoke(cli, ["init", "--path", str(tmp_path)])
         # The measured pair, not the July four-case figure this used to quote (C-17).
         assert "-8.12" in result.output
-        assert "+5.12" in result.output
+        assert "+5.72" in result.output
         assert "rr init --measured" in result.output
 
     def test_measured_writes_the_measured_config_and_its_prerequisites(
@@ -304,8 +304,11 @@ class TestInitCommand:
         assert cfg.suggestions.provider == "claude"
         assert cfg.output.top_n == 15
         assert cfg.triage.top_k == 50
-        # 0.0, not the 1.5 the DEFAULT template writes -- the measured value.
-        assert cfg.ranking.w_embedding == 0.0
+        # 1.5 since 2026-08-16, and it is 1.5 here because the HEADLINE was re-measured
+        # there, not because the template already said so. The authority for this line is
+        # BENCHMARK_HEADLINE, which audit_product_divergence.py checks field by field; this
+        # assertion is the cheap smoke test that the preset still parses to it.
+        assert cfg.ranking.w_embedding == 1.5
 
     def test_the_two_configs_are_actually_different_files(self, tmp_path: Path) -> None:
         """Mutation guard: if --measured silently fell back to the default template, every
