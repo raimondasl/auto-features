@@ -960,6 +960,90 @@ primary predictions were wrong on sign twice, so this is a weak prior stated as 
 >
 > **Cost** ~$9 plus one live collection (~1 h) forced by the frozen-pool break below.
 
+#### PRE-REGISTERED — the second draw, and why it is weaker evidence than the first (2026-08-16)
+
+Draw 1 gave **+0.64** against a 0.74 floor: the closest any arm in this project has come to
+resolving without doing so. A second paired draw over the **same** frozen pool varies only
+temperature-0 jitter in the gate and the rescore — which is exactly what the 0.74 floor was
+measured over (two reuse passes) — so averaging the two draws' per-case deltas cuts the
+standard error by √2 and gives an **effective floor of ≈0.52**.
+
+**The decision rule, fixed before draw 2 is seen.** The estimate is the **mean of the two
+draws' per-case deltas**, compared against **0.52**. Not "draw 2 alone", not "whichever
+draw is cleaner", and not "keep drawing until it resolves".
+
+* **|combined| ≥ 0.52 and the CI excludes 0** — resolved. If positive, the *measured
+  preset* is leaving value on the table: `BENCHMARK_HEADLINE` changes to 1.5 and every
+  published headline is understated. That is the expensive branch and the reason to run.
+* **|combined| ≥ 0.52, CI spans 0** — suggestive, not established. Nothing moves.
+* **|combined| < 0.52** — unresolved at two draws, and I stop. A third draw to chase 0.64
+  past a shrinking floor is how a null becomes a finding by attrition.
+
+**Why this is weaker than draw 1, stated plainly.** Draw 1's result is already known, so
+this is *confirmatory*, not blind: I am running a second draw **because** the first was
+encouraging, which is a selection effect no amount of arithmetic removes. Two consequences
+I accept in advance. The p-value is not clean — this is a second look at the same question,
+and I will report it without pretending otherwise. And had draw 1 come back at −0.64, I
+would not be running this, which is exactly the asymmetry that makes the combined estimate
+an upper bound on the evidence rather than a fair one.
+
+**What would change my mind about the whole line.** If draw 2 lands materially negative
+(say below −0.5), the honest reading is not "they average out" but "draw 1 was a favourable
+draw", the same lesson C-7 recorded when a +4.55 headline re-ran at +3.91.
+
+**Cost** ~$8, no collection — the pool exists and most judge verdicts are cached.
+
+> #### RESULT (2026-08-16) — **+1.00/case, resolved.** The template was right and the *preset* is the one carrying the worse value.
+>
+> | | control 0.0 | treatment 1.5 | paired delta |
+> |---|---|---|---|
+> | draw 1 | +5.16 | +5.80 | +0.64 — inside the 0.74 floor |
+> | draw 2 | +4.84 | +6.20 | **+1.36** — past it, CI [+0.40, +2.52] |
+> | **combined** | | | **+1.00**, CI **[+0.14, +2.08]**, 12+/3−/10=, sign p = **0.035** |
+>
+> **Against the pre-registered floor of 0.52 the combined estimate is past it and the CI
+> excludes zero: resolved, and positive.** Draw 2 is *larger* than draw 1, so this is not
+> draw 1 having been a favourable draw — if anything it was the conservative one. The two
+> control arms agree to 0.32 and the two treatment arms to 0.40, both comfortably inside
+> single-draw jitter, which is the consistency check that makes averaging them legitimate.
+>
+> **My pre-registration was under-specified, and I would rather say so than quietly do
+> something else.** I wrote that a positive result means "`BENCHMARK_HEADLINE` changes to
+> 1.5 and every published headline is understated." The first half is wrong.
+> `BENCHMARK_HEADLINE` records *what the published headline runs actually set*, and they
+> set 0.0 — editing it to 1.5 would make it assert a run that never happened, which is
+> precisely the C-17 error (a number attached to a configuration it did not describe) in a
+> file whose whole job is preventing that. I did not notice the conflict when writing the
+> rule because I was thinking of `BENCHMARK_HEADLINE` as "the configuration we endorse"
+> rather than "the configuration we measured".
+>
+> **So nothing is edited, and the reason is not caution.** Moving the *preset* to 1.5 would
+> break its defining property — that it reproduces the run behind the published +5.42/+5.12
+> field by field. Moving `BENCHMARK_HEADLINE` would make it false. The gap is real,
+> quantified, and **deliberately left open**: closing it requires re-measuring the headline
+> at 1.5, roughly $25 with the agentic baseline, after which preset, headline and audit all
+> agree again.
+>
+> **The inversion is the finding.** I opened this line suspecting the template was shipping
+> a ranking degradation to every user with the `embeddings` extra installed. The opposite
+> holds: **the default template's 1.5 is the better value, and the configuration we
+> *recommend* is the one carrying the worse one.** Every headline in this project is
+> understated by about a point for users who have that extra — and `.[hyde]`, which the
+> measured setup instructs people to install, pulls it in.
+>
+> **The caveat I pre-registered, restated because it still applies.** This was a
+> *confirmatory* second draw run because the first was encouraging, so the p-value is a
+> second look at the same question and the combined estimate is an upper bound on the
+> evidence rather than a fair one. What it is not is a fishing expedition: the decision rule
+> and the stopping point were fixed in writing beforehand, and I am stopping at two draws
+> as stated rather than chasing a third.
+>
+> **Scope.** The weight does nothing without the `embeddings` extra, so +1.00 describes
+> users who have it. Six of 25 benchmark cases produce byte-identical profiles either way,
+> so the per-case effect is concentrated in the cases where the signal exists at all.
+>
+> **Cost** ~$8, no collection.
+
 #### Three guards fired during this experiment. Two were right, one was mine to fix. **[C-19]**
 
 **The one that cost a collection, and it was my regression.** Adding `rr_scan_source` to
