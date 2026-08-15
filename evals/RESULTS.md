@@ -857,6 +857,132 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### PRE-REGISTERED — does BM25-RRF fusion still earn its place? (2026-08-16)
+
+**The question, and why it is not the one I said I would ask.** The `ranking.hybrid`
+declaration in `audit_product_divergence.py` promised the *out-of-the-box arm* would settle
+whether fusion should be on in the shipped default. Having run that arm and then read the
+ungated code path, that experiment would mostly measure an artifact: `hybrid_reorder`
+changes the order and deliberately leaves `score_total` intact, while the ungated Top Picks
+tier admits the window on `score_total >= 0.5` — so RRF pulls lower-scoring papers into the
+fifteen slots where they then fail the threshold, shrinking the shown set. At the default's
+precision of 0.379 each shown paper is worth `3p-2 = -0.86`, so shrinking *helps*, for
+reasons that have nothing to do with ranking quality. It would be a finding about the 0.5
+tier rule reported as a finding about fusion.
+
+The question worth the money is the one nobody has asked: **fusion has been ON in every
+headline since PR #30 and has never been ablated inside the measured configuration.** Its
+keep decision rests on NR-11's *pre-rescore* argument — better nDCG everywhere, lower
+headline — with the headline cost assumed recovered once the rescore began ordering what
+the gate admits. §8.5 claims the stages compose. That claim has never been tested for this
+component.
+
+**Design.** Two arms, same session, **one frozen pool** (`pool-depth`, 25 cases, 14,552
+candidates), hybrid the only variable. `rr_hybrid` sits in `RANKING_FLAGS` and is
+deliberately absent from the pool fingerprint, so both arms provably rank the identical
+pool — this is the case freezing was built for.
+
+```bash
+COMMON="--baseline none --sources arxiv --rr-pool 50 --rr-rerank --rr-all-time
+        --rr-sweep --rr-finescale --rr-hyde --rr-frozen-pool evals/.work/pool-depth
+        --rr-window 15"
+uv run python evals/run_judge_eval.py $COMMON --rr-hybrid     # control (the shipped preset)
+uv run python evals/run_judge_eval.py $COMMON                 # treatment: fusion removed
+```
+
+**Floor.** 0.74 net@2/case (frozen pool, window 15) — the width-aware floor, not the 0.48
+that C-8 misapplied.
+
+**Prediction, written first.** Fusion is worth **−0.5 to +1.5**, most likely small and
+positive (~+0.5), and **quite possibly inside the floor**. The composition argument says it
+should help: better nDCG puts more actionable papers in the top 50 the gate sees, and the
+rescore now sorts the borderline ones NR-11 complained about instead of dumping them. The
+counter is that the rescore only runs on the threshold band — papers above it are trusted
+on the gate's word — so extra borderline candidates are only partly rescued.
+
+**Secondary, gate-free.** Actionable papers reaching the ranked top-15 *before* gating. This
+tests the mechanism directly: if fusion does not put more actionable papers in front of the
+gate, no downstream story can rescue it. The same measure moved 0.00 in §9.6 and correctly
+predicted a null there, and moved 5.00 → 6.52 in the gate-depth experiment.
+
+**What each outcome licenses.**
+* **Past the floor and positive** — the keep decision finally has a post-rescore
+  justification instead of a pre-rescore one, and NR-11's headline cost is confirmed
+  recovered.
+* **Past the floor and negative** — the *recommended* configuration contains a component
+  that hurts. It comes out of the preset, out of `BENCHMARK_HEADLINE`, and every headline's
+  provenance row gains a footnote. This is the outcome that would cost the most to act on
+  and is the reason the arm is worth running.
+* **Inside the floor** — unresolved, and I will say so rather than reading the sign. That
+  outcome is itself worth recording: it means the configuration we recommend to users
+  carries a component we cannot show earns its place, which is a weaker position than the
+  paper currently implies.
+
+**Estimated cost** $10–20. Both arms are frozen-pool, so no collection; the control's papers
+are almost entirely in the judge cache, and the bill is Haiku + rescore for both arms plus
+judge verdicts on whatever the no-fusion arm surfaces that has never been judged.
+
+> #### RESULT (2026-08-16) — **+0.00/case.** Fusion reshuffles 59% of the digest and moves nothing. **[NR-35]**
+>
+> `…-20260814T234847Z.json` (control) and `…-nohybrid-20260815T002741Z.json` (treatment),
+> one frozen pool, 25/25 cases both arms.
+>
+> | arm | net@2 | shown | actionable | precision | abstained | net-negative |
+> |---|---|---|---|---|---|---|
+> | `hybrid` (shipped preset) | **+4.88** | 197 | 172 | 0.873 | 3 | 2 |
+> | `no-hybrid` | **+4.88** | 206 | 178 | 0.864 | 3 | 2 |
+>
+> **Paired: +0.00/case, 95% CI [−1.00, +0.96], 8 better / 9 worse / 8 tied, sign p = 1.000
+> — inside the 0.74 floor.**
+>
+> **Valid, not void, and this is the part that makes the null informative.** The flag is
+> doing a great deal: **25/25 cases changed their returned top-10, mean Jaccard 0.41** — 59%
+> of the shown papers are different — and per-case scores swing hard in both directions
+> (`ann` 6→11, `llminfer` 5→9, `vectordb` 4→8 against `speech` 6→0, `rag` 7→2, `crypto`
+> 2→0). Seventeen of 25 cases move. They cancel to two decimal places.
+>
+> **The pre-registered gate-free measure agrees, and it is the one that settles the
+> mechanism.** Actionable papers reaching the ranked top-15 *before any gating*:
+> **8.80/case with fusion, 8.72 without — a delta of −0.08** (220 against 218 papers), with
+> 20 of 25 cases differing on the count. Fusion was kept on NR-11's argument that it ranks
+> better; the composition claim that argument implies — more actionable papers in front of
+> the gate — is measured at essentially zero. The same measure moved 0.00 in the
+> absent-category null and 5.00 → 6.52 where the depth effect was real, so it is not a
+> measure that refuses to move.
+>
+> **Prediction check.** I pre-registered −0.5 to +1.5, point estimate ~+0.5, and wrote
+> "quite possibly inside the floor." The interval held and the hedge was right; the point
+> estimate was high. Unlike the out-of-the-box arm, this one I did not get wrong.
+>
+> **Control sanity.** The control arm reads +4.88 against the +5.12 the same configuration
+> scored on the same pool on 2026-08-14 — a gap of 0.24, a third of the floor, which is what
+> temperature-0 jitter across two reuse passes is supposed to look like.
+>
+> **What this licenses, and what it does not.** Per the pre-registration: the outcome is
+> **unresolved, not zero**, and I am not reading the sign of a +0.00. But the secondary is
+> not floor-limited in the same way — it is a direct count, and it says the mechanism by
+> which fusion was supposed to earn its place is absent. So the honest position is:
+> **the configuration we recommend to users carries a component we cannot show earns its
+> place, whose stated mechanism measures null.**
+>
+> **It stays in the preset anyway, and the reason is not inertia.** Every published headline
+> was measured with fusion on; the preset's entire value is that it reproduces that
+> configuration, asserted field-by-field. Dropping a component on an unresolved result would
+> make the recommended configuration differ from every number recommending it — trading a
+> documented uncertainty for an undocumented divergence. What changes is the record: this is
+> now a known-unjustified component with a starting point for a future simplification, not
+> a stage the paper can keep citing as part of a composing whole.
+>
+> **The second instance of a shape worth naming.** NR-33 found the absent-category rule
+> "real and large in composition, +0.00 in outcome". This is the same result for a different
+> ranking-stage change, measured independently: **two components now reshuffle the digest
+> substantially and move the outcome by nothing.** The conclusion §13 already draws — that
+> the value sits downstream of the heuristic ranker, not in it — has stopped being an
+> interpretation of one experiment.
+>
+> **Cost** ~$6: no collection (frozen pool), most judge verdicts cached, the bill was Haiku
+> gate + rescore on both arms plus verdicts on what the no-fusion arm newly surfaced.
+
 ### PRE-REGISTERED — what does the out-of-the-box configuration actually score? (2026-08-16)
 
 **Why this is being run at all.** PR #134 shipped a README table row reading

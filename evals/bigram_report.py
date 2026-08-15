@@ -139,11 +139,28 @@ def check_labels(label: str, arm: dict[str, dict[str, Any]], field: str = "bigra
     the arm it names may not be: `gate_depth` is an int. Comparing raw would make the guard
     fire on every numeric arm — a check that always fails gets deleted, which is worse than
     one that never does.
+
+    **Boolean arms** get one extra convention, because a bool field would otherwise force
+    every report to label its arms `True` and `False`. For a boolean `field`, the label
+    may also be the field's own name (the True arm) or `no-<field>` / `no_<field>` (the
+    False arm) — so `hybrid` vs `no-hybrid` reads as intended and still refuses a genuine
+    swap, since labelling the False arm `hybrid` resolves to True and fails. Added when
+    the fusion ablation hit exactly this: readable labels the guard could not accept.
     """
     recorded = {r.get(field) for r in arm.values()}
     if recorded == {None}:
         print(f"  ! {label}: no `{field}` recorded (run predates the flag) — trusting label")
         return
+    if recorded <= {True, False}:
+        negated = label.lower() in (f"no-{field}", f"no_{field}")
+        claimed = False if negated else (True if label.lower() == field else None)
+        if claimed is not None:
+            if recorded != {claimed}:
+                raise SystemExit(
+                    f"arm labelled {label!r} means {field}={claimed} but its run file "
+                    f"records {field}={sorted(map(str, recorded))} — refusing"
+                )
+            return
     if {str(v) for v in recorded} != {str(label)}:
         raise SystemExit(
             f"arm labelled {label!r} contains {field}={sorted(map(str, recorded))} — "

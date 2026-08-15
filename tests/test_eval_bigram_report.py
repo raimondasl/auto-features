@@ -162,6 +162,33 @@ class TestLabelFieldIsConfigurable:
         arm = {"a": {"case": "a", "bigram_mode": "none"}}
         check_labels("none", arm)
 
+    def test_a_boolean_arm_takes_a_readable_label(self) -> None:
+        """A bool field would otherwise force every report to label its arms `True` and
+        `False`. The fusion ablation hit exactly that: `hybrid` / `no-hybrid` are the
+        names a reader wants and the guard could not accept either."""
+        check_labels("hybrid", {"a": {"case": "a", "hybrid": True}}, "hybrid")
+        check_labels("no-hybrid", {"a": {"case": "a", "hybrid": False}}, "hybrid")
+        check_labels("no_hybrid", {"a": {"case": "a", "hybrid": False}}, "hybrid")
+
+    def test_a_boolean_arm_still_catches_a_swap(self) -> None:
+        """The convention must not cost the guard its teeth: naming the False arm after
+        the flag is the exact mistake it exists to catch."""
+        with pytest.raises(SystemExit):
+            check_labels("hybrid", {"a": {"case": "a", "hybrid": False}}, "hybrid")
+        with pytest.raises(SystemExit):
+            check_labels("no-hybrid", {"a": {"case": "a", "hybrid": True}}, "hybrid")
+
+    def test_a_boolean_arm_rejects_an_unrelated_label(self) -> None:
+        """Only the field's own name and `no-<field>` are the convention; anything else
+        must still be compared literally, or the guard degrades to a rubber stamp."""
+        with pytest.raises(SystemExit):
+            check_labels("fusion", {"a": {"case": "a", "hybrid": True}}, "hybrid")
+
+    def test_the_true_false_labels_still_work(self) -> None:
+        """The literal path must survive the convention."""
+        check_labels("True", {"a": {"case": "a", "hybrid": True}}, "hybrid")
+        check_labels("False", {"a": {"case": "a", "hybrid": False}}, "hybrid")
+
     def test_a_numeric_arm_matches_its_command_line_label(self) -> None:
         """`gate_depth` is an int and a CLI label is a string.
 
