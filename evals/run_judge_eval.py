@@ -160,6 +160,7 @@ def rank_candidates(
     hybrid: bool = False,
     absent_category: str = "omit",
     scan_source: bool = False,
+    w_embedding: float = 0.0,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's ranking over an already-collected pool: top-N (paper, score) best-first.
 
@@ -176,8 +177,27 @@ def rank_candidates(
     lookback = 36500 if all_time else 90
     w_recency = 0.0 if all_time else 0.3
     ranking_cfg = RankingConfig(
-        w_keyword=1.0, w_category=0.5, w_recency=w_recency, absent_category=absent_category
+        w_keyword=1.0,
+        w_category=0.5,
+        w_recency=w_recency,
+        absent_category=absent_category,
+        w_embedding=w_embedding,
     )
+    repo_embedding = None
+    if w_embedding > 0:
+        # VOID, NOT NULL. Without the extra the ranker scores every paper on keyword and
+        # category alone, so the arm would report "the embedding weight does nothing"
+        # about a component that never ran -- the exact shape of C-9 and NR-30.
+        from reporadar.embeddings import EMBEDDINGS_AVAILABLE, compute_repo_embedding
+
+        if not EMBEDDINGS_AVAILABLE:
+            raise SystemExit(
+                "--rr-w-embedding needs the `embeddings` extra; refusing to run an arm "
+                "whose treatment would silently be absent"
+            )
+        repo_embedding = compute_repo_embedding(repo_dir)
+        if repo_embedding is None:
+            raise SystemExit(f"no repo text to embed for {repo_dir.name}: weight is inert")
     ranked = rank_papers(
         papers,
         profile,
@@ -185,6 +205,7 @@ def rank_candidates(
         QueriesConfig(),
         categories or ["cs.LG"],
         lookback_days=lookback,
+        repo_embedding=repo_embedding,
     )
     if hybrid:
         ranked = hybrid_reorder(ranked, papers, profile)
@@ -209,6 +230,7 @@ def reporadar_ranked(
     bigrams: str = "adjacent",
     absent_category: str = "omit",
     scan_source: bool = False,
+    w_embedding: float = 0.0,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
 
@@ -247,6 +269,7 @@ def reporadar_ranked(
         hybrid=hybrid,
         absent_category=absent_category,
         scan_source=scan_source,
+        w_embedding=w_embedding,
     )
 
 
@@ -483,7 +506,16 @@ POOL_FLAGS = (
 # `rr_all_time` is in POOL_FLAGS above rather than here even though it also sets
 # `w_recency`, because it changes the fetch window — a pool collected over 90 days cannot
 # answer an all-time question, whatever the ranker then does with it.
-RANKING_FLAGS = ("rr_pool", "rr_rerank", "rr_hybrid", "rr_absent_category", "rr_window")
+RANKING_FLAGS = (
+    "rr_pool",
+    "rr_rerank",
+    "rr_hybrid",
+    "rr_absent_category",
+    "rr_window",
+    # Changes the SCORE, not the candidates: the profile is untouched, so queries and
+    # collection are identical and one frozen pool serves both arms.
+    "rr_w_embedding",
+)
 
 # Frozen pools stored the RANKED top-N until 2026-08-13, which made every ranking
 # experiment collect live at the 1.04 floor — the opposite of the flag's purpose. Version 2
@@ -531,10 +563,35 @@ def load_frozen_pool(
             "cut by the settings under test. Re-seed into a fresh directory."
         )
     if data.get("fingerprint") != fingerprint:
+        # Two hashes and no explanation is a correct refusal that costs the reader an
+        # investigation. Adding `rr_scan_source` to POOL_FLAGS on 2026-08-16 invalidated
+        # every frozen pool in the project, and working that out from the hashes alone took
+        # three commands. So name the flags the SET gained or lost, when that is the cause.
+        stored_flags = data.get("pool_flags")
+        detail = ""
+        if stored_flags is not None:
+            added = [f for f in POOL_FLAGS if f not in stored_flags]
+            removed = [f for f in stored_flags if f not in POOL_FLAGS]
+            if added or removed:
+                detail = (
+                    "\nThe POOL_FLAGS *set* changed since this pool was collected"
+                    + (f"; added {added}" if added else "")
+                    + (f"; removed {removed}" if removed else "")
+                    + ".\nA new flag makes every stored pool stale even at its default: the "
+                    "pool carries no value for a dimension that did not exist when it was "
+                    "collected. That is deliberate. Omitting default-valued flags from the "
+                    "hash instead would let a pool collected under an OLD default match a "
+                    "run under a NEW one, and this project changes defaults."
+                )
+        else:
+            detail = (
+                "\nThis pool predates flag-set recording, so the cause cannot be narrowed "
+                "further; a POOL_FLAGS change is the most likely one."
+            )
         raise SystemExit(
             f"frozen pool {path} was collected under different retrieval settings\n"
             f"  stored:   {data.get('fingerprint')}  ({data.get('collected_at')})\n"
-            f"  this run: {fingerprint}\n"
+            f"  this run: {fingerprint}{detail}\n"
             "Reusing it would measure the old settings under the new run's name. Use a "
             "different --rr-frozen-pool directory, or drop the flag to collect live.\n"
             f"Note that ranking flags ({', '.join(RANKING_FLAGS)}) are NOT part of the "
@@ -565,6 +622,9 @@ def save_frozen_pool(
                 "version": FROZEN_POOL_VERSION,
                 "case": case_name,
                 "fingerprint": fingerprint,
+                # The flag SET the fingerprint was computed over, so a later mismatch can
+                # name what changed instead of printing two opaque hashes at the reader.
+                "pool_flags": list(POOL_FLAGS),
                 "collected_at": datetime.now(UTC).isoformat(),
                 "n": len(candidates),
                 "candidates": candidates,
@@ -785,6 +845,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         hybrid=args.rr_hybrid,
         absent_category=args.rr_absent_category,
         scan_source=args.rr_scan_source,
+        w_embedding=args.rr_w_embedding,
     )
     rr_candidates = [p for p, _ in rr_ranked]
     if args.rr_triage:
@@ -952,6 +1013,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # What the profiler was allowed to read. Recorded because it changes the pool,
         # the ranking, the gate prompt and the rescore prompt at once.
         "scan_source": bool(args.rr_scan_source),
+        "w_embedding": float(args.rr_w_embedding),
         # The documentation budget this arm ran under, or None for an unablated run.
         # The last POOL_FLAG that was not recorded: the four arms of the thin-docs
         # grid could only be told apart on 2026-08-16 by matching their means against
@@ -1113,6 +1175,14 @@ def main() -> int:
         "`profiler.scan_source`, which no benchmark arm has ever enabled). A thin-docs "
         "repository is thin in prose but has code; NR-26 found its richer arm's benefit "
         "tracked that extra information rather than the question asked of it.",
+    )
+    parser.add_argument(
+        "--rr-w-embedding",
+        type=float,
+        default=0.0,
+        help="Ranking weight for repo/paper embedding similarity. The dataclass default "
+        "and every published number are 0.0; the config `rr init` writes is 1.5, larger "
+        "than w_keyword, never measured in this role.",
     )
     parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
     parser.add_argument("--rr-hyde-top-k", type=int, default=100)
@@ -1353,6 +1423,8 @@ def main() -> int:
             tag += "-nohybrid"
         if args.rr_scan_source:
             tag += "-scansource"
+        if args.rr_w_embedding:
+            tag += f"-wemb{args.rr_w_embedding:g}"
         out = RESULTS_DIR / f"judge-{args.model}{tag}-{stamp}.json"
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")

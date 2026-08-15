@@ -857,6 +857,146 @@ floor either. It is documented as **built and unvalidated**.
 
 **Cost** ~$3.
 
+### PRE-REGISTERED — the last unmeasured value that ships: `ranking.w_embedding` (2026-08-16)
+
+**Why this one and not another ranking arm.** It is the only value still shipping to users
+that no number covers. `RankingConfig.w_embedding` is **0.0** and every published result was
+measured there — but `default_config_yaml()`, the file `rr init` writes, sets **1.5**, which
+is larger than `w_keyword`'s 1.0 and therefore the heaviest weight in the config. Declared
+in `audit_product_divergence.py` since 2026-08-15 as unmeasured *in either direction*; this
+closes that.
+
+**What makes it a better candidate than the last four.** NR-33, NR-35, NR-36 and NR-37 were
+all *reorderings* of the same score components, and all came back null or inside the floor.
+This adds a **component**, at the largest weight, changing what "score" means rather than
+shuffling it. And there is a concrete mechanism for harm: the one arm that ever measured
+this channel scored README embeddings as a *query* and found them **bimodal** — 7/48 at
+top-100, occasionally rank-1, **median rank 46,656**. A signal that is usually terrible,
+given the heaviest weight, is plausibly a real negative rather than a fifth null.
+
+**Design.** `w_embedding` changes the score, not the candidates: the profile is untouched,
+so queries and collection are identical. It is therefore a `RANKING_FLAG`, both arms share
+`pool-depth`, and the floor is **0.74** (frozen, window 15) rather than the ~1.6 a live
+comparison would carry.
+
+```bash
+COMMON="--baseline none --sources arxiv --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid
+        --rr-sweep --rr-finescale --rr-hyde --rr-frozen-pool evals/.work/pool-depth
+        --rr-window 15"
+uv run python evals/run_judge_eval.py $COMMON                        # control, w_embedding 0.0
+uv run python evals/run_judge_eval.py $COMMON --rr-w-embedding 1.5   # what `rr init` writes
+```
+
+**Void-not-null, enforced rather than hoped for.** Without the `embeddings` extra the ranker
+scores every paper on keyword and category alone, so the treatment arm would silently be the
+control and report "the weight does nothing" about a component that never ran — C-9 and
+NR-30's exact shape. `rank_candidates` now **refuses** to run with `w_embedding > 0` when
+the extra is missing or the repository yields no embeddable text, and a $0 probe confirms
+the top-15 actually changes before any judge call is made.
+
+**Prediction, written first.** **−1.5 to +0.5, most likely negative and possibly past the
+floor.** The bimodal evidence above is the reason: at weight 1.5 a signal whose median rank
+is 46,656 should drag good papers down more often than it lifts them. I put maybe 55% on a
+negative point estimate, 25% on inside-the-floor-either-way, 20% on positive. My last three
+primary predictions were wrong on sign twice, so this is a weak prior stated as one.
+
+**What each outcome licenses.**
+* **Negative past the floor** — the template is shipping a ranking degradation to every user
+  with the extra installed, and `default_config_yaml` should set 0.0. A direct, user-facing fix.
+* **Positive past the floor** — the *measured preset* sets 0.0 and is leaving value on the
+  table; `BENCHMARK_HEADLINE` changes and every published headline is understated.
+* **Inside the floor** — the declaration stays, but stops reading "unmeasured in either
+  direction" and becomes "measured, unresolved", which is a weaker and more honest claim
+  than the one it replaces.
+
+**Cost** $6–10 of judge and gate calls, plus ~25 minutes of CPU: the treatment arm encodes
+~580 candidates per case and the eval, unlike the product, has no embedding cache.
+
+> #### RESULT (2026-08-16) — **+0.64/case, inside the floor.** Positive, and I predicted negative. **[NR-38]**
+>
+> One frozen pool (`pool-wemb`), 25/25 both arms, `w_embedding` the only variable.
+>
+> | arm | net@2 | shown | actionable | precision | net-negative |
+> |---|---|---|---|---|---|
+> | **0.0** — every published number | +5.16 | 195 | 173 | 0.887 | 0 |
+> | **1.5** — what `rr init` writes | **+5.80** | 208 | **187** | **0.899** | 0 |
+>
+> **Paired +0.64/case, 95% CI [−0.28, +1.80], 8 better / 6 worse / 11 tied, sign p = 0.79 —
+> inside the 0.74 floor.** Valid, not void: 25/25 cases changed, mean Jaccard 0.58.
+>
+> **My prediction was wrong, and wrong in an interesting direction.** I pre-registered
+> **−1.5 to +0.5, most likely negative**, reasoning from the only prior measurement of this
+> channel: README embeddings as a *query* are bimodal, occasionally rank-1 but with a
+> **median rank of 46,656**, so weighting them at 1.5 should drag good papers down. The
+> result is **+0.64 — outside my interval on the upside**. That is the third of my last four
+> primary predictions to be wrong on sign.
+>
+> The reasoning failed because I transferred a *retrieval* property to a *ranking* role
+> without checking that the transfer holds. As a query, a bad embedding match costs you the
+> whole result set — the median rank is what you get. As one weighted component among four,
+> scoring an *already-retrieved* pool, a mediocre signal is diluted rather than decisive,
+> and its occasional rank-1 behaviour is exactly the tail that helps. Median rank is the
+> wrong statistic for a component that only ever breaks ties near the top.
+>
+> **The composition improved on every axis**, which is unusual here: more papers shown
+> (208 vs 195), more actionable (187 vs 173), *and* higher precision (0.899 vs 0.887).
+> Compare NR-35, where fusion showed more and delivered more at *lower* precision for
+> +0.00. Big movers: `rag` +2→+12, `cv` +4→+10, `llminfer` +4→+8, against `thin-kv` +7→+4
+> and `speech` +6→+3.
+>
+> **What it licenses — exactly what the pre-registration said, no more.** Inside the floor
+> means unresolved. The `DECLARED` entry stops reading "unmeasured in either direction" and
+> becomes "measured once at +0.64, unresolved". **No default changes**: the template keeps
+> 1.5 and the preset keeps 0.0, because a point estimate inside the floor cannot justify
+> moving either. What *has* changed is the direction of concern — I opened this suspecting
+> the template was shipping a degradation to users, and the evidence, such as it is, points
+> the other way.
+>
+> **Worth one more draw.** +0.64 against a 0.74 floor is the closest any arm has come
+> without resolving. Averaging a second paired draw on the same pool cuts the standard error
+> by √2 — an effective floor near 0.52 — which would resolve this. It needs no collection
+> (the pool exists), costs ~$8, and has a real decision attached: if it resolves positive,
+> the *measured preset* is leaving value on the table and `BENCHMARK_HEADLINE` changes.
+>
+> **Cost** ~$9 plus one live collection (~1 h) forced by the frozen-pool break below.
+
+#### Three guards fired during this experiment. Two were right, one was mine to fix. **[C-19]**
+
+**The one that cost a collection, and it was my regression.** Adding `rr_scan_source` to
+`POOL_FLAGS` on 2026-08-16 (NR-36) **invalidated every frozen pool in the project**: the
+fingerprint hashes the flag set, so growing the set makes all stored pools unreadable. Both
+arms refused immediately. That is the guard working — reusing them would have ranked the
+old pool under the new run's name — but the frozen mode is what took the floor from 1.04 to
+0.48/0.74, so the regression silently removed the project's cheap, sensitive experimental
+mode until someone tried to use it.
+
+I considered omitting default-valued flags from the hash so a new flag would be a no-op, and
+**rejected it**: this project changes defaults (`bigrams` adjacent→verified, `top_k` 15→50,
+`top_n` 10→15), so a pool collected under an old default would then silently match a run
+under a new one — trading a loud failure for the exact silent-staleness bug the fingerprint
+exists to prevent. The refusal is correct. What was weak was the *diagnosis*: two opaque
+hashes, and working out the cause took three commands. Pools now record the flag set they
+were fingerprinted over, and a mismatch names what was added or removed and why a defaulted
+new flag still invalidates.
+
+**The one that saved the experiment.** The void-not-null refusal added with `--rr-w-embedding`
+fired on the first probe: without the `embeddings` extra the ranker scores on keyword and
+category alone, so the treatment arm would silently *be* the control and report "the weight
+does nothing" about a component that never ran. The cause was not a missing package — the
+probe script lived in `evals/.work/`, Python prepends the script's directory to `sys.path`,
+and that directory holds ~100 cloned repositories, one of which shadows the
+sentence-transformers import chain. The identical script from `/tmp` runs fine. Without the
+refusal this would have been ~$9 spent on a manufactured null.
+
+**The one that was over-strict.** The report refused to compare the arms because one
+*seeded* the pool (`frozen-seeded`) and the other *reused* it (`frozen:<fp>`) — despite
+identical fingerprints and identical pool sizes on all 25 cases. Those are different
+histories and `provenance` is right to say so; comparability is the narrower question of
+whether the arms ranked the same candidates, which `same_pool` already answers. The fix went
+to the comparability check, **not** to the shared `provenance` function — blurring that
+would misdate the seeding run everywhere it is used. Left unfixed, the natural shape of a
+frozen experiment (arm 1 seeds, arm 2 reuses) would need a throwaway collection every time.
+
 ### Documentation volume does not predict anything, and it closes the thin-docs axis (2026-08-16) **[NR-37]**
 
 ```bash
