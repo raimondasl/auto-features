@@ -447,12 +447,31 @@ claude mcp add reporadar -- rr mcp --config /abs/path/.reporadar.yml
 | `rr status` | Corpus size, last run, ratings/stars recorded |
 | `rr history` | Past collection runs with counts |
 | `rr queries` | The auto-generated queries `rr update` would run, without running them |
-| `rr watch --interval 6h` | Continuous update+digest cycles with a desktop notification |
+| `rr watch --interval 6h` | Continuous update+digest cycles with a desktop notification — **reduced pipeline, see below** |
 | `rr schedule` | Install/remove an OS-level scheduled run (crontab or schtasks) |
 | `rr gh-issues` | Open a GitHub issue per top paper (needs the `gh` CLI) |
-| `rr workspace` | Multi-repo workspaces: `init`, `add`, `list`, `remove`, `update`, `digest` |
+| `rr workspace` | Multi-repo workspaces: `init`, `add`, `list`, `remove`, `update`, `digest` — **reduced pipeline, see below** |
 
 Run any of them with `--help` for the full flag list.
+
+### `rr watch` and `rr workspace update` do not run the measured pipeline
+
+Both re-implement the front half of `rr update` and stop before most of it: **no actionability
+gate, no fine-scale rescore, no HyDE, no fusion, no embeddings, and no source beyond arXiv** —
+whatever your config says. The gate is the stage that *declines to show* a paper, so a config
+reading `triage.enabled: true` produces an ungated digest under `rr watch`: closer to the
+**−8.12** configuration than the **+5.72** one.
+
+Both commands now list the stages they are skipping before they start, and `rr watch` repeats
+a one-line version every cycle, because an unattended loop that warned once has warned nobody
+by hour three. For the pipeline every published number describes, schedule `rr update`:
+
+```bash
+rr schedule --cron "0 9 * * 1"   # registers `rr update && rr digest` -- the full pipeline
+```
+
+This is tracked as ROADMAP's remaining Tier 0 item ("pipeline drift") and the disclosure is
+the interim; the fix is one shared pipeline behind all three entry points.
 
 ## GitHub Action (scheduled digests + GitHub Pages)
 

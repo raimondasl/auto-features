@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from reporadar.config import RepoRadarConfig
 from reporadar.watcher import (
     parse_interval,
     run_update_cycle,
@@ -115,12 +117,13 @@ class TestRunUpdateCycle:
         mock_collect: MagicMock,
         mock_store_cls: MagicMock,
     ) -> None:
-        cfg = MagicMock()
-        cfg.repo_path = "/tmp/repo"
+        # A REAL config, not a MagicMock: the cycle now asks it which stages it enables,
+        # and a mock answers every numeric comparison with a TypeError. Using the real
+        # dataclass also means a renamed config field breaks this test rather than
+        # silently disabling the disclosure.
+        cfg = RepoRadarConfig(repo_path="/tmp/repo")
         cfg.output.digest_path = "/tmp/digest.md"
         cfg.output.top_n = 15
-        cfg.ranking = MagicMock()
-        cfg.queries = MagicMock()
         cfg.arxiv.categories = ["cs.CL"]
         cfg.arxiv.lookback_days = 14
         # This test covers cycle mechanics; the integrity check (on by default) would
@@ -144,6 +147,59 @@ class TestRunUpdateCycle:
         result = run_update_cycle("/tmp/config.yml")
         assert result["success"] is True
         assert result["papers_new"] == 1
+        # The disclosure travels in the result, not only in a log line. The GitHub Action
+        # and anything else wrapping the loop reads data, never stderr.
+        #
+        # `enrichment` is the one stage a bare dataclass config enables (`provider` is not
+        # "off"), so it is what a user who wrote no config at all is silently missing.
+        # Note this is NOT `hybrid`: the dataclass ships it False and the template does not
+        # write it, so `rr init` users never had fusion under either entry point.
+        assert result["skipped_stages"] == ["enrichment"]
+
+    @patch("reporadar.store.PaperStore")
+    @patch("reporadar.collector.collect_papers")
+    @patch("reporadar.collector.build_queries", return_value=["all:test"])
+    @patch("reporadar.profiler.profile_repo")
+    @patch("reporadar.ranker.rank_papers")
+    @patch("reporadar.digest.write_digest")
+    @patch("reporadar.config.load_config")
+    @patch("reporadar.config.validate_config", return_value=[])
+    def test_a_broken_disclosure_does_not_stop_the_cycle(
+        self,
+        mock_validate: MagicMock,
+        mock_load: MagicMock,
+        mock_write: MagicMock,
+        mock_rank: MagicMock,
+        mock_profile: MagicMock,
+        mock_build: MagicMock,
+        mock_collect: MagicMock,
+        mock_store_cls: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """A hand-edited config can put a string where a number belongs. The advisory
+        warning must not take down an unattended loop over it — but it must also not
+        report "nothing skipped", which would be a silent false all-clear."""
+        cfg = RepoRadarConfig(repo_path="/tmp/repo")
+        cfg.output.digest_path = "/tmp/digest.md"
+        cfg.arxiv.categories = ["cs.CL"]
+        cfg.signals.integrity = False
+        cfg.ranking.w_embedding = "not a number"  # type: ignore[assignment]
+        mock_load.return_value = cfg
+        mock_collect.return_value = [{"arxiv_id": "123", "title": "Test"}]
+        mock_rank.return_value = [{"arxiv_id": "123", "score_total": 0.8}]
+
+        mock_store = MagicMock()
+        mock_store.upsert_papers.return_value = (1, 0)
+        mock_store.record_run.return_value = 1
+        mock_store.__enter__ = MagicMock(return_value=mock_store)
+        mock_store.__exit__ = MagicMock(return_value=False)
+        mock_store_cls.return_value = mock_store
+        mock_write.return_value = (Path("/tmp/digest.md"), MagicMock())
+
+        result = run_update_cycle("/tmp/config.yml")
+        assert result["success"] is True
+        assert result["skipped_stages"] is None, "void, not an empty all-clear"
+        assert "could not determine" in caplog.text
 
     @patch("reporadar.config.load_config")
     def test_config_not_found(self, mock_load: MagicMock) -> None:
@@ -167,8 +223,7 @@ class TestRunUpdateCycle:
     ) -> None:
         from reporadar.collector import CollectionError
 
-        cfg = MagicMock()
-        cfg.repo_path = "/tmp/repo"
+        cfg = RepoRadarConfig(repo_path="/tmp/repo")
         mock_load.return_value = cfg
         mock_collect.side_effect = CollectionError("fail")
 
@@ -188,8 +243,7 @@ class TestRunUpdateCycle:
         mock_build: MagicMock,
         mock_collect: MagicMock,
     ) -> None:
-        cfg = MagicMock()
-        cfg.repo_path = "/tmp/repo"
+        cfg = RepoRadarConfig(repo_path="/tmp/repo")
         mock_load.return_value = cfg
 
         result = run_update_cycle("/tmp/config.yml")

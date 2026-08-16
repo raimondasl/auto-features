@@ -2232,6 +2232,15 @@ def workspace_update(verbose: bool) -> None:
             cfg = _load_and_validate(cfg_path)
             repo_path = Path(repo["repo_path"]).resolve()
 
+            # Same reduced pipeline as `rr watch`, same disclosure. Per member, because
+            # workspace members carry their own configs and one may enable stages another
+            # does not -- a single warning for the workspace would be right for whichever
+            # member happened to be first.
+            from reporadar.stages import WORKSPACE, drift_warning
+
+            for line in drift_warning(cfg, WORKSPACE):
+                warn(f"[{repo['repo_id']}] {line}")
+
             info(f"Profiling {repo['repo_id']}...")
             # Each member is profiled under its own `profiler:` block. Dropping it here
             # made `scan_source: true` a no-op, so a workspace run collected against a
@@ -2431,6 +2440,14 @@ def watch(config_path: str | None, interval: str, no_notify: bool) -> None:
 
     cfg = _load_and_validate(config_path)
     cfg_path = config_path or str(Path(cfg.repo_path).resolve() / DEFAULT_CONFIG_NAME)
+
+    # Said before the first cycle, in full. The loop repeats a one-line version every
+    # cycle; this is the one a user actually reads, so it is the one that spells out that
+    # the numbers in the README do not describe what is about to run.
+    from reporadar.stages import WATCH, drift_warning
+
+    for line in drift_warning(cfg, WATCH):
+        warn(line)
 
     info(f"Watching every {interval} (Ctrl+C to stop)...")
     try:
