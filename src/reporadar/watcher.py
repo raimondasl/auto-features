@@ -112,6 +112,7 @@ def run_update_cycle(
     from reporadar.digest import categorize_papers, write_digest
     from reporadar.profiler import profile_repo
     from reporadar.ranker import rank_papers
+    from reporadar.stages import WATCH, unrun_stages
     from reporadar.store import PaperStore
 
     try:
@@ -120,6 +121,31 @@ def run_update_cycle(
             logger.warning("Config warning: %s", w)
     except FileNotFoundError:
         return {"success": False, "error": "Config not found"}
+
+    # Logged every cycle, not once at startup: this loop is unattended and long-lived, so
+    # a message printed hours ago is a message nobody saw. One line, and the full list is
+    # in the returned dict for programmatic callers.
+    #
+    # The disclosure is advisory and must never take the cycle down with it -- but a
+    # disclosure that failed is NOT a disclosure that found nothing, so the failure is
+    # loud and `skipped_stages` becomes None rather than [] (void, not null).
+    skipped: list[str] | None
+    try:
+        skipped = [s.key for s in unrun_stages(cfg, WATCH)]
+    except Exception as exc:  # noqa: BLE001 -- a bad config value must not stop the watch
+        logger.warning(
+            "could not determine which stages this cycle skips (%s) -- treat the pipeline "
+            "as reduced; `rr update` is the one every published number describes",
+            exc,
+        )
+        skipped = None
+    if skipped:
+        logger.warning(
+            "reduced pipeline: %d configured stage(s) will NOT run (%s). "
+            "Published numbers describe `rr update`.",
+            len(skipped),
+            ", ".join(skipped),
+        )
 
     repo_path = Path(cfg.repo_path).resolve()
     db_path = repo_path / ".reporadar" / "papers.db"
@@ -203,6 +229,7 @@ def run_update_cycle(
         "papers_new": new_count,
         "top_picks_count": len(top_picks),
         "digest_path": str(out),
+        "skipped_stages": skipped,
     }
 
     if on_new_papers and new_count > 0:
