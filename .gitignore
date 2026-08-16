@@ -200,6 +200,13 @@ evals/results/
 # RepoRadar generated output (local runs)
 /reporadar_digest.*
 /digests/
+# The paper store `rr init` creates. Generated state, binary, and it grows every
+# run (2.6 MB after one run of this repo), so it never belongs in a commit.
+# The trailing slash restricts the match to the directory: a bare `/.reporadar`
+# would also swallow a stray *file* of that name. It is NOT needed to protect the
+# committed `.reporadar.yml` beside it — gitignore matches whole path components,
+# so neither form touches that file. Both checked with `git check-ignore`.
+/.reporadar/
 # Scratch configs for pointing `rr` at a benchmark clone (`diffusion.reporadar.yml`
 # and friends). They carry absolute machine-specific paths, so they must not be
 # committed by a stray `git add -A`.
