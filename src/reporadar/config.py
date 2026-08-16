@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, is_dataclass
 from pathlib import Path
 from typing import Any
 
@@ -392,8 +392,145 @@ class RepoRadarConfig:
     hyde: HydeConfig = field(default_factory=HydeConfig)
 
 
+# The scalar kinds a config leaf can declare. Lists, dicts and nested sections pass
+# through untouched.
+_SCALARS: tuple[type, ...] = (bool, int, float, str)
+
+# Section name -> its dataclass, read off `RepoRadarConfig`'s own fields rather than
+# hand-listed. A hand-listed map checks whatever somebody remembered, which is the C-16
+# shape this project has already paid for once — and it would go stale the first time a
+# section was added.
+_SECTION_TYPES: dict[str, type] = {}
+
+# Leaves that accept a value the type check would otherwise reject, because they define
+# their own meaning for it. Keyed "section.key" and applied before the check.
+_NORMALIZERS: dict[str, Any] = {"enrichment.provider": _normalize_off}
+
+
+def _coerce_scalar(section: str, key: str, value: Any, expected: Any) -> Any:
+    """One config leaf, checked against its declared type before it reaches a dataclass.
+
+    Two YAML footguns motivate this, and both have already fired here:
+
+    * **A quoted number** (`w_embedding: "1.5"`) parses as a string, and the string then
+      flows all the way to `validate_config`'s bounds check, which raises `TypeError:
+      '<' not supported between instances of 'str' and 'int'` — from *every* command that
+      loads a config, with a traceback and no mention of which field is at fault. Coerced
+      here, because a quoted number has exactly one possible meaning.
+    * **An unquoted `off`/`on`/`yes`/`no`** parses as a YAML 1.1 *boolean*, so
+      `enrichment: provider: off` sets `provider = False`, which is not `"off"` and does
+      not disable enrichment. That one shipped: `tests/conftest.py`'s network guard exists
+      partly because two tests ran live enrichment while claiming to have it off. There is
+      no safe coercion — `False` may have meant `"off"` or `"no"` — so it is refused, by
+      name, with the fix in the message.
+
+    Refusing rather than defaulting follows the same rule as `queries.bigrams` and
+    `ranking.absent_category` above: a bad value that quietly becomes the default reads
+    afterwards as a measurement of the value that was asked for.
+    """
+    if expected is None or not isinstance(expected, type) or expected not in _SCALARS:
+        return value  # lists, dicts, unions, anything unannotated: unchanged
+    if isinstance(value, expected) and not (expected is not bool and isinstance(value, bool)):
+        return value
+
+    # bool is a subclass of int, so `hybrid: 1` would pass an `isinstance(value, int)`
+    # check for an int field and `w_keyword: true` would pass for a float. Caught above.
+    if isinstance(value, bool):
+        hint = (
+            " If you wrote an unquoted off/on/yes/no, YAML 1.1 parses those as booleans — "
+            f'quote it: `{key}: "off"`.'
+            if expected is str
+            else ""
+        )
+        raise ValueError(
+            f"{section}.{key} expects {expected.__name__}, got the boolean {value!r}.{hint}"
+        )
+    if expected is bool and isinstance(value, str):
+        # NOT `bool(value)`: that is truthiness, so `enabled: "false"` would arrive as
+        # True — a quoted off-switch silently turning the stage ON, which is worse than
+        # the crash this function exists to prevent. Only literals, and only these.
+        literal = {"true": True, "false": False, "yes": True, "no": False}.get(
+            value.strip().lower()
+        )
+        if literal is None:
+            raise ValueError(
+                f"{section}.{key} expects a boolean, got the string {value!r}. "
+                f"Use `true` or `false`, unquoted."
+            )
+        return literal
+    if expected is not str and isinstance(value, str):
+        try:
+            coerced = expected(value.strip())
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"{section}.{key} expects {expected.__name__}, got the string {value!r}, "
+                f"which is not a number."
+            ) from None
+        return coerced
+    if expected is float and isinstance(value, int):
+        return float(value)
+    raise ValueError(
+        f"{section}.{key} expects {expected.__name__}, got {type(value).__name__} {value!r}."
+    )
+
+
+def _coerce_section(section: str, raw: Any, cls: type) -> Any:
+    """Type-check one config section against its dataclass. Unknown keys pass through so
+    the dataclass raises its own `unexpected keyword argument` error, which already names
+    the key."""
+    if not isinstance(raw, dict):
+        raise ValueError(f"{section}: expects a mapping, got {type(raw).__name__} {raw!r}.")
+    from dataclasses import fields as dataclass_fields
+
+    declared = {f.name: f.type for f in dataclass_fields(cls)}
+    out = {}
+    for key, value in raw.items():
+        # Leaves that define their own meaning for a YAML boolean run their normaliser
+        # FIRST, so the type check sees what the field actually ends up holding. Without
+        # this, the check below would reject the documented `enrichment: provider: off` —
+        # the exact form `_normalize_off` exists to support.
+        normalise = _NORMALIZERS.get(f"{section}.{key}")
+        if normalise is not None:
+            value = normalise(value)
+        expected = declared.get(key)
+        # Annotations are strings under `from __future__ import annotations`, so resolve
+        # the scalar names directly rather than dragging in `get_type_hints` and its
+        # forward-reference machinery for four cases.
+        resolved = {"bool": bool, "int": int, "float": float, "str": str}.get(
+            expected if isinstance(expected, str) else ""
+        )
+        out[key] = _coerce_scalar(section, key, value, resolved)
+    return out
+
+
+def _section_types() -> dict[str, type]:
+    """Every `RepoRadarConfig` field whose default_factory builds a config dataclass."""
+    from dataclasses import MISSING
+    from dataclasses import fields as dataclass_fields
+
+    out: dict[str, type] = {}
+    for f in dataclass_fields(RepoRadarConfig):
+        factory = f.default_factory
+        if factory is not MISSING and isinstance(factory, type) and is_dataclass(factory):
+            out[f.name] = factory
+    return out
+
+
 def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     """Build a RepoRadarConfig from a raw dict (parsed YAML)."""
+    if not _SECTION_TYPES:
+        _SECTION_TYPES.update(_section_types())
+    for section, cls in _SECTION_TYPES.items():
+        if section in data:
+            data = {**data, section: _coerce_section(section, data[section], cls)}
+    # `triage.finescale` is the one nested section; the loop above only reaches top level.
+    if isinstance(data.get("triage"), dict) and "finescale" in data["triage"]:
+        triage_raw = dict(data["triage"])
+        triage_raw["finescale"] = _coerce_section(
+            "triage.finescale", triage_raw["finescale"], FinescaleConfig
+        )
+        data = {**data, "triage": triage_raw}
+
     arxiv = ArxivConfig(**data["arxiv"]) if "arxiv" in data else ArxivConfig()
     queries = QueriesConfig(**data["queries"]) if "queries" in data else QueriesConfig()
     # Fail on an unknown mode rather than silently falling back to `adjacent` — a typo that
