@@ -136,7 +136,10 @@ class TestTheCurrentTreeIsClean:
         """The other half: a guard that only forbids copies passes on a file that deleted
         the call entirely, which is how `to_plain_keywords` sat correct and unused."""
         root = Path(__file__).resolve().parents[1]
-        for parts in ((("src", "reporadar", "cli.py")), ("src", "reporadar", "digest.py")):
+        # `pipeline.py`, not `cli.py`, since the orchestrator moved there on 2026-08-16 --
+        # and this guard is what asked the question ("has the caller moved?") rather than
+        # passing quietly on a file that had stopped calling it.
+        for parts in (("src", "reporadar", "pipeline.py"), ("src", "reporadar", "digest.py")):
             assert _window_callers(root.joinpath(*parts)), f"{parts[-1]} no longer calls it"
 
     def test_every_config_difference_is_declared(self) -> None:
@@ -327,12 +330,13 @@ class TestTheStagesTheProductShipsWithout:
         assert DECLARED[field].strip()
 
     def test_enabling_the_gate_takes_two_fields(self) -> None:
-        """`cli.update` gates on `triage.enabled AND suggestions.provider in (ollama,
+        """The pipeline gates on `triage.enabled AND suggestions.provider in (ollama,
         claude)`, so `triage.enabled: true` alone is a no-op. Pinned because a reader of
-        the config alone would not guess it."""
-        source = (Path(__file__).resolve().parents[1] / "src" / "reporadar" / "cli.py").read_text(
-            encoding="utf-8"
-        )
+        the config alone would not guess it. (In `pipeline.py` since 2026-08-16, shared by
+        `rr update` and `rr watch` -- previously inline in `cli.update`.)"""
+        source = (
+            Path(__file__).resolve().parents[1] / "src" / "reporadar" / "pipeline.py"
+        ).read_text(encoding="utf-8")
         assert 'cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude")' in source
         assert effective_shipped()["suggestions.provider"] == "template"
 

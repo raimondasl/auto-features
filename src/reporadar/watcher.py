@@ -104,16 +104,21 @@ def run_update_cycle(
 ) -> dict[str, Any]:
     """Run a single update+digest cycle.
 
-    Returns a dict with: ``success``, ``run_id``, ``papers_new``,
-    ``top_picks_count``, ``digest_path``.
+    Returns a dict with: ``success``, ``run_id``, ``papers_new``, ``top_picks_count``,
+    ``digest_path``, ``skipped_stages``.
+
+    This runs THE pipeline -- the same `pipeline.run_pipeline` that `rr update` calls, so
+    a watch cycle produces the configuration the config file describes. Until 2026-08-16
+    it ran a shorter copy: no gate, no rescore, no HyDE, no fusion, no embeddings, arXiv
+    only. A user whose config said `triage.enabled: true` got an ungated digest -- the
+    -8.12 configuration under the name of the +5.72 one.
     """
-    from reporadar.collector import CollectionError, build_queries, collect_papers
+    from reporadar.collector import CollectionError
     from reporadar.config import load_config, validate_config
     from reporadar.digest import categorize_papers, write_digest
-    from reporadar.profiler import profile_repo
-    from reporadar.ranker import rank_papers
+    from reporadar.pipeline import LogReporter, open_store, run_pipeline
     from reporadar.stages import WATCH, unrun_stages
-    from reporadar.store import PaperStore
+    from reporadar.store import StoreError
 
     try:
         cfg = load_config(config_path)
@@ -122,13 +127,14 @@ def run_update_cycle(
     except FileNotFoundError:
         return {"success": False, "error": "Config not found"}
 
-    # Logged every cycle, not once at startup: this loop is unattended and long-lived, so
-    # a message printed hours ago is a message nobody saw. One line, and the full list is
-    # in the returned dict for programmatic callers.
+    # Kept after the unification, not as a leftover. `unrun_stages` should now return []
+    # for a watch cycle, and `tests/test_stages.py` proves the table matches the code --
+    # but if a future stage lands in `rr update` and not here, this is what says so out
+    # loud instead of letting the gap reopen in silence.
     #
-    # The disclosure is advisory and must never take the cycle down with it -- but a
-    # disclosure that failed is NOT a disclosure that found nothing, so the failure is
-    # loud and `skipped_stages` becomes None rather than [] (void, not null).
+    # Advisory: it must never take the cycle down. A disclosure that FAILED is not a
+    # disclosure that found nothing, so the failure is loud and `skipped_stages` is None
+    # rather than [] (void, not null).
     skipped: list[str] | None
     try:
         skipped = [s.key for s in unrun_stages(cfg, WATCH)]
@@ -151,91 +157,52 @@ def run_update_cycle(
     db_path = repo_path / ".reporadar" / "papers.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Profile + collect. `rr watch` is `rr update` on a loop, so it must build the same
-    # queries — omitting profiler_cfg silently turned scan_source off for every cycle.
-    repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
-    queries = build_queries(repo_profile, cfg.queries, cfg.arxiv)
-    if not queries:
-        return {"success": True, "run_id": None, "papers_new": 0, "top_picks_count": 0}
-
     try:
-        papers = collect_papers(queries, cfg.arxiv)
-    except CollectionError as exc:
+        result = run_pipeline(
+            cfg,
+            repo_path=repo_path,
+            db_path=db_path,
+            report=LogReporter(logger),
+        )
+    except (CollectionError, StoreError) as exc:
         return {"success": False, "error": str(exc)}
 
-    if not papers:
-        return {"success": True, "run_id": None, "papers_new": 0, "top_picks_count": 0}
+    if result.stopped is not None or result.run_id is None:
+        # `stopped` and `run_id is None` are the same condition, but only the second
+        # convinces the type checker -- and asserting instead would turn an ordinary
+        # "nothing to do this cycle" into a crash in an unattended loop.
+        return {
+            "success": True,
+            "run_id": None,
+            "papers_new": 0,
+            "top_picks_count": 0,
+            "skipped_stages": skipped,
+        }
+    run_id = result.run_id
 
-    with PaperStore(db_path) as store:
-        new_count, seen_count = store.upsert_papers(papers)
-        run_id = store.record_run(queries, new_count, seen_count)
-
-        # The watch loop is a reduced pipeline (no embeddings, citations, SPECTER2 or
-        # triage), but the integrity check is not an enhancement to skip: `rr watch`
-        # is the *unattended* path, so a withdrawn paper here reaches a digest nobody
-        # is watching for it. Same bounded shape as cli.update stage 6e.
-        withdrawn: set[str] = set()
-        if cfg.signals.integrity:
-            try:
-                from reporadar.signals.integrity import (
-                    fetch_comments,
-                    find_withdrawn,
-                    stale_ids,
-                )
-
-                flags = find_withdrawn(papers, {})
-                previous = store.get_signals([p["arxiv_id"] for p in papers], "withdrawn")
-                to_check = stale_ids(
-                    [p["arxiv_id"] for p in papers if ":" not in p["arxiv_id"]],
-                    {aid: row["checked_at"] for aid, row in previous.items()},
-                )
-                comments = fetch_comments(to_check) if to_check else {}
-                flags.update(find_withdrawn(papers, comments))
-                if to_check and comments:
-                    store.save_signals(
-                        [(aid, "withdrawn", flags.get(aid), None) for aid in to_check]
-                    )
-                for aid, row in previous.items():
-                    if row["value"] and aid not in comments:
-                        flags.setdefault(aid, row["value"])
-                withdrawn = set(flags)
-                if withdrawn:
-                    logger.warning("%d withdrawn paper(s) demoted this cycle", len(withdrawn))
-            except Exception as exc:
-                logger.warning("Integrity check skipped: %s", exc)
-
-        scores = rank_papers(
-            papers,
-            repo_profile,
-            cfg.ranking,
-            cfg.queries,
-            cfg.arxiv.categories,
-            cfg.arxiv.lookback_days,
-            withdrawn=withdrawn,
-        )
-        store.save_scores(run_id, scores)
-
-        # Re-read through the store so the withdrawal flag is joined in, exactly as
-        # every other consumer sees it; `scores` here are bare score dicts.
+    with open_store(db_path, LogReporter(logger)) as store:
+        # Re-read through the store so the withdrawal flag and the gate's llm_score are
+        # joined in, exactly as every other consumer sees it.
         top_picks, _, _ = categorize_papers(
             store.get_scores_for_run(run_id), top_n=cfg.output.top_n
         )
+        out, summary = write_digest(
+            store, result.run_id, cfg.output.digest_path, top_n=cfg.output.top_n
+        )
 
-        out, summary = write_digest(store, run_id, cfg.output.digest_path, top_n=cfg.output.top_n)
-
-    result = {
+    cycle_result = {
         "success": True,
         "run_id": run_id,
-        "papers_new": new_count,
+        "papers_new": result.new_count,
         "top_picks_count": len(top_picks),
         "digest_path": str(out),
         "skipped_stages": skipped,
     }
 
-    if on_new_papers and new_count > 0:
-        on_new_papers(result)
+    if on_new_papers and result.new_count > 0:
+        on_new_papers(cycle_result)
 
-    return result
+    return cycle_result
 
 
 def watch_loop(

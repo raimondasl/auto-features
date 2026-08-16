@@ -19,7 +19,7 @@ The research surfaced things that were silently failing. **Most shipped in PR #1
 | **Dead CLI option** | `rr digest --since` was accepted but unused | ✅ **Shipped** — now filters by publication date; opt-in (default: no filter) so existing digests are unchanged |
 | **No CI** | `.github/workflows/` didn't exist despite ruff/mypy config | ✅ **Shipped** — `ci.yml`: pytest + ruff + `ruff format --check` + mypy on Python 3.11–3.13 |
 | **Run-ordering bug** *(found while repairing)* | `get_runs`/`get_last_run` ordered only by `run_time`; runs sharing a timestamp tied and `get_last_run()` could return the **wrong** run | ✅ **Shipped** — added a `run_id DESC` tiebreaker |
-| **Pipeline drift** | The collect→store→rank pipeline is duplicated across `cli.update` (~235 lines inline), `watcher.py`, and `workspace.py`; watch/workspace skip enrichment | ⏳ **Deferred** to Feature 14 (pipeline.py refactor) — duplication, not breakage; carries regression risk across three entry points |
+| **Pipeline drift** | The collect→store→rank pipeline was duplicated across `cli.update` (~700 lines inline), `watcher.py` and `workspace.py`; watch/workspace skipped the gate, the rescore, HyDE, fusion and every non-arXiv source, so `rr watch` served the **−8.12** configuration while the config said `triage.enabled: true` | ✅ **Shipped** (2026-08-16, two PRs) — `stages.py` discloses what an entry point skips, with an import-graph guard that refuses to drift in either direction; `pipeline.py` then made `rr update` and `rr watch` one implementation (`cli.update`: 728 → 84 lines). **`rr workspace update` is deliberately still separate** — one shared pool across many member repos under a single run id is a different shape, not duplicated code — and keeps the disclosure |
 
 > PR #13 also normalized the whole repo (ran `ruff format`, cleared all `ruff` + `mypy --strict` findings) so CI is genuinely green. 519 tests pass.
 
@@ -1300,7 +1300,7 @@ The defining 2025–2026 shift is from one-shot search to agentic deep search: U
 - A standalone deep-dive report ("state of X for this repo") distinct from the daily digest
 
 **Plan**
-1. **Prerequisite refactor:** extract the collect→store→rank core out of `cli.update`'s ~235-line inline orchestrator into a reusable `pipeline.py` — this also fixes the watcher/workspace pipeline drift (Tier 0)
+1. ~~**Prerequisite refactor:** extract the collect→store→rank core out of `cli.update`'s inline orchestrator into a reusable `pipeline.py`~~ — **done 2026-08-16** (Tier 0), and done for its own sake rather than as this feature's groundwork: the drift was shipping the −8.12 configuration under `rr watch`. `pipeline.run_pipeline` is the reusable core a deepscan loop would call
 2. Build `deepscan.py`: loop of build/refine queries (`llm_client`) → collect (existing collector + `sources/`) → rank → LLM reflection on coverage gaps → next queries, capped at N rounds and a call budget
 3. Citation-hop expansion reusing `citation_graph.py` edges (feature 8 must ship first, or build reference-endpoint code here)
 4. Report via a new Jinja2 template (the `digest.py` fmt-dispatch pattern) with per-claim paper citations

@@ -1,16 +1,20 @@
 """Which pipeline stages each entry point actually runs.
 
 `rr update` is the pipeline every published number describes. `rr watch` and
-`rr workspace update` re-implement its front half and stop before most of it — no gate, no
-HyDE, no fusion, no enrichment. That has been true since the watcher was written, is
-recorded in ROADMAP's Tier 0 as "pipeline drift", and until 2026-08-16 nothing told the
-user. A configuration saying `triage.enabled: true` produced an ungated digest in silence,
-which is worse than a configuration that is merely different: the file asserted something
-the run did not do.
+`rr workspace update` used to re-implement its front half and stop before most of it — no
+gate, no HyDE, no fusion, no enrichment — which meant a configuration saying
+`triage.enabled: true` produced an ungated digest in silence. That is worse than a
+configuration which is merely different: the file asserted something the run did not do.
 
-This module is the *disclosure*, not the fix. The fix is one shared pipeline; this makes
-the gap visible and — more importantly — makes it impossible to close by accident and
-leave the warning claiming a stage is still missing.
+**`rr watch` is fixed.** It calls `pipeline.run_pipeline`, the same function `rr update`
+calls, so every stage below now runs there and `unrun_stages(cfg, WATCH)` is empty.
+`rr workspace update` is not: it collects one shared pool across many member repos under
+a single run id and scores each member against it, which is a different shape rather than
+the same code duplicated. It keeps the disclosure.
+
+**This table did not become decoration when the gap closed.** It is what says so out loud
+if a future stage lands in `rr update` and not in the other entry points — and the guard
+below is what stops it quietly claiming otherwise in either direction.
 
 **Why a registry rather than a hand-written warning string.** A message listing whichever
 stages somebody remembered reads exactly like one listing all of them. That is the C-9b
@@ -70,7 +74,7 @@ STAGES: tuple[Stage, ...] = (
         label="LLM actionability gate",
         module="reporadar.triage",
         enabled=_gate_on,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
         note="the stage that declines to show a paper; most of the -8.12 -> +5.72 gap",
     ),
     Stage(
@@ -78,7 +82,7 @@ STAGES: tuple[Stage, ...] = (
         label="fine-scale rescore",
         module="reporadar.finescale",
         enabled=lambda cfg: _gate_on(cfg) and bool(cfg.triage.finescale.enabled),
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
         note="worth +1.86 -> +3.18 net@2; needs the gate above to have run",
     ),
     Stage(
@@ -86,7 +90,7 @@ STAGES: tuple[Stage, ...] = (
         label="HyDE dense discovery",
         module="reporadar.hyde",
         enabled=lambda cfg: bool(cfg.hyde.enabled),
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
         note="+1.36 net@2; reaches papers keyword search structurally cannot",
     ),
     Stage(
@@ -94,7 +98,7 @@ STAGES: tuple[Stage, ...] = (
         label="BM25 fusion (ranking.hybrid)",
         module="reporadar.retrieval",
         enabled=lambda cfg: bool(cfg.ranking.hybrid),
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
         note="in every headline; measured +0.00 on its own (NR-35)",
     ),
     Stage(
@@ -102,7 +106,7 @@ STAGES: tuple[Stage, ...] = (
         label="embedding similarity (ranking.w_embedding)",
         module="reporadar.embeddings",
         enabled=lambda cfg: cfg.ranking.w_embedding > 0,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
         note="+1.00 net@2 at the measured weight of 1.5 (NR-38)",
     ),
     Stage(
@@ -110,56 +114,56 @@ STAGES: tuple[Stage, ...] = (
         label="SPECTER2 similarity (ranking.w_specter)",
         module="reporadar.specter",
         enabled=lambda cfg: cfg.ranking.w_specter > 0,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="citations",
         label="citation counts (ranking.w_citations)",
         module="reporadar.citations",
         enabled=lambda cfg: cfg.ranking.w_citations > 0,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="citation_proximity",
         label="extends-work-you-starred (ranking.w_citation_proximity)",
         module="reporadar.citation_graph",
         enabled=lambda cfg: cfg.ranking.w_citation_proximity > 0,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="community",
         label="community attention (ranking.w_community)",
         module="reporadar.sources.hf_papers",
         enabled=lambda cfg: cfg.ranking.w_community > 0,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="hackernews",
         label="Hacker News attention (signals.hackernews)",
         module="reporadar.signals.hn",
         enabled=lambda cfg: bool(cfg.signals.hackernews),
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="feedback",
         label="feedback-adjusted ranking weights",
         module="reporadar.feedback",
         enabled=lambda cfg: bool(cfg.feedback.enabled),
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="recommendations",
         label="learned recommendations (recommendations.enabled)",
         module="reporadar.sources.s2_recommendations",
         enabled=lambda cfg: bool(cfg.recommendations.enabled),
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="enrichment",
         label="Hugging Face enrichment (enrichment.provider)",
         module="reporadar.sources.hf_papers",
         enabled=lambda cfg: cfg.enrichment.provider != "off",
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     # Non-arXiv sources. Both reduced entry points call `collector.collect_papers`, which
     # is arXiv-only, so every other configured source is silently dropped -- a config
@@ -169,45 +173,43 @@ STAGES: tuple[Stage, ...] = (
         label="Semantic Scholar source",
         module="reporadar.sources.semantic_scholar",
         enabled=lambda cfg: "semantic_scholar" in cfg.sources,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="source_openalex",
         label="OpenAlex source",
         module="reporadar.sources.openalex",
         enabled=lambda cfg: "openalex" in cfg.sources,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="source_biorxiv",
         label="bioRxiv source",
         module="reporadar.sources.biorxiv",
         enabled=lambda cfg: "biorxiv" in cfg.sources,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="source_iacr",
         label="IACR ePrint source",
         module="reporadar.sources.iacr",
         enabled=lambda cfg: "iacr" in cfg.sources,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
     Stage(
         key="source_dblp",
         label="DBLP source",
         module="reporadar.sources.dblp",
         enabled=lambda cfg: "dblp" in cfg.sources,
-        runs_in=frozenset({UPDATE}),
+        runs_in=frozenset({UPDATE, WATCH}),
     ),
-    # Runs everywhere, and listed so the guard checks a positive case too. A table that
-    # only ever asserts absence cannot tell "correctly absent" from "guard is broken".
     Stage(
         key="integrity",
         label="withdrawal / retraction check (signals.integrity)",
         module="reporadar.signals.integrity",
         enabled=lambda cfg: bool(cfg.signals.integrity),
         runs_in=frozenset({UPDATE, WATCH}),
-        note="on by default; `rr watch` is unattended, so it is not an enhancement to skip",
+        note="on by default; recommending retracted work is the worst thing the ranker can do",
     ),
 )
 

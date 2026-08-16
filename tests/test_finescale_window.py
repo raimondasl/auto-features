@@ -144,7 +144,7 @@ class TestUpdateScopesTheBandToTheWindow:
 
     @patch("reporadar.finescale.score_papers")
     @patch("reporadar.triage.triage_papers")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_a_band_paper_outside_the_window_is_not_rescored(
         self,
         mock_collect: MagicMock,
@@ -172,7 +172,7 @@ class TestUpdateScopesTheBandToTheWindow:
 
     @patch("reporadar.finescale.score_papers")
     @patch("reporadar.triage.triage_papers")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_the_scoped_band_matches_what_the_digest_would_show(
         self,
         mock_collect: MagicMock,

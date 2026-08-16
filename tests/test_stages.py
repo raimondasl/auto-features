@@ -31,17 +31,34 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "reporadar"
 
-# The functions each entry point actually executes. `rr watch` is `watcher.run_update_cycle`;
-# `rr workspace update` is the CLI command plus the helper it delegates scoring to.
-ENTRY_SOURCES: dict[str, tuple[str, ...]] = {
-    "watch": ("watcher.py",),
-    "workspace": ("workspace.py",),
+# The code each entry point actually executes, as (file, function-or-None) pairs. A bare
+# file means "every import in it".
+#
+# `rr watch` includes `pipeline.py` because `run_update_cycle` delegates the whole run to
+# `run_pipeline`; reading only `watcher.py` would now report every stage as skipped.
+# `rr workspace update` is scoped to the ONE function in `cli.py` that implements it plus
+# the helper it delegates scoring to — reading all of `cli.py` would sweep in every import
+# the other twenty commands make and report the workspace path as running everything.
+ENTRY_SOURCES: dict[str, tuple[tuple[str, str | None], ...]] = {
+    "watch": (("watcher.py", None), ("pipeline.py", None)),
+    "workspace": (("cli.py", "workspace_update"), ("workspace.py", None)),
 }
 
 
-def _imported_modules(path: Path) -> set[str]:
-    """Every `reporadar.*` module imported anywhere in *path*, including inside functions."""
-    tree = ast.parse(path.read_text(encoding="utf-8"))
+def _imports_for(entry_point: str) -> set[str]:
+    found: set[str] = set()
+    for name, func in ENTRY_SOURCES[entry_point]:
+        found |= _imported_modules(SRC / name, func)
+    return found
+
+
+def _imported_modules(path: Path, function: str | None = None) -> set[str]:
+    """Every `reporadar.*` module imported in *path*, or in just one function of it."""
+    tree: ast.AST = ast.parse(path.read_text(encoding="utf-8"))
+    if function is not None:
+        tree = next(
+            n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == function
+        )
     found: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -109,9 +126,7 @@ class TestTheTableMatchesTheCode:
     def test_no_stage_is_secretly_run(self, entry_point: str) -> None:
         from reporadar.stages import STAGES
 
-        imported: set[str] = set()
-        for name in ENTRY_SOURCES[entry_point]:
-            imported |= _imported_modules(SRC / name)
+        imported = _imports_for(entry_point)
         wrong = [s.key for s in STAGES if s.missing_from(entry_point) and s.module in imported]
         assert wrong == [], (
             f"stages.py says {entry_point} skips {wrong}, but its source imports those "
@@ -123,9 +138,7 @@ class TestTheTableMatchesTheCode:
     def test_no_stage_is_secretly_skipped(self, entry_point: str) -> None:
         from reporadar.stages import STAGES
 
-        imported: set[str] = set()
-        for name in ENTRY_SOURCES[entry_point]:
-            imported |= _imported_modules(SRC / name)
+        imported = _imports_for(entry_point)
         wrong = [
             s.key for s in STAGES if not s.missing_from(entry_point) and s.module not in imported
         ]
@@ -148,6 +161,25 @@ class TestTheTableMatchesTheCode:
 
         assert unrun_stages(_everything_on(), UPDATE) == []
 
+    def test_watch_now_runs_everything_too(self) -> None:
+        """The Tier 0 fix, as a checked property rather than a claim in a commit message.
+
+        `rr watch` delegates to the same `run_pipeline` as `rr update`, so no configuration
+        can produce a stage it skips. If someone adds a stage to `rr update` alone, the two
+        direction checks above fail first — and if someone re-forks the watcher, this fails.
+        """
+        from reporadar.stages import WATCH, unrun_stages
+
+        assert unrun_stages(_everything_on(), WATCH) == []
+
+    def test_workspace_is_still_reduced_and_says_so(self) -> None:
+        """The half deliberately NOT unified: one shared pool across many member repos is
+        a different shape, not duplicated code. It keeps the disclosure, and this pins that
+        it is still telling the truth rather than having quietly gone silent."""
+        from reporadar.stages import WORKSPACE, unrun_stages
+
+        assert {s.key for s in unrun_stages(_everything_on(), WORKSPACE)} >= {"triage", "hyde"}
+
 
 class TestTheStagesAreLazilyImported:
     """The guard reads imports as a proxy for execution. That is only valid because every
@@ -159,7 +191,7 @@ class TestTheStagesAreLazilyImported:
         from reporadar.stages import STAGES
 
         modules = {s.module for s in STAGES}
-        for name in ENTRY_SOURCES[entry_point]:
+        for name, _func in ENTRY_SOURCES[entry_point]:
             tree = ast.parse((SRC / name).read_text(encoding="utf-8"))
             for node in tree.body:  # top level only
                 if isinstance(node, ast.ImportFrom) and node.module in modules:
@@ -173,68 +205,65 @@ class TestWhatTheUserIsTold:
     def test_the_gate_needs_both_fields(self) -> None:
         """`triage.enabled` alone is a no-op, so warning about a gate that was never on
         would train the user to ignore the warning."""
-        from reporadar.stages import WATCH, unrun_stages
+        from reporadar.stages import WORKSPACE, unrun_stages
 
-        keys = {s.key for s in unrun_stages(_cfg(triage__enabled=True), WATCH)}
+        keys = {s.key for s in unrun_stages(_cfg(triage__enabled=True), WORKSPACE)}
         assert "triage" not in keys
-        keys = {
-            s.key
-            for s in unrun_stages(_cfg(triage__enabled=True, suggestions__provider="claude"), WATCH)
-        }
-        assert "triage" in keys
+        both = _cfg(triage__enabled=True, suggestions__provider="claude")
+        assert "triage" in {s.key for s in unrun_stages(both, WORKSPACE)}
 
     def test_finescale_is_not_reported_without_the_gate(self) -> None:
-        from reporadar.stages import WATCH, unrun_stages
+        from reporadar.stages import WORKSPACE, unrun_stages
 
         cfg = _cfg(triage__finescale__enabled=True)
-        assert "finescale" not in {s.key for s in unrun_stages(cfg, WATCH)}
+        assert "finescale" not in {s.key for s in unrun_stages(cfg, WORKSPACE)}
 
     def test_a_default_config_is_told_something(self, tmp_path: Path) -> None:
         """The shipped template enables `hybrid` and `w_embedding`, so even a user who
         never touched the config is running a reduced pipeline under `rr watch`."""
         from reporadar.config import default_config_yaml
-        from reporadar.stages import WATCH, unrun_stages
+        from reporadar.stages import WORKSPACE, unrun_stages
 
         cfg = _load_yaml(tmp_path, default_config_yaml())
-        assert unrun_stages(cfg, WATCH), "the default template must still trigger disclosure"
+        assert unrun_stages(cfg, WORKSPACE), "the default template must still trigger disclosure"
 
     def test_the_measured_preset_is_told_a_lot(self, tmp_path: Path) -> None:
         """The preset behind +5.72. Under `rr watch` a user gets none of what earns it."""
         from reporadar.config import measured_config_yaml
-        from reporadar.stages import WATCH, unrun_stages
+        from reporadar.stages import WORKSPACE, unrun_stages
 
         cfg = _load_yaml(tmp_path, measured_config_yaml())
-        keys = {s.key for s in unrun_stages(cfg, WATCH)}
+        keys = {s.key for s in unrun_stages(cfg, WORKSPACE)}
         # The three the headline rests on.
         assert {"triage", "finescale", "hyde"} <= keys
 
     def test_the_gate_is_named_first(self) -> None:
         """The warning truncates, so ordering is load-bearing: the stage worth most of the
         -8.12 -> +5.72 gap must not be the one cut off."""
-        from reporadar.stages import WATCH, unrun_stages
+        from reporadar.stages import WORKSPACE, unrun_stages
 
-        missing = unrun_stages(_everything_on(), WATCH)
+        missing = unrun_stages(_everything_on(), WORKSPACE)
         assert missing[0].key == "triage"
 
     def test_the_warning_says_what_to_do_instead(self) -> None:
-        from reporadar.stages import WATCH, drift_warning
+        from reporadar.stages import WORKSPACE, drift_warning
 
-        text = " ".join(drift_warning(_everything_on(), WATCH))
+        text = " ".join(drift_warning(_everything_on(), WORKSPACE))
         assert "rr update" in text
         assert "REDUCED" in text
 
     def test_silence_when_there_is_nothing_to_disclose(self) -> None:
         """A config running nothing optional gets no warning — otherwise the message is
         noise and stops being read."""
-        from reporadar.stages import WATCH, drift_warning
+        from reporadar.stages import WORKSPACE, drift_warning
 
         cfg = _cfg(ranking__hybrid=False, signals__integrity=False, enrichment__provider="off")
-        assert drift_warning(cfg, WATCH) == []
+        assert drift_warning(cfg, WORKSPACE) == []
 
     def test_truncation_admits_it_truncated(self) -> None:
-        from reporadar.stages import WATCH, drift_warning
+        from reporadar.stages import WORKSPACE, drift_warning
 
-        lines = drift_warning(_everything_on(), WATCH, limit=2)
+        lines = drift_warning(_everything_on(), WORKSPACE, limit=2)
         assert any("more" in line for line in lines)
 
     def test_unknown_entry_point_is_refused(self) -> None:

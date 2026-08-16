@@ -376,7 +376,7 @@ class TestProfileCommand:
 
 
 class TestUpdateCommand:
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_full_pipeline(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         now = datetime.now(UTC).isoformat()
@@ -405,7 +405,7 @@ class TestUpdateCommand:
         assert "Done!" in result.output
         assert (repo / ".reporadar" / "papers.db").exists()
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     @patch("reporadar.citations.fetch_references")
     def test_citation_proximity_wiring(
         self, mock_refs: MagicMock, mock_collect: MagicMock, tmp_path: Path
@@ -448,7 +448,7 @@ class TestUpdateCommand:
         with PaperStore(db) as store:
             assert store.get_citations_for(["2402.00001v1"]) == {"2402.00001v1": ["2401.00099"]}
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     @patch("reporadar.sources.s2_recommendations.fetch_recommendations")
     def test_recommendations_wiring(
         self, mock_recs: MagicMock, mock_collect: MagicMock, tmp_path: Path
@@ -510,7 +510,7 @@ class TestUpdateCommand:
         with PaperStore(db) as store:
             assert store.get_paper("2403.00002v1") is not None
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     @patch("reporadar.specter.fetch_specter_vectors")
     def test_specter_wiring(
         self, mock_vectors: MagicMock, mock_collect: MagicMock, tmp_path: Path
@@ -575,7 +575,7 @@ class TestUpdateCommand:
             assert by_id["2402.00001v1"]["specter_score"] == 1.0
             assert by_id["2402.00002v1"]["specter_score"] == 0.0
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_community_wiring_uses_cached_upvotes(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -622,7 +622,7 @@ class TestUpdateCommand:
         assert by_id["2402.00003v1"]["community_score"] is None
         assert by_id["2402.00003v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_feedback_tuning_preserves_non_learned_weights(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -687,7 +687,7 @@ class TestUpdateCommand:
         assert by_id["2402.00001v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
 
     @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_integrity_demotes_and_records_a_withdrawn_paper(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -724,7 +724,7 @@ class TestUpdateCommand:
         assert signals["2607.00002v1"]["value"] is None
 
     @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_integrity_failure_does_not_break_the_run(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -745,7 +745,7 @@ class TestUpdateCommand:
         assert "Integrity check failed" in result.output
 
     @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_an_arxiv_outage_is_reported_not_hidden(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -771,7 +771,7 @@ class TestUpdateCommand:
         assert "could not reach arXiv" in result.output
 
     @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_local_fallback_flags_a_paper_arxiv_cannot_resolve(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -798,7 +798,7 @@ class TestUpdateCommand:
         mock_comments.assert_not_called()
 
     @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_integrity_skips_recently_checked_papers(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -831,7 +831,7 @@ class TestUpdateCommand:
         assert "0 looked up" in result.output
 
     @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_a_previously_flagged_paper_stays_demoted_without_a_refetch(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -867,7 +867,7 @@ class TestUpdateCommand:
         assert by_id["2607.00001v1"]["score_total"] < by_id["2607.00002v1"]["score_total"]
 
     @patch("reporadar.signals.hn.fetch_attention")
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_hackernews_wiring(
         self, mock_collect: MagicMock, mock_attention: MagicMock, tmp_path: Path
     ) -> None:
@@ -908,7 +908,7 @@ class TestUpdateCommand:
         assert signals["2607.00001v1"]["value"] == "1351"
         assert signals["2607.00001v1"]["detail"].endswith("42823568")
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []
@@ -919,7 +919,7 @@ class TestUpdateCommand:
         assert result.exit_code == 0
         assert "No new papers found" in result.output
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_collection_error(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         from reporadar.collector import CollectionError
 
@@ -932,7 +932,7 @@ class TestUpdateCommand:
         assert result.exit_code == 1
         assert "Failed to fetch papers" in result.output
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_explain_flag(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         now = datetime.now(UTC).isoformat()
@@ -962,7 +962,7 @@ class TestUpdateCommand:
         assert "category" in result.output
         assert "recency" in result.output
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_explain_uses_the_feedback_tuned_weights(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -1001,7 +1001,7 @@ class TestUpdateCommand:
         explanation = result.output[result.output.index("Score explanations:") :]
         assert "1.00 *" not in explanation
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_score_distribution_shown(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         now = datetime.now(UTC).isoformat()
@@ -1028,7 +1028,7 @@ class TestUpdateCommand:
         assert "mean=" in result.output
         assert "median=" in result.output
 
-    @patch("reporadar.cli.collect_papers")
+    @patch("reporadar.pipeline.collect_papers")
     def test_no_queries(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         # Empty repo with no README — profiler finds no keywords
         config_file = tmp_path / ".reporadar.yml"
@@ -1590,6 +1590,10 @@ class TestWorkspaceCommands:
         assert result.exit_code == 0
         assert "No repos registered" in result.output
 
+    # `reporadar.cli.collect_papers`, NOT the pipeline's: `rr workspace update` is the one
+    # collector still implemented in `cli.py`, because one shared pool across many member
+    # repos is a different shape from one-repo-one-run. If this ever needs retargeting,
+    # the workspace path has been unified too and `stages.py` should say so.
     @patch("reporadar.cli.collect_papers")
     def test_update_pipeline(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         ws_db = tmp_path / "workspace.db"
@@ -1992,7 +1996,10 @@ class TestScanSourceReachesEveryPipeline:
             collected.append(list(queries))
             return []
 
-        with patch("reporadar.collector.collect_papers", side_effect=fake_collect):
+        # `reporadar.pipeline.collect_papers`, because the watch cycle now runs the shared
+        # pipeline rather than its own copy -- which is the whole point of this test's
+        # sibling above: both entry points must build the SAME queries.
+        with patch("reporadar.pipeline.collect_papers", side_effect=fake_collect):
             run_update_cycle(str(repo / ".reporadar.yml"))
 
         assert collected, "the watch cycle never reached collection"

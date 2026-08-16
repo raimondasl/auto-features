@@ -68,6 +68,7 @@ from reporadar.paper_id import dedup_id  # noqa: E402
 # scoped to it deliberately.
 PIPELINE_MODULES = (
     ("src", "reporadar", "cli.py"),
+    ("src", "reporadar", "pipeline.py"),
     ("src", "reporadar", "digest.py"),
     ("evals", "harness.py"),
     ("evals", "run_eval.py"),
