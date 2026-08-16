@@ -98,11 +98,11 @@ class TestSendDesktopNotification:
 
 
 class TestRunUpdateCycle:
-    @patch("reporadar.store.PaperStore")
-    @patch("reporadar.collector.collect_papers")
-    @patch("reporadar.collector.build_queries", return_value=["all:test"])
-    @patch("reporadar.profiler.profile_repo")
-    @patch("reporadar.ranker.rank_papers")
+    @patch("reporadar.pipeline.PaperStore")
+    @patch("reporadar.pipeline.collect_papers")
+    @patch("reporadar.pipeline.build_queries", return_value=["all:test"])
+    @patch("reporadar.pipeline.profile_repo")
+    @patch("reporadar.pipeline.rank_papers")
     @patch("reporadar.digest.write_digest")
     @patch("reporadar.config.load_config")
     @patch("reporadar.config.validate_config", return_value=[])
@@ -129,6 +129,10 @@ class TestRunUpdateCycle:
         # This test covers cycle mechanics; the integrity check (on by default) would
         # otherwise reach arXiv. TestWatcherIntegrity below covers it directly.
         cfg.signals.integrity = False
+        # The watch cycle now runs the FULL pipeline, which includes stage 9
+        # enrichment. Off here for the same reason integrity is: this test covers
+        # cycle mechanics, and the `_no_network` fixture fails the run otherwise.
+        cfg.enrichment.provider = "off"
         mock_load.return_value = cfg
         mock_collect.return_value = [{"arxiv_id": "123", "title": "Test"}]
         mock_rank.return_value = [{"arxiv_id": "123", "score_total": 0.8}]
@@ -147,20 +151,18 @@ class TestRunUpdateCycle:
         result = run_update_cycle("/tmp/config.yml")
         assert result["success"] is True
         assert result["papers_new"] == 1
-        # The disclosure travels in the result, not only in a log line. The GitHub Action
-        # and anything else wrapping the loop reads data, never stderr.
-        #
-        # `enrichment` is the one stage a bare dataclass config enables (`provider` is not
-        # "off"), so it is what a user who wrote no config at all is silently missing.
-        # Note this is NOT `hybrid`: the dataclass ships it False and the template does not
-        # write it, so `rr init` users never had fusion under either entry point.
-        assert result["skipped_stages"] == ["enrichment"]
+        # The Tier 0 fix, visible at the cycle level: a watch cycle skips NOTHING its
+        # config enables, because it runs the same `run_pipeline` as `rr update`. The key
+        # still travels in the result (not only in a log line) so the GitHub Action and
+        # anything else wrapping the loop reads data rather than stderr -- and so a future
+        # re-fork of the pipeline shows up here as a non-empty list.
+        assert result["skipped_stages"] == []
 
-    @patch("reporadar.store.PaperStore")
-    @patch("reporadar.collector.collect_papers")
-    @patch("reporadar.collector.build_queries", return_value=["all:test"])
-    @patch("reporadar.profiler.profile_repo")
-    @patch("reporadar.ranker.rank_papers")
+    @patch("reporadar.pipeline.PaperStore")
+    @patch("reporadar.pipeline.collect_papers")
+    @patch("reporadar.pipeline.build_queries", return_value=["all:test"])
+    @patch("reporadar.pipeline.profile_repo")
+    @patch("reporadar.pipeline.rank_papers")
     @patch("reporadar.digest.write_digest")
     @patch("reporadar.config.load_config")
     @patch("reporadar.config.validate_config", return_value=[])
@@ -176,14 +178,23 @@ class TestRunUpdateCycle:
         mock_store_cls: MagicMock,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """A hand-edited config can put a string where a number belongs. The advisory
-        warning must not take down an unattended loop over it — but it must also not
-        report "nothing skipped", which would be a silent false all-clear."""
+        """The disclosure is advisory and must never take down an unattended loop — but it
+        must also not report "nothing skipped", which would be a silent false all-clear.
+
+        The failure is injected into `unrun_stages` itself rather than through a malformed
+        config value. An earlier version of this test set `w_embedding` to a string, which
+        stopped working once the watcher shared the real pipeline: that value now breaks
+        the RUN, not just the warning. (It breaks `rr update` the same way and always has —
+        `validate_config` does not type-check numeric fields. Pre-existing, not this
+        change's to fix, but the reason this test could not stay as written.)"""
         cfg = RepoRadarConfig(repo_path="/tmp/repo")
         cfg.output.digest_path = "/tmp/digest.md"
         cfg.arxiv.categories = ["cs.CL"]
         cfg.signals.integrity = False
-        cfg.ranking.w_embedding = "not a number"  # type: ignore[assignment]
+        # The watch cycle now runs the FULL pipeline, which includes stage 9
+        # enrichment. Off here for the same reason integrity is: this test covers
+        # cycle mechanics, and the `_no_network` fixture fails the run otherwise.
+        cfg.enrichment.provider = "off"
         mock_load.return_value = cfg
         mock_collect.return_value = [{"arxiv_id": "123", "title": "Test"}]
         mock_rank.return_value = [{"arxiv_id": "123", "score_total": 0.8}]
@@ -196,8 +207,9 @@ class TestRunUpdateCycle:
         mock_store_cls.return_value = mock_store
         mock_write.return_value = (Path("/tmp/digest.md"), MagicMock())
 
-        result = run_update_cycle("/tmp/config.yml")
-        assert result["success"] is True
+        with patch("reporadar.stages.unrun_stages", side_effect=RuntimeError("registry exploded")):
+            result = run_update_cycle("/tmp/config.yml")
+        assert result["success"] is True, "an advisory warning must not fail the cycle"
         assert result["skipped_stages"] is None, "void, not an empty all-clear"
         assert "could not determine" in caplog.text
 
@@ -208,9 +220,9 @@ class TestRunUpdateCycle:
         assert result["success"] is False
         assert "not found" in result.get("error", "").lower()
 
-    @patch("reporadar.collector.collect_papers")
-    @patch("reporadar.collector.build_queries", return_value=["q"])
-    @patch("reporadar.profiler.profile_repo")
+    @patch("reporadar.pipeline.collect_papers")
+    @patch("reporadar.pipeline.build_queries", return_value=["q"])
+    @patch("reporadar.pipeline.profile_repo")
     @patch("reporadar.config.load_config")
     @patch("reporadar.config.validate_config", return_value=[])
     def test_collection_error(
@@ -230,9 +242,9 @@ class TestRunUpdateCycle:
         result = run_update_cycle("/tmp/config.yml")
         assert result["success"] is False
 
-    @patch("reporadar.collector.collect_papers")
-    @patch("reporadar.collector.build_queries", return_value=[])
-    @patch("reporadar.profiler.profile_repo")
+    @patch("reporadar.pipeline.collect_papers")
+    @patch("reporadar.pipeline.build_queries", return_value=[])
+    @patch("reporadar.pipeline.profile_repo")
     @patch("reporadar.config.load_config")
     @patch("reporadar.config.validate_config", return_value=[])
     def test_no_queries(
@@ -302,10 +314,12 @@ class TestWatchLoop:
 
 class TestWatcherIntegrity:
     """`rr watch` is the unattended path, so a withdrawn paper here reaches a digest
-    nobody is watching for it. The watch loop is a reduced pipeline (no embeddings,
-    citations, SPECTER2 or triage) but the integrity check is not an enhancement to
-    skip — it originally was, which meant the headline safety property held for
-    `rr update` and silently did not hold for `rr watch`."""
+    nobody is watching for it. The check was originally absent from the watch loop, which
+    meant the headline safety property held for `rr update` and silently did not hold
+    here; it was then added back by hand while the rest of the pipeline stayed missing.
+    Since 2026-08-16 the loop shares `run_pipeline`, so there is one implementation to be
+    right about -- but these tests stay end-to-end, because "the shared pipeline is wired
+    into the watcher" is exactly the thing a unit test of the pipeline cannot show."""
 
     def _run(self, tmp_path, comments: dict[str, str]):
         from pathlib import Path
@@ -318,6 +332,11 @@ class TestWatcherIntegrity:
         (repo / "README.md").write_text("retrieval augmented generation", encoding="utf-8")
         cfg = RepoRadarConfig(repo_path=str(repo), signals=SignalsConfig(integrity=True))
         cfg.queries.seed = ["retrieval augmented generation"]
+        # These run a real end-to-end cycle, and since 2026-08-16 that cycle is the FULL
+        # pipeline -- including stage 9 enrichment, which reaches Hugging Face. The subject
+        # here is the integrity check, so the network stage is off; `_no_network` fails the
+        # run at teardown otherwise, which is how this was noticed rather than guessed.
+        cfg.enrichment.provider = "off"
         paper = {
             "arxiv_id": "2607.00001v1",
             "title": "A Paper",
@@ -332,7 +351,7 @@ class TestWatcherIntegrity:
         with (
             patch("reporadar.config.load_config", return_value=cfg),
             patch("reporadar.config.validate_config", return_value=[]),
-            patch("reporadar.collector.collect_papers", return_value=[paper]),
+            patch("reporadar.pipeline.collect_papers", return_value=[paper]),
             patch("reporadar.signals.integrity.fetch_comments", return_value=comments),
             patch("reporadar.digest.write_digest", return_value=(repo / "d.md", None)),
         ):

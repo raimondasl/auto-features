@@ -701,7 +701,10 @@ class TestBigramModes:
 # outside this list is fine; bridging queries in a module outside it is what this guard
 # is for, so a new entry here is the deliberate way to say "this file does that too".
 _BRIDGING_MODULES = (
-    ("src", "reporadar", "cli.py"),
+    # `pipeline.py` since 2026-08-16; `cli.py` bridged queries until the orchestrator
+    # moved out of it, and `rr workspace update` -- the one collector still in `cli.py` --
+    # is arXiv-only, so it never translates.
+    ("src", "reporadar", "pipeline.py"),
     ("evals", "harness.py"),
     ("evals", "run_eval.py"),
 )
