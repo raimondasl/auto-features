@@ -1,0 +1,406 @@
+<title>Papers vs. the Ledger</title>
+<style>
+  :root {
+    --paper:    #F1F4F2;
+    --surface:  #FAFBFA;
+    --sunken:   #E7ECE9;
+    --ink:      #131A1C;
+    --ink-soft: #3C4A47;
+    --muted:    #66736F;
+    --rule:     #D2D9D5;
+    --rule-firm:#B6C1BC;
+    --accent:   #0C6A5B;
+    --reject:   #9C3F2F;
+    --gold:     #8A6A18;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", "Source Serif 4", Georgia, serif;
+    --sans:  "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono:  "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", "Menlo", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0D1315; --surface: #141C1E; --sunken: #101819;
+      --ink: #E3EAE6; --ink-soft: #B9C6C1; --muted: #8A9995;
+      --rule: #26312F; --rule-firm: #3A4744;
+      --accent: #4FC0A5; --reject: #D4796A; --gold: #C9A648;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0D1315; --surface: #141C1E; --sunken: #101819;
+    --ink: #E3EAE6; --ink-soft: #B9C6C1; --muted: #8A9995;
+    --rule: #26312F; --rule-firm: #3A4744;
+    --accent: #4FC0A5; --reject: #D4796A; --gold: #C9A648;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--serif); font-size: 17px; line-height: 1.62;
+    margin: 0; padding: 0 clamp(16px, 5vw, 48px) 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 50rem; margin: 0 auto; }
+
+  .masthead {
+    display: flex; flex-direction: column; gap: 14px;
+    padding: clamp(40px, 8vw, 72px) 0 22px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: var(--sans); font-size: 11px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif); font-size: clamp(2.1rem, 6vw, 3.1rem);
+    line-height: 1.08; font-weight: 600; letter-spacing: -.015em;
+    margin: 0; text-wrap: balance;
+  }
+  .standfirst { font-size: 1.09rem; color: var(--ink-soft); margin: 0; max-width: 42rem; text-wrap: pretty; }
+  .runline {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 4px 18px; padding-top: 6px;
+  }
+  .runline b { color: var(--ink-soft); font-weight: 500; }
+
+  section { padding-top: 52px; }
+  h2 {
+    font-family: var(--sans); font-size: 12px; font-weight: 700;
+    letter-spacing: .15em; text-transform: uppercase; color: var(--ink);
+    margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid var(--rule-firm);
+  }
+  .sec-note { font-size: .94rem; color: var(--muted); margin: 12px 0 26px; max-width: 42rem; }
+  p { text-wrap: pretty; }
+
+  /* tally strip */
+  .tally {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+    margin: 26px 0 8px;
+  }
+  .cell { background: var(--surface); padding: 15px 16px 16px; }
+  .cell-n {
+    font-family: var(--mono); font-size: 1.72rem;
+    font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.02em;
+    display: block; color: var(--ink);
+  }
+  .cell.go .cell-n { color: var(--accent); }
+  .cell.no .cell-n { color: var(--reject); }
+  .cell-l {
+    font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .11em; text-transform: uppercase;
+    color: var(--muted); display: block; margin-top: 9px;
+  }
+  .cell-d { font-size: .82rem; color: var(--ink-soft); margin: 5px 0 0; line-height: 1.42; }
+
+  /* verdict matrix */
+  .tablewrap { overflow-x: auto; margin-top: 22px; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; min-width: 44rem; background: var(--surface); }
+  th {
+    font-family: var(--sans); font-size: 10px; font-weight: 700;
+    letter-spacing: .11em; text-transform: uppercase; color: var(--muted);
+    text-align: left; padding: 11px 14px;
+    border-bottom: 1px solid var(--rule-firm); white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px; font-size: .9rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top; color: var(--ink-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11.5px; white-space: nowrap; }
+  .pill {
+    font-family: var(--sans); font-size: 10px; font-weight: 700;
+    letter-spacing: .07em; text-transform: uppercase;
+    padding: 2px 7px; border: 1px solid; white-space: nowrap;
+  }
+  .pill.go   { color: var(--accent); border-color: var(--accent); }
+  .pill.probe{ color: var(--gold); border-color: var(--gold); }
+  .pill.note { color: var(--muted); border-color: var(--rule-firm); }
+  .pill.skip { color: var(--reject); border-color: var(--reject); }
+
+  /* build entries */
+  .entry {
+    display: grid; grid-template-columns: 5.5rem 1fr; gap: 0 24px;
+    padding: 30px 0; border-bottom: 1px solid var(--rule);
+  }
+  .entry:first-of-type { border-top: 1px solid var(--rule-firm); }
+  .gutter { display: flex; flex-direction: column; gap: 10px; }
+  .rank { font-family: var(--mono); font-size: 1.5rem; font-variant-numeric: tabular-nums; color: var(--rule-firm); line-height: 1; }
+  .aid { font-family: var(--mono); font-size: 11.5px; color: var(--muted); word-break: break-all; }
+  .gverdict {
+    font-family: var(--sans); font-size: 10px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; line-height: 1.35;
+  }
+  .gverdict.go { color: var(--accent); }
+  .gverdict.probe { color: var(--gold); }
+  .entry h3 {
+    font-family: var(--serif); font-size: 1.32rem; font-weight: 600;
+    line-height: 1.26; margin: 0 0 8px; text-wrap: balance;
+  }
+  .entry h3 a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule-firm); }
+  .entry h3 a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .lands { font-family: var(--sans); font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  .entry p.body { margin: 0 0 12px; font-size: .97rem; color: var(--ink-soft); }
+  .probeblock {
+    background: var(--sunken); border-left: 3px solid var(--accent);
+    padding: 13px 18px; margin-top: 4px; font-size: .92rem; color: var(--ink-soft);
+  }
+  .probeblock b { color: var(--ink); font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; display: block; margin-bottom: 5px; }
+
+  /* wall groups */
+  .wall { padding: 22px 0; border-bottom: 1px solid var(--rule); }
+  .wall:first-of-type { border-top: 1px solid var(--rule-firm); }
+  .wall h4 { font-family: var(--serif); font-size: 1.12rem; font-weight: 600; margin: 0 0 4px; }
+  .wall .cite { font-family: var(--mono); font-size: 11px; color: var(--muted); margin: 0 0 10px; display: block; }
+  .wall p { margin: 0 0 8px; font-size: .95rem; color: var(--ink-soft); }
+  .wall ul { margin: 8px 0 0; padding-left: 1.1rem; }
+  .wall li { font-size: .93rem; color: var(--ink-soft); margin-bottom: 6px; }
+  .wall li b { color: var(--ink); font-weight: 600; }
+
+  .finding { padding: 20px 0; border-bottom: 1px solid var(--rule); }
+  .finding:first-of-type { border-top: 1px solid var(--rule-firm); }
+  .finding h4 { font-family: var(--serif); font-size: 1.12rem; font-weight: 600; margin: 0 0 7px; line-height: 1.3; }
+  .finding p { margin: 0; font-size: .96rem; color: var(--ink-soft); }
+  .finding p + p { margin-top: 9px; }
+
+  code {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--sunken); padding: 1px 5px;
+    border: 1px solid var(--rule); color: var(--ink);
+  }
+  .caveat {
+    background: var(--sunken); border-left: 3px solid var(--reject);
+    padding: 16px 20px; margin-top: 24px;
+  }
+  .caveat p { margin: 0; font-size: .93rem; color: var(--ink-soft); }
+  .caveat p + p { margin-top: 10px; }
+  .caveat strong { color: var(--ink); }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (max-width: 620px) {
+    .entry { grid-template-columns: 1fr; gap: 12px; }
+    .gutter { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; }
+    .rank { font-size: 1.15rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Companion to the self-scan &middot; implementation assessment</div>
+    <h1>Papers vs. the Ledger</h1>
+    <p class="standfirst">The 15 papers RepoRadar suggested for itself, decomposed into 33 mechanisms and judged against the project's own measured record — 750&nbsp;KB of research notes, eval results, and roadmap. One build survives. Three cheap probes. The rest lands on negatives the ledger has already paid for.</p>
+    <div class="runline">
+      <span><b>mechanisms</b> 33 across 15 papers</span>
+      <span><b>grounded in</b> RESEARCH.md &middot; ROADMAP.md &middot; evals/RESULTS.md &middot; paper/DRAFT.md</span>
+      <span><b>verified</b> 37 claims &middot; 35 confirmed &middot; 2 corrected</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>The tally</h2>
+    <p class="sec-note">Every mechanism was assigned a status against the record (shipped / on roadmap / measured / refuted / novel) and a worth level under RepoRadar's own bar: measured net@2 improvement at ~$0.01&ndash;0.02 per repo per run. Every status claim was then adversarially re-checked against the actual files.</p>
+    <div class="tally">
+      <div class="cell go"><span class="cell-n">1</span><span class="cell-l">try now</span><p class="cell-d">NERdME typed-span anchors — aimed at the one measured open hole.</p></div>
+      <div class="cell go"><span class="cell-n">3</span><span class="cell-l">worth a probe</span><p class="cell-d">ForeCite alias table, OpenScholar datastore, LitSearch recall gauge — each $0 before any build.</p></div>
+      <div class="cell"><span class="cell-n">4</span><span class="cell-l">notes only</span><p class="cell-d">Tool-count ceiling, theme headers, contamination re-analysis, topic-community probe.</p></div>
+      <div class="cell no"><span class="cell-n">25</span><span class="cell-l">skip</span><p class="cell-d">Duplicate a shipped feature, or land on a recorded negative.</p></div>
+    </div>
+    <p class="sec-note" style="margin-top:18px;">The headline inversion: the gate's two 3/3 direct admits produced the <em>least</em> buildable work, and the single try-now idea was sitting in the Maybe tier. More on that at the end.</p>
+  </section>
+
+  <section>
+    <h2>Verdict matrix</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Paper</th><th>Digest verdict</th><th>Best mechanism's fate</th><th>Take</th></tr></thead>
+        <tbody>
+          <tr><td>Topic Is Not Agenda</td><td class="mono">3/3 direct</td><td>True finding, wrong implied action — <code>w_embedding</code> ablation NR-38 resolved <b>+1.00</b> the other way this week</td><td><span class="pill note">cite it</span></td></tr>
+          <tr><td>MCP Server Architecture Patterns</td><td class="mono">3/3 direct</td><td>Server already matches its best pattern; one number worth keeping</td><td><span class="pill note">1-line note</span></td></tr>
+          <tr><td>OpenScholar</td><td class="mono">P = 0.852</td><td>Not the pipeline — the 45M-paper <b>datastore</b> as a broader HyDE index</td><td><span class="pill probe">$0 probe</span></td></tr>
+          <tr><td>LitLLMs</td><td class="mono">P = 0.805</td><td>Both halves already resolved here (4&times; refuted / shipped stronger)</td><td><span class="pill skip">skip</span></td></tr>
+          <tr><td>ForeCite (concept extraction)</td><td class="mono">P = 0.824</td><td>Its released dataset is a candidate for the NR-39 technique-alias table</td><td><span class="pill probe">$0 probe</span></td></tr>
+          <tr><td>MDKeyChunker</td><td class="mono">P = 0.852</td><td>Its own ablation reproduces the repo's verbatim-beats-enrichment finding</td><td><span class="pill skip">skip</span></td></tr>
+          <tr><td>ISLE</td><td class="mono">P = 0.668</td><td>Core mechanism shipped here first and ablated at exactly +0.00 (NR-35)</td><td><span class="pill skip">skip</span></td></tr>
+          <tr><td>NERdME <em>(Maybe tier)</em></td><td class="mono">not admitted</td><td>Typed verbatim-span anchors for the 12/25 anchorless repos</td><td><span class="pill go">try now</span></td></tr>
+          <tr><td>LitSearch <em>(Maybe tier)</em></td><td class="mono">not admitted</td><td>597 gold queries = first model-free recall gauge for the binarized index</td><td><span class="pill probe">probe</span></td></tr>
+          <tr><td>Eliot <em>(Maybe tier)</em></td><td class="mono">not admitted</td><td>Theme headers over the digest — harmless presentation residue</td><td><span class="pill note">opportunistic</span></td></tr>
+          <tr><td>Other 4 Maybe papers</td><td class="mono">not admitted</td><td>Maturity signals, tag enrichment, citation prediction, multi-agent — all priced at zero or negative in the ledger</td><td><span class="pill skip">skip</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>The build list</h2>
+    <p class="sec-note">Ordered by conviction. Each threads the recorded negatives rather than re-arguing them, and each carries a $0 stage-1 probe with a kill condition — the project's own discipline.</p>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">1</div>
+        <div class="aid">2603.05750v1</div>
+        <div class="gverdict go">Try now<br>effort: medium</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2603.05750v1">NERdME — typed README-span extraction as a second anchor channel</a></h3>
+        <p class="lands">Lands in: <code>profiler.py</code> alongside <code>_extract_anchors</code> (currently manifest-only: requirements / pyproject / package.json)</p>
+        <p class="body">The only idea in all 15 papers aimed at the record's <em>measured open wound</em>. NR-39 established that anchors are the sole discriminating channel (20.5% / 14.9% / 6.7% across score-3 / actionable / below) — and that <strong>12 of 25 benchmark repos have zero anchors</strong> because only Python/JS manifests are parsed. NR-36 already proved the demand: its $0 probe showed 24/25 repos gain anchors from source scanning (compiler 0→43, db 0→35), but the shipped supply was bad (−0.52 net@2). Typed verbatim-span NER over READMEs is a different supply into the same measured demand.</p>
+        <p class="body">It threads every recorded negative: verbatim spans, not paraphrase (NR-12 measured verbatim +21 over LLM rewrite); feeds the anchor/query side, not the gate (P8/NR-14 showed stated wants are toxic there); and the NERdME dataset — 200 annotated READMEs, 10 entity types — is free validation data. It also answers the self-scan's own observed weakness: TF-IDF pulled <code>pytest</code>, <code>repo</code>, <code>digest</code> as query terms; entity typing is exactly the filter that discards those.</p>
+        <div class="probeblock"><b>$0 probe · kill condition</b>
+        Replicate the NR-36 probe protocol: run extraction (prompt-based Haiku first) over the 25 benchmark READMEs; count anchors gained on the 12 zero-anchor repos and spurious-anchor rate against NERdME's labels. Then re-run NR-39's grounding-rate measurement with the enriched anchor set — the non-Python coverage number NR-39 demands. Only if both move: live Tier B (frozen pools invalid for profile changes; floor 1.04 net@2/case).</div>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">2</div>
+        <div class="aid">2006.06877v1</div>
+        <div class="gverdict probe">Probe<br>effort: small</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2006.06877v1">ForeCite's released dataset as the NR-39 technique-alias table</a></h3>
+        <p class="lands">Lands in: a new <code>evals/</code> stage-1 probe; eventual consumer is blocked Roadmap 16 (relation grounding)</p>
+        <p class="body">This paper's pipeline is skippable — but its <em>artifact</em> is not. NR-39 blocked Roadmap 16's relation half with an explicit revival condition: "requires the technique-alias table first, with a non-Python coverage number." ForeCite's released term-of-art → canonical-origin-paper table (github.com/allenai/ForeCite) is a ready-made candidate for exactly that artifact. The cheap route matters: building the table fresh needs citation edges at corpus scale, which §3.4 (IP-block after 70 min of compliant polling) and the §3.5 correction (S2 silently truncates at 9,999 items) price as expensive. Caveats to carry: 2020-frozen CS vocabulary, and an alias table does not by itself fix anchor coverage — that is entry #1's job; the two compose.</p>
+        <div class="probeblock"><b>$0 probe · kill condition</b>
+        Download the table; join against the 25 benchmark repos' anchors and the 602-paper labelled set. Report: (a) how many of the 12 anchorless repos gain groundable technique concepts, (b) whether the 12.3% quotable-evidence-span rate rises, (c) whether the anchor-channel discrimination gap widens. All three move → consider Tier B; anything less → record and stop.</div>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">3</div>
+        <div class="aid">2411.14199v1</div>
+        <div class="gverdict probe">Probe<br>effort: large if built</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2411.14199v1">OpenScholar's datastore — HyDE over a corpus wider than arXiv</a></h3>
+        <p class="lands">Lands in: <code>hyde.py</code> + a second index alongside the 3.1M-vector arXiv shards</p>
+        <p class="body">Not the paper's pipeline — its reranker re-runs the E1&ndash;E5 sweep that pointwise logprob already won, and its self-feedback loop is the "name what you lack" mechanism measured dead four times. The datastore is different. The record's one genuinely open retrieval gap is named in §8: llminfer, compiler, numerics — 5 of 6 missed gold targets reached by <em>neither</em> shipped channel, with off-arXiv literature the suspected route. Every prior attempt at non-arXiv sources failed via <strong>keyword APIs</strong> (NR-27, NR-31/32, NR-34, C-9) — the refutations hit the query channel, not the corpus. Dense HyDE retrieval over OpenScholar's 45M open-access papers is the one untried variant that uses the mechanism the repo has proven rather than the one it has refuted.</p>
+        <div class="probeblock"><b>$0 probe · kill condition</b>
+        Membership first: are the 5&ndash;6 never-reached gold targets (and the IACR/VLDB papers judged relevant in NR-27/NR-31) in the released datastore at all? And can a locally computed vector reproduce a stored one bit-identically — the Design 2 fifth-dependency check that HyDE's shipped index had to pass? Kill: &lt;4/6 present, or encoder not reproducible. Only then: rank probe on the 48-target set, then frozen-pool Tier B vs the 0.74 floor.</div>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">4</div>
+        <div class="aid">2407.18940v2</div>
+        <div class="gverdict probe">Probe<br>effort: small</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2407.18940v2">LitSearch as a model-free recall gauge for the binarized index</a></h3>
+        <p class="lands">Lands in: <code>evals/</code>, a standing diagnostic beside <code>calibrate_finescale.py</code></p>
+        <p class="body">Framed narrowly, deliberately: <em>not</em> a net@2 claim — LitSearch queries are researcher questions, a different register from repo→paper, so it cannot validate HyDE hypothesis quality. What it gives the project is its first external, model-free recall instrument for the index path itself. The binary-quantized index has bit-identical encoder verification (Hamming 0/1024) but no recall-fidelity gauge: nothing today would notice if binarisation, column pruning, or one bad yearly shard silently cost 15 points of recall. 597 gold-labelled queries over recent ML/NLP arXiv — squarely inside the index's coverage — fix that in an afternoon.</p>
+        <div class="probeblock"><b>One afternoon · then a regression gate</b>
+        Embed the 597 queries, report recall@5/@20 against gold; optionally price the quantization by comparing binarised-Hamming vs full-precision cosine on the same encoder. Freeze the number; wire as an exit-nonzero gate (&gt;2pt drop) after every <code>rr sync-index</code>.</div>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <h2>Small notes, no builds</h2>
+    <div class="finding">
+      <h4>Record the MCP tool-count ceiling (paper #2's one number)</h4>
+      <p>The architecture-patterns paper contributes exactly one transferable, quantitative finding: tool-selection accuracy degrades below 90% between 10&ndash;15 tools for Haiku-class models. The shipped server has 5 tools — 2&times; headroom — and the verifier confirmed nothing in the record tracks this. Worth a one-line constraint on Roadmap item 2's remaining distribution work: stay under ~10 tools; prefer parameterized tools over new ones. Everything else in the paper describes patterns <code>mcp_server.py</code> already exhibits.</p>
+    </div>
+    <div class="finding">
+      <h4>Contamination re-analysis at $0 (from LitLLMs)</h4>
+      <p>LitLLMs' rolling-test-set concern is real in principle: gold targets are ≥11-month-old papers almost certainly in every judge's training data. The repo's paired-delta design blunts it (P7's strictness offset cancels), but a free check exists: stratify the already-cached judge verdicts by publication date vs judge cutoff and test whether actionability rate or GPT-5.5/Sonnet agreement shifts post-cutoff. A re-analysis of stored data, not a new protocol.</p>
+    </div>
+    <div class="finding">
+      <h4>Theme headers over the digest (from Eliot; status corrected to novel)</h4>
+      <p>Eliot's trend-tracking premise is dead here (NR-5: all gold targets old, <code>w_recency: 0.0</code>), but clustering the ~15 shown papers under labelled theme headers is a harmless presentation nicety — MiniLM vectors are already cached, composition unchanged by construction, so no net@2 toll. The verifier corrected the analyst here: nothing in <code>trends.py</code> partially implements this; it is simply novel and small. Only worth doing opportunistically, with a test asserting digest-set equality.</p>
+    </div>
+    <div class="finding">
+      <h4>One derived probe from paper #1, if ever tempted</h4>
+      <p>The single reading of "Topic Is Not Agenda" that touches the live constraint (ordering within gate admits): agenda-community membership as a band-ordering signal. Every graph-derived ordering feature so far landed near chance (NR-21: AUC 0.585 vs the 0.60 bar; finescale incumbent 0.841), so the bar is explicit — use OpenAlex Topic IDs as a free community proxy on the 602-paper labelled set, kill below AUC 0.65. No Leiden build under any circumstance: the S2 truncation wall and the 6-repos-with-no-bibliography coverage hole price it out.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why the other 25 mechanisms are skips</h2>
+    <p class="sec-note">Not one skip is a taste call. Each lands on one of five walls the ledger has already paid to map — the grouping below is the actual causal structure of the rejections.</p>
+
+    <div class="wall">
+      <h4>Wall 1 — Register mismatch: repo text describes what it has, useful papers describe what it should adopt</h4>
+      <span class="cite">RESEARCH.md §1, §3.0–§3.2, NR-7, P2: with morphology fully fixed, "lacks" queries rank targets worse than random — a different-target failure no retrieval space fixes</span>
+      <ul>
+        <li><b>LitLLMs' keyword-extraction retrieval</b> — the exact mechanism, refuted four independent times; HyDE is the shipped answer that routes around it.</li>
+        <li><b>Paper #1's LLM-expanded Boolean retrieval</b> — presumes a human-stated agenda; the repo-derived substitute is the most-refuted idea in the project.</li>
+        <li><b>ForeCite's term mining as query vocabulary</b> — better-canonicalized phrases aimed at the wrong target still miss.</li>
+        <li><b>Metadata Enrichment's semantic tag expansion</b> — operates entirely inside the topical-similarity relation.</li>
+        <li><b>OpenNovelty's claim→query pipeline</b> — gap-derived query generation, Roadmap 19's verdict: dead.</li>
+      </ul>
+    </div>
+
+    <div class="wall">
+      <h4>Wall 2 — Similarity is the wrong relation: "similar to what this repo does" ≠ "would improve this repo"</h4>
+      <span class="cite">RETRIEVAL_DESIGN.md Designs 1 &amp; 3: even citation-trained SPECTER2 proximity surfaces ancestry, not improvements</span>
+      <ul>
+        <li><b>Paper #1's citation-community audit</b> — would confirm, at large-build cost, the conclusion the project reached with its own instrument. Its value is a citation for DRAFT.md, not a build.</li>
+        <li><b>ISLE's topic modeling and knowledge graph</b> — similarity-space constructs; NR-39 just blocked the relation extension on 18/25 repos.</li>
+        <li><b>SCIDOCA's citation prediction</b> — predicts what a text should cite: the ancestry relation, purest form. <em>(Verifier correction: the 21/48 bibliography-seeded hop is <code>evals/</code>-only, not shipped — what ships is Feature 8's starred-seed proximity. The skip stands either way.)</em></li>
+        <li><b>Concept→origin-paper lookup</b> — foundational papers of the repo's stack are what it already knows.</li>
+      </ul>
+    </div>
+
+    <div class="wall">
+      <h4>Wall 3 — Already shipped, and the upgrade path already ablated at zero</h4>
+      <span class="cite">NR-33/NR-35: two ranking recompositions reshuffled ~59% of the digest and moved net@2 by exactly +0.00 — the gate and finescale downstream decide quality</span>
+      <ul>
+        <li><b>ISLE's BM25+RRF hybrid</b> — shipped here a month before the paper's date; ablated at +0.00 (NR-35, pre-registered, frozen pool).</li>
+        <li><b>LitLLMs' rerank-with-attribution</b> — shipped stronger: E1&ndash;E5 tested the listwise/pairwise/ensemble family and pointwise logprob won (AUC 0.841).</li>
+        <li><b>OpenScholar's cross-encoder reranker</b> — the roadmap entry (item 7) predates E1&ndash;E5 and should be re-derived against it.</li>
+        <li><b>Paper #1's citation-count rerank</b> — <code>w_citations</code> exists, opt-in; the signal measured 1/24 as retrieval, AUC 0.585 as ordering.</li>
+        <li><b>Maturity metrics (clinical-repo paper)</b> — the exact feature family E5/NR-21 measured below the pre-registered bar.</li>
+      </ul>
+    </div>
+
+    <div class="wall">
+      <h4>Wall 4 — LLM enrichment of context measured strictly harmful</h4>
+      <span class="cite">NR-12: verbatim beats paraphrase +21; full LLM paraphrase (+70) scores below sending nothing (+73); NR-13: structure-aware selection ≤ dumb 300-char prefix</span>
+      <ul>
+        <li><b>MDKeyChunker's single-call enrichment</b> — optimizes a cost the project never pays; the measured problem was the content, not the price. The paper's own ablation agrees: its no-LLM config beats its enriched pipeline (Recall@5 1.000 vs 0.867).</li>
+        <li><b>MDKeyChunker's structural chunking</b> — NR-13's pre-registered showcase case scored +0 vs the prefix's +2; ceiling is what documents contain, not how they're read.</li>
+        <li><b>Doc-side question generation</b> — the weaker mirror of shipped HyDE; would require regenerating a read-only published 3.1M-vector index.</li>
+        <li><b>OpenScholar's self-feedback loop</b> — multi-round refinement of a mechanism that aims wrongly; also needs exact logprobs Anthropic doesn't expose (NR-23).</li>
+      </ul>
+    </div>
+
+    <div class="wall">
+      <h4>Wall 5 — No net@2 story: the harness cannot even observe it</h4>
+      <span class="cite">The project's shipping bar: every stage carries a measured cost/worth line; C-14b: the MCP surface has zero benchmark coverage</span>
+      <ul>
+        <li><b>MCP taxonomy, anti-pattern audit, transport measurement</b> — descriptive vocabulary for a server that already matches the best pattern; nothing registers on the metric.</li>
+        <li><b>Plan-then-generate review writing / cite-or-abstain synthesis</b> — genuinely absent, correctly parked as Roadmap 15 (<code>rr ask</code>, v2.0): "a product bet, not a research one; judge on demand, not evidence." OpenScholar's recipe details keep for that day.</li>
+        <li><b>Rolling-key chunk restructuring</b> — infrastructure for the same unbuilt stage.</li>
+        <li><b>Emerging-concept trend feeds</b> — recency is measured-irrelevant here (NR-5); display cosmetics with no route through the gate.</li>
+        <li><b>Paper Circle's multi-agent orchestration</b> — the agentic baseline is the thing the measured config already beats at 1/40th the cost; E1&ndash;E5 priced structural judgment elaboration at negative.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the exercise says about the pipeline</h2>
+
+    <div class="finding">
+      <h4>The gate's 3/3 admits were the least buildable; the try-now idea sat in Maybe</h4>
+      <p>Both direct admits — the embedding audit and the MCP patterns paper — produced zero build items, while NERdME, the one mechanism aimed at a measured open hole, never cleared the gate. The pattern is legible: the gate scores <em>topical</em> actionability, so papers about RepoRadar's own subject matter (paper discovery, MCP) score high, while instrument-shaped value — datasets, benchmarks, eval resources — reads as "not about this repo." That is a real, previously unrecorded observation about what the actionability rubric measures, and it echoes the record's own Tier S lesson: topical discrimination is not actionability.</p>
+    </div>
+
+    <div class="finding">
+      <h4>Paper #1 is right, and acting on it would have cost +1.00 net@2</h4>
+      <p>"Topic Is Not Agenda" concludes cosine neighborhoods encode topic, not agenda — RepoRadar's own central discovery, reached independently via Design 3. But its implied action (distrust <code>w_embedding: 1.5</code>) was resolved the <em>other way</em> by NR-38 days before this run: +1.00 net@2/case, sign p = 0.035, against a pre-registered negative prediction. The recorded lesson anticipates the trap exactly: retrieval-neighborhood statistics do not transfer to a tie-breaking role inside an already-concentrated pool. A true finding whose surface reading would have removed a measured gain — the sharpest argument in this whole exercise for keeping the ledger.</p>
+    </div>
+
+    <div class="finding">
+      <h4>Two papers independently corroborate the ledger</h4>
+      <p>MDKeyChunker's own ablation shows its no-LLM configuration beating its fully enriched pipeline — the repo's verbatim-beats-paraphrase finding (NR-12), reproduced by a paper that reached the digest without knowing it. And ISLE proposes, as its core contribution, the hybrid BM25+RRF fusion RepoRadar shipped a month earlier and has since ablated at +0.00. The literature is converging on conclusions the record already paid for; the digest is functioning partly as an external replication feed.</p>
+    </div>
+
+    <div class="caveat">
+      <p><strong>Method and limits.</strong> 14 agents: 4 ground readers distilled RESEARCH.md, ROADMAP.md, evals/RESULTS.md and paper/DRAFT.md plus a feature inventory of README and <code>src/reporadar/</code>; 8 analysts decomposed the papers (abstracts + gate reasons — full PDFs were not read); 2 adversarial verifiers re-checked all 37 status claims against the actual files, confirming 35 and correcting 2 (both corrections are reflected above). Worth levels are judgments against the project's recorded bar, not measurements — every build item above still owes its own $0 probe before anyone pays for a Tier B run.</p>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,703 @@
+<title>RepoRadar Self-Scan</title>
+<style>
+  /* ---- tokens: light is the base, complete on bare :root ---- */
+  :root {
+    --paper:    #F1F4F2;
+    --surface:  #FAFBFA;
+    --sunken:   #E7ECE9;
+    --ink:      #131A1C;
+    --ink-soft: #3C4A47;
+    --muted:    #66736F;
+    --rule:     #D2D9D5;
+    --rule-firm:#B6C1BC;
+    --accent:   #0C6A5B;
+    --accent-w: #0A8571;
+    --reject:   #9C3F2F;
+    --gold:     #8A6A18;
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", "Source Serif 4", Georgia, serif;
+    --sans:  "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono:  "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", "Menlo", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:    #0D1315;
+      --surface:  #141C1E;
+      --sunken:   #101819;
+      --ink:      #E3EAE6;
+      --ink-soft: #B9C6C1;
+      --muted:    #8A9995;
+      --rule:     #26312F;
+      --rule-firm:#3A4744;
+      --accent:   #4FC0A5;
+      --accent-w: #6FD4BB;
+      --reject:   #D4796A;
+      --gold:     #C9A648;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:    #0D1315;
+    --surface:  #141C1E;
+    --sunken:   #101819;
+    --ink:      #E3EAE6;
+    --ink-soft: #B9C6C1;
+    --muted:    #8A9995;
+    --rule:     #26312F;
+    --rule-firm:#3A4744;
+    --accent:   #4FC0A5;
+    --accent-w: #6FD4BB;
+    --reject:   #D4796A;
+    --gold:     #C9A648;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 clamp(16px, 5vw, 48px) 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 50rem; margin: 0 auto; }
+
+  /* ---- masthead ---- */
+  .masthead {
+    display: flex; flex-direction: column; gap: 14px;
+    padding: clamp(40px, 8vw, 72px) 0 22px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.1rem, 6vw, 3.1rem);
+    line-height: 1.08; font-weight: 600;
+    letter-spacing: -.015em;
+    margin: 0; text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 1.09rem; color: var(--ink-soft);
+    margin: 0; max-width: 40rem; text-wrap: pretty;
+  }
+  .runline {
+    font-family: var(--mono);
+    font-size: 12px; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 4px 18px;
+    padding-top: 6px;
+  }
+  .runline b { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---- sections ---- */
+  section { padding-top: 52px; }
+  h2 {
+    font-family: var(--sans);
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .15em; text-transform: uppercase;
+    color: var(--ink);
+    margin: 0 0 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule-firm);
+  }
+  .sec-note {
+    font-size: .94rem; color: var(--muted);
+    margin: 12px 0 26px; max-width: 40rem;
+  }
+  p { text-wrap: pretty; }
+
+  /* ---- funnel ---- */
+  .funnel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin: 26px 0 8px;
+  }
+  .stage { background: var(--surface); padding: 15px 16px 16px; }
+  .stage-n {
+    font-family: var(--mono); font-size: 1.72rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1; letter-spacing: -.02em;
+    color: var(--ink); display: block;
+  }
+  .stage.terminal .stage-n { color: var(--accent); }
+  .stage-l {
+    font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .11em; text-transform: uppercase;
+    color: var(--muted); display: block; margin-top: 9px;
+  }
+  .stage-d { font-size: .82rem; color: var(--ink-soft); margin: 5px 0 0; line-height: 1.42; }
+
+  /* ---- band plot ---- */
+  .plot {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 26px clamp(18px, 4vw, 34px) 18px;
+    margin: 26px 0 0;
+  }
+  .track { position: relative; height: 132px; margin: 0 0 4px; }
+  .axis {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 1px; background: var(--rule-firm);
+  }
+  .thresh {
+    position: absolute; top: 0; bottom: 0;
+    width: 1px; background: var(--accent);
+    left: 66.67%;
+  }
+  .thresh::after {
+    content: "P = 0.667  breakeven";
+    position: absolute; top: -4px; left: 8px;
+    font-family: var(--sans); font-size: 10px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); white-space: nowrap;
+  }
+  .dot {
+    position: absolute;
+    width: 11px; height: 11px; border-radius: 50%;
+    transform: translate(-50%, 50%);
+    border: 1.5px solid var(--paper);
+  }
+  .dot.pass { background: var(--accent); }
+  .dot.fail { background: var(--reject); }
+  .ticks {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted); padding-top: 6px;
+  }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px 22px;
+    font-family: var(--sans); font-size: 12px;
+    color: var(--ink-soft); padding-top: 14px;
+    border-top: 1px solid var(--rule); margin-top: 14px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+  /* ---- paper ledger ---- */
+  .entry {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 0 24px;
+    padding: 30px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .entry:first-of-type { border-top: 1px solid var(--rule-firm); }
+  .gutter { display: flex; flex-direction: column; gap: 10px; }
+  .rank {
+    font-family: var(--mono); font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--rule-firm); line-height: 1;
+  }
+  .aid {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--muted); word-break: break-all;
+  }
+  .verdict {
+    font-family: var(--sans); font-size: 10px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase;
+    padding: 3px 0; line-height: 1.3;
+  }
+  .verdict.direct { color: var(--accent); }
+  .verdict.band   { color: var(--gold); }
+
+  .entry h3 {
+    font-family: var(--serif); font-size: 1.32rem;
+    font-weight: 600; line-height: 1.26; letter-spacing: -.005em;
+    margin: 0 0 8px; text-wrap: balance;
+  }
+  .entry h3 a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule-firm); }
+  .entry h3 a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .byline {
+    font-family: var(--sans); font-size: 12.5px;
+    color: var(--muted); margin: 0 0 14px;
+  }
+  .why { margin: 0 0 14px; color: var(--ink-soft); font-size: .97rem; }
+
+  .metrics {
+    display: flex; flex-wrap: wrap; gap: 6px 8px;
+    margin-bottom: 14px;
+  }
+  .m {
+    font-family: var(--mono); font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    padding: 3px 8px;
+    background: var(--sunken);
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .m b { color: var(--ink); font-weight: 600; }
+  .m.hi { border-color: var(--accent); color: var(--accent); }
+  .m.hi b { color: var(--accent); }
+
+  details {
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+  summary {
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); cursor: pointer; list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "+ "; color: var(--accent); font-family: var(--mono); }
+  details[open] summary::before { content: "\2212 "; }
+  summary:hover { color: var(--accent); }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  details ul { margin: 12px 0 2px; padding-left: 1.1rem; }
+  details li { margin-bottom: 9px; font-size: .93rem; color: var(--ink-soft); }
+  details li strong { color: var(--ink); font-weight: 600; }
+
+  /* ---- maybe table ---- */
+  .tablewrap { overflow-x: auto; margin-top: 22px; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; min-width: 40rem; background: var(--surface); }
+  th {
+    font-family: var(--sans); font-size: 10px; font-weight: 700;
+    letter-spacing: .11em; text-transform: uppercase;
+    color: var(--muted); text-align: left;
+    padding: 11px 14px; border-bottom: 1px solid var(--rule-firm);
+    white-space: nowrap;
+  }
+  td {
+    padding: 11px 14px; font-size: .93rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top; color: var(--ink-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+  td a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule-firm); }
+  td a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---- findings / caveats ---- */
+  .finding {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .finding:first-of-type { border-top: 1px solid var(--rule-firm); }
+  .finding h4 {
+    font-family: var(--serif); font-size: 1.12rem; font-weight: 600;
+    margin: 0 0 7px; line-height: 1.3;
+  }
+  .finding p { margin: 0; font-size: .96rem; color: var(--ink-soft); }
+  .finding p + p { margin-top: 9px; }
+
+  code {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--sunken); padding: 1px 5px;
+    border: 1px solid var(--rule); color: var(--ink);
+  }
+
+  .caveat {
+    background: var(--sunken);
+    border-left: 3px solid var(--reject);
+    padding: 16px 20px; margin-top: 24px;
+  }
+  .caveat p { margin: 0; font-size: .93rem; color: var(--ink-soft); }
+  .caveat p + p { margin-top: 10px; }
+  .caveat strong { color: var(--ink); }
+
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (max-width: 620px) {
+    .entry { grid-template-columns: 1fr; gap: 12px; }
+    .gutter { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; }
+    .rank { font-size: 1.15rem; }
+    .thresh::after { font-size: 9px; left: 5px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Run #1 &middot; measured configuration</div>
+    <h1>RepoRadar, pointed at itself</h1>
+    <p class="standfirst">592 papers collected, 50 sent to the actionability gate, 7 survived to Top Picks. Fourteen of the fifteen papers in the digest were found by HyDE, not by keyword search.</p>
+    <div class="runline">
+      <span><b>repo</b> auto-features</span>
+      <span><b>run</b> #1 &middot; 2026-08-16 04:46 UTC</span>
+      <span><b>categories</b> cs.IR cs.CL cs.LG cs.DL cs.SE</span>
+      <span><b>cost</b> ~$0.01&ndash;0.02</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>The winnowing</h2>
+    <p class="sec-note">The measured configuration's thesis is that the expensive stage is the one that says no. This run is a clean demonstration: 99% of what was collected never reached the page.</p>
+
+    <div class="funnel">
+      <div class="stage">
+        <span class="stage-n">592</span>
+        <span class="stage-l">collected</span>
+        <p class="stage-d">220 from 6 arXiv keyword queries, 372 new from HyDE dense discovery.</p>
+      </div>
+      <div class="stage">
+        <span class="stage-n">50</span>
+        <span class="stage-l">gated</span>
+        <p class="stage-d">Top 50 by hybrid rank sent to the Haiku actionability gate.</p>
+      </div>
+      <div class="stage">
+        <span class="stage-n">29</span>
+        <span class="stage-l">actionable</span>
+        <p class="stage-d">Gate score &ge; 2. Only <b>2</b> scored a full 3; 27 landed in the ambiguous band.</p>
+      </div>
+      <div class="stage">
+        <span class="stage-n">13</span>
+        <span class="stage-l">rescored</span>
+        <p class="stage-d">Band papers among the 15 digest candidates, re-read on a 0&ndash;9 scale.</p>
+      </div>
+      <div class="stage terminal">
+        <span class="stage-n">7</span>
+        <span class="stage-l">shown</span>
+        <p class="stage-d">2 direct admits plus the 5 band papers that cleared P&nbsp;&ge;&nbsp;0.667.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where the fine-scale rescore cut</h2>
+    <p class="sec-note">The 0&ndash;3 gate put 27 of 50 papers into a single score-2 bucket — near-binary, exactly the failure the fine-scale pass exists to fix. Re-read on a 0&ndash;9 scale with the probability taken from the token distribution, those 13 candidates spread across almost the entire interval. The threshold is derived, not tuned: <code>net@2</code> pays 3p&nbsp;&minus;&nbsp;2 per paper shown, so showing pays exactly above p&nbsp;=&nbsp;2/3.</p>
+
+    <div class="plot">
+      <div class="track">
+        <div class="axis"></div>
+        <div class="thresh"></div>
+        <div class="dot pass" style="left:85.2%; bottom:104px;"></div>
+        <div class="dot pass" style="left:85.2%; bottom:86px;"></div>
+        <div class="dot pass" style="left:82.4%; bottom:68px;"></div>
+        <div class="dot pass" style="left:80.5%; bottom:50px;"></div>
+        <div class="dot pass" style="left:66.8%; bottom:32px;"></div>
+        <div class="dot fail" style="left:64.9%; bottom:14px;"></div>
+        <div class="dot fail" style="left:45.7%; bottom:104px;"></div>
+        <div class="dot fail" style="left:39.8%; bottom:86px;"></div>
+        <div class="dot fail" style="left:38.0%; bottom:68px;"></div>
+        <div class="dot fail" style="left:36.2%; bottom:50px;"></div>
+        <div class="dot fail" style="left:24.8%; bottom:32px;"></div>
+        <div class="dot fail" style="left:5.4%;  bottom:14px;"></div>
+        <div class="dot fail" style="left:4.7%;  bottom:104px;"></div>
+      </div>
+      <div class="ticks"><span>0.00</span><span>0.25</span><span>0.50</span><span>0.75</span><span>1.00</span></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--accent)"></i> 5 cleared &mdash; 0.852, 0.852, 0.824, 0.805, 0.668</span>
+        <span><i class="swatch" style="background:var(--reject)"></i> 8 rejected &mdash; 0.649 down to 0.047</span>
+      </div>
+    </div>
+    <p class="sec-note" style="margin-top:18px;">Note the pair straddling the line: ISLE cleared at <b>0.668</b> and the next paper failed at <b>0.649</b>. Eight papers the coarse gate had called actionable were turned away here, three of them below P&nbsp;=&nbsp;0.25 — the stage is doing real filtering, not rubber-stamping the gate.</p>
+  </section>
+
+  <section>
+    <h2>Top picks &mdash; 7 papers</h2>
+    <p class="sec-note">Ordered as the digest ordered them: direct admits first, then band survivors by rank. &ldquo;Why&rdquo; is the gate's own stated reason, not a summary I wrote.</p>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">1</div>
+        <div class="aid">2605.07158v1</div>
+        <div class="verdict direct">Gate 3/3<br>direct admit</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2605.07158v1">Topic Is Not Agenda: A Citation-Community Audit of Text Embeddings</a></h3>
+        <p class="byline">Junseon Yoo &middot; 2026-05-08 &middot; cs.IR, cs.CL, cs.LG</p>
+        <p class="why">Directly addresses a core limitation of RepoRadar's relevance scoring — that cosine similarity between embeddings may not reflect true conceptual relatedness for repository-specific research agendas — and proposes citation-based reranking as a concrete, implementable improvement to the ranking pipeline.</p>
+        <div class="metrics">
+          <span class="m hi">found by <b>HyDE</b></span>
+          <span class="m">score <b>0.377</b></span>
+          <span class="m">kw <b>0.17</b></span>
+          <span class="m">cat <b>0.60</b></span>
+          <span class="m">emb <b>0.44</b></span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Validate RAG pipeline embeddings against citation communities.</strong> Audit the embeddings using citation-graph partitioning to check that cosine similarity actually reflects conceptual relatedness, not just topic-level similarity.</li>
+            <li><strong>Build embedding quality tests into the pytest suite.</strong> Fixtures that measure embedding performance at both sub-field and research-agenda granularity, catching cases where embeddings fail to separate related-but-different agendas.</li>
+            <li><strong>Create MCP tools for citation-aware paper filtering.</strong> Use the hierarchical L1/L2 citation communities to filter and rank arXiv papers before they reach the LLM.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">2</div>
+        <div class="aid">2606.30317v1</div>
+        <div class="verdict direct">Gate 3/3<br>direct admit</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2606.30317v1">MCP Server Architecture Patterns for LLM-Integrated Applications</a></h3>
+        <p class="byline">Carson Rodrigues, Oysturn Vas &middot; 2026-06-29 &middot; cs.SE, cs.AI</p>
+        <p class="why">Addresses MCP server architecture patterns, a core dependency and key topic of this repo, and provides concrete patterns and anti-patterns that could improve how RepoRadar structures its own MCP interactions.</p>
+        <div class="metrics">
+          <span class="m">found by <b>keyword</b> <code>all:mcp</code></span>
+          <span class="m">score <b>0.247</b></span>
+          <span class="m">kw <b>0.18</b></span>
+          <span class="m">cat <b>0.20</b></span>
+          <span class="m">emb <b>0.31</b></span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Standardize MCP server structure.</strong> Review the five architectural patterns and adopt the one that fits <code>mcp_server.py</code>, for consistency across tool integrations.</li>
+            <li><strong>Implement pattern-based testing.</strong> Design pytest suites that validate the server's compliance with production-ready practices, particularly tool routing and context management.</li>
+            <li><strong>Document server configuration in YAML.</strong> Use the existing pyyaml dependency to express the recommended patterns as config, easing management of multiple integrations.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">3</div>
+        <div class="aid">2411.14199v1</div>
+        <div class="verdict band">Band<br>P = 0.852</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2411.14199v1">OpenScholar: Synthesizing Scientific Literature with Retrieval-augmented LMs</a></h3>
+        <p class="byline">Akari Asai, Jacqueline He, Rulin Shao <span style="color:var(--rule-firm)">+22</span> &middot; 2024-11-21 &middot; cs.CL, cs.AI, cs.DL, cs.IR, cs.LG</p>
+        <p class="why">Retrieval-augmented synthesis of scientific literature with citation-backed generation. Could plausibly improve RepoRadar's relevance ranking and digest synthesis, though integration would require non-trivial architectural changes.</p>
+        <div class="metrics">
+          <span class="m hi">found by <b>HyDE</b></span>
+          <span class="m">score <b>0.463</b> &mdash; highest in run</span>
+          <span class="m">cat <b>0.80</b></span>
+          <span class="m">emb <b>0.50</b></span>
+          <span class="m">HF <b>35</b> upvotes</span>
+          <span class="m">code available</span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Retrieval-augmented QA over the stored corpus.</strong> Embed papers, fetch by query, then prompt for citation-backed answers — close to what <code>rr search --hybrid</code> already reaches toward.</li>
+            <li><strong>Paper digest generator with extracted key passages.</strong> Retrieve, extract passages, render through the existing Jinja2 templates with citations attached.</li>
+            <li><strong>Adapt ScholarQABench for integration tests.</strong> Its multi-domain benchmark approach validates that the pipeline ranks relevant papers correctly before synthesis.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">4</div>
+        <div class="aid">2412.15249v2</div>
+        <div class="verdict band">Band<br>P = 0.805</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2412.15249v2">LitLLMs, LLMs for Literature Review: Are we there yet?</a></h3>
+        <p class="byline">Shubham Agarwal, Gaurav Sahu, Abhay Puri <span style="color:var(--rule-firm)">+5</span> &middot; 2024-12-15 &middot; cs.CL, cs.AI, cs.DL, cs.LG</p>
+        <p class="why">Its two-step retrieval strategy — keyword extraction then re-ranking with attribution — and prompting-based re-ranking could improve RepoRadar's arXiv retrieval and ranking, though integrating it with the existing scoring system is non-trivial.</p>
+        <div class="metrics">
+          <span class="m hi">found by <b>HyDE</b></span>
+          <span class="m">score <b>0.419</b></span>
+          <span class="m">kw <b>0.27</b></span>
+          <span class="m">cat <b>0.60</b></span>
+          <span class="m">emb <b>0.46</b></span>
+          <span class="m">code available</span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Abstract-similarity retrieval for related work.</strong> Query arXiv by abstract similarity rather than extracted keywords — the same insight HyDE encodes, applied to the keyword path.</li>
+            <li><strong>LLM-powered digest summaries.</strong> Generate literature-review-style synthesis from retrieved papers to feed the digest.</li>
+            <li><strong>Zero-shot evaluation harness.</strong> Automated tests assessing relevance quality of generated reviews, in the spirit of <code>rr eval</code>.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">5</div>
+        <div class="aid">2006.06877v1</div>
+        <div class="verdict band">Band<br>P = 0.824</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2006.06877v1">High-Precision Extraction of Emerging Concepts from Scientific Literature</a></h3>
+        <p class="byline">Daniel King, Doug Downey, Daniel S. Weld &middot; 2020-06-11 &middot; cs.IR, cs.CL</p>
+        <p class="why">The concept-extraction method could improve relevance scoring and digest generation by identifying emerging concepts in abstracts, enabling more precise matching to repository topics.</p>
+        <div class="metrics">
+          <span class="m hi">found by <b>HyDE</b></span>
+          <span class="m">score <b>0.384</b></span>
+          <span class="m">kw <b>0.18</b></span>
+          <span class="m">cat <b>0.40</b></span>
+          <span class="m">emb <b>0.52</b></span>
+          <span class="m">oldest in run &mdash; 2020</span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Automated concept extraction for digests.</strong> Surface novel terms and trends from abstracts without manual curation.</li>
+            <li><strong>Concept index for relevance ranking.</strong> Find papers by emerging concept rather than keyword — directly relevant to the weak-query problem this run exposed.</li>
+            <li><strong>Knowledge-base construction for grounding.</strong> Populate a structured concept store from the corpus to ground LLM queries.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">6</div>
+        <div class="aid">2603.23533v2</div>
+        <div class="verdict band">Band<br>P = 0.852</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2603.23533v2">MDKeyChunker: Single-Call LLM Enrichment with Rolling Keys and Key-Based Restructuring for High-Accuracy RAG</a></h3>
+        <p class="byline">Bhavik Mangla &middot; 2026-03-08 &middot; cs.CL, cs.AI, cs.IR, cs.LG</p>
+        <p class="why">A concrete RAG improvement — structure-aware chunking with single-call LLM enrichment — that could enhance relevance scoring and retrieval, though it requires integration effort and doesn't address core repo-monitoring.</p>
+        <div class="metrics">
+          <span class="m hi">found by <b>HyDE</b></span>
+          <span class="m">score <b>0.381</b></span>
+          <span class="m">kw <b>0.10</b> &mdash; lowest in run</span>
+          <span class="m">cat <b>0.60</b></span>
+          <span class="m">emb <b>0.50</b></span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Structure-aware chunking of Markdown.</strong> Treat headers, code blocks and tables as atomic units — directly applicable to how the profiler reads README and docs.</li>
+            <li><strong>Single-call enrichment.</strong> Extract title, summary, keywords, entities and questions in one call instead of several, cutting gate cost and latency.</li>
+            <li><strong>Use extracted entities as extra retrieval signals.</strong> Feed keywords and hypothetical questions back into ranking.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+
+    <article class="entry">
+      <div class="gutter">
+        <div class="rank">7</div>
+        <div class="aid">2512.12760v1</div>
+        <div class="verdict band">Band<br>P = 0.668</div>
+      </div>
+      <div>
+        <h3><a href="http://arxiv.org/abs/2512.12760v1">Intelligent Scientific Literature Explorer using Machine Learning (ISLE)</a></h3>
+        <p class="byline">Sina Jani, Arman Heidari, Amirmohammad Anvari, Zahra Rahimi &middot; 2025-12-14 &middot; cs.IR, cs.AI, cs.CL</p>
+        <p class="why">Presents hybrid retrieval (BM25 + embeddings with RRF) and semantic ranking for literature discovery that could improve querying and relevance scoring, though it addresses a broader system rather than a limitation specific to this repo.</p>
+        <div class="metrics">
+          <span class="m hi">found by <b>HyDE</b></span>
+          <span class="m">score <b>0.377</b></span>
+          <span class="m">kw <b>0.29</b> &mdash; highest in run</span>
+          <span class="m">cat <b>0.40</b></span>
+          <span class="m">emb <b>0.43</b></span>
+          <span class="m">cleared by <b>0.001</b></span>
+        </div>
+        <details>
+          <summary>Action ideas</summary>
+          <ul>
+            <li><strong>Semantic search over the stored corpus.</strong> Vector retrieval beyond keyword matching — overlaps with <code>rr search --semantic</code>, so read it as a comparison point rather than a new feature.</li>
+            <li><strong>Integrated digest pipeline.</strong> Summarize and contextualize multiple papers together rather than one card at a time.</li>
+            <li><strong>Literature context in the MCP server.</strong> Rank and ground LLM interactions in retrieved papers automatically.</li>
+          </ul>
+        </details>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <h2>Maybe relevant &mdash; 8 papers</h2>
+    <p class="sec-note">Ranked above the cut by the scorer but not admitted by the gate. Every one was found by HyDE. Nothing was muted this run.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Paper</th><th>First author</th><th>Published</th><th>Score</th><th>Emb</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2403.14721v2">Automated Extraction and Maturity Analysis of Open Source Clinical Informatics Repositories from Scientific Literature</a></td>
+            <td>Jeremy R. Harper</td><td class="num">2024-03-20</td><td class="num">0.451</td><td class="num">0.65</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2407.18940v2">LitSearch: A Retrieval Benchmark for Scientific Literature Search</a></td>
+            <td>Anirudh Ajith</td><td class="num">2024-07-10</td><td class="num">0.439</td><td class="num">0.51</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/1806.08202v1">Metadata Enrichment of Multi-Disciplinary Digital Library: A Semantic-based Approach</a></td>
+            <td>Hussein T. Al-Natsheh</td><td class="num">2018-06-21</td><td class="num">0.426</td><td class="num">0.47</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2603.05750v1">NERdME: a Named Entity Recognition Dataset for Indexing Research Artifacts in Code Repositories</a></td>
+            <td>Genet Asefa Gesese</td><td class="num">2026-03-05</td><td class="num">0.406</td><td class="num">0.62</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2509.24283v1">Overview of SCIDOCA 2025 Shared Task on Citation Prediction, Discovery, and Placement</a></td>
+            <td>An Dao</td><td class="num">2025-09-29</td><td class="num">0.391</td><td class="num">0.53</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2601.01576v2">OpenNovelty: An LLM-powered Agentic System for Verifiable Scholarly Novelty Assessment</a></td>
+            <td>Ming Zhang</td><td class="num">2026-01-04</td><td class="num">0.381</td><td class="num">0.47</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2605.27610v1">Eliot: Interactively Exploring Fast-Changing Scientific Literature Trends with Online Data and Learning</a></td>
+            <td>Bernardo A. Denkvitts</td><td class="num">2026-05-26</td><td class="num">0.379</td><td class="num">0.55</td>
+          </tr>
+          <tr>
+            <td><a href="http://arxiv.org/abs/2604.06170v1">Paper Circle: An Open-source Multi-agent Research Discovery and Analysis Framework</a></td>
+            <td>Komal Kumar</td><td class="num">2026-04-07</td><td class="num">0.376</td><td class="num">0.47</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the run says about the run</h2>
+
+    <div class="finding">
+      <h4>HyDE carried 14 of the 15 papers</h4>
+      <p>Every Top Pick but one, and all eight Maybe Relevant papers, matched <code>hyde</code> — found by dense retrieval against the local arXiv index, not by any of the six keyword queries. The single keyword-sourced paper came from <code>all:mcp</code>, the one query whose term is a genuine domain concept rather than repository vocabulary.</p>
+      <p>This is an in-situ replication of the README's headline claim, on a repository that was not in the benchmark.</p>
+    </div>
+
+    <div class="finding">
+      <h4>The generated keyword queries are weak, and it shows</h4>
+      <p>TF-IDF over this repo produced <code>pytest</code>, <code>repo</code>, <code>papers</code>, <code>digest</code> and <code>run reporadar</code> as query terms. Those are tooling and self-reference vocabulary, not domain concepts, and <code>(all:pytest) AND (cat:cs.IR OR …)</code> is close to a null query for literature about paper discovery. 220 papers came back and exactly one reached the digest.</p>
+      <p>Worth considering as a real finding about the profiler: a repository whose README is largely <em>about</em> its own machinery feeds its own vocabulary back into the query builder. Adding domain seed queries under <code>queries.seed</code> would be the cheap test.</p>
+    </div>
+
+    <div class="finding">
+      <h4>The coarse gate really is near-binary</h4>
+      <p>Of 50 papers triaged, the 0&ndash;3 gate assigned: 3 papers a 0, 18 a 1, <strong>27 a 2</strong>, and 2 a 3. More than half of everything it saw landed in one bucket. The fine-scale pass then spread 13 of those across P = 0.047 to 0.852 and rejected 8. That is the mechanism the README describes, behaving as described, on fresh data.</p>
+    </div>
+
+    <div class="finding">
+      <h4>Paper #1 is about the thing paper #1 was found by</h4>
+      <p>&ldquo;Topic Is Not Agenda&rdquo; argues that cosine similarity between text embeddings does not reliably track conceptual relatedness, and it was surfaced by a pipeline that ranks on cosine similarity between text embeddings (<code>ranking.w_embedding: 1.5</code>) over a dense index. It is the highest-confidence recommendation in the run and it is a direct challenge to a weight the measured config depends on. That combination makes it the one worth reading first.</p>
+    </div>
+
+    <div class="caveat">
+      <p><strong>What this report does not establish.</strong> The <code>+5.72 mean net@2</code>, <code>0.892 precision</code> and paired-delta figures in the README come from the 25-repository benchmark. They are not measurements of this run. Nothing here was judged against ground truth — there is no labelled gold set for this repository, so &ldquo;7 actionable papers&rdquo; is the gate's claim about itself, not a verified count.</p>
+      <p>Two further limits: the gate scored <em>this</em> repo's papers with knowledge of what RepoRadar is, which is exactly the intended behaviour but also means the recommendations cluster tightly around paper-discovery systems; and <code>recency: 1.00</code> on several entries reflects <code>sort_by: relevance</code> over an all-time window, so freshness is not a signal that separated anything here.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reproducing this</h2>
+    <p class="sec-note">The configuration is committed at <code>.reporadar.yml</code>. Two deviations from a stock <code>rr init --measured</code>, both recorded in the file: <code>arxiv.categories</code> was set to this repo's actual fields, and <code>hyde.index_dir</code> points at the index the eval harness had already synced (<code>evals/.work/hyde_index</code>, 36 shards, 1991&ndash;2026) rather than re-downloading 417&nbsp;MB into the default cache. Keys were loaded from <code>evals/.env</code> into the run's environment; the config reads them through <code>${ANTHROPIC_API_KEY}</code> and <code>${OPENAI_API_KEY}</code>.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Stage</th><th>Setting</th><th>Fired</th></tr></thead>
+        <tbody>
+          <tr><td>Discovery</td><td class="num">hyde.enabled: true, n_hypotheses: 4, top_k: 100</td><td class="num">374 candidates, 372 new</td></tr>
+          <tr><td>Fusion</td><td class="num">ranking.hybrid: true</td><td class="num">heuristic + BM25 via RRF</td></tr>
+          <tr><td>Embedding</td><td class="num">ranking.w_embedding: 1.5</td><td class="num">592 encoded, extra installed</td></tr>
+          <tr><td>Gate</td><td class="num">triage.top_k: 50, provider: claude</td><td class="num">50 triaged, 29 actionable</td></tr>
+          <tr><td>Rescore</td><td class="num">finescale.threshold: 0.6667</td><td class="num">13 rescored, 5 cleared</td></tr>
+          <tr><td>Withdrawals</td><td class="num">on by default</td><td class="num">300 checked, 0 withdrawn</td></tr>
+          <tr><td>Digest</td><td class="num">output.top_n: 15</td><td class="num">7 top, 8 maybe, 0 muted</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
