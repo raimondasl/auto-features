@@ -32,6 +32,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §8.8 frozen pool | `noise_floor.py`, `run_judge_eval.py --rr-frozen-pool` |
 | §8.9 two unmeasured defaults | `run_judge_eval.py` (`--rr-pool`/`--rr-window`), `audit_product_divergence.py` |
 | §8.10 the third default, `w_embedding` | `run_judge_eval.py --rr-w-embedding`, `join_wemb_headline.py` ($0 prediction + the check that scored it) |
+| roadmap 16 relation grounding (NR-39) | `relation_probe.py` ($0; reads cached pools, profiles and verdicts) |
 | §9.1–9.3 the query bridge | `audit_query_transform.py`, `bigram_report.py` |
 | §9.4 IACR ePrint | `verify_iacr_deps.py`, `source_ab_report.py` |
 | §9.5 Semantic Scholar | `s2_yield.py` (stage 1), `source_ab_report.py` (A/B) |

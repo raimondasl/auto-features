@@ -1052,6 +1052,92 @@ draw", the same lesson C-7 recorded when a +4.55 headline re-ran at +3.91.
 >
 > **Cost** ~$8, no collection.
 
+### Roadmap 16's relation half: the claim cannot be grounded on 18 of 25 repos. **[NR-39]**
+
+```bash
+uv run python evals/relation_probe.py     # $0, no network, no LLM, no judge
+```
+
+Item 16 promises *"this paper claims 3× over IVF-PQ, and you import `faiss`"*. The
+2026-08-09 re-derivation promoted it — it seeds from what the repository **has**, the only
+register that ever worked here — and cut it to the **relation classification** with a
+quoted evidence span, since HyDE and the hop already retrieve these papers. This probes the
+assumption underneath the remainder: that the relation is there to be found and quoted. It
+reads 1,237 judged papers against the 25 benchmark repos' own profiles, all from cache.
+
+**Predictions were fixed in the script before it ran**, and three of four were right — the
+fourth by less than it looks:
+
+| | predicted | actual |
+|---|---|---|
+| Q1 judge's reasoning names a repo term | >60% | 94.0% by keyword, **22.9% by anchor** |
+| Q2 the ABSTRACT names one (a span to quote) | 10–20% anchor | **20.5%** at score 3 ✓ |
+| Q3 relation verbs discriminate | weakly | weakly ✓ (`improves` +16.8pt, rest ≤ +3.8) |
+| Q4 grounded-claim coverage | 20–40% | **12.3%** — below the band |
+
+**The high-coverage channel discriminates in the wrong direction.** Repository *keywords*
+appear in 96.4% of actionable abstracts and **97.4%** of non-actionable ones. A badge built
+on that fires on four papers in five and is very slightly more likely on the bad ones: it
+says "this paper is about your topic", which showing it already implies. Only the *anchor*
+channel — packages the repo actually depends on — separates anything: 20.5% / 14.9% / 6.7%
+across score-3 / actionable / below.
+
+**And the anchor channel does not exist for most repositories.** Median 2 anchors per case,
+**12 of 25 with none at all**, because `_extract_anchors` parses `requirements.txt`,
+`pyproject.toml`, `setup.py` and `package.json` — so a C++, Rust or Go repository has no
+dependency list to read. The same structural limit already documented for
+`profiler.source_extensions`, arriving in a second place.
+
+| case | grounded claims | share of all |
+|---|---|---|
+| `peft` | 34 / 63 | **47.2%** |
+| `graph` | 15 / 38 | 20.8% |
+| `diffusion` | 9 / 40 | 12.5% |
+| `rag` | 9 / 32 | 12.5% |
+| **18 other cases** | **0** | **0%** |
+
+Four Python/ML repositories carry **93%** of every grounded claim in the benchmark. The
+canonical example from the roadmap entry is itself a miss: `ann` has `faiss` in its README
+keywords and *not* in its anchors, because it is a C++ repository with no Python manifest.
+
+**The alert the feature is named for is the rarest one.** `replaces` — supersedes,
+alternative-to — fires on **8.9%** of actionable abstracts, +3.8pt over non-actionable.
+`extends` is +2.0pt. `uses` is **−0.7pt**, i.e. noise. Only `improves` carries signal, and
+"a paper that improves something" is close to a restatement of the gate's own question.
+
+**What the probe found that was not the question.** The product already ships this. The
+gate returns a one-line `llm_reason` alongside every score (`triage.py:42`), the store
+persists it, and **both** digest templates render it —
+`digest.md.j2:71` and `digest_page.html.j2:163`. On the eval side the judge writes a
+`proposed_change` on **100%** of actionable papers, in exactly the register item 16 wants
+(*"Add a compressed-code reranking option for IVF/PQ-style indexes…"*). So the feature's
+true increment is not "explain the paper" — it is "replace a free-text sentence with a
+typed label and a quoted span", on ~12% of entries, concentrated in four repositories.
+
+**Verdict: do not build it as specified.** The premise survives — starting from what the
+repo has is still the only thing that has ever worked — but the *grounding vocabulary* is
+the wrong one. Reviving it needs a technique-alias layer that maps observable repository
+facts to the names abstracts actually use (`faiss` → IVF-PQ, product quantization), and
+that is precisely what the July entry called an "alias-table curation burden" and treated
+as a detail. It is not a detail; it is the feature. Anyone proposing it again owes a
+coverage number for that table on non-Python repositories first.
+
+**Cost** $0.
+
+> #### The probe shipped with the bug it exists to detect
+>
+> Its first run reported **0.0% keyword hits in all three strata**. That is a finding —
+> "abstracts never mention these" — and it was false. `RepoProfile.keywords` is a list of
+> `(term, weight)` pairs, and the `len(term) >= 3` filter was applied to the *pair*, whose
+> length is 2, so every keyword was discarded before it was ever matched. Void read as
+> null, inside a probe written to look for exactly that, one week after the pool scanner
+> read 1,250 papers as 0.
+>
+> The tell was the shape: **0.0% in every stratum**, which is the same alarm as
+> byte-identical pools across arms. What the repair adds is a guard that refuses to report
+> a term class extracted as empty everywhere, rather than a comment saying to be careful —
+> and `tests/test_eval_relation_probe.py` fires it in both directions.
+
 ### The headline re-measured at `w_embedding: 1.5` — the gap above is closed (2026-08-16)
 
 ```bash
