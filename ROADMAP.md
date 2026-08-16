@@ -1235,7 +1235,7 @@ Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 > |---|---|
 > | **14** `rr deepscan` | **Split it.** The query-refinement loop is measured-negative; the citation-trail half is the one channel with recall. |
 > | **15** `rr ask` | **Unaffected.** Nothing measured bears on it — a product bet, not a research one. Judge it on demand, not on evidence. |
-> | **16** technique fingerprinting | **Promoted.** It starts from what the repo *has*, which is the only register that ever worked. Its retrieval half is now redundant; its *relation* half is the open part. |
+> | **16** technique fingerprinting | **Promoted 2026-08-09, then blocked 2026-08-16 [NR-39].** The premise holds — it starts from what the repo *has* — but a $0 probe found the relation cannot be *grounded*: 18 of 25 repositories produce no grounded claim at all, four carry 93% of them, and `replaces` fires on 8.9% of actionable abstracts. Needs a technique-alias layer first, with a coverage number for non-Python repos. |
 > | **17** Zotero/BibTeX | **Unaffected.** Pure integration. |
 > | **18** implementability scoring | **Refuted as ranking.** Exactly these features measured AUC 0.585 (below bar). Survives only as a displayed badge. |
 > | **19** research-gap radar | **Dead.** The same "name what it lacks" mechanism has now failed four independent times. |
@@ -1252,7 +1252,21 @@ Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 > demonstrated recall** (44%, and 89% on repos with ≥7 seeds). Ship the trail; drop the
 > refinement loop unless someone brings a mechanism that closes the register gap.
 >
-> ### 16 — promoted, and narrowed
+> ### 16 — promoted, narrowed, then blocked on grounding [NR-39, 2026-08-16]
+> **A $0 probe of the surviving half found the relation cannot be grounded on most
+> repositories.** Repository *keywords* appear in 96.4% of actionable abstracts and 97.4%
+> of non-actionable ones — coverage without discrimination. Only *anchors* (declared
+> dependencies) separate anything, and 12 of 25 benchmark repos have none, because the
+> anchor parser reads Python and JS manifests only. Four Python/ML repositories carry 93%
+> of every grounded claim; `ann` misses its own `faiss` because it is a C++ project.
+> `replaces` — the alert the feature is named for — fires on 8.9% of actionable abstracts.
+> The product also already renders a one-line `llm_reason` per paper in both templates, so
+> the increment is a typed label on ~12% of entries rather than an explanation where there
+> was none. Reviving it starts with the technique-alias table, which the entry below calls
+> a curation burden and which the probe shows is the whole feature. Full result in
+> evals/RESULTS.md.
+>
+> ### 16 — the 2026-08-09 re-derivation, kept for the record
 > "This paper supersedes algorithm X you import" seeds from the repo's imports — i.e. from
 > what it *has*. Everything that ever worked has that shape (P2: *"every channel that works is
 > one that starts from what the repo already does"*), and the judge's notion of actionable
