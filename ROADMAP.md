@@ -1235,7 +1235,7 @@ Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 > |---|---|
 > | **14** `rr deepscan` | **Split it.** The query-refinement loop is measured-negative; the citation-trail half is the one channel with recall. |
 > | **15** `rr ask` | **Unaffected.** Nothing measured bears on it — a product bet, not a research one. Judge it on demand, not on evidence. |
-> | **16** technique fingerprinting | **Promoted 2026-08-09, then blocked 2026-08-16 [NR-39].** The premise holds — it starts from what the repo *has* — but a $0 probe found the relation cannot be *grounded*: 18 of 25 repositories produce no grounded claim at all, four carry 93% of them, and `replaces` fires on 8.9% of actionable abstracts. Needs a technique-alias layer first, with a coverage number for non-Python repos. |
+> | **16** technique fingerprinting | **Promoted 2026-08-09, then blocked 2026-08-16 [NR-39].** The premise holds — it starts from what the repo *has* — but a $0 probe found the relation cannot be *grounded*: 18 of 25 repositories produce no grounded claim at all, four carry 93% of them, and `replaces` fires on 8.9% of actionable abstracts. Needs a technique-alias layer first, with a coverage number for non-Python repos. **Condition withdrawn 2026-08-16 [P9, C-21]:** the "only anchors discriminate" finding it rested on is a case-mix artifact (−0.6pt per case, CI [−3.7, +1.4]; `peft` alone carries the pooled +13.7pt). Now blocked on a judge-independent measurement instead. |
 > | **17** Zotero/BibTeX | **Unaffected.** Pure integration. |
 > | **18** implementability scoring | **Refuted as ranking.** Exactly these features measured AUC 0.585 (below bar). Survives only as a displayed badge. |
 > | **19** research-gap radar | **Dead.** The same "name what it lacks" mechanism has now failed four independent times. |
@@ -1265,6 +1265,28 @@ Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 > was none. Reviving it starts with the technique-alias table, which the entry below calls
 > a curation burden and which the probe shows is the whole feature. Full result in
 > evals/RESULTS.md.
+>
+> ### 16 — the revival condition is void; the finding it rested on was a case-mix artifact [P9, C-21, 2026-08-16]
+> **The "only anchors discriminate" result above is pooled, and it is one repository.**
+> Computed per case over the same cached artifacts, the anchor channel is −0.6pt
+> (Mantel-Haenszel), 95% CI [−3.7, +1.4], 2 cases better / 3 worse / 11 tied; removing
+> `peft` takes the pooled +13.7pt to +0.2pt. So the condition NR-39 set for reviving this
+> item — "build the technique-alias table and bring a non-Python coverage number" — was
+> derived from a channel that does not discriminate within a repository. **Meeting it would
+> prove nothing.** The condition is withdrawn rather than transferred.
+>
+> P9 tested the obvious way to build that table without curation: typed verbatim-span
+> extraction from READMEs. It supplies terms on 9 of the 12 anchor-less repos with zero
+> hallucination, and per case it does discriminate (+27.5pt M-H, CI [+21.5, +46.9]) where
+> the manifest channel does not. But on the rescued repositories themselves the effect rests
+> on two of them, two more extracted spans matching no abstract at all, and the whole
+> magnitude is bounded above by a judge-circularity that cannot currently be priced —
+> `assemble_repo_context` shows the judge the README and the manifests.
+>
+> **Item 16 stays blocked, on a different and weaker footing than before.** What it now
+> needs is not an alias table but a judge-independent measurement: P6's 31 git-history-mined
+> adoptions are the only model-free instrument in the project, and no repo-side channel has
+> been scored against them. Until then nothing here is worth building or benchmarking.
 >
 > ### 16 — the 2026-08-09 re-derivation, kept for the record
 > "This paper supersedes algorithm X you import" seeds from the repo's imports — i.e. from
