@@ -571,3 +571,69 @@ class TestRepoProse:
         bare = profile_repo(repo, profiler_cfg=SimpleNamespace(scan_source=False))
         typed = profile_repo(repo, profiler_cfg=ProfilerConfig())
         assert len(bare.prose) == len(typed.prose) == ProfilerConfig().prose_chars
+
+
+class TestCitedArxivIds:
+    """What the repository itself cites -- the signal that keeps its own paper out of Top Picks.
+
+    Measured on six scientific repositories: five of them had the repo's OWN publication as a
+    gate-score-3 Top Pick, and a neutral judge scored every one of them 1 ("the method this
+    repository already implements").
+    """
+
+    def test_reads_readme_citation_and_docs(self, tmp_path: Path) -> None:
+        from reporadar.profiler import cited_arxiv_ids_of
+
+        (tmp_path / "README.md").write_text(
+            "See our paper: https://arxiv.org/abs/1708.01492v5", encoding="utf-8"
+        )
+        (tmp_path / "CITATION.cff").write_text("identifiers: arXiv:2302.14231", encoding="utf-8")
+        docs = tmp_path / "docs" / "src"
+        docs.mkdir(parents=True)
+        (docs / "references.bib").write_text(
+            "@article{de2016, eprint = {1601.04077}}", encoding="utf-8"
+        )
+        (tmp_path / "docs" / "guide.rst").write_text("cf. arXiv:2303.14046", encoding="utf-8")
+
+        assert cited_arxiv_ids_of(tmp_path) == {
+            "1708.01492",
+            "2302.14231",
+            "1601.04077",
+            "2303.14046",
+        }
+
+    def test_rejects_dois_and_version_strings(self, tmp_path: Path) -> None:
+        """The month is validated, and that is what separates a citation from a DOI.
+
+        Every string below was found in a real repository's README by the unvalidated
+        pattern: `2019.10694` is a Comput. Phys. Commun. DOI fragment in dscribe's, and the
+        other three are MACE's. A month of 19, 29, 84 or 42 is not an arXiv id.
+        """
+        from reporadar.profiler import cited_arxiv_ids_of
+
+        (tmp_path / "README.md").write_text(
+            "doi 10.1016/j.cpc.2019.10694, refs 1029.28096 1484.11876 2042.03300 7022.2013",
+            encoding="utf-8",
+        )
+        assert cited_arxiv_ids_of(tmp_path) == frozenset()
+
+    def test_old_style_ids_survive(self, tmp_path: Path) -> None:
+        from reporadar.profiler import cited_arxiv_ids_of
+
+        (tmp_path / "README").write_text("cond-mat/0501001 and math.GT/0309136v2", encoding="utf-8")
+        assert cited_arxiv_ids_of(tmp_path) == {"cond-mat/0501001", "math.GT/0309136"}
+
+    def test_profile_repo_exposes_them(self, tmp_path: Path) -> None:
+        from reporadar.profiler import profile_repo
+
+        (tmp_path / "README.md").write_text(
+            "A tool for sequence alignment. Paper: arXiv:1708.01492", encoding="utf-8"
+        )
+        assert profile_repo(tmp_path).cited_arxiv_ids == {"1708.01492"}
+
+    def test_no_citations_is_an_empty_set_not_a_crash(self, tmp_path: Path) -> None:
+        from reporadar.profiler import cited_arxiv_ids_of, profile_repo
+
+        (tmp_path / "README.md").write_text("No papers here.", encoding="utf-8")
+        assert cited_arxiv_ids_of(tmp_path) == frozenset()
+        assert profile_repo(tmp_path).cited_arxiv_ids == frozenset()

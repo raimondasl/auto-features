@@ -33,6 +33,13 @@ class RepoProfile:
     # real search APIs as phrase queries. Verifying is only possible here, because the corpus
     # does not survive profiling. Empty when nothing was read.
     corpus_phrases: list[str] = field(default_factory=list)
+    # arXiv ids the repository's own text already cites (README, CITATION file, docs/).
+    # A paper a project links to is not news to its maintainers -- it is at best something
+    # they already adopted, which is exactly the signal `evals/mine_adoptions.py` used as
+    # ground truth. The digest routes these out of Top Picks into their own section rather
+    # than recommending them back. Version-stripped, so the comparison survives
+    # `2303.14046` vs `2303.14046v1`.
+    cited_arxiv_ids: frozenset[str] = frozenset()
 
 
 # Mapping from common package names to domain labels.
@@ -480,6 +487,52 @@ def _collect_text_corpus(repo_path: Path) -> list[str]:
     return documents
 
 
+# arXiv ids in either era's format, as they appear in prose or in an abs/pdf URL. The month
+# is VALIDATED (01-12), and that is the whole difference between a usable signal and noise:
+# a bare `\d{4}\.\d{4,5}` also matches DOI fragments and version strings, and on the four
+# repositories this was built against it matched `2019.10694` (a Comput. Phys. Commun. DOI in
+# dscribe's README) and `1029.28096`, `1484.11876`, `2042.03300` in MACE's. All four are
+# rejected here; every real id in the same files survives.
+_CITED_ARXIV_NEW_RE = re.compile(r"\b((?:0[7-9]|[1-9]\d)(?:0[1-9]|1[0-2])\.\d{4,5})(?:v\d+)?\b")
+_CITED_ARXIV_OLD_RE = re.compile(r"\b([a-z-]{2,}(?:\.[A-Za-z-]+)?/\d{7})(?:v\d+)?\b")
+
+
+def cited_arxiv_ids_of(repo_path: Path) -> frozenset[str]:
+    """arXiv ids the repository itself cites: README, CITATION file, and ``docs/``.
+
+    Read **raw**, deliberately not through :func:`_clean_document`, which strips URLs --
+    and most citations arrive as `arxiv.org/abs/<id>` links rather than as bare ids, so
+    cleaning first would drop the majority of them.
+
+    This walks the same files :func:`_collect_text_corpus` reads (plus ``CITATION*``) a
+    second time rather than returning a second value from it: that function's
+    list-of-strings contract has three callers outside this module, one of which joins it.
+    """
+    ids: set[str] = set()
+
+    def scan(text: str) -> None:
+        for pattern in (_CITED_ARXIV_NEW_RE, _CITED_ARXIV_OLD_RE):
+            ids.update(match.group(1) for match in pattern.finditer(text))
+
+    for name in ("README.md", "README.rst", "README.txt", "README"):
+        scan(_read_text_file(repo_path / name))
+    for citation in sorted(repo_path.glob("CITATION*")):
+        if citation.is_file():
+            scan(_read_text_file(citation))
+    docs_dir = repo_path / "docs"
+    if docs_dir.is_dir():
+        # `.bib` joins the corpus extensions here and nowhere else: a bibliography is the
+        # plainest statement a project makes about what it already cites, and it is the only
+        # place some of them are recorded (dscribe cites the REMatch-kernel paper its own
+        # tutorial teaches only in `docs/src/references.bib`). Built HTML is deliberately not
+        # read: it is a generated copy of the same citations, and a committed docs build can
+        # be thousands of files.
+        for ext in ("*.md", "*.rst", "*.txt", "*.bib"):
+            for doc_file in docs_dir.rglob(ext):
+                scan(_read_text_file(doc_file))
+    return frozenset(ids)
+
+
 def _repo_prose(repo_path: Path, budget: int) -> str:
     """The repo's own description: its README, else its packaging description.
 
@@ -673,4 +726,5 @@ def profile_repo(
         source_signals=source_signals,
         prose=_repo_prose(repo_path, getattr(profiler_cfg, "prose_chars", 300)),
         corpus_phrases=_observed_phrases(documents, keywords),
+        cited_arxiv_ids=cited_arxiv_ids_of(repo_path),
     )

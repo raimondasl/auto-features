@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json as json_mod
+from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -130,6 +131,14 @@ def digest_window(
        paper rather than being wasted — so the identity of the *last* paper in the window
        depends on how many withdrawn papers preceded it.
 
+    3. **Only withdrawn papers that were competing for a slot are returned.** The walk stops
+       once the window is full, so a retraction sitting at rank 300 is not reported. It used
+       to return every withdrawn paper in the run, which is how three off-topic retractions
+       -- hydraulic fracturing, opioid use disorders, music sight reading, all fetched by the
+       generic queries a thin profile produces -- came to head a materials-science digest
+       whose Top Picks were sound. What the section is for is the paper you might otherwise
+       have acted on; a paper the digest was never going to show is not that.
+
     That second rule is why `cli.update` must not re-derive this to decide which papers to
     spend fine-scale calls on. A local reimplementation that forgot it would scope the band
     to a window off by one paper per withdrawal, and the two would disagree only on runs
@@ -142,9 +151,27 @@ def digest_window(
 
         scored_papers = rerank_by_actionability(scored_papers)
 
-    withdrawn = [p for p in scored_papers if p.get("withdrawn_in")]
-    window = [p for p in scored_papers if not p.get("withdrawn_in")][:top_n]
+    window: list[dict[str, Any]] = []
+    withdrawn: list[dict[str, Any]] = []
+    for paper in scored_papers:
+        if len(window) >= top_n:
+            break
+        if paper.get("withdrawn_in"):
+            withdrawn.append(paper)
+        else:
+            window.append(paper)
     return window, withdrawn
+
+
+def cited_ids_from(profile: Any | None) -> frozenset[str]:
+    """The repository's own citations, off a profile the caller already has.
+
+    Tolerates ``None`` and any object without the attribute, because five call sites pass a
+    profile that is optional (`rr notify` and `rr watch` build one only when they can) and a
+    digest that silently changed shape depending on which of them ran would be worse than one
+    that never excludes anything.
+    """
+    return frozenset(getattr(profile, "cited_arxiv_ids", None) or ())
 
 
 def categorize_papers(
@@ -155,6 +182,7 @@ def categorize_papers(
     triage_threshold: int | None = None,
     rerank: bool = False,
     finescale_threshold: float | None = None,
+    cited_ids: Collection[str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Split scored papers into three tiers: top_picks, maybe_relevant, muted.
 
@@ -189,6 +217,15 @@ def categorize_papers(
     When *rerank* is set (and triage scores are present), papers are reordered by
     ``llm_score`` *before* the *top_n* cut, so an actionable paper the heuristic
     ranker buried below the window isn't dropped before it can be a Top Pick.
+
+    *cited_ids* are arXiv ids the repository's own text already cites
+    (:attr:`~reporadar.profiler.RepoProfile.cited_arxiv_ids`). Those papers are marked
+    ``already_cited`` and muted instead of tiered: the project has already found them, and
+    on five of six scientific repositories measured this way the paper the gate ranked
+    first was the repository's **own** publication, which a neutral judge scored 1 -- "the
+    method this repository already implements" -- every time. They are muted *inside* the
+    window rather than removed before it, so excluding one cannot pull an unseen paper into
+    the digest behind it.
     """
     # Ordering and the top_n cut live in `digest_window`, shared with `cli.update` so the
     # fine-scale stage spends only on papers this function can still show. Withdrawn papers
@@ -204,6 +241,14 @@ def categorize_papers(
     muted = list(withdrawn)
 
     for paper in limited:
+        if cited_ids and dedup_id(str(paper.get("arxiv_id", ""))) in cited_ids:
+            # The repository's own README, CITATION file or bibliography already points at
+            # this paper. Recommending it back is not a recommendation. Flagged and muted
+            # rather than dropped -- the same shape withdrawn papers use -- so the digest can
+            # show it in its own section and a reader can check the call.
+            paper["already_cited"] = True
+            muted.append(paper)
+            continue
         llm = paper.get("llm_score")
         if triage_threshold is not None and llm is None:
             # The gate ran and this paper has no verdict. Unproven is not a Top Pick.
@@ -321,7 +366,10 @@ def _build_digest_context(
         triage_threshold=triage_threshold,
         rerank=rerank,
         finescale_threshold=finescale_threshold,
+        cited_ids=cited_ids_from(profile),
     )
+    already_cited = [p for p in muted if p.get("already_cited")]
+    muted = [p for p in muted if not p.get("already_cited")]
     enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
     has_embeddings = any(p.get("embedding_score") is not None for p in scored)
@@ -369,9 +417,15 @@ def _build_digest_context(
     # Withdrawn papers get their own section rather than relying on a per-card badge:
     # the ranking penalty deliberately demotes them, and the Muted tier renders no
     # badges, so a card-only warning would vanish exactly when it fires.
+    #
+    # Read off `muted`, which `categorize_papers` seeds from `digest_window`'s withdrawn
+    # list, rather than re-scanning `scored`. Scanning `scored` was a SECOND implementation
+    # of a rule `digest_window` already owns, and the two disagreed the moment that rule
+    # gained its third clause: the window stopped reporting retractions it was never going
+    # to show, and this comprehension went on rendering every retraction in the run.
     withdrawn_papers = [
         {"title": p["title"], "url": p["url"], "field": p["withdrawn_in"]}
-        for p in scored
+        for p in muted
         if p.get("withdrawn_in")
     ]
 
@@ -393,6 +447,7 @@ def _build_digest_context(
         "recommended": recommended,
         "extends_starred": extends_starred,
         "withdrawn_papers": withdrawn_papers,
+        "already_cited": already_cited,
     }
 
 
@@ -506,7 +561,10 @@ def generate_digest_json(
         triage_threshold=triage_threshold,
         rerank=rerank,
         finescale_threshold=finescale_threshold,
+        cited_ids=cited_ids_from(profile),
     )
+    already_cited = [p for p in muted if p.get("already_cited")]
+    muted = [p for p in muted if not p.get("already_cited")]
     enrich_papers_with_suggestions(top_picks, config=suggestions_config, profile=profile)
 
     payload: str = json_mod.dumps(
@@ -518,6 +576,7 @@ def generate_digest_json(
             "top_picks": top_picks,
             "maybe_relevant": maybe_relevant,
             "muted": muted,
+            "already_cited": already_cited,
         },
         indent=2,
         default=str,
@@ -558,6 +617,7 @@ def generate_digest_csv(
     triage_threshold: int | None = None,
     rerank: bool = False,
     finescale_threshold: float | None = None,
+    profile: Any | None = None,
 ) -> str:
     """Generate digest as a CSV string."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
@@ -567,7 +627,9 @@ def generate_digest_csv(
         triage_threshold=triage_threshold,
         rerank=rerank,
         finescale_threshold=finescale_threshold,
+        cited_ids=cited_ids_from(profile),
     )
+    muted = [m for m in muted if not m.get("already_cited")]
 
     # Tag each paper with its tier
     for p in top_picks:
@@ -603,6 +665,7 @@ def generate_digest_rss(
     triage_threshold: int | None = None,
     rerank: bool = False,
     finescale_threshold: float | None = None,
+    profile: Any | None = None,
 ) -> str:
     """Generate digest as an RSS 2.0 XML string."""
     scored = filter_since(store.get_scores_for_run(run_id), since_days)
@@ -612,7 +675,9 @@ def generate_digest_rss(
         triage_threshold=triage_threshold,
         rerank=rerank,
         finescale_threshold=finescale_threshold,
+        cited_ids=cited_ids_from(profile),
     )
+    muted = [m for m in muted if not m.get("already_cited")]
     all_papers = top_picks + maybe_relevant + muted
 
     template = _load_template("digest.rss.xml.j2")
@@ -672,6 +737,7 @@ def write_digest(
             triage_threshold=triage_threshold,
             rerank=rerank,
             finescale_threshold=finescale_threshold,
+            profile=profile,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".csv")
@@ -685,6 +751,7 @@ def write_digest(
             triage_threshold=triage_threshold,
             rerank=rerank,
             finescale_threshold=finescale_threshold,
+            profile=profile,
         )
         if output_path.suffix in (".md", ".html"):
             output_path = output_path.with_suffix(".xml")
@@ -726,6 +793,7 @@ def write_digest(
     top_picks, _, _ = categorize_papers(
         scored,
         top_n=top_n,
+        cited_ids=cited_ids_from(profile),
         triage_threshold=triage_threshold,
         rerank=rerank,
         finescale_threshold=finescale_threshold,

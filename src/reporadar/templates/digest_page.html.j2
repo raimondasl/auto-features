@@ -111,15 +111,6 @@
 {% endfor %}
 {% endif %}
 
-{% if withdrawn_papers %}
-<h2 class="section">Withdrawn by their authors</h2>
-<ul>
-  {% for w in withdrawn_papers %}
-  <li class="withdrawn"><a href="{{ w.url|safe_url }}">{{ w.title }}</a> &mdash; withdrawal notice
-    in its {{ w.field }}; ranked down but shown so you don't act on it</li>
-  {% endfor %}
-</ul>
-{% endif %}
 {% if extends_starred %}
 <h2 class="section">Extends work you starred</h2>
 <ul>
@@ -179,6 +170,26 @@
   {% endif %}
 </div>
 {% endfor %}
+{% endif %}
+
+{% if already_cited %}
+<h2 class="section">Already cited by this repository</h2>
+<ul>
+  {% for p in already_cited %}
+  <li><a href="{{ p.url|safe_url }}">{{ p.title }}</a> &mdash; your README, CITATION file or docs
+    already cite this; found, and not recommended back to you</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if withdrawn_papers %}
+<h2 class="section">Withdrawn by their authors</h2>
+<ul>
+  {% for w in withdrawn_papers %}
+  <li class="withdrawn"><a href="{{ w.url|safe_url }}">{{ w.title }}</a> &mdash; withdrawal notice
+    in its {{ w.field }}; ranked down but shown so you don't act on it</li>
+  {% endfor %}
+</ul>
 {% endif %}
 
 {% if maybe_relevant %}

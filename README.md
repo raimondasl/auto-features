@@ -654,7 +654,11 @@ multiplier, not another weighted component, so a withdrawn paper **cannot** reac
 Picks by scoring well everywhere else — 1.0 × 0.1 = 0.1, below the Maybe Relevant
 threshold. It is not dropped to zero, because a paper you may have seen elsewhere is
 better shown flagged than silently missing; the digest gets a "Withdrawn by their
-authors" section that appears regardless of tier.
+authors" section listing the retractions that were **competing for a slot** — the ones it
+would otherwise have shown you. It used to list every retraction in the run at any rank,
+which is a different thing: on a repository whose thin profile produced generic queries
+(`all:model`, `all:use`) it put three off-topic retractions — hydraulic fracturing, opioid
+use disorders, music sight reading — at the head of a digest whose Top Picks were sound.
 
 arXiv has no withdrawal *field* — the notice is hand-written free text in the paper's
 comment, so the matcher is the whole feature. It reads the comment liberally (the most
@@ -692,6 +696,12 @@ The profiler scans your repo for text to build a topic profile:
 2. **Dependency manifests** — `requirements.txt`, `pyproject.toml`, `package.json`
 3. **TF-IDF** — extracts up to 20 keywords (unigrams + bigrams) from the collected text
 4. **Anchors** — package names from manifests, mapped to domain labels (e.g., `torch` → "deep learning")
+5. **Citations** — arXiv ids the repo's own text points at (README, `CITATION*`, `docs/`
+   including `.bib`), read raw because cleaning strips the URLs most citations arrive in.
+   The digest sets those papers aside rather than recommending them back (see [Digest
+   Tiers](#digest-tiers)). The id pattern validates the month, which is the whole
+   difference between a citation and a DOI: `2019.10694` in a README is
+   `10.1016/j.cpc.2019.106949`, not a paper.
 
 ### Query Building
 
@@ -749,6 +759,18 @@ Papers are categorized into three tiers based on their combined score:
 
 With `triage.enabled`, the LLM actionability score replaces the heuristic score for
 tiering: `llm_score >= min_actionable` is a Top Pick, `>= 1` is Maybe, `0` is Muted.
+
+Two kinds of paper leave the tiers before any of that. One its authors **withdrew** is
+muted whatever it scores (above). One **this repository already cites** — in its README,
+its `CITATION*` file or its `docs/` bibliography — is muted into an "Already cited by this
+repository" section instead of being recommended back: the project has already found it.
+That rule earns its place on the case it was built for. Across six scientific repositories
+the paper the gate ranked first was, five times, the repository's *own* publication, and a
+neutral judge scored every one of them 1 — "the method this repository already
+implements". It is not free: on `dscribe` it also sets aside one paper the same judge
+called actionable, whose method that repository's own tutorial teaches. Both kinds are set
+aside *inside* the `top_n` window rather than before it, so excluding one can never promote
+a paper the gate did not score.
 
 ### HyDE discovery (`hyde`)
 
