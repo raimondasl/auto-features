@@ -1131,9 +1131,7 @@ class TestAlreadyCitedPapers:
             {"score_total": 0.9, "arxiv_id": "2303.14046v1", "llm_score": 3},
             {"score_total": 0.8, "arxiv_id": "2405.08137v1", "llm_score": 3},
         ]
-        top, _, muted = categorize_papers(
-            scored, triage_threshold=2, cited_ids={"2303.14046"}
-        )
+        top, _, muted = categorize_papers(scored, triage_threshold=2, cited_ids={"2303.14046"})
 
         assert [p["arxiv_id"] for p in top] == ["2405.08137v1"]
         assert [p["arxiv_id"] for p in muted] == ["2303.14046v1"]
@@ -1195,9 +1193,7 @@ class TestAlreadyCitedPapers:
 
             import json as json_mod
 
-            payload = json_mod.loads(
-                generate_digest_json(store, run_id, profile=profile)
-            )
+            payload = json_mod.loads(generate_digest_json(store, run_id, profile=profile))
             assert [p["arxiv_id"] for p in payload["top_picks"]] == ["2405.08137v1"]
             assert [p["arxiv_id"] for p in payload["already_cited"]] == ["2303.14046v1"]
 
