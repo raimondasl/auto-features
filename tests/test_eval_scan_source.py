@@ -89,6 +89,13 @@ class TestTheProfileHasOneHome:
             ),
         )
         assert src is not None and "scan_source=scan_source" in src
+        # `typed_anchors` (P9/P10) is the second profiler flag to reach all four stages,
+        # and it fails the same way: reaching collection but not the gate would give an
+        # arm whose retrieval knows the repo's techniques while its judge does not.
+        assert "typed_anchors=typed_anchors" in src, (
+            "case_profile must pass typed_anchors through to ProfilerConfig, or the "
+            "--rr-typed-anchors arm profiles differently at different stages"
+        )
         assert callable(run_judge_eval.case_profile)
 
     def test_every_call_site_names_the_flag(self) -> None:

@@ -89,7 +89,13 @@ def load_dotenv(path: Path) -> None:
             os.environ[key] = val
 
 
-def case_profile(repo_dir: Path, *, scan_source: bool, prose_chars: int | None = None) -> Any:
+def case_profile(
+    repo_dir: Path,
+    *,
+    scan_source: bool,
+    typed_anchors: bool = False,
+    prose_chars: int | None = None,
+) -> Any:
     """The one place this harness builds a repository profile.
 
     Four stages need one — collection, ranking, the gate and the rescore — and they must
@@ -107,10 +113,20 @@ def case_profile(repo_dir: Path, *, scan_source: bool, prose_chars: int | None =
     from reporadar.profiler import profile_repo
 
     cfg = (
-        ProfilerConfig(scan_source=scan_source)
+        ProfilerConfig(scan_source=scan_source, typed_anchors=typed_anchors)
         if prose_chars is None
-        else ProfilerConfig(scan_source=scan_source, prose_chars=prose_chars)
+        else ProfilerConfig(
+            scan_source=scan_source, typed_anchors=typed_anchors, prose_chars=prose_chars
+        )
     )
+    if typed_anchors:
+        # `complete()` reads the credential off whatever object it is handed, and the
+        # product loader mirrors it onto ProfilerConfig. Constructing the dataclass
+        # directly skips that, so the harness does the same mirroring explicitly rather
+        # than letting extraction fail into an empty anchor list and silently produce
+        # the control arm.
+        cfg.claude_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        cfg.claude_model = cfg.typed_anchors_model
     return profile_repo(repo_dir, profiler_cfg=cfg)
 
 
@@ -124,6 +140,7 @@ def collect_candidates(
     hyde_cfg: Any | None = None,
     bigrams: str = "adjacent",
     scan_source: bool = False,
+    typed_anchors: bool = False,
 ) -> list[dict[str, Any]]:
     """Everything retrieval found, before any ranking — the unit a frozen pool stores.
 
@@ -160,6 +177,7 @@ def rank_candidates(
     hybrid: bool = False,
     absent_category: str = "omit",
     scan_source: bool = False,
+    typed_anchors: bool = False,
     w_embedding: float = 0.0,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's ranking over an already-collected pool: top-N (paper, score) best-first.
@@ -230,6 +248,7 @@ def reporadar_ranked(
     bigrams: str = "adjacent",
     absent_category: str = "omit",
     scan_source: bool = False,
+    typed_anchors: bool = False,
     w_embedding: float = 0.0,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's real ranking: top-N (paper, score) best-first.
@@ -404,6 +423,7 @@ def _triage_reporadar(
     model: str,
     prose_chars: int = 300,
     scan_source: bool = False,
+    typed_anchors: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic).
 
@@ -447,7 +467,10 @@ def _apply_finescale(
         return above
 
     profile = case_profile(
-        repo_dir, scan_source=args.rr_scan_source, prose_chars=args.rr_prose_chars
+        repo_dir,
+        scan_source=args.rr_scan_source,
+        typed_anchors=args.rr_typed_anchors,
+        prose_chars=args.rr_prose_chars,
     )
     cfg = SimpleNamespace(
         openai_api_key=keys.get("OPENAI_API_KEY", ""),
@@ -497,6 +520,10 @@ POOL_FLAGS = (
     # pool. A frozen pool reused across it would compare two arms over one arm's
     # candidates and call the difference a treatment effect.
     "rr_scan_source",
+    # Typed anchors change the PROFILE for the same reason source scanning does: they
+    # reach keywords, therefore the queries, therefore the pool. P9 measured the size of
+    # that change -- keywords move on 17 of 25 cases, arXiv queries on 14.
+    "rr_typed_anchors",
 )
 
 # Flags that change how the pool is ORDERED, not what is in it. Deliberately absent from
@@ -825,6 +852,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             hyde_cfg=_hyde_cfg(args, goal),
             bigrams=args.rr_bigrams,
             scan_source=args.rr_scan_source,
+            typed_anchors=args.rr_typed_anchors,
         )
         if args.rr_frozen_pool is not None:
             save_frozen_pool(args.rr_frozen_pool, name, fingerprint, candidates)
@@ -845,6 +873,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         hybrid=args.rr_hybrid,
         absent_category=args.rr_absent_category,
         scan_source=args.rr_scan_source,
+        typed_anchors=args.rr_typed_anchors,
         w_embedding=args.rr_w_embedding,
     )
     rr_candidates = [p for p, _ in rr_ranked]
@@ -858,6 +887,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             args.rr_triage_model,
             args.rr_prose_chars,
             scan_source=args.rr_scan_source,
+            typed_anchors=args.rr_typed_anchors,
         )
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
@@ -1013,6 +1043,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # What the profiler was allowed to read. Recorded because it changes the pool,
         # the ranking, the gate prompt and the rescore prompt at once.
         "scan_source": bool(args.rr_scan_source),
+        "typed_anchors": bool(args.rr_typed_anchors),
         "w_embedding": float(args.rr_w_embedding),
         # The documentation budget this arm ran under, or None for an unablated run.
         # The last POOL_FLAG that was not recorded: the four arms of the thin-docs
@@ -1175,6 +1206,16 @@ def main() -> int:
         "`profiler.scan_source`, which no benchmark arm has ever enabled). A thin-docs "
         "repository is thin in prose but has code; NR-26 found its richer arm's benefit "
         "tracked that extra information rather than the question asked of it.",
+    )
+    parser.add_argument(
+        "--rr-typed-anchors",
+        action="store_true",
+        help="Let the profiler read the README with an LLM and merge the named entities "
+        "it finds into anchors (the shipped `profiler.typed_anchors`, default off). P9 "
+        "measured the channel discriminating where the manifest channel does not and P10 "
+        "found that survives redacting the spans from the judge's view; neither showed it "
+        "improves a digest, which is what this arm is for. A POOL flag: it changes the "
+        "profile, therefore the queries, therefore the pool.",
     )
     parser.add_argument(
         "--rr-w-embedding",

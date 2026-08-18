@@ -68,9 +68,16 @@ def build_ranking_config(
     )
 
 
-def profile_case_repo(repo_dir: Path, *, scan_source: bool = False) -> RepoProfile:
+def profile_case_repo(
+    repo_dir: Path, *, scan_source: bool = False, typed_anchors: bool = False
+) -> RepoProfile:
     """Profile a benchmark repo with the real profiler."""
-    cfg = ProfilerConfig(scan_source=scan_source)
+    cfg = ProfilerConfig(scan_source=scan_source, typed_anchors=typed_anchors)
+    if typed_anchors:
+        import os
+
+        cfg.claude_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        cfg.claude_model = cfg.typed_anchors_model
     return profile_repo(repo_dir, profiler_cfg=cfg)
 
 

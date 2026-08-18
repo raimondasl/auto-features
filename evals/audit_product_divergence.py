@@ -414,6 +414,7 @@ BENCHMARK_HEADLINE: dict[str, Any] = {
     "ranking.hybrid": True,  # --rr-hybrid (applied by hybrid_reorder, not the flag)
     "output.top_n": 15,  # --rr-window default since 2026-08-15
     "profiler.scan_source": False,  # harness.profile_case_repo default
+    "profiler.typed_anchors": False,  # --rr-typed-anchors default; the measured arm sets it
     "profiler.prose_chars": 300,  # --rr-prose-chars default
     "suggestions.provider": "claude",  # the gate's SuggestionsConfig(provider="claude")
     "suggestions.claude_model": "claude-haiku-4-5",  # --rr-triage-model default
@@ -469,6 +470,16 @@ NOT_UNDER_TEST: dict[str, str] = {
     "hooks.email.use_tls": "notification",
     "profiler.max_files": "only read when profiler.scan_source is on, which no arm sets",
     "profiler.source_extensions": "only read when profiler.scan_source is on",
+    # The loader mirrors the gate's LLM credentials onto ProfilerConfig so `profile_repo`
+    # can reach `complete()` without a signature change at ten call sites. They are read
+    # only when profiler.typed_anchors is on, and `case_profile` mirrors the same values
+    # from the environment for the arm that sets it.
+    "profiler.provider": "mirrored from suggestions; read only when typed_anchors is on",
+    "profiler.claude_api_key": "mirrored from suggestions; read only when typed_anchors is on",
+    "profiler.claude_model": "mirrored; equals profiler.typed_anchors_model by construction",
+    "profiler.timeout": "mirrored from suggestions; read only when typed_anchors is on",
+    "profiler.redact": "mirrored from privacy.redact, as for suggestions and queries",
+    "profiler.typed_anchors_model": "the --rr-typed-anchors arm sets it to the same Haiku",
     "suggestions.ollama_model": "the benchmark's gate is provider='claude'",
     "suggestions.ollama_url": "the benchmark's gate is provider='claude'",
     "suggestions.max_suggestions": "governs `rr suggest`; triage_papers does not read it",
