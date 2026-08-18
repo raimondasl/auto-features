@@ -237,6 +237,21 @@ class HooksConfig:
 @dataclass
 class ProfilerConfig:
     scan_source: bool = False
+    # Read the README with an LLM and merge the named entities it finds into `anchors`.
+    # OFF by default and measured, not assumed: P9 found the channel discriminates where
+    # the manifest channel does not, P10 found that survives redacting the spans from the
+    # judge's view -- and neither established that it improves a digest. Costs one Haiku
+    # call per repository per profile, cached on the README's hash.
+    typed_anchors: bool = False
+    typed_anchors_model: str = "claude-haiku-4-5"
+    # Mirrored from `suggestions`/`privacy` by the loader so `complete()` can be called
+    # with this object. Declared here rather than set loose so mypy and `rr audit` both
+    # see that the profiler is an LLM destination when typed_anchors is on.
+    provider: str = "claude"
+    claude_api_key: str = ""
+    claude_model: str = "claude-haiku-4-5"
+    timeout: int = 30
+    redact: list[str] = field(default_factory=list)
     max_files: int = 100
     source_extensions: list[str] = field(
         default_factory=lambda: [".py", ".js", ".ts", ".tsx", ".jsx"]
@@ -589,6 +604,15 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     # redaction applies by construction — a new caller gets it without opting in.
     suggestions.redact = list(privacy.redact)
     queries.redact = list(privacy.redact)
+    # Same reasoning for typed anchors: `profile_repo` receives only `cfg.profiler`, and
+    # every one of its ten call sites passes exactly that. Mirroring the LLM credentials
+    # here means the profiler can reach `complete()` without a signature change rippling
+    # through all of them, and redaction still applies because it is copied too.
+    profiler.provider = "claude"
+    profiler.claude_api_key = suggestions.claude_api_key
+    profiler.claude_model = profiler.typed_anchors_model
+    profiler.timeout = suggestions.timeout
+    profiler.redact = list(privacy.redact)
     if "triage" in data:
         triage_data = dict(data["triage"])
         finescale_data = triage_data.pop("finescale", {})

@@ -1144,6 +1144,137 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Typed anchors end to end: the channel is real and it does not reach the digest. **[P11]**
+
+```bash
+COMMON="--baseline none --sources arxiv --rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid
+        --rr-sweep --rr-finescale --rr-hyde --rr-window 15 --rr-w-embedding 1.5"
+uv run python evals/run_judge_eval.py $COMMON                      # control
+uv run python evals/run_judge_eval.py $COMMON --rr-typed-anchors   # treatment
+```
+
+P9 measured that typed README spans discriminate where the shipped manifest channel does
+not (+27.5pt Mantel-Haenszel against −0.6pt), P10 measured that 0.87 of that survives
+redacting the spans from the judge's view, and the free cross-judge check reproduced the
+direction on Sonnet. **None of it touches the product metric.** Anchors reach keywords,
+therefore queries, therefore the pool (`profiler.py:554`), the BM25 bag
+(`retrieval.py:37`) and the gate prompt (`triage.py:56-59`), so this must be live: a
+frozen pool cannot be shared across an arm that changes the queries on 14 of 25 cases.
+
+**Prediction, written before the run.** Primary, all 25 cases: **−1.0 to +1.5 net@2/case,
+most likely inside the floor.** The stage-1 evidence is the strongest this project has
+assembled for a repo-side channel, and I still expect close to nothing, for three reasons
+that have each already happened here:
+
+* NR-33 and NR-35 each reshuffled the digest substantially and moved the outcome +0.00.
+  Everything downstream of the profile — the gate and the rescore — decides quality.
+* NR-36 is the closest precedent by construction: it also enriched anchors, also won its
+  $0 stage-1 probe, and measured **−0.52**.
+* P9's own join says the discrimination lives in repositories whose manifests already
+  parse. On the nine that gain anchors, three of six usable cases show any positive gap.
+
+**What would change my mind, and it is not the mean.** The mechanism is anchor coverage,
+so the pre-registered secondary is the **9 rescued repositories** (`ann`, `columnar`,
+`compiler`, `db`, `encryption`, `linter`, `storage`, `systems`, `vectordb`). If typed
+anchors work at all they work there, and n = 9 against a 1.04 floor cannot establish it —
+reported as suggestive, never as a result, with the prediction recorded first so a
+favourable draw cannot be read as confirmation afterwards. I predict this cohort moves
+**+0 to +2**, i.e. better than the whole, and I am not confident of the sign.
+
+**Gate-free secondary:** actionable papers reaching the ranked top-15 before gating. It
+moved 0.00 in NR-33, −0.08 in NR-35, −0.20 in NR-36.
+
+**A divergence between what was measured and what will run, stated first.** P9 scored
+spans after applying `STOPWORD_ANCHORS` and `MIN_ANCHOR_LEN`, to keep its comparison with
+the manifest channel fair. The shipped `typed_anchors` applies neither: it merges the raw
+verbatim spans. So the treatment carries *more* terms than P9 scored — `ann` 2→21 rather
+than 0→17, `peft` 16→31 — and the generic ones P9 filtered (`cosine similarity`, `cuda`,
+`binary vectors`) are present. If this arm is negative, that difference is the first thing
+to check, and it is cheap to check because the probe already has the filtered variant.
+
+**A known false positive that will be in the pool.** P9's largest single false-positive
+driver was the 3-character span `age` (from `age-plugin-pq` in `encryption`), which
+matches ordinary English and fired on 16 non-actionable abstracts. It is not filtered out
+of the shipped path either. `encryption` is one of the nine rescued repositories.
+
+**Estimated cost** $20–30, two live 25-case arms, plus ~$0.02 of Haiku extraction.
+
+> #### RESULT (2026-08-17) — **−0.32/case, inside the floor.** The pre-registered secondary went the other way.
+>
+> `…-20260817T052517Z.json` (control) and `…-20260817T064457Z.json` (`--rr-typed-anchors`).
+> 25/25 both arms, live, window 15.
+>
+> | arm | net@2 | mean precision | abstained |
+> |---|---|---|---|
+> | control | **+6.20** | 1.00 on 8 cases | 6 / 25 |
+> | `--rr-typed-anchors` | **+5.88** | 0.96 on 6 cases | 4 / 25 |
+>
+> **Paired −0.32/case, 7 better / 8 worse / 10 tied, sign p = 1.0000 — inside the floor.**
+> The prediction was "−1.0 to +1.5, most likely inside the floor", and that is where it
+> landed. It is the fourth time a mechanism has won a cheap probe here and moved nothing
+> end to end: NR-33 +0.00, NR-35 +0.00, NR-36 −0.52, this −0.32.
+>
+> **The pre-registered secondary came in against its prediction.** I wrote that the nine
+> rescued repositories would move **+0 to +2**, better than the whole, because anchor
+> coverage is the mechanism and those are the repositories that gain anchors.
+>
+> | cohort | control | typed | paired | |
+> |---|---|---|---|---|
+> | all 25 | +6.20 | +5.88 | **−0.32** | 7+/8−/10= |
+> | **rescued (9, pre-registered)** | +6.33 | +5.33 | **−1.00** | 2+/4−/3= |
+> | other 16 | +6.12 | +6.19 | +0.06 | 5+/4−/7= |
+>
+> At n = 9 against a 1.04 floor this establishes nothing, exactly as pre-registered. It is
+> recorded because the prediction was written first: the cohort the mechanism exists for
+> did worse than the cohort it does not, and the sign is against the hypothesis.
+>
+> **The losses are displacement, not silence.** The two largest were `ann` (+12 → +5) and
+> `db` (+14 → +11), and neither abstained:
+>
+> | case | control | typed |
+> |---|---|---|
+> | `ann` | 12 returned, **12** actionable, precision 1.00 | 11 returned, **9** actionable, precision 0.82 |
+> | `db` | 14 returned, **14** actionable, precision 1.00 | 14 returned, **13** actionable, precision 0.93 |
+>
+> Enriched anchors change the keywords, therefore the queries, therefore the pool — and on
+> these two the pool got worse. `ann` is the sharpest single fact in the entry: it was P9's
+> best rescued case (+36.4pt discrimination, 4 of 11 score-3 abstracts naming a span) and
+> it lost the most here.
+>
+> **A tempting explanation that this data cannot support.** Eight of 25 cases scored
+> precision 1.00 in the control arm — four of them in the rescued cohort — and splitting on
+> that gives −1.38 at the ceiling against +0.18 below it. The story writes itself: a repo
+> already returning 12 of 12 has no headroom, so any retrieval change is downside. **It is
+> not admissible.** The split is post-hoc, it was not pre-registered, and conditioning on
+> control performance then measuring change produces exactly this pattern through
+> regression to the mean alone. Recorded as a lead for a future pre-registration, not as a
+> finding. C-7 is the entry that exists because this project already read a favourable draw
+> as a property once.
+>
+> **The filtered variant was proposed and then refuted before it was run.** The
+> pre-registration flagged that the shipped path applies neither `STOPWORD_ANCHORS` nor
+> `MIN_ANCHOR_LEN`, and named that as the first thing to check on a negative. Checking it
+> cost $0 and killed it: the probe's filter removes **7 spans of 196** across 5 cases
+> (`l2`, `pandas`×2, `matplotlib`, `cmake`, `numpy`×2). It drops one span from `ann`, so it
+> cannot explain −7.0 there, and it does not touch `age` at all — at 3 characters that span
+> clears the length floor and is not a packaging word.
+>
+> No stricter length rule is available either. A floor of 4 removes `age` but also `ppo`,
+> `dqn`, `sac`, `td3`, `jax`, `ia3`, `avx`; a floor of 5 additionally takes `lora`, `bert`,
+> `cuda`, `llvm`, `hnsw`, `blas`. And `age` is not an extraction error: it is the real name
+> of the encryption tool, colliding with an English word, which no length rule separates
+> from `her` — Hindsight Experience Replay. **A $25 arm testing a 3.5% change in the span
+> set against a 1.04 floor was not bought**, and that refusal is the entry's one saved cost.
+>
+> **Verdict: keep the code, ship nothing.** `profiler.typed_anchors` stays False, beside
+> `profiler.scan_source`, which NR-36 left in the same state for the same reason. What the
+> four probes bought is not a feature but a corrected understanding: the anchor channel the
+> product ships does not discriminate (C-21), the keyword comparator that made it look
+> special was saturated (C-22), typed spans genuinely do discriminate and survive both a
+> second judge and span redaction (P9, P10) — and none of that reaches a digest, because
+> the gate and the rescore downstream already extract what the profile knows.
+
+
 ### Typed README spans as an anchor channel: the channel works, the ledger it was aimed at does not. **[P9]**
 
 ```bash

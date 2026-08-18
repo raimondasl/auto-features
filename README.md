@@ -594,6 +594,9 @@ feedback:
 
 profiler:
   scan_source: false                  # true: also scan source files for imports/ML patterns
+  typed_anchors: false                # true: LLM-extract named entities from the README into
+                                      #   anchors. Measured at -0.32 net@2/case (P11); the
+                                      #   channel discriminates but does not reach the digest
   prose_chars: 300                    # README chars sent to LLM triage; 0 sends none
 
 openalex:

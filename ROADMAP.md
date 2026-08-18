@@ -1235,7 +1235,7 @@ Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 > |---|---|
 > | **14** `rr deepscan` | **Split it.** The query-refinement loop is measured-negative; the citation-trail half is the one channel with recall. |
 > | **15** `rr ask` | **Unaffected.** Nothing measured bears on it — a product bet, not a research one. Judge it on demand, not on evidence. |
-> | **16** technique fingerprinting | **Promoted 2026-08-09, then blocked 2026-08-16 [NR-39].** The premise holds — it starts from what the repo *has* — but a $0 probe found the relation cannot be *grounded*: 18 of 25 repositories produce no grounded claim at all, four carry 93% of them, and `replaces` fires on 8.9% of actionable abstracts. Needs a technique-alias layer first, with a coverage number for non-Python repos. **Condition withdrawn 2026-08-16 [P9, C-21]:** the "only anchors discriminate" finding it rested on is a case-mix artifact (−0.6pt per case, CI [−3.7, +1.4]; `peft` alone carries the pooled +13.7pt). Now blocked on a judge-independent measurement instead. |
+> | **16** technique fingerprinting | **Promoted 2026-08-09, then blocked 2026-08-16 [NR-39].** The premise holds — it starts from what the repo *has* — but a $0 probe found the relation cannot be *grounded*: 18 of 25 repositories produce no grounded claim at all, four carry 93% of them, and `replaces` fires on 8.9% of actionable abstracts. Needs a technique-alias layer first, with a coverage number for non-Python repos. **Condition withdrawn 2026-08-16 [P9, C-21]:** the "only anchors discriminate" finding it rested on is a case-mix artifact (−0.6pt per case, CI [−3.7, +1.4]; `peft` alone carries the pooled +13.7pt). **Closed 2026-08-17 [P11]:** built, shipped behind `profiler.typed_anchors`, measured at paired −0.32/case (rescued cohort −1.00 against a pre-registered +0 to +2). The grounding vocabulary is obtainable and inert. |
 > | **17** Zotero/BibTeX | **Unaffected.** Pure integration. |
 > | **18** implementability scoring | **Refuted as ranking.** Exactly these features measured AUC 0.585 (below bar). Survives only as a displayed badge. |
 > | **19** research-gap radar | **Dead.** The same "name what it lacks" mechanism has now failed four independent times. |
@@ -1287,6 +1287,28 @@ Emerging tech, real design risk; each has an unbuilt in-repo prerequisite.
 > needs is not an alias table but a judge-independent measurement: P6's 31 git-history-mined
 > adoptions are the only model-free instrument in the project, and no repo-side channel has
 > been scored against them. Until then nothing here is worth building or benchmarking.
+>
+> ### 16 — measured end to end, and it does not pay [P11, 2026-08-17]
+> **The typed-span channel was built, shipped behind a flag, and measured: paired −0.32
+> net@2/case over 25 live cases, 7 better / 8 worse / 10 tied, sign p = 1.0000.** The nine
+> repositories it exists for — the ones with no parseable manifest — came in at **−1.00**,
+> against a pre-registered prediction of +0 to +2. `ann`, the case with the strongest
+> stage-1 signal of any rescued repo, lost 7 points by swapping three actionable papers for
+> non-actionable ones.
+>
+> So the sequence closes: the grounding vocabulary NR-39 said was missing **can** be
+> obtained (P9, 9 of 12 anchor-less repos, 0 of 209 spans hallucinated), it **does**
+> discriminate where the shipped manifest channel does not (+27.5pt against −0.6pt), that
+> discrimination is **not** an artifact of one judge or of the judge reading its own input
+> back (P10, 0.87 retained under span redaction) — and none of it changes a digest.
+>
+> **`profiler.typed_anchors` stays False**, beside `profiler.scan_source`, which NR-36 left
+> in the same state for the same reason. Item 16 is closed rather than blocked: its premise
+> was that grounding vocabulary was the missing ingredient, and the ingredient turned out to
+> be obtainable and inert. Reopening it needs a new mechanism, not a better alias table —
+> the fourth null in a row (NR-33 +0.00, NR-35 +0.00, NR-36 −0.52, P11 −0.32) says the
+> profile is not where the remaining headroom is; the gate and the rescore downstream
+> already extract what it knows.
 >
 > ### 16 — the 2026-08-09 re-derivation, kept for the record
 > "This paper supersedes algorithm X you import" seeds from the repo's imports — i.e. from

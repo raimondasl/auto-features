@@ -614,6 +614,19 @@ def profile_repo(
     documents = _collect_text_corpus(repo_path)
     source_signals: list[str] = []
 
+    # Typed README entities (optional). Runs BEFORE source scanning so that the two
+    # optional anchor sources compose in a fixed order and a profile is reproducible
+    # whichever of them is enabled.
+    if getattr(profiler_cfg, "typed_anchors", False):
+        from reporadar.typed_anchors import extract_typed_anchors
+
+        existing = set(anchors)
+        for span in extract_typed_anchors(repo_path, llm_cfg=profiler_cfg):
+            if span not in existing:
+                anchors.append(span)
+                existing.add(span)
+        domains = _infer_domains(anchors)
+
     # Source code analysis (optional)
     scan_source = getattr(profiler_cfg, "scan_source", False)
     if scan_source:
