@@ -17,6 +17,7 @@ from typing import Any
 from reporadar.digest import (
     _load_html_template,
     categorize_papers,
+    cited_ids_from,
     filter_since,
     generate_digest_html,
 )
@@ -96,6 +97,7 @@ def archive_digest(
     top_picks, _, _ = categorize_papers(
         scored,
         top_n=top_n,
+        cited_ids=cited_ids_from(profile),
         triage_threshold=triage_threshold,
         rerank=rerank,
         finescale_threshold=finescale_threshold,

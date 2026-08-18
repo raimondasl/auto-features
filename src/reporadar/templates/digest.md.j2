@@ -36,15 +36,6 @@
 
 ---
 {% endif %}
-{% if withdrawn_papers %}
-
-## Withdrawn by their authors
-{% for w in withdrawn_papers %}
-- **[{{ w.title }}]({{ w.url }})** — withdrawal notice in its {{ w.field }}; ranked down but shown so you don't act on it
-{% endfor %}
-
----
-{% endif %}
 {% if extends_starred %}
 
 ## Extends work you starred
@@ -88,6 +79,20 @@
 - {{ s }}
 {% endfor %}
 {% endif %}
+{% endfor %}
+{% endif %}
+{% if already_cited %}
+
+## Already cited by this repository
+{% for p in already_cited %}
+- **[{{ p.title }}]({{ p.url }})** — your README, CITATION file or docs already cite this; found, and not recommended back to you
+{% endfor %}
+{% endif %}
+{% if withdrawn_papers %}
+
+## Withdrawn by their authors
+{% for w in withdrawn_papers %}
+- **[{{ w.title }}]({{ w.url }})** — withdrawal notice in its {{ w.field }}; ranked down but shown so you don't act on it
 {% endfor %}
 {% endif %}
 {% if maybe_relevant %}

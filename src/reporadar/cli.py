@@ -710,6 +710,7 @@ def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
     """Send a notification about a digest run."""
     from reporadar.digest import categorize_papers, find_extends_starred
     from reporadar.notify import DigestSummary, dispatch_notification
+    from reporadar.profiler import cited_arxiv_ids_of
 
     cfg = _load_and_validate(config_path)
     repo_path = Path(cfg.repo_path).resolve()
@@ -734,6 +735,10 @@ def notify(config_path: str | None, channel: str, run_id: int | None) -> None:
         top_picks, _, _ = categorize_papers(
             scored,
             top_n=cfg.output.top_n,
+            # Same exclusion the digest applies, from a file scan rather than a full
+            # profile: a notification that counted one more Top Pick than the digest shows
+            # is the two-implementations-of-one-rule shape this project keeps paying for.
+            cited_ids=cited_arxiv_ids_of(repo_path),
             triage_threshold=(cfg.triage.min_actionable if cfg.triage.enabled else None),
             rerank=(cfg.triage.rerank if cfg.triage.enabled else False),
             # Read off the run rather than the config: this count must match the digest

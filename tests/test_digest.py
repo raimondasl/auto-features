@@ -1060,3 +1060,146 @@ class TestRssExport:
         root = ET.fromstring(content)
         items = root.findall(".//item")
         assert len(items) > 0
+
+
+class TestWithdrawnSectionScope:
+    """A retraction is worth reporting when it was competing for a slot, and not otherwise.
+
+    The section used to list every withdrawn paper in the run, at any rank. On a repository
+    whose thin profile produced generic queries (`all:model`, `all:use`) that pulled in
+    hundreds of unrelated papers, three off-topic retractions -- hydraulic fracturing,
+    opioid use disorders, music sight reading -- headed a materials-science digest whose
+    Top Picks were sound.
+    """
+
+    def test_withdrawn_far_below_the_window_is_not_reported(self) -> None:
+        from reporadar.digest import digest_window
+
+        scored = [{"score_total": 0.9 - i / 100, "arxiv_id": f"p{i}"} for i in range(40)]
+        scored[35]["withdrawn_in"] = "comment"
+        window, withdrawn = digest_window(scored, top_n=5)
+
+        assert len(window) == 5
+        assert withdrawn == []
+
+    def test_withdrawn_inside_the_window_is_reported_and_displaces(self) -> None:
+        from reporadar.digest import digest_window
+
+        scored = [{"score_total": 0.9 - i / 100, "arxiv_id": f"p{i}"} for i in range(40)]
+        scored[2]["withdrawn_in"] = "comment"
+        window, withdrawn = digest_window(scored, top_n=5)
+
+        assert [p["arxiv_id"] for p in withdrawn] == ["p2"]
+        # The withdrawn paper's slot goes to the next paper rather than being wasted.
+        assert [p["arxiv_id"] for p in window] == ["p0", "p1", "p3", "p4", "p5"]
+
+    def test_rendered_section_matches_the_window(self) -> None:
+        """The template's list and `digest_window` are one rule, not two.
+
+        `_build_digest_context` used to rebuild this list by scanning every scored paper,
+        which is how the two came to disagree.
+        """
+        with PaperStore(Path(":memory:")) as store:
+            papers = [_make_paper(f"24010000{i}v1") for i in range(4)]
+            papers[3]["title"] = "Retracted And Buried"
+            store.upsert_papers(papers)
+            run_id = store.record_run(["q"], 4, 0)
+            scores = [_make_score(f"24010000{i}v1", 0.9 - i / 10) for i in range(4)]
+            scores[3]["withdrawn_in"] = "comment"
+            store.save_scores(run_id, scores)
+
+            md = generate_digest(store, run_id, top_n=2)
+            assert "Withdrawn by their authors" not in md
+            assert "Retracted And Buried" not in md
+
+
+class TestAlreadyCitedPapers:
+    """Papers the repository's own text cites are found, and not recommended back."""
+
+    def _profile(self, *ids: str) -> object:
+        class _P:
+            cited_arxiv_ids = frozenset(ids)
+            keywords: list[tuple[str, float]] = []
+            anchors: list[str] = []
+            domains: list[str] = []
+            prose = ""
+
+        return _P()
+
+    def test_cited_paper_leaves_the_tiers(self) -> None:
+        scored = [
+            {"score_total": 0.9, "arxiv_id": "2303.14046v1", "llm_score": 3},
+            {"score_total": 0.8, "arxiv_id": "2405.08137v1", "llm_score": 3},
+        ]
+        top, _, muted = categorize_papers(
+            scored, triage_threshold=2, cited_ids={"2303.14046"}
+        )
+
+        assert [p["arxiv_id"] for p in top] == ["2405.08137v1"]
+        assert [p["arxiv_id"] for p in muted] == ["2303.14046v1"]
+        assert muted[0]["already_cited"] is True
+
+    def test_version_suffixes_do_not_defeat_the_match(self) -> None:
+        scored = [{"score_total": 0.9, "arxiv_id": "1708.01492v5"}]
+        top, _, muted = categorize_papers(scored, cited_ids={"1708.01492"})
+
+        assert top == []
+        assert muted[0]["already_cited"] is True
+
+    def test_no_cited_ids_changes_nothing(self) -> None:
+        scored = [{"score_total": 0.9, "arxiv_id": "2303.14046v1"}]
+        top, _, muted = categorize_papers(scored, cited_ids=None)
+
+        assert [p["arxiv_id"] for p in top] == ["2303.14046v1"]
+        assert muted == []
+
+    def test_excluding_one_cannot_pull_an_unseen_paper_into_the_digest(self) -> None:
+        """Cited papers are muted *inside* the window, never removed before the cut.
+
+        Removing them first would promote a paper from outside the digest's own top_n --
+        one nothing upstream (gate, rescore) ever scored.
+        """
+        scored = [{"score_total": 0.9 - i / 100, "arxiv_id": f"240{i}.00001"} for i in range(6)]
+        top, maybe, muted = categorize_papers(scored, top_n=3, cited_ids={"2401.00001"})
+
+        shown = [p["arxiv_id"] for p in top + maybe + muted]
+        assert "2403.00001" not in shown
+        assert len(shown) == 3
+
+    def test_section_renders_and_the_paper_is_not_a_top_pick(self) -> None:
+        with PaperStore(Path(":memory:")) as store:
+            papers = [_make_paper("2303.14046v1"), _make_paper("2405.08137v1")]
+            papers[0]["title"] = "Updates To The Library Itself"
+            store.upsert_papers(papers)
+            run_id = store.record_run(["q"], 2, 0)
+            store.save_scores(
+                run_id,
+                [_make_score("2303.14046v1", 0.9), _make_score("2405.08137v1", 0.8)],
+            )
+
+            md = generate_digest(store, run_id, profile=self._profile("2303.14046"))
+            assert "Already cited by this repository" in md
+            assert "Updates To The Library Itself" in md
+            top_section = md.split("## Top Picks")[1].split("## Already cited")[0]
+            assert "Updates To The Library Itself" not in top_section
+
+    def test_json_and_html_agree_with_markdown(self) -> None:
+        with PaperStore(Path(":memory:")) as store:
+            store.upsert_papers([_make_paper("2303.14046v1"), _make_paper("2405.08137v1")])
+            run_id = store.record_run(["q"], 2, 0)
+            store.save_scores(
+                run_id,
+                [_make_score("2303.14046v1", 0.9), _make_score("2405.08137v1", 0.8)],
+            )
+            profile = self._profile("2303.14046")
+
+            import json as json_mod
+
+            payload = json_mod.loads(
+                generate_digest_json(store, run_id, profile=profile)
+            )
+            assert [p["arxiv_id"] for p in payload["top_picks"]] == ["2405.08137v1"]
+            assert [p["arxiv_id"] for p in payload["already_cited"]] == ["2303.14046v1"]
+
+            html = generate_digest_html(store, run_id, profile=profile)
+            assert "Already cited by this repository" in html

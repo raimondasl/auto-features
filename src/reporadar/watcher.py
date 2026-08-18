@@ -117,6 +117,7 @@ def run_update_cycle(
     from reporadar.config import load_config, validate_config
     from reporadar.digest import categorize_papers, write_digest
     from reporadar.pipeline import LogReporter, open_store, run_pipeline
+    from reporadar.profiler import cited_arxiv_ids_of
     from reporadar.stages import WATCH, unrun_stages
     from reporadar.store import StoreError
 
@@ -184,7 +185,9 @@ def run_update_cycle(
         # Re-read through the store so the withdrawal flag and the gate's llm_score are
         # joined in, exactly as every other consumer sees it.
         top_picks, _, _ = categorize_papers(
-            store.get_scores_for_run(run_id), top_n=cfg.output.top_n
+            store.get_scores_for_run(run_id),
+            top_n=cfg.output.top_n,
+            cited_ids=cited_arxiv_ids_of(Path(cfg.repo_path).resolve()),
         )
         out, summary = write_digest(
             store, result.run_id, cfg.output.digest_path, top_n=cfg.output.top_n
