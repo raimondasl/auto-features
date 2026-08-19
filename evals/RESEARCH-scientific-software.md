@@ -568,7 +568,9 @@ found — without it `rr digest` falls back to the ML-flavoured template action 
 
 **B — needed for "bioRxiv papers" specifically**
 
-- **B1. A keyword-search bioRxiv source.** Replace the body of `sources/biorxiv.py` (or add
+- **B1. A keyword-search bioRxiv source.** **Landed 2026-08-19 (§13):** shipped as a NEW
+  source `europepmc`, not as a replacement for `biorxiv`; the probe corrected four points of
+  the spec below, two of which would have silently emptied or mutilated the channel. Replace the body of `sources/biorxiv.py` (or add
   `sources/europepmc.py`) with Europe PMC: `(<plain keywords>) AND SRC:PPR AND
   (PUBLISHER:"bioRxiv" OR PUBLISHER:"medRxiv") [AND FIRST_PDATE:[start TO end]]`,
   `resultType=core`, `pageSize=100`, one GET per query, ~1 s apart, `email=`; id
@@ -655,12 +657,13 @@ row: `arxiv.categories` left at the ML default, and a repo whose research is jou
 ## 8. Plan
 
 **Status as of 2026-08-19.** D1/D4/D5 landed (§5.3); D2/D3 landed and are recorded in §10,
-with the two defects they introduced fixed in §11; B2/B3/B4 landed in §12. Still open: **B1**
-(Europe PMC), **D7** (`rr why`), and **cohort 3**, which is now the blocking item — §11
-measured that the profiler work moved the profile of 16 of the 25 benchmark cases, so every
-live number in this document describes a pipeline that no longer ships. The rerun is the
-expensive step, so everything that changes pipeline output should land before it: that leaves
-B1 as the last such change.
+with the two defects they introduced fixed in §11; B2/B3/B4 landed in §12; B1 landed in §13.
+
+**Every change that alters what the pipeline produces has now landed.** Still open: **D7**
+(`rr why`) which is read-only and touches no number, and **cohort 3**, which is the blocking
+item — §11 measured that the profiler work moved the profile of 16 of the 25 benchmark cases,
+so every live number in this document describes a pipeline that no longer ships. Cohort 3 is
+now unblocked and is what the project owes itself next.
 
 1. **Pre-demo engineering (2–3 days):** D1–D7 in §6, then B1–B4. Every change except D5 is
    domain-neutral or additive; run `uv run pytest` and the Tier A gate after D3. D4 alone
@@ -1194,6 +1197,131 @@ proves these changes do not disturb the ML benchmark and says nothing about whet
 improve a scientific-software digest. Every number here is an API probe or arithmetic, not a
 judged outcome. **The non-arXiv channel still has no judged result of any kind** — that is
 cohort 3, and this is the third of the changes that must land before it runs.
+
+---
+## 13. B1 — a bioRxiv source that can be searched, and the four things the spec got wrong (2026-08-19)
+
+§6's B1. The spec was written from Europe PMC's documentation; every clause of it was checked
+against live responses before the adapter was written, because §11 and §12 each turned up a
+defect that only a probe found. **The probe changed four things.** Total cost $0, 0 hard
+failures once requests were spaced.
+
+### 13.1 What the spec got right
+
+The query works exactly as written:
+
+| clause | hits, `single cell rna sequencing` |
+|---|---|
+| keywords alone | 92,091 |
+| `AND SRC:PPR` | 8,186 |
+| `AND PUBLISHER:"bioRxiv"` | 5,932 |
+| `AND (PUBLISHER:"bioRxiv" OR PUBLISHER:"medRxiv")` | 6,378 |
+| `AND FIRST_PDATE:[2026-01-01 TO 2026-12-31]` | 1,005 |
+
+`resultType=core` carries `abstractText`, `pageSize=100` is served, and the publisher clause
+is doing real and correct work: the 1,808 preprints it drops are Research Square (10.21203),
+Preprints.org (10.20944), F1000 (10.12688) and Authorea (10.22541) — none is bioRxiv or
+medRxiv. That is the intended scope, but it *is* a choice, so it lives in one named constant.
+
+### 13.2 Correction 1 — the keywords must not be quoted, and quoting is silent
+
+The spec says `(<plain keywords>)`, unquoted. It is right, and getting it wrong would have
+emptied the channel without any error. A quoted string is an exact-phrase match, and what
+this adapter receives from `collector.to_plain_keywords` is a bag of words:
+
+| product-shaped query | quoted | unquoted |
+|---|---|---|
+| sequence alignment long reads | **0** | 2,239 |
+| molecular dynamics gpu simulation | **0** | 148 |
+| rna velocity trajectory inference | **0** | 85 |
+| protein language model structure | 1 | 1,099 |
+| genome assembly nanopore | 1 | 1,204 |
+| cryo em particle picking | 4 | 489 |
+| spatial transcriptomics deconvolution | 7 | 263 |
+| single cell variational inference | 17 | 206 |
+
+This is C-9 inverted — that defect made bioRxiv return *everything* because the surviving
+query word was `AND`; this one would have made Europe PMC return *nothing*, and a source that
+returns nothing looks exactly like a source that is switched off.
+
+### 13.3 Correction 2 — titles carry markup, not just abstracts
+
+The spec says "strip HTML from `abstractText`". Over 785 sampled records, **18% of titles**
+carried `<i>` (202) or `<sup>` (4), and 36% of abstracts carried `<h4>` (764). A title like
+`Mapping  <i>trans</i>  -eQTLs at single-cell resolution` is what the gate reads.
+
+### 13.4 Correction 3 — the obvious way to strip it destroys the abstract
+
+`<[^>]+>` is the pattern anyone writes, and biology abstracts are full of `p < 0.001`. That
+`<` opens a span the regex closes at the **next real tag**, taking every character between.
+Measured over the same 785 records: the naive pattern removes 9,277 characters where a
+tag-shaped pattern removes 5,367 — **3,910 characters of real abstract**, and the abstract is
+what the gate, the ranker and the embedder read. One record lost 240 characters, its entire
+results sentence:
+
+> `…discrimination of SNPs from sequencing errors (t = 14.80, p ` **[240 chars gone]** ` Availability  Source code…`
+
+Requiring a tag *name* — a letter first, then word characters, no spaces before the close —
+strips all 1,246 real tags in the sample and spares all 10 of the non-tags, which are
+`p < 0.001`, `<<1% have tri-kinetochores`, `<Choloepus didactylus>`, `<1% Wolbachia reads`,
+`<3 years survival`. Whitespace is collapsed afterwards: the markup is padded, and 91 of 400
+titles were left with a double space by tag removal alone.
+
+### 13.5 Correction 4 — the URL and the id
+
+The spec says id `biorxiv:<doi>`. **B3 superseded that**: `paper_id.doi_key` gives
+`doi:<doi>`, so a preprint arriving from Europe PMC and from OpenAlex is one paper rather
+than two. Both prefixes are live and both normalise identically — a 785-record sample held
+10.1101 (284, the original) and 10.64898 (216, bioRxiv's current one).
+
+The URL is `https://doi.org/<doi>`, not `biorxiv.org/content/<doi>` as `sources/biorxiv.py`
+builds: the response cannot say which server a record came from (`publisher` and `pubType`
+are **null** under `resultType=core` even though `PUBLISHER:` filters correctly), and the
+10.64898 dois do not use that path shape.
+
+### 13.6 What else the probe settled
+
+- Every one of 785 records had a DOI, an abstract and a `firstPublicationDate`. No record
+  needed dropping for missing fields.
+- Europe PMC returns **no subject classification** for preprints, so `categories` is left
+  empty — which, after §12.3, is the right thing: an empty list takes `ranking.absent_category`
+  rather than introducing a fourth foreign taxonomy.
+- An honest miss is `hitCount: 0` with a `resultList` present, so emptiness is
+  distinguishable from refusal. `_request_json` therefore **raises** instead of returning
+  `[]` like every other adapter in the package, and `collect_papers` raises if *every* query
+  was refused — a caller must not be able to record "bioRxiv contributed nothing" about a
+  conversation that never happened.
+- A burst of six unspaced requests drew 504s and then a 503; 22 consecutive spaced ones
+  completed clean, as did 8 more later. The flakiness is real and transient, so retry with
+  backoff is mandatory and 4xx is not retried.
+- The date clause is only added for windows ≤ 365 days. The measured configuration runs
+  `lookback_days: 36500`, and asking for everything since 1926 is a slower way to ask for
+  everything.
+
+### 13.7 Shipped as a new source, not as a replacement
+
+`sources/biorxiv.py` is untouched and `sources: [biorxiv]` still means what it meant. Silently
+repointing an existing config value at a different API with different coverage is a change a
+user cannot see. Instead `europepmc` is a new source, and `validate_config` now warns when
+`biorxiv` is enabled without it, naming the defect: bioRxiv's endpoint is a date-interval
+listing, so under an all-time lookback it returns the oldest postings in the window rather
+than papers about the repository.
+
+**No email is sent.** Europe PMC accepts one as politeness, and the obvious source for it is
+`openalex.email` — but that address was given to this project for OpenAlex's polite pool, and
+forwarding it to a second service is a data flow the user did not agree to. The privacy
+registry entry records that this source sends repo-derived query strings and no email, which
+is a higher sensitivity than the `sources.biorxiv` entry above it precisely because this one
+can search.
+
+### 13.8 Still not measured
+
+Everything that matters. Tier A is byte-identical and cannot be otherwise — it is arXiv
+fixtures and this adds a non-arXiv source. **No bioRxiv paper has ever been judged by this
+project**, so whether the channel improves a digest is unknown, and §6's B5 stands: the
+honest demo statement remains "bioRxiv is a source we are adding; the arXiv channel is the
+one we have measured". Cohort 3 is where that changes, and B1 was the last change that had to
+land before it.
 
 ---
 ## Appendix

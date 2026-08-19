@@ -146,6 +146,18 @@ DESTINATIONS: tuple[Destination, ...] = (
         active=_source_enabled("biorxiv"),
     ),
     Destination(
+        module="sources.europepmc",
+        service="Europe PMC (bioRxiv/medRxiv preprints)",
+        endpoint="ebi.ac.uk/europepmc/webservices/rest/search",
+        # Unlike `sources.biorxiv` above, which sends nothing about the repository because it
+        # cannot search: this one puts the keywords in the query, which is the entire point
+        # of it and the reason its sensitivity is higher than the source it supersedes.
+        sends="repo-derived query strings; no email is sent",
+        sensitivity=REPO_DERIVED,
+        enabled_by="sources: [europepmc]",
+        active=_source_enabled("europepmc"),
+    ),
+    Destination(
         module="sources.s2_recommendations",
         service="Semantic Scholar (recommendations)",
         endpoint="api.semanticscholar.org/recommendations/v1/papers",

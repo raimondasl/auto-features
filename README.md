@@ -554,7 +554,9 @@ queries:
                                       #   adjacent — pair keywords by TF-IDF rank (pre-2026-08-12)
                                       #   none     — no phrase queries (measured worse)
 
-sources: [arxiv]                      # add: semantic_scholar, openalex, biorxiv, dblp, iacr
+sources: [arxiv]                      # add: semantic_scholar, openalex, europepmc, dblp, iacr
+                                      #   europepmc — keyword search over bioRxiv/medRxiv
+                                      #   biorxiv   — a DATE LISTING, not a search; prefer europepmc
 
 ranking:
   w_keyword: 1.0                      # Weight for keyword overlap score
@@ -911,6 +913,7 @@ src/reporadar/
   collector.py        # arXiv API querying + query building
   sources/            # Adapters that FIND papers, opt-in via `sources:`
     semantic_scholar.py  openalex.py  biorxiv.py  dblp.py
+    europepmc.py         # keyword search over bioRxiv/medRxiv preprints
     hf_papers.py         # HF Papers enrichment (code/model/dataset links, upvotes)
     s2_recommendations.py# learned recommendations seeded by your stars/ratings
     suggest.py           # suggests a domain source from the repo profile
