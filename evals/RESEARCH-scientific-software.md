@@ -687,6 +687,81 @@ row: `arxiv.categories` left at the ML default, and a repo whose research is jou
 
 ---
 
+## 9. PRE-REGISTERED — the score-3 band, and a correction to §5.3 (2026-08-18)
+
+Written **before** the first paid call, so the bars cannot be chosen after seeing the
+answer. Both probes score against the 69 GPT-5.5 verdicts already cached under
+`evals/cache/judge/v1/gpt-5.5/scisoft-*/`; no new judging is paid for.
+
+### 9.0 Correction: the shipped already-cited rule catches three of the five self-papers
+
+§5.3 and PR #151 report that the repository's own paper was a gate-3 Top Pick on five of
+six repositories and was judged 1 every time. That finding stands. What I then implied —
+that the merged rule removes them — is **wrong, and measured wrong here**: executed
+offline against the six checkouts, `cited_arxiv_ids_of` removes **4 of the 69 papers**,
+and only 3 of those are self-papers.
+
+| repo | own paper | removed? | why |
+|---|---|---|---|
+| minimap2 | 1708.01492 | yes | cited in `README.md` |
+| chgnet | 2302.14231 | yes | cited in `README.md` and `citation.cff` |
+| dscribe | 2303.14046 | yes | cited in `docs/` |
+| **scvi-tools** | 1709.02082 | **no** | it cites nine arXiv ids — Adam, the VAE, seven others — and none is its own |
+| **mace** | 2206.07697 | **no** | its README bibtex cites 2205.06643, 2312.15211, 2401.00096, not itself |
+
+`openmm` contributes zero cited ids at all: it has no `CITATION*` file and its docs live in
+`docs-source/`, which `cited_arxiv_ids_of` does not read. The fourth removal is
+`dscribe`'s 1601.04077, judged **actionable** — the acknowledged cost.
+
+So the shipped effect over the six repositories is **shown 65 → 61, actionable 53 → 52,
+precision 0.815 → 0.852, mean net@2 +4.83 → +5.67**. My earlier "+6.5 / 0.883" described
+removing all five self-papers, which is a *different rule* from the one that shipped.
+Reading `docs-source/` and a `README`-bibtex title match would close most of the gap, and
+that is now a candidate, not a claim.
+
+**What remains, and it is what these probes are about:** among the 61 shown papers, 9 are
+non-actionable — 6 materials **application papers that name the tool**, 2 **self-papers the
+citation rule misses**, 1 **sibling library**. Eight of the nine are gate-score-3.
+
+### 9.1 Probe A — does the fine-scale stage already separate the gate-3 band?
+
+The rescore was fitted on the score-2 band and has never been run on a 3. Nothing in
+`finescale.py` is score-2-specific; the restriction lives in the caller.
+
+* **Population** 33 gate-3 papers surviving the already-cited rule (25 actionable / 8 not).
+* **Measure** shipped `finescale` probability per paper; ROC-AUC against the judge's ≥2,
+  and the confusion at the shipped `SHOW_THRESHOLD` of 2/3.
+* **Kill** AUC < 0.60 — no separation, G1(i) refuted.
+* **Win** AUC ≥ 0.70 **and** the 2/3 threshold drops ≥ 4 of the 8 misses while costing
+  ≤ 2 of the 25 actionable.
+* **Reference** E2 measured AUC 0.84 on the score-2 band; materially below that on score-3
+  is itself worth recording.
+* **Cost** ~33 gpt-4o-mini calls, ~$0.01.
+
+### 9.2 Probe B — does a rubric clause separate "applies it" from "changes it"?
+
+One variant, added to `triage._RUBRIC`; `repo_context_block` is **not touched**, because the
+fine-scale probability map is fitted to those exact bytes.
+
+* **Population** the 61 shown papers (52 actionable / 9 not).
+* **Fix bar** ≥ 5 of the 9 non-actionable lose their admit under the variant.
+* **Cost bar** ≤ 3 of the 52 actionable lose theirs. **Kill** > 5 actionable lost.
+* **Control** the same two arms over the 602 cached ML-benchmark labels — the shipped arm
+  is already on disk (`evals/.work/diag_triage_prose.json`), so only the variant is paid
+  for. Pooled precision must not fall and recall must not fall by more than 0.05: a clause
+  that fixes materials by making the gate stingy everywhere is not a fix.
+* **Cost** ~$0.13 (61 scisoft + 602 control, one arm each).
+
+### 9.3 What these probes cannot resolve
+
+Nine misses. A change that converts five or more is visible here; a one-or-two-paper
+improvement is not distinguishable from the gate's own sampling noise, and will be
+reported as unresolved rather than as a small win. Neither probe measures net@2 on a live
+run — that is cohort 3's job (§8). A win here buys the right to spend $25 there, nothing
+more.
+
+---
+
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
