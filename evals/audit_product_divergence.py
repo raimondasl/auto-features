@@ -13,11 +13,12 @@ two implementations, one of them fixed**:
 Both were found by accident, months apart, while looking for something else. This script
 looks for the shape on purpose, in three passes:
 
-1. **Wiring** — every place an arXiv id is normalised, a source merge is deduped, or the
-   digest window is derived, read out of the AST with whichever of the competing rules it
-   uses. The id survey covers **every** module this project wrote, not the pipeline: scoping
-   it to the five files C-9 and C-12 lived in reported clean while three rules coexisted
-   across eight modules it never opened.
+1. **Wiring** — every place an arXiv id is normalised, a source merge is deduped, the
+   digest window is derived, or the digest declines a paper the repository already cites,
+   read out of the AST with whichever of the competing rules it uses. The id survey covers
+   **every** module this project wrote, not the pipeline: scoping it to the five files C-9
+   and C-12 lived in reported clean while three rules coexisted across eight modules it
+   never opened.
 2. **Configuration** — the shipped defaults against the configuration the benchmark's
    headline actually runs. `arxiv.lookback_days` already drifted this way for a month
    (14 days shipped, all-time measured); a difference is fine, an *undeclared* one is not.
@@ -106,6 +107,20 @@ class Divergence(NamedTuple):
 # ── pass 1: wiring ─────────────────────────────────────────────────────────
 
 
+def _rel(path: Path) -> str:
+    """*path* for display, tolerating a path outside the repository.
+
+    Both surveys that walk `all_modules()` are mutation-tested by pointing them at a
+    synthetic tree that HAS the defect, and a bare `relative_to(ROOT)` raises there -- so
+    the checkers would be untestable for a reason that has nothing to do with what they
+    check.
+    """
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def _norm_calls(path: Path) -> list[tuple[int, str, str]]:
     """Every arXiv-id normalisation in *path*: (line, rule, source text).
 
@@ -175,6 +190,31 @@ WINDOW_HELPER = "digest_window"
 # outside the helper containing either is the thing to look at.
 WINDOW_FRAGMENTS = ('withdrawn_in")][:', "withdrawn_in')][:")
 
+# The tiering entry point, and the keyword that carries the already-cited rule into it.
+TIER_HELPER = "categorize_papers"
+CITED_KWARG = "cited_ids"
+
+# Wiring divergences that are known, deliberate, and argued -- the pass-1 counterpart of
+# DECLARED below. An entry here is a promise that somebody decided, not that nobody looked,
+# and `tests/test_eval_product_divergence.py` checks each one still describes reality.
+DECLARED_WIRING: dict[str, str] = {
+    "already-cited tiering": (
+        "The product declines to recommend a paper the repository's own README, CITATION "
+        "file or docs already cite (`profiler.cited_arxiv_ids_of` -> `categorize_papers"
+        "(cited_ids=...)`), and the benchmark does not: `run_judge_eval.py` derives "
+        "RepoRadar's Top Picks itself and never calls the tiering helper, so no published "
+        "number is affected -- but from 2026-08-18 the product shows one fewer paper than "
+        "the benchmark would score it on, on any repository that cites its own work. The "
+        "rule was measured on six scientific-software repositories, where the repo's own "
+        "paper was a gate-score-3 Top Pick on five of them and the judge scored it 1 every "
+        "time (evals/RESEARCH-scientific-software.md). Closing it means teaching the "
+        "harness the same rule, which changes what the benchmark measures and therefore "
+        "needs a paired run -- so it belongs with the scientific-software cohort, not "
+        "ahead of it. Until then this is a divergence in the product's favour, and the "
+        "honest place for it is here rather than in a PR description nobody greps."
+    ),
+}
+
 
 def _hand_rolled_windows(path: Path) -> list[tuple[int, str]]:
     """Re-implementations of the digest's drop-withdrawn-then-cut rule.
@@ -204,6 +244,28 @@ def _window_callers(path: Path) -> list[int]:
     ]
 
 
+def _tier_callers(path: Path) -> list[tuple[int, bool]]:
+    """Calls to the tiering helper in *path*, and whether each carries the cited-ids rule.
+
+    An explicit ``cited_ids=None`` counts as omitting it: passing the argument is not the
+    invariant, applying the rule is, and a literal None is how a caller opts out while
+    reading as though it complied.
+    """
+    out: list[tuple[int, bool]] = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)):
+            continue
+        if node.func.id != TIER_HELPER:
+            continue
+        passes = any(
+            kw.arg == CITED_KWARG
+            and not (isinstance(kw.value, ast.Constant) and kw.value.value is None)
+            for kw in node.keywords
+        )
+        out.append((node.lineno, passes))
+    return out
+
+
 def pass_wiring() -> list[Divergence]:
     print("=" * 78)
     print("1. WIRING — one invariant, how many implementations?")
@@ -220,7 +282,7 @@ def pass_wiring() -> list[Divergence]:
         # only one of them. Both exemptions are mirrored in tests/test_paper_id.py.
         if path.name in ("paper_id.py", "audit_product_divergence.py"):
             continue
-        rel = path.relative_to(ROOT).as_posix()
+        rel = _rel(path)
         for line, rule, text in _norm_calls(path):
             by_rule[rule] += 1
             by_module[rel] += 1
@@ -257,7 +319,51 @@ def pass_wiring() -> list[Divergence]:
             print(f"   ! {'/'.join(parts[-2:])}:{line:<5} [re-derived] {text[:48]}")
     print(f"\n  -> {callers} caller(s) share it, {len(hand_rolled)} re-derive it")
 
+    # Papers the repository already cites. Scoped to `all_modules()` rather than to
+    # PIPELINE_MODULES on purpose: `archive.py` and `watcher.py` both tier, neither is in
+    # that tuple, and a survey scoped to where the last bug was found reports clean about
+    # everywhere it never looked -- the C-14b argument this file is built on.
+    print("\n  Papers the repository already cites (product-only rule):")
+    tier_missing: list[str] = []
+    tier_ok = 0
+    bench_tiering: list[str] = []
+    for path in all_modules():
+        if path.name == "audit_product_divergence.py":
+            continue
+        # `is_product` comes from the path itself rather than from ROOT, so the checker can
+        # be pointed at a synthetic tree that HAS the defect -- the only way to know it can
+        # still fail. A checker that cannot fail reads as a clean bill of health.
+        rel = _rel(path)
+        is_product = path.parts[-3:-1] == ("src", "reporadar")
+        for line, passes in _tier_callers(path):
+            if not is_product:
+                bench_tiering.append(f"{rel}:{line}")
+                print(f"   ! {rel}:{line:<5} [benchmark ] tiers through the product helper")
+            elif passes:
+                tier_ok += 1
+                print(f"     {rel}:{line:<5} [{CITED_KWARG:10}] passed")
+            else:
+                tier_missing.append(f"{rel}:{line}")
+                print(f"   ! {rel}:{line:<5} [omitted   ] tiers without the rule")
+    print(
+        f"\n  -> {tier_ok} product caller(s) apply it, {len(tier_missing)} omit it; "
+        f"{len(bench_tiering)} benchmark caller(s)"
+    )
+    for name, reason in DECLARED_WIRING.items():
+        print(f"\n  declared  {name}: {reason}")
+
     out = []
+    if tier_missing:
+        out.append(
+            Divergence(
+                "already-cited tiering",
+                f"{TIER_HELPER}({CITED_KWARG}=...)",
+                f"{len(tier_missing)} caller(s) tier without it",
+                "DIVERGENT",
+                "a caller that omits it counts a Top Pick the digest does not show, which "
+                "is how `rr notify` and a digest come to disagree about the same run",
+            )
+        )
     if hand_rolled:
         out.append(
             Divergence(
