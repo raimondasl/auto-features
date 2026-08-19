@@ -658,10 +658,11 @@ row: `arxiv.categories` left at the ML default, and a repo whose research is jou
    `distractor_queries`, and a `criteria:` line naming the venue (arXiv-native / bioRxiv /
    journal). Predictions to write down before running, from this draw: matsci four ≥ +4 mean
    net@2 *with* D4, ≤ +3 without; bio four ≥ +5 under arXiv-only; a *paired* delta for
-   `sources: [arxiv, europepmc]` on the bio four whose sign we do not know. One arm: **G1(i)**
-   — fine-scale rescore applied to the score-3 band as well — predicted to raise matsci
-   precision from ~0.74 toward the 0.97 the rescored band showed, at some recall cost that this
-   draw cannot size. With four cases per domain the per-domain SE is ~0.9 net@2 (per-case sd
+   `sources: [arxiv, europepmc]` on the bio four whose sign we do not know. **The G1 arm is
+   no longer proposed**: §9.4 measured both candidates offline and neither cleared its bars —
+   the rescore over the score-3 band catches 2 of 8 misses at zero cost, and the rubric clause
+   catches 8 of 9 while discarding a third of the digest for +0.33 net@2/repo. Cohort 3 should
+   measure the pipeline as it ships. With four cases per domain the per-domain SE is ~0.9 net@2 (per-case sd
    1.73), so only effects above ~2 resolve; report anything smaller as "below the floor" as the
    project already does. Cost: judge ~$1–2/case + Opus baseline ~$0.8/case ≈ $25 for one full
    pass; the frozen-pool mode halves the floor on re-runs; the 69 verdicts already cached
@@ -753,6 +754,110 @@ fine-scale probability map is fitted to those exact bytes.
 * **Cost** ~$0.13 (61 scisoft + 602 control, one arm each).
 
 ### 9.3 What these probes cannot resolve
+
+Nine misses. A change that converts five or more is visible here; a one-or-two-paper
+improvement is not distinguishable from the gate's own sampling noise, and will be
+reported as unresolved rather than as a small win. Neither probe measures net@2 on a live
+run — that is cohort 3's job (§8). A win here buys the right to spend $25 there, nothing
+more.
+
+---
+
+### 9.4 RESULT — both candidates fail their own bars, and the cheap one fails informatively
+
+Run 2026-08-18, ~$0.03 total, `evals/probe_score3_band.py`. Populations exactly as
+pre-registered: 33 gate-3 papers (25 actionable), 61 shown papers (52 actionable).
+
+### Probe A — fine-scale over the score-3 band: **below the bar, at zero cost**
+
+| | measured | bar |
+|---|---|---|
+| ROC-AUC | **0.710** | kill < 0.60 · win ≥ 0.70 |
+| misses dropped at P ≥ 2/3 | **2 of 8** | ≥ 4 |
+| actionable lost | **0 of 25** | ≤ 2 |
+
+It clears the AUC bar and fails the conjunction, so it does not qualify. Two things are
+worth keeping.
+
+**It ranks this band far worse than the one it was fitted on** — 0.710 against E2's 0.84 on
+the score-2 band — and its *threshold* is in the wrong place here regardless: gate-3 papers
+produce digit expectations of 7.7–9.0 almost uniformly, so the calibrated map says "show"
+for 31 of 33. Re-fitting the threshold on these 33 papers is exactly the move
+`calibrate_finescale.py` refuses by name — the threshold that scores best on a set is that
+set's metric fitted to itself — and 8 misses cannot support a second parameter.
+
+**The rescore is fooled where the gate is fooled.** MACE's own paper scores P = 0.926, the
+joint-highest in the band. The two stages share the failure rather than correcting it,
+which is the more useful finding: they are not independent votes.
+
+**But it costs nothing.** 0 of 25 actionable papers dropped. Extending the rescore to the
+score-3 band is a free +2 misses if it ships beside something that does the real work.
+
+### Probe B — a rubric clause: **KILLED by its own kill clause**
+
+| | measured | bar |
+|---|---|---|
+| misses no longer admitted | **8 of 9** | ≥ 5 |
+| actionable lost | **14 of 52** | ≤ 3 · **kill > 5** |
+
+The clause finds the shape it was written for — 8 of 9, including both self-papers the
+citation rule misses and every application paper — and then takes a third of the good
+papers with it. It cannot tell "uses the repository" from "extends the repository":
+
+    3 -> 0  OpenMM 8: Molecular Dynamics Simulation with Machine Learning Potentials
+    3 -> 0  A deep generative model for scRNA-seq with application to detecting DE genes
+    2 -> 0  BLEND: fuzzy seed matches in genome analysis
+    3 -> 1  MACE4IRmol · Systematic Fine-Tuning of MACE · Grappa · the SOAP paper
+
+Every one of those *is* integrated with, or evaluated on, the repository it would improve —
+which is what a paper proposing a change to a tool looks like.
+
+**What shipping it would actually do**, on the same 61 papers:
+
+| | shipped rubric | with the clause |
+|---|---|---|
+| shown | 61 | **39** (−36%) |
+| actionable | 52 | 38 |
+| precision | 0.852 | **0.974** |
+| net@2 | **+34** | **+36** |
+
++2 net@2 over six repositories, **+0.33/repo against a live floor of 1.03** — a third of the
+smallest effect this benchmark can resolve, bought by discarding a third of the digest. The
+precision number is the seductive one and it is not the metric: net@2 already prices a shown
+paper at 3p − 2, and the clause is paying two actionable papers for every three misses.
+
+Per domain it is worse than the total suggests: matsci +12 → +20 (the intended fix), bio
+**+22 → +16** (pure damage — bio had one miss in 25 and lost six actionable papers to catch
+it). A change that helps one domain by hurting the other at a benchmark-invisible net is not
+a fix, and shipping it on this evidence would be the "over-firing gate" mistake with the
+sign flipped.
+
+### The ML control arm was not run, and that saved $0.10
+
+Pre-registered as the check that a clause fixing materials does not degrade the 25-repo
+benchmark. The kill clause fired on the scientific-software set alone, so the control could
+not have rescued it — spending on it would have been buying detail about a refuted arm.
+
+### What this leaves
+
+**Neither G1(i) nor G1(ii) ships on this evidence.** The remaining loss is 9 papers across
+six repositories, and both candidate fixes cost more than they return. Recorded as such
+rather than tuned until one passes: with 9 misses, any variant that "works" after three
+attempts is fitting this set.
+
+Three things the run does establish, which is more than the arms themselves are worth:
+
+1. **The gate and the rescore fail together.** Any fix that treats the rescore as an
+   independent second opinion on the gate's admits is building on that assumption, and it
+   is false here (MACE's own paper: gate 3, P 0.926).
+2. **The failure shape is detectable at 8/9** — the clause is a good *detector* and a bad
+   *policy*. A narrower form that fires only when a paper proposes no change to the codebase
+   (rather than whenever it uses it) is the obvious next arm, and would cost ~$0.02. It is
+   **not** pre-registered here, and a third variant on nine labels starts to fit them; if it
+   runs, it needs new bars and a hold-out, not a rerun of these.
+3. **The honest per-repo statement for the demo is unchanged**: `dscribe` +10 at precision
+   1.00, `chgnet`/`mace` still carry application papers, and no cheap prompt fix removes them
+   without removing the papers a maintainer actually wants.
 
 Nine misses. A change that converts five or more is visible here; a one-or-two-paper
 improvement is not distinguishable from the gate's own sampling noise, and will be
