@@ -6,8 +6,45 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
-from reporadar.config import QueriesConfig, RankingConfig
+from reporadar.config import KNOWN_ARXIV_PREFIXES, QueriesConfig, RankingConfig
 from reporadar.profiler import RepoProfile
+
+
+def has_comparable_categories(paper: dict[str, Any]) -> bool:
+    """True when this paper's categories are written in the vocabulary of the target list.
+
+    `ranking.absent_category` decides how the category axis treats a paper carrying **no**
+    category signal, and the test for that was `paper.get("categories")` — truthiness. Three
+    of the six non-arXiv adapters populate the field from a *different* taxonomy: OpenAlex
+    stores its `primary_topic` display name (`Machine Learning`), bioRxiv its subject area
+    (`Bioinformatics `, trailing space included) and DBLP the venue key. Those strings cannot
+    intersect a list of arXiv categories under any repository's config, so the match is a
+    guaranteed 0 that is then averaged in at full `w_category`.
+
+    The consequence is that a paper is ranked by which source happened to find it. At
+    keyword 0.6 and the shipped weights: an arXiv paper matching its category scores 0.733,
+    the same paper from Semantic Scholar — which leaves `categories` empty and so takes the
+    `absent_category` path — scores 0.600, and from bioRxiv or OpenAlex **0.400**. The 0.33
+    gap is not a judgement about the paper; it is the taxonomy the adapter happened to read.
+
+    So the question the ranker asks is not "does this paper have categories" but "are its
+    categories in the vocabulary the target list is written in". A paper that fails this
+    carries no comparable signal and belongs on the `absent_category` path with the rest of
+    the non-arXiv pool.
+
+    Deliberately NOT done by blanking `categories` in the three adapters, which is the other
+    obvious repair: the field is exported to the digest CSV, so blanking it destroys
+    information the user can see to fix a ranking bug they cannot; and it puts one invariant
+    in three places plus every adapter written later — the exact shape of the C-12/C-14
+    defects that `paper_id.dedup_id` exists to prevent. Europe PMC (B1) is the next adapter,
+    and it should be impossible for it to get this wrong.
+    """
+    for value in paper.get("categories") or ():
+        # `hep-th` has no dot and is its own prefix; `cond-mat.mtrl-sci` and `q-bio.QM` are
+        # split on the first one. A venue key (`conf/vldb`) and a topic name survive neither.
+        if value.strip().split(".", 1)[0] in KNOWN_ARXIV_PREFIXES:
+            return True
+    return False
 
 
 def _tokenize(text: str) -> set[str]:
@@ -60,7 +97,9 @@ def score_category_match(
     if not target_categories or not paper.get("categories"):
         return 0.0
 
-    paper_cats = set(paper["categories"])
+    # Stripped: bioRxiv returns `'Bioinformatics '` with a trailing space, and a taxonomy
+    # that did pass :func:`has_comparable_categories` should not then miss on whitespace.
+    paper_cats = {c.strip() for c in paper["categories"]}
 
     if category_weights:
         matched_weight = 0.0
@@ -170,21 +209,25 @@ def score_paper(
     raw_total = ranking_cfg.w_keyword * kw + ranking_cfg.w_recency * rec
     weight_sum = ranking_cfg.w_keyword + ranking_cfg.w_recency
 
-    # How the category component treats a paper with NO categories — every paper from
-    # every non-arXiv source. `omit` (the shipped default) drops the component, which was
-    # meant to avoid handicapping those papers and instead *advantages* them: an arXiv
-    # paper is averaged over keyword AND category while an uncategorised one is averaged
-    # over keyword alone, so at equal keyword relevance the uncategorised paper scores
-    # higher (0.600 vs 0.567 at the shipped weights; 0.600 vs 0.400 when the arXiv paper
-    # matches no target category). The absent-signal rule is correct when missingness is
-    # random — a paper SPECTER2 has never seen — and wrong here, because having categories
-    # is perfectly correlated with being an arXiv paper.
+    # How the category component treats a paper carrying no COMPARABLE category signal —
+    # every paper from every non-arXiv source, whether its adapter leaves the field empty
+    # or fills it from another taxonomy (see :func:`has_comparable_categories`; testing
+    # truthiness here is what split those two groups by 0.2 for no reason).
+    #
+    # `omit` (the shipped default) drops the component, which was meant to avoid
+    # handicapping those papers and instead *advantages* them: an arXiv paper is averaged
+    # over keyword AND category while an uncategorised one is averaged over keyword alone,
+    # so at equal keyword relevance the uncategorised paper scores higher (0.600 vs 0.567
+    # at the shipped weights; 0.600 vs 0.400 when the arXiv paper matches no target
+    # category). The absent-signal rule is correct when missingness is random — a paper
+    # SPECTER2 has never seen — and wrong here, because having categories is perfectly
+    # correlated with being an arXiv paper.
     #
     # `zero` scores the absence as a real 0. `impute` scores it at *absent_category_score*,
     # the mean category score of the categorised papers in the same pool, so an
     # uncategorised paper is treated as an average paper on this axis rather than as the
     # best or the worst.
-    if paper.get("categories"):
+    if has_comparable_categories(paper):
         raw_total += ranking_cfg.w_category * cat
         weight_sum += ranking_cfg.w_category
     elif getattr(ranking_cfg, "absent_category", "omit") == "zero":
@@ -336,7 +379,7 @@ def rank_papers(
                 p, arxiv_categories, category_weights=ranking_cfg.category_weights or None
             )
             for p in papers
-            if p.get("categories")
+            if has_comparable_categories(p)
         ]
         absent_cat = sum(cats) / len(cats) if cats else 0.0
     scores = []

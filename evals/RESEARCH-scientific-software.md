@@ -576,11 +576,18 @@ found — without it `rr digest` falls back to the ML-flavoured template action 
   details endpoint only if a category-listing mode is wanted (with `?category=`, a 14-day
   window, and newest-first paging). ~1 day including tests and the privacy-registry entry.
 - **B2. Fix category scoring for non-arXiv papers (F4)** so a bioRxiv paper is not ranked
-  0.33 below an arXiv paper with identical keyword overlap. 1 h.
+  0.33 below an arXiv paper with identical keyword overlap. 1 h. **Landed 2026-08-19 (§12.3):**
+  the ranker now asks whether a paper's categories are in the target list's *vocabulary*, so
+  bioRxiv and OpenAlex move 0.400 -> 0.600 and join Semantic Scholar on the
+  `absent_category` path.
 - **B3. DOI canonical id (F15)** so the same preprint from Europe PMC/OpenAlex/S2 appears
-  once. 1–2 h.
+  once. 1–2 h. **Landed 2026-08-19 (§12.4):** `paper_id.doi_key` across five adapters. It
+  also broke two things that identified an arXiv paper by exclusion, both fixed with the new
+  `paper_id.is_arxiv_id`. Existing stores are not migrated.
 - **B4. OpenAlex `type:article|preprint` (F2)** — one line — and pass more than
-  `queries[:5]` to keyword sources.
+  `queries[:5]` to keyword sources. **Landed 2026-08-19 (§12.1–12.2):** preprints are 26.7%
+  of the last-30-day OpenAlex pool and this is currently the only wired route to bioRxiv; the
+  query cap went 5 -> 8, which was withholding 28.6% of the benchmark's queries.
 - **B5. Accept the structural limit and measure it.** After B1–B4 the bioRxiv channel is
   keyword + embedding + gate + rescore with **no HyDE** and a fine-scale map that has never
   been fitted on a bio abstract (F19 — although the 69 verdicts give a first read: the 29
@@ -646,6 +653,14 @@ row: `arxiv.categories` left at the ML default, and a repo whose research is jou
 ---
 
 ## 8. Plan
+
+**Status as of 2026-08-19.** D1/D4/D5 landed (§5.3); D2/D3 landed and are recorded in §10,
+with the two defects they introduced fixed in §11; B2/B3/B4 landed in §12. Still open: **B1**
+(Europe PMC), **D7** (`rr why`), and **cohort 3**, which is now the blocking item — §11
+measured that the profiler work moved the profile of 16 of the 25 benchmark cases, so every
+live number in this document describes a pipeline that no longer ships. The rerun is the
+expensive step, so everything that changes pipeline output should land before it: that leaves
+B1 as the last such change.
 
 1. **Pre-demo engineering (2–3 days):** D1–D7 in §6, then B1–B4. Every change except D5 is
    domain-neutral or additive; run `uv run pytest` and the Tier A gate after D3. D4 alone
@@ -1060,6 +1075,125 @@ and `message` from its top twenty. That is §10's keep-the-API-name rule working
 designed, and on this one repository it costs five topic words. It is 1 of 25 cases, the
 alternative (keep only the leaf of a dotted path) has no free way to be validated, and the
 offline gate cannot score it. Left alone, recorded here, and put to cohort 3.
+
+---
+## 12. The non-arXiv paper is a second-class citizen, in three places (2026-08-19)
+
+§8's item 3 — B4, B2, B3 from §6, taken together because they are one defect wearing three
+hats. Everything downstream of collection was written when arXiv was the only source, so each
+stage treats a non-arXiv record as a malformed arXiv one: the collector filters it out, the
+ranker docks it a third of its score, and the id layer lets it in three times.
+
+### 12.1 B4 (F2) — the OpenAlex source was filtering out preprints
+
+`filter=type:article` excludes every preprint, and OpenAlex has counted `preprint` as its own
+type since 2024. So the one source whose purpose is literature arXiv does not carry was
+excluding the preprint servers.
+
+Probed live 2026-08-19 over six bio and materials queries, **with a date filter, which is how
+the pipeline uses it** — the all-time relevance ranking hides this almost completely (7 of 200
+results), and the recent windows are where preprints live:
+
+| window | pool | preprints | share |
+|---|---|---|---|
+| last 30 days | 300 | 80 | **26.7%** |
+| last 180 days | 300 | 66 | 22.0% |
+
+The venues the wider filter brings are exactly the ones this work needs: bioRxiv (26 in the
+30-day probe, 36 in the 180-day), arXiv (32), ChemRxiv (9), Research Square (8), medRxiv.
+**With `sources/biorxiv.py` broken by construction (B1), this one line is currently the only
+wired route to bioRxiv in the product.**
+
+It substitutes rather than adds — `per_page` is unchanged, so a quarter of the recent pool
+becomes preprints instead of the pool growing by a quarter.
+
+### 12.2 B4, second half — the keyword sources saw five queries
+
+`pipeline.py` sent `queries[:5]` to every non-arXiv source. Measured over the 25 benchmark
+repositories: they build a mean of 7.0 queries each, and the cap **withheld 50 of 175
+(28.6%)**. Raised to 8, the most any of them produces, so every benchmark query now goes out;
+raised rather than removed, because the cap is a real bound — one HTTP request per query per
+enabled source, and a keyless Semantic Scholar caller is the first to see 429s.
+
+Both stage-1 yield probes carried their own `queries[:5]`. A probe that sends fewer queries
+than the product understates the channel it exists to judge, which is the C-9/C-12 shape
+inside the measuring instrument, so they now import the product's constant. **Their published
+yields in `RESULTS.md` were measured at 5 and a re-run will not reproduce them.**
+
+Not done, and recorded here instead: the truncation is a *prefix*, and `build_queries` emits
+seeds, then bigram phrases, then single keywords — so the queries dropped first are the plain
+ones, and `queries.bigrams` already documents that phrase queries are safe on arXiv *because*
+a category clause catches a meaningless phrase, and that keyword sources have no such
+fallback. Changing the order changes retrieval; that needs a measurement, not an opinion.
+
+### 12.3 B2 (F4) — a paper was ranked by which adapter found it
+
+`score_paper` asked `if paper.get("categories")` — truthiness. Three of the six non-arXiv
+adapters populate that field from a *different* taxonomy: OpenAlex its `primary_topic` display
+name (`Machine Learning`), bioRxiv its subject area (`Bioinformatics `, trailing space
+included), DBLP the venue key. None can intersect a list of arXiv categories under any
+config, so the match is a guaranteed 0 averaged in at full `w_category`.
+
+`ranking.absent_category` exists precisely to decide how a paper with no category signal is
+treated — and those three adapters routed around it. The same paper at keyword 0.6:
+
+| found by | category field | score |
+|---|---|---|
+| arXiv | `q-bio.GN` (matches) | 0.733 |
+| Semantic Scholar | empty → `absent_category` | 0.600 |
+| bioRxiv / OpenAlex | foreign taxonomy → hard 0 | **0.400** |
+
+The 0.33 gap is not a judgement about the paper; it is the taxonomy its adapter happened to
+read. So the question asked is now "are these categories in the vocabulary the target list is
+written in", against `config.KNOWN_ARXIV_PREFIXES`, and a paper that fails it joins the rest of
+the non-arXiv pool on the `absent_category` path. bioRxiv and OpenAlex move 0.400 → 0.600.
+
+Two things deliberately not done. **Blanking `categories` in the three adapters** is the
+audit's own suggested fix and is worse: the field is exported to the digest CSV, so blanking
+destroys information a user can see to diagnose a ranking bug they cannot; and it puts one
+invariant in three adapters plus every adapter written later — Europe PMC (B1) is next, and it
+should be impossible for it to get this wrong. **Forgiving a non-match**: an arXiv paper in
+`cs.CL` against a `q-bio.GN` target still scores 0, because that is evidence. A rule that
+forgave it would pass every test above and destroy the component.
+
+### 12.4 B3 (F15) — one preprint, three ids
+
+Every adapter minted an id from its own API's handle: `oa:W4392847362`,
+`ss:649def34...`, `biorxiv:10.1101/...`, `dblp:conf/vldb/X`. Three of them return the same
+preprint, so it entered the pool three times, was gated three times (three API calls) and
+could occupy three slots of a ten-paper digest.
+
+A DOI is the identifier all of them already agree on, so when one is known it is the id —
+lowercased, because DOI names are case-insensitive by specification and the sources disagree
+in practice. That is the same trap `_extract_arxiv_id` fell into once for arXiv DOIs.
+
+Arriving at three adapters, one preprint now yields one id. Sources with no DOI keep their
+synthetic ids: DOI-first is not DOI-only.
+
+**Two things this broke, both caught before merge and both the same shape** — code that
+identified an arXiv paper *by exclusion*, which is correct exactly until the next id scheme:
+
+- `sources/semantic_scholar.py` built an abstract URL for any id not starting with `ss:`. It
+  would have emitted `arxiv.org/abs/doi:10.1101/...`. Now `paper_id.is_arxiv_id`, which also
+  replaces the copy of the two arXiv id eras that `s2_recommendations.py` kept.
+- `evals/openalex_yield.py` and `evals/s2_yield.py` counted non-arXiv papers as ids beginning
+  `oa:`/`ss:`. Both would have reported their channel delivering ~nothing while it delivered
+  the same as before. A measurement instrument that reads zero because the thing it measures
+  was renamed is worse than no instrument.
+
+**Not migrated.** A store holding `oa:W...` rows will see those papers once more under their
+DOI ids. `biorxiv:<doi>` could be rewritten mechanically and the other two cannot, and a
+migration that fixes one source of three is worse than none. The blast radius is small by
+construction: every non-arXiv source is off by default, and §6 records that the behaviour of a
+non-arXiv paper *inside* a digest has never been observed.
+
+### 12.5 What is still not measured
+
+All of it. Tier A is byte-identical (its fixtures are arXiv papers with arXiv categories), which
+proves these changes do not disturb the ML benchmark and says nothing about whether they
+improve a scientific-software digest. Every number here is an API probe or arithmetic, not a
+judged outcome. **The non-arXiv channel still has no judged result of any kind** — that is
+cohort 3, and this is the third of the changes that must land before it runs.
 
 ---
 ## Appendix

@@ -45,6 +45,20 @@ from reporadar.store import PaperStore, StoreError
 # RankingConfig field is passed through untouched (stage 7).
 _LEARNED_WEIGHTS = ("w_keyword", "w_category", "w_recency", "w_embedding", "w_citations")
 
+# How many of the built queries reach each non-arXiv source. It was 5, an arbitrary number
+# that withheld **50 of the 175 queries (28.6%)** the 25 benchmark repositories produce; 8 is
+# the most any of them builds, so every one of their queries now goes out. Raised rather than
+# removed because the cap is a real bound: it is one HTTP request per query per enabled
+# source, and a keyless Semantic Scholar caller is already the first thing to see 429s.
+#
+# A seed-heavy config still truncates, and the truncation is a prefix — `build_queries` emits
+# seeds, then bigram phrases, then single keywords, so the queries dropped first are the plain
+# ones. That ordering is worth revisiting (`queries.bigrams` documents that phrase queries are
+# safe on arXiv *because* a category clause catches a meaningless phrase, and that keyword
+# sources have no such fallback) but changing the ORDER changes retrieval, and this project
+# does not do that without a measurement. Recorded in the research doc instead.
+KEYWORD_SOURCE_QUERIES = 8
+
 
 class Reporter(Protocol):
     """Where a stage's progress goes. `rr update` renders it, `rr watch` logs it."""
@@ -348,7 +362,7 @@ def _collect_extra_sources(
     # would have blinded `tests/test_stages.py`, which reads the import graph to prove the
     # drift warning tells the truth. A guard that cannot see the import cannot check it.
     # So each fetcher keeps a real, lazy `from ... import` inside its own function.
-    plain = [to_plain_keywords(q) for q in queries[:5]]
+    plain = [to_plain_keywords(q) for q in queries[:KEYWORD_SOURCE_QUERIES]]
     lookback = cfg.arxiv.lookback_days
 
     def _semantic_scholar() -> list[dict[str, Any]]:

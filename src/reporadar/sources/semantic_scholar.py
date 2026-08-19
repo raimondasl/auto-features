@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from reporadar import s2_rate
+from reporadar.paper_id import doi_key, is_arxiv_id
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,11 @@ def _normalize_paper(paper: dict[str, Any]) -> dict[str, Any] | None:
     external_ids = paper.get("externalIds") or {}
     arxiv_id = external_ids.get("ArXiv", "")
     if not arxiv_id:
+        # The DOI before the S2 hash: `ss:<paperId>` is a Semantic Scholar handle, so the
+        # same preprint from OpenAlex or bioRxiv carried a different id and survived every
+        # dedup (F15). `externalIds` is already requested in SS_SEARCH_FIELDS.
+        arxiv_id = doi_key(external_ids.get("DOI"))
+    if not arxiv_id:
         # Use synthetic ID for non-arXiv papers
         paper_id = paper.get("paperId", "")
         if not paper_id:
@@ -105,7 +111,10 @@ def _normalize_paper(paper: dict[str, Any]) -> dict[str, Any] | None:
 
     # URL
     url = paper.get("url", "")
-    if not url and arxiv_id and not arxiv_id.startswith("ss:"):
+    # Positively, not by exclusion: this read `not arxiv_id.startswith("ss:")`, which was a
+    # correct test for "is an arXiv id" only while `ss:` was the sole alternative. With a
+    # `doi:` id it would have built `arxiv.org/abs/doi:10.1101/...`.
+    if not url and is_arxiv_id(arxiv_id):
         url = f"http://arxiv.org/abs/{arxiv_id}"
 
     return {

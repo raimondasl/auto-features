@@ -12,6 +12,8 @@ import urllib.request
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from reporadar.paper_id import doi_key
+
 logger = logging.getLogger(__name__)
 
 OA_API_BASE = "https://api.openalex.org"
@@ -88,7 +90,12 @@ def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str:
 
 
 def _extract_arxiv_id(work: dict[str, Any]) -> str:
-    """Extract arXiv ID from an OpenAlex work, or generate synthetic ID."""
+    """The arXiv id, else the DOI id, else a synthetic OpenAlex one.
+
+    `oa:W...` is an OpenAlex handle, so the same preprint reached the pool again under
+    `ss:` from Semantic Scholar and `biorxiv:` from bioRxiv. Preferring the DOI (F15) gives
+    all three the same id. See :func:`reporadar.paper_id.doi_key`.
+    """
     # Check IDs for arXiv
     ids = work.get("ids", {})
     openalex_id = ids.get("openalex", "") or work.get("id", "")
@@ -104,6 +111,10 @@ def _extract_arxiv_id(work: dict[str, Any]) -> str:
         parts = re.split(r"arxiv\.", doi, flags=re.IGNORECASE)
         if len(parts) > 1:
             return str(parts[-1])
+
+    canonical = doi_key(doi)
+    if canonical:
+        return canonical
 
     # Synthetic ID
     if openalex_id:
@@ -180,7 +191,18 @@ def search_papers(
     params: dict[str, str] = {
         "search": query,
         "per_page": str(min(limit, 200)),
-        "filter": "type:article",
+        # `type:article` alone excludes every preprint, and OpenAlex has counted preprints
+        # as a separate type since 2024 — so this source, whose whole purpose is reaching
+        # literature arXiv does not carry, was filtering out the preprint servers. Probed
+        # 2026-08-19 over six bio and materials queries with a date filter, which is how the
+        # pipeline uses it: preprints are **26.7%** of the last-30-day pool and 22.0% of the
+        # last-180-day pool, and the venues they bring are bioRxiv (26), arXiv (32),
+        # ChemRxiv (9), Research Square (8) and medRxiv. With `sources/biorxiv.py` broken by
+        # construction (B1), this is currently the only wired route to bioRxiv at all.
+        #
+        # Note it substitutes rather than adds: `per_page` is unchanged, so a quarter of the
+        # recent pool becomes preprints instead of the pool growing by a quarter.
+        "filter": "type:article|preprint",
         "select": (
             "id,doi,title,authorships,abstract_inverted_index,"
             "primary_topic,publication_date,open_access,ids,display_name"

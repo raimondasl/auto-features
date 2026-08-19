@@ -27,14 +27,76 @@ from __future__ import annotations
 
 import re
 
-# Modern arXiv id with a version suffix, for version-insensitive cross-source dedup.
-_ARXIV_VER_RE = re.compile(r"^(\d{4}\.\d{4,5})v\d+$")
-# Pre-2007 ids: `cs/0602007v4`, `math.GT/0309136v2`, `cond-mat.supr-con/9501001v1`. Five of
-# them sit in this project's judged pools, and the first version of this function left
-# their versions on — which is how it came to disagree with the `split("v")[0]` rule used
-# elsewhere for the same job. Both halves are anchored and neither can match a synthetic
-# `ss:`/`dblp:`/`oa:`/`iacr:`/`biorxiv:` id, which must pass through untouched.
-_ARXIV_OLD_VER_RE = re.compile(r"^([a-z-]+(?:\.[A-Za-z-]+)?/\d{7})v\d+$")
+# The two arXiv id eras, written once. Pre-2007 ids are `cs/0602007`, `math.GT/0309136`,
+# `cond-mat.supr-con/9501001`; five of them sit in this project's judged pools, and the first
+# version of `dedup_id` left their versions on — which is how it came to disagree with the
+# `split("v")[0]` rule used elsewhere for the same job.
+_ARXIV_NEW = r"\d{4}\.\d{4,5}"
+_ARXIV_OLD = r"[a-z-]+(?:\.[A-Za-z-]+)?/\d{7}"
+
+# With a version suffix, for version-insensitive cross-source dedup. Both are anchored and
+# neither can match a synthetic `ss:`/`dblp:`/`oa:`/`iacr:`/`biorxiv:`/`doi:` id, which must
+# pass through untouched.
+_ARXIV_VER_RE = re.compile(rf"^({_ARXIV_NEW})v\d+$")
+_ARXIV_OLD_VER_RE = re.compile(rf"^({_ARXIV_OLD})v\d+$")
+# Version optional: "is this an arXiv id at all", which is a different question.
+_ARXIV_ANY_RE = re.compile(rf"^(?:{_ARXIV_NEW}|{_ARXIV_OLD})(?:v\d+)?$")
+
+
+def is_arxiv_id(value: str) -> bool:
+    """True when *value* is an arXiv id rather than one of the synthetic ids.
+
+    Callers used to answer this by exclusion — Semantic Scholar's adapter built an abstract
+    URL for anything that did not start with ``ss:``, which was true of every id it could
+    produce until :func:`doi_key` gave it a second one. By-exclusion tests are correct
+    exactly until the next id scheme is added, so this asks the question positively.
+
+    It also replaces the copy of these two eras that `sources/s2_recommendations.py` kept for
+    deciding which ids S2 can resolve as seeds. That is the same predicate, and this module
+    exists because this project has already paid three times for the same rule living in more
+    than one place (see :func:`dedup_id`).
+    """
+    return bool(_ARXIV_ANY_RE.match(value))
+
+
+# A DOI as it arrives: bare, prefixed, or as any of the resolver URLs. OpenAlex returns
+# `https://doi.org/10.1101/...`, Semantic Scholar and DBLP the bare form, bioRxiv the bare
+# form in its own `doi` field.
+_DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
+
+
+def doi_key(doi: str | None) -> str:
+    """Canonical cross-source id for a paper with a DOI, or ``""`` if there is none.
+
+    Every non-arXiv adapter minted its own synthetic id from whatever handle its API
+    happened to use — ``oa:W2741809807``, ``ss:649def34f8be52c8b66281af98ae884c09aef38b``,
+    ``biorxiv:10.1101/2024.01.01.123456``, ``dblp:conf/vldb/X``. Three of them can return
+    the SAME preprint, and under three different ids it survives every dedup this project
+    has, so it enters the pool three times, is gated three times (three API calls), and can
+    occupy three slots of a ten-paper digest.
+
+    A DOI is the identifier all of those sources already agree on, so when one is known it
+    is the id. Sources that supply no DOI keep their synthetic ids, which is why this
+    returns ``""`` rather than raising: the caller falls back to what it used before.
+
+    Normalisation is lowercase because DOI names are case-insensitive by specification and
+    the sources disagree in practice — OpenAlex lowercases, Crossref does not — which is the
+    same trap `_extract_arxiv_id` fell into for arXiv DOIs (see its comment: a lowercase DOI
+    passed a case-insensitive guard, failed a case-sensitive split, and fell through to a
+    synthetic id for a paper arXiv had already supplied).
+
+    Not applied to arXiv papers even though they have DOIs: their arXiv id is the id the
+    rest of this project is keyed on — the HyDE index, the judge cache, every stored score —
+    and :func:`dedup_id` is what reconciles versions there.
+    """
+    if not doi:
+        return ""
+    cleaned = _DOI_PREFIX_RE.sub("", doi.strip()).strip().lower()
+    # A DOI is `10.<registrant>/<suffix>`. Anything else is a handle of some other kind and
+    # must not be minted into an id that claims cross-source authority.
+    if not cleaned.startswith("10.") or "/" not in cleaned:
+        return ""
+    return f"doi:{cleaned}"
 
 
 def dedup_id(arxiv_id: str) -> str:
