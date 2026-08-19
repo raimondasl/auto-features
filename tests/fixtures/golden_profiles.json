@@ -1,0 +1,183 @@
+{
+  "cv": {
+    "anchors": [
+      "torch",
+      "torchvision",
+      "opencv-python",
+      "pillow",
+      "numpy",
+      "pycocotools",
+      "onnx"
+    ],
+    "corpus_phrases": [
+      "object detection",
+      "image segmentation",
+      "segmentation detectkit",
+      "detection segmentation"
+    ],
+    "domains": [
+      "deep learning",
+      "image processing",
+      "scientific computing"
+    ],
+    "keywords": [
+      "detection",
+      "torchvision",
+      "torch",
+      "torch torchvision",
+      "pycocotools onnx",
+      "torchvision opencv-python",
+      "pillow numpy",
+      "opencv-python pillow",
+      "numpy pycocotools",
+      "numpy",
+      "pillow",
+      "opencv-python",
+      "pycocotools",
+      "onnx",
+      "segmentation",
+      "detectkit",
+      "image",
+      "one-stage",
+      "object detection",
+      "object"
+    ],
+    "prose": "# DetectKit\n\nA computer-vision toolkit for object detection and image segmentation. DetectKit\nprovides training and inference pipelines for modern detectors \u2014 from anchor-free\none-stage models to transformer-based detection heads \u2014 with a focus on real-time\nperformance.\n\n## Features\n\n- **Object dete"
+  },
+  "rag": {
+    "anchors": [
+      "sentence-transformers",
+      "faiss-cpu",
+      "transformers",
+      "rank-bm25",
+      "openai",
+      "tiktoken",
+      "numpy"
+    ],
+    "corpus_phrases": [
+      "dense retrieval",
+      "retriever generator",
+      "retriever retriever",
+      "generator generator",
+      "answer generator",
+      "generator answer",
+      "generation retriever"
+    ],
+    "domains": [
+      "LLM applications",
+      "NLP",
+      "scientific computing"
+    ],
+    "keywords": [
+      "rank-bm25",
+      "rank-bm25 openai",
+      "sentence-transformers faiss-cpu",
+      "faiss-cpu transformers",
+      "faiss-cpu",
+      "numpy",
+      "openai",
+      "openai tiktoken",
+      "sentence-transformers",
+      "retrieval",
+      "answer",
+      "generator",
+      "retriever",
+      "ragkit",
+      "generation",
+      "dense",
+      "reranking",
+      "search",
+      "late-interaction reranking",
+      "retrieved"
+    ],
+    "prose": "# RagKit\n\nA retrieval-augmented generation framework for building question-answering\nsystems over your own documents. RagKit indexes a corpus with dense passage\nretrieval, runs late-interaction reranking, and feeds the retrieved passages to\na large language model to generate grounded, citation-backe"
+  },
+  "rl": {
+    "anchors": [
+      "gymnasium",
+      "torch",
+      "numpy",
+      "cloudpickle",
+      "tensorboard"
+    ],
+    "corpus_phrases": [
+      "policykit deep",
+      "deep reinforcement-learning",
+      "off-policy agents",
+      "ppo agent",
+      "agent ppo",
+      "reinforcement-learning research"
+    ],
+    "domains": [
+      "deep learning",
+      "scientific computing"
+    ],
+    "keywords": [
+      "torch",
+      "torch numpy",
+      "tensorboard",
+      "numpy cloudpickle",
+      "gymnasium torch",
+      "numpy",
+      "cloudpickle tensorboard",
+      "cloudpickle",
+      "gymnasium",
+      "policykit",
+      "ppo",
+      "agent",
+      "off-policy",
+      "deep",
+      "reinforcement-learning",
+      "replay",
+      "deep reinforcement-learning",
+      "environments",
+      "agents",
+      "research"
+    ],
+    "prose": "# PolicyKit\n\nA deep reinforcement-learning library of reliable, well-tested algorithm\nimplementations. PolicyKit provides on-policy and off-policy agents with a\nconsistent API, designed for research reproducibility and easy benchmarking on\ncontinuous-control and Atari environments.\n\n## Features\n\n- *"
+  },
+  "webdev": {
+    "anchors": [
+      "flask",
+      "jinja2",
+      "werkzeug",
+      "sqlalchemy",
+      "gunicorn",
+      "requests"
+    ],
+    "corpus_phrases": [
+      "python tinyserve",
+      "routing request",
+      "request response",
+      "app app",
+      "hello request"
+    ],
+    "domains": [
+      "databases",
+      "web APIs"
+    ],
+    "keywords": [
+      "app",
+      "werkzeug",
+      "sqlalchemy gunicorn",
+      "werkzeug sqlalchemy",
+      "jinja2 werkzeug",
+      "flask jinja2",
+      "flask",
+      "gunicorn requests",
+      "requests",
+      "jinja2",
+      "gunicorn",
+      "sqlalchemy",
+      "tinyserve",
+      "request",
+      "app app",
+      "hello",
+      "routing",
+      "python",
+      "request response",
+      "response"
+    ],
+    "prose": "# TinyServe\n\nA lightweight web application framework for building HTTP APIs and server-rendered\nwebsites in Python. TinyServe gives you routing, request/response handling,\ntemplating, and a development server with hot reload \u2014 with no heavy dependencies.\n\n## Features\n\n- **Routing** \u2014 decorator-based"
+  }
+}

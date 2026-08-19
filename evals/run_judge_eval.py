@@ -663,7 +663,11 @@ def save_frozen_pool(
 
 
 README_NAMES = ("README.md", "README.rst", "README.txt", "README", "readme.md")
-MANIFESTS = ("requirements.txt", "pyproject.toml", "setup.py", "package.json")
+# Must track `profiler._extract_anchors`. `setup.cfg` joined it when MACE was found
+# profiling with zero anchors; a manifest the profiler reads and this list omits makes
+# the ablation arm differ from its control in a second way, and the thin-docs result
+# would then be measuring the omission.
+MANIFESTS = ("requirements.txt", "pyproject.toml", "setup.cfg", "setup.py", "package.json")
 
 
 def ablate_docs(repo_dir: Path, budget: int, *, scan_source: bool = False) -> Path:
