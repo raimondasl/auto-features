@@ -27,16 +27,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals"))
 from audit_product_divergence import (  # noqa: E402
     BENCHMARK_HEADLINE,
     DECLARED,
+    DECLARED_WIRING,
     HYDE_MERGE_FIX,
     NOT_UNDER_TEST,
     PIPELINE_MODULES,
     SAME_VINTAGE_CONTAINERS,
+    TIER_HELPER,
     _frozen_pool_papers,
     _hand_rolled_windows,
     _norm_calls,
     _raw_merges,
     _run_stamp,
+    _tier_callers,
     _window_callers,
+    all_modules,
     config_divergences,
     config_leaves,
     coverage_gaps,
@@ -416,3 +420,90 @@ class TestBothRunnersFailTheSameWay:
         case = {"expected_categories": ["cs.LG"], "name": "x"}
         with pytest.raises(CollectionError):
             run_eval.collect_live(profile, case, ["arxiv", "semantic_scholar"], {}, 90)
+
+
+class TestTheAlreadyCitedRuleIsWiredEverywhere:
+    """The product declines to recommend a paper the repository already cites. Every caller
+    that tiers has to apply it, or two of them disagree about the same run.
+
+    This is the C-9 shape with the parties swapped: there, a shared translator was correct,
+    unit-tested, and unused by three of its five callers. Here the rule travels as a keyword
+    argument, so a caller acquires the defect by saying nothing at all — which is why the
+    guard reads the AST rather than trusting that the helper exists.
+    """
+
+    def test_every_product_caller_applies_it(self) -> None:
+        omissions = [
+            f"{path.relative_to(Path(__file__).resolve().parents[1]).as_posix()}:{line}"
+            for path in all_modules()
+            if path.parts[-3:-1] == ("src", "reporadar")
+            for line, passes in _tier_callers(path)
+            if not passes
+        ]
+        assert omissions == [], f"{TIER_HELPER} called without cited_ids at: " + ", ".join(
+            omissions
+        )
+
+    def test_a_caller_that_omits_it_is_found(self, tmp_path: Path) -> None:
+        """Mutation: a checker that cannot fail is a clean bill of health, not a check."""
+        f = tmp_path / "src" / "reporadar" / "offender.py"
+        f.parent.mkdir(parents=True)
+        f.write_text("top, maybe, muted = categorize_papers(scored, top_n=5)\n", encoding="utf-8")
+
+        assert _tier_callers(f) == [(1, False)]
+
+    def test_an_explicit_none_does_not_count_as_applying_it(self, tmp_path: Path) -> None:
+        """Passing the argument is not the invariant; applying the rule is. `cited_ids=None`
+        is how a call site opts out while reading, to a grep, as though it complied."""
+        f = tmp_path / "opt_out.py"
+        f.write_text("categorize_papers(scored, cited_ids=None)\n", encoding="utf-8")
+
+        assert _tier_callers(f) == [(1, False)]
+
+    def test_the_rule_reaching_the_helper_is_seen(self, tmp_path: Path) -> None:
+        f = tmp_path / "compliant.py"
+        f.write_text(
+            "categorize_papers(scored, cited_ids=cited_ids_from(profile))\n", encoding="utf-8"
+        )
+
+        assert _tier_callers(f) == [(1, True)]
+
+    def test_the_declaration_still_describes_reality(self) -> None:
+        """The declared half: the benchmark does NOT apply the rule, because it never tiers
+        through the product helper. The day somebody teaches the harness to — which is the
+        agreed way to close this — that sentence stops being true, and a declaration nobody
+        revisits is a lie in the audit's own output. So it is pinned from the other side.
+        """
+        assert "already-cited tiering" in DECLARED_WIRING
+        benchmark_callers = [
+            f"{path.name}:{line}"
+            for path in all_modules()
+            if path.parts[-3:-1] != ("src", "reporadar")
+            and path.name != "audit_product_divergence.py"
+            for line, _ in _tier_callers(path)
+        ]
+        assert benchmark_callers == [], (
+            "the benchmark now tiers through the product helper at "
+            + ", ".join(benchmark_callers)
+            + " — update or remove DECLARED_WIRING['already-cited tiering']"
+        )
+
+    def test_the_audit_itself_fails_on_an_omission(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End to end: the helper seeing it is not the same as the audit reporting it.
+
+        `digest_window` is the cautionary case — the rule had a second implementation two
+        functions away and the audit was clean, because nothing connected the checker to a
+        finding. This asserts the wiring pass turns an omission into a divergence, which is
+        what makes `main()` exit non-zero and the script usable as a gate.
+        """
+        import audit_product_divergence as audit
+
+        offender = tmp_path / "src" / "reporadar" / "offender.py"
+        offender.parent.mkdir(parents=True)
+        offender.write_text("categorize_papers(scored, top_n=5)\n", encoding="utf-8")
+        monkeypatch.setattr(audit, "all_modules", lambda: [*all_modules(), offender])
+
+        names = {d.name for d in audit.pass_wiring()}
+        assert "already-cited tiering" in names
