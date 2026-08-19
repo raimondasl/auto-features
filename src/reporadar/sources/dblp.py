@@ -33,7 +33,7 @@ from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any
 
-from reporadar.paper_id import dedup_id
+from reporadar.paper_id import dedup_id, doi_key
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +187,10 @@ def _normalize_hit(hit: dict[str, Any]) -> dict[str, Any] | None:
         }
     return {
         **common,
-        "arxiv_id": f"dblp:{key}",
+        # The DOI first (F15): a DBLP hit for a journal or conference paper is the same
+        # record OpenAlex and Semantic Scholar return, and `dblp:<key>` is a DBLP handle
+        # that agrees with neither. The key remains the fallback for an entry with no DOI.
+        "arxiv_id": doi_key(info.get("doi")) or f"dblp:{key}",
         "url": _text(info.get("ee")) or _text(info.get("url")),
         "pdf_url": None,
     }

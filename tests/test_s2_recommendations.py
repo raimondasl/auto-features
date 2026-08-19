@@ -71,7 +71,10 @@ class TestFetchRecommendations:
             {
                 "paperId": "p2",
                 "title": "A Journal Paper",
-                "externalIds": {"DOI": "10.1/x"},  # no ArXiv → synthetic id
+                # No ArXiv id, but a DOI — which is now the id (F15), so this record
+                # collides with the same paper from OpenAlex or bioRxiv instead of
+                # entering the pool a second time under an S2 handle.
+                "externalIds": {"DOI": "10.1/x"},
                 "authors": [],
                 "openAccessPdf": {"url": "https://oa/pdf"},
             },
@@ -79,7 +82,7 @@ class TestFetchRecommendations:
         )
         out = fetch_recommendations(["2106.09685"], ["1706.03762"])
 
-        assert [p["arxiv_id"] for p in out] == ["2402.00001", "ss:p2"]
+        assert [p["arxiv_id"] for p in out] == ["2402.00001", "doi:10.1/x"]
         assert all(p["matched_query"] == "recommendation" for p in out)
         assert out[0]["url"] == "http://arxiv.org/abs/2402.00001"
         assert out[0]["authors"] == ["Alice"]

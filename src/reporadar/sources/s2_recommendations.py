@@ -14,7 +14,9 @@ API notes (live-verified):
 - Seeds must be ids S2 knows: real arXiv ids, or a bare S2 ``paperId`` (which is
   what our ``ss:`` ids wrap, so those seed fine once the prefix is stripped).
   Ids S2 can't resolve make the whole call 400, so other synthetic ids
-  (``dblp:``, ``biorxiv:``, ``oa:``) are filtered out rather than sent.
+  (``doi:``, ``dblp:``, ``biorxiv:``, ``oa:``) are filtered out rather than sent.
+  S2 does resolve ``DOI:`` seeds, so ``doi:`` ids could be sent as well — untried,
+  so not done: an unresolvable seed costs the whole call, not just itself.
 - Works keyless (shared pool, throttled — hence the retry/backoff below); an API
   key is optional.
 - Draws from a recent pool, so this surfaces new work, not classic literature.
@@ -32,6 +34,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from reporadar import s2_rate
+from reporadar.paper_id import doi_key, is_arxiv_id
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +44,6 @@ S2_RECS_URL = "https://api.semanticscholar.org/recommendations/v1/papers/"
 # stale to the recency scorer (which would mute them — defeating the feature).
 S2_RECS_FIELDS = "externalIds,title,abstract,authors,year,publicationDate,url,openAccessPdf"
 
-# Real arXiv ids only: modern (2401.12345v1) or legacy (cs.LG/0501001,
-# cond-mat.stat-mech/0509001 — legacy subject classes may be lower/hyphenated).
-_ARXIV_ID_RE = re.compile(r"^(\d{4}\.\d{4,5}|[a-z-]+(\.[A-Za-z-]+)?/\d{7})(v\d+)?$")
 _VERSION_SUFFIX_RE = re.compile(r"v\d+$")
 # Our "ss:" ids wrap a bare S2 paperId (a 40-char hex sha), which this endpoint
 # accepts directly — so papers discovered *through* recommendations can seed later runs.
@@ -60,12 +60,12 @@ def _seed_ids(arxiv_ids: list[str], max_seeds: int) -> list[str]:
     for aid in arxiv_ids:
         if aid.startswith("ss:") and _S2_PAPER_ID_RE.match(aid[3:]):
             seed = aid[3:]  # bare S2 paperId is a first-class id here
-        elif _ARXIV_ID_RE.match(aid):
+        elif is_arxiv_id(aid):
             # Strip only a trailing version — an archive name can contain "v"
             # (e.g. solv-int/9502001v1), so never split on the first "v".
             seed = f"ARXIV:{_VERSION_SUFFIX_RE.sub('', aid)}"
         else:
-            continue  # dblp:/biorxiv:/oa:/malformed -> would 400 the whole call
+            continue  # doi:/dblp:/biorxiv:/oa:/malformed -> would 400 the whole call
         if seed not in out:
             out.append(seed)
         if len(out) >= max_seeds:
@@ -87,10 +87,13 @@ def _normalize(paper: dict[str, Any]) -> dict[str, Any] | None:
         url = paper.get("url") or f"http://arxiv.org/abs/{arxiv_id}"
         pdf_url = f"http://arxiv.org/pdf/{arxiv_id}"
     else:
+        # Same rule as the search adapter: the DOI is the cross-source id when there is one
+        # (F15), and the S2 handle is the fallback.
+        canonical = doi_key(external.get("DOI"))
         paper_id = paper.get("paperId")
-        if not paper_id:
+        if not canonical and not paper_id:
             return None
-        arxiv_id = f"ss:{paper_id}"
+        arxiv_id = canonical or f"ss:{paper_id}"
         url = paper.get("url") or ""
         pdf_url = (paper.get("openAccessPdf") or {}).get("url")
 

@@ -235,10 +235,21 @@ class TestArxivIdFromLowercaseDoi:
         assert _extract_arxiv_id(lower) == _extract_arxiv_id(upper)
         assert not _extract_arxiv_id(lower).startswith("oa:")
 
-    def test_a_non_arxiv_doi_is_unaffected(self) -> None:
+    def test_a_non_arxiv_doi_yields_no_arxiv_id(self) -> None:
+        """Still the point of this case; the id it falls back to has changed.
+
+        It was the OpenAlex handle `oa:W123`, and F15 makes it the DOI — so the same paper
+        from Semantic Scholar or bioRxiv now collides with this record instead of joining
+        the pool beside it. See `tests/test_nonarxiv_parity.py`.
+        """
         work = {
             "doi": "https://doi.org/10.1145/3459637",
             "id": "https://openalex.org/W123",
             "ids": {},
         }
+        assert _extract_arxiv_id(work) == "doi:10.1145/3459637"
+
+    def test_a_work_with_no_doi_still_falls_back_to_the_openalex_handle(self) -> None:
+        """The coverage the case above used to carry: DOI-first is not DOI-only."""
+        work = {"id": "https://openalex.org/W123", "ids": {}}
         assert _extract_arxiv_id(work) == "oa:W123"

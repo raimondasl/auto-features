@@ -63,7 +63,8 @@ from reporadar.collector import (  # noqa: E402
     to_plain_keywords,
 )
 from reporadar.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
+from reporadar.paper_id import dedup_id, is_arxiv_id  # noqa: E402
+from reporadar.pipeline import KEYWORD_SOURCE_QUERIES  # noqa: E402
 from reporadar.ranker import rank_papers  # noqa: E402
 from reporadar.retrieval import hybrid_reorder  # noqa: E402
 from reporadar.sources import openalex  # noqa: E402
@@ -155,7 +156,7 @@ def measure(case: dict[str, Any], key: str | None) -> dict[str, Any] | None:
 
     with RequestWatch() as watch:
         oa_papers = openalex.collect_papers(
-            [to_plain_keywords(q) for q in queries[:5]],
+            [to_plain_keywords(q) for q in queries[:KEYWORD_SOURCE_QUERIES]],
             lookback_days=ALL_TIME_DAYS,
             api_key=key,
             rate_limit=0.0,  # RequestWatch does the spacing, so it covers retries too
@@ -170,7 +171,12 @@ def measure(case: dict[str, Any], key: str | None) -> dict[str, Any] | None:
     known = {dedup_id(p["arxiv_id"]) for p in arxiv_papers}
     new = [p for p in oa_papers if dedup_id(p["arxiv_id"]) not in known]
     new_ids = {p["arxiv_id"] for p in new}
-    non_arxiv = [p for p in new if p["arxiv_id"].startswith("oa:")]
+    # Asked positively. This counted ids beginning `oa:`, which was every non-arXiv OpenAlex
+    # record until F15 made a known DOI the id — after which the prefix test would have
+    # reported this channel delivering ~nothing while it delivered the same as before. A
+    # measurement instrument that reads zero because the thing it measures was renamed is
+    # worse than no instrument.
+    non_arxiv = [p for p in new if not is_arxiv_id(p["arxiv_id"])]
 
     # "New" by id is not new by content. OpenAlex mints an `oa:W...` id for any work whose
     # DOI is not an arXiv DOI, and it indexes the *published* version of a preprint under

@@ -112,8 +112,10 @@ class QueriesConfig:
 class RankingConfig:
     w_keyword: float = 1.0
     w_category: float = 0.5
-    # What to do with `w_category` for a paper that has NO categories — every paper from
-    # every non-arXiv source.
+    # What to do with `w_category` for a paper carrying no category signal comparable to
+    # `arxiv.categories` — every paper from every non-arXiv source, whether its adapter
+    # leaves the field empty (Semantic Scholar) or fills it from another taxonomy
+    # (OpenAlex topics, bioRxiv subjects, DBLP venues). See ranker.has_comparable_categories.
     #   omit   — drop the component (the shipped behaviour since Feature 10)
     #   zero   — score it 0 and keep the component in the average
     #   impute — score it the mean category score of the categorised papers in the pool

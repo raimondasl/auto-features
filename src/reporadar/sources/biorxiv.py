@@ -18,6 +18,8 @@ import urllib.request
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from reporadar.paper_id import doi_key
+
 logger = logging.getLogger(__name__)
 
 BIORXIV_API = "https://api.biorxiv.org/details"
@@ -58,7 +60,10 @@ def _normalize(item: dict[str, Any], server: str) -> dict[str, Any] | None:
     published = f"{date}T00:00:00+00:00" if date else datetime.now(UTC).isoformat()
     category = item.get("category") or ""
     return {
-        "arxiv_id": f"{server}:{doi}",
+        # The DOI is the id when it parses, so this preprint is the same paper whether it
+        # arrived here, from OpenAlex (`oa:W...`) or from Semantic Scholar (`ss:...`). The
+        # `<server>:<doi>` form remains the fallback for a malformed one.
+        "arxiv_id": doi_key(doi) or f"{server}:{doi}",
         "title": title,
         "authors": authors,
         "abstract": item.get("abstract") or "",
