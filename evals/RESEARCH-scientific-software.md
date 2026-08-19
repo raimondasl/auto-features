@@ -939,6 +939,10 @@ whose live pools nobody has re-fetched, and nothing about whether scientific-sof
 improve — the whole point of the work. Cohort 3 (§8) is where both get measured, and it must
 now run *after* these fixes rather than before them.
 
+**§11 settles the first half of that for free: 16 of the 25 moved, and the diff caught two
+defects these very fixes introduced.** The debt is confirmed, quantified, and one round of
+repair the wiser.
+
 Known and not fixed: `docs/_sources/` is a committed Sphinx HTML build (216 of dscribe's 246
 doc files, 30 of matminer's 30), so those two repositories read generated duplicates of prose
 they already read. Excluding it would leave matminer with a 2-document corpus, which is its
@@ -946,6 +950,118 @@ own unmeasured change.
 
 ---
 
+## 11. The blast radius of §10, measured — and the two defects it introduced (2026-08-19)
+
+§10.4 recorded a debt in words: the nine fixes "say nothing about the 25 benchmark
+repositories." That is free to settle, because §10 touched exactly one source file. Profiling
+every benchmark clone with `profiler.py` at `f4b6da4` and at `29f5edc` and diffing the two
+answers the question that decides when cohort 3 can be paid for.
+
+### 11.1 How much of the benchmark moved
+
+| field | cases moved |
+|---|---|
+| keywords | **16 / 25** |
+| corpus_phrases | 14 / 25 |
+| prose | 2 / 25 |
+| anchors | 0 / 25 |
+| domains | 0 / 25 |
+
+So the debt is real and now has a number. The movement is concentrated on the **query side**:
+keywords become arXiv queries, so a moved keyword list is a moved candidate pool, and no live
+figure in this document describes the shipping profiler. Anchors and domains did not move at
+all — the manifest fixes were genuinely confined to repositories that had the defect.
+
+The improvements are real too. thin-gnn shed seven dependency-name keywords (`orbax
+frozendict`, `reportlab mmh3`, `pyvis tensorflow`, `networkx pyarrow`) for its actual subject
+(`dgf, beam, jax, sampling, transform`); scipy's top keyword went `pooch` → `scipy`.
+
+### 11.2 What the diff caught that the 19 clones could not
+
+Two defects, both of them §10's own fixes firing on repositories §10 never scanned.
+
+**LaTeX became vocabulary.** Reading `doc/` trees let mathematics into the corpus for the
+first time. A backslash is not a word character and `token_pattern` opens a token at a
+letter, so every control sequence donates its *name*. scipy's manual carries 2379 `\left`,
+2379 `\right` and 1228 `\frac`, and `left`, `right`, `frac` and `eqnarray` became four of its
+top-twenty arXiv query keywords.
+
+**The history exclusion list was measured on the wrong corpus.** `_NON_TOPIC_DIRS` was fitted
+to the 19 bio and materials clones and shipped. scipy spells it `doc/source/release/` (81 of
+its 431 doc files) and numba `docs/source/release/` (17), with numba's towncrier fragments in
+`upcoming_changes/`. `release-notes` matched none of it, so `bug`, `fix` and `maint` sat in
+scipy's top-twenty and `pr` in numba's top three — the exact defect §10 fixed for scanpy,
+surviving under a different directory name on the cases every published number comes from.
+
+### 11.3 The fix I implemented first, and the measurement that rejected it
+
+The obvious repair is to sweep `\[a-zA-Z]+` out of the text. It was implemented, and it is
+wrong. Auditing what that pattern actually deletes across all 25 clones:
+
+| clone | hits | what they are |
+|---|---|---|
+| numerics (scipy) | 13712 | `\left`, `\right`, `\frac`, `\mu` — mathematics |
+| llminfer (llama.cpp) | 243 | `\Intel`, `\bin`, `\Program`, **`\llama`**, `\nWhat` — Windows paths and C escapes |
+| crypto | 411 | `\x`, `\xe`, `\xd` — hex escapes in byte literals |
+| linter (ruff) | 6 | `\ruff`, `\AppData`, `\Roaming`, `\Scripts` — paths |
+
+It deleted `llama` from llama.cpp's own install instructions twelve times, and `ruff` from
+ruff's. Measured the other way round — what fraction of macros sit inside a context that
+*says* "this is mathematics" — the answer is unambiguous:
+
+| clone | macros inside marked math |
+|---|---|
+| pytorch-geometric | 262 / 262 (100%) |
+| scipy | 12909 / 12972 (99.5%) |
+| dscribe | 1537 / 1545 (99.5%) |
+| peft | 51 / 56 (91.1%) |
+| **llama.cpp** | **0 / 243 (0%)** |
+| **ruff** | **0 / 6 (0%)** |
+
+So the rule strips the math **context**, never the macro, and the repositories whose
+backslashes are paths are left completely alone. Removing the context is also better on its
+own terms: `\begin{eqnarray}` leaves no `eqnarray` behind, and `\frac{a}{b}` leaves no stray
+single letters.
+
+Each of the three context forms had to earn its place, by marginal contribution over the
+corpus: `.. math::` blocks 12298 macros, `:math:` roles 2388, `$…$` spans 53. A MyST
+```` ```{math} ```` fence matches **zero** occurrences and is deliberately not implemented,
+on the same rule §10 used for `releases`/`history`/`whatsnew`.
+
+The `$…$` form needed a guard of its own. Of 507 dollar spans in the corpus, **454 are shell
+and Make** — `$VERSION $`, `${ARROW_ROOT}$`, `$(CXX) -o $` — and an unguarded pattern matches
+from one variable to the next and eats the prose between them. All 53 genuine ones carry a
+control sequence, so carrying one is the discriminator.
+
+### 11.4 What shipped, and what it did
+
+Three changes: math contexts stripped, `_NON_TOPIC_DIRS` given `release` and
+`upcoming_changes`, `_NON_TOPIC_STEMS` given `release`. Additions to the exclusion lists are
+again only names that FIRE on the corpus.
+
+Tier A is **byte-identical** — `tests/test_profiler_golden.py` passes unchanged, so all four
+ML fixtures profile exactly as they did before §10 and after it.
+
+Against the post-§10 profiler, 6 of 25 cases move, and the collateral damage of the rejected
+sweep is gone (llama.cpp, ruff, crypto, requests, cli and webdev are now untouched):
+
+| case | effect |
+|---|---|
+| numerics (scipy) | `left, right, frac, eqnarray, bug, fix, maint` all gone → `distribution, stats, implementation, shape, parameter, minimize, random` |
+| compiler (numba) | `pr` gone → `compiler, compilation, value` |
+| columnar (arrow) | one tail swap, `ipc` → `files` (its `developers/release.rst` is process, not topic) |
+| diffusion, peft, rl | rank shuffles inside the top twenty, no membership change |
+
+### 11.5 One question this deliberately does not answer
+
+crypto's `:mod:` targets now tokenize into `cryptography hazmat`, `hazmat primitives` and
+`primitives serialization`, which displaced `signature`, `public`, `certificate`, `security`
+and `message` from its top twenty. That is §10's keep-the-API-name rule working exactly as
+designed, and on this one repository it costs five topic words. It is 1 of 25 cases, the
+alternative (keep only the leaf of a dotted path) has no free way to be validated, and the
+offline gate cannot score it. Left alone, recorded here, and put to cohort 3.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):

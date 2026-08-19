@@ -128,6 +128,29 @@ class TestDocumentationTreesAndHistory:
         assert "angerer" not in corpus
         assert "bumped versions" not in corpus
 
+    def test_history_is_excluded_under_the_names_the_benchmark_uses(self, tmp_path: Path) -> None:
+        """The exclusion list was measured against 19 bio and materials clones and shipped.
+
+        The benchmark's own 25 were never scanned, and two of them spell it differently:
+        scipy keeps 81 of its 431 doc files in `doc/source/release/` and numba 17 in
+        `docs/source/release/`, with numba's towncrier fragments in `upcoming_changes/`.
+        `release-notes` matched none of it, so `bug`, `fix` and `maint` reached scipy's
+        top-twenty and `pr` numba's top three — on the cases every published number uses.
+        """
+        (tmp_path / "README.md").write_text("Scientific computing.", encoding="utf-8")
+        docs = tmp_path / "doc" / "source"
+        (docs / "release").mkdir(parents=True)
+        (docs / "release" / "1.11.0-notes.rst").write_text("maint bug fix", encoding="utf-8")
+        (docs / "upcoming_changes").mkdir()
+        (docs / "upcoming_changes" / "1234.new_feature.rst").write_text("pr", encoding="utf-8")
+        (docs / "release.rst").write_text("toctree of the notes", encoding="utf-8")
+        (docs / "tutorial.rst").write_text("interpolation quadrature", encoding="utf-8")
+
+        corpus = " ".join(_collect_text_corpus(tmp_path))
+        assert "interpolation quadrature" in corpus
+        for absent in ("maint", "toctree", "pr"):
+            assert absent not in corpus, absent
+
     def test_a_release_note_still_counts_as_a_citation(self, tmp_path: Path) -> None:
         """The declared divergence between the two walks over the same roots.
 
@@ -191,3 +214,80 @@ class TestMarkupThatSurvivedTheCleaner:
         assert "example.org" not in cleaned
         assert "Install from" in cleaned
         assert "then run it." in cleaned
+
+
+class TestMathematicsIsNotVocabulary:
+    """Reading `doc/` trees let LaTeX into the corpus for the first time.
+
+    scipy's manual carries 2379 `\\left`, 2379 `\\right` and 1228 `\\frac`, and `left`,
+    `right`, `frac` and `eqnarray` became four of its top-twenty arXiv query keywords —
+    alongside `bug`, `fix` and `maint` from 81 release notes the exclusion list did not
+    name. Both defects were live on the benchmark cases every published number comes from.
+    """
+
+    def test_a_math_directive_takes_its_indented_body_with_it(self) -> None:
+        """`_RST_DIRECTIVE_RE` deletes the `.. math::` line only, orphaning the expression.
+
+        Removing the CONTEXT rather than the macro is what also disposes of `eqnarray` and
+        of the loose single letters an expression leaves behind.
+        """
+        cleaned = _clean_document(
+            "The Fisher information is defined below.\n\n"
+            ".. math::\n\n"
+            "    \\begin{eqnarray}\n"
+            "    I(\\theta) = \\frac{\\partial^2}{\\partial \\theta^2}\n"
+            "    \\end{eqnarray}\n\n"
+            "It is used for confidence intervals.\n"
+        )
+        assert "Fisher information" in cleaned
+        assert "confidence intervals" in cleaned
+        for token in ("frac", "eqnarray", "partial", "theta", "begin"):
+            assert token not in cleaned, token
+
+    def test_the_block_stops_at_the_dedent(self) -> None:
+        """A greedy body pattern would eat the rest of the file after the first equation."""
+        cleaned = _clean_document(
+            ".. math::\n\n    x = \\alpha y\n\nSparse matrices support this operation.\n"
+        )
+        assert "alpha" not in cleaned
+        assert "Sparse matrices support this operation." in cleaned
+
+    def test_the_math_role_takes_its_expression(self) -> None:
+        """2041 of scipy's macros are in this form. `_INLINE_ROLE_RE` strips the role name
+        and deliberately KEEPS the target, because that is where API names live — so `:math:`
+        has to be resolved before it, or the expression is what stays behind."""
+        cleaned = _clean_document("Converges when :math:`\\mu < \\sigma^2` holds.\n")
+        assert "Converges when" in cleaned
+        assert "holds." in cleaned
+        assert "mu" not in cleaned.split()
+        assert "sigma" not in cleaned
+
+    def test_a_dollar_span_is_maths_only_when_it_carries_a_macro(self) -> None:
+        """Of 507 `$...$` spans across the 25 benchmark clones, 454 are shell and Make.
+
+        An unguarded pattern matches from one variable to the next and deletes the prose
+        between them, so carrying a control sequence is the discriminator.
+        """
+        cleaned = _clean_document(
+            "Set $VERSION $ and run $(CXX) -o $ before building the arrow library.\n"
+        )
+        assert "before building the arrow library." in cleaned
+        assert "Set" in cleaned and "and run" in cleaned
+
+        maths = _clean_document("The rate $\\lambda_i$ controls sampling.\n")
+        assert "lambda" not in maths
+        assert "controls sampling." in maths
+
+    def test_windows_paths_and_c_escapes_are_not_mathematics(self) -> None:
+        """The measured reason this strips contexts and not `\\[a-zA-Z]+`.
+
+        That sweep was implemented first. It fires 243 times on llama.cpp and 6 on ruff,
+        and every hit there is a path component or an escape glued to a word — none is
+        mathematics. It deleted `llama` from llama.cpp's own install instructions.
+        """
+        cleaned = _clean_document(
+            "Run C:\\Program Files\\llama.cpp\\models and .venv\\Scripts\\activate,\n"
+            'then print("done\\nWhat next?") to inspect the ruff output.\n'
+        )
+        for survivor in ("llama", "models", "Scripts", "activate", "What", "ruff"):
+            assert survivor in cleaned, survivor
