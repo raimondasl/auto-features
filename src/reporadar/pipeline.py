@@ -387,6 +387,15 @@ def _collect_extra_sources(
 
         return bx_collect(plain, lookback_days=lookback)
 
+    def _europepmc() -> list[dict[str, Any]]:
+        from reporadar.sources.europepmc import collect_papers as epmc_collect
+
+        # No `email=`. Europe PMC accepts one as politeness and works without it, and
+        # `openalex.email` was given to this project for OpenAlex's polite pool — forwarding
+        # it to a second service is a data flow the user did not agree to and the privacy
+        # registry would have to declare. Nothing is gained that is worth that.
+        return epmc_collect(plain, lookback_days=lookback)
+
     def _iacr() -> list[dict[str, Any]]:
         from reporadar.sources.iacr import collect_papers as iacr_collect
 
@@ -401,6 +410,7 @@ def _collect_extra_sources(
         ("semantic_scholar", "Semantic Scholar", _semantic_scholar),
         ("openalex", "OpenAlex", _openalex),
         ("biorxiv", "bioRxiv", _biorxiv),
+        ("europepmc", "Europe PMC (bioRxiv/medRxiv)", _europepmc),
         ("iacr", "IACR ePrint", _iacr),
         ("dblp", "DBLP", _dblp),
     ):

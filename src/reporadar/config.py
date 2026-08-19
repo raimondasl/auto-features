@@ -708,7 +708,15 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
     warnings: list[str] = []
 
     # Check sources
-    known_sources = {"arxiv", "semantic_scholar", "openalex", "biorxiv", "dblp", "iacr"}
+    known_sources = {
+        "arxiv",
+        "semantic_scholar",
+        "openalex",
+        "biorxiv",
+        "europepmc",
+        "dblp",
+        "iacr",
+    }
     for src in cfg.sources:
         if src not in known_sources:
             known = ", ".join(sorted(known_sources))
@@ -721,6 +729,21 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
             "openalex source enabled without an api_key. Since 2026-02-13 OpenAlex "
             "throttles keyless requests to a small daily test allowance. Get a free "
             "key at https://openalex.org/ and set openalex.api_key in .reporadar.yml."
+        )
+
+    # `biorxiv` is not a keyword search and cannot be made into one: bioRxiv's `details`
+    # endpoint takes a date interval, so the adapter fetches a window and filters locally.
+    # Under an all-time `lookback_days` that window opens in 2013 and the 40-page cap stops
+    # it there, which is why enabling it does not add recent biology. `europepmc` searches
+    # the same two servers by keyword. Not an error — someone wanting a category listing
+    # still has a use for it — so this warns and does not fail.
+    if "biorxiv" in cfg.sources and "europepmc" not in cfg.sources:
+        warnings.append(
+            "biorxiv source enabled without europepmc. bioRxiv's API is a date-interval "
+            "listing, not a keyword search, so this fetches a window and filters locally — "
+            f"with lookback_days: {cfg.arxiv.lookback_days} it returns the oldest postings in "
+            "that window, not papers about your repository. Add 'europepmc' to sources for a "
+            "keyword search over bioRxiv and medRxiv."
         )
 
     # Check arXiv category prefixes
@@ -845,6 +868,8 @@ def default_config_yaml() -> str:
 repo_path: .
 
 sources: [arxiv]
+# arXiv carries no biology. A repository whose literature is on bioRxiv or medRxiv
+# wants `sources: [arxiv, europepmc]` — coverage, not a measured improvement.
 
 arxiv:
   categories: [cs.LG, cs.CL]
@@ -938,6 +963,8 @@ def measured_config_yaml() -> str:
 repo_path: .
 
 sources: [arxiv]
+# arXiv carries no biology. A repository whose literature is on bioRxiv or medRxiv
+# wants `sources: [arxiv, europepmc]` — coverage, not a measured improvement.
 
 arxiv:
   # CHANGE THIS. cs.LG/cs.CL is a guess that fits an ML repository and no other; it is
