@@ -66,7 +66,13 @@ def repo_context_block(profile: RepoProfile, summary: Any = None) -> str:
     return block
 
 
-def build_triage_prompt(paper: dict[str, Any], profile: RepoProfile, summary: Any = None) -> str:
+def build_triage_prompt(
+    paper: dict[str, Any],
+    profile: RepoProfile,
+    summary: Any = None,
+    *,
+    rubric: str = _RUBRIC,
+) -> str:
     """The gate's prompt: the rubric, the repository, then one candidate paper.
 
     The repository is described by the keyword profile — what it *contains* — plus one
@@ -83,9 +89,18 @@ def build_triage_prompt(paper: dict[str, Any], profile: RepoProfile, summary: An
     *summary* supersedes the prose rather than joining it: they are two answers to the same
     question, and sending both would double the repo half to say one thing twice. Nothing
     in ``rr update`` passes one today — the prefix is the shipped path.
+
+    *rubric* exists so an experiment can vary the SCORING half without rebuilding the
+    prompt around it: a harness that assembles its own prompt measures the harness, a
+    failure this project has published twice (the mislabelled "README variant", and the
+    eval runner's own warning about it). It is keyword-only and defaults to the shipped
+    rubric, so every existing caller is byte-identical. The repository half —
+    :func:`repo_context_block` — is deliberately NOT parameterised: the fine-scale
+    probability map is fitted to those exact bytes, so varying them would silently
+    decalibrate a stage two steps downstream.
     """
     return (
-        f"{_RUBRIC}\n\n"
+        f"{rubric}\n\n"
         f"# Repository\n"
         f"{repo_context_block(profile, summary)}\n"
         f"# Candidate paper\n"
@@ -110,7 +125,12 @@ def _parse_verdict(raw: str) -> tuple[int, str]:
 
 
 def score_actionability(
-    paper: dict[str, Any], profile: RepoProfile, llm_cfg: Any, summary: Any = None
+    paper: dict[str, Any],
+    profile: RepoProfile,
+    llm_cfg: Any,
+    summary: Any = None,
+    *,
+    rubric: str = _RUBRIC,
 ) -> tuple[int, str]:
     """Return (score 0-3, one-line reason). Raises LLMError/ValueError on failure.
 
@@ -118,7 +138,9 @@ def score_actionability(
     timeout) — e.g. the SuggestionsConfig. *summary* is an optional RepoSummary
     (see repo_summary.py); when given it replaces the README-prefix description.
     """
-    raw = complete(build_triage_prompt(paper, profile, summary), llm_cfg, max_tokens=200)
+    raw = complete(
+        build_triage_prompt(paper, profile, summary, rubric=rubric), llm_cfg, max_tokens=200
+    )
     return _parse_verdict(raw)
 
 

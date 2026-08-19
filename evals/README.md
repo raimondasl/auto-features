@@ -33,6 +33,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §8.9 two unmeasured defaults | `run_judge_eval.py` (`--rr-pool`/`--rr-window`), `audit_product_divergence.py` |
 | §8.10 the third default, `w_embedding` | `run_judge_eval.py --rr-w-embedding`, `join_wemb_headline.py` ($0 prediction + the check that scored it) |
 | roadmap 16 relation grounding (NR-39) | `relation_probe.py` ($0; reads cached pools, profiles and verdicts) |
+| scientific software: the score-3 band (RESEARCH-scientific-software.md §9) | `probe_score3_band.py` (~$0.03; scores cached judge verdicts, no re-judging) |
 | typed README spans as an anchor channel (P9) | `nerdme_probe.py` (~$0.02 once to extract, then `--report` is $0; reuses `relation_probe.py`'s matching) |
 | is P9's signal judge circularity? (P10) | `redacted_judge.py` (~$4; two Sonnet arms over the same papers, spans masked in one) |
 | §9.1–9.3 the query bridge | `audit_query_transform.py`, `bigram_report.py` |
@@ -791,6 +792,21 @@ evals/
                      P crosses a threshold — see RESULTS.md "Correction" before reusing it
                      to evaluate a thresholded policy
 
+  probe_score3_band.py
+                     ~$0.03, pre-registered in RESEARCH-scientific-software.md §9: on six
+                     scientific-software repositories the benchmark's finding about the gate
+                     INVERTED -- its score-3 papers were actionable 25/36 while score-2
+                     papers clearing the fine-scale rescore were 28/29. Two candidate fixes,
+                     both scored against judge verdicts already cached (nothing is
+                     re-judged, so the labels cannot drift to suit the answer). BOTH FAILED
+                     their pre-registered bars: the rescore over the score-3 band ranks it at
+                     AUC 0.710 against 0.84 on the band it was fitted to and drops 2 of 8
+                     misses (bar 4) though it costs nothing; a rubric clause catches 8 of 9
+                     misses and takes 14 of 52 actionable papers with it, killed by its own
+                     >5 clause, worth +0.33 net@2/repo against a 1.03 floor for a 36% smaller
+                     digest. The useful finding is that the gate and the rescore fail
+                     TOGETHER -- MACE's own paper scores gate 3 and P 0.926 -- so the rescore
+                     is not an independent second opinion on what the gate admits
   verify.py          resolve proposed papers against real arXiv (hallucination guard)
   .env.example       template for API keys (copy to .env)
   repos/<case>/      realistic mini-repos profiled in Tier A offline mode
