@@ -399,6 +399,33 @@ _MD_LINK_DEF_RE = re.compile(r"^[ \t]*\[[^\]\n]+\]:[ \t]*\S+.*$", re.MULTILINE)
 # worth `mdanalysis` and `analysis`). The lookbehind keeps `https://` from matching.
 _INLINE_ROLE_RE = re.compile(r"\{[a-zA-Z][\w+-]*\}(?=`)|(?<![\w`]):(?:[a-zA-Z][\w+-]*:)+(?=`)")
 
+# Mathematics, which reaches the corpus only because this profiler started reading `doc/`
+# trees. A backslash is not a word character and `token_pattern` opens a token at a letter,
+# so every control sequence donates its NAME: scipy's manual carries 2379 `\left`, 2379
+# `\right` and 1228 `\frac`, and `left`, `right`, `frac` and `eqnarray` became four of its
+# top-twenty arXiv query keywords.
+#
+# What is removed is the math CONTEXT, not the macro. Sweeping `\[a-zA-Z]+` out of the text
+# was tried first and is wrong: across the 25 benchmark clones that pattern fires 243 times
+# on llama.cpp and 6 on ruff, where every single hit is a Windows path (`...\bin`,
+# `...\llama`, `...\ruff`) or a C escape glued to a word (`\nWhat`), and none is mathematics.
+# Deleting a project's own name out of its install instructions is a steep price for tidying
+# notation. Measured the other way round, 99.5% of scipy's macros, 100% of pytorch-geometric's
+# and 99.5% of dscribe's sit inside a context that says "this is maths" — so that is what is
+# matched, and the loose remainder is left alone on purpose.
+#
+# Removing the context also beats removing the macro on its own terms: `\begin{eqnarray}`
+# leaves no `eqnarray`, and `\frac{a}{b}` leaves no stray `a` or `b`.
+_MATH_DIRECTIVE_RE = re.compile(
+    r"^([ \t]*)\.\.[ \t]+math::.*(?:\n(?:\1[ \t]+.*|[ \t]*))*", re.MULTILINE
+)
+_MATH_ROLE_RE = re.compile(r":math:`[^`]*`")
+# A `$`-delimited span counts as maths only if it CONTAINS a control sequence. Of 507 such
+# spans in the corpus, 454 are shell and Make — `$VERSION $`, `${ARROW_ROOT}$`, `$(CXX) -o $`
+# — and an unguarded pattern eats the prose between two unrelated dollars. All 53 real ones
+# carry a macro, so that is the discriminator, and it costs nothing to require it.
+_MATH_DOLLAR_RE = re.compile(r"\$\$[^$]*\\[a-zA-Z][^$]*\$\$|\$[^$\n]*\\[a-zA-Z][^$\n]*\$")
+
 # Vocabulary that survives `stop_words="english"` but describes *packaging and docs
 # tooling*, never a research topic. Measured across the 13 benchmark repos, these
 # dominated the keyword list for several of them: the `cv` fixture's top six were
@@ -547,13 +574,20 @@ def _clean_document(text: str) -> str:
     twin: `![alt][ref]` has to go before `![alt](url)` or the outer brackets of a badge row
     survive as `[ ][link]`. Inline roles are stripped before `_RST_OPTION_RE`, which deletes
     whole lines beginning `:word:` — so a line that opens with ``:mod:`pkg.core` `` keeps its
-    target text instead of being deleted entirely.
+    target text instead of being deleted entirely. Mathematics goes ahead of BOTH of those,
+    and for the same reason inverted: `_INLINE_ROLE_RE` would strip `:math:` and leave the
+    expression standing, and `_RST_DIRECTIVE_RE` would take the `.. math::` line and orphan
+    its indented body. Each rule that deletes a marker has to run after the rule that wants
+    the marker to find what it delimits.
     """
     text = _MD_REF_IMAGE_RE.sub(" ", text)
     text = _MD_IMAGE_RE.sub(" ", text)
     text = _MD_REF_LINK_RE.sub(r"\1", text)
     text = _MD_LINK_RE.sub(r"\1", text)
     text = _MD_LINK_DEF_RE.sub(" ", text)
+    text = _MATH_DIRECTIVE_RE.sub(" ", text)
+    text = _MATH_ROLE_RE.sub(" ", text)
+    text = _MATH_DOLLAR_RE.sub(" ", text)
     text = _INLINE_ROLE_RE.sub(" ", text)
     text = _RST_DIRECTIVE_RE.sub(" ", text)
     text = _RST_SUBREF_RE.sub(" ", text)
@@ -576,13 +610,20 @@ _DOC_DIR_NAMES = ("docs", "doc", "docs-source")
 # top keywords were `smaller`, `pr`, `func` and two maintainer surnames. `_templates` holds
 # Sphinx autosummary Jinja, whose loop variable reached its top eight.
 #
-# Only names that FIRE on that corpus are listed: `release-notes` (74 files), `_templates`
-# (6), stem `changelog` (3), stem `changes` (1). The obvious near-synonyms — `releases`,
-# `history`, `news`, `whatsnew`, `releasenotes` — matched nothing and are deliberately absent,
-# because a list padded with plausible entries is indistinguishable from one that was
-# measured, and this module's stoplists have been burned that way before.
-_NON_TOPIC_DIRS = frozenset({"release-notes", "_templates"})
-_NON_TOPIC_STEMS = frozenset({"changelog", "changes"})
+# Only names that FIRE on the measured corpus are listed. The obvious near-synonyms —
+# `releases`, `history`, `news`, `whatsnew`, `releasenotes` — match nothing on it and are
+# deliberately absent, because a list padded with plausible entries is indistinguishable from
+# one that was measured, and this module's stoplists have been burned that way before.
+#
+# That corpus was originally the 19 bio and materials clones alone, and the benchmark's own
+# 25 were never scanned — so the defect this list exists to fix was still live on two of the
+# cases every published number is measured on. Widening the scan added three entries and no
+# others: dir `release` (scipy `doc/source/release/`, 81 of its 431 doc files; numba
+# `docs/source/release/`, 17), dir `upcoming_changes` (numba's towncrier fragments), and stem
+# `release` (3 files — the toctree index that lists the notes). Their fingerprints are `bug`,
+# `fix` and `maint` in scipy's top-twenty and `pr` in numba's top three.
+_NON_TOPIC_DIRS = frozenset({"release-notes", "release", "upcoming_changes", "_templates"})
+_NON_TOPIC_STEMS = frozenset({"changelog", "changes", "release"})
 
 
 def _doc_roots(repo_path: Path) -> list[Path]:
