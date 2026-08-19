@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from reporadar import arxiv_rate, s2_rate
+from reporadar import arxiv_cache, arxiv_rate, s2_rate
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -74,6 +74,40 @@ def _no_arxiv_throttle_sleep() -> Iterator[None]:
         yield
     finally:
         arxiv_rate.set_min_interval(previous)
+
+
+@pytest.fixture(autouse=True)
+def _no_arxiv_response_cache() -> Iterator[None]:
+    """No test reads or writes the real on-disk arXiv response cache.
+
+    `arxiv_cache` is a module-level global, and **`evals/harness.py` switches it on at
+    import time** — `arxiv_cache.configure(ARXIV_CACHE_DIR)`, pointed at
+    `evals/.work/arxiv-cache` with a seven-day TTL. pytest imports every test module during
+    collection, `pythonpath = ["evals"]`, and several `tests/test_eval_*.py` import harness.
+    So the cache was live for the whole session before a single test ran.
+
+    Two things follow, and both are worse than they sound. `collect_papers` consults the
+    cache *before* its client, so a test that has carefully mocked `arxiv.Client` can have
+    its mock never called at all — the assertion then fails somewhere far away, as
+    `IndexError` on an empty list. And `put(..., empty_is_real=True)` means a test whose
+    mock returns nothing WRITES an empty entry, which every later test asking the same
+    query inherits. Reproduced directly: with the cache on, one `collect_papers` returning
+    `[]` makes the next one return `[]` too, with `results.called == False`.
+
+    That also makes the suite's result depend on the developer's disk. A machine that has
+    run the evals has ~1,100 real entries and sails through; a fresh CI runner starts empty
+    and can poison itself mid-session. A test suite must not be able to tell.
+
+    The cache is a good thing — for the eval harness, which wants it, and which configures
+    it for itself. It just has no business being on during unit tests.
+    """
+    previous_dir = arxiv_cache._directory
+    previous_ttl = arxiv_cache._ttl_s
+    arxiv_cache.configure(None)
+    try:
+        yield
+    finally:
+        arxiv_cache.configure(previous_dir, previous_ttl)
 
 
 @pytest.fixture(autouse=True)
