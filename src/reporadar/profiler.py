@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import configparser
 import json
 import re
 import tomllib
@@ -103,10 +104,15 @@ def _parse_requirements_txt(path: Path) -> list[str]:
         line = line.strip()
         if not line or line.startswith("#") or line.startswith("-"):
             continue
-        # Strip version specifiers, extras, etc.
-        name = re.split(r"[>=<!;\[\]]", line)[0].strip()
+        # Strip version specifiers, extras and environment markers. Routed through
+        # `_requirement_name` rather than repeating its character class, because the copy
+        # that used to live here omitted `~`: matminer pins `requests~=2.31` and
+        # `scikit-learn~=1.3` and yielded the anchors `requests~` and `scikit-learn~`. No
+        # package has those names, and `scikit-learn~` misses PACKAGE_DOMAIN_MAP, so a
+        # repository that depends on scikit-learn never inferred "machine learning".
+        name = _requirement_name(line)
         if name:
-            packages.append(name.lower())
+            packages.append(name)
     return packages
 
 
@@ -122,16 +128,16 @@ def _parse_pyproject_toml(path: Path) -> list[str]:
 
     # [project.dependencies]
     for dep in data.get("project", {}).get("dependencies", []):
-        name = re.split(r"[>=<!;\[\]]", dep)[0].strip()
+        name = _requirement_name(dep)
         if name:
-            packages.append(name.lower())
+            packages.append(name)
 
     # [project.optional-dependencies]
     for deps in data.get("project", {}).get("optional-dependencies", {}).values():
         for dep in deps:
-            name = re.split(r"[>=<!;\[\]]", dep)[0].strip()
+            name = _requirement_name(dep)
             if name:
-                packages.append(name.lower())
+                packages.append(name)
 
     return packages
 
@@ -263,13 +269,83 @@ def _parse_package_json(path: Path) -> list[str]:
     return packages
 
 
+def _parse_setup_cfg(path: Path) -> list[str]:
+    """Extract dependency names from a setuptools ``setup.cfg``.
+
+    The declarative half of setuptools, and the reason a real project can profile with no
+    anchors at all. A repository that keeps its metadata here ships a ``pyproject.toml``
+    holding only ``[build-system]``, so every other parser in this module finds nothing:
+    MACE — a PyTorch interatomic-potential model, and one of the best-known codes in
+    computational materials science — reached the gate as "Dependencies/libraries: none /
+    Domains: general" while declaring torch, e3nn and matscipy nineteen lines into its
+    setup.cfg.
+
+    Only ``[options] install_requires`` is read. ``[options.extras_require]`` was measured
+    and rejected: on MACE it adds pytest, pytest-benchmark, pytest-cov, pytest-split,
+    pytest-xdist, black, isort, mypy, pre-commit and pylint, and `pytest` then becomes the
+    repository's top keyword and an arXiv query — the development toolchain drowning the
+    subject, which is the defect this file already fights in `_BOILERPLATE_STOPWORDS`.
+    """
+    text = _read_text_file(path)
+    if not text:
+        return []
+    # `interpolation=None` because a setup.cfg is setuptools' config file, not
+    # configparser's: a literal `%` in a description or a coverage `exclude_lines` block is
+    # not a substitution and must not raise.
+    parser = configparser.ConfigParser(interpolation=None)
+    try:
+        parser.read_string(text)
+    except configparser.Error:
+        return []  # an unparseable setup.cfg is not worth failing a whole profile over
+
+    packages: list[str] = []
+    for line in parser.get("options", "install_requires", fallback="").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name = _requirement_name(line)
+        if name:
+            packages.append(name)
+    return packages
+
+
+# Directories that hold the Python package when the repository root does not. Measured,
+# not guessed: MDAnalysis ships its library from `package/` (the root holds CI files and a
+# testsuite), and tblite and LAMMPS ship theirs from `python/` beside the C and Fortran
+# sources. An allowlist of two, not a search -- see the fallback for why.
+_NESTED_PACKAGE_DIRS = ("package", "python")
+
+
+def _manifest_anchors(root: Path) -> list[str]:
+    """Every manifest this module knows, read from one directory."""
+    anchors: list[str] = []
+    anchors.extend(_parse_requirements_txt(root / "requirements.txt"))
+    anchors.extend(_parse_pyproject_toml(root / "pyproject.toml"))
+    anchors.extend(_parse_setup_cfg(root / "setup.cfg"))
+    anchors.extend(_parse_setup_py(root / "setup.py"))
+    anchors.extend(_parse_package_json(root / "package.json"))
+    return anchors
+
+
 def _extract_anchors(repo_path: Path) -> list[str]:
     """Collect library/package names from all supported manifest files."""
-    anchors: list[str] = []
-    anchors.extend(_parse_requirements_txt(repo_path / "requirements.txt"))
-    anchors.extend(_parse_pyproject_toml(repo_path / "pyproject.toml"))
-    anchors.extend(_parse_setup_py(repo_path / "setup.py"))
-    anchors.extend(_parse_package_json(repo_path / "package.json"))
+    anchors = _manifest_anchors(repo_path)
+
+    # Nested packaging, and ONLY when the root declared nothing. Firing solely on that
+    # condition keeps every repository that profiles today byte-identical and confines the
+    # change to the ones with the defect.
+    #
+    # A general sub-directory search was measured and is worse than nothing:
+    # `lammps/doc/utils/requirements.txt` is sixteen Sphinx packages and the only
+    # requirements.txt LAMMPS has, so a search would hand a molecular-dynamics engine a
+    # documentation-toolchain profile, and `deepmd-kit/source/tests/pt/requirements.txt` is
+    # a test matrix.
+    if not anchors:
+        for nested in _NESTED_PACKAGE_DIRS:
+            found = _manifest_anchors(repo_path / nested)
+            if found:
+                anchors.extend(found)
+                break
     # Deduplicate while preserving order
     seen: set[str] = set()
     unique: list[str] = []
@@ -300,8 +376,28 @@ _URL_RE = re.compile(r"https?://\S+|www\.\S+")
 _MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")  # badges
 _MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")  # keep the text, drop the target
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
-_RST_DIRECTIVE_RE = re.compile(r"^\s*\.\.\s+[\w-]+::.*$", re.MULTILINE)
+# The optional `|name|` group is the whole fix: a substitution definition is
+# `.. |docs| image:: URL`, so what follows `.. ` is not `[\w-]+::` and the pattern missed
+# it. mdanalysis's README has 13 of them and `image` tied for its #1 keyword.
+_RST_DIRECTIVE_RE = re.compile(r"^\s*\.\.\s+(?:\|[^|\n]+\|\s+)?[\w-]+::.*$", re.MULTILINE)
+# ...and the in-body uses `|numfocus| |build| |cov|`, which are badge names, not words.
+_RST_SUBREF_RE = re.compile(r"\|[\w-]+\|")
 _RST_OPTION_RE = re.compile(r"^\s*:[\w-]+:.*$", re.MULTILINE)
+# Markdown's *reference* forms, which the parenthesised patterns above never see. A badge
+# row written `[![Stars][gh-stars-badge]][gh-stars-link]` survives both of them intact, and
+# scvi-tools' first 300 README characters -- what the gate and HyDE are told the project IS
+# -- were 100% exactly that. The definitions `[gh-stars-badge]: https://...` are their own
+# line form and need their own pattern.
+_MD_REF_IMAGE_RE = re.compile(r"!\[[^\]]*\]\[[^\]]*\]")
+_MD_REF_LINK_RE = re.compile(r"\[([^\]]*)\]\[[^\]]*\]")  # keep the text, drop the label
+_MD_LINK_DEF_RE = re.compile(r"^[ \t]*\[[^\]\n]+\]:[ \t]*\S+.*$", re.MULTILINE)
+# Inline roles in both docs dialects: MyST's {func}`x` and reST's :mod:`x` / :py:class:`x`.
+# `_RST_OPTION_RE` only anchors at line start, so a role used mid-sentence survives and its
+# NAME becomes a term -- `mod` was mdanalysis's #4 keyword, `footcite` tblite's #6, and
+# scanpy's `{smaller}` / `{pr}` / `{func}` were its top three. Only the name is removed: the
+# target stays, because that is where the API names live (`:mod:`MDAnalysis.analysis`` is
+# worth `mdanalysis` and `analysis`). The lookbehind keeps `https://` from matching.
+_INLINE_ROLE_RE = re.compile(r"\{[a-zA-Z][\w+-]*\}(?=`)|(?<![\w`]):(?:[a-zA-Z][\w+-]*:)+(?=`)")
 
 # Vocabulary that survives `stop_words="english"` but describes *packaging and docs
 # tooling*, never a research topic. Measured across the 13 benchmark repos, these
@@ -445,14 +541,84 @@ _BOILERPLATE_STOPWORDS = frozenset(
 
 
 def _clean_document(text: str) -> str:
-    """Strip markup that inflates term counts without carrying topic signal."""
+    """Strip markup that inflates term counts without carrying topic signal.
+
+    The ORDER is load-bearing and each pair is a reference form ahead of its parenthesised
+    twin: `![alt][ref]` has to go before `![alt](url)` or the outer brackets of a badge row
+    survive as `[ ][link]`. Inline roles are stripped before `_RST_OPTION_RE`, which deletes
+    whole lines beginning `:word:` — so a line that opens with ``:mod:`pkg.core` `` keeps its
+    target text instead of being deleted entirely.
+    """
+    text = _MD_REF_IMAGE_RE.sub(" ", text)
     text = _MD_IMAGE_RE.sub(" ", text)
+    text = _MD_REF_LINK_RE.sub(r"\1", text)
     text = _MD_LINK_RE.sub(r"\1", text)
+    text = _MD_LINK_DEF_RE.sub(" ", text)
+    text = _INLINE_ROLE_RE.sub(" ", text)
     text = _RST_DIRECTIVE_RE.sub(" ", text)
+    text = _RST_SUBREF_RE.sub(" ", text)
     text = _RST_OPTION_RE.sub(" ", text)
     text = _URL_RE.sub(" ", text)
     text = _HTML_TAG_RE.sub(" ", text)
     return text
+
+
+# `docs/` is a Python-web convention, and scientific codes mostly do not follow it. Of 19
+# bio and materials repositories measured, five keep their manual in `doc/` (lammps, phonopy,
+# deepmd-kit, sourmash, tblite), openmm uses `docs-source/`, and mdanalysis keeps it under
+# `package/doc/`. Reading only `docs/` left seven of the nineteen profiled from their README
+# alone: phonopy's top-20 was thirteen of its own dependency names.
+_DOC_DIR_NAMES = ("docs", "doc", "docs-source")
+
+# Documents that record a project's HISTORY rather than its subject. A changelog is a list of
+# contributor names, version numbers and issue references. scanpy ships 69 of them under
+# `docs/release-notes/` — 69 of its 113 corpus documents — and they are the single reason its
+# top keywords were `smaller`, `pr`, `func` and two maintainer surnames. `_templates` holds
+# Sphinx autosummary Jinja, whose loop variable reached its top eight.
+#
+# Only names that FIRE on that corpus are listed: `release-notes` (74 files), `_templates`
+# (6), stem `changelog` (3), stem `changes` (1). The obvious near-synonyms — `releases`,
+# `history`, `news`, `whatsnew`, `releasenotes` — matched nothing and are deliberately absent,
+# because a list padded with plausible entries is indistinguishable from one that was
+# measured, and this module's stoplists have been burned that way before.
+_NON_TOPIC_DIRS = frozenset({"release-notes", "_templates"})
+_NON_TOPIC_STEMS = frozenset({"changelog", "changes"})
+
+
+def _doc_roots(repo_path: Path) -> list[Path]:
+    """Directories holding the project's prose documentation.
+
+    One level of nesting is searched because a package-in-subdirectory layout puts the docs
+    under it (mdanalysis: `package/doc/`). Depth is capped at one on purpose: deeper walks
+    start finding vendored third-party manuals, and on the 19 measured clones depth 1 already
+    finds every doc tree that exists and nothing that is not one.
+
+    Cost, recorded rather than capped: on lammps this admits 1,077 files and 7.3 MB, taking
+    the profile from 17 ms to ~4 s. That is real, and it is noise beside the ~4 minutes an
+    `rr update` spends on the network and the LLM stages. A file or byte cap would bound it,
+    but every cap considered was itself unmeasured, and a silent truncation of the corpus is
+    the failure mode this project keeps writing checks against.
+    """
+    roots: list[Path] = []
+    for name in _DOC_DIR_NAMES:
+        candidate = repo_path / name
+        if candidate.is_dir():
+            roots.append(candidate)
+    for child in sorted(repo_path.iterdir()):
+        if not child.is_dir() or child.name.startswith("."):
+            continue
+        for name in _DOC_DIR_NAMES:
+            candidate = child / name
+            if candidate.is_dir():
+                roots.append(candidate)
+    return roots
+
+
+def _is_non_topic_doc(relative_path: Path) -> bool:
+    """True for a doc file that records the project's history rather than its subject."""
+    if any(part.lower() in _NON_TOPIC_DIRS for part in relative_path.parts):
+        return True
+    return relative_path.stem.lower() in _NON_TOPIC_STEMS
 
 
 def _collect_text_corpus(repo_path: Path) -> list[str]:
@@ -475,11 +641,12 @@ def _collect_text_corpus(repo_path: Path) -> list[str]:
         if text:
             documents.append(_clean_document(text))
 
-    # docs/ directory — read .md and .rst files
-    docs_dir = repo_path / "docs"
-    if docs_dir.is_dir():
+    # Documentation trees — read .md, .rst and .txt, skipping the project's own history
+    for docs_dir in _doc_roots(repo_path):
         for ext in ("*.md", "*.rst", "*.txt"):
             for doc_file in docs_dir.rglob(ext):
+                if _is_non_topic_doc(doc_file.relative_to(repo_path)):
+                    continue
                 text = _read_text_file(doc_file)
                 if text:
                     documents.append(_clean_document(text))
@@ -519,8 +686,10 @@ def cited_arxiv_ids_of(repo_path: Path) -> frozenset[str]:
     for citation in sorted(repo_path.glob("CITATION*")):
         if citation.is_file():
             scan(_read_text_file(citation))
-    docs_dir = repo_path / "docs"
-    if docs_dir.is_dir():
+    # The same roots as the topic corpus, but NOT its history filter: a release note saying
+    # "implements arXiv:2303.14046" is exactly the evidence this function wants, and is
+    # exactly the vocabulary the corpus excludes. Same files, different question.
+    for docs_dir in _doc_roots(repo_path):
         # `.bib` joins the corpus extensions here and nowhere else: a bibliography is the
         # plainest statement a project makes about what it already cites, and it is the only
         # place some of them are recorded (dscribe cites the REMatch-kernel paper its own

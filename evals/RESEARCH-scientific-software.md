@@ -867,6 +867,85 @@ more.
 
 ---
 
+## 10. Profiler hygiene: nine fixes, a byte-identical benchmark, and four of my claims refuted (2026-08-19)
+
+§6's D2/D3, designed by measuring against the 19 cloned repositories rather than by reading
+the code. The design pass refuted more of the plan than it confirmed, which is recorded here
+in full because the rejections are the more useful half.
+
+### 10.1 What shipped
+
+Nine fixes, each justified by a named repository, and all nine verified to leave the four
+Tier A fixtures **byte-identical**:
+
+| | repository | before | after |
+|---|---|---|---|
+| read `doc/`, `docs-source/`, one level down | phonopy | 13 of its top 20 keywords were its own dependency names | `supercell, displacements, cell, calculation, force` |
+| exclude release notes and changelogs | scanpy | `smaller, pr, func` + two maintainer surnames | `scanpy, anndata, pp, tl, pl, experimental` |
+| strip MyST and reST role names | scanpy, mdanalysis, tblite | `{func}`/`{pr}`/`{smaller}`, `mod`, `footcite` as keywords | role gone, target kept (`scanpy.pp.pca` survives) |
+| strip reference-style badges and link definitions | scvi-tools | prose 100% `[![Stars][gh-stars-badge]]` markup | *"…is a package for probabilistic modeling"* |
+| match rst substitution definitions | mdanalysis | `image` tied for keyword #1 | `mdanalysis, analysis, topology, core` |
+| parse `setup.cfg` | MACE | 0 anchors, domains "general" | 19 anchors, `deep learning, scientific computing` |
+| nested `package/` fallback | mdanalysis | 0 anchors | 42 anchors, 4 domains |
+| strip `~=` specifiers | matminer | anchors `requests~`, `scikit-learn~` | correct names, and `machine learning` finally inferred |
+| citations follow the same doc roots | dscribe | — | bibliography reachable wherever the docs live |
+
+**Tier A, before and after: `P@10=0.867  R@10=0.439  nDCG@10=0.909  MRR=1.000  MAP=0.859
+sep=+0.217`, webdev PASS.** Every digit, every case. That is now a guard rather than a
+claim: `tests/test_profiler_golden.py` pins the keywords, anchors, domains, prose and
+corpus phrases of all four fixtures, so the next profiler change has to state its intent.
+
+### 10.2 Four things I asserted that the measurement refuted
+
+- **"The bioconda world needs `environment.yml`, conda `meta.yaml`, R `DESCRIPTION`,
+  `Cargo.toml`, `Project.toml`."** Zero of the 19 clones has any of them at the repository
+  root. All five parsers dropped.
+- **"Stopping `index`, `reference`, `parameters`, `system`, `thin`, `build` costs the
+  domain terms of art — *thin film*, *lattice parameters*, *k-mer index*."** Measured over
+  the corpus: `thin` occurs **0 times**; `bin` appears 10 times and every collocation is
+  shell furniture (`alias bin`, `neighbor bin`); `build` (126) and `system` (270) are
+  dominated by *to build*, *the system*. Removing any of them measured harmful or empty.
+  Not done.
+- **"`setup.cfg` extras should come too."** On MACE `[options.extras_require]` adds pytest,
+  black, isort, mypy and pre-commit — and `pytest` becomes the repository's **top keyword
+  and an arXiv query**. Only `install_requires` is read.
+- **"Reading `docs-source/` gives openmm its citations back" (§9.0).** It does not. With
+  `docs-source/` now read, openmm still yields zero cited ids, because it cites no arXiv
+  papers in its docs at all — the two number-like strings there are a DOI fragment with
+  month 21 and a number inside an SVG logo, both correctly rejected. §9.0's implication was
+  wrong; the directory omission was real, the consequence I attached to it was not.
+
+### 10.3 Two fixes deferred, with the measurement that deferred them
+
+- **A6, the prose lead** (MACE's prose is its table of contents). The proposal was measured
+  to have two defects: a README opening with a feature bullet list has the bullets silently
+  deleted — one of the commonest ML-repo shapes — and YAML front matter costs the title. It
+  also cannot be validated for free: the offline gate is **prose-blind** (with A6 applied it
+  reproduces the baseline to the digit), and prose's real consumer is
+  `triage.repo_context_block`, which feeds the frozen fine-scale logistic. Needs paid
+  measurement, so it waits for cohort 3.
+- **B4, dropping anchor-only bigrams** (phonopy's `seekpath pypolymlp`). It **regresses the
+  committed gate**: nDCG@10 0.909 → 0.902, MAP 0.859 → 0.849, and the webdev control's
+  `mean_top10` rises 56%. The defect is real and universal — `rag`, `cv`, `rl` and `webdev`
+  all carry dependency-name bigrams — but the proposed fix costs more than it returns on
+  the only population that can currently score it.
+
+### 10.4 The debt this creates, stated plainly
+
+These changes alter the profile, therefore the queries, therefore the candidate pool. **Every
+published benchmark number in this project describes the pre-2026-08-19 profiler.** Tier A
+proves the four ML fixtures do not move; it says nothing about the 25 benchmark repositories,
+whose live pools nobody has re-fetched, and nothing about whether scientific-software digests
+improve — the whole point of the work. Cohort 3 (§8) is where both get measured, and it must
+now run *after* these fixes rather than before them.
+
+Known and not fixed: `docs/_sources/` is a committed Sphinx HTML build (216 of dscribe's 246
+doc files, 30 of matminer's 30), so those two repositories read generated duplicates of prose
+they already read. Excluding it would leave matminer with a 2-document corpus, which is its
+own unmeasured change.
+
+---
+
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
