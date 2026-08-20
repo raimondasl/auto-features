@@ -32,6 +32,40 @@ def _reset_clock() -> Any:
     s2_rate.set_min_interval(previous)
 
 
+class FakeClock:
+    """A monotonic clock that advances only when something sleeps on it.
+
+    Any test that asks "did the gate make the second caller wait" has to compare a deadline
+    against a clock, and if that clock is wall time the answer depends on how busy the
+    machine was. `test_search_and_batch_queue_behind_each_other` set a 20 ms interval and
+    then ran two full mocked request functions between the two turns: under a loaded
+    full-suite run more than 20 ms of real time elapsed in between, the second turn was
+    already due, it slept 0, and the assertion failed with `assert 0.0 > 0.0` — a red build
+    reporting a scheduling delay rather than a defect. Observed 2026-08-19; the same test
+    passed 11/11 in isolation.
+
+    Substituted for :mod:`reporadar.s2_rate`'s `time` module, this makes elapsed time an
+    input instead of a measurement, so the assertions can be *exact* rather than merely
+    positive. It deliberately does not fake `time` anywhere else: the request functions
+    those tests drive keep their own real `time` for retry backoff, and the gate is the only
+    thing under test.
+
+    Not used by `test_the_interval_is_never_undershot`, which is about what a real
+    `time.sleep` does and would be meaningless against a clock that cannot undershoot.
+    """
+
+    def __init__(self, start: float = 1000.0) -> None:
+        self.now = start
+        self.slept: list[float] = []
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        self.now += seconds
+
+
 class TestTheGate:
     def test_default_is_at_least_one_second(self) -> None:
         """S2 documents 1 RPS for a key. Faster is a promise broken, not a tuning choice."""
@@ -50,9 +84,19 @@ class TestTheGate:
         assert s2_rate.wait_turn() == 0.0
 
     def test_second_call_waits(self) -> None:
+        """On a controlled clock, so the claim is the full interval rather than "some".
+
+        This had the same wall-clock dependence that made
+        `test_search_and_batch_queue_behind_each_other` flaky — two adjacent turns and a
+        50 ms budget — and would fail the same way if the process were descheduled between
+        them. It is rarer, not sound.
+        """
         s2_rate.set_min_interval(0.05)
-        s2_rate.wait_turn()
-        assert s2_rate.wait_turn() > 0.0
+        s2_rate._next_allowed_at = 0.0
+        clock = FakeClock()
+        with patch("reporadar.s2_rate.time", clock):
+            assert s2_rate.wait_turn() == 0.0
+            assert s2_rate.wait_turn() == pytest.approx(0.05)
 
     def test_the_interval_is_never_undershot(self) -> None:
         """A single `time.sleep(d)` can return early; the gate must not.
@@ -131,9 +175,16 @@ class TestEveryS2ModuleSharesTheClock:
         Driven through the real request functions rather than by asserting each calls
         `wait_turn` — a test that only checks the call would pass if both modules kept
         private clocks, which is precisely the bug.
+
+        The gate runs on a :class:`FakeClock` so that "did the second caller wait" is a
+        question about the limiter and not about how long the mocked request functions took
+        to run. Against wall time this asserted `> 0.0` and failed under load; against a
+        controlled clock it can assert the exact interval, which is the stronger claim.
         """
-        s2_rate.set_min_interval(0.02)
+        interval = 0.02
+        s2_rate.set_min_interval(interval)
         s2_rate._next_allowed_at = 0.0
+        clock = FakeClock()
         turns: list[float] = []
         real_wait = s2_rate.wait_turn
 
@@ -143,6 +194,7 @@ class TestEveryS2ModuleSharesTheClock:
             return slept
 
         with (
+            patch("reporadar.s2_rate.time", clock),
             patch("reporadar.s2_rate.wait_turn", recording_wait),
             patch("urllib.request.urlopen", return_value=self._json_response({"data": []})),
         ):
@@ -152,10 +204,12 @@ class TestEveryS2ModuleSharesTheClock:
             )
 
         assert len(turns) == 2, turns
-        # The first is free; the second must have waited, which can only happen if the
-        # second module read the same clock the first one set.
+        # The first is free; the second must have waited the full interval, which can only
+        # happen if the second module read the same clock the first one set. A limiter with
+        # one clock per module would report 0.0 here twice.
         assert turns[0] == 0.0
-        assert turns[1] > 0.0
+        assert turns[1] == pytest.approx(interval)
+        assert clock.slept == [pytest.approx(interval)]
 
     def test_recommendations_uses_the_gate(self) -> None:
         s2_rate.set_min_interval(0.0)
