@@ -34,6 +34,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §8.10 the third default, `w_embedding` | `run_judge_eval.py --rr-w-embedding`, `join_wemb_headline.py` ($0 prediction + the check that scored it) |
 | roadmap 16 relation grounding (NR-39) | `relation_probe.py` ($0; reads cached pools, profiles and verdicts) |
 | scientific software: the score-3 band (RESEARCH-scientific-software.md §9) | `probe_score3_band.py` (~$0.03; scores cached judge verdicts, no re-judging) |
+| why a benchmark case returned nothing (RESEARCH-scientific-software.md §16.4, §17) | `why_case.py` ($0; reads a results artifact, the eval-side counterpart to `rr why`) |
 | typed README spans as an anchor channel (P9) | `nerdme_probe.py` (~$0.02 once to extract, then `--report` is $0; reuses `relation_probe.py`'s matching) |
 | is P9's signal judge circularity? (P10) | `redacted_judge.py` (~$4; two Sonnet arms over the same papers, spans masked in one) |
 | §9.1–9.3 the query bridge | `audit_query_transform.py`, `bigram_report.py` |
@@ -791,6 +792,15 @@ evals/
                      L2 strength by AUC, which is rank-only and therefore blind to where
                      P crosses a threshold — see RESULTS.md "Correction" before reusing it
                      to evaluate a thresholded policy
+
+  why_case.py
+                     $0, offline: where a benchmark case's ranked papers stopped, and where
+                     the gate and the judge DISAGREE -- reported as disagreement, because
+                     second_judge.py measured kappa 0.507 on the >=2 cut and only 8 of 48
+                     papers GPT scored 2 were scored >=2 by Sonnet. `rr why` answers this
+                     against a product store; the eval harness writes none, which is why
+                     this adapter exists. Not available from an artifact: score_total,
+                     rrf_score, finescale_p.
 
   probe_score3_band.py
                      ~$0.03, pre-registered in RESEARCH-scientific-software.md §9: on six
