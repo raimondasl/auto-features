@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import arxiv
 import pytest
 
+from reporadar import collector
 from reporadar.collector import (
     CollectionError,
     _category_filter,
@@ -764,3 +765,52 @@ class TestEveryBridgeUsesTheSharedTranslator:
             if line.lstrip().startswith("#"):
                 continue  # a comment may quote the bug; only live code is the failure
             assert 'replace("all:"' not in line, f"{path.name}:{line_no}: {line.strip()}"
+
+
+class TestTheSharedClientCannotGoStale:
+    """`_shared_client` must never hand one caller the client another caller made.
+
+    It was keyed on `id(arxiv.Client)`. An address is not a reference: a patched class could
+    be freed, a later patch could allocate its mock at the same address, and the cache would
+    return the earlier test's client — whose mocked `results` iterator is already drained, so
+    the later test silently collected nothing.
+
+    It reproduced only on CI, only on Python 3.13, and only in a full-suite run, because it
+    needs the allocator to recycle an address while the entry is still live. Two local probes
+    concluded the collision was impossible; both ran in a clean process and both were wrong.
+    Three CI rounds on 2026-08-20 went to it, and what finally named it was
+    `tests/test_cache_isolation.py` reporting `this client cached=False` with the response
+    cache provably untouched.
+    """
+
+    def test_the_cache_key_holds_the_class_not_its_address(self) -> None:
+        """The deterministic half: a key made of an `int` is the defect, whatever it scores.
+
+        Asserted structurally rather than by racing the allocator, because the behavioural
+        version passes on a good day even when the code is wrong — which is exactly how this
+        survived two rounds of investigation.
+        """
+        collector._CLIENTS.clear()
+        with patch("reporadar.collector.arxiv.Client"):
+            collector._shared_client(50)
+            keys = list(collector._CLIENTS)
+        assert keys, "nothing was cached"
+        for key in keys:
+            assert not isinstance(key[0], int), (
+                f"_CLIENTS is keyed on {key[0]!r}; an address does not keep its object alive, "
+                "so a later patch can reuse it and inherit this entry"
+            )
+            assert key[0] is collector.arxiv.Client or callable(key[0])
+
+    def test_every_patch_gets_its_own_client(self) -> None:
+        """The behavioural half. 400 cycles is enough to catch a live regression here:
+        3,000 cycles on 3.13 recycled ~95 addresses under the old key."""
+        collector._CLIENTS.clear()
+        stale = 0
+        for _ in range(400):
+            with patch("reporadar.collector.arxiv.Client") as MockClient:
+                mock_client = MockClient.return_value
+                mock_client.results.return_value = iter(["paper"])
+                if collector._shared_client(50) is not mock_client:
+                    stale += 1
+        assert stale == 0, f"{stale} of 400 patches inherited an earlier test's client"
