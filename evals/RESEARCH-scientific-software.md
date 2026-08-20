@@ -1736,8 +1736,9 @@ These four are not harmless:
 | http | 0 | 2 | 15 |
 | cli | 0 | 1 | 15 |
 
-`pool_has_relevant` is **true for all four**. These are not correct abstentions; they are total
-misses. ruff's case had **nine actionable papers sitting in the pool and returned none of
+`pool_has_relevant` is **true for all four**. **§17 corrects this paragraph**: the four are
+three different things, http and cli are close to correct abstentions, and the strong claim
+made about linter below does not survive a second judge. Read §17 with this section. ruff's case had **nine actionable papers sitting in the pool and returned none of
 them** — the single largest recall failure in the run, and it is invisible in a +5.88 mean
 because a zero is exactly what a correct abstention also scores.
 
@@ -1782,6 +1783,105 @@ Recorded as an observation. It needs its own pre-registration before anything is
   the instrument could not have seen a moderate gap.
 - Still unlicensed: the excluded compiled/manifest-less population (§14.2), a second draw, and
   any causal claim for §10–§13.
+
+---
+## 17. CORRECTION — §16.4's four cases are three different things, and one of my claims does not survive a judge swap (2026-08-20)
+
+`rr why` (§6 D7) was built to answer §16.4, and the first thing it produced was a correction to
+how §16.4 was written and to what I said about it.
+
+### 17.1 The four cases are not one failure
+
+§16.4 reported "four cases returned nothing and all four had good papers available" and treated
+them as a single defect. They have three different causes, and only one is worth acting on.
+
+| case | gate scores over its 15 ranked papers | judge ≥2 | what happened |
+|---|---|---|---|
+| linter | `{0: 1, 1: 14}` | 8/15 | **nothing reached the threshold** |
+| webdev | `{0: 2, 1: 11, 2: 2}` | 3/15 | two reached the band; both failed the fine-scale bar |
+| http | `{0: 13, 1: 2}` | 2/15 | gate and judge broadly agree; a thin pool |
+| cli | `{0: 10, 1: 5}` | 1/15 | gate and judge broadly agree; a thin pool |
+
+**http and cli are close to correct abstentions.** The gate scored most of their pools 0 and the
+judge found 2 and 1 actionable papers respectively. Grouping them with linter overstated the
+problem, and §16.4 should be read with this table beside it.
+
+**webdev lost exactly one paper** to the fine-scale rescore: two papers reached the band, the
+bar rejected both, and the judge scored one of them 2 (*Understanding Bugs in Template
+Engine-Based Applications*) and the other 1. That is the stage working as designed on one paper
+and costing a true positive on the other.
+
+**linter is the one that matters**, and it is not a window or a rerank problem. Fourteen of its
+fifteen ranked papers received the single gate score 1. Nothing was close to the threshold.
+
+### 17.2 The claim I made, and why it does not hold
+
+I wrote that the gate had "under-scored eight genuinely on-topic papers" for ruff, and listed
+titles — *MetaLint*, *STYLE-ANALYZER*, *BitsAI-Fix*, *Automated Linter Configuration* — as if
+their topicality settled it. **That was an assumption presented as a measurement.** What was
+measured is that the gate and the judge disagree. Which of them is wrong is a separate question,
+and this project has already measured enough to answer it — against me.
+
+`evals/second_judge.py` re-judged 200 stratified labels with Sonnet under a byte-identical
+rubric:
+
+| statistic | value |
+|---|---|
+| Cohen's kappa (≥2 cut) | **0.507** — below its own pre-registered ≥0.60 bar |
+| base rate actionable, GPT-5.5 / Sonnet | **40% / 22%** |
+| GPT-scored 2 → Sonnet ≥2 | **8 of 48 (17%)** |
+| GPT-scored 1 → Sonnet ≤1 | 58 of 61 (95%) |
+| GPT-scored 0 → Sonnet 0 | **58 of 58 (100%)** |
+
+Every one of my eight linter papers is a judge **2**. That is precisely the cell where the two
+judges disagree most: a second judge would have scored roughly five in six of them below the
+actionable cut — **agreeing with the gate**. The claim inverts under a judge swap, so it was
+never mine to make.
+
+### 17.3 The symmetric check, which the same evidence supports
+
+The honest thing is to apply the test to the finding I liked as well. §16.5 reported that the
+gate's score-3 band is non-actionable 31% of the time on scientific software against 7% on the
+ML cases. All eleven of those non-actionable score-3 papers were scored **1** by the judge — and
+GPT's 1s stay at or below 1 for Sonnet **95%** of the time.
+
+**So that finding does survive a judge swap, and my linter claim does not.** Both sat on the
+gate/judge boundary; only one sat on the *judges'* boundary. The asymmetry is the whole point,
+and I would not have found it by arguing about which model is smarter.
+
+What §16.5 licenses is therefore unchanged and worth restating precisely: on scientific software
+the gate marks papers 3 that two independent judges both decline to call actionable. That is a
+statement about the gate. What linter licenses is weaker: **the gate and one judge disagree, in
+the region where judges disagree with each other.**
+
+### 17.4 One thing that does not depend on the judge at all
+
+Fourteen of linter's fifteen ranked papers share the single gate score 1. A scorer that places
+93% of a mixed pool in one bucket is degenerate on its own terms, whatever any judge thinks —
+and the gate is not always like this: it spread http's pool across 0 and 1 (13/2) and CHGNet's
+across 2 and 3. The concentration is evidence about the gate that needs no external label, and
+it is the part of the linter observation that stands.
+
+### 17.5 What was built
+
+`rr why` (#163) answers this for a real repository against `.reporadar/papers.db`. **The eval
+harness writes no store**, so the command built for this question could not be pointed at the
+data that raised it. `evals/why_case.py` is the adapter: same stages, read from a results
+artifact, $0 and offline.
+
+It reports gate/judge differences as **disagreement**, prints the second-judge transition rate
+for the relevant cell beside each one, and refuses to say which side is wrong. It also flags a
+degenerate gate distribution, which is the judge-independent signal of §17.4. What it cannot
+show — `score_total`, `rrf_score`, `finescale_p` — it names rather than omits, because those are
+not in the artifact and are the fields `rr why` exists to show.
+
+### 17.6 The general lesson, which is not new here
+
+`net@2` is **defined** on judge labels, so for benchmark purposes the judge is the scoring
+function by construction — "the digest lost points" is true whatever the judge's validity. That
+is not the same as "the papers were actionable", and the slide from one to the other is easy
+and was mine. RESULTS.md already says the levels are judge-specific and only the separations
+survive; §17.2 is that sentence meeting a concrete claim and refuting it.
 
 ---
 ## Appendix
