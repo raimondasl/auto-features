@@ -1745,8 +1745,11 @@ Two further cases returned a single paper (`compiler`, `encryption`, both +1.0 a
 1.00), which is the same shape a step less severe.
 
 This is a **selection** failure, not a retrieval one: the pool had the papers. Nothing in §14
-predicted it and nothing here diagnoses it; `rr why` (§6 D7) is the read-only command that
-would say which stage discarded them, and it is now the obvious next thing to build.
+predicted it and nothing here diagnoses it. **`rr why` (§6 D7) was built next for this reason**
+and now names the stage that claimed any given paper — read-only, offline, free. Applied to
+these four it would say whether the gate scored them 0, whether `triage.rerank` demoted them
+out of the window, or whether they never reached the gate at all; those are different defects
+with different fixes and the metric cannot tell them apart.
 
 ### 16.5 The score-3 problem is specific to scientific software
 

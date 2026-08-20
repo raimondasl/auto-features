@@ -1406,17 +1406,119 @@ def mcp(config_path: str | None) -> None:
 
 
 @cli.command()
+@click.argument("arxiv_id")
 @click.option(
     "--config",
     "config_path",
     default=None,
     type=click.Path(exists=True, dir_okay=False),
-    help="Path to .reporadar.yml (default: .reporadar.yml in current dir).",
+    help="Path to .reporadar.yml.",
+)
+@click.option("--run", "run_id", type=int, default=None, help="Explain against this run.")
+@click.option("--json", "as_json", is_flag=True, help="Emit the explanation as JSON.")
+def why(arxiv_id: str, config_path: str | None, run_id: int | None, as_json: bool) -> None:
+    """Explain where one paper stopped in the pipeline, and why.
+
+    Answers "why is my paper not there?" and "why is THIS here?" by walking the seven places
+    a paper can be dropped — collection, ranking, the gate's window, the gate's verdict, the
+    fine-scale rescore, the digest window, muting — and reporting the first one that claimed
+    it, with what would change the outcome.
+
+    Read-only and offline: no API calls, no cost. It re-uses the digest's own
+    `digest_window` and `categorize_papers`, so it cannot describe a decision the digest did
+    not make.
+    """
+    import json as json_mod
+
+    from reporadar.digest import cited_ids_from
+    from reporadar.explain import explain_paper
+
+    cfg = _load_and_validate(config_path)
+    repo_path = Path(cfg.repo_path).resolve()
+    db_path = repo_path / ".reporadar" / "papers.db"
+
+    if not db_path.exists():
+        error("No database found. Run `rr update` first.")
+        raise SystemExit(1)
+
+    with _open_store(db_path) as store:
+        run = store.get_run(run_id) if run_id is not None else store.get_last_run()
+        if run is None:
+            error(f"Run {run_id} not found." if run_id else "No runs found. Run `rr update`.")
+            raise SystemExit(1)
+        scored = store.get_scores_for_run(run["run_id"])
+        known = store.get_paper(dedup_id(arxiv_id.strip())) is not None
+
+    # The repository's own citations mute a paper before tiering, so the explanation needs
+    # them or it would report a Top Pick the digest actually muted.
+    profile = None
+    with contextlib.suppress(Exception):
+        profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
+
+    ex = explain_paper(
+        arxiv_id,
+        scored,
+        cfg,
+        cited_ids=cited_ids_from(profile),
+        run_id=int(run["run_id"]),
+        known_to_store=known,
+    )
+
+    if as_json:
+        click.echo(
+            json_mod.dumps(
+                {
+                    "arxiv_id": ex.arxiv_id,
+                    "found": ex.found,
+                    "title": ex.title,
+                    "run_id": ex.run_id,
+                    "stopped_at": ex.stopped_at,
+                    "verdict": ex.verdict,
+                    "remedy": ex.remedy,
+                    "steps": [
+                        {"stage": s.name, "outcome": s.outcome, "detail": s.detail}
+                        for s in ex.steps
+                    ],
+                },
+                indent=2,
+            )
+        )
+        return
+
+    marks = {"pass": "OK  ", "stop": "STOP", "skip": "--  ", "info": "    "}
+    if ex.title:
+        info(f"\n  {ex.title}")
+        paper = ex.paper or {}
+        meta = ", ".join(paper.get("categories") or []) or "no categories"
+        published = str(paper.get("published"))[:10]
+        muted(f"  {ex.arxiv_id} · {meta} · published {published}")
+    else:
+        info(f"\n  {ex.arxiv_id}")
+    muted(f"  run #{run['run_id']} · {str(run['run_time'])[:19]} · {len(scored)} papers ranked")
+    info("")
+    for step in ex.steps:
+        info(f"  {marks.get(step.outcome, '    ')}  {step.name.upper():10s} {step.detail}")
+    info("")
+    (success if not ex.stopped_at else warn)(f"  {ex.verdict}")
+    if ex.remedy:
+        muted(f"  {ex.remedy}")
+    muted(
+        "\n  Computed with the configuration in force now; the store records scores, "
+        "not the settings a past run used."
+    )
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
 )
 @click.option(
     "--limit",
     default=10,
-    type=int,
     help="Maximum number of runs to show (default: 10).",
 )
 def history(config_path: str | None, limit: int) -> None:
