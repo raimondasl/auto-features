@@ -1533,7 +1533,7 @@ The twelve scientific cases of §14, run at the pre-registered configuration on 
 Artifact `evals/results/judge-gpt-5.5-frozenpool-bigrams_verified-20260820T060917Z.json`.
 203 GPT-5.5 verdicts, 12 Opus baseline passes, **0 judge failures, 0 hallucinations, 0
 abstentions, no HyDE degradation, no collection failure**. Estimated ~$18 from call counts,
-inside §14.10's $15–36. The legacy 25 have **not** been run yet.
+inside §14.10's $15–36. The legacy 25 are §16; read §16.3 before quoting the primary, because the power analysis §14.6 declared was optimistic by roughly 2.5x.
 
 ### 15.1 The primary endpoint, against the bar it was given
 
@@ -1650,6 +1650,135 @@ said in the same breath.
 - **A second draw.** Every number here is one draw. §5's matsci values (+1, −1, +9) are the
   standing warning about reading individual cases.
 - **Any causal claim for §10–§13.** See §15.2.
+
+---
+## 16. RESULT — the re-baseline, a power analysis I got wrong, and four silent misses (2026-08-20)
+
+The legacy 25 at the §14 configuration, into the same frozen pool as the twelve. Artifact
+`judge-gpt-5.5-frozenpool-bigrams_verified-20260820T172033Z.json`. 25 cases, **0 judge
+failures**, every baseline ok. With §15 this gives the project its first current number for its
+own benchmark since the profiler work.
+
+### 16.1 The alarm is clear
+
+§14.8 declared a separate alarm: a legacy-25 mean below **+3.5** would mean the profiler work
+cost the ML benchmark something Tier A — four hand-written fixtures against a frozen pool —
+structurally cannot see.
+
+**legacy-25 = +5.88.** Clear, with room. The nine profiler fixes of §10 and the two repairs of
+§11 did not cost the ML benchmark anything detectable. The old published figure was +5.12 over
+25 cases, so this is +0.76 higher — **inside the 1.04 floor, and it describes a different
+pipeline anyway, so it is context and not a control.**
+
+### 16.2 The pre-registered endpoints
+
+| endpoint | n | mean net@2 | sd | precision | pre-registered |
+|---|---|---|---|---|---|
+| scientific-12 | 12 | +5.33 | 3.75 | 0.857 | +4.0..+6.0 ✓ |
+| legacy-25 | 25 | **+5.88** | 5.08 | 0.914 | +4.0..+6.5 ✓ |
+| bio-6 | 6 | +5.50 | 3.78 | 0.896 | ≥ +5.0 ✓ |
+| mat-6 | 6 | +5.17 | 4.07 | 0.828 | +2.5..+4.5 ✗ high |
+| **ALL-37** | 37 | **+5.70** | 4.64 | **0.894** | the new headline |
+
+**scientific-12 − legacy-25 = −0.55** (SE 1.48). **No difference is established.** For the demo
+question that is the answer worth having: on this benchmark, scientific software is not
+measurably worse than the ML/CS repositories the project was built on. It is equally true that
+a gap of two or three net@2 in either direction would not have been detected — see §16.3.
+
+Against the Opus baseline, which is what makes any of this a claim:
+
+| | baseline | RepoRadar | delta |
+|---|---|---|---|
+| scientific-12 | +1.33 | +5.33 | **+4.00** |
+| legacy-25 | +0.64 | +5.88 | **+5.24** |
+| all-37 | +0.86 | +5.70 | **+4.84** |
+
+### 16.3 CORRECTION — §14.6's power analysis was wrong, and optimistic
+
+§14.6 built its resolution table on a per-case sd of **1.73**, taken from §8. The measured sd is
+**3.75** on the scientific cases, **5.08** on the legacy ones, **4.64** over all 37 — between two
+and three times the assumption. Every "resolves" figure I declared was therefore too small:
+
+| quantity | §14.6 said | actually |
+|---|---|---|
+| a domain mean (n=6) | ~1.4 | **~3.0** |
+| the scientific-12 mean | ~1.0 | **~2.1** |
+| scientific-12 vs legacy-25 | ~1.2 | **~2.9** |
+
+Two consequences, and I would rather state them than let a reader find them.
+
+**The primary endpoint's interval includes sub-bar values.** scientific-12 is +5.33 with a 95%
+interval of **[+3.21, +7.45]**, whose lower bound is below the +4.0 WIN bar. The rule declared in
+§14.8 was a bar on the mean, the mean cleared it, and §15's WIN stands as written — but a
+replication could land below the bar, and the result should be read as "cleared the declared
+bar on one draw", not as "established with margin".
+
+**"No difference established" in §16.2 is a weak statement, not a strong one.** With SE 1.48 the
+interval on the −0.55 gap spans roughly ±3 net@2. It rules out a *large* penalty for scientific
+software. It does not rule out a moderate one.
+
+Where 1.73 came from matters for not repeating this: it is the figure §8 quoted for the
+*within-domain* spread of a three-case draw, and I used it as the between-case sd of a
+37-case benchmark. Those are different quantities. `noise_floor.py` measures the right one —
+residual per-case sd **1.23** for a *paired same-config re-run*, which is the variance of a case
+against itself, not of cases against each other. A future pre-registration should take the
+between-case sd from a completed run, which now exists.
+
+### 16.4 Four cases returned nothing, and all four had good papers available
+
+The metric is abstention-aware, so returning nothing scores 0 and looks harmless in a mean.
+These four are not harmless:
+
+| case | returned | actionable papers in its pool | pool |
+|---|---|---|---|
+| linter | **0** | **9** | 16 |
+| webdev | 0 | 3 | 15 |
+| http | 0 | 2 | 15 |
+| cli | 0 | 1 | 15 |
+
+`pool_has_relevant` is **true for all four**. These are not correct abstentions; they are total
+misses. ruff's case had **nine actionable papers sitting in the pool and returned none of
+them** — the single largest recall failure in the run, and it is invisible in a +5.88 mean
+because a zero is exactly what a correct abstention also scores.
+
+Two further cases returned a single paper (`compiler`, `encryption`, both +1.0 at precision
+1.00), which is the same shape a step less severe.
+
+This is a **selection** failure, not a retrieval one: the pool had the papers. Nothing in §14
+predicted it and nothing here diagnoses it; `rr why` (§6 D7) is the read-only command that
+would say which stage discarded them, and it is now the obvious next thing to build.
+
+### 16.5 The score-3 problem is specific to scientific software
+
+Not pre-registered, and the most interesting thing in the run.
+
+| | score-2 non-actionable | score-3 non-actionable |
+|---|---|---|
+| scientific-12 | 5/76 (7%) | **11/36 (31%)** |
+| legacy-25 | 15/168 (9%) | **2/30 (7%)** |
+
+Fisher exact on the score-3 rows: **p = 0.027**. On ML/CS repositories the gate's score-3 band
+is as trustworthy as its score-2 band. On scientific software it is four times worse.
+
+This reframes G1 (§6). The gate is not globally over-admitting at score 3 — §5.1 and §15.4 saw
+it on scientific repositories, and this run shows it does not happen on the ML ones. It is a
+**domain-calibration** failure, which is a different problem with different fixes: the rubric and
+the fine-scale map were both fitted on ML abstracts, and §9.4's two candidate repairs were
+scored only on the scientific band. A repair aimed at the gate globally would be solving a
+problem that only exists in half the benchmark.
+
+Recorded as an observation. It needs its own pre-registration before anything is built on it.
+
+### 16.6 What the project can now say
+
+- **A current headline**: **+5.70 net@2 at 0.894 precision over 37 cases**, against **+0.86** for
+  an Opus baseline. Every published figure before today described the pre-2026-08-19 profiler;
+  this one describes what ships.
+- **The profiler work cost the ML benchmark nothing measurable** (§16.1).
+- **Scientific software is not measurably worse than ML/CS** (§16.2), with §16.3's caveat that
+  the instrument could not have seen a moderate gap.
+- Still unlicensed: the excluded compiled/manifest-less population (§14.2), a second draw, and
+  any causal claim for §10–§13.
 
 ---
 ## Appendix
