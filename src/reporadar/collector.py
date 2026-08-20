@@ -270,11 +270,31 @@ def _shared_client(page_size: int) -> arxiv.Client:
     everything after the fifteenth. Reusing the instance makes the library's own
     `delay_seconds` carry across calls.
 
-    Keyed on `id(arxiv.Client)` as well as page size so a test that patches the class gets
+    Keyed on the class **object** as well as page size, so a test that patches the class gets
     its own entry instead of a cached real client — or, worse, a later test inheriting an
     earlier test's mock.
+
+    It was keyed on `id(arxiv.Client)`, and that is the same bug it was written to prevent.
+    `id()` is an address, addresses are recycled, and a dict key holding only an integer does
+    not keep the object it was taken from alive. So a patched class could be freed, a later
+    patch could allocate its mock at the same address, and `_shared_client` would hand that
+    later test the earlier test's client — whose mocked `results` iterator is already
+    drained, giving a silent empty result.
+
+    It reproduced only on CI, only on Python 3.13, and only in a full-suite run, because it
+    needs the allocator to recycle an address while the entry is live: 3.13 reuses freed mock
+    addresses far more readily (3,000 patch cycles gave 2,905 distinct addresses against
+    2,958 on 3.12). Two local probes said the cached client "pinned" its class and the
+    collision was impossible; both ran in a clean process and both were wrong. What settled
+    it was `tests/test_cache_isolation.py` reporting `this client cached=False` with the
+    response cache provably untouched — the client returned was not the one this call made.
+
+    Holding the class object itself makes the failure unrepresentable: a dict key is a strong
+    reference, so the class cannot be freed while its entry lives, so its address cannot be
+    reused by anything. `MagicMock` hashes and compares by identity, so a patched class is as
+    good a key as the real one.
     """
-    key = (id(arxiv.Client), page_size)
+    key = (arxiv.Client, page_size)
     client = _CLIENTS.get(key)
     if client is None:
         if len(_CLIENTS) > 64:  # only reachable under repeated patching; bound the dict
