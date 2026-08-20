@@ -694,6 +694,9 @@ rather than left to be decided afterwards. Nothing has been spent.
    already labels every shown paper; `calibrate_finescale.py --analyse` on those verdicts
    answers "is 2/3 still where it should be" at $0 extra — required before G1(i) can be
    trusted on score-3 papers, whose gpt-4o-mini expectations were never in the fit.
+   **DONE 2026-08-20, §18.2 — and the named command is the wrong one.** `--analyse` reads a
+   per-case cache that covers only the 22 legacy cases; the artifact already carries
+   `finescale_p`, so `evals/finescale_domains.py` does it for $0. §18.1.
 4. **Demo day:** lead with **dscribe** (cleanest matsci digest on this draw, +9, 8 of 12 Top
    Picks from HyDE) or OpenMM (+9, bridges the bio and comp-chem halves of the room); show
    minimap2 and scvi-tools from pre-populated stores; show chgnet/mace only after D4+G1 (as
@@ -1630,6 +1633,12 @@ that selection means **+6.58** against the shipped Top Picks' +5.33 — but it r
 papers from a 20-candidate rerank pool and is **not the shipped configuration**. The difference
 is +1.25, barely over the 1.04 floor, and it was not pre-registered.
 
+**§18.3 corrects the sentence above.** The pool is *not* wider: `sweep_top_picks` filters the
+same ranked window on the same triage scores, so `min>=2` is the shipped Top Picks before the
+fine-scale stage runs — verified identical to the recorded arm on 37 of 37 cases. The arm
+isolates exactly one stage. The disposition here is unchanged and now rests on better reasons
+(§18.2): post-hoc selection, one draw, and a judge-swap check the "+1.25" reading fails.
+
 It is recorded here as a candidate for a future pre-registration and **must not be quoted as a
 result of this run**. Reading a sweep arm as a headline after the fact is exactly the shape §14
 exists to prevent.
@@ -1854,13 +1863,17 @@ the gate marks papers 3 that two independent judges both decline to call actiona
 statement about the gate. What linter licenses is weaker: **the gate and one judge disagree, in
 the region where judges disagree with each other.**
 
-### 17.4 One thing that does not depend on the judge at all
+### 17.4 One thing that does not depend on the judge at all — **RETRACTED, see §18.4**
 
 Fourteen of linter's fifteen ranked papers share the single gate score 1. A scorer that places
 93% of a mixed pool in one bucket is degenerate on its own terms, whatever any judge thinks —
 and the gate is not always like this: it spread http's pool across 0 and 1 (13/2) and CHGNet's
 across 2 and 3. The concentration is evidence about the gate that needs no external label, and
 it is the part of the linter observation that stands.
+
+**It does not stand.** Swept across all 37 cases, the gate puts a median 73% of a ranked window
+into one bucket, eight cases are at or above linter's 93%, and two are at 100% — both of them
+good results. The two contrast cases above were picked, not sampled. §18.4.
 
 ### 17.5 What was built
 
@@ -1875,6 +1888,11 @@ degenerate gate distribution, which is the judge-independent signal of §17.4. W
 show — `score_total`, `rrf_score`, `finescale_p` — it names rather than omits, because those are
 not in the artifact and are the fields `rr why` exists to show.
 
+**Two corrections.** `finescale_p` **is** in the artifact, for every score-2 band paper — the
+sentence above was written from memory of the schema rather than from a file, and §18.1 is what
+it cost. And the "degenerate gate distribution" flag rests on §17.4, which §18.4 retracts;
+concentration is the gate's normal behaviour, so the flag marks something ordinary.
+
 ### 17.6 The general lesson, which is not new here
 
 `net@2` is **defined** on judge labels, so for benchmark purposes the judge is the scoring
@@ -1882,6 +1900,156 @@ function by construction — "the digest lost points" is true whatever the judge
 is not the same as "the papers were actionable", and the slide from one to the other is easy
 and was mine. RESULTS.md already says the levels are judge-specific and only the separations
 survive; §17.2 is that sentence meeting a concrete claim and refuting it.
+
+---
+## 18. The two free checks — one instrument correction, one result, and §17.4 retracted (2026-08-20)
+
+§8's plan item 3 and §17.4 were run together because both were free. Item 3 produced a result
+and a correction to its own instrument; §17.4 produced a retraction of §17.4.
+
+### 18.1 CORRECTION — the data was on disk the whole time
+
+§8 item 3 named `calibrate_finescale.py --analyse` and estimated "$0 extra". **The cost was
+right and the instrument was wrong.** `--analyse` re-reads that script's own per-case cache
+under `.work/calibration/`, which holds the 22 legacy cases from the 2026-08-09 run and none of
+the twelve scientific ones. Pointed at the cohort-3 artifact it prints `0/15 cached` twelve
+times and analyses nothing. Filling that cache means cloning twelve repositories and paying for
+a fresh gate and fine-scale pass — which is what "free" was hiding.
+
+It is unnecessary. `run_judge_eval._apply_finescale` mutates the ranked window in place, so the
+results artifact **already carries `finescale` and `finescale_p`**: 324 of 555 papers across the
+37 cases, every one of them a score-2 band paper, none outside the band, no gaps.
+
+§17.5 asserted the opposite — that `finescale_p` is "not in the artifact" — and `evals/why_case.py`
+shipped that claim in its docstring and in a line it printed to the user. Both are corrected.
+The error was asserting a schema from memory instead of opening the file, and its cost was that
+the calibration check looked like it needed a paid pass for a day.
+
+`evals/finescale_domains.py` is the $0 path: it reads the artifact rows and hands them to
+`calibrate_finescale.analyse`, the same analysis the paid path runs.
+
+A second defect surfaced while re-running `why_case.py` for this section: it crashed on a
+default Windows console with `UnicodeEncodeError`, on a `≥` in its own output and then on a `λ`
+in a paper title. It failed *after* printing the disagreement table, so the output looked
+truncated rather than crashed. Titles carry whatever arXiv's metadata carries, so the fix is to
+stop the console encoding from being able to fail rather than to sanitise the data.
+
+### 18.2 RESULT — the map is worse on scientific software, and the reading that matters does not survive a judge swap
+
+Reproduction first: the rebuilt policy reproduces **310 of 310** recorded Top Picks across both
+populations, so the analysis is measuring the product.
+
+**Judge-free**, a fact about the map:
+
+| | band | withheld | mean P | median P |
+|---|---|---|---|---|
+| scientific-12 | 109 | **33 (30%)** | 0.692 | 0.760 |
+| legacy-25 | 215 | **47 (22%)** | 0.740 | 0.847 |
+
+**Judge-dependent**, against GPT-5.5:
+
+| | ECE | AUC | net@2/case shipped | stage removed | the stage is worth |
+|---|---|---|---|---|---|
+| scientific-12 | **0.207** | 0.678 | +5.333 | +6.583 | **−1.250** |
+| legacy-25 | 0.120 | 0.755 | +5.880 | +5.960 | −0.080 |
+
+A leave-one-repo-out refit — the counterfactual `calibrate_finescale.py` sanctions, since it
+never sees the repo it scores — gains **+1.250/case on scientific software** (95% CI
+[+0.333, +2.083], sign test 8+/1−/3=, p = 0.039) and **+0.400/case on the legacy 25** (CI
+[−0.080, +0.920], p = 0.227). On scientific software the refit's gain is *exactly* the gain from
+deleting the stage: the map contributes nothing there that showing every band paper would not.
+
+**And then the check that §17.2 taught.** The withheld papers are 82% actionable on scientific
+software and 68% on the legacy 25, against a break-even of 2/3 — which reads as "the stage
+withholds true positives". It is not usable. Of the withheld papers judged actionable, **25 of
+27 (scientific) and 30 of 32 (legacy) are judge-2s** — the single cell where GPT and Sonnet
+agree 8 times in 48. Projected through §17.2's transition table the withheld sets are **19% and
+16%** actionable, both far below break-even, and the gap between the populations disappears.
+
+**So exactly one form of the claim is licensed**, and it is the weaker one:
+
+- **True by construction:** the fine-scale stage costs the twelve scientific cases 1.25 net@2
+  each on this benchmark, and the legacy 25 nothing. `net@2` is *defined* on judge labels, so
+  this holds whatever the judge's validity — it is a statement about the benchmark.
+- **Not licensed:** that the stage withholds papers a maintainer would want. That claim needs
+  the withheld papers to be actionable, and one judge's labels in their weakest cell cannot
+  establish it.
+
+The arm that would settle it is concrete and small: **second-judge the 80 withheld band papers**
+with the instrument §17.2 already used on 200 labels. Until then §15.5's disposition stands.
+
+### 18.3 CORRECTION — what §15.5's sweep arm actually is
+
+§15.5 recorded `--rr-sweep min>=2` at +6.58 and set it aside as returning "more papers from a
+20-candidate rerank pool", i.e. as a different configuration. **That description is wrong.**
+`sweep_top_picks` filters the *same* ranked window on the *same* triage scores
+(`run_judge_eval.py:375`), so `min>=2` is the shipped Top Picks **before `_apply_finescale`
+runs**. Checked, not argued: rebuilding it reproduces the recorded sweep value on **37 of 37**
+cases.
+
+The arm is therefore far cleaner than §15.5 credited — it isolates exactly one shipped stage,
+with the pool, window and gate held fixed. §15.5's *conclusion* is unaffected, because the real
+reasons to withhold it were post-hoc selection and a single draw, and §18.2 adds a third that is
+stronger than either.
+
+### 18.4 RETRACTION — §17.4 does not survive its own control
+
+§17.4 said fourteen of linter's fifteen ranked papers sharing one gate score was "degenerate on
+its own terms, whatever any judge thinks", and offered it as the part of the linter observation
+that stands after §17.2 took the rest. It cited two contrast cases and never asked what the
+other thirty-four look like. `evals/gate_shape.py` asks:
+
+- The gate puts a **median 73%** of a ranked window into one bucket.
+- **Eight of thirty-seven** cases are at or above linter's 93%.
+- **Two are at 100%** — `rl` (15/15 at score 2) and `thin-kv` (15/15 at score 2) — and both are
+  among the run's better results (+13 and +10 net@2).
+
+Concentration this high is the gate's ordinary behaviour, so "93% in one bucket" licenses
+nothing. What is unusual about linter is not how sharp its distribution is but **where the mode
+sits**: 14 of 15 at score 1, below the admit threshold, where `rl`'s sit at 2, above it. That is
+a restatement of "linter returned nothing", not evidence for it.
+
+**The lesson is the one this section exists for.** §17.2 removed the judge from a claim; §17.4
+assumed that made it safe. A judge-free claim still needs a control, and the control for "this
+distribution is degenerate" was the other thirty-six distributions — one `Counter` away, never
+run. Removing a dependency changes which control a claim needs; it does not remove the need for
+one. That is now the third claim about linter to fail a check, and the first two failed for
+different reasons than this one.
+
+### 18.5 What survives, and it needs no judge at all
+
+The gate's *emission rates* are a fact about the gate:
+
+| gate score | scientific-12 | legacy-25 | Fisher p |
+|---|---|---|---|
+| 0 | **0/180 (0.0%)** | 31/375 (8.3%) | 4.6e-06 |
+| 1 | 35/180 (19.4%) | 99/375 (26.4%) | 0.090 |
+| 2 | 109/180 (60.6%) | 215/375 (57.3%) | 0.520 |
+| 3 | **36/180 (20.0%)** | 30/375 (8.0%) | **7.7e-05** |
+
+The gate reaches for its top score **two and a half times more often** on scientific software and
+**never once** reaches for its bottom score there. No labels are involved.
+
+§16.5 measured the same asymmetry *through* the judge — score-3 papers non-actionable 31% vs 7%,
+p = 0.027 — and §17.3 showed that finding survives a judge swap because its papers are judge-1s.
+§18.5 now reaches it without a judge at all. **Two measurements of the same asymmetry that share
+no dependency** is the strongest form evidence takes in this project, and it is the domain-
+calibration thread's first judge-free support.
+
+### 18.6 What this changes about the next step
+
+§16.5 said the score-3 problem "needs its own pre-registration before anything is built on it".
+That is still true, and §18 sharpens what it should ask:
+
+1. The asymmetry is now visible in the gate's own output, so a pre-registration can state a
+   judge-free primary endpoint alongside the judged one.
+2. Two stages are implicated, not one — the gate at score 3 and the fine-scale map in the score-2
+   band — and both are worse on the same population.
+3. **The judge is the binding constraint on all of it.** Three claims in §17–§18 died on the same
+   cell of the same transition table. Second-judging the 80 withheld band papers costs less than
+   any repair and would convert the largest open question from unanswerable to measured.
+
+Nothing here licenses shipping a change. What it licenses is knowing which measurement to buy.
 
 ---
 ## Appendix
