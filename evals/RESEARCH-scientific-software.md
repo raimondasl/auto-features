@@ -1527,6 +1527,131 @@ number from this run is a single draw, and the §5 matsci values (+1, −1, +9) 
 sd of 5.3, which is the strongest argument for reading the twelve-case mean and not the cases.
 
 ---
+## 15. RESULT — cohort 3 clears its bars, and the misses are where the profile is bad (2026-08-20)
+
+The twelve scientific cases of §14, run at the pre-registered configuration on 2026-08-20.
+Artifact `evals/results/judge-gpt-5.5-frozenpool-bigrams_verified-20260820T060917Z.json`.
+203 GPT-5.5 verdicts, 12 Opus baseline passes, **0 judge failures, 0 hallucinations, 0
+abstentions, no HyDE degradation, no collection failure**. Estimated ~$18 from call counts,
+inside §14.10's $15–36. The legacy 25 have **not** been run yet.
+
+### 15.1 The primary endpoint, against the bar it was given
+
+| | measured | pre-registered |
+|---|---|---|
+| **scientific-12 mean net@2** | **+5.33** | +4.0 to +6.0 |
+| **pooled precision** | **0.857** | ≥ 0.80 |
+| **verdict** | **WIN** | ≥ +4.0 and ≥ 0.80 |
+
+The Opus baseline over the same twelve cases means **+1.33**. RepoRadar is **+4.00 net@2 above
+the strong baseline** on scientific software, which is the comparison that makes this a claim
+rather than a description.
+
+| case | net@2 | returned | actionable | precision | baseline | stratum |
+|---|---|---|---|---|---|---|
+| bio-scvi | +11.0 | 11 | 11 | 1.00 | +0.0 | polluted |
+| mat-descriptors | +9.0 | 12 | 11 | 0.92 | +1.0 | clean |
+| mat-phonon | +9.0 | 12 | 11 | 0.92 | +2.0 | clean |
+| mat-chgpot | +8.0 | 11 | 10 | 0.91 | +5.0 | clean |
+| bio-mdsim | +7.0 | 7 | 7 | 1.00 | +3.0 | polluted |
+| bio-mdtraj | +7.0 | 7 | 7 | 1.00 | +1.0 | clean |
+| bio-singlecell | +5.0 | 8 | 7 | 0.88 | +0.0 | clean |
+| mat-toolkit | +4.0 | 4 | 4 | 1.00 | +0.0 | polluted |
+| bio-kmer | +3.0 | 3 | 3 | 1.00 | +3.0 | clean |
+| mat-mlip | +1.0 | 13 | 9 | 0.69 | +2.0 | polluted |
+| bio-align | **+0.0** | 12 | 8 | 0.67 | −2.0 | **defective** |
+| mat-featurize | **+0.0** | 12 | 8 | 0.67 | +1.0 | **defective** |
+
+### 15.2 Every prediction, scored
+
+Six of seven held. The one that missed, missed upward.
+
+| prediction | predicted | measured | |
+|---|---|---|---|
+| scientific-12 mean | +4.0 to +6.0 | +5.33 | ✓ |
+| pooled precision | ≥ 0.80 | 0.857 | ✓ |
+| bio-6 | ≥ +5.0 | +5.50 | ✓ |
+| **mat-6** | **+2.5 to +4.5** | **+5.17** | **✗ high** |
+| clean stratum | ≥ +5.0 | +6.83 | ✓ |
+| defective stratum | ≤ +2.0 | +0.00 | ✓ |
+| failure mode is the score-3 band | — | confirmed, §15.4 | ✓ |
+
+**Why mat-6 beat its band, stated carefully.** The prediction was anchored on §5's +3.00, which
+was three cases on one draw with a per-domain sd of **5.3** — an anchor that could not have
+supported a ±1 band, let alone been missed by one. The two matsci cases that failed there both
+improved: CHGNet +1 → +8, MACE −1 → +1. It is tempting to credit the profiler and digest work
+of §10–§13, and that may be right, **but this is a different draw of a different pipeline and
+nothing here separates the two**. A causal claim would need the old pipeline re-run on the same
+frozen pool, which was not done. The honest reading is that the miss says as much about the
+anchor as about the improvement.
+
+### 15.3 The strata ordered exactly as declared
+
+| stratum | n | mean net@2 | pooled precision |
+|---|---|---|---|
+| clean | 6 | **+6.83** | 0.925 |
+| polluted | 4 | +5.75 | 0.886 |
+| defective | 2 | **+0.00** | 0.667 |
+
+The ordering is monotone and the gap between clean and defective is 6.83 net@2. The defective
+stratum is n=2 and §14.6 said in advance that it resolves nothing; it is reported as
+description. What it describes is stark: both cases returned 12 papers, both had 8 judged
+actionable, both scored exactly 0.0, and both are the two repositories whose profiles do not
+describe the project — minimap2, whose 300 characters of prose are a phishing warning, and
+matminer, whose top keywords are the Sphinx module index and the test tree.
+
+### 15.4 Two separable causes of the sixteen misses
+
+112 papers were returned across the twelve cases and 16 were judged non-actionable. They are
+not spread evenly, and the two concentrations are independent of each other.
+
+**By gate score — §14.7's predicted failure mode, confirmed at n=12:**
+
+| gate score | actionable | non-actionable | share non-actionable |
+|---|---|---|---|
+| 2 | 71 | 5 | **7%** |
+| 3 | 25 | 11 | **31%** |
+
+Score-3 papers are non-actionable **four and a half times as often** as score-2 papers, and 11
+of the 16 misses are score-3. §5.1 found 11 of 12 on six cases; this is the same signature with
+twice the cases behind it. §9.4 killed both candidate fixes against their own bars, so this
+remains a known, measured, unrepaired weakness rather than a new discovery.
+
+**By profile quality:** the two defective-profile cases supplied **8 of the 16 misses from 24 of
+the 112 returned papers** — a 33% miss rate against roughly 5% everywhere else.
+
+So the misses have a *where* and a *which*: they concentrate in repositories the profiler
+cannot describe, and within any repository they sit in the gate's score-3 band.
+
+### 15.5 An observation that is NOT a result
+
+`--rr-sweep` re-gates a wider candidate pool at each `min_actionable` threshold. At `min>=2`
+that selection means **+6.58** against the shipped Top Picks' +5.33 — but it returns more
+papers from a 20-candidate rerank pool and is **not the shipped configuration**. The difference
+is +1.25, barely over the 1.04 floor, and it was not pre-registered.
+
+It is recorded here as a candidate for a future pre-registration and **must not be quoted as a
+result of this run**. Reading a sweep arm as a headline after the fact is exactly the shape §14
+exists to prevent.
+
+### 15.6 What this does and does not license
+
+**Licensed.** "RepoRadar returns papers that a neutral judge calls genuinely actionable for
+non-ML scientific software, at +5.33 net@2 and 0.857 precision over twelve repositories,
+against +1.33 for an Opus baseline on the same repositories" — provided §14.2's exclusion is
+said in the same breath.
+
+**Not licensed, and each was declared in advance:**
+- **The comparison with ML/CS.** The legacy 25 have not been re-measured. There is still no
+  number in this project describing the current pipeline on the ML benchmark.
+- **The population.** htslib, kallisto, tblite, kim-api and LAMMPS were excluded, and they are
+  where this is known to be weakest. This cohort is optimistic about scientific software in
+  general.
+- **A second draw.** Every number here is one draw. §5's matsci values (+1, −1, +9) are the
+  standing warning about reading individual cases.
+- **Any causal claim for §10–§13.** See §15.2.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
