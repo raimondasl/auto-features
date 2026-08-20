@@ -525,3 +525,288 @@ cases:
     distractor_n: 24
     # Pairs with `graph` (pytorch_geometric, README 60,559 ch) at +10.0 — the widest
     # documentation gap in the benchmark, 49x.
+
+  # ---------------------------------------------------------------------------
+  # COHORT 3 — scientific software (added 2026-08-19, pre-registered in
+  # RESEARCH-scientific-software.md §14). Six bioinformatics, six materials
+  # science, all twelve drawn from the nineteen repositories scouted in §4 of
+  # that document, so the population was fixed before any of them was judged.
+  #
+  # Every one is N (non-ML domain). None is T: the thinnest README here is
+  # OpenMM's at 2,232 characters, against the 1,232-1,689 of the thin-* cases —
+  # scientific software is documented, it is just documented in `doc/` and in
+  # reStructuredText, which is what §10-§11 were about. Nine of twelve are C
+  # (they cite arXiv papers AND are cited by them), so the citation hop has
+  # something to work with here, unlike crypto and systems.
+  #
+  # PROFILE STRATUM, assigned from the profiles measured on 2026-08-19 and
+  # written down BEFORE any paper was judged, because "which cases did well"
+  # is not a question that may be answered after seeing the answer:
+  #   clean     — subject words dominate the keywords and the prose is a real
+  #               description of the project
+  #   polluted  — subject words present, with a named defect alongside them
+  #   defective — the profile does not describe the project
+  # The per-stratum predictions are in §14. Cases were NOT selected for having
+  # a good profile; `mat-featurize` and `bio-align` are in precisely because
+  # they are the two worst, and dropping them would flatter the mean.
+  # ---------------------------------------------------------------------------
+
+  - name: bio-align
+    description: Long-read sequence aligner (minimizer seeding, splice-aware mapping)
+    criteria: [N, C]  # README 21,615 ch, 1 arXiv id in docs; profile: DEFECTIVE
+    # Prose is a phishing warning ("ALERT: minimap2.com is a phishing site"), which is
+    # the 300 characters the gate and HyDE are told the project IS; keywords are CLI
+    # flags (`fa`, `fq`, `aln`, `ax`) and `python` ranks #2 off the setup.py blurb.
+    # Literature: 3 of 7 hand-made targets on arXiv, 4 of 7 bioRxiv-only (§4).
+    repo_dir: repos/bio-align
+    live_repo: https://github.com/lh3/minimap2
+    expected_categories: [q-bio.GN, q-bio.QM, cs.DS]
+    gold_queries:
+      - long read sequence alignment algorithm
+      - minimizer seeding sketching sequence search
+      - splice aware read mapping transcriptome
+      - nanopore read mapping error tolerant
+      - pairwise whole genome alignment
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - speech recognition acoustic model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: bio-singlecell
+    description: Single-cell gene expression analysis toolkit (clustering, embedding)
+    criteria: [N, C]  # README 4,681 ch, 3 arXiv ids in docs; profile: CLEAN
+    # The case §10 was written for: 69 release-note files put `smaller`, `pr`, `func`
+    # and two maintainer surnames in its top keywords until they were excluded.
+    repo_dir: repos/bio-singlecell
+    live_repo: https://github.com/scverse/scanpy
+    expected_categories: [q-bio.QM, q-bio.GN, cs.LG]
+    gold_queries:
+      - single cell RNA sequencing clustering
+      - dimensionality reduction single cell embedding
+      - batch effect correction single cell integration
+      - trajectory inference pseudotime ordering
+      - nearest neighbour graph construction single cell
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - speech recognition acoustic model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: bio-scvi
+    description: Probabilistic models for single-cell omics (variational inference)
+    criteria: [N, C]  # README 6,306 ch, 9 arXiv ids in docs; profile: POLLUTED
+    # Prose was 100% badge markup until §10; it now reads "is a package for
+    # probabilistic modeling and analysis of single-cell omics data". The residual
+    # defect is `customcard`, a sphinx-design directive, still keyword #5.
+    repo_dir: repos/bio-scvi
+    live_repo: https://github.com/scverse/scvi-tools
+    expected_categories: [q-bio.QM, cs.LG, stat.ML]
+    gold_queries:
+      - variational autoencoder single cell transcriptomics
+      - probabilistic generative model gene expression
+      - latent representation learning single cell omics
+      - transfer learning cell type annotation
+      - deep generative model batch correction
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - compiler register allocation
+    gold_n: 12
+    distractor_n: 24
+
+  - name: bio-mdsim
+    description: GPU molecular dynamics engine for biomolecular simulation
+    criteria: [N, B]  # README 2,232 ch, 0 arXiv ids in docs; profile: POLLUTED
+    # C++ project: zero anchors and no inferred domain, so the manifest channel is a
+    # structural zero here and retrieval rests on prose and keywords alone. Its
+    # ML-potential-era literature is 7/7 on arXiv (§4), which makes it the cleanest
+    # test of whether an anchor-less profile can still reach the right papers.
+    repo_dir: repos/bio-mdsim
+    live_repo: https://github.com/openmm/openmm
+    expected_categories: [physics.comp-ph, q-bio.BM, cond-mat.soft]
+    gold_queries:
+      - GPU accelerated molecular dynamics simulation
+      - force field parameterisation biomolecular
+      - free energy perturbation alchemical calculation
+      - enhanced sampling molecular simulation
+      - machine learning potential biomolecular simulation
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - machine translation neural sequence model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: bio-mdtraj
+    description: Molecular dynamics trajectory analysis library
+    criteria: [N, B]  # README 9,740 ch, 0 arXiv ids in docs; profile: CLEAN
+    # `image` tied for keyword #1 until §10 matched rst substitution definitions;
+    # 0 anchors until the nested `package/` layout was read. Now 42 anchors.
+    repo_dir: repos/bio-mdtraj
+    live_repo: https://github.com/MDAnalysis/mdanalysis
+    expected_categories: [physics.comp-ph, q-bio.BM, physics.chem-ph]
+    gold_queries:
+      - molecular dynamics trajectory analysis toolkit
+      - protein conformational ensemble analysis
+      - hydrogen bond network analysis simulation
+      - principal component analysis molecular trajectory
+      - coarse grained simulation analysis method
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - machine translation neural sequence model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: bio-kmer
+    description: k-mer sketching for genomic and metagenomic search
+    criteria: [N, B]  # README 6,262 ch, 0 arXiv ids in docs; profile: CLEAN
+    # 16 of its top 20 keywords were Sphinx and pytest extras until `doc/` was read.
+    repo_dir: repos/bio-kmer
+    live_repo: https://github.com/sourmash-bio/sourmash
+    expected_categories: [q-bio.GN, q-bio.QM, cs.DS]
+    gold_queries:
+      - k-mer sketching minhash genomic search
+      - metagenome taxonomic classification method
+      - genome containment estimation sketch
+      - scalable sequence search index
+      - average nucleotide identity estimation
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - speech recognition acoustic model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: mat-mlip
+    description: Equivariant message-passing interatomic potential
+    criteria: [N, C]  # README 26,764 ch, 3 arXiv ids in docs; profile: POLLUTED
+    # 0 anchors until `setup.cfg` was parsed (§10); now 19. The residual defect is
+    # A6, deferred in §10.3 with a measurement: the prose is the table of contents.
+    repo_dir: repos/mat-mlip
+    live_repo: https://github.com/ACEsuit/mace
+    expected_categories: [cond-mat.mtrl-sci, physics.comp-ph, cs.LG]
+    gold_queries:
+      - equivariant graph neural network interatomic potential
+      - message passing machine learning force field
+      - foundation model atomistic simulation
+      - higher order equivariant features atomistic
+      - machine learning molecular dynamics accuracy
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - retrieval augmented generation language model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: mat-chgpot
+    description: Charge-informed universal neural network potential
+    criteria: [N, C]  # README 16,117 ch, 1 arXiv id in docs; profile: CLEAN
+    # The cleanest profile of the nineteen — the keywords ARE the subject. The one
+    # blemish is `wandb crystal-toolkit`, an anchor-only bigram: that is B4, deferred
+    # in §10.3 because removing anchor bigrams regressed the committed gate.
+    repo_dir: repos/mat-chgpot
+    live_repo: https://github.com/CederGroupHub/chgnet
+    expected_categories: [cond-mat.mtrl-sci, physics.comp-ph, cs.LG]
+    gold_queries:
+      - universal machine learning interatomic potential
+      - charge informed atomistic modelling
+      - graph neural network crystal property prediction
+      - magnetic moment prediction neural network
+      - energy above hull stability prediction
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - retrieval augmented generation language model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: mat-descriptors
+    description: Atomistic structure descriptors for machine learning
+    criteria: [N, C]  # README 3,572 ch, 4 arXiv ids in docs; profile: CLEAN
+    # The demo repo: +9 net@2 at precision 0.92 on the §5.1 draw, 8 of 12 Top Picks
+    # from HyDE. Known and unfixed: `docs/_sources/` is a committed Sphinx build, so
+    # 216 of its 246 doc files are generated duplicates (§10.4).
+    repo_dir: repos/mat-descriptors
+    live_repo: https://github.com/SINGROUP/dscribe
+    expected_categories: [cond-mat.mtrl-sci, physics.comp-ph, cs.LG]
+    gold_queries:
+      - atomistic structure descriptors machine learning
+      - smooth overlap of atomic positions descriptor
+      - many body tensor representation materials
+      - kernel methods materials property prediction
+      - symmetry functions local atomic environment
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - retrieval augmented generation language model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: mat-toolkit
+    description: General-purpose materials analysis library
+    criteria: [N, C]  # README 10,035 ch, 1 arXiv id in docs; profile: POLLUTED
+    # Flagship name and 24 good anchors that map to exactly one domain, with
+    # `directory`, `following`, `support` and `default` among the top keywords.
+    repo_dir: repos/mat-toolkit
+    live_repo: https://github.com/materialsproject/pymatgen
+    expected_categories: [cond-mat.mtrl-sci, physics.comp-ph]
+    gold_queries:
+      - crystal structure analysis high throughput
+      - phase diagram construction from first principles
+      - electronic structure workflow automation
+      - symmetry analysis crystal structure
+      - materials database property screening
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - retrieval augmented generation language model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: mat-featurize
+    description: Feature extraction for materials informatics
+    criteria: [N, C]  # README 2,381 ch, 1 arXiv id in docs; profile: DEFECTIVE
+    # The worst profile in the cohort and deliberately kept. Its top keywords are
+    # `module`, `featurizers`, `tests`, `utils`, `test module`, `tests test` — the
+    # Sphinx module index and the test tree, because all 30 of its doc files are
+    # generated `docs/_sources/` duplicates (§10.4, known and unfixed).
+    repo_dir: repos/mat-featurize
+    live_repo: https://github.com/hackingmaterials/matminer
+    expected_categories: [cond-mat.mtrl-sci, cs.LG, physics.comp-ph]
+    gold_queries:
+      - materials featurization machine learning
+      - composition based feature vectors property prediction
+      - materials informatics data mining
+      - descriptor selection materials property model
+      - automated feature engineering materials
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - retrieval augmented generation language model
+    gold_n: 12
+    distractor_n: 24
+
+  - name: mat-phonon
+    description: Phonon and lattice-dynamics calculations
+    criteria: [N, C]  # README 2,625 ch, 2 arXiv ids in docs; profile: CLEAN
+    # Thirteen of its top twenty keywords were its own dependency names until `doc/`
+    # was read (§10); now `supercell`, `displacements`, `cell`, `force`, `phonon`.
+    repo_dir: repos/mat-phonon
+    live_repo: https://github.com/phonopy/phonopy
+    expected_categories: [cond-mat.mtrl-sci, physics.comp-ph]
+    gold_queries:
+      - phonon dispersion first principles calculation
+      - lattice dynamics supercell finite displacement
+      - thermal properties harmonic approximation
+      - anharmonic phonon calculation thermal conductivity
+      - force constants density functional perturbation
+    distractor_queries:
+      - vectorized query execution database
+      - web application routing framework
+      - retrieval augmented generation language model
+    gold_n: 12
+    distractor_n: 24
