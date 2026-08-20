@@ -29,6 +29,14 @@ from reporadar.config import ArxivConfig
 
 QUERY = "all:shared-cache-probe"
 CFG = ArxivConfig(max_results_per_query=50, lookback_days=30)
+# Mirrors the fields `collector.collect_papers` hashes; used only to report whether an
+# entry exists when an assertion fails.
+CACHE_FIELDS = {
+    "kind": "search",
+    "query": QUERY,
+    "max_results": CFG.max_results_per_query,
+    "sort_by": CFG.sort_by,
+}
 
 
 def _result(entry_id: str = "http://arxiv.org/abs/2401.00001v1") -> arxiv.Result:
@@ -51,6 +59,30 @@ def _collect_with(results: list[arxiv.Result]) -> tuple[list[dict], MagicMock]:
     return papers, MockClient.return_value
 
 
+def _diagnose(client: MagicMock) -> str:
+    """Why did `collect_papers` not consult the mock?
+
+    There are exactly two ways: the response cache answered first, or `_shared_client`
+    handed back a client cached under a recycled `id(arxiv.Client)` from an earlier patch.
+    A bare `assert client.results.called` distinguishes neither, and on 2026-08-20 that cost
+    two CI rounds and three wrong hypotheses on a failure that reproduced only on the
+    runner. The assertion now carries the state that separates them.
+    """
+    from reporadar import arxiv_cache, collector
+
+    cached = arxiv_cache.get(dict(CACHE_FIELDS))
+    return (
+        f"\n    arxiv_cache.enabled()={arxiv_cache.enabled()}"
+        f" _directory={arxiv_cache._directory!r} _ttl_s={arxiv_cache._ttl_s}"
+        f"\n    entry for this query present={cached is not None} value={cached!r}"
+        f"\n    arxiv_cache.stats()={arxiv_cache.stats()}"
+        f"\n    _CLIENTS entries={len(collector._CLIENTS)}"
+        f" this client cached={any(v is client for v in collector._CLIENTS.values())}"
+        f"\n    client.results.called={client.results.called}"
+        f" call_count={client.results.call_count}"
+    )
+
+
 class TestTheSuiteHasNoRealCache:
     def test_the_cache_is_off_inside_a_test(self) -> None:
         """Importing the eval harness anywhere in the session must not reach a test."""
@@ -67,8 +99,10 @@ class TestTheSuiteHasNoRealCache:
         """
         _collect_with([_result()])  # populate whatever there is to populate
         papers, client = _collect_with([_result()])
-        assert client.results.called, "collect_papers answered without asking the client"
-        assert len(papers) == 1
+        assert client.results.called, (
+            "collect_papers answered without asking the client" + _diagnose(client)
+        )
+        assert len(papers) == 1, _diagnose(client)
 
     def test_an_empty_result_does_not_poison_the_next_test(self) -> None:
         """`put(..., empty_is_real=True)` is right for the product and lethal between tests.
@@ -80,8 +114,8 @@ class TestTheSuiteHasNoRealCache:
         assert empty == []
 
         papers, client = _collect_with([_result()])
-        assert client.results.called
-        assert len(papers) == 1, "an earlier test's empty result was served to this one"
+        assert client.results.called, "the second mock was never consulted" + _diagnose(client)
+        assert len(papers) == 1, "an earlier result was served to this one" + _diagnose(client)
 
     def test_nothing_was_written_to_disk(self, tmp_path) -> None:
         """The other half: a test must not leave entries behind for the next run either."""
