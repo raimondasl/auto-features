@@ -447,6 +447,7 @@ claude mcp add reporadar -- rr mcp --config /abs/path/.reporadar.yml
 | `rr status` | Corpus size, last run, ratings/stars recorded |
 | `rr history` | Past collection runs with counts |
 | `rr queries` | The auto-generated queries `rr update` would run, without running them |
+| `rr why ARXIV_ID` | Where one paper stopped in the pipeline and why — collection, ranking, the gate, the fine-scale rescore, the digest window, muting. Read-only, offline, free |
 | `rr watch --interval 6h` | Continuous update+digest cycles with a desktop notification |
 | `rr schedule` | Install/remove an OS-level scheduled run (crontab or schtasks) |
 | `rr gh-issues` | Open a GitHub issue per top paper (needs the `gh` CLI) |
