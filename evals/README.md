@@ -16,6 +16,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §4.4 judge validity | `second_judge.py` (κ), `mine_adoptions.py` (adoption ground truth) |
 | is the fine-scale stage right to withhold? (RESEARCH-scientific-software.md §19) | `second_judge_band.py` (~$3; Sonnet over all 324 score-2 band papers — the run that reversed §18.2's sign) |
 | is a newly added source any good? (RESEARCH-scientific-software.md §21.2) | `second_judge_arm.py` (Sonnet over the papers an arm SHOWED, split by origin — within-arm, so no cross-session pairing) |
+| why does a new source take half the digest? (RESEARCH-scientific-software.md §22.2) | `displacement_probe.py` ($0, judge-free; re-ranks a frozen pool under each absent-category mode) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -583,6 +584,17 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  displacement_probe.py
+                     $0, offline, judge-free: re-ranks a frozen pool under each
+                     ranking.absent_category mode and reports how much of the top-15 window
+                     each source holds. Built to test whether the shipped 'omit' rule --
+                     which score_paper's own comment says advantages uncategorised papers,
+                     0.600 vs 0.567 -- explains §21.4's displacement. It does NOT: omit
+                     gives Europe PMC 51% of the window and impute gives it 50%, keeping 85
+                     of 90 slots. Hypothesis refuted for nothing, because the pools were
+                     seeded to disk. 'zero' (19%) is not the corrected number -- it asserts
+                     a bioRxiv paper has zero topical match rather than a different taxonomy.
 
   second_judge_arm.py
                      ~$0.60: second-judges the papers a benchmark arm actually SHOWED and
