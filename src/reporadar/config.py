@@ -869,7 +869,11 @@ repo_path: .
 
 sources: [arxiv]
 # arXiv carries no biology. A repository whose literature is on bioRxiv or medRxiv
-# wants `sources: [arxiv, europepmc]` — coverage, not a measured improvement.
+# wants `sources: [arxiv, europepmc]`. Measured 2026-08-21 over six bio repositories:
+# it supplied 4.8 of the ~9.7 papers shown per run, at a precision indistinguishable from
+# the arXiv papers beside them under two independent judges. It COMPETES for those slots —
+# it displaced 44% of what the arXiv-only run showed — and whether it raises net@2 is
+# unresolved. `rr profile` suggests it when your dependencies look biological.
 
 arxiv:
   categories: [cs.LG, cs.CL]
@@ -964,7 +968,11 @@ repo_path: .
 
 sources: [arxiv]
 # arXiv carries no biology. A repository whose literature is on bioRxiv or medRxiv
-# wants `sources: [arxiv, europepmc]` — coverage, not a measured improvement.
+# wants `sources: [arxiv, europepmc]`. Measured 2026-08-21 over six bio repositories:
+# it supplied 4.8 of the ~9.7 papers shown per run, at a precision indistinguishable from
+# the arXiv papers beside them under two independent judges. It COMPETES for those slots —
+# it displaced 44% of what the arXiv-only run showed — and whether it raises net@2 is
+# unresolved. `rr profile` suggests it when your dependencies look biological.
 
 arxiv:
   # CHANGE THIS. cs.LG/cs.CL is a guess that fits an ML repository and no other; it is

@@ -1,13 +1,21 @@
 """Suggest domain-matched paper sources from a repo profile (Feature 10).
 
-The extra source adapters (bioRxiv, DBLP) only help repos whose literature isn't
-primarily on arXiv, and a user has no way to know that without reading the docs.
-This module reads the repo profile and *suggests* the sources that match it.
+The extra source adapters only help repos whose literature isn't primarily on arXiv, and a
+user has no way to know that without reading the docs. This module reads the repo profile
+and *suggests* the sources that match it.
 
-Deliberately advisory: nothing here activates a source. Both adapters have real
-costs — DBLP rate-limits aggressively and indexes publication *year* only, so
-silently enabling it would slow runs down and mismatch the recency window — so the
-choice stays with the user, with the caveat printed alongside the suggestion.
+**Corrected 2026-08-21.** For biology this suggested `biorxiv`, which is the adapter that
+cannot do the job: bioRxiv's `details` endpoint is a date-interval listing, so under the
+product's own default `lookback_days` it returns 2013-2016 postings rather than papers about
+the repository (§0). `config.validate` already warned anyone who enabled it. The suggestion
+now names `europepmc`, which searches the same two servers by keyword and is the one that has
+actually been measured — §21: 4.8 papers per digest across six bio repositories, at a
+precision indistinguishable from the arXiv papers beside them under two independent judges.
+
+Deliberately advisory: nothing here activates a source. Every adapter has a real cost — DBLP
+rate-limits and indexes publication *year* only; Europe PMC competes for the same digest slots
+rather than extending them — so the choice stays with the user, with the cost printed beside
+the suggestion.
 """
 
 from __future__ import annotations
@@ -31,8 +39,9 @@ class SourceSuggestion:
 
 
 # Packages that place a repo squarely in biology/medicine, where the relevant
-# preprints are on bioRxiv/medRxiv rather than arXiv.
-_BIORXIV_ANCHORS = frozenset(
+# preprints are on bioRxiv/medRxiv rather than arXiv. These detect the DOMAIN; which adapter
+# can reach it is a separate question, and the answer is `europepmc` (see the module docstring).
+_BIO_ANCHORS = frozenset(
     {
         "biopython",
         "bio",
@@ -63,7 +72,7 @@ _BIORXIV_ANCHORS = frozenset(
     }
 )
 
-_BIORXIV_TERMS = frozenset(
+_BIO_TERMS = frozenset(
     {
         "genomics",
         "genome",
@@ -214,13 +223,15 @@ def suggest_sources(profile: RepoProfile, active_sources: list[str]) -> list[Sou
     active = set(active_sources)
     candidates = (
         (
-            "biorxiv",
-            _BIORXIV_ANCHORS,
-            _BIORXIV_TERMS,
-            "biology/medicine preprints land on bioRxiv/medRxiv, not arXiv",
-            "bioRxiv has no keyword search, so a run pages through the whole date "
-            "window and filters locally (capped at 40 pages — a wide "
-            "arxiv.lookback_days may truncate coverage)",
+            "europepmc",
+            _BIO_ANCHORS,
+            _BIO_TERMS,
+            "biology/medicine preprints land on bioRxiv/medRxiv, not arXiv — measured at "
+            "4.8 papers per digest over six bio repositories, at a precision matching the "
+            "arXiv papers beside them",
+            "it competes for digest slots rather than adding to them — on that measurement "
+            "it displaced 44% of the papers the arXiv-only run had shown, so expect the "
+            "digest to change and not merely grow",
         ),
         (
             "dblp",
