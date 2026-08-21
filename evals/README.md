@@ -15,6 +15,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §4.3 benchmark, judge, baseline | `harness.py`, `judge.py`, `baseline.py`, `verify.py`, `build_fixtures.py` |
 | §4.4 judge validity | `second_judge.py` (κ), `mine_adoptions.py` (adoption ground truth) |
 | is the fine-scale stage right to withhold? (RESEARCH-scientific-software.md §19) | `second_judge_band.py` (~$3; Sonnet over all 324 score-2 band papers — the run that reversed §18.2's sign) |
+| is a newly added source any good? (RESEARCH-scientific-software.md §21.2) | `second_judge_arm.py` (Sonnet over the papers an arm SHOWED, split by origin — within-arm, so no cross-session pairing) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -582,6 +583,16 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  second_judge_arm.py
+                     ~$0.60: second-judges the papers a benchmark arm actually SHOWED and
+                     splits them by origin, so "is the new source any good" is answered
+                     within one arm rather than across sessions. Built for the Europe PMC
+                     arm (RESEARCH §21.2), where it found Europe PMC papers at precision
+                     1.000 (GPT) / 0.724 (Sonnet) against arXiv's 0.897 / 0.586 in the same
+                     digests -- higher under both judges, CIs overlapping under both, so the
+                     claim is "not worse" and not "better". Wilson intervals, because a
+                     precision of 1.000 has a zero-width Wald CI.
 
   second_judge_band.py
                      ~$3: Sonnet over all 324 score-2 band papers of the 37-case cohort-3

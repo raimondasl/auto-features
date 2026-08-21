@@ -169,6 +169,7 @@ def collect_live_papers(
     )
     from reporadar.config import ArxivConfig
     from reporadar.paper_id import dedup_id
+    from reporadar.pipeline import KEYWORD_SOURCE_QUERIES, KEYWORD_SOURCES
 
     arxiv_cfg = ArxivConfig(
         categories=categories or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"],
@@ -199,7 +200,11 @@ def collect_live_papers(
     # arXiv's boolean grammar is not a keyword query; every non-arXiv source below needs
     # the words out of it. See reporadar.collector.to_plain_keywords for what this
     # replaced and why the old one-liner silently stopped working.
-    plain = [to_plain_keywords(q) for q in queries[:5]]
+    # The PRODUCT's cap, imported rather than repeated. This line said `[:5]` while
+    # `pipeline.KEYWORD_SOURCE_QUERIES` said 8 — B4 (§12.2) raised it in the product and not
+    # here, so every non-arXiv source was being benchmarked on 5/8 of the queries it ships
+    # with. One invariant, one implementation; this project has paid for that rule three times.
+    plain = [to_plain_keywords(q) for q in queries[:KEYWORD_SOURCE_QUERIES]]
 
     if "openalex" in sources:
         from reporadar.sources.openalex import collect_papers as oa_collect
@@ -245,10 +250,21 @@ def collect_live_papers(
                 papers.append(p)
                 seen.add(dedup_id(p["arxiv_id"]))
 
+    if "europepmc" in sources:
+        # No `email=`, matching `pipeline._europepmc`: Europe PMC accepts one as politeness
+        # and works without it, and forwarding a key given for another service is a data flow
+        # the privacy registry would have to declare.
+        from reporadar.sources.europepmc import collect_papers as epmc_collect
+
+        for p in epmc_collect(plain, lookback_days=lookback_days):
+            if dedup_id(p["arxiv_id"]) not in seen:
+                papers.append(p)
+                seen.add(dedup_id(p["arxiv_id"]))
+
     # Fail loudly on a source the harness can't fetch: silently ignoring it makes
     # a benchmark run look like a valid measurement of that source when it is a
     # no-op (exactly what happened the first time `--sources arxiv,dblp` was run).
-    unknown = set(sources) - {"arxiv", "openalex", "semantic_scholar", "dblp", "biorxiv", "iacr"}
+    unknown = set(sources) - ({"arxiv"} | set(KEYWORD_SOURCES))
     if unknown:
         raise ValueError(
             f"Unknown eval source(s): {', '.join(sorted(unknown))}. "

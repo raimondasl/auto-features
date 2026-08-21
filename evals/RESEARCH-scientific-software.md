@@ -2341,6 +2341,135 @@ The matsci half — ChemRxiv via OpenAlex remains unexercised. The recency path.
 standing warning, and six cases is six cases.
 
 ---
+## 21. RESULT — the Europe PMC arm clears its bar, and two of my four predictions were wrong (2026-08-21)
+
+Run 2026-08-21 against §20. Two live arms over the bio-6, both seeded to disk, no baseline arm.
+**The first bioRxiv papers this project has ever judged.**
+
+### 21.0 A fifth defect, found on the way to running it
+
+`--sources arxiv,europepmc` **could not have run.** `evals/harness.collect_live_papers` keeps its
+own source dispatch and §13 wired Europe PMC into `pipeline.py` only, so the arm would have died
+on the harness's unknown-source guard after cloning six repositories. §20 called the arm
+"runnable in principle" on the strength of the `--sources` flag existing; the flag existed and
+the dispatch behind it did not.
+
+The same function also capped keyword sources at `queries[:5]` while the product uses
+`KEYWORD_SOURCE_QUERIES = 8` — **B4 (§12.2) raised that cap in the product only**, so every
+non-arXiv source would have been benchmarked on five eighths of its shipped queries. Both fixed
+at one definition before the run (#169).
+
+### 21.1 PRIMARY — the funnel, judge-free
+
+| case | candidates | of which Europe PMC | ranked top-15 | gate ≥2 | Top Picks |
+|---|---|---|---|---|---|
+| bio-align | 1214 | 743 | 8 | 8 | 5 |
+| bio-singlecell | 1020 | 512 | 5 | 5 | 4 |
+| bio-scvi | 914 | 433 | 11 | 11 | 11 |
+| bio-mdsim | 965 | 478 | 1 | 1 | 1 |
+| bio-mdtraj | 1190 | 653 | 7 | 2 | 2 |
+| bio-kmer | 1133 | 614 | 9 | 6 | 6 |
+| **total** | | **3433** | **41** | **33** | **29** |
+
+**4.8 Europe PMC papers per case reach Top Picks**, against a WIN bar of ≥1 and my own estimate
+of under 1. The channel is not merely wired; it is competitive with an arXiv pool that HyDE has
+already enriched, which is the outcome §20.10 argued was unlikely.
+
+### 21.2 SECONDARY — precision, within-arm, under both judges
+
+§20.8 required the second judge in the same pass, and §19 is why.
+
+| origin | shown | GPT-5.5 precision | Sonnet precision |
+|---|---|---|---|
+| arXiv | 29 | 0.897 [0.736, 0.964] | 0.586 [0.407, 0.745] |
+| **Europe PMC** | 29 | **1.000 [0.883, 1.000]** | **0.724 [0.543, 0.853]** |
+
+Judge distributions: arXiv GPT `{1:3, 2:14, 3:12}` / Sonnet `{0:1, 1:11, 2:13, 3:4}`; Europe PMC
+GPT `{2:8, 3:21}` / Sonnet `{1:8, 2:12, 3:9}`.
+
+Europe PMC papers score **higher under both judges**, and under both the confidence intervals
+**overlap** — so the honest claim is *not worse*, not *better*. Sonnet's absolute levels are far
+lower on both arms, exactly as §19 would predict of a stricter judge; the levels are
+judge-specific and the within-arm comparison is what survives.
+
+**On the letter of the bar.** §20.9 said Europe PMC precision must be "within the CI of the arXiv
+papers' precision". Under Sonnet, 0.724 is inside [0.407, 0.745]. Under GPT, 1.000 sits *above*
+[0.736, 0.964] — outside the interval, on the good side. Recorded rather than reinterpreted: the
+bar's stated intent was "not obviously worse", which is satisfied twice.
+
+### 21.3 TERTIARY — the paired delta, unresolved exactly as declared
+
+| case | control | treatment | delta |
+|---|---|---|---|
+| bio-align | +4.0 | +8.0 | +4.0 |
+| bio-singlecell | +4.0 | +9.0 | +5.0 |
+| bio-scvi | +9.0 | +14.0 | +5.0 |
+| bio-mdsim | +8.0 | +6.0 | **−2.0** |
+| bio-mdtraj | +4.0 | +4.0 | 0.0 |
+| bio-kmer | +2.0 | +8.0 | +6.0 |
+
+Mean **+3.000**, sd 3.225, SE 1.317, **95% CI [−0.385, +6.385]**. The interval crosses zero and
+§20.7 declared anything inside ±3 unresolved. **So this endpoint is unresolved**, and it is
+reported that way because that is what was written down beforehand, not because the number
+disappointed. §14.9's +1.0 bar would have been "cleared" here on a point estimate whose CI
+contains zero — which is precisely what §20.3 corrected it for.
+
+### 21.4 The cost nobody declared: the channel displaces as well as adds
+
+Judge-free, and the thing I would have missed without checking:
+
+| | control | treatment |
+|---|---|---|
+| Top Picks | 43 | 58 (29 arXiv + 29 Europe PMC) |
+| control picks kept | — | **24** |
+| control picks displaced | — | **19 (44%)** |
+
+Europe PMC contributed **more than half of every candidate pool** (3433 of 6436) and pushed 19 of
+the control arm's 43 Top Picks out of the ranked window. The net@2 gain is therefore not "papers
+added" — it is a **substitution**, favourable on this draw because the incoming papers scored
+higher than the outgoing ones under both judges. A draw where they did not would have shown the
+opposite, and nothing here bounds how often that happens.
+
+### 21.5 Predictions, scored
+
+1. *"Europe PMC papers will enter the pools on ≥4 of 6 cases."* **Correct** — 6 of 6, and at far
+   greater volume than intended as a wiring check.
+2. *"Few will reach Top Picks — under 1 per case."* **WRONG, by roughly five times.** I reasoned
+   that no HyDE meant no competitiveness. What that argument missed is that HyDE enriches the
+   *arXiv* half of a pool while Europe PMC's keyword search is aimed directly at the repository's
+   own vocabulary — and for a bio tool, bioRxiv is where its literature actually lives.
+3. *"The tertiary will be unresolved."* **Correct.**
+4. *"Under Sonnet the shown Europe PMC papers will score lower than the arXiv ones."* **WRONG** —
+   0.724 against 0.586, higher under both judges.
+
+Two of four wrong, and both in the same direction: I underestimated the channel because I
+reasoned from a mechanism (no HyDE) without asking what the mechanism was competing against.
+
+### 21.6 What this licenses
+
+- **§13.8's sentence can be retired.** "bioRxiv is a source we are adding; the arXiv channel is
+  the one we have measured" is no longer the honest statement. The measured statement is: *on six
+  bio repositories, Europe PMC supplied 4.8 of the ~9.7 papers shown per case, at a precision
+  indistinguishable from — and numerically above — the arXiv papers beside them, under two
+  independent judges.*
+- **§7's ~0.45 for the bio-on-bioRxiv scenario is no longer resting on nothing**, and on this
+  evidence it was pessimistic.
+- **Not licensed:** that adding the source raises net@2. The tertiary is unresolved, and §21.4
+  shows why a point estimate there is not the whole story.
+- **Not licensed:** anything about matsci. Europe PMC's filter is bioRxiv/medRxiv — life
+  sciences — so `mat-*` cases would draw structural zeros. ChemRxiv via OpenAlex is still
+  unexercised.
+- **One draw, six repositories**, and §5's matsci values (+1, −1, +9) remain the standing warning.
+
+### 21.7 What should be reconsidered
+
+The displacement in §21.4 is the open question this run creates rather than answers. Europe PMC
+is over half of every pool and takes 44% of the incumbent Top Picks with it, which means the
+`sources` setting is not additive and cannot be reasoned about as though it were. A digest-size
+or per-source-quota question is now well posed and was not before — and it needs its own
+pre-registration, because §21.3 is a demonstration of what a six-case arm can and cannot resolve.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
