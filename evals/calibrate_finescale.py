@@ -3,6 +3,13 @@
     uv run python evals/calibrate_finescale.py            # ~$0.30, cached after the first run
     uv run python evals/calibrate_finescale.py --analyse  # re-analyse the cache, $0
 
+`--analyse` reads THIS SCRIPT'S cache under `.work/calibration/`, not a results artifact. That
+cache holds the 22 cases of the 2026-08-09 run; pointed at a newer run it reports `0/N cached`
+and analyses nothing, and filling it means cloning each repo and paying for a fresh pass. If
+the run you care about was judged by `run_judge_eval.py`, its artifact already carries
+`finescale`/`finescale_p` for every band paper — use `evals/finescale_domains.py`, which reuses
+`analyse()` below for $0. See RESEARCH-scientific-software.md §18.1.
+
 `reporadar.finescale` carries two frozen constants, SLOPE and INTERCEPT, fitted offline
 against one stored judge run. Everything downstream of them — which papers clear P >= 2/3,
 and therefore the +4.55 headline — depends on that map still being located where it was

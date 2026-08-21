@@ -35,6 +35,8 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | roadmap 16 relation grounding (NR-39) | `relation_probe.py` ($0; reads cached pools, profiles and verdicts) |
 | scientific software: the score-3 band (RESEARCH-scientific-software.md §9) | `probe_score3_band.py` (~$0.03; scores cached judge verdicts, no re-judging) |
 | why a benchmark case returned nothing (RESEARCH-scientific-software.md §16.4, §17) | `why_case.py` ($0; reads a results artifact, the eval-side counterpart to `rr why`) |
+| is the fine-scale map calibrated on scientific software? (RESEARCH-scientific-software.md §18.2) | `finescale_domains.py` ($0; reads `finescale_p` straight from a results artifact — `calibrate_finescale.py --analyse` cannot, its cache holds only the 22 legacy cases) |
+| what shape are the gate's scores? (RESEARCH-scientific-software.md §18.4–§18.5) | `gate_shape.py` ($0, judge-free; the 37-case control that retracted §17.4) |
 | typed README spans as an anchor channel (P9) | `nerdme_probe.py` (~$0.02 once to extract, then `--report` is $0; reuses `relation_probe.py`'s matching) |
 | is P9's signal judge circularity? (P10) | `redacted_judge.py` (~$4; two Sonnet arms over the same papers, spans masked in one) |
 | §9.1–9.3 the query bridge | `audit_query_transform.py`, `bigram_report.py` |
@@ -799,8 +801,26 @@ evals/
                      second_judge.py measured kappa 0.507 on the >=2 cut and only 8 of 48
                      papers GPT scored 2 were scored >=2 by Sonnet. `rr why` answers this
                      against a product store; the eval harness writes none, which is why
-                     this adapter exists. Not available from an artifact: score_total,
-                     rrf_score, finescale_p.
+                     this adapter exists. Not available from an artifact: score_total and
+                     rrf_score. finescale_p IS carried, for score-2 band papers -- an earlier
+                     version of this file said otherwise; see RESEARCH §18.1.
+
+  finescale_domains.py
+                     $0, offline: is the fine-scale map still calibrated on the new domains?
+                     Reads finescale/finescale_p from a results artifact and hands them to
+                     calibrate_finescale.analyse, so no clone, no cache and no API key. Prints
+                     the judge-free half and the judge-dependent half under separate headings
+                     and projects every judged conclusion through second_judge.py's transition
+                     table BEFORE stating it -- the check that would have caught RESEARCH
+                     §17.2 before it was written.
+
+  gate_shape.py
+                     $0, judge-free: the gate's score distribution per case and its emission
+                     rate per population. Exists as the control RESEARCH §17.4 never ran, and
+                     refutes it -- the median case puts 73% of a ranked window in one bucket
+                     and two cases are at 100%, so concentration alone is not a defect. What
+                     survives needs no judge: the gate emits score 3 on 20.0% of scientific
+                     papers against 8.0% of ML/CS ones (Fisher p=7.7e-05) and score 0 never.
 
   probe_score3_band.py
                      ~$0.03, pre-registered in RESEARCH-scientific-software.md §9: on six
