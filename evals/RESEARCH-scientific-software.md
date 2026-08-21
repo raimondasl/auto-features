@@ -2510,15 +2510,27 @@ So the obvious hypothesis: §21's displacement is partly a scoring rule rather t
 `evals/displacement_probe.py` tests it for **$0** — ranking is deterministic given a pool, both
 pools are on disk, and `rank_candidates` is separately callable.
 
-| Europe PMC share of the top-15 window | total |
-|---|---|
-| `omit` (shipped) | 46/90 (**51%**) |
-| `impute` (the principled option) | 45/90 (**50%**) |
-| `zero` | 17/90 (19%) |
+**CORRECTED 2026-08-21 — the first version of this measured the wrong stage.** `rank_candidates`
+returns the *pre-gate* heuristic ordering, but the shipped window is
+`rerank_by_actionability(gated)[:15]` over the `--rr-pool` candidates. So the absent-category rule
+governs **which papers reach the gate at all**, and the cut to compare is the gate-entry depth
+(50), not 15. §23.4's kill-clause check caught it: the reconstruction failed to reproduce the
+shipped ranks 1–15 on all six cases. The figures below are at the corrected unit; the ones first
+published (51% / 50% / 19% over 90 slots) described a stage the product does not ship.
 
-`impute` keeps **85 of the 90** shipped window slots. **The hypothesis is refuted**: the shipped
+| Europe PMC share of the top-50 gate-entry cut | total |
+|---|---|
+| `omit` (shipped) | 119/300 (**40%**) |
+| `impute` (the principled option) | 121/300 (**40%**) |
+| `zero` | 64/300 (21%) |
+
+`impute` keeps **283 of the 300** gate-entry slots. **The hypothesis is refuted**: the shipped
 rule is not inflating Europe PMC's share, and §21.4's displacement is not an artefact of it.
-Europe PMC wins about half the window on keyword and BM25 relevance.
+Europe PMC wins about 40% of the papers that reach the gate, on keyword and BM25 relevance.
+
+**The correction changed the numbers and not the finding**, which is the only reason the
+conclusion above still stands — and it is worth noting that I would not have discovered it by
+re-reading the probe. It took writing a kill clause for the *next* arm and running it.
 
 `zero` is the outlier and it is not the principled option — it asserts that a bioRxiv paper has
 *zero* topical match when what it actually has is a different taxonomy. Recorded so nobody reads
@@ -2555,6 +2567,125 @@ and that is the cell where kappa is 0.199.
 demonstration of what six cases resolve, and a capacity endpoint measured per-case would land in
 the same place. The endpoint that has power here is **per-paper** — what fraction of ranks 16–30
 is actionable — which is n in papers, not repositories, exactly as §20.7 had to learn.
+
+---
+## 23. PRE-REGISTERED — is the 15-paper window the binding constraint? (2026-08-21)
+
+§22.3 posed it. This funds it. **Nothing has been spent.**
+
+### 23.1 The question, and why the existing data cannot answer it
+
+`output.free` is not the limiter any more; `output.top_n` is. In the treatment arm **79% of the
+ranked window is judge-actionable**, and `bio-scvi` is **15 of 15** — a window with no room in it
+at all:
+
+| | bio-align | bio-singlecell | bio-scvi | bio-mdsim | bio-mdtraj | bio-kmer | mean |
+|---|---|---|---|---|---|---|---|
+| control | 10/15 | 11/15 | **15/15** | 11/15 | 10/15 | 7/15 | 71% |
+| treatment | 12/15 | 12/15 | **15/15** | 12/15 | 9/15 | 11/15 | **79%** |
+
+Every label this project owns stops at rank 15, because that is what the harness judges
+(`pool_size == 15 == len(ranked)`, checked). **"Is 15 too small" cannot be answered from inside
+the top 15** — the question is entirely about papers no judge has seen.
+
+### 23.2 Population
+
+**Ranks 16–30 of the treatment arm**, six bio cases, **90 papers**.
+
+**Not reconstructed offline — that route is closed, and the kill-clause check below is what
+closed it.** The shipped window is `rerank_by_actionability(gated)[:15]`, so ranks 16–30 are
+positions 16–30 of the `--rr-pool` candidates *ordered by gate score*. Those gate scores are
+computed at run time and **persisted nowhere**: no triage cache exists, and the artifact stores
+only the 15 papers that were shown. An offline re-rank reproduces the pre-gate ordering, which is
+a different object — verified, it matches the shipped top-15 on **0 of 6** cases.
+
+So the arm is a **re-run of the treatment configuration with `--rr-window 30`** against the seeded
+`.work/pool-epmc-treat`. The frozen pool means no collection and no new draw; the gate re-runs
+over the same 50 candidates and orders all 30.
+
+**The control arm's 16–30 is deliberately NOT bought.** The question is about the two-source
+world, and whether the window *already* bound under one source is answerable from data in hand:
+71% against 79% at ranks 1–15. Declared here so its absence is a choice and not an omission.
+
+### 23.3 Endpoints
+
+**PRIMARY — per-paper, and per-paper for a reason.** The actionable rate at ranks 16–30 against
+the known 79% at ranks 1–15. n is 90 papers against 90 papers, not 6 cases against 6, which is
+the whole lesson of §21.3: a per-case endpoint on this population resolves nothing under ±3.
+A two-proportion comparison at n=90/90 detects a difference of about **15 points** at 80% power,
+so this endpoint can actually return an answer.
+
+**SECONDARY — both judges**, per §19 and §20.8. Every paper near a window boundary is a
+score-2-band paper by construction, and that is the cell where kappa is **0.199**. A one-judge
+answer here would be the same mistake for the fourth time.
+
+**TERTIARY — the quota question, and it is free.** Once ranks 16–30 carry labels, merit order and
+a per-source quota are both *selections over the same labelled 30 papers*, so comparing them costs
+**no additional calls**. Constructed offline exactly as `displacement_probe.py` re-ranked.
+
+### 23.4 Bars
+
+- **WIN (the window is too small):** ranks 16–30 are actionable at ≥ 64% — within 15 points of
+  the window's 79% — under **both** judges. Then rank 15 is an arbitrary cut through good
+  material and `output.top_n` is a live product question.
+- **NULL (15 is well placed):** ranks 16–30 fall below 64% under both judges. The window is
+  cutting where the quality does.
+- **UNRESOLVED:** the two judges disagree about which side of 64% it falls on. Named in advance
+  because §19 makes it a real possibility, and because "pick the judge that agrees" is the failure
+  this project keeps catching.
+- **KILL (wiring, not result):** the re-run's ranks 1–15 overlap the shipped run's by **fewer than
+  11 of 15** on average. The gate is sampled (§6 D6), so exact reproduction is not available and
+  demanding it would be the wrong bar; but a large divergence would mean the re-run is a different
+  draw and the 1–15 vs 16–30 comparison would have to be reported as internal to it.
+
+  **This clause has already earned its place.** Written for this arm, it was run against the
+  offline reconstruction first and fired — 0 of 6 cases reproduced — which is how §22.2's unit
+  error was found. A kill clause that fires before the money is spent is the cheapest thing in
+  this document.
+
+### 23.5 Predictions
+
+1. **Ranks 16–30 will clear 64%** — the WIN bar. The pools hold ~1000 candidates and 79% of the
+   top 15 are actionable; a cliff at exactly 15 would be a coincidence.
+2. **The drop from 1–15 to 16–30 will be under 10 points** under GPT.
+3. **Sonnet's absolute level will be far lower on both bands** (§19: base rate 22% against 40%)
+   **but the direction will hold.**
+4. **A per-source quota will not beat merit order** under either judge.
+
+**Calibration note, recorded because it is relevant to reading these.** My last two prediction
+sets went 2-of-4 (§21.5) and the displacement confound I proposed was refuted outright (§22.2).
+Both failures were the same shape: reasoning from a mechanism without checking what it competed
+against. Predictions 1 and 2 are that same kind of reasoning, so they deserve the same suspicion.
+
+### 23.6 Cost
+
+The harness does not meter spend — it prices only the baseline arm — so this is derived from call
+counts and the project's own recorded figures, **not from an invoice**.
+
+| item | calls | basis |
+|---|---|---|
+| Haiku gate over the pool | 6 × 50 = **300** | the re-run re-gates; Haiku, short prompts, negligible |
+| GPT-5.5 judge, ranks 16–30 | **90** | all new — no cache hit is possible on a paper never judged |
+| GPT-5.5 judge, ranks 1–15 | ~0 paid | cache hits: same repo context, so the same `_prompt_hash` |
+| Sonnet second judge, ranks 16–30 | **90** | ~$0.01/paper, measured over `second_judge.py`'s 200 |
+| Opus baseline | 0 | not run; the comparison is band-vs-band inside one run |
+
+**Estimate $6–15.** The dominant term is 90 fresh GPT-5.5 verdicts. For comparison the whole
+two-arm §21 run took only 86 paid judge calls because 94 of its 180 judged papers were cache
+hits; **this arm has none**, which is why 90 papers cost about what 180 did there.
+
+**The displacement work already done cost $0** — §22's probe re-ranked pools already on disk, and
+the kill-clause check that found its unit error was free as well.
+
+
+
+### 23.7 What this does not measure
+
+Whether a *larger* window is better for a user, as opposed to containing more actionable papers —
+digest length is a reading-time cost this benchmark has never priced. The control arm's tail.
+Anything outside bio: `mat-*` cases draw no Europe PMC papers at all (§21.6), so the saturation
+that motivates this may be specific to a domain with two live sources. And one draw, six
+repositories, which is the standing §5 warning.
 
 ---
 ## Appendix
