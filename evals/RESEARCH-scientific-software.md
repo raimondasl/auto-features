@@ -2795,6 +2795,122 @@ Everything else in the displacement thread — §22's probe, §23's kill-clause 
 comparison — cost **$0**.
 
 ---
+## 25. PRE-REGISTERED — why does gate-score 3 mean something different on scientific software? (2026-08-21)
+
+§16.5 measured the asymmetry and said it "needs its own pre-registration before anything is built
+on it." This is that. **Nothing has been spent, and the primary costs nothing.**
+
+### 25.1 What is already established, and what is missing
+
+| | scientific | ML/CS | |
+|---|---|---|---|
+| score-3 non-actionable (§16.5) | 11/36 (**31%**) | 2/30 (7%) | Fisher p = 0.027 |
+| gate *emits* score 3 (§18.5, judge-free) | 36/180 (**20.0%**) | 30/375 (8.0%) | Fisher p = 7.7e-05 |
+
+§17.3 showed the first survives a judge swap: all eleven non-actionable score-3 papers are
+judge-**1**s, and GPT's 1s stay at or below 1 for Sonnet 95% of the time. The second needs no
+judge at all. So *that* the band behaves differently is settled twice over.
+
+**What is missing is why** — and §9.4 makes that the useful question rather than a fourth repair.
+It killed both global candidates and warned that "with 9 misses, any variant that 'works' after
+three attempts is fitting this set." A mechanism tells you which repair to build; another variant
+tells you nothing.
+
+### 25.2 The leading hypothesis, and the fact that already complicates it
+
+§0 and §6's G1 assert a specific mechanism: on scientific repositories the tool's *name* appears
+in the abstracts of papers that merely **use** it — "six *use* CHGNet/MACE and name it in the
+abstract — the Haiku gate scores the name-match 3, the judge scores it 1."
+
+Probed before writing this, predictor only, **no outcome touched**:
+
+| | score-3 papers | naming the tool |
+|---|---|---|
+| scientific | 36 | 25 (**69%**) |
+| ML/CS | 30 | 18 (**60%**) |
+
+**Both domains name the tool at similar rates.** So a simple main effect cannot explain a
+31%-versus-7% asymmetry; the story requires name-mention to be *more damaging* on scientific
+repositories, which is an interaction. That is worth knowing before the run rather than after,
+and it is the reason the interaction below carries no bar.
+
+### 25.3 Population
+
+**All 85 unique labelled gate-score-3 papers** across five runs — 55 scientific, 30 ML/CS — every
+one with a recoverable abstract from its frozen pool. This is up from §16.5's 66 because the
+Europe PMC arms added 19 new scientific score-3 papers whose labels are already bought.
+
+**Declared confound:** 16 of those 19 come from the treatment arm, where ~40% of the pool is
+Europe PMC. So the expanded scientific sample mixes arXiv and bioRxiv papers, and "domain" and
+"source" are partly confounded in it. The secondary below is therefore reported **both** over all
+55 and over the 36 arXiv-only papers §16.5 used, and if those disagree the expansion is reported
+as uninformative rather than as a replication.
+
+**`mace` is the one tool name that is also an ordinary English word.** Its 6 score-3 papers are
+checked by hand and the primary is reported with and without them.
+
+### 25.4 Endpoints
+
+**PRIMARY ($0) — does naming the tool predict non-actionability among score-3 papers?** One
+proportion comparison over 85 papers, ~56 naming against ~29 not, which detects a difference of
+about **22 points** at 80% power. Per-paper, because §21.3 and §24 are the standing demonstration
+of where per-case endpoints on these populations land.
+
+**SECONDARY ($0) — does the domain asymmetry replicate** on 55 against 30, and on the arXiv-only
+36 against 30?
+
+**TERTIARY — the interaction**, name-mention × domain. **Declared underpowered in advance**: the
+four cells are roughly 38/17/18/12, and no honest bar exists at those sizes. Reported with a CI
+and no verdict.
+
+**JUDGE-FREE COMPANION ($0)** — re-check §18.5's emission asymmetry on the three runs that
+post-date it. It uses no labels, so it cannot be moved by anything the judge does.
+
+**VALIDITY (~$0.40)** — Sonnet over any score-3 paper lacking a second label. §17.3 predicts these
+transfer at 95%, so this is a cheap confirmation that the outcome variable is the robust one, and
+it is the only paid item.
+
+### 25.5 Bars
+
+- **WIN:** naming the tool raises the non-actionable rate by **≥ 20 points**, and the direction
+  holds under both judges. The mechanism in §0/§6 is real, and a name-aware repair becomes the
+  obvious next arm — a *different* repair from §9.4's two, so not a third variant on nine labels.
+- **NULL:** the difference is under 20 points, or its CI spans zero. **§0's and §6 G1's mechanism
+  is then unsupported**, which is a correction to a belief this document has carried since §5 and
+  is worth as much as a positive result.
+- **KILL:** the name matcher proves unusable — if excluding `mace` moves the primary by more than
+  10 points, the predictor is measuring string luck and no conclusion may be drawn from it.
+
+### 25.6 Predictions
+
+1. **Naming the tool will predict non-actionability**, clearing the 20-point bar. §0's qualitative
+   evidence is concrete and specific.
+2. **The domain asymmetry will replicate** on the expanded 55.
+3. **The interaction will be unresolved**, and reported as such.
+4. **The judge-free emission asymmetry will hold** on the newer runs.
+
+**Calibration.** Three arms running, my predictions have gone 2-of-4 each time, and §24.6 recorded
+that naming the likely failure mode in advance did not prevent it. Prediction 1 is exactly that
+shape again — a mechanism argued from qualitative evidence — and §25.2 already contains a fact
+that cuts against it. I am predicting it anyway because that is what the belief in §0 implies;
+recording the tension so a NULL reads as informative rather than as a surprise.
+
+### 25.7 Cost
+
+**The primary, secondary, tertiary and judge-free companion are all $0** — every label is bought
+and every abstract is on disk. The only spend is **~$0.40** of Sonnet for the validity check.
+
+Phase 1 — building and measuring a name-aware repair — is **not funded here** and should not be
+designed until the primary reports.
+
+### 25.8 What this does not measure
+
+Whether a name-aware repair would help: that needs the repair, a fresh arm, and its own bars.
+The other candidate mechanisms — self-papers (partly handled by D4), application-versus-method
+framing, and *source* rather than domain — are not separated here and the confound in §25.3 is
+the honest statement of the last one. And 85 papers over one session is one draw.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
