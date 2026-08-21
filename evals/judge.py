@@ -14,8 +14,18 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+# This module is imported by eight entry scripts that each insert `src` themselves. Doing it
+# here as well costs nothing, is idempotent, and means `import judge` also works standalone —
+# the alternative is an import that depends on which script got there first.
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from reporadar.paper_id import is_arxiv_id  # noqa: E402
 
 RUBRIC_VERSION = "v1"  # bump to invalidate cached verdicts
 DEFAULT_JUDGE_MODEL = "gpt-5.5"
@@ -59,12 +69,69 @@ def _cache_path(model: str, repo: str, paper_id: str) -> Path:
     )
 
 
+# Identifier labels by scheme. The pipeline's shared paper shape carries either a real arXiv
+# id or a synthetic "<source>:<id>" (see sources/__init__.py), so one hardcoded "arXiv:" label
+# states something false about every non-arXiv paper the judge scores.
+_ID_LABELS = {
+    "doi": "DOI",
+    "biorxiv": "bioRxiv",
+    "medrxiv": "medRxiv",
+    "oa": "OpenAlex",
+    "ss": "Semantic Scholar",
+    "dblp": "DBLP",
+    "iacr": "IACR ePrint",
+}
+
+
+def _identifier_line(paper: dict[str, Any]) -> str:
+    """The paper's id, labelled by the scheme it actually belongs to.
+
+    **The arXiv branch is byte-exact on purpose, and that is the whole design.** A verdict is
+    cached under `sha256(RUBRIC \\0 repo_context)` — the paper is NOT in that hash — so
+    rewording this line for a paper already in the cache leaves the key identical while the
+    question changes. That is the silent staleness `second_judge.verify_contexts` exists to
+    catch one level up, and it would be undetectable here.
+
+    Measured before writing this, not assumed: 3178 of the 3239 cached verdicts are arXiv
+    papers and keep byte-identical prompts. The other 61 are `ss:` and `iacr:` papers spread
+    over 19 live benchmark cases; they were deleted with this change rather than left holding
+    answers to a prompt that is no longer sent.
+    """
+    ident = str(paper.get("arxiv_id", "") or "")
+    if not ident or is_arxiv_id(ident):
+        return f"arXiv: {ident}"
+    scheme, sep, rest = ident.partition(":")
+    if not sep or not rest:
+        # A non-arXiv id with no scheme. Naming it neutrally beats inventing a provenance.
+        return f"Identifier: {ident}"
+    return f"{_ID_LABELS.get(scheme, scheme)}: {rest}"
+
+
+def _id_line_matches(cached: dict[str, Any], ident_line: str) -> bool:
+    """Whether a cached verdict was produced with today's identifier line.
+
+    `_prompt_hash` covers the rubric and the repo context — **not the paper** — so a change to
+    how a paper's id is rendered is invisible to it: the cache key stays identical while the
+    question changes. That is the silent staleness this project has already paid for twice, and
+    it is what §20.4's fix would otherwise have caused.
+
+    Only non-arXiv papers are checked, and that asymmetry is the point. arXiv papers render
+    byte-identically to how they always have, so demanding a marker they were never written
+    with would invalidate ~3200 sound verdicts in order to catch 61 unsound ones. Entries
+    written before this marker existed simply lack it, so exactly those 61 re-judge — and it
+    happens on every machine, which deleting local cache files would not.
+    """
+    if ident_line.startswith("arXiv: "):
+        return True
+    return cached.get("_id_line") == ident_line
+
+
 def _build_user_prompt(repo_context: str, paper: dict[str, Any]) -> str:
     return (
         f"# Repository context\n{repo_context}\n\n"
         f"# Candidate paper\n"
         f"Title: {paper.get('title', '')}\n"
-        f"arXiv: {paper.get('arxiv_id', '')}\n"
+        f"{_identifier_line(paper)}\n"
         f"Abstract: {paper.get('abstract', '')[:1800]}\n\n"
         f"Score this paper for the repository above using the rubric."
     )
@@ -155,14 +222,20 @@ def judge_paper(
     cache_file = _cache_path(model_tag, repo, paper_id)
     prompt_hash = hashlib.sha256(f"{RUBRIC}\0{repo_context}".encode()).hexdigest()[:12]
 
+    ident_line = _identifier_line(paper)
+
     if use_cache and cache_file.exists():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
-        if cached.get("_prompt_hash") == prompt_hash:
+        if cached.get("_prompt_hash") == prompt_hash and _id_line_matches(cached, ident_line):
             return cached
-        # else: rubric or repo context changed -> stale, re-judge
+        # else: rubric, repo context or the id line changed -> stale, re-judge
 
     verdict = _mock_score(repo_context, paper) if mock else _call_openai(model, repo_context, paper)
     verdict["_prompt_hash"] = prompt_hash
+    # Written only for non-arXiv papers, so an arXiv verdict's file is byte-for-byte what it
+    # was before this change and `second_judge.verify_contexts` still finds its hash.
+    if not ident_line.startswith("arXiv: "):
+        verdict["_id_line"] = ident_line
 
     if use_cache:
         cache_file.parent.mkdir(parents=True, exist_ok=True)

@@ -2236,9 +2236,25 @@ difference between treatment and control papers, in the prompt, that is not the 
 arXiv id* (`paper_id.is_arxiv_id`, which §12.4 added). A blanket reformat would change the bytes
 sent for every arXiv paper while `_prompt_hash` — which covers `RUBRIC` and `repo_context`, not
 the paper — stayed identical, so **every cached verdict in the project would silently answer a
-differently-worded question**. Conditional, the existing cache is untouched byte-for-byte.
+differently-worded question**.
 
-This lands before the run, not with it.
+**Two corrections found while building it (2026-08-20).**
+
+*"Conditional, the existing cache is untouched byte-for-byte" was wrong.* Checked instead of
+assumed: **61 of the 3239 cached verdicts are already non-arXiv papers** — 55 `ss:`, 6 `iacr:` —
+spread over 19 live benchmark cases. They entered through the pool-labelling scripts rather than
+`run_judge_eval`, which is why "zero judged runs used a non-arXiv source" was still true. So the
+fix does change the prompt for 61 entries, and the sentence above understated it.
+
+*Deleting them would have fixed one machine.* `evals/cache/` is **gitignored and untracked**, so
+a local delete propagates to nobody. The marker travels in the code instead: `judge_paper` now
+writes `_id_line` for non-arXiv verdicts only, and treats its absence as stale. arXiv verdicts
+never consult it, so ~3178 stay valid and exactly the 61 re-judge — on every machine, at about
+$0.60, and only when a run actually needs them.
+
+Shipped with `tests/test_eval_judge_prompt.py`, whose `TestTheArxivBranchIsFrozen` pins the
+arXiv rendering byte-for-byte because that string is a cache-compatibility contract, not a
+formatting preference.
 
 ### 20.5 The question
 
