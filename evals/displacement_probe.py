@@ -23,6 +23,15 @@ So §21's substitution may be partly a scoring rule rather than relevance, and t
 much. Ranking is deterministic given a pool, both pools are on disk, and `rank_candidates` is
 separately callable — so the counterfactual costs nothing.
 
+**Corrected 2026-08-21, at the unit.** The first version compared heuristic top-15s. That is not
+a stage the product ships: `rank_candidates` produces the pre-gate ordering, and the shipped
+window is `rerank_by_actionability(gated)[:15]` over the `--rr-pool` candidates. So the
+absent-category rule governs **which papers reach the gate at all**, and the cut to compare is
+the gate-entry depth. §23's kill-clause check caught it — the reconstruction failed to reproduce
+the shipped ranks 1–15 on all six cases, which is precisely what that check exists for. The
+finding is unchanged; the figures are not: **40%/40% at the gate-entry cut**, against the 51%/50%
+first reported at the wrong one.
+
 **What it cannot answer.** Whether the papers each mode prefers are *better*: that needs judging
 the ones `omit` never showed, which is a paid arm and is not this. This reports composition and
 rank movement only, and every number in it is judge-free.
@@ -48,18 +57,22 @@ from reporadar.paper_id import is_arxiv_id  # noqa: E402
 BIO6 = ("bio-align", "bio-singlecell", "bio-scvi", "bio-mdsim", "bio-mdtraj", "bio-kmer")
 POOL = WORK_DIR / "pool-epmc-treat"
 MODES = ("omit", "impute", "zero")
-WINDOW = 15  # output.top_n, the product's setting — not a benchmark artifact
+# The GATE-ENTRY cut (`--rr-pool`), not `output.top_n`. Corrected 2026-08-21 after §23's
+# kill-clause check: the shipped window is `rerank_by_actionability(...)[:15]` over the papers
+# the heuristic ranking hands to the gate, so the absent-category rule governs *which papers are
+# gated at all*, and comparing heuristic top-15s measured a stage the product does not ship.
+DEFAULT_CUT = 50
 
 
 def rank_under(
-    case: str, papers: list[dict[str, Any]], categories: list[str], mode: str
+    case: str, papers: list[dict[str, Any]], categories: list[str], mode: str, cut: int
 ) -> list[str]:
-    """The ids of the top-WINDOW papers under one absent-category mode, best first."""
+    """The ids of the top-*cut* papers under one absent-category mode, best first."""
     ranked = rank_candidates(
         WORK_DIR / case,
         papers,
         categories,
-        top_n=WINDOW,
+        top_n=cut,
         all_time=True,
         hybrid=True,
         absent_category=mode,
@@ -70,15 +83,16 @@ def rank_under(
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--cases", default=",".join(BIO6))
+    ap.add_argument("--cut", type=int, default=DEFAULT_CUT, help="gate-entry depth (--rr-pool)")
     ap.add_argument("--out", default=str(WORK_DIR / "displacement_probe.json"))
     args = ap.parse_args()
 
     bench = {c["name"]: c for c in load_benchmark()["cases"]}
     cases = [c.strip() for c in args.cases.split(",") if c.strip()]
-    out: dict[str, Any] = {"window": WINDOW, "cases": {}}
+    out: dict[str, Any] = {"cut": args.cut, "cases": {}}
 
     print("=" * 78)
-    print(f"EUROPE PMC SHARE OF THE TOP-{WINDOW} WINDOW, BY ABSENT-CATEGORY MODE (judge-free)")
+    print(f"EUROPE PMC SHARE OF THE TOP-{args.cut} GATE-ENTRY CUT, BY MODE (judge-free)")
     print("=" * 78)
     print(f"  {'case':16} " + "  ".join(f"{m:>16}" for m in MODES))
     totals = dict.fromkeys(MODES, 0)
@@ -89,7 +103,7 @@ def main() -> int:
         row: dict[str, Any] = {}
         cells = []
         for mode in MODES:
-            ids = rank_under(case, pool, cats, mode)
+            ids = rank_under(case, pool, cats, mode, args.cut)
             epmc = [i for i in ids if not is_arxiv_id(i)]
             row[mode] = {"ids": ids, "n_epmc": len(epmc)}
             totals[mode] += len(epmc)
@@ -115,17 +129,18 @@ def main() -> int:
             held += len(a & b)
             swapped += len(a - b)
         print(
-            f"  {mode:8} keeps {held:3d} of the {n_ranked} shipped window slots, "
+            f"  {mode:8} keeps {held:3d} of the {n_ranked} shipped gate-entry slots, "
             f"replaces {swapped:3d}"
         )
 
     share_omit = totals["omit"] / n_ranked
     share_impute = totals["impute"] / n_ranked
     print(
-        f"\n  'omit' is shipped and gives Europe PMC {share_omit:.0%} of the window; 'impute' —\n"
-        "  which scores a missing category at the pool's own mean instead of dropping the term,\n"
-        f"  and is the principled option — gives it {share_impute:.0%}. The hypothesis this probe\n"
-        "  was built to test was that the shipped rule inflates that share. It does not: the two\n"
+        f"\n  'omit' is shipped and gives Europe PMC {share_omit:.0%} of the GATE-ENTRY cut —\n"
+        "  the stage this rule actually governs. 'impute', which scores a missing category at the\n"
+        f"  pool's own mean instead of dropping the term, gives it {share_impute:.0%}. The\n"
+        "  hypothesis this probe was built to test was that the shipped rule inflates that\n"
+        "  share. It does not: the two\n"
         "  agree to within a slot, so §21.4's displacement is NOT an artefact of the\n"
         "  absent-category rule and §21.7's capacity framing stands.\n\n"
         "  'zero' is the outlier, and it is not the principled option — it asserts that a bioRxiv\n"
