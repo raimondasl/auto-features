@@ -16,10 +16,17 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      # Both actions targeted Node 20, which GitHub deprecated: the runner was forcing them
+      # onto Node 24 and warning on every job. Cosmetic until the shim is removed, then a
+      # hard failure. Both versions below are verified `using: node24`.
+      - uses: actions/checkout@v7
 
+      # Pinned to an exact version, unlike checkout above, and NOT by preference: astral-sh
+      # stopped publishing floating major tags after v7 (which still points at v7.6.0 from
+      # March 2026). There is no `v10` ref to track, so `@v10` would fail to resolve. Bump
+      # this by editing the exact version; do not "tidy" it into a bare major.
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           python-version: ${{ matrix.python-version }}
 
