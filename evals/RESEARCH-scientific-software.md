@@ -1505,6 +1505,13 @@ papers reach the gate with **no HyDE** behind them.
 
 Not funded by this pre-registration. Its cost is small because the arXiv pool is frozen.
 
+**§20 supersedes this paragraph, and three of its four sentences of design are wrong.** The
+frozen pool cannot be reused — `sources` is in `POOL_FLAGS`, so the harness refuses, and it is
+right to: that pool holds no Europe PMC paper, so the arm would have measured zero by
+construction. The cost is therefore not small. And the +1.0 bar has no power behind it — the
+bio-6 per-case sd is 3.78, which was measurable from the artifact when this was written. The
+*question* stands and is now designed in §20.
+
 ### 14.10 Cost
 
 Estimated from call counts, not invoices, at $1.25–3.00 per case (judge + Opus baseline):
@@ -2173,6 +2180,149 @@ Close enough to be a screen on one population and 14 points out on the other. **
 what to buy, never to stand in for the purchase** — and note that it got the primary roughly
 right while missing the thing that actually decided the question, because it was only ever
 applied to the withheld arm.
+
+---
+## 20. PRE-REGISTERED — the Europe PMC arm, and four defects found before spending on it (2026-08-20)
+
+§14.9 declared this arm on 2026-08-19 with a bar and left it unfunded. Probing it before writing
+the cheque — the discipline §13 established for B1 — found that **the declared design cannot be
+executed**, that its cost estimate was wrong, that its bar had no power behind it, and that the
+harness would systematically mislabel the papers under test.
+
+### 20.1 §14.9 cannot be run as written
+
+It said: *"`--sources arxiv,europepmc` on the **bio-6**, against the same frozen pool."*
+
+`POOL_FLAGS` includes `sources` (`run_judge_eval.py:509`) and `pool_fingerprint` hashes every
+flag in it, so `--sources arxiv,europepmc` produces a different fingerprint and
+`load_frozen_pool` exits rather than reusing the cohort-3 pool. Checked rather than read off the
+source — holding every other flag fixed and varying only `sources`:
+
+```
+sources=arxiv            -> 3fa719cbaab4a4d4
+sources=arxiv,europepmc  -> a47141c0cfd3f047      REFUSE (SystemExit)
+```
+
+**The guard is right and the declaration was wrong.** That pool was collected under
+`sources=arxiv` and contains no Europe PMC paper. Reusing it would score the treatment arm over
+the control arm's candidates and measure **exactly zero by construction** — a null that would
+have looked like a finding. §14.9's phrasing would have produced it.
+
+### 20.2 Therefore the cost claim was wrong too
+
+§14.9: *"Its cost is small because the arXiv pool is frozen."* It is not frozen; **both arms must
+collect live**, and both must be judged. The estimate in §20.9 replaces it.
+
+### 20.3 The bar had no power behind it, and the variance was on disk
+
+§14.9 set **≥ +1.0 net@2** on six cases. The cohort-3 bio-6 per-case values are
+`+0, +5, +11, +7, +7, +3` — **sd 3.78, SE 1.54**. An unpaired six-case comparison resolves
+nothing below roughly **±3**.
+
+This is §16.3's error repeated four sections later: a bar chosen from an assumed variance when
+the measured variance was already in an artifact. Pairing helps — both arms share the repo and
+most of the arXiv candidates — but **the variance of the paired delta is unmeasured**, and
+§16.3 is the standing instruction not to assume one. So the primary endpoint below does not
+depend on it.
+
+### 20.4 A fourth defect, in the harness, that must be fixed before the run
+
+`judge._build_user_prompt` hardcodes `arXiv: {arxiv_id}` (`evals/judge.py:67`), and
+`sources/europepmc.py:173` stores `biorxiv:<doi>` in that same `arxiv_id` field. So **every paper
+under test would reach the judge labelled `arXiv: biorxiv:10.1101/...`** — a systematic
+difference between treatment and control papers, in the prompt, that is not the treatment.
+
+**Fix, and it must be conditional.** Label the id by its scheme *only when the id is not an
+arXiv id* (`paper_id.is_arxiv_id`, which §12.4 added). A blanket reformat would change the bytes
+sent for every arXiv paper while `_prompt_hash` — which covers `RUBRIC` and `repo_context`, not
+the paper — stayed identical, so **every cached verdict in the project would silently answer a
+differently-worded question**. Conditional, the existing cache is untouched byte-for-byte.
+
+This lands before the run, not with it.
+
+### 20.5 The question
+
+Does adding Europe PMC to the source list put bioRxiv/medRxiv preprints into a digest, and are
+they any good? §13 built the channel and **no bioRxiv paper has ever been judged by this
+project** — confirmed 2026-08-20 across every results artifact: *zero* judged runs used a
+non-arXiv source.
+
+### 20.6 Design: two live arms, both seeded, paired by repository
+
+Six cases: `bio-align`, `bio-singlecell`, `bio-scvi`, `bio-mdsim`, `bio-mdtraj`, `bio-kmer`.
+
+- **Control**: `--sources arxiv`, collected live, seeded into a fresh pool directory.
+- **Treatment**: `--sources arxiv,europepmc`, collected live, seeded into its own directory.
+
+Both seeded so the run is reproducible afterwards and so a re-judge costs no collection. Both
+live in one session, so the arXiv halves differ only by arXiv's own drift within that window.
+**No Opus baseline arm** — the comparison is arm against arm.
+
+### 20.7 Endpoints, declared now
+
+**PRIMARY — the funnel, and it uses no judge.** For each case, of the Europe PMC papers
+collected: how many enter the pool, survive to the ranked top-15, are gated ≥2, and reach Top
+Picks. Counts, so no variance assumption is needed and §20.3 does not bite.
+
+**SECONDARY — precision of what it contributes.** Of the Europe PMC papers actually shown, the
+fraction judged actionable, reported with an exact CI and **under both judges** (§20.8).
+
+**TERTIARY — the paired net@2 delta**, reported *with* its own CI and declared underpowered in
+advance: anything inside ±3 is reported as **unresolved**, not as a small effect. This is
+§14.9's endpoint, demoted to where its power puts it.
+
+### 20.8 Both judges from the start
+
+§19 measured kappa **0.199** in the score-2 band against 0.507 globally, and reversed the sign of
+§18.2's headline. Every Europe PMC paper that reaches the band is exactly the kind of paper that
+result was about — an abstract from a distribution the fine-scale map was never fitted on. So
+**the second judge runs in the same pass**, not after a surprise. Any secondary conclusion that
+holds under one judge and not the other is reported as **disagreement**, per §17.5.
+
+### 20.9 Bars
+
+- **KILL (wiring, not result):** the adapter errors, or returns nothing on all six cases. That is
+  a defect to fix, and nothing about the channel's value may be concluded from it.
+- **WIN:** ≥ 1 Europe PMC paper per case on average reaches Top Picks **and** their judged
+  precision is within the CI of the arXiv papers' precision in the same arm. The channel is live
+  and not obviously worse than what it joins.
+- **NULL, and a real result:** Europe PMC papers enter pools but ≈ none reach Top Picks. The
+  channel is wired and inert, which is worth knowing precisely because §7 priced the bio-on-
+  bioRxiv scenario at ~0.45 *after* B1–B4 — a claim that would then be unsupported.
+- **The tertiary has no bar.** It is a magnitude, reported with its CI.
+
+### 20.10 Predictions
+
+1. **Europe PMC papers will enter the pools** on ≥ 4 of 6 cases. §13's probe hit the API
+   successfully; this mostly tests the wiring end to end.
+2. **Few will reach Top Picks** — my estimate is under 1 per case. They arrive with **no HyDE**
+   behind them (arXiv-only by construction, §0) and must win on keyword and embedding score
+   alone, against an arXiv pool that HyDE has already enriched.
+3. **The tertiary will be unresolved.** Stated so that reporting it as unresolved later reads as
+   the plan rather than as a disappointment.
+4. **Under Sonnet the shown Europe PMC papers will score lower than the arXiv ones**, because
+   the fine-scale map has never been fitted on a bio-preprint abstract. If prediction 2 holds,
+   n will be too small to test this, and it will be reported as untested.
+
+Predictions 2 and 4 make this a run I expect to return a modest or null result. It is worth the
+money anyway: it replaces §13.8's *"bioRxiv is a source we are adding; the arXiv channel is the
+one we have measured"* with a number, and §7's ~0.45 for that scenario currently rests on nothing.
+
+### 20.11 Cost
+
+Live collection on 6 cases × 2 arms (free but slow: arXiv at 1 req/3 s, Europe PMC ~1 req/s),
+gate and fine-scale over each ranked window, and judging ~15 papers per case-run. At the
+$0.80–2.00 per case-run the cohort-3 session implies without a baseline arm: **$10–24**, plus
+about **$1** for the second judge over the band. No verdict cache is reusable — these are new
+pools, and §14.10's reasoning applies unchanged.
+
+### 20.12 What this does not measure
+
+Journal-only literature, still reachable only through OpenAlex `type:article` and still never
+validated. medRxiv specifically, which the filter admits but no bio-6 case is likely to draw.
+The matsci half — ChemRxiv via OpenAlex remains unexercised. The recency path. And whether a
+*different* six bio repositories would behave the same: §5's matsci values (+1, −1, +9) are the
+standing warning, and six cases is six cases.
 
 ---
 ## Appendix
