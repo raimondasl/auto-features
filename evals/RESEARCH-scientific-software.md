@@ -2470,6 +2470,93 @@ or per-source-quota question is now well posed and was not before — and it nee
 pre-registration, because §21.3 is a demonstration of what a six-case arm can and cannot resolve.
 
 ---
+## 22. The displacement question, sharpened — and a confound I proposed and then refuted (2026-08-21)
+
+§21.7 filed displacement as an open question. Two free measurements later it is a sharper
+question than it was, and one hypothesis about it is dead.
+
+### 22.1 The displaced papers were good, which changes what the question is
+
+§21.4 reported that adding Europe PMC displaced 19 of the arXiv-only run's 43 Top Picks. It did
+not say what those 19 were. From labels already bought:
+
+| group | n | judge scores | actionable |
+|---|---|---|---|
+| control picks **kept** | 24 | `{1:3, 2:10, 3:11}` | 21/24 (88%) |
+| control picks **displaced** | 19 | `{1:1, 2:11, 3:7}` | **18/19 (95%)** |
+| new arXiv picks that entered | 5 | `{2:4, 3:1}` | 5/5 (100%) |
+| Europe PMC picks that entered | 29 | `{2:8, 3:21}` | 29/29 (100%) |
+
+**The displaced papers were actionable more often than the ones that survived.** The swap did not
+drop weak papers for strong ones; it dropped good papers for other good papers. That is what a
+**capacity limit** looks like, not a quality improvement, and §21.6's "favourable substitution"
+reads too kindly in that light.
+
+The window is a product setting, not a benchmark artefact: `output.top_n = 15`
+(`config.py:173`, and in both default templates). And it binds twice over — even *within* those
+15 slots, **21 actionable papers in the control arm and 13 in the treatment** were ranked and
+then not shown, because the gate or the fine-scale stage held them back.
+
+### 22.2 REFUTED — the confound I expected to find
+
+Both arms ran `absent_category='omit'`, the shipped default, and `ranker.score_paper`'s own
+comment says what that does: an arXiv paper is averaged over keyword **and** category while a
+paper with no comparable category is averaged over keyword alone, so *at equal keyword relevance
+the uncategorised paper scores higher* — **0.600 against 0.567**, or 0.600 against 0.400 when the
+arXiv paper matches no target category. Every Europe PMC paper is uncategorised by that test, and
+§12.3 (B2) is what moved them onto that path.
+
+So the obvious hypothesis: §21's displacement is partly a scoring rule rather than relevance.
+`evals/displacement_probe.py` tests it for **$0** — ranking is deterministic given a pool, both
+pools are on disk, and `rank_candidates` is separately callable.
+
+| Europe PMC share of the top-15 window | total |
+|---|---|
+| `omit` (shipped) | 46/90 (**51%**) |
+| `impute` (the principled option) | 45/90 (**50%**) |
+| `zero` | 17/90 (19%) |
+
+`impute` keeps **85 of the 90** shipped window slots. **The hypothesis is refuted**: the shipped
+rule is not inflating Europe PMC's share, and §21.4's displacement is not an artefact of it.
+Europe PMC wins about half the window on keyword and BM25 relevance.
+
+`zero` is the outlier and it is not the principled option — it asserts that a bioRxiv paper has
+*zero* topical match when what it actually has is a different taxonomy. Recorded so nobody reads
+19% as the "corrected" number.
+
+**Worth stating plainly**: I proposed this confound, it was the most likely explanation on the
+evidence, and testing it cost nothing because the run had been seeded to disk. That is the
+argument for seeding pools, not for the hypothesis.
+
+### 22.3 The question, as it now stands
+
+Not *"does adding a source displace papers"* — measured, yes, 44%. Not *"is that a scoring
+artefact"* — measured, no. The question is:
+
+> **The digest shows 15 papers. With one source the pool could not fill it with good papers; with
+> two it can, several times over. Is 15 still the right number, and should the slots be allocated
+> per-source rather than by a single ranking that lets one source take half of them?**
+
+Three things make this different from every arm before it. The binding constraint has moved from
+*finding* good papers to *fitting* them, and no prior arm was measuring capacity. `output.top_n`
+has never been varied in any benchmark run. And a per-source quota is not a ranking change — it
+is a **product design decision** about whether a digest should be a single merit order or a
+portfolio, which is not a question the benchmark can answer on its own.
+
+### 22.4 What it would cost to answer, and why it is not free
+
+The judge-free half is done. The paid half needs papers the shipped ranking **never showed** —
+ranks 16–30 under each arm — because "is 15 too small" cannot be answered from within the top 15.
+That is roughly 6 cases × 15 additional papers × 2 arms = **180 new verdicts**, and by §19 it needs
+both judges, because any paper near the window boundary is a score-2-band paper by construction
+and that is the cell where kappa is 0.199.
+
+**Not started, and not to be started without a pre-registration.** §21.3 is the standing
+demonstration of what six cases resolve, and a capacity endpoint measured per-case would land in
+the same place. The endpoint that has power here is **per-paper** — what fraction of ranks 16–30
+is actionable — which is n in papers, not repositories, exactly as §20.7 had to learn.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
