@@ -58,6 +58,11 @@ _LEARNED_WEIGHTS = ("w_keyword", "w_category", "w_recency", "w_embedding", "w_ci
 # sources have no such fallback) but changing the ORDER changes retrieval, and this project
 # does not do that without a measurement. Recorded in the research doc instead.
 KEYWORD_SOURCE_QUERIES = 8
+# Every non-arXiv source this pipeline can fetch, named once and load-bearing below. The eval
+# harness has its own dispatch and asserts against this list, because it silently lacked a
+# `europepmc` branch for the two days after §13 shipped that source — so `--sources
+# arxiv,europepmc` could not have measured the channel it was built to measure.
+KEYWORD_SOURCES = ("semantic_scholar", "openalex", "biorxiv", "europepmc", "iacr", "dblp")
 
 
 class Reporter(Protocol):
@@ -406,14 +411,18 @@ def _collect_extra_sources(
 
         return dblp_collect(plain, lookback_days=lookback)
 
-    for key, label, fetch in (
-        ("semantic_scholar", "Semantic Scholar", _semantic_scholar),
-        ("openalex", "OpenAlex", _openalex),
-        ("biorxiv", "bioRxiv", _biorxiv),
-        ("europepmc", "Europe PMC (bioRxiv/medRxiv)", _europepmc),
-        ("iacr", "IACR ePrint", _iacr),
-        ("dblp", "DBLP", _dblp),
-    ):
+    fetchers = {
+        "semantic_scholar": ("Semantic Scholar", _semantic_scholar),
+        "openalex": ("OpenAlex", _openalex),
+        "biorxiv": ("bioRxiv", _biorxiv),
+        "europepmc": ("Europe PMC (bioRxiv/medRxiv)", _europepmc),
+        "iacr": ("IACR ePrint", _iacr),
+        "dblp": ("DBLP", _dblp),
+    }
+    # Driven by KEYWORD_SOURCES so the constant cannot drift from what actually runs: a key
+    # listed there with no fetcher raises here rather than being quietly skipped.
+    for key in KEYWORD_SOURCES:
+        label, fetch = fetchers[key]
         if key in cfg.sources:
             _merge_source(papers, label, fetch, report=report)
 
