@@ -1978,6 +1978,13 @@ agree 8 times in 48. Projected through §17.2's transition table the withheld se
 The arm that would settle it is concrete and small: **second-judge the 80 withheld band papers**
 with the instrument §17.2 already used on 200 labels. Until then §15.5's disposition stands.
 
+**§19 ran that arm, and it corrects this subsection.** The "true by construction" figure
+**reverses sign** under Sonnet — the stage is worth +3.750/case on the same twelve cases — so
+labelling it the safe half was wrong even though the arithmetic was right. The domain asymmetry
+in the AUC row above inverts too. What survives is that the map *discriminates*: +31 points
+between what it shows and what it withholds. **Do not read −1.250 as a property of the stage.**
+§19.4.
+
 ### 18.3 CORRECTION — what §15.5's sweep arm actually is
 
 §15.5 recorded `--rr-sweep min>=2` at +6.58 and set it aside as returning "more papers from a
@@ -2050,6 +2057,122 @@ That is still true, and §18 sharpens what it should ask:
    any repair and would convert the largest open question from unanswerable to measured.
 
 Nothing here licenses shipping a change. What it licenses is knowing which measurement to buy.
+
+---
+## 19. RESULT — the second judge over the score-2 band: the stage's sign flips, and my prediction was wrong (2026-08-20)
+
+§18.6 said second-judging the withheld band papers would convert the largest open question from
+unanswerable to measured for less than any repair. It did, and it went against the prediction
+registered before the calls were made.
+
+### 19.1 What was run
+
+All **324 score-2 band papers** of the 37-case cohort-3 session — 109 scientific, 215 legacy —
+re-judged by Sonnet under a byte-identical rubric, reusing `second_judge.second_verdict` so the
+framing matches the 200-label run its transition table comes from. Every case was checked
+against its stored prompt hash first: **34 of 34 matched, nothing excluded**, so the two judges
+answer the same question about the same repositories. Abstracts came from the run's own frozen
+pools, so no paper entered that the run had not seen. ~$3.
+
+**The 244 shown papers were judged too, though only the 80 withheld were asked about.** Sonnet's
+base rate on this rubric is 22% and §18.2 projected the withheld set at 19–16%; a withheld-only
+number could not have distinguished "the map correctly withheld weak papers" from "Sonnet calls
+everything weak". That is §18.4's lesson applied *before* the fact for once, and it is the half
+of the run that produced the result.
+
+### 19.2 The primary, against its pre-registered bar
+
+| | n | withheld (GPT) | withheld (Sonnet) | shown (GPT) | shown (Sonnet) | separation |
+|---|---|---|---|---|---|---|
+| all-37 | 324 | 74% | **26%** | 92% | **57%** | **+31 pts** |
+| scientific-12 | 109 | 82% | **21%** | 93% | **61%** | **+39 pts** |
+| legacy-25 | 215 | 68% | **30%** | 91% | **55%** | **+26 pts** |
+
+Break-even is 67%; the separation bar was +10 points. Every group lands on **bar (b) — the
+withheld papers are well below break-even and the map discriminates.** The registered
+prediction was **(c)**, and (c) is refuted.
+
+### 19.3 The prediction I got wrong, and the reason is familiar
+
+I predicted the withheld rate would sit at Sonnet's base rate and that there would be no
+separation. **Half of that was right**: withheld is 26% against a base rate of 22%, so the
+withheld arm alone says nothing, exactly as registered.
+
+What I did not predict is the **shown** arm at 57% — the map lifts the shown set **35 points
+above Sonnet's base rate**. I reasoned about one arm, observed it was unremarkable, and
+concluded the map separated nothing. That is precisely the §18.4 error, one section later: a
+number read without its control.
+
+The difference is that the pre-registration made me buy the control anyway, on an argument about
+interpretability rather than because I expected it to matter. So this time the mistake cost $2
+and a paragraph instead of a retraction. **That is the entire value of writing the bars down
+first, demonstrated on myself.**
+
+### 19.4 CORRECTION — §18.2's headline reverses sign
+
+| | GPT-5.5 labels | Sonnet labels |
+|---|---|---|
+| scientific-12 | the stage is worth **−1.250**/case | **+3.750**/case |
+| legacy-25 | −0.080/case | **+2.080**/case |
+
+§18.2 said: *"the fine-scale stage costs the twelve scientific cases 1.25 net@2 each on this
+benchmark. `net@2` is **defined** on judge labels, so this holds whatever the judge's validity —
+it is a statement about the benchmark."*
+
+Every word of that is still true, and presenting it as the safe half was the error. I labelled
+it **"true by construction"** and let that stand in for *durable*, in a section whose whole point
+was that the other claim was fragile. **A quantity can be true by construction and still reverse
+under the construction's one free parameter.** Under Sonnet the stage is worth +3.750/case on
+exactly the population where GPT priced it at −1.250.
+
+**Read the sign change, not the levels.** Sonnet's base rate is 22% against GPT's 40%, so every
+absolute net@2 falls under Sonnet by construction and the negative Sonnet totals (−14 scientific,
+−57 legacy) are **not** evidence that the band should be dropped. What survives the strictness
+offset is that the two judges disagree about the *sign* of a shipped stage's contribution.
+
+### 19.5 The domain asymmetry inverts as well
+
+| AUC of `finescale_p` | against GPT | against Sonnet |
+|---|---|---|
+| scientific-12 | 0.678 | **0.751** |
+| legacy-25 | 0.755 | **0.683** |
+
+§18.2 reported the map as discriminating *worse* on scientific software (0.678 vs 0.755). Under
+Sonnet the ordering reverses and it discriminates *better* there (0.751 vs 0.683). **That
+particular asymmetry is a property of the judge, not of the map**, and §18.2's ECE gap
+(0.207 vs 0.120) should be read the same way until someone re-derives it under both.
+
+This does **not** touch §18.5 or §16.5. The gate's score-3 emission asymmetry uses no labels at
+all, and §17.3 showed §16.5's version rests on judge-1s, which transfer 95% of the time. The
+finding that inverts is the one that lived in the score-2 band — the cell where kappa here is
+**0.199**, against 0.507 globally. Every fragile claim in §17–§19 has come from that cell, and
+that is now measured rather than suspected.
+
+### 19.6 What this establishes
+
+- **Keep the fine-scale stage.** The two live proposals to drop it — §15.5's `--rr-sweep min>=2`
+  observation and §18.2's −1.250 — both rested on GPT levels and both invert. Under an
+  independent judge the stage is worth +3.750/case on scientific software.
+- **The map does real work.** A +31-point separation between what it shows and what it withholds,
+  under a judge that never saw the fit, with AUC ≈ 0.70 under both judges. A separation, which is
+  the durable kind of finding here.
+- **The band is where the judges part company** (kappa 0.199 vs 0.507). Any future claim about
+  score-2 papers should be treated as requiring both judges by default, not as needing a second
+  opinion only when it looks surprising.
+
+### 19.7 How good was the cheap projection?
+
+§18.2 projected the withheld sets through §17.2's marginal transition rates:
+
+| | projected | actual |
+|---|---|---|
+| scientific-12 | 19% | **21%** |
+| legacy-25 | 16% | **30%** |
+
+Close enough to be a screen on one population and 14 points out on the other. **Use it to decide
+what to buy, never to stand in for the purchase** — and note that it got the primary roughly
+right while missing the thing that actually decided the question, because it was only ever
+applied to the withheld arm.
 
 ---
 ## Appendix

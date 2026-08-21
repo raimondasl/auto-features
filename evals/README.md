@@ -14,6 +14,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §4.2 headline provenance | `run_judge_eval.py`, `noise_floor.py` |
 | §4.3 benchmark, judge, baseline | `harness.py`, `judge.py`, `baseline.py`, `verify.py`, `build_fixtures.py` |
 | §4.4 judge validity | `second_judge.py` (κ), `mine_adoptions.py` (adoption ground truth) |
+| is the fine-scale stage right to withhold? (RESEARCH-scientific-software.md §19) | `second_judge_band.py` (~$3; Sonnet over all 324 score-2 band papers — the run that reversed §18.2's sign) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -581,6 +582,19 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  second_judge_band.py
+                     ~$3: Sonnet over all 324 score-2 band papers of the 37-case cohort-3
+                     session, after verifying all 34 prompt hashes. Pre-registered bars, and
+                     the result landed on the one the prediction ruled out. The withheld
+                     papers are 26% actionable against a 67% break-even, but the SHOWN ones
+                     are 57% against Sonnet's 22% base rate -- a +31 point separation, so the
+                     map discriminates. Recomputing net@2 under each judge REVERSES the sign
+                     of the stage's value (-1.250/case under GPT, +3.750 under Sonnet on the
+                     scientific 12), which is why "true by construction" is not the same as
+                     "durable". Judges the shown arm too, on purpose: a withheld-only number
+                     sits at Sonnet's base rate and cannot be read. kappa on this band is
+                     0.199 against 0.507 globally -- the band is where the judges part.
   mine_adoptions.py  $0 + ~$1, P6: ground truth no model produced. An arXiv id in a repo's
                      docs at HEAD and absent 24 months earlier is a technique it actually
                      adopted. 31 such adoptions across 6 repos; the judge calls 61% of them
