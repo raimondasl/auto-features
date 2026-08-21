@@ -17,6 +17,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | is the fine-scale stage right to withhold? (RESEARCH-scientific-software.md §19) | `second_judge_band.py` (~$3; Sonnet over all 324 score-2 band papers — the run that reversed §18.2's sign) |
 | is a newly added source any good? (RESEARCH-scientific-software.md §21.2) | `second_judge_arm.py` (Sonnet over the papers an arm SHOWED, split by origin — within-arm, so no cross-session pairing) |
 | why does a new source take half the digest? (RESEARCH-scientific-software.md §22.2) | `displacement_probe.py` ($0, judge-free; re-ranks a frozen pool under each absent-category mode) |
+| is the 15-paper window too small? (RESEARCH-scientific-software.md §24) | `window_arm.py` (~$5-11; ranks 16-30 under both judges, kill check first) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -584,6 +585,16 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  window_arm.py
+                     ~$5-11: analyses a --rr-window 30 arm to answer whether output.top_n=15
+                     truncates good material. Runs a KILL CHECK first and exits before
+                     printing any number if it fails: the re-run must overlap the shipped
+                     window by >=11/15, because the gate is sampled and exact reproduction is
+                     not available. Per-paper endpoint (90 vs 90), both judges. RESULT (§24):
+                     a sharp cliff at rank 15 -- 0.822 -> 0.344 under GPT, 0.489 -> 0.144
+                     under Sonnet, Fisher p~0 both -- so 15 cuts where the quality does and
+                     raising top_n costs about a point per paper added.
 
   displacement_probe.py
                      $0, offline, judge-free: re-ranks a frozen pool under each

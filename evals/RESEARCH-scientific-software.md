@@ -2688,6 +2688,113 @@ that motivates this may be specific to a domain with two live sources. And one d
 repositories, which is the standing §5 warning.
 
 ---
+## 24. RESULT — the window is well placed, and the intuition that motivated §23 was wrong (2026-08-21)
+
+Run 2026-08-21 against §23. `--rr-window 30` over the six bio cases, same seeded pool, no
+collection. **Both judges agree, and the answer is NULL.**
+
+### 24.1 The kill check passed
+
+Mean overlap with the shipped window **13.8 of 15** against a bar of 11 (`bio-align` 12,
+`bio-singlecell` 15, the rest 14). The gate is sampled so exact reproduction was never the bar;
+this is the same draw, and ranks 1–15 stand in for the shipped window.
+
+### 24.2 PRIMARY — a sharp cliff exactly where the window sits
+
+| judge | ranks 1–15 | ranks 16–30 | gap |
+|---|---|---|---|
+| GPT-5.5 | 74/90 = **0.822** [0.731, 0.888] | 31/90 = **0.344** [0.254, 0.447] | **+47.8 pts** |
+| Sonnet | 44/90 = **0.489** [0.388, 0.590] | 13/90 = **0.144** [0.086, 0.232] | **+34.4 pts** |
+
+Fisher p ≈ 0 under both. The WIN bar was a gap of ≤ 15 points; the observed gap is **more than
+twice that under the stricter judge and more than three times it under the benchmark's own**.
+
+**NULL: rank 15 cuts where the quality does.** The ranker is doing real work, and this is the
+first direct measurement of that — every previous number described papers the ranking had already
+selected.
+
+**A correction to §23's own framing.** §23.1 motivated this arm by noting that 79% of the window
+is actionable and `bio-scvi` is 15/15, and read that as *the window may be truncating good
+material*. It is the opposite: a high in-window rate is what good ranking looks like, not evidence
+of an abundance being cut off. The same number supports both readings and only the measurement
+separates them.
+
+**One methodological note, because it changed a number.** The first pass reported Sonnet at 1–15
+as 0.631 on 65 of 90 papers — but those 65 were §21's *shown* papers, so the band was selected and
+the rate biased upward. Judging the remaining 25 (≈$0.25) dropped it to **0.489**. Comparing a
+selected band against an unselected one would have inflated the gap by 14 points.
+
+### 24.3 What this settles, in the metric's own arithmetic
+
+`net@2` pays `3p − 2` per shown paper:
+
+| band | p | net@2 per paper shown |
+|---|---|---|
+| ranks 1–15 | 0.822 | **+0.466** |
+| ranks 16–30 (GPT) | 0.344 | **−0.968** |
+| ranks 16–30 (Sonnet) | 0.144 | −1.568 |
+
+**Raising `output.top_n` is strictly harmful on this evidence** — every paper added past 15 costs
+about a point. That is a decision, not a direction for future work.
+
+### 24.4 TERTIARY — the quota is a wash, and it was free to find out
+
+Merit order against an 8-arXiv/7-Europe-PMC quota over the same labelled 30:
+
+| judge | merit order | quota | delta |
+|---|---|---|---|
+| GPT-5.5 | 74/90 (0.822) | 70/88 (0.795) | −0.027 |
+| Sonnet | 44/90 (0.489) | 45/88 (0.511) | +0.022 |
+
+Opposite signs, both tiny. **A per-source quota neither beats nor loses to merit order**, so
+§22.3's "portfolio versus merit order" question is answered in the least interesting way
+available: it does not matter. No quota should be built.
+
+### 24.5 Where the displaced papers actually went, and the tension that remains
+
+Of §21.4's 19 displaced papers — 95% actionable — in the 30-deep re-run:
+
+| landed at | count |
+|---|---|
+| ranks 1–15 | 1 |
+| ranks 16–30 | 5 |
+| **below rank 30** | **13** |
+
+So adding a source did not nudge good papers a few slots; it moved most of them **out of the top
+thirty of a thousand-paper pool**. Both things are now measured and they sit in tension:
+
+- Within a fixed pool, the ranking is sound and 15 is the right cut (§24.2).
+- Across pools, a paper's rank is **not stable** — doubling the pool moved 13 papers from a
+  digest's Top Picks to below rank 30.
+
+The second is not a window problem and cannot be fixed by showing more. It is the open residue of
+this thread, and it is **not** pre-registered.
+
+### 24.6 Predictions, scored
+
+1. *"Ranks 16–30 will clear 64%."* **WRONG** — 34% and 14%.
+2. *"The drop will be under 10 points under GPT."* **WRONG** — 47.8, nearly five times the
+   predicted maximum.
+3. *"Sonnet lower in absolute terms, direction holds."* **Correct.**
+4. *"A quota will not beat merit order."* **Correct.**
+
+Two of four, for the third arm running. What is worth recording is that §23.5's calibration note
+named predictions 1 and 2 specifically as "reasoning from a mechanism without checking what it
+competed against" — and those are exactly the two that failed. **The failure mode was correctly
+identified in advance and predicting it did not prevent it.** Writing the bar down is what made
+the failure legible; it did not make the reasoning better.
+
+### 24.7 Cost
+
+**70 GPT-5.5 judge calls and 56 Sonnet calls**, measured from cache writes — under §23.6's
+estimate of 90 + 90, because ranks 1–15 cache-hit as predicted and some rank-16–30 papers had been
+judged in earlier arms. Plus 300 Haiku gate calls, negligible. **Estimate $5–11**, from call
+counts rather than an invoice.
+
+Everything else in the displacement thread — §22's probe, §23's kill-clause check, §24.4's quota
+comparison — cost **$0**.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
