@@ -354,9 +354,11 @@ class TestProfileCommand:
         result = CliRunner().invoke(cli, ["profile", "--config", str(config_file)])
 
         assert result.exit_code == 0
-        assert "Consider adding 'biorxiv'" in result.output
+        assert "Consider adding 'europepmc'" in result.output
+        # The measured COST travels with the suggestion, not only the benefit.
+        assert "competes for digest slots" in result.output
         # A suggestion, not an activation: the config is untouched.
-        assert "biorxiv" not in config_file.read_text(encoding="utf-8")
+        assert "europepmc" not in config_file.read_text(encoding="utf-8")
 
     def test_no_suggestion_when_the_source_is_already_enabled(self, tmp_path: Path) -> None:
         (tmp_path / "README.md").write_text(
@@ -366,7 +368,7 @@ class TestProfileCommand:
         (tmp_path / "requirements.txt").write_text("scanpy\nanndata\n", encoding="utf-8")
         config_file = tmp_path / ".reporadar.yml"
         config_file.write_text(
-            f"repo_path: {tmp_path}\nsources: [arxiv, biorxiv]\n", encoding="utf-8"
+            f"repo_path: {tmp_path}\nsources: [arxiv, europepmc]\n", encoding="utf-8"
         )
 
         result = CliRunner().invoke(cli, ["profile", "--config", str(config_file)])

@@ -21,11 +21,23 @@ def _profile(
 
 
 class TestSuggestSources:
-    def test_bio_packages_suggest_biorxiv(self) -> None:
+    def test_bio_packages_suggest_europepmc(self) -> None:
         profile = _profile(anchors=["scanpy", "anndata", "numpy"])
         suggestions = suggest_sources(profile, ["arxiv"])
-        assert [s.source for s in suggestions] == ["biorxiv"]
+        assert [s.source for s in suggestions] == ["europepmc"]
         assert "scanpy" in suggestions[0].evidence
+
+    def test_bio_packages_never_suggest_the_broken_biorxiv_adapter(self) -> None:
+        """The defect this correction is for, stated as an invariant.
+
+        `biorxiv`'s details endpoint is a date-interval listing, so under the product's own
+        default lookback it returns 2013-2016 postings rather than papers about the repo.
+        Recommending it sent bio users — exactly the users this module exists for — to the one
+        channel that could not answer them. §21 measured `europepmc` instead.
+        """
+        for anchors in (["scanpy"], ["biopython"], ["anndata", "scanpy"]):
+            sources = [s.source for s in suggest_sources(_profile(anchors=anchors), ["arxiv"])]
+            assert "biorxiv" not in sources, f"{anchors} still routed to the broken adapter"
 
     def test_systems_packages_suggest_dblp(self) -> None:
         profile = _profile(anchors=["duckdb"], domains=["databases"])
@@ -41,12 +53,24 @@ class TestSuggestSources:
         assert "rate-limited" in suggestion.caveat
         assert "year" in format_suggestion(suggestion)
 
-    def test_biorxiv_suggestion_carries_its_caveat(self) -> None:
-        # bioRxiv's cost is coverage, not rate limits: no keyword search, so a run
-        # pages the whole window and a wide lookback can truncate.
+    def test_europepmc_suggestion_carries_the_cost_that_was_measured(self) -> None:
+        """Europe PMC's cost is not rate limits or coverage — it is DISPLACEMENT.
+
+        §21.4: it supplied over half of every candidate pool and pushed 44% of the arXiv-only
+        run's Top Picks out of the window. A user told only "it adds biology" would be
+        surprised when papers they were watching disappear, so the caveat says so.
+        """
         (suggestion,) = suggest_sources(_profile(anchors=["biopython"]), ["arxiv"])
-        assert "no keyword search" in suggestion.caveat
+        assert "competes" in suggestion.caveat
+        assert "44%" in suggestion.caveat
         assert "Note:" in format_suggestion(suggestion)
+
+    def test_the_europepmc_reason_cites_the_measurement_not_a_hope(self) -> None:
+        """The old text said "coverage, not a measured improvement". It is measured now, and
+        the claim is precision-matching rather than net@2 improvement, which is unresolved."""
+        (suggestion,) = suggest_sources(_profile(anchors=["biopython"]), ["arxiv"])
+        assert "measured" in suggestion.reason
+        assert "precision" in suggestion.reason
 
     def test_quiet_for_a_realistic_serving_stack(self) -> None:
         # torch + fastapi + redis + grpcio + kubernetes is a model-serving repo whose
@@ -90,17 +114,17 @@ class TestSuggestSources:
 
     def test_two_keywords_clear_the_bar(self) -> None:
         profile = _profile(keywords=["genomics pipeline", "rna sequencing"])
-        assert [s.source for s in suggest_sources(profile, ["arxiv"])] == ["biorxiv"]
+        assert [s.source for s in suggest_sources(profile, ["arxiv"])] == ["europepmc"]
 
     def test_never_suggests_an_active_source(self) -> None:
         profile = _profile(anchors=["scanpy", "duckdb"])
-        active = ["arxiv", "biorxiv", "dblp"]
+        active = ["arxiv", "europepmc", "dblp"]
         assert suggest_sources(profile, active) == []
 
     def test_source_signals_count_as_evidence(self) -> None:
         # Source scanning (profiler.scan_source) surfaces patterns the manifests miss.
         profile = _profile(signals=["genome assembly", "crispr screen"])
-        assert [s.source for s in suggest_sources(profile, ["arxiv"])] == ["biorxiv"]
+        assert [s.source for s in suggest_sources(profile, ["arxiv"])] == ["europepmc"]
 
     def test_both_sources_ranked_by_evidence_strength(self) -> None:
         profile = _profile(
@@ -109,11 +133,11 @@ class TestSuggestSources:
             domains=["databases"],
         )
         sources = [s.source for s in suggest_sources(profile, ["arxiv"])]
-        assert sources == ["biorxiv", "dblp"]  # more bio evidence -> listed first
+        assert sources == ["europepmc", "dblp"]  # more bio evidence -> listed first
 
     def test_anchor_matching_ignores_separators_and_case(self) -> None:
         profile = _profile(anchors=["Scikit_Bio"])
-        assert [s.source for s in suggest_sources(profile, ["arxiv"])] == ["biorxiv"]
+        assert [s.source for s in suggest_sources(profile, ["arxiv"])] == ["europepmc"]
 
     def test_empty_profile_is_silent(self) -> None:
         assert suggest_sources(_profile(), ["arxiv"]) == []
@@ -123,7 +147,7 @@ class TestFormatSuggestion:
     def test_includes_source_reason_and_evidence(self) -> None:
         (suggestion,) = suggest_sources(_profile(anchors=["biopython"]), ["arxiv"])
         line = format_suggestion(suggestion)
-        assert "biorxiv" in line
+        assert "europepmc" in line
         assert "bioRxiv/medRxiv" in line
         assert "biopython" in line
         assert "\n" not in line  # stays a single CLI line
