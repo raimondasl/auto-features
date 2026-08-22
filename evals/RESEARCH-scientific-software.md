@@ -3612,6 +3612,85 @@ against GPT labels could ever have found it.
   observation — and that is a pre-registration, not a next step.
 
 ---
+## 33. The excluded population, profiled at last — and §4's blind-spot claims are half stale (2026-08-22)
+
+§14.2 excluded htslib, kallisto, tblite, kim-api and LAMMPS from cohort 3, and §15.6 has carried
+that as the standing caveat on every published figure. §14.11 adds four ecosystems never profiled
+at all. **Profiling is free**, so this is the cheapest step into that gap, and `evals/blindspot_profiles.py`
+runs it at **$0** with no judge and no paper pool.
+
+**§4's recorded claims are the prior**, which is what makes this falsifiable rather than a
+description: they were written under the pre-2026-08-19 profiler, and §10 has since added `doc/`
+reading, release-note exclusion, `setup.cfg`/`environment.yml` parsing and MyST stripping. §11
+re-measured the 25 benchmark repos; these were never re-profiled.
+
+### 33.1 The blind-spot exhibits are no longer blind
+
+| repo | §4's claim | now |
+|---|---|---|
+| LAMMPS | "blind-spot exhibit, `doc/` unread" | `fix, command, compute, lammps, atom, style, pair, energy` |
+| tblite | "blind-spot exhibit, `doc/` unread" | `ase, properties, tblite, python, xtb, available` |
+| kim-api | "blind-spot exhibit, `doc/` unread" | `kim, set, model, simulator, endlink, pm` |
+
+**§10's D3 fixed the content problem.** All three now draw real domain vocabulary — LAMMPS's are
+its actual command names, tblite's are its actual chemistry. §4's "the profiler cannot see these"
+is **false as of today**, and §7's table row and the demo's "blind-spot exhibits" slide both rest
+on it.
+
+### 33.2 But two of §4's specific defects survive every one of §10's nine fixes
+
+| repo | §4's claim | still true? |
+|---|---|---|
+| htslib | "draws `giab007` as a query" | **yes** — `giab007` is its 5th keyword |
+| kallisto | "loses its own name to `__kallisto__`" | **yes** — its keywords contain no `kallisto` |
+
+### 33.3 The structural gap: 8 of 9 have **zero anchors**, and the cause is exact
+
+| repo | anchors | manifest it ships | profiler reads it? |
+|---|---|---|---|
+| tblite | 6 | `pyproject.toml` | **yes** |
+| seurat | **0** | `DESCRIPTION` (R) | no |
+| diffeq-jl | **0** | `Project.toml` (Julia) | no |
+| noodles | **0** | `Cargo.toml` (Rust) | no |
+| nf-core-rnaseq | **0** | `nextflow.config` | no |
+| kallisto, kim-api | **0** | `CMakeLists.txt` | no |
+| htslib | **0** | `configure.ac` | no |
+| LAMMPS | **0** | none of the known names | — |
+
+The profiler reads `pyproject.toml`, `requirements.txt`, `setup.cfg` and `package.json` — Python
+and JavaScript, nothing else. **The only repository here with anchors is the only one shipping a
+Python manifest.** Zero anchors also means zero domains, because `PACKAGE_DOMAIN_MAP` is keyed on
+package names.
+
+So "compiled, manifest-less" (§14.2) is half right and the half that is wrong is the actionable
+half: **four of these ship a perfectly standard, trivially parseable dependency manifest and the
+profiler reads none of them.** That is a concrete gap with a known blast radius, not a research
+question.
+
+### 33.4 New defects, visible only now that these profile at all
+
+- **VCS and branch names as keywords** — `kallisto`: `devel`, `master`; `seurat`: `branch`, `v5`.
+- **Build tooling as keywords** — `noodles`: `cargo`, `crates`.
+- **Real vocabulary that is useless as a query** — LAMMPS's `fix`, `command`, `compute`, `style`,
+  `pair` are genuinely its command names *and* are generic English. This is a different failure
+  from an empty profile and D3 could not have anticipated it, because before D3 these repos had no
+  keywords to be wrong.
+
+### 33.5 What this licenses, and what it does not
+
+- **Not licensed:** any claim that these repositories work. No digest was produced, no paper was
+  fetched, no judge ran. §15.6's caveat stands in full.
+- **Licensed:** correcting §4 and §7, which currently tell a reader that the profiler cannot see
+  LAMMPS, tblite or kim-api. It can.
+- **Licensed and concrete:** a manifest-parsing fix for `DESCRIPTION`, `Project.toml`,
+  `Cargo.toml` and `nextflow.config`. Four formats, four ecosystems, and the measurement above is
+  the blast radius — it would move 4 of these 9 from zero anchors to some, and nothing else in the
+  benchmark, since no benchmark case ships any of those files.
+- **Still open:** whether any of it produces a usable digest. That is a judged cohort and it should
+  not be funded until the anchor gap is closed, because running it now would measure the profiler's
+  known blind spot rather than the pipeline.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
