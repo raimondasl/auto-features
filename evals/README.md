@@ -19,6 +19,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | why does a new source take half the digest? (RESEARCH-scientific-software.md §22.2) | `displacement_probe.py` ($0, judge-free; re-ranks a frozen pool under each absent-category mode) |
 | is the 15-paper window too small? (RESEARCH-scientific-software.md §24) | `window_arm.py` (~$5-11; ranks 16-30 under both judges, kill check first) |
 | why does gate-score 3 mean something different on scientific software? (RESEARCH-scientific-software.md §26) | `score3_mechanism.py` ($0 primary; refuted the tool-name mechanism §0 had asserted since §5) |
+| does adding a source reorder the papers already there? (RESEARCH-scientific-software.md §27) | `rank_stability.py` ($0, judge-free; Kendall tau over the shared papers, with the cause isolated) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -586,6 +587,16 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  rank_stability.py
+                     $0, offline, judge-free: re-ranks the control and treatment pools and asks
+                     whether adding a source changes the ORDER of the papers that were already
+                     there -- which a bioRxiv preprint has no bearing on. RESULT (§27): mean
+                     Kendall tau 0.906, but only 58/90 (64%) of the control top-15 survives in
+                     the treatment's arXiv-only top-15, so the churn concentrates where a digest
+                     is drawn from. Cause isolated: with hybrid RRF off the score is per-paper
+                     and tau is exactly 1.0000, 0 discordant of ~140k. RRF is the whole of it --
+                     a design consequence of rank fusion, not a bug, now measured.
 
   score3_mechanism.py
                      $0 primary (~$0.40 with --validity): tests WHY gate-score 3 behaves
