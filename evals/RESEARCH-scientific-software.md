@@ -3143,6 +3143,127 @@ the same shape", which §26.3 and §26.5 both confirm. It is the only member of 
 survived.
 
 ---
+## 28. PRE-REGISTERED — if not the name match, then what? (2026-08-21)
+
+§26 refuted the explanation this project had used since §5. The misfires remain. This replaces
+the refuted mechanism with two candidates and specifies how to test them. **Nothing spent.**
+
+### 28.1 Two hypotheses, and they are not the same one
+
+The refuted story was *"someone used your tool."* Looking at the non-actionable score-3 papers
+that do **not** name the tool:
+
+```
+peft           "LoRA: Low-Rank Adaptation of Large Language Models"
+bio-align      "Minimap and miniasm: fast mapping and de novo assembly"
+mat-featurize  "Representations of Materials for Machine Learning"
+mat-mlip       "Towards Foundation Models for Materials Science"
+```
+
+These split into two different things, and conflating them is how §26's mechanism survived
+twenty sections:
+
+- **H-A — the repository already has it.** LoRA *is* what `peft` implements; Minimap is
+  minimap2's predecessor. A **repo-relative** property.
+- **H-B — the paper proposes nothing to have.** Surveys, benchmarks and position papers have
+  maximal topical overlap and zero portable method. A **paper-intrinsic** property, true of the
+  paper whatever repository is asking.
+
+**Three of these four are H-B, not H-A**, which is the opposite of the emphasis §26.5 gave the
+lead. The mechanism is plausible for both: the gate is asked "would this help improve this repo?"
+and appears to read topical overlap as improvement value. A paper describing exactly what the repo
+does, or describing the field without proposing anything, maximises the first and has none of the
+second.
+
+### 28.2 A predictor dropped before it was used
+
+An earlier sketch of this section proposed "published before the repository existed" as a cheap
+proxy for H-A. **That is wrong and it is not a close call.** A paper predating a repository says
+nothing about whether its maintainer knows it — surfacing exactly those papers is most of what
+this product is *for*. If publication date implied prior knowledge, RepoRadar's premise would be
+false. Recorded rather than quietly deleted, because it was one line away from being a
+pre-registered endpoint.
+
+### 28.3 A divergence found while designing this
+
+**The eval harness never applies the already-cited rule; the product does.**
+`profiler.cited_arxiv_ids_of` feeds `cli.py:741` and `profiler.py:939`, and neither
+`run_judge_eval.py` nor `harness.py` mentions it — checked. So every benchmark number in this
+document describes a pipeline that shows papers a real user would never be offered.
+
+§9.0 noticed this in a narrow form and executed the rule by hand over six checkouts (4 of 69
+papers removed, 3 of them self-papers). It was measured once, reported, and never wired in. That
+makes the size of the gap a live question rather than an aside, and it is the tertiary below.
+
+### 28.4 Population, and the circularity problem stated plainly
+
+All **85** unique labelled gate-score-3 papers (55 scientific, 30 ML/CS), as §25.3.
+
+**These data generated the hypothesis.** I have seen the titles of 5 of the 13 non-actionable
+papers — they are quoted in §26.5 and above. The predictors below are specified **without looking
+at the other 8**, and that is the most this design can offer.
+
+So: **this arm is hypothesis-generating, not confirmatory.** A result here does not license
+building anything. What it licenses is a held-out confirmation on a population that did not
+generate the hypothesis — the legacy-25 re-run, or fresh cases — and §9.4's warning is the reason
+that step is mandatory rather than nice to have: *"with 9 misses, any variant that 'works' after
+three attempts is fitting this set."* This is the fourth swing at that set.
+
+### 28.5 Endpoints
+
+**PRIMARY (H-B, ~$0.30)** — does "proposes no new method" predict non-actionability among the 85?
+Classified by an LLM with a **fixed prompt written before the labels are joined**, asking only
+*"does this abstract propose a new method, technique, model or algorithm — or does it survey,
+benchmark, or position without proposing one?"* That is a different question from the gate's, and
+deliberately: it is not a re-judgement of actionability. The prompt ships in the script so it
+cannot be tuned after the fact.
+
+**SECONDARY (H-A, $0)** — does `cited_arxiv_ids_of` membership predict non-actionability? The
+shipped rule, run as-is over the 37 checkouts, no tuning. Its known incompleteness (§9.0: it
+misses `scvi-tools` and `mace`, which do not cite themselves) is a property under test, not a
+defect to patch first.
+
+**TERTIARY ($0) — how much of the measured score-3 problem does the product already solve?** Of
+the 13 non-actionable score-3 papers, how many would `cited_arxiv_ids_of` have removed before the
+user saw them? This is a benchmark-versus-product number, not a repair.
+
+### 28.6 Bars
+
+- **WIN (either hypothesis):** the predictor raises the non-actionable rate by **≥ 20 points**,
+  direction holding under both judges. Then it goes to held-out confirmation — **not** to a repair.
+- **NULL:** under 20 points, or the CI spans zero. Both replacements for §26's mechanism fail and
+  the misfires stay unexplained, which after four attempts is itself worth recording.
+- **KILL:** if the LLM classifier's own labels correlate with the *judge* score more strongly than
+  with the *concept* it was asked about — checked by hand on 10 papers — it is re-judging
+  actionability under another name and the primary is void.
+
+### 28.7 Predictions
+
+1. **H-B will clear the bar; H-A will not.** Three of the four known examples are H-B, and H-A's
+   strongest cases are self-papers, which §9.0's rule already removes in the product.
+2. **The tertiary will be small** — under half the 13 — because §9.0 found the rule removes 4 of
+   69 papers and misses self-citations on two of six repos.
+3. Both judges will agree on the primary's direction.
+
+**Calibration.** Four arms running, my predictions have gone 2, 2, 2 and 1 of 4, and naming the
+failure mode in advance has never once prevented it. Prediction 1 is again a mechanism argued from
+a handful of examples — the same shape that produced §26's refutation and §22's dead confound. The
+difference this time is §28.4: the design already concedes the result cannot license a build.
+
+### 28.8 Cost
+
+**~$0.30** for the primary's classification pass; the secondary and tertiary are **$0**; outcome
+labels are all bought. Held-out confirmation is **not funded here** and should be sized after the
+primary reports.
+
+### 28.9 What this does not measure
+
+Whether either mechanism would survive on repositories that did not generate it — that is the
+held-out step and it is the whole point. Whether a repair helps. And H-A's hardest case: a repo
+that implements a method **without citing it anywhere**, which no free predictor reaches and which
+§9.0's `scvi-tools` and `mace` rows suggest is not rare.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
