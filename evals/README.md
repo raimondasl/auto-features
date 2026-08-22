@@ -22,6 +22,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | does adding a source reorder the papers already there? (RESEARCH-scientific-software.md §27) | `rank_stability.py` ($0, judge-free; Kendall tau over the shared papers, with the cause isolated) |
 | does the repo already citing a paper make it a dud? (RESEARCH-scientific-software.md §29) | `already_have.py` ($0; found the shipped already-cited rule is net-negative on the score-3 band) |
 | do score-3 misfires propose no method? (RESEARCH-scientific-software.md §30) | `proposes_method.py` (~$0.40; NULL -- only 4 of 85 propose nothing, and my examples were mis-categorised) |
+| does the benchmark measure the product? (RESEARCH-scientific-software.md §32) | `cited_rule_audit.py` ($0; the headline stands, but the rule's sign flips with the judge) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -589,6 +590,18 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  cited_rule_audit.py
+                     $0, §31's validity audit: the eval harness never applies the already-cited
+                     rule the PRODUCT applies, so every published figure describes a pipeline
+                     that shows papers a user never sees. RESULT (§32): it touches 10 of 310
+                     Top Picks and moves the headline -0.027 net@2/case under GPT, +0.297 under
+                     Sonnet -- both far under the 1.04 floor, so §16.6's +5.70/0.894 STANDS and
+                     the divergence is a footnote. But the two judges disagree about the rule's
+                     SIGN (-1 vs +11), and the disagreement is entirely about self-papers:
+                     Sonnet scores all five 0 or 1, GPT scores three of them 3. Prints the
+                     published figure beside the rebuilt one, which caught a 33-vs-37
+                     denominator bug in this script before it reached the writeup.
 
   proposes_method.py
                      ~$0.40, §28's primary (H-B): are the score-3 misfires papers that

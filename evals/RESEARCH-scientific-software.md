@@ -3523,6 +3523,95 @@ there should be read as the base rate doing the work, not as insight.
 **$0.** Every label is bought, every checkout is on disk, and the rule is a file scan.
 
 ---
+## 32. RESULT — the divergence is a footnote, and the rule's merit is judge-dependent (2026-08-22)
+
+Run 2026-08-22 against §31, **$0**. `evals/cited_rule_audit.py`.
+
+### 32.1 PRIMARY — the published numbers stand
+
+| | net@2/case | precision | shown |
+|---|---|---|---|
+| GPT-5.5, as published | **+5.703** | **0.894** | 310 |
+| GPT-5.5, with the rule applied | +5.676 | 0.900 | 300 |
+| | **Δ −0.027/case** | +0.006 | |
+| Sonnet, as published | −2.000 | 0.587 | 310 |
+| Sonnet, with the rule applied | −1.703 | 0.597 | 300 |
+| | **Δ +0.297/case** | +0.010 | |
+
+The bar was the project's 1.04 net@2/case noise floor. **Both deltas are well under it**, so
+§16.6's **+5.70 / 0.894** stands exactly as published and §28.3's harness/product divergence is a
+footnote rather than a restatement. The rule touches **10 of 310 Top Picks (3.2%)**.
+
+The GPT row reproduces §16.6 to the digit, which is what makes the rest of the table readable.
+
+### 32.2 A bug the reproduction check caught in itself
+
+The first run printed **+6.394**, not +5.70 — because it divided by the 33 cases *holding* a Top
+Pick rather than the 37 in the population. **Four cases returned nothing at all** (§16.4: linter,
+webdev, http, cli), and an abstention scores a legitimate 0 that belongs in the mean.
+
+The script prints the published figure beside the rebuilt one for exactly this reason, and it is
+the second time this session that a self-check has caught the author rather than the subject
+(§23.4 was the first). A reconstruction that silently disagrees with the number it is auditing
+would have made every delta below meaningless.
+
+### 32.3 SECONDARY — the two judges disagree about the rule's sign
+
+| | removed | actionable | not | net@2 of removing them |
+|---|---|---|---|---|
+| GPT-5.5 | 10 | 7 | 3 | **−1.0** over 37 cases (−0.027/case) |
+| Sonnet | 10 | 3 | 7 | **+11.0** over 37 cases (+0.297/case) |
+
+Same ten papers. One judge says the rule costs the digest; the other says it helps, by eleven
+times as much. **The rule's merit is not established and this run does not settle it.**
+
+### 32.4 The disagreement is not diffuse — it is about self-papers
+
+| paper | GPT | Sonnet | what it is to the repository |
+|---|---|---|---|
+| *Minimap2: pairwise alignment* | 1 | **0** | its own paper |
+| *CHGNet: Pretrained universal potential* | **3** | **0** | its own paper |
+| *Updates to the DScribe Library* | 1 | **0** | its own paper |
+| *PyG 2.0* | **3** | **0** | its own paper |
+| *Billion-scale similarity search* (FAISS) | **3** | 1 | its own paper |
+| *LoRA* | 1 | 1 | what `peft` implements |
+| *VeRA* | 3 | 1 | a `peft` method |
+| *Rank Stabilization Scaling* | 3 | 2 | a `peft` method |
+| *Projector-based force constants* | 3 | 2 | a `phonopy` method |
+| *PLAID* | 3 | 3 | `ColBERT`'s serving engine |
+
+**Sonnet scores every one of the five self-papers 0 or 1. GPT scores three of them 3.** Score 0 in
+the shared rubric is "unrelated or not applicable" — an odd verdict on a repository's own paper
+unless the model is reading "can this *improve* the repo?" strictly, in which case the answer for
+a paper describing what the repo already is happens to be *no*.
+
+**That is the "you already have this" mechanism §29 and §30 failed to establish — and one judge
+appears to apply it consistently.** Recorded as an observation over five papers, post-hoc, not as
+a finding. But it is a better lead than either arm produced, and it suggests the mechanism was
+real and the *outcome variable* was the problem: GPT does not price it, so no predictor built
+against GPT labels could ever have found it.
+
+### 32.5 Predictions, scored
+
+1. *"|Δ| will be under the floor."* **Correct** — −0.027 and +0.297 against 1.04.
+2. *"The direction will be negative for the product."* **Correct under GPT, reversed under
+   Sonnet.** The prediction did not contemplate that the sign was judge-dependent, and §31.5 had
+   flagged it as non-independent because §29.4 generated it.
+3. *"The two judges will agree on direction."* **WRONG**, and it is the interesting one.
+
+### 32.6 What this licenses
+
+- **§16.6's headline stands as published.** A footnote is owed — the harness does not apply a rule
+  the product does, worth −0.027 net@2/case — and nothing more.
+- **Do not touch the already-cited rule.** Its sign flips with the judge, and §19's lesson is that
+  levels are judge-specific while separations survive; this is a level question, so it is exactly
+  the kind that does not transfer.
+- **The live lead is §32.4**, and it is worth more than the four failed score-3 arms combined
+  because it explains why they failed: the outcome variable may not contain the effect. Testing it
+  means second-judging self-papers as a class on a population that did not generate this
+  observation — and that is a pre-registration, not a next step.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
