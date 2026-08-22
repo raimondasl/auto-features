@@ -11,7 +11,8 @@ ecosystems that have never been profiled at all: R, Julia, Rust and Nextflow.
 that `kallisto` loses its own name to `__kallisto__`, that `htslib` draws the citation id
 `giab007` as a query, and that tblite/kim-api/LAMMPS are blind-spot exhibits with `doc/` unread.
 Every one of those observations predates §10, which added `doc/` reading, release-note exclusion,
-`setup.cfg` and `environment.yml` parsing, and MyST/badge stripping. §10.4 says plainly that every
+`setup.cfg` parsing, and MyST/badge stripping — **not** `environment.yml`, which §10.2 dropped
+along with the R, Julia and Rust parsers. §10.4 says plainly that every
 published number describes the pre-2026-08-19 profiler; §11 re-measured the 25 benchmark repos
 and **these five were never re-profiled**.
 

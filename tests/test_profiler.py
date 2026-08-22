@@ -637,3 +637,92 @@ class TestCitedArxivIds:
         (tmp_path / "README.md").write_text("No papers here.", encoding="utf-8")
         assert cited_arxiv_ids_of(tmp_path) == frozenset()
         assert profile_repo(tmp_path).cited_arxiv_ids == frozenset()
+
+
+class TestNonPythonManifests:
+    """R, Julia and Rust dependency manifests, read only when nothing else declared anything.
+
+    §10.2 considered these and dropped them on a measurement: "Zero of the 19 clones has any
+    of them at the repository root." The arithmetic was right and the *scope* was the problem
+    — the 19 are Python and ML repositories. §33 profiled the population §14.2 had excluded
+    and found 8 of 9 with zero anchors, the only exception being the only one shipping a
+    Python manifest.
+    """
+
+    def test_r_description_yields_its_analysis_stack(self, tmp_path: Path) -> None:
+        (tmp_path / "DESCRIPTION").write_text(
+            "Package: Seurat\n"
+            "Depends: R (>= 4.1.0), methods, SeuratObject (>= 5.0.2)\n"
+            "Imports: cluster, cowplot,\n"
+            "    Matrix (>= 1.5-0)\n"
+            "Suggests: DESeq2, SingleCellExperiment\n"
+            "License: MIT\n",
+            encoding="utf-8",
+        )
+        anchors = _extract_anchors(tmp_path)
+        assert "seuratobject" in anchors
+        assert "matrix" in anchors, "a continuation line is part of the field above it"
+        assert "deseq2" in anchors, "R's Suggests is the analysis stack, not a test toolchain"
+        assert "methods" in anchors
+
+    def test_r_description_drops_the_language_itself(self, tmp_path: Path) -> None:
+        """Every R package depends on R, so it is the language and not a topic — and a bare
+        `r` would reach PACKAGE_DOMAIN_MAP and the query builder as one ambiguous letter."""
+        (tmp_path / "DESCRIPTION").write_text(
+            "Package: x\nDepends: R (>= 4.1.0), cluster\n", encoding="utf-8"
+        )
+        assert "r" not in _extract_anchors(tmp_path)
+
+    def test_julia_project_toml(self, tmp_path: Path) -> None:
+        (tmp_path / "Project.toml").write_text(
+            'name = "DifferentialEquations"\n\n'
+            "[deps]\n"
+            'OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"\n'
+            'StochasticDiffEq = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"\n',
+            encoding="utf-8",
+        )
+        anchors = _extract_anchors(tmp_path)
+        assert "ordinarydiffeq" in anchors
+        assert "stochasticdiffeq" in anchors
+        assert "name" not in anchors, "only [deps] keys, not top-level metadata"
+
+    def test_rust_cargo_toml(self, tmp_path: Path) -> None:
+        (tmp_path / "Cargo.toml").write_text(
+            '[dependencies]\nmemchr = "2.7"\nbytes = { version = "1" }\n'
+            '[dev-dependencies]\ncriterion = "0.5"\n',
+            encoding="utf-8",
+        )
+        anchors = _extract_anchors(tmp_path)
+        assert {"memchr", "bytes", "criterion"} <= set(anchors)
+
+    def test_rust_workspace_root_declares_no_dependencies_of_its_own(self, tmp_path: Path) -> None:
+        """noodles — nine bioinformatics format crates — yielded zero anchors from a
+        Cargo.toml listing its whole stack under `[workspace.dependencies]`."""
+        (tmp_path / "Cargo.toml").write_text(
+            '[workspace]\nmembers = ["noodles-bam", "noodles-sam"]\n\n'
+            "[workspace.dependencies]\n"
+            'noodles-bgzf = "0.30"\nlibdeflater = "1.20"\n',
+            encoding="utf-8",
+        )
+        anchors = _extract_anchors(tmp_path)
+        assert {"noodles-bgzf", "libdeflater"} <= set(anchors)
+
+    def test_an_unparseable_manifest_does_not_fail_the_profile(self, tmp_path: Path) -> None:
+        (tmp_path / "Cargo.toml").write_text("this is not [ valid toml", encoding="utf-8")
+        assert _extract_anchors(tmp_path) == []
+
+    def test_they_do_not_fire_when_a_python_manifest_declared_something(
+        self, tmp_path: Path
+    ) -> None:
+        """The gate that bounds the blast radius, and the whole reason this is shippable.
+
+        Measured before it was added: reading these unconditionally moves five benchmark
+        cases, two of them hard (`vectordb` 0 -> 128 anchors, `linter` 0 -> 172) and one into
+        a new anchor-bigram keyword. §10.4's debt — a profile change invalidates every
+        published pool — is not worth re-opening for repositories that already describe
+        themselves. Same condition and same reasoning as `_NESTED_PACKAGE_DIRS`.
+        """
+        (tmp_path / "requirements.txt").write_text("torch>=2.1\n", encoding="utf-8")
+        (tmp_path / "Cargo.toml").write_text('[dependencies]\nmemchr = "2.7"\n', encoding="utf-8")
+        anchors = _extract_anchors(tmp_path)
+        assert anchors == ["torch"], "a repo that already profiles must be byte-identical"

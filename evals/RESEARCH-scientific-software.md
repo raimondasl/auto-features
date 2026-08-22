@@ -3682,13 +3682,97 @@ question.
   fetched, no judge ran. §15.6's caveat stands in full.
 - **Licensed:** correcting §4 and §7, which currently tell a reader that the profiler cannot see
   LAMMPS, tblite or kim-api. It can.
-- **Licensed and concrete:** a manifest-parsing fix for `DESCRIPTION`, `Project.toml`,
-  `Cargo.toml` and `nextflow.config`. Four formats, four ecosystems, and the measurement above is
-  the blast radius — it would move 4 of these 9 from zero anchors to some, and nothing else in the
-  benchmark, since no benchmark case ships any of those files.
+- **Licensed and concrete:** a manifest-parsing fix for `DESCRIPTION`, `Project.toml` and
+  `Cargo.toml`. **§34 built it, and corrects this bullet twice.** The claim that "no benchmark
+  case ships any of those files" is **wrong** — five do (`crypto`, `vectordb`, `linter`,
+  `thin-kv`, `bio-kmer` all ship `Cargo.toml`), and reading them unconditionally moves four of
+  them. And `nextflow.config` is not a dependency manifest at all; nf-core's dependencies live in
+  per-module `environment.yml` files, which is a nested search this module already warns against.
+
+  This paragraph also credited §10 with adding `environment.yml` parsing. It did not: **§10.2
+  dropped it**, along with the R, Julia and Rust parsers, on the measurement "zero of the 19
+  clones has any of them at the repository root."
 - **Still open:** whether any of it produces a usable digest. That is a judged cohort and it should
   not be funded until the anchor gap is closed, because running it now would measure the profiler's
   known blind spot rather than the pipeline.
+
+---
+## 34. The manifest fix, gated — and §10.2's measurement was right about the wrong population (2026-08-22)
+
+§33 found 8 of 9 excluded repositories drawing **zero anchors**, with the cause exact: the
+profiler reads `pyproject.toml`, `requirements.txt`, `setup.cfg` and `package.json`, and these
+ship `DESCRIPTION`, `Project.toml` and `Cargo.toml`. This builds the readers.
+
+### 34.1 §10.2 already decided this, and its arithmetic was right
+
+> *"The bioconda world needs `environment.yml`, conda `meta.yaml`, R `DESCRIPTION`, `Cargo.toml`,
+> `Project.toml`." Zero of the 19 clones has any of them at the repository root. **All five
+> parsers dropped.**"* — §10.2, filed under *four things I asserted that the measurement refuted*
+
+The count was correct. **The population was the problem**: the 19 clones are Python and ML
+repositories, so none of them *could* have had a `Cargo.toml`. §33 is the first time the
+population that would have shown the need was profiled at all — and §14.2 had excluded it from
+cohort 3 precisely because it was expected to be hard.
+
+A measurement can be right and still answer the wrong question, and this one did for three days.
+
+### 34.2 What shipped
+
+`_parse_description` (R DCF, continuation lines, version constraints stripped, the language `R`
+itself dropped) and `_parse_toml_table_keys`, shared by Julia's `[deps]` and Rust's
+`[dependencies]`/`[dev-dependencies]`/`[build-dependencies]`/`[workspace.dependencies]`.
+
+Two things measured rather than assumed while writing them:
+
+- **R's `Suggests` is not Python's `extras_require`.** `_parse_setup_cfg` excludes Python extras
+  because on MACE they are pytest, black, mypy and pre-commit — the toolchain drowning the
+  subject. Seurat's 36 `Suggests` are DESeq2, SingleCellExperiment, limma, monocle, harmony,
+  glmGamPoi, MAST… and **one** test package. Included, with the check in the docstring.
+- **A Rust workspace root declares no dependencies of its own.** `noodles` — nine bioinformatics
+  format crates — still returned zero anchors until `workspace.dependencies` was added, reached
+  by a dotted path rather than a search through member crates.
+
+### 34.3 The gate, and the blast radius that forced it
+
+**§33.5 claimed no benchmark case ships these files. Five do.** Read unconditionally:
+
+| case | anchors | keywords |
+|---|---|---|
+| `crypto` | 3 → 15 | top-5 reorders |
+| `vectordb` | 0 → **128** | unchanged in top-5 |
+| `linter` | 0 → **172** | unchanged in top-5 |
+| `thin-kv` | 0 → 27 | gains **`tracing prost-build`** — an anchor bigram, the §10.3 B4 defect |
+| `bio-kmer` | 31 → 31 | unchanged |
+
+So the new readers fire **only when the existing ones found nothing** — the same condition and the
+same reasoning as `_NESTED_PACKAGE_DIRS`. That leaves `crypto` and `bio-kmer` byte-identical and
+confines the change to the three cases with the actual defect.
+
+**The price is stated rather than hidden**: `crypto` declares 3 Python anchors and 12 Rust ones
+and keeps only the 3. A genuinely polyglot repository is under-described by this gate, and lifting
+it is a separate decision needing its own re-measurement.
+
+### 34.4 What it does for the population it was built for
+
+| repo | before | after |
+|---|---|---|
+| seurat (R) | 0 anchors | **91** |
+| noodles (Rust) | 0 | **15** |
+| diffeq-jl (Julia) | 0 | **4** |
+
+`nf-core-rnaseq` is unchanged and **out of scope on purpose**: `nextflow.config` is metadata, not
+a manifest, and its dependencies live in `modules/*/environment.yml` — a nested search of the kind
+`_NESTED_PACKAGE_DIRS` records as measured-and-worse-than-nothing.
+
+### 34.5 Verification, and the debt this creates
+
+**Tier A is unchanged**: nDCG@10 **0.909**, MAP **0.859** — §10.3's committed-gate figures to the
+digit. The four ML fixtures are Python repositories, so the gate never fires on them.
+
+**Three benchmark cases now profile differently** (`vectordb`, `linter`, `thin-kv`), which is
+§10.4's debt in miniature: a profile change alters the queries, therefore the pool. Their published
+figures describe the old profiler. The debt is small — three of thirty-seven, all previously
+anchor-less — and it is recorded here rather than discovered later.
 
 ---
 ## Appendix
