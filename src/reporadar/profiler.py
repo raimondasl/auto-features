@@ -421,8 +421,16 @@ def _manifest_anchors(root: Path) -> list[str]:
     # themselves.
     #
     # The price is stated rather than hidden: `crypto` declares 3 Python anchors and 12 Rust
-    # ones and keeps only the 3. A repository that is genuinely polyglot is under-described
-    # by this gate, and lifting it is a separate decision that needs its own re-measurement.
+    # ones and keeps only the 3. That is the WHOLE price — measured over all 37 benchmark
+    # cases, `crypto` is the only one this gate changes, because the other four that ship a
+    # Cargo.toml declare no Python dependencies (ruff's pyproject.toml is pure tool config),
+    # so the gate never fires on them and they already keep their Rust anchors.
+    #
+    # At n=1 against a per-case net@2 sd of 3.75-5.08, lifting it is unmeasurable, and the
+    # compiled-core repositories the concern was really about — openmm, minimap2, tblite,
+    # LAMMPS — ship CMakeLists.txt and configure.ac, which are build systems rather than
+    # dependency manifests and which nothing here reads. Reaching those is a different and
+    # harder question, not a variation on this one. Decision recorded in §35.
     anchors.extend(_parse_description(root / "DESCRIPTION"))
     anchors.extend(_parse_toml_table_keys(root / "Project.toml", ("deps",)))
     # `workspace.dependencies` because a Rust workspace root declares no `[dependencies]` of

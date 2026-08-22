@@ -3752,6 +3752,12 @@ confines the change to the three cases with the actual defect.
 and keeps only the 3. A genuinely polyglot repository is under-described by this gate, and lifting
 it is a separate decision needing its own re-measurement.
 
+**§35 makes that decision and closes it.** Lifting the gate changes **exactly one** benchmark case
+— `crypto` — because the other four ship a `pyproject.toml` with no dependencies, so the gate
+never fires on them. At n = 1 against a per-case sd of 3.75–5.08, it is unmeasurable, and the
+compiled-core repositories the caveat was really about (`openmm`, `minimap2`, `tblite`, LAMMPS)
+ship CMake and autoconf, which no parser here reads. "Needs its own re-measurement" overstated it.
+
 ### 34.4 What it does for the population it was built for
 
 | repo | before | after |
@@ -3773,6 +3779,75 @@ digit. The four ML fixtures are Python repositories, so the gate never fires on 
 §10.4's debt in miniature: a profile change alters the queries, therefore the pool. Their published
 figures describe the old profiler. The debt is small — three of thirty-seven, all previously
 anchor-less — and it is recorded here rather than discovered later.
+
+---
+## 35. DECISION — the manifest gate stays, and the question comes off the board (2026-08-22)
+
+§34.3 gated the R/Julia/Rust readers to fire only when the Python and JavaScript ones found
+nothing, stated the price (`crypto` declares 3 Python anchors and 12 Rust ones and keeps only the
+3), and called lifting it "a separate decision needing its own re-measurement". **Measured, that
+decision cannot be made and does not need to be.**
+
+### 35.1 Lifting the gate changes exactly one benchmark case
+
+The gate only bites when **both** sets of readers find something. Over all 37:
+
+| case | python readers | new readers | gated → ungated | |
+|---|---|---|---|---|
+| `crypto` | 3 | 12 | 3 → **15** | **changes** |
+| `vectordb` | 0 | 167 | 167 → 167 | same |
+| `linter` | 0 | 172 | 172 → 172 | same |
+| `thin-kv` | 0 | 27 | 27 → 27 | same |
+
+`vectordb`, `linter` and `thin-kv` all ship a `pyproject.toml` that declares **no dependencies** —
+ruff's is pure tool config — so the Python readers return empty, the gate never fires, and they
+already have their Rust anchors on `main` today. `bio-kmer` does not appear at all: its
+`Cargo.toml` yields nothing.
+
+**n = 1.**
+
+### 35.2 Which makes it unmeasurable, by this project's own numbers
+
+Per-case net@2 sd is **3.75** (scientific), **5.08** (legacy), **4.64** (all 37) — §16.3 — against
+a paired same-session noise floor of **1.04/case**. A single case moving is indistinguishable from
+the gate's own sampling noise.
+
+Funding a judged arm on `crypto` alone would buy a number with no interpretation, which is exactly
+the failure §21.3 and §24 exist to prevent: an endpoint whose n makes it unresolvable *before* it
+runs.
+
+### 35.3 And the polyglot repositories that actually matter would not benefit
+
+The worry behind §34.3's caveat was the standard shape in this domain: a compiled core with a thin
+Python wrapper. `openmm`, `minimap2`, `tblite` and LAMMPS are all that shape — and **none is in
+the affected set**, because none ships an R, Julia or Rust manifest either. They ship
+`CMakeLists.txt` and `configure.ac`, which are build systems rather than dependency manifests and
+which no parser here reads or plausibly could.
+
+So the caveat named a real class of repository and the wrong mechanism for it.
+
+### 35.4 Decision
+
+**The gate stays and the question is off the board.** It is not a compromise awaiting revisit; it
+costs one benchmark repository twelve anchors and nothing else measurable. Lifting it would be an
+unmeasurable change made on principle, and §34.3's "needs its own re-measurement" overstated what
+is at stake — corrected here.
+
+**What would reopen it** is a different question with a harder answer: whether `CMakeLists.txt` and
+`configure.ac` can yield dependency signal at all. That is the one that would reach `openmm`,
+`minimap2`, `tblite` and LAMMPS, and it is not a variation on this.
+
+### 35.5 How I got the size of this wrong, twice
+
+Worth recording because the doc records errors and this one was cheap only by luck. I first said
+lifting the gate would move **five** benchmark cases and cost **$5–10** to re-measure — reading
+"ships a `Cargo.toml`" as "the gate affects it". Then I wrote a check that reported **crypto and
+linter**, because it added the new readers on top of an anchor list that already contained them
+whenever the gate had not fired.
+
+Both errors ran in the same direction: overstating the change, and so overstating what a decision
+here was worth. The correct figure came only from asking what the gate does rather than which
+files exist — and it inverted the recommendation.
 
 ---
 ## Appendix
