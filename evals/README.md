@@ -24,6 +24,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | do score-3 misfires propose no method? (RESEARCH-scientific-software.md §30) | `proposes_method.py` (~$0.40; NULL -- only 4 of 85 propose nothing, and my examples were mis-categorised) |
 | does the benchmark measure the product? (RESEARCH-scientific-software.md §32) | `cited_rule_audit.py` ($0; the headline stands, but the rule's sign flips with the judge) |
 | can the profiler describe the repos cohort 3 excluded? (RESEARCH-scientific-software.md §33) | `blindspot_profiles.py` ($0, judge-free; 8 of 9 have zero anchors and the cause is exact) |
+| does the second judge price "the repo already has this"? (RESEARCH-scientific-software.md §36) | `cited_holdout.py` (~$1; §32.4's lead retested on 24 papers that did not generate it, with matched controls) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -602,6 +603,16 @@ evals/
                      name. The structural finding is that 8 of 9 have ZERO anchors because the
                      profiler reads only pyproject/requirements/setup.cfg/package.json, while
                      these ship DESCRIPTION, Project.toml, Cargo.toml and nextflow.config.
+
+  cited_holdout.py
+                     ~$1, §36: §32.4 observed post-hoc that Sonnet scores a repository's OWN
+                     paper 0 or 1 while GPT-5.5 scores it 3 -- the best available explanation
+                     for why four score-3 arms failed (the outcome variable may not contain the
+                     effect). Retests it on 24 repo-cited papers that carry a GPT gold label and
+                     NO Sonnet label, so §32.4's ten are excluded by construction, against 71
+                     controls matched on case, GPT score and vintage. Membership is the
+                     PRODUCT's rule (`dedup_id in cited_arxiv_ids_of`), never a title match.
+                     Rebuilds §32.3's 10/7/3 before any of its own output is readable.
 
   cited_rule_audit.py
                      $0, §31's validity audit: the eval harness never applies the already-cited
