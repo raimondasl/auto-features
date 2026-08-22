@@ -20,6 +20,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | is the 15-paper window too small? (RESEARCH-scientific-software.md §24) | `window_arm.py` (~$5-11; ranks 16-30 under both judges, kill check first) |
 | why does gate-score 3 mean something different on scientific software? (RESEARCH-scientific-software.md §26) | `score3_mechanism.py` ($0 primary; refuted the tool-name mechanism §0 had asserted since §5) |
 | does adding a source reorder the papers already there? (RESEARCH-scientific-software.md §27) | `rank_stability.py` ($0, judge-free; Kendall tau over the shared papers, with the cause isolated) |
+| does the repo already citing a paper make it a dud? (RESEARCH-scientific-software.md §29) | `already_have.py` ($0; found the shipped already-cited rule is net-negative on the score-3 band) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -587,6 +588,17 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  already_have.py
+                     $0: §28's tertiary and secondary. The eval harness never applies the
+                     already-cited rule that the PRODUCT does, so the benchmark's score-3
+                     problem is larger than a user's -- by 3 of 13 (23%). Uses the product's
+                     own membership rule (digest.py:244) rather than a second copy.
+                     RESULT (§29): being cited does NOT make a paper a dud -- 7 of the 10
+                     cited score-3 papers are judged actionable, including chgnet's own
+                     paper, PyG 2.0 for graph and FAISS for ann -- so the shipped rule drops
+                     7 actionable to spare 3, net@2 -1 over 25 repos. Also caught that a bar
+                     in percentage POINTS is not judge-comparable when base rates differ.
 
   rank_stability.py
                      $0, offline, judge-free: re-ranks the control and treatment pools and asks

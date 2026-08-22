@@ -3264,6 +3264,104 @@ that implements a method **without citing it anywhere**, which no free predictor
 §9.0's `scvi-tools` and `mace` rows suggest is not rare.
 
 ---
+## 29. RESULT — §28's tertiary and secondary, and a flaw in my own bar (2026-08-21)
+
+Run 2026-08-21, **$0**. The tertiary was taken first because it can make the primary moot.
+
+### 29.1 TERTIARY — the product already removes about a quarter of it
+
+Of the **13** non-actionable gate-score-3 papers, **3 (23%)** are cited by their own repository
+and are therefore suppressed before a user sees them:
+
+```
+bio-align        Minimap2: pairwise alignment for nucleotide sequences   (its own paper)
+mat-descriptors  Updates to the DScribe Library                          (its own paper)
+peft             LoRA: Low-Rank Adaptation of Large Language Models      (what peft implements)
+```
+
+**Ten reach a real user anyway** — four MACE application/fine-tuning papers, the Mn-rich cathode
+paper, `matminer`'s benchmark and survey, and minimap2's *predecessor* (Minimap and miniasm,
+which minimap2 does not cite).
+
+So the benchmark's score-3 problem is about a quarter larger than the one a user has, and §28.3's
+harness/product divergence is worth that much. **Not a repair** — a benchmark-versus-product
+number.
+
+### 29.2 CORRECTION — §28.6's bar was written in the wrong units
+
+| | cited | uncited | gap (points) | ratio |
+|---|---|---|---|---|
+| GPT-5.5 | 3/10 = 0.300 | 10/75 = 0.133 | **+0.167** | **2.25×** |
+| Sonnet | 7/10 = 0.700 | 19/75 = 0.253 | **+0.447** | **2.76×** |
+
+§28.6 set the bar at "**≥ 20 points**, direction holding under both judges". Under GPT the gap is
+16.7 points and fails; under Sonnet it is 44.7 and passes comfortably. **The judges land on
+opposite sides of my bar.**
+
+They do not disagree about the effect. The **ratios are 2.25× and 2.76×** — close. The gap in
+*points* differs only because Sonnet's base rate is roughly double GPT's, which §19 established
+and this document has quoted since.
+
+**A bar in percentage points is not judge-comparable when the judges have different base rates,
+and it systematically favours the stricter one.** That is a defect in the pre-registration, not a
+finding about H-A. Every bar in §20, §23 and §25 is in points; none of them had two judges at
+different base rates on the same population, so none was bitten. The rule for future arms is: on
+a two-judge endpoint, state the bar as a ratio or an odds ratio.
+
+**Verdict: H-A is not established.** Under the conservative reading of my own bar it fails, and
+under the ratio reading n = 10 cited papers with GPT at p = 0.18 does not support a claim either.
+
+### 29.3 The finding that matters more: being cited does not make a paper a dud
+
+Of the ten cited score-3 papers, **seven are judged actionable**:
+
+```
+judge 3  mat-chgpot  CHGNet: Pretrained universal neural network potential   (its own paper!)
+judge 3  graph       PyG 2.0: Scalable Learning on Real World Graphs
+judge 3  ann         Billion-scale similarity search with GPUs
+judge 3  peft        VeRA: Vector-based Random Matrix Adaptation
+judge 3  peft        A Rank Stabilization Scaling Factor for Fine-Tuning
+judge 3  mat-phonon  Projector-based efficient estimation of force constants
+judge 3  rag         PLAID: An Efficient Engine for Late Interaction Retrieval
+```
+
+A repository citing a paper means it **knows** the paper. It does not mean the paper has nothing
+left to give — `chgnet`'s own CHGNet paper is judged **3**, and so are PyG 2.0 for `graph` and the
+FAISS paper for `ann`. H-A's premise conflates *known* with *exhausted*, and they are not the
+same.
+
+### 29.4 Which makes the shipped rule look net-negative on this band
+
+The product drops **all ten**. On score-3 papers that is **7 actionable lost and 3 non-actionable
+spared**:
+
+> net@2 effect = **−7 + 6 = −1** across 25 repositories.
+
+Essentially neutral, slightly negative. §9.0 saw the shape of this — *"the fourth removal is
+dscribe's 1601.04077, judged actionable — the acknowledged cost"* — and never quantified it beyond
+one paper.
+
+**Stated carefully.** This covers score-3 papers only; the rule also acts on the score-2 band and
+below, which is unmeasured here, and §9.0's six-repo pass found it removes just 4 of 69 papers
+overall. n = 10, one draw. **This does not license removing the rule** — it licenses measuring it
+properly, which nobody has, on a rule that ships and that the benchmark never applies.
+
+### 29.5 Predictions, scored, and what is next
+
+§28.7 predicted "H-A will not clear the bar" — **correct**, though for a reason the prediction did
+not contain: the bar itself was mis-specified. And "the tertiary will be small, under half the
+13" — **correct**, 3 of 13.
+
+Two of two on the endpoints run so far, which is a better rate than the previous four arms and
+should not be read as much: both predictions were for null-ish outcomes, which is where my
+calibration has been strongest all along.
+
+**The primary (H-B, ~$0.30) is still worth running.** Three of the ten papers that reach users are
+exactly its population — `matminer`'s *Benchmarking Materials Property Prediction* and
+*Representations of Materials for Machine Learning*, and `mat-mlip`'s *Towards Foundation Models
+for Materials Science*. H-A is now largely spoken for; H-B is not.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
