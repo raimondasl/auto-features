@@ -18,6 +18,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | is a newly added source any good? (RESEARCH-scientific-software.md §21.2) | `second_judge_arm.py` (Sonnet over the papers an arm SHOWED, split by origin — within-arm, so no cross-session pairing) |
 | why does a new source take half the digest? (RESEARCH-scientific-software.md §22.2) | `displacement_probe.py` ($0, judge-free; re-ranks a frozen pool under each absent-category mode) |
 | is the 15-paper window too small? (RESEARCH-scientific-software.md §24) | `window_arm.py` (~$5-11; ranks 16-30 under both judges, kill check first) |
+| why does gate-score 3 mean something different on scientific software? (RESEARCH-scientific-software.md §26) | `score3_mechanism.py` ($0 primary; refuted the tool-name mechanism §0 had asserted since §5) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -585,6 +586,17 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  score3_mechanism.py
+                     $0 primary (~$0.40 with --validity): tests WHY gate-score 3 behaves
+                     differently on scientific software, over all 85 labelled score-3 papers.
+                     RESULT (§26): the tool-name mechanism §0 and §6 G1 asserted since §5 is
+                     REFUTED as stated -- among score-3 papers, naming the tool predicts
+                     non-actionability at 0.119 vs 0.231, i.e. the OPPOSITE direction, under
+                     both judges. Half of it survives: naming strongly predicts the gate
+                     EMITTING 3 (21.1% vs 6.6%, p=1e-06). Also decomposes §18.5 and finds the
+                     emission asymmetry is MATSCI (27.8%, p<0.0001), not scientific software
+                     (bio 12.2%/13.3%, both non-significant across two draws).
 
   window_arm.py
                      ~$5-11: analyses a --rr-window 30 arm to answer whether output.top_n=15

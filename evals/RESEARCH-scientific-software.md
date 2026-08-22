@@ -2911,6 +2911,128 @@ framing, and *source* rather than domain — are not separated here and the conf
 the honest statement of the last one. And 85 papers over one session is one draw.
 
 ---
+## 26. RESULT — the tool-name mechanism is refuted, and §18.5 is a materials-science finding (2026-08-21)
+
+Run 2026-08-21 against §25. Primary, secondary, tertiary and the judge-free companion cost **$0**;
+the validity check cost about $0.40. **One prediction of four survived.**
+
+### 26.1 PRIMARY — NULL, and the effect points the other way
+
+Among the 85 gate-score-3 papers, does naming the tool predict non-actionability?
+
+| | names the tool | does not | gap | p |
+|---|---|---|---|---|
+| GPT-5.5, all 85 | 7/59 = **0.119** | 6/26 = **0.231** | **−0.112** | 0.204 |
+| GPT-5.5, excluding `mace` | 4/54 = 0.074 | 5/25 = 0.200 | −0.126 | 0.133 |
+| Sonnet, all 85 | 15/59 = **0.254** | 11/26 = **0.423** | **−0.169** | 0.133 |
+
+KILL check passed: excluding `mace` moves the gap by 0.014 against a bar of 0.10, so the
+predictor is not carried by one ambiguous name. All 85 papers carry a Sonnet label.
+
+**§0's and §6 G1's mechanism is refuted as stated.** Since §5 this document has said "the Haiku
+gate scores the name-match 3, the judge scores it 1". Among score-3 papers, the papers that name
+the tool are **less** often non-actionable than those that do not — under both judges, in the
+same direction, at roughly half the rate. Not significant either way, so the honest claim is that
+naming does not predict badness; what is dead is the specific story that it predicts badness.
+
+### 26.2 SECONDARY — the domain asymmetry does not replicate on the expansion
+
+| | scientific | ML/CS | gap | p |
+|---|---|---|---|---|
+| all 85 | 11/55 = 0.200 | 2/30 = 0.067 | +0.133 | **0.126** |
+| arXiv-only (§16.5's own 66) | 11/36 = 0.306 | 2/30 = 0.067 | +0.239 | 0.027 |
+
+§25.3 declared in advance that if these disagreed, **the expansion is uninformative rather than a
+replication**. They disagree, so that is the reading. The arithmetic says why: the 19 added
+scientific score-3 papers contributed **zero** non-actionable ones, which is consistent with
+§21.2's finding that Europe PMC papers are judged actionable at 1.000. Domain and source are
+entangled in the expansion exactly as §25.3 warned.
+
+So §16.5 stands on its own population and has not been independently replicated.
+
+### 26.3 The judge-free companion, and a correction to §18.5
+
+§18.5 reported the gate emitting score 3 at 20.0% on scientific software against 8.0% on ML/CS
+and called it, with §16.5, "two measurements of one asymmetry sharing no dependency". Decomposed:
+
+| | score-3 emission | vs legacy |
+|---|---|---|
+| legacy-25 | 30/375 = 8.0% | — |
+| cohort3 **matsci** only | 25/90 = **27.8%** | **p < 0.0001** |
+| cohort3 **bio** only | 11/90 = 12.2% | p = 0.215 |
+| epmc-control (bio, fresh draw) | 12/90 = 13.3% | p = 0.149 |
+
+**It is a materials-science finding, not a scientific-software one.** §18.5 pooled twelve cases
+and the effect is carried by six of them. Bio sits at 12–13% against legacy's 8% across two
+independent draws, neither significant.
+
+**And a second qualification.** §18.5 also reported that the gate "never once" emits its bottom
+score on scientific software (0/180). At a 30-deep window the same six repositories emit **8**
+zeros. That was a property of the **top-15 window**, not of the domain.
+
+This matters because §18.5 was presented as the domain-calibration thread's first judge-free
+support. What it actually supports is narrower: the gate over-uses its top score on repositories
+**whose name is a method**, which is the scenario §7's table already isolated as distinct
+(chgnet, mace) rather than a property of scientific software at large.
+
+### 26.4 TERTIARY — no interaction, and none in the predicted direction
+
+| | names tool | does not | gap |
+|---|---|---|---|
+| scientific | 7/41 = 0.171 | 4/14 = 0.286 | −0.115 |
+| ML/CS | 0/18 = 0.000 | 2/12 = 0.167 | −0.167 |
+
+Both negative. §25.4 gave this no bar and it gets no verdict; recorded because the direction is
+consistent across domains, which is what an absent interaction looks like.
+
+### 26.5 NOT PRE-REGISTERED — half the mechanism does survive
+
+Recorded under §15.5's rule: **a candidate for a future pre-registration, not a result of this
+one, and it must not be quoted as one.**
+
+Does naming the tool predict the gate **emitting** score 3? Judge-free, and the answer is yes,
+everywhere:
+
+| | named → score 3 | unnamed → score 3 | p |
+|---|---|---|---|
+| all 37 cases | 43/204 = 21.1% | 23/351 = 6.6% | 1.0e-06 |
+| matsci-6 | 18/31 = **58.1%** | 7/59 = 11.9% | 9.3e-06 |
+| bio-6 | 7/24 = 29.2% | 4/66 = 6.1% | 6.9e-03 |
+| legacy-25 | 18/149 = 12.1% | 12/226 = 5.3% | 2.1e-02 |
+
+So §0's mechanism is **half right and half wrong**, and the halves were never separated: the gate
+really does promote papers that name the repository — strongly, and most of all on matsci — but
+that promotion is not a mistake, because the promoted papers are actionable at least as often as
+the others. The over-admission on materials repositories comes from somewhere this run did not
+find.
+
+### 26.6 Predictions, scored — one of four
+
+1. *"Naming the tool will predict non-actionability, clearing the 20-point bar."* **WRONG**, and
+   in the opposite direction under both judges.
+2. *"The domain asymmetry will replicate on the expanded 55."* **WRONG** — p = 0.126, declared
+   uninformative in advance.
+3. *"The interaction will be unresolved."* **Correct.**
+4. *"The judge-free emission asymmetry will hold on the newer runs."* **WRONG as stated** — it
+   holds where matsci is included and fails on bio in two independent draws.
+
+The worst score of the four arms, and §25.6's calibration note had flagged prediction 1
+specifically as "a mechanism argued from qualitative evidence" with "a fact that cuts against it".
+That was right. **Three arms running, naming the failure mode in advance has not once prevented
+it** — which is an argument for cheap pre-registered tests, not for better intuitions.
+
+### 26.7 What this leaves
+
+- **§16.5 is not repealed.** Its 31%-vs-7% on its own population stands, judge-swap-checked in
+  §17.3. What is gone is the tool-name explanation for it and the claim that §18.5 corroborated
+  it domain-wide.
+- **The target is narrower and better specified**: repositories whose *name is a method that
+  application papers cite*. Six matsci cases, not twelve scientific ones.
+- **Nothing should be built yet.** §26.5 is the live lead and it is post-hoc; it needs its own
+  pre-registration, and §9.4's warning about fitting nine labels applies with more force now that
+  the obvious explanation has failed.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
