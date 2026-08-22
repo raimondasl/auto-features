@@ -153,6 +153,9 @@ def collect() -> tuple[list[dict[str, Any]], dict[str, int]]:
                     "case": case,
                     "arxiv_id": x["arxiv_id"],
                     "title": x.get("title", ""),
+                    # Carried so callers do not re-open the pools; stripped before the
+                    # JSON is written, since 85 abstracts would triple that artifact.
+                    "abstract": abstract,
                     "tool": tool,
                     "names_tool": names,
                     "ambiguous": tool.lower() in AMBIGUOUS,
@@ -362,7 +365,12 @@ def main() -> int:
     out = EVALS / ".work" / "score3_mechanism.json"
     out.write_text(
         json.dumps(
-            {"n": len(rows), "rows": [{k: v for k, v in r.items() if k != "paper"} for r in rows]},
+            {
+                "n": len(rows),
+                "rows": [
+                    {k: v for k, v in r.items() if k not in ("paper", "abstract")} for r in rows
+                ],
+            },
             indent=1,
         ),
         encoding="utf-8",

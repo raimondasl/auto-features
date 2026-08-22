@@ -3362,6 +3362,93 @@ exactly its population — `matminer`'s *Benchmarking Materials Property Predict
 for Materials Science*. H-A is now largely spoken for; H-B is not.
 
 ---
+## 30. RESULT — H-B fails, and the reason is that I classified papers from their titles (2026-08-21)
+
+§28's primary, ~$0.40. **NULL**, and the interesting part is why.
+
+### 30.1 The predictor is too rare to test
+
+Of the 85 gate-score-3 papers, the classifier labelled **4 as `no_proposal`** — 5%.
+
+| | `no_proposal` | `proposes` | ratio | p |
+|---|---|---|---|---|
+| GPT-5.5 | 2/4 = 0.500 | 11/81 = 0.136 | 3.68× | 0.109 |
+| Sonnet | 2/4 = 0.500 | 24/81 = 0.296 | 1.69× | 0.583 |
+
+The bar was ≥ 2.0× under both judges (§30.4 on why it is a ratio). GPT clears it, Sonnet does
+not, and both rest on **four papers**. **NULL by power, not by effect** — nothing can be
+established from an arm of four.
+
+### 30.2 Why it is rare: my examples were not what I called them
+
+§28.1 and §29.5 named three of the ten user-facing misfires as H-B's population. The classifier
+read their abstracts and disagreed with two, giving reasons:
+
+| paper | my label | classifier | its reason |
+|---|---|---|---|
+| *Towards Foundation Models for Materials Science* | survey | **proposes** | "Introduces new pretraining task and toolkit framework" |
+| *Benchmarking Materials Property Prediction Methods* | benchmark | **proposes** | "Introduces Matbench benchmark and Automatminer algorithm" |
+| *Representations of Materials for Machine Learning* | survey | `no_proposal` | "Reviews existing representation strategies" |
+
+**The classifier is right and I was wrong.** Automatminer *is* an algorithm; the Open MatSci paper
+*does* ship a pretraining task and a toolkit. I categorised both from their titles — "Towards…",
+"Benchmarking…" — and never opened the abstracts.
+
+So H-B was built on a population that mostly does not exist. Papers at gate-score 3 that genuinely
+propose nothing are **4 in 85**, and **two of those four are judged actionable anyway** (a
+performance study judged 3, a comparative MLIP study judged 2).
+
+**This is the same error as §17.2 and §26, for the third time**: a category asserted from surface
+features and presented as a measurement. The difference is that this time the check was built into
+the design and cost forty cents.
+
+### 30.3 The KILL check passed, and it was asking in the wrong units
+
+The classifier is not re-judging actionability under another name:
+
+```
+raw agreement with GPT non-actionable   72/85 = 85%     <- what the script first printed
+Cohen kappa                             0.176           <- the honest number
+marginals                               4/85 and 13/85
+```
+
+With 5% and 15% marginals, two *independent* labellers agree about 85% of the time by chance.
+**Raw agreement was uninformative and the first version of the check printed it anyway** — the
+same class of error as §29.2's points-versus-ratio bar, one section later: a statistic chosen
+without asking whether it is comparable across the thing being varied. Kappa 0.176 is the answer
+the check wanted, and it clears.
+
+### 30.4 The bar amendment, recorded
+
+§28.6 set "≥ 20 percentage points". §29.2 found points are not judge-comparable when base rates
+differ. The primary was therefore run against a **ratio ≥ 2.0×**, amended after seeing the
+*secondary's* data and before seeing the primary's, and written into the script before it ran.
+It changed nothing here — the arm is four papers wide — but the amendment is recorded so it is
+auditable rather than convenient.
+
+### 30.5 Where the score-3 misfires now stand
+
+Four attempts, four failures, and the population is smaller each time:
+
+| attempt | result |
+|---|---|
+| G1(i) rescore the score-3 band (§9.4) | killed on its own bars |
+| G1(ii) rubric clause (§9.4) | killed by its own kill clause |
+| the tool-name mechanism (§26) | refuted; the effect runs the other way |
+| H-A "the repo already has it" (§29) | unsupported; and being cited does not make a paper a dud |
+| H-B "proposes nothing" (§30) | too rare to test; the examples were mis-categorised |
+
+**Ten non-actionable score-3 papers reach a real user** (§29.1) and nothing yet explains them. What
+is left after subtracting the refuted stories is narrow and unglamorous: they are concentrated on
+*matsci repositories whose name is a method* (§26.3), and four of the ten are MACE application and
+fine-tuning papers.
+
+§9.4's warning has now been earned rather than quoted: **the next idea should be tested on a
+population that did not generate it, or not tested at all.** On this evidence the honest move is to
+stop looking for the mechanism and record the misfire rate as a known, bounded, unexplained cost —
+about 10 papers across 25 repositories, concentrated in one repository shape.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):

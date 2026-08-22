@@ -21,6 +21,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | why does gate-score 3 mean something different on scientific software? (RESEARCH-scientific-software.md §26) | `score3_mechanism.py` ($0 primary; refuted the tool-name mechanism §0 had asserted since §5) |
 | does adding a source reorder the papers already there? (RESEARCH-scientific-software.md §27) | `rank_stability.py` ($0, judge-free; Kendall tau over the shared papers, with the cause isolated) |
 | does the repo already citing a paper make it a dud? (RESEARCH-scientific-software.md §29) | `already_have.py` ($0; found the shipped already-cited rule is net-negative on the score-3 band) |
+| do score-3 misfires propose no method? (RESEARCH-scientific-software.md §30) | `proposes_method.py` (~$0.40; NULL -- only 4 of 85 propose nothing, and my examples were mis-categorised) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -588,6 +589,17 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  proposes_method.py
+                     ~$0.40, §28's primary (H-B): are the score-3 misfires papers that
+                     propose no method -- surveys, benchmarks, position papers? The prompt is
+                     fixed in the file and deliberately never mentions the repository, so it
+                     asks about the PAPER and not about relevance. RESULT (§30): NULL by
+                     power. Only 4 of 85 score-3 papers propose nothing, and 2 of those 4 are
+                     judged actionable. The classifier read the abstracts of the three papers
+                     I had called surveys and correctly reclassified two -- Automatminer IS
+                     an algorithm. KILL check passes at kappa 0.176 (raw agreement of 85% is
+                     what chance gives at these marginals, and the first version printed it).
 
   already_have.py
                      $0: §28's tertiary and secondary. The eval harness never applies the
