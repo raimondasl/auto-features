@@ -23,6 +23,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | does the repo already citing a paper make it a dud? (RESEARCH-scientific-software.md §29) | `already_have.py` ($0; found the shipped already-cited rule is net-negative on the score-3 band) |
 | do score-3 misfires propose no method? (RESEARCH-scientific-software.md §30) | `proposes_method.py` (~$0.40; NULL -- only 4 of 85 propose nothing, and my examples were mis-categorised) |
 | does the benchmark measure the product? (RESEARCH-scientific-software.md §32) | `cited_rule_audit.py` ($0; the headline stands, but the rule's sign flips with the judge) |
+| can the profiler describe the repos cohort 3 excluded? (RESEARCH-scientific-software.md §33) | `blindspot_profiles.py` ($0, judge-free; 8 of 9 have zero anchors and the cause is exact) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -590,6 +591,17 @@ evals/
                      differ in strictness, so paired arm-vs-arm differences largely cancel
                      the offset while absolute levels do not. Writes to .work/, never to
                      evals/cache/judge/
+
+  blindspot_profiles.py
+                     $0, judge-free: profiles the five repos §14.2 excluded from cohort 3 plus
+                     one representative each of R, Julia, Rust and Nextflow -- the ecosystems
+                     §14.11 says have never been profiled. §4's recorded claims are the prior,
+                     so each row is falsifiable. RESULT (§33): §10's D3 FIXED the "doc/ unread"
+                     blind spot -- LAMMPS, tblite and kim-api all draw real domain vocabulary
+                     now -- but htslib still draws `giab007` and kallisto still loses its own
+                     name. The structural finding is that 8 of 9 have ZERO anchors because the
+                     profiler reads only pyproject/requirements/setup.cfg/package.json, while
+                     these ship DESCRIPTION, Project.toml, Cargo.toml and nextflow.config.
 
   cited_rule_audit.py
                      $0, §31's validity audit: the eval harness never applies the already-cited

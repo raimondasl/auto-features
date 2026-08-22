@@ -3612,6 +3612,169 @@ against GPT labels could ever have found it.
   observation — and that is a pre-registration, not a next step.
 
 ---
+## 33. The excluded population, profiled at last — and §4's blind-spot claims are half stale (2026-08-22)
+
+§14.2 excluded htslib, kallisto, tblite, kim-api and LAMMPS from cohort 3, and §15.6 has carried
+that as the standing caveat on every published figure. §14.11 adds four ecosystems never profiled
+at all. **Profiling is free**, so this is the cheapest step into that gap, and `evals/blindspot_profiles.py`
+runs it at **$0** with no judge and no paper pool.
+
+**§4's recorded claims are the prior**, which is what makes this falsifiable rather than a
+description: they were written under the pre-2026-08-19 profiler, and §10 has since added `doc/`
+reading, release-note exclusion, `setup.cfg`/`environment.yml` parsing and MyST stripping. §11
+re-measured the 25 benchmark repos; these were never re-profiled.
+
+### 33.1 The blind-spot exhibits are no longer blind
+
+| repo | §4's claim | now |
+|---|---|---|
+| LAMMPS | "blind-spot exhibit, `doc/` unread" | `fix, command, compute, lammps, atom, style, pair, energy` |
+| tblite | "blind-spot exhibit, `doc/` unread" | `ase, properties, tblite, python, xtb, available` |
+| kim-api | "blind-spot exhibit, `doc/` unread" | `kim, set, model, simulator, endlink, pm` |
+
+**§10's D3 fixed the content problem.** All three now draw real domain vocabulary — LAMMPS's are
+its actual command names, tblite's are its actual chemistry. §4's "the profiler cannot see these"
+is **false as of today**, and §7's table row and the demo's "blind-spot exhibits" slide both rest
+on it.
+
+### 33.2 But two of §4's specific defects survive every one of §10's nine fixes
+
+| repo | §4's claim | still true? |
+|---|---|---|
+| htslib | "draws `giab007` as a query" | **yes** — `giab007` is its 5th keyword |
+| kallisto | "loses its own name to `__kallisto__`" | **yes** — its keywords contain no `kallisto` |
+
+### 33.3 The structural gap: 8 of 9 have **zero anchors**, and the cause is exact
+
+| repo | anchors | manifest it ships | profiler reads it? |
+|---|---|---|---|
+| tblite | 6 | `pyproject.toml` | **yes** |
+| seurat | **0** | `DESCRIPTION` (R) | no |
+| diffeq-jl | **0** | `Project.toml` (Julia) | no |
+| noodles | **0** | `Cargo.toml` (Rust) | no |
+| nf-core-rnaseq | **0** | `nextflow.config` | no |
+| kallisto, kim-api | **0** | `CMakeLists.txt` | no |
+| htslib | **0** | `configure.ac` | no |
+| LAMMPS | **0** | none of the known names | — |
+
+The profiler reads `pyproject.toml`, `requirements.txt`, `setup.cfg` and `package.json` — Python
+and JavaScript, nothing else. **The only repository here with anchors is the only one shipping a
+Python manifest.** Zero anchors also means zero domains, because `PACKAGE_DOMAIN_MAP` is keyed on
+package names.
+
+So "compiled, manifest-less" (§14.2) is half right and the half that is wrong is the actionable
+half: **four of these ship a perfectly standard, trivially parseable dependency manifest and the
+profiler reads none of them.** That is a concrete gap with a known blast radius, not a research
+question.
+
+### 33.4 New defects, visible only now that these profile at all
+
+- **VCS and branch names as keywords** — `kallisto`: `devel`, `master`; `seurat`: `branch`, `v5`.
+- **Build tooling as keywords** — `noodles`: `cargo`, `crates`.
+- **Real vocabulary that is useless as a query** — LAMMPS's `fix`, `command`, `compute`, `style`,
+  `pair` are genuinely its command names *and* are generic English. This is a different failure
+  from an empty profile and D3 could not have anticipated it, because before D3 these repos had no
+  keywords to be wrong.
+
+### 33.5 What this licenses, and what it does not
+
+- **Not licensed:** any claim that these repositories work. No digest was produced, no paper was
+  fetched, no judge ran. §15.6's caveat stands in full.
+- **Licensed:** correcting §4 and §7, which currently tell a reader that the profiler cannot see
+  LAMMPS, tblite or kim-api. It can.
+- **Licensed and concrete:** a manifest-parsing fix for `DESCRIPTION`, `Project.toml` and
+  `Cargo.toml`. **§34 built it, and corrects this bullet twice.** The claim that "no benchmark
+  case ships any of those files" is **wrong** — five do (`crypto`, `vectordb`, `linter`,
+  `thin-kv`, `bio-kmer` all ship `Cargo.toml`), and reading them unconditionally moves four of
+  them. And `nextflow.config` is not a dependency manifest at all; nf-core's dependencies live in
+  per-module `environment.yml` files, which is a nested search this module already warns against.
+
+  This paragraph also credited §10 with adding `environment.yml` parsing. It did not: **§10.2
+  dropped it**, along with the R, Julia and Rust parsers, on the measurement "zero of the 19
+  clones has any of them at the repository root."
+- **Still open:** whether any of it produces a usable digest. That is a judged cohort and it should
+  not be funded until the anchor gap is closed, because running it now would measure the profiler's
+  known blind spot rather than the pipeline.
+
+---
+## 34. The manifest fix, gated — and §10.2's measurement was right about the wrong population (2026-08-22)
+
+§33 found 8 of 9 excluded repositories drawing **zero anchors**, with the cause exact: the
+profiler reads `pyproject.toml`, `requirements.txt`, `setup.cfg` and `package.json`, and these
+ship `DESCRIPTION`, `Project.toml` and `Cargo.toml`. This builds the readers.
+
+### 34.1 §10.2 already decided this, and its arithmetic was right
+
+> *"The bioconda world needs `environment.yml`, conda `meta.yaml`, R `DESCRIPTION`, `Cargo.toml`,
+> `Project.toml`." Zero of the 19 clones has any of them at the repository root. **All five
+> parsers dropped.**"* — §10.2, filed under *four things I asserted that the measurement refuted*
+
+The count was correct. **The population was the problem**: the 19 clones are Python and ML
+repositories, so none of them *could* have had a `Cargo.toml`. §33 is the first time the
+population that would have shown the need was profiled at all — and §14.2 had excluded it from
+cohort 3 precisely because it was expected to be hard.
+
+A measurement can be right and still answer the wrong question, and this one did for three days.
+
+### 34.2 What shipped
+
+`_parse_description` (R DCF, continuation lines, version constraints stripped, the language `R`
+itself dropped) and `_parse_toml_table_keys`, shared by Julia's `[deps]` and Rust's
+`[dependencies]`/`[dev-dependencies]`/`[build-dependencies]`/`[workspace.dependencies]`.
+
+Two things measured rather than assumed while writing them:
+
+- **R's `Suggests` is not Python's `extras_require`.** `_parse_setup_cfg` excludes Python extras
+  because on MACE they are pytest, black, mypy and pre-commit — the toolchain drowning the
+  subject. Seurat's 36 `Suggests` are DESeq2, SingleCellExperiment, limma, monocle, harmony,
+  glmGamPoi, MAST… and **one** test package. Included, with the check in the docstring.
+- **A Rust workspace root declares no dependencies of its own.** `noodles` — nine bioinformatics
+  format crates — still returned zero anchors until `workspace.dependencies` was added, reached
+  by a dotted path rather than a search through member crates.
+
+### 34.3 The gate, and the blast radius that forced it
+
+**§33.5 claimed no benchmark case ships these files. Five do.** Read unconditionally:
+
+| case | anchors | keywords |
+|---|---|---|
+| `crypto` | 3 → 15 | top-5 reorders |
+| `vectordb` | 0 → **128** | unchanged in top-5 |
+| `linter` | 0 → **172** | unchanged in top-5 |
+| `thin-kv` | 0 → 27 | gains **`tracing prost-build`** — an anchor bigram, the §10.3 B4 defect |
+| `bio-kmer` | 31 → 31 | unchanged |
+
+So the new readers fire **only when the existing ones found nothing** — the same condition and the
+same reasoning as `_NESTED_PACKAGE_DIRS`. That leaves `crypto` and `bio-kmer` byte-identical and
+confines the change to the three cases with the actual defect.
+
+**The price is stated rather than hidden**: `crypto` declares 3 Python anchors and 12 Rust ones
+and keeps only the 3. A genuinely polyglot repository is under-described by this gate, and lifting
+it is a separate decision needing its own re-measurement.
+
+### 34.4 What it does for the population it was built for
+
+| repo | before | after |
+|---|---|---|
+| seurat (R) | 0 anchors | **91** |
+| noodles (Rust) | 0 | **15** |
+| diffeq-jl (Julia) | 0 | **4** |
+
+`nf-core-rnaseq` is unchanged and **out of scope on purpose**: `nextflow.config` is metadata, not
+a manifest, and its dependencies live in `modules/*/environment.yml` — a nested search of the kind
+`_NESTED_PACKAGE_DIRS` records as measured-and-worse-than-nothing.
+
+### 34.5 Verification, and the debt this creates
+
+**Tier A is unchanged**: nDCG@10 **0.909**, MAP **0.859** — §10.3's committed-gate figures to the
+digit. The four ML fixtures are Python repositories, so the gate never fires on them.
+
+**Three benchmark cases now profile differently** (`vectordb`, `linter`, `thin-kv`), which is
+§10.4's debt in miniature: a profile change alters the queries, therefore the pool. Their published
+figures describe the old profiler. The debt is small — three of thirty-seven, all previously
+anchor-less — and it is recorded here rather than discovered later.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):

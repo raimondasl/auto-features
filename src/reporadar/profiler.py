@@ -9,6 +9,7 @@ import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 
@@ -316,14 +317,129 @@ def _parse_setup_cfg(path: Path) -> list[str]:
 _NESTED_PACKAGE_DIRS = ("package", "python")
 
 
+# R's DESCRIPTION dependency fields. `Suggests` is included because for an R package it is
+# where the analysis stack usually sits (Seurat suggests the very methods it interoperates
+# with), unlike Python's extras_require, which §_parse_setup_cfg measured to be a test
+# toolchain. `LinkingTo` is compiled-against, which is as strong a signal as Imports.
+_R_DEP_FIELDS = ("depends", "imports", "linkingto", "suggests")
+
+
+def _parse_description(path: Path) -> list[str]:
+    """Extract package names from an R ``DESCRIPTION``.
+
+    Debian Control File format: ``Field: value``, with continuation lines indented. Values
+    are comma-separated and may carry version constraints in parentheses — ``R (>= 4.0)``,
+    ``Matrix (>= 1.5)``.
+
+    ``R`` itself is dropped: every R package depends on R, so it is the language rather than
+    a topic, and it would enter PACKAGE_DOMAIN_MAP lookups and keyword queries as a
+    single ambiguous letter.
+    """
+    text = _read_text_file(path)
+    if not text:
+        return []
+    packages: list[str] = []
+    field: str | None = None
+    for raw in text.splitlines():
+        if raw[:1].isspace():  # continuation of the previous field
+            value = raw.strip()
+        elif ":" in raw:
+            name, _, value = raw.partition(":")
+            field = name.strip().lower()
+            value = value.strip()
+        else:
+            field = None
+            continue
+        if field not in _R_DEP_FIELDS:
+            continue
+        for item in value.split(","):
+            # `Matrix (>= 1.5)` -> `matrix`; a bare `R` -> dropped.
+            name = item.split("(")[0].strip().lower()
+            if name and name != "r":
+                packages.append(name)
+    return packages
+
+
+def _parse_toml_table_keys(path: Path, tables: tuple[str, ...]) -> list[str]:
+    """Dependency names from TOML files that key dependencies by package name.
+
+    Julia's ``Project.toml`` (``[deps]``, name -> UUID) and Rust's ``Cargo.toml``
+    (``[dependencies]``, name -> version or table) share that shape, so they share a reader
+    rather than getting one each — this module has already paid three times for the same
+    rule living in two places (see :func:`_requirement_name`).
+    """
+    if not path.is_file():
+        return []
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+    except (tomllib.TOMLDecodeError, OSError):
+        return []  # an unparseable manifest is not worth failing a whole profile over
+    packages: list[str] = []
+    for table in tables:
+        section: Any = data
+        for part in table.split("."):  # dotted, so `workspace.dependencies` is reachable
+            section = section.get(part) if isinstance(section, dict) else None
+        if isinstance(section, dict):
+            packages.extend(str(k).strip().lower() for k in section if str(k).strip())
+    return packages
+
+
 def _manifest_anchors(root: Path) -> list[str]:
-    """Every manifest this module knows, read from one directory."""
+    """Every manifest this module knows, read from one directory.
+
+    §10.2 considered R, Julia and Rust manifests and dropped them on a measurement: "Zero of
+    the 19 clones has any of them at the repository root." That arithmetic was right and its
+    *scope* was the problem — the 19 are Python and ML repositories, so none could have had a
+    `Cargo.toml`. §33 profiled the population §14.2 had excluded and found the opposite: 8 of
+    9 repositories draw **zero** anchors, and the only one with any is the only one shipping a
+    Python manifest, while `seurat` ships DESCRIPTION, `DifferentialEquations.jl` ships
+    Project.toml and `noodles` ships Cargo.toml.
+
+    Root-level ``environment.yml`` is still NOT read, and deliberately: §10.2 dropped it on
+    the same measurement and §33 did not overturn that one — none of its nine ships one at the
+    root. nf-core's live under `modules/*/`, and a nested search is what this module's
+    `_NESTED_PACKAGE_DIRS` comment warns against.
+    """
     anchors: list[str] = []
     anchors.extend(_parse_requirements_txt(root / "requirements.txt"))
     anchors.extend(_parse_pyproject_toml(root / "pyproject.toml"))
     anchors.extend(_parse_setup_cfg(root / "setup.cfg"))
     anchors.extend(_parse_setup_py(root / "setup.py"))
     anchors.extend(_parse_package_json(root / "package.json"))
+    if anchors:
+        return anchors
+
+    # Everything below fires ONLY when the readers above found nothing, which is the same
+    # condition `_NESTED_PACKAGE_DIRS` uses and for the same reason: it keeps every
+    # repository that profiles today byte-identical and confines the change to the ones with
+    # the defect. Measured, not assumed — reading these unconditionally moves five benchmark
+    # cases, two of them hard (`vectordb` 0 -> 128 anchors, `linter` 0 -> 172) and one into a
+    # new anchor-bigram keyword (`thin-kv` gains "tracing prost-build", the §10.3 B4 defect
+    # that was measured and left unfixed). §10.4's debt — a profile change invalidates every
+    # published pool — is not worth re-opening for repositories that already describe
+    # themselves.
+    #
+    # The price is stated rather than hidden: `crypto` declares 3 Python anchors and 12 Rust
+    # ones and keeps only the 3. A repository that is genuinely polyglot is under-described
+    # by this gate, and lifting it is a separate decision that needs its own re-measurement.
+    anchors.extend(_parse_description(root / "DESCRIPTION"))
+    anchors.extend(_parse_toml_table_keys(root / "Project.toml", ("deps",)))
+    # `workspace.dependencies` because a Rust workspace root declares no `[dependencies]` of
+    # its own — noodles, nine bioinformatics format crates, yielded zero anchors from a
+    # Cargo.toml that lists its whole stack under that table. A dotted path rather than a
+    # search through member crates, for the reason `_NESTED_PACKAGE_DIRS` records.
+    anchors.extend(
+        _parse_toml_table_keys(
+            root / "Cargo.toml",
+            (
+                "dependencies",
+                "dev-dependencies",
+                "build-dependencies",
+                "workspace.dependencies",
+            ),
+        )
+    )
     return anchors
 
 
