@@ -3611,6 +3611,11 @@ against GPT labels could ever have found it.
   means second-judging self-papers as a class on a population that did not generate this
   observation — and that is a pre-registration, not a next step.
 
+  **Written as §36** (`evals/cited_holdout.py`), on the 24 repo-cited papers that carry no Sonnet
+  label at all. §36.3 records, before the bar, that two self-paper labels already visible in the
+  cache contradict §32.4's absolute form — *OpenMM 8* and phonopy's implementation paper are both
+  Sonnet 3 — so what §36 tests is the graded claim, not "every one".
+
 ---
 ## 33. The excluded population, profiled at last — and §4's blind-spot claims are half stale (2026-08-22)
 
@@ -3848,6 +3853,177 @@ whenever the gate had not fired.
 Both errors ran in the same direction: overstating the change, and so overstating what a decision
 here was worth. The correct figure came only from asking what the gate does rather than which
 files exist — and it inverted the recommendation.
+
+---
+## 36. PRE-REGISTERED — does the second judge price "the repo already has this"? (2026-08-22)
+
+§32.4 is the only live lead on the board and it is the fifth approach to the same question.
+Four score-3 arms have failed (§9.4 twice, §26, §29, §30). §32.4 offers the first explanation
+that is about the *instrument* rather than the hypothesis: over the ten papers the shipped
+already-cited rule removes, **Sonnet scored all five of the repositories' own papers 0 or 1 while
+GPT-5.5 scored three of them 3.** If the redundancy effect is real but GPT does not price it,
+then no predictor built against GPT labels could ever have found it, and all four arms were
+measuring against an outcome variable that does not contain the thing.
+
+It was found post-hoc, on ten papers, inside the population that produced §16.6's headline.
+So this tests it on data that did not generate it.
+
+### 36.1 The question, in the form that can be wrong
+
+**Conditioned on what GPT-5.5 thought of a paper, does Sonnet call it actionable less often when
+the repository already cites it?**
+
+Conditioning on the GPT score is what makes this a ratio question rather than a level question,
+and §19's lesson is that levels are judge-specific while separations survive. It also answers
+§29.2's correction directly: the two judges have base rates of 40% and 22%, so a
+percentage-point bar would be measuring the base rates.
+
+### 36.2 Population — 24 papers that have never been looked at
+
+Every paper that (a) sits in the GPT-5.5 gold cache, (b) is cited by its own repository under the
+**product's own rule** — `dedup_id(paper) in cited_arxiv_ids_of(repo)`, `digest.py:244`, the same
+test §31 and §32 audited — and (c) **carries no Sonnet verdict of any kind**.
+
+Condition (c) is what makes this held out, and it is not a filter chosen after the fact: the ten
+papers of §32.4 are precisely the cited papers that already have Sonnet labels, which is how they
+came to be looked at at all. They are excluded by construction, not by hand.
+
+| | n |
+|---|---|
+| held-out cited papers | **24** over 8 cases |
+| by GPT score | **1: 5, 2: 6, 3: 13** |
+| §32.4's generating ten | excluded |
+| matched controls | **71** |
+| new Sonnet verdicts | **95**, ~$1.04 |
+
+**Membership is never decided by reading a title.** §30 failed because I sorted papers by what
+their titles sounded like, and 4 of 85 turned out to be what I had called them. The cited rule is
+a file scan with no author in the loop.
+
+**Controls.** Three per cited paper, drawn from the same case, at the same GPT score, not cited,
+and with no Sonnet verdict — the nearest three by arXiv vintage. Matching on date matters because
+a repository cites its prior art, so the cited arm skews old; without it, "Sonnet dislikes older
+papers" could wear the effect's clothes. One stratum comes up short (`mat-phonon` GPT-2 has two
+eligible controls, not three) and the script says so rather than quietly rebalancing.
+
+**Excluded and reported:** seven base ids where GPT scored two versions of the same paper
+differently (e.g. `numerics/1203.6705` at 1 and 2). There is no fact of the matter about "the GPT
+label" for those, and every one of them is a control candidate, so the drop costs the control
+pool depth and costs the treatment arm nothing.
+
+### 36.3 Declared before the fact: two labels already seen
+
+While building the population I read two cached Sonnet verdicts on repositories' own papers that
+sit **outside** it:
+
+| paper | repo | GPT | Sonnet |
+|---|---|---|---|
+| *OpenMM 8: Molecular Dynamics with ML Potentials* | `bio-mdsim` = openmm/openmm | 3 | **3** |
+| *Implementation strategies in phonopy and phono3py* | `mat-phonon` = phonopy/phonopy | 1 | **3** |
+
+Both are papers about the repository itself. Both clear the actionable cut. **§32.4's absolute
+form — "Sonnet scores every one of the five self-papers 0 or 1" — is therefore already false, and
+I knew it before writing the bar below.** Recording it here rather than in the result section is
+the whole point: a caveat discovered afterwards is a caveat that got to choose its own wording.
+
+Neither paper enters any endpoint. They are not cited by their repositories, so they were never
+in the population; and they already carry Sonnet labels, so they could not have been.
+
+What survives §36.3 is the graded claim, which is what is actually tested: not that Sonnet always
+scores such papers below the cut, but that it does so **more often than GPT does**, at the same
+GPT level.
+
+### 36.4 Endpoints
+
+**PRIMARY** — the **GPT-3 stratum**: the Sonnet-actionable rate among the 13 cited papers against
+the same rate among their 39 matched controls, as a **ratio**, with a one-sided Fisher exact test.
+
+GPT-3 is the primary and the only powered stratum because that is where §32.4's observation lives
+and where the control rate leaves room to fall: corpus-wide, **116 of 126** paired GPT-3 papers
+are Sonnet-actionable (92%).
+
+**SECONDARY** — the same at GPT 1 and GPT 2, reported whether or not they can resolve. The pooled
+figure is printed as a magnitude and explicitly **not** as a test, because the strata have very
+different base rates.
+
+**TERTIARY** — the five self-papers inside the population, named here before any label was bought:
+
+| case | id | paper |
+|---|---|---|
+| `ann` | 2401.08281 | *The Faiss library* — faiss's own canonical citation |
+| `graph` | 1903.02428 | *Fast Graph Representation Learning with PyTorch Geometric* |
+| `rag` | 2004.12832 | *ColBERT* |
+| `rag` | 2112.01488 | *ColBERTv2* — the repository **is** ColBERTv2 |
+| `speech` | 2212.04356 | *Robust Speech Recognition via Large-Scale Weak Supervision* — Whisper |
+
+Descriptive, **no bar**, and the reason is arithmetic: four of the five sit at GPT 1, where Sonnet
+stays at or below 1 about 94% of the time regardless. A confirmation there would be the base rate
+doing the work, and §31.5 already caught me taking credit for that once.
+
+### 36.5 Bars
+
+| outcome | bar | what it licenses |
+|---|---|---|
+| **CONFIRMED** | ratio ≤ **0.67** and Fisher p < 0.05 | the second judge prices redundancy and GPT-5.5 does not. §32.3's secondary resolves in the rule's favour, and any future work on redundancy must change its outcome variable before it changes its predictor. |
+| **KILL** | ratio ≥ **0.90** | §32.4 was five papers of noise. The redundancy line closes, the score-3 hunt stays closed, and §32.6's "the live lead" is struck. |
+| **UNRESOLVED** | anything between | named in advance because it is a real possibility, not a failure to report. |
+
+**What the bar can and cannot see, stated before it runs.** At 13 cited against 39 controls at a
+92% control rate, the smallest detectable drop at p < 0.05 is **8 of 13 (0.62)** — a ratio of
+0.67. That is why 0.67 is the bar: it is not a round number chosen for taste, it is this
+population's minimum detectable effect. A ratio of 0.75 would be a real effect this arm cannot
+prove, and the arm will then say "unresolved", not "no effect".
+
+The GPT-2 stratum cannot resolve anything at n=6: even 0 of 6 gives p = 0.09. It is reported
+because its labels are bought anyway, not because a decision hangs on it. That distinction is
+what §21.3, §24 and §35.2 were about — do not *fund* an endpoint that cannot resolve; reporting a
+free one as a magnitude is fine.
+
+For scale: §32.3's generating set had 3 of its 7 GPT-3 papers at Sonnet ≥ 2 against the 92%
+control rate — a ratio of **0.47**, comfortably inside what this can detect. If the effect is
+what generated §32.4, it will show.
+
+### 36.6 Reproduction check
+
+The script rebuilds §32.3's generating set — **10 removed, 7 GPT-actionable, 3 Sonnet-actionable**
+— and prints it beside the published figures before any of its own output. Nothing below it is
+readable if that does not match, which is the rule §32.2 was written after.
+
+It has already earned its place. The first version deduped versioned ids *before* classifying,
+which threw FAISS's billion-scale paper (scored 1 and 3 under two ids) out of §32.3's ten and
+rebuilt 9/6/3 against a published 10/7/3. The generating set's membership is fixed by §32.3, not
+by this script's tidiness rule.
+
+### 36.7 Predictions
+
+1. **UNRESOLVED** — the primary ratio lands between 0.67 and 0.90. Two reasons: §36.3's two
+   counterexamples cap how strong the effect can be, and the cited class is broader than the
+   self-paper class that generated the observation, so it should dilute.
+2. **The direction will be right** — ratio below 1.0.
+3. **The tertiary's five will not be uniformly low.** §32.4's "every one" is already broken by
+   §36.3, and *ColBERTv2* is the repository itself in a way that reads as an improvement to what
+   is checked out.
+
+**Calibration, stated as usual.** Six arms scored: 2, 2, 2, 1, 2 and 2 of 4 — and a null-ish
+outcome has now been the headline prediction five times and right four. Prediction 1 is another
+one. **A correct call there should be read as the base rate, not as insight**, and it is
+prediction 2 that carries information: it is the one that says the lead was worth chasing.
+
+### 36.8 Cost, and what this does not measure
+
+**~$1.04** — 95 Sonnet verdicts, byte-identical rubric, cached under `.work/second_judge/` and
+never in the gold cache. All 8 cases pass the prompt-hash check, so no clone has drifted under
+its labels.
+
+This does **not** measure whether the shipped already-cited rule is good. §32.6 closed that: its
+sign flips with the judge, and this arm deliberately conditions on the judge rather than choosing
+between them. It measures one thing — whether the two judges differ *systematically* on papers a
+repository already has — because that is what decides whether the redundancy line is worth any
+further money at all.
+
+It also does not reach self-papers outside the cited class. `numerics/1907.10121` (*SciPy 1.0*,
+scipy's own paper, GPT 1, no Sonnet label) sits right there and is excluded, because admitting it
+would mean picking papers by hand, and that is the failure mode this arm exists to avoid.
 
 ---
 ## Appendix
