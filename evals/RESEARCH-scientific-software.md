@@ -38,7 +38,11 @@ non-actionable Top Picks across the six runs are **gate-score-3 papers** — fiv
 repository's *own* paper (5 of 6 repos, judged 1 every time) and six *use* CHGNet/MACE and
 name it in the abstract (rare-earth oxide diffusion, Mn-rich cathodes, defective COFs,
 twisted 2D materials, "Evaluation of the MACE architecture", the sibling library MatGL) — the
-Haiku gate scores the name-match 3, the judge scores it 1. Papers
+Haiku gate scores the name-match 3, the judge scores it 1. **§26.1 REFUTES that last clause**:
+over all 85 labelled score-3 papers, the ones naming the tool are *less* often non-actionable
+(0.119 against 0.231 under GPT, 0.254 against 0.423 under Sonnet). The gate does promote
+name-matched papers (§26.5) and that promotion is mostly correct. The six papers listed here are
+real; "the name-match is what makes them wrong" is not. Papers
 that came through the score-2 band **and the fine-scale rescore** were actionable 28 of 29
 times (0.966). That is the reverse of the benchmark's finding that the score-3 band can be
 trusted, and it points at two cheap fixes (§6 D4, G1) that this draw says are worth ~+2 net@2
@@ -186,6 +190,13 @@ work only where arXiv is the venue. The one loss the judge did find (§5.1) — 
 tool-named application papers 3 — is not a domain assumption in the code; it is a property of
 repositories whose *name is a method* that every application paper cites, and it would bite an
 ML repo of the same shape.
+
+**This paragraph held up, and it is the only one in this family that did.** §26.3 found the
+score-3 emission asymmetry is carried by the six *matsci* cases (27.8%, p < 0.0001) and not by
+bio (12.2% / 13.3%, neither significant) — i.e. by name-is-a-method repositories rather than by
+scientific software. §26.5 found naming predicts gate-3 emission on ML repos too (12.1% against
+5.3%), which is the "would bite an ML repo of the same shape" prediction, measured. What §26.1
+refutes is the *other* half — that the name match is what makes those papers bad.
 
 ---
 
@@ -405,6 +416,14 @@ domain effect. What *is* informative is the shape of the errors:
   benchmark. The gate scores the name match 3; the judge says "application, no method to
   port". dscribe, whose method (SOAP) is not the repo's name, had 10 of 12 Top Picks come
   through the fine-scale path and lost only its self-paper.
+
+  **§26.1 refutes the causal reading of this bullet.** Naming the tool does not predict
+  non-actionability among score-3 papers — measured over 85 of them, the association runs the
+  other way under both judges. These seven papers are genuinely bad recommendations; the name
+  match is not why. Note that (a) above already carried the better description — *"describes
+  what the repository already implements"* — filed as a property of **self-papers** rather than
+  recognised as a class. §26.5's post-hoc observation is that class widening: LoRA for `peft`,
+  Minimap for `bio-align`, field surveys for `mat-featurize`. Not measured, not pre-registered.
 - **The fine-scale rejections were mostly wrong on this draw** (small n): of the four Maybe-tier
   papers the rescore dropped (P 0.37–0.45), three were judged actionable (minibwa for minimap2;
   HEIST and the sparse-mechanism-shift VAE for scvi-tools) and one not (MiMiC/CP2K for OpenMM).
@@ -422,6 +441,10 @@ What this draw supports: on arXiv-covered scientific repositories the measured p
 produces digests at roughly benchmark quality **where the gate's score-3 band is not inflated by
 name matches**, and the one place it fails (universal-potential libraries whose name appears in
 every application paper) has a plausible cheap fix that the project's own machinery can test.
+
+**"Inflated by name matches" is refuted (§26.1)** — and the "plausible cheap fix" was tested and
+killed twice (§9.4). The population claim survives: universal-potential libraries are where it
+fails (§26.3). The explanation does not.
 
 Two labels the critic insisted on, both right: "HyDE supplied N of M Top Picks" is
 **provenance** (which channel fetched the paper first), not measured contribution — no
@@ -614,6 +637,14 @@ half of a bio audience writes R); the recency path (`lookback_days: 14`, `sort_b
 question this audience will ask; and the keyless default configuration on these domains.
 
 **G — the gate on tool-named application papers (the one measured loss)**
+
+> **The heading's causal claim is refuted (§26.1).** Naming the tool does not predict
+> non-actionability among score-3 papers; the association runs the other way under both judges.
+> The loss is real and G1's arithmetic below is untouched — what is gone is "because they name
+> the tool". §26.3 narrows the population to name-is-a-method matsci repositories, and §26.5's
+> post-hoc lead is that the misfires are *"you already have this"* papers (the repo's own
+> lineage, its foundational method, field surveys) rather than papers that merely use it.
+> Nothing here should be built on until that lead has its own pre-registration.
 
 - **G1. Rescore the score-3 band too, or gate applications.** The matsci gates admitted 39/50
   and 35/50 with 11–12 score-3s; the judge (§5.1) called gate-3 papers actionable 0.694 of the
@@ -3031,6 +3062,85 @@ it** — which is an argument for cheap pre-registered tests, not for better int
 - **Nothing should be built yet.** §26.5 is the live lead and it is post-hoc; it needs its own
   pre-registration, and §9.4's warning about fitting nine labels applies with more force now that
   the obvious explanation has failed.
+
+---
+## 27. §24.5's residue, closed: RRF is the whole of it (2026-08-21)
+
+§24.5 left rank instability as the open residue of the displacement thread. It is judge-free and
+the pools were seeded, so it cost **$0**. `evals/rank_stability.py`.
+
+### 27.1 The instability is real and larger than §24.5 measured
+
+Of the control arm's 90 top-15 papers, **40 are outside the treatment arm's top 30** — extending
+§24.5's 13-of-19 to the whole window.
+
+**None of that is a defect on its own.** Europe PMC wins about 40% of the gate-entry cut (§22.2),
+so arXiv papers must move down and a fixed window with more competitors shows fewer of them. That
+is arithmetic.
+
+### 27.2 The question that separates a defect from arithmetic
+
+Whether one arXiv paper outranks another is a statement about those two papers and the
+repository. A bioRxiv preprint arriving in the pool has no bearing on it. So: **does adding a
+source change the order of the papers that were already there?**
+
+| case | shared papers | Kendall tau | discordant pairs | control top-15 still in the arXiv top-15 |
+|---|---|---|---|---|
+| bio-align | 328 | 0.902 | 2627/53628 | 12/15 |
+| bio-singlecell | 277 | 0.912 | 1686/38226 | 8/15 |
+| bio-scvi | 269 | 0.906 | 1689/36046 | 12/15 |
+| bio-mdsim | 354 | 0.928 | 2246/62481 | 11/15 |
+| bio-mdtraj | 316 | 0.860 | 3488/49770 | 7/15 |
+| bio-kmer | 309 | 0.930 | 1669/47586 | 8/15 |
+| **mean** | | **0.906** | | **58/90 (64%)** |
+
+Yes. Globally the reordering is modest — 91% of pairs keep their order — but **at the top it is
+not**: even restricting to arXiv papers, **36% of the top-15 changes**. Small perturbations bite
+hardest where papers are closely spaced, which is exactly the region a digest is drawn from.
+
+### 27.3 The cause, isolated
+
+With `hybrid=False` and the shipped `absent_category: omit`, a paper's score depends only on that
+paper and the profile — nothing about the pool enters it. So a stable ranker must return tau
+exactly 1.000, and it does:
+
+| case | tau | discordant |
+|---|---|---|
+| bio-align | **1.0000** | 0/53628 |
+| bio-scvi | **1.0000** | 0/36046 |
+| bio-mdtraj | **1.0000** | 0/49770 |
+
+**Zero discordant pairs out of about 140,000.** The heuristic scorer is perfectly stable and
+**hybrid RRF is the entire cause**.
+
+### 27.4 What that means, and what it does not
+
+**It is not a bug.** Reciprocal Rank Fusion combines *ranks*, and inserting documents shifts every
+rank downstream of them. Sensitivity to the candidate set is what the algorithm is; the project
+chose it in the roadmap-#4 hybrid work for a reason that still holds — §11's finding that a paper
+the keyword ranker buried on vocabulary mismatch can still surface.
+
+**It is a design consequence now measured rather than assumed.** Turning on a second source does
+not merely add papers to a digest; it re-decides, through RRF, which of the old ones were best.
+That is worth knowing before anyone reasons about `sources` as an additive setting — §21.4 already
+showed it is not additive in *composition*, and this shows it is not additive in *order* either.
+
+**It does not say the new order is worse.** Which ranking is better needs labels for papers the
+shipped ranking never produced, and §24 is the standing demonstration of what that costs. Nothing
+here licenses changing the fusion.
+
+### 27.5 A correction propagated
+
+§26 refuted the tool-name mechanism but left it asserted in four earlier places, including §0's
+TL;DR — the first thing a reader sees. Corrected at §0, §5.1(b), §5.3 and §6's G heading.
+
+Two things worth recording from doing it. §5.1(a) already contained the better description —
+self-papers judged 1 for *"describes what the repository already implements"* — filed as a
+property of self-papers rather than recognised as a class, which is §26.5's post-hoc lead sitting
+in the document since §5. And §2's paragraph on domain assumptions **held up**: it predicted the
+failure is "a property of repositories whose *name is a method* … and it would bite an ML repo of
+the same shape", which §26.3 and §26.5 both confirm. It is the only member of this family that
+survived.
 
 ---
 ## Appendix
