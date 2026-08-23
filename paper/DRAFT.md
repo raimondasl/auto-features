@@ -509,6 +509,25 @@ It also undermines the measurement that motivated it. The same `+s2` configurati
 
 **The coverage gap is not where we looked.** Five channels were built to reach literature arXiv does not carry. DBLP returned nothing for six months; bioRxiv returned everything; IACR is unvalidated at n = 2; Semantic Scholar, the one that competes broadly, has not been shown to help; and OpenAlex — measured last, at $0 — supplies the most genuinely non-arXiv content of any of them (~229 papers per repository, of which only 32 across the entire benchmark turn out to be a paper the arXiv pool already held) while winning **three** top-10 slots on merit across 25 repositories. Six of its fourteen slots are won in the negative controls, where the correct output is nothing, and five in the one repository whose arXiv pool was a quarter of the median, where there was nothing to outrank **[NR-34]**. The two standing recall losses of §8.5 — `llminfer` and `numerics` — are repaired by none of them.
 
+> **Overturned after this paper's window closed (2026-08-13), and recorded rather than revised.** The
+> heading above is wrong, and the reason it was wrong is instructive: **every non-arXiv channel had been
+> measured only on the 25 ML/systems repositories**, whose literature is on arXiv, so the channels built
+> for a coverage gap were tested where the gap does not exist. Measured on repositories that have one —
+> `evals/RESEARCH-scientific-software.md` §21 and §39, judged, with a second judge in the same pass —
+> **Europe PMC supplies 4.8 of the ~9.7 papers shown per case** over six biology repositories at
+> precision 1.000 (GPT-5.5) / 0.724 (Sonnet) against arXiv's 0.897 / 0.586 beside it, and **OpenAlex
+> supplies 1.83 per case** over six materials-science repositories at precision 0.818 / 0.455 against
+> arXiv's 0.852 / 0.537 — real journal literature, *Nature Machine Intelligence*, *Computer Physics
+> Communications*, *npj Computational Materials*, *JCTC*, *Physical Review B*. The OpenAlex figure quoted
+> above — "three top-10 slots on merit across 25 repositories" — also predates the 2026-08-19 repair that
+> stopped its adapter filtering out every preprint; on the six materials repositories the same probe
+> returns **26 slots across 6 of 6 cases**. Three further findings qualify it: 90.8% of what OpenAlex
+> returns there is peer-reviewed journal literature and **one paper in 1747 came from ChemRxiv**, so the
+> long tail is journals rather than preprint servers; 76% of the pool is off-domain by OpenAlex's own
+> field label and **none of that contamination reaches a digest**; and adding a source **displaces**
+> 24–44% of the incumbent Top Picks rather than adding to them, so neither channel is shown to raise
+> digest quality and both paired deltas are unresolved at six cases.
+
 **A ranking result we did not want.** Two policies producing visibly different top-10s produce statistically identical output. Everything downstream of the heuristic ranker — the triage gate, the fine-scale rescore, the derived 2/3 threshold — is doing the work that decides quality. A heuristic-ranker change now has to clear a high bar to be worth measuring at all, and the cheap pre-check is the gate-free count of actionable papers reaching the top-10: it moved 0.00 and −0.24 here, and would have predicted the null for $0.
 
 **A failure mode with a name.** Two findings in this campaign were manufactured by arms whose channel returned nothing — IACR's first run and the S2 finding — and a third, the phrase-query arms, is known to be real only because the report had by then been built to check. §11 develops it as a rule.

@@ -139,11 +139,19 @@ repaired, and `speech` regressed 10 points for reasons not yet understood — se
   `sources/biorxiv.py` (date-interval listing + local query filter, biology) and `sources/iacr.py` (ePrint
   HTML search, cryptography) — opt in via `sources:`, merged with arXiv priority. `sources/suggest.py` reads
   the repo profile and **suggests** a matching source in `rr profile` / `rr update`.
-  **Built, wired, never validated** — and until 2026-08-12 never actually functional: every non-arXiv source
-  received arXiv boolean syntax instead of keywords (C-9), which DBLP answers with nothing and bioRxiv answers
-  with its entire recent window. Only IACR has a measurement, and it is a two-case null too small to resolve a
-  plausible effect. *Remaining:* re-measure DBLP and bioRxiv now that they receive real queries, DOI
-  abstract-backfill for DBLP, and medRxiv/category config.
+  Until 2026-08-12 none was actually functional: every non-arXiv source received arXiv boolean syntax
+  instead of keywords (C-9), which DBLP answers with nothing and bioRxiv answers with its entire recent
+  window. **Two are now validated end to end against a judge** (`evals/RESEARCH-scientific-software.md`
+  §21, §39): `sources/europepmc.py` supplies **4.8 of the ~9.7 papers shown per case** over six biology
+  repositories at a precision at or above the arXiv papers beside it under two judges, and
+  `sources/openalex.py` supplies **1.83 per case** over six materials-science repositories — real journal
+  literature (*Nature Machine Intelligence*, *Computer Physics Communications*, *npj Computational
+  Materials*) — at a precision statistically indistinguishable from them. Neither is shown to *raise*
+  digest quality: a source **displaces** 24–44% of the previous Top Picks rather than adding to them, and
+  the net effect is unresolved at six cases. **DBLP, Semantic Scholar and IACR remain unvalidated**; IACR's
+  only measurement is a two-case null too small to resolve a plausible effect. *Remaining:* re-measure
+  DBLP now that it receives real queries, DOI abstract-backfill for DBLP, medRxiv/category config, and the
+  half of the cross-scheme duplicate that OpenAlex's `locations` cannot close (§40.2).
 - **Feature 7 — SPECTER2 similarity** (`specter.py`, `ranking.w_specter`): citation-trained vectors served free
   by S2, cached under a distinct `specter_v2` key in `paper_embeddings`, queried by the centroid of your
   starred/highly-rated papers (no local model), pool-normalized, persisted via store v11 `specter_score`.
@@ -810,9 +818,23 @@ Ranking is currently a heuristic weighted sum, and embeddings are recomputed for
 
 > **🟡 Core shipped.** The source-adapter contract is documented (`sources/__init__.py`), and two adapters ship: `sources/dblp.py` (keyword-search JSON, systems/PL/DB — title-only, `abstract=""`) and `sources/biorxiv.py` (date-interval listing bounded + locally query-filtered, biology). Both opt in via `sources:` and merge with arXiv priority; both degrade gracefully. `sources/suggest.py` closes the profile-driven half: it scores the repo profile (detected packages plus keyword/source-signal tokens) against each adapter's signal set and prints a one-line hint in `rr profile` and `rr update` when a source matches but isn't enabled. One matched package is decisive; bare keyword hits need corroboration, so a repo that mentions "protein" once is not nagged. Precision came from *removing* signals: the profiler's inferred domains are not used at all ("containers"/"data pipelines" mark deployment tooling, "distributed computing" comes from Ray/Dask, "databases" only from SQLAlchemy), ubiquitous infrastructure packages (redis, kubernetes, kafka, sqlalchemy) are not DBLP anchors, and words ML repos use in another sense ("distributed", "scheduler", "kernel", "runtime") are not DBLP terms — otherwise every Django app and every ML-systems repo would be told to enable DBLP. **It suggests rather than auto-activates, deliberately** — DBLP rate-limits hard and records publication *year* only, so silently enabling it would slow runs and mismatch the recency window; the caveat is printed with the suggestion instead. **Remaining:** the IACR ePrint adapter (RSS/HTML), DOI abstract-backfill for DBLP, and medRxiv + per-adapter category config.
 
+> **Status 2026-08-23, correcting the block above.** Five adapters now ship, not two: `iacr.py` landed
+> (so "Remaining: the IACR ePrint adapter" is done) and `europepmc.py` was added because
+> `sources/biorxiv.py` is a **date listing rather than a search** and cannot answer a keyword query —
+> prefer `europepmc`. Two of the five are validated end to end against a judge
+> (`evals/RESEARCH-scientific-software.md` §21, §39): **Europe PMC** at 4.8 papers/case shown over six
+> biology repositories, **OpenAlex** at 1.83/case over six materials-science repositories carrying real
+> journal literature. Both at a precision indistinguishable from the arXiv papers in the same digests,
+> under two independent judges; neither shown to *raise* digest quality, because a source displaces
+> 24–44% of the incumbent Top Picks rather than adding to them. **DBLP, Semantic Scholar and IACR are
+> still unvalidated.** Known open defect: with `openalex` on, a paper's journal version can appear beside
+> its own arXiv preprint — §40 closes two of five measured cases at the id layer and the rest do not merge.
+
 **Verification: proposed by completeness critique; APIs confirmed free.**
 
 Every existing source assumes the arXiv-ML user, but RepoRadar's value proposition — *papers relevant to YOUR repo* — is strongest for the long tail of non-ML repos whose literature is **not on arXiv**: crypto/security publishes on IACR ePrint, bio tooling on bioRxiv/medRxiv, systems/PL/DB at USENIX/SOSP/VLDB (surfaced via DBLP, abstracts backfilled from OpenAlex/S2 by DOI). This is the single biggest unserved-user-segment gap.
+
+**Measured 2026-08-23:** that gap is real and the channel reaches it. On six materials repositories OpenAlex's pool is **90.8% peer-reviewed journal literature** and **one paper in 1747 came from ChemRxiv** — so the long tail here is journals, not preprint servers, which is the opposite of what this item assumed.
 
 **Capabilities**
 - Automatic adapter activation from the repo profile (imports like `cryptography`/`biopython`, manifest keywords) with config override

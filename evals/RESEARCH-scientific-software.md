@@ -683,6 +683,34 @@ Two things raise every row: a clean README first paragraph (the 300-character pr
 the gate and HyDE see) and a repository whose name is a good query. Two things lower every
 row: `arxiv.categories` left at the ML default, and a repo whose research is journal-only.
 
+### 7.1 AMENDED 2026-08-23 — four of the six rows have been measured since
+
+§7 was written on 2026-08-18 as subjective probabilities, and said so. Five weeks of arms have
+since turned four of its rows into measurements, **three of them in the direction §7 did not
+expect**. The table above is left as written; this is what it would say now.
+
+| row | §7 said | measured since | direction |
+|---|---|---|---|
+| **Bio repo against bioRxiv** | ~0.1 now, ~0.45 after B1–B4, *"journal-only literature still out of reach"* | §21: Europe PMC supplies **4.8 of the ~9.7 papers shown per case** over six bio repositories, precision **1.000 (GPT) / 0.724 (Sonnet)** against arXiv's 0.897 / 0.586 in the same digests | **§7 was pessimistic.** §21.6 says so explicitly |
+| **any row, "journal-only literature is out of reach"** | a standing lowering factor on every row | §39: OpenAlex supplies **1.83 papers per case** on six materials repositories — *Nature Machine Intelligence*, *Computer Physics Communications*, *npj Computational Materials*, *JCTC*, *Physical Review B* — at precision statistically indistinguishable from the arXiv papers beside them | **no longer true.** The sentence closing §7 needs the qualifier below |
+| **Compiled/R/Fortran repo** | ~0.3, *"R `DESCRIPTION` unread and no R repo was even profiled"* | §33 profiled nine of them and §34 shipped R/Julia/Rust manifest readers. LAMMPS, tblite and kim-api now draw real domain vocabulary; `seurat`, `diffeq-jl` and `noodles` get anchors | **the specific defect is fixed.** Two others survive: `htslib` still draws the citation id `giab007`, `kallisto` still loses its own name (§33.2) |
+| **Name-is-a-method repo** | ~0.45 now, **~0.8 after D4 + G1** | G1 was attempted five times — §9.4 twice, §26, §29, §30 — and closed in §37. The mechanism is refuted and the residual is too small to matter | **the ~0.8 is not reachable by that route.** §37 books the misfires as a known bounded cost of ~10 papers instead |
+
+**The two rows that stand unchanged** are the arXiv-native ones — matsci descriptor/analysis
+libraries (~0.8) and bio-on-arXiv (~0.65) — and they are the rows a demo is most likely to use.
+
+**One demo hazard §7 could not have known about.** §39.5: with `openalex` enabled, five of six
+materials cases showed a reader the same paper **twice** — an arXiv preprint beside its own
+journal version. §40 closes two of five such pairs at the id layer; the rest do not merge, because
+OpenAlex records no link between them. **A live demo on a materials repo with `sources:
+[arxiv, openalex]` can still show a duplicate**, and `mat-chgpot` is the case where it happened.
+That is a reason to pick the source list deliberately for a demo, not a reason to hide it.
+
+**So the closing sentence of §7 needs one amendment.** *"Two things lower every row: `arxiv.categories`
+left at the ML default, and a repo whose research is journal-only."* The first still holds. The
+second now reads: **a repo whose research is journal-only, and whose owner has not enabled
+`europepmc` or `openalex`** — the channel exists, is measured, and is off by default.
+
 ---
 
 ## 8. Plan
@@ -4650,6 +4678,62 @@ its validity check hardcodes the Semantic Scholar prefix it was built for. It pr
 on a run where the treatment returned 37 new papers across 6 of 6 cases, and its own next line
 said so. Harmless here because the correct check is right underneath it, and recorded because a
 warning that is wrong by construction is a warning a future reader will believe.
+
+---
+## 40. The cross-scheme duplicate, partly closed — and the half that stays open (2026-08-23)
+
+§39.5's defect: with `openalex` enabled, five of the five materials cases the channel contributed
+to showed a reader the same paper **twice** — an arXiv preprint beside its own journal version —
+against zero in the arXiv-only control.
+
+### 40.1 The cause was an ordering, and one adapter had it backwards
+
+`dedup_id` normalises versions and `doi_key` normalises DOIs, so two records merge only if they
+carry the same id. OpenAlex gave the published version a `doi:` id because its `ids` block holds
+only `doi`, `openalex`, `pmid` and `mag` — **never an arXiv id, even for a work that has one.**
+
+`sources/semantic_scholar.py` has always preferred `externalIds["ArXiv"]` over `doi_key`, for
+exactly this reason. **This adapter was the one that did not**, and it is the one whose whole
+purpose is journal literature, so it is the one where the omission bites.
+
+`locations` is where OpenAlex does record the preprint. `_arxiv_id_from_locations` reads it,
+`is_arxiv_id` validates the capture before it is used, and the lookup sits between the
+arXiv-DOI branch and the `doi_key` fallback — so nothing that already resolved changes.
+
+### 40.2 It closes two of the five, and that number is measured rather than hoped
+
+Run live against the five real pairs of §39.5:
+
+| duplicate pair | arXiv location recorded? | id now |
+|---|---|---|
+| *Benchmarking materials property prediction* (`mat-featurize`) | yes | **`2005.00707`** — merges |
+| *Lattice dynamics and electron-phonon coupling* (`mat-phonon`) | yes | **`1510.04418`** — merges |
+| *CHGNet* (`mat-chgpot`) | no | `doi:10.1038/s42256-023-00716-3` |
+| *Updates to the DScribe library* (`mat-descriptors`) | no | `doi:10.1063/5.0151031` |
+| *Materials Graph Library* (`mat-toolkit`) | no | `doi:10.1038/s41524-025-01742-y` |
+
+**Two of five.** The other three list no arXiv location at all — checked, not assumed — and
+closing them would need title matching, which §30 is the standing reason not to trust. The
+partial fix is recorded as partial in the code, in `tests/test_sources_openalex.py`
+(`test_no_arxiv_location_falls_back_to_the_doi` pins the CHGNet case by name), and here.
+
+**§39's numbers are not restated.** They describe the pipeline that ran, the pools are frozen, and
+a re-run would find three duplicate pairs rather than five. §39.5's own arithmetic already showed
+the metric is roughly neutral to this — deduplicating moved the mean **+5.833 → +6.000** — so
+nothing downstream of it moves either.
+
+### 40.3 What the fix costs, stated
+
+The arXiv-sourced copy is collected first, so it wins the merge and the OpenAlex record is
+dropped. The reader therefore gets **the preprint's link rather than the published version's** for
+those two papers. That is the wrong way round for a citation and the right way round for a digest
+whose job is not to duplicate itself, and it is a smaller defect than the one it replaces. The
+digest's `url` is built from the DOI independently, so only the *id* ordering changed here — a
+future fix that prefers journal metadata while keeping the arXiv id is a separate, easy change and
+is not made on the strength of a preference.
+
+`select` now requests `locations`, which is a larger response per work. It is not in `POOL_FLAGS`
+and changes no fingerprint.
 
 ---
 ## Appendix

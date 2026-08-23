@@ -253,3 +253,89 @@ class TestArxivIdFromLowercaseDoi:
         """The coverage the case above used to carry: DOI-first is not DOI-only."""
         work = {"id": "https://openalex.org/W123", "ids": {}}
         assert _extract_arxiv_id(work) == "oa:W123"
+
+
+class TestArxivIdFromLocations:
+    """§39.5: a journal article and its arXiv preprint were two ids and one paper.
+
+    Measured on the matsci OpenAlex arm — the same paper reached Top Picks TWICE in five of
+    the five cases the channel contributed to, and zero times in the arXiv-only control. The
+    `ids` block never carries an arXiv id for a published version; `locations` sometimes does.
+    """
+
+    def _work(self, locations: list[dict] | None) -> dict:
+        return {
+            "doi": "https://doi.org/10.1038/s41524-020-00406-3",
+            "id": "https://openalex.org/W3034141459",
+            "ids": {"doi": "https://doi.org/10.1038/s41524-020-00406-3"},
+            "locations": locations,
+        }
+
+    def test_the_matbench_pair_now_shares_one_id(self) -> None:
+        """The real duplicate from `mat-featurize`, both copies judged 1 (§39.5)."""
+        work = self._work(
+            [
+                {"landing_page_url": "https://doi.org/10.1038/s41524-020-00406-3"},
+                {"landing_page_url": "http://arxiv.org/abs/2005.00707"},
+            ]
+        )
+        assert _extract_arxiv_id(work) == "2005.00707"
+
+    def test_the_lattice_dynamics_pair_too(self) -> None:
+        """`mat-phonon`'s pair, where the two copies were even judged differently (2 and 3)."""
+        work = {
+            "doi": "https://doi.org/10.1103/physrevb.92.184301",
+            "id": "https://openalex.org/W1",
+            "ids": {},
+            "locations": [{"landing_page_url": "http://arxiv.org/abs/1510.04418"}],
+        }
+        assert _extract_arxiv_id(work) == "1510.04418"
+
+    def test_a_pdf_url_works_and_the_extension_is_stripped(self) -> None:
+        work = self._work([{"pdf_url": "https://arxiv.org/pdf/2005.00707v2.pdf"}])
+        assert _extract_arxiv_id(work) == "2005.00707v2"
+
+    def test_pre_2007_ids_survive_the_slash(self) -> None:
+        work = self._work([{"landing_page_url": "https://arxiv.org/abs/cs/0602007"}])
+        assert _extract_arxiv_id(work) == "cs/0602007"
+
+    def test_no_arxiv_location_falls_back_to_the_doi(self) -> None:
+        """CHGNet's case: three of the five duplicates list no arXiv location at all.
+
+        The fix is partial by measurement, and this pins the half that it does not reach so
+        a later reader does not assume the defect is closed.
+        """
+        work = self._work(
+            [
+                {"landing_page_url": "https://doi.org/10.1038/s42256-023-00716-3"},
+                {"landing_page_url": "https://www.repository.cam.ac.uk/handle/1810/357350"},
+            ]
+        )
+        assert _extract_arxiv_id(work) == "doi:10.1038/s41524-020-00406-3"
+
+    def test_missing_or_malformed_locations_do_not_raise(self) -> None:
+        for locations in (None, [], [None], ["not-a-dict"], [{}], [{"landing_page_url": None}]):
+            assert _extract_arxiv_id(self._work(locations)) == "doi:10.1038/s41524-020-00406-3"
+
+    def test_a_non_arxiv_id_shaped_url_is_rejected_rather_than_used(self) -> None:
+        """`is_arxiv_id` guards the capture, so an unanticipated URL shape degrades safely."""
+        work = self._work([{"landing_page_url": "https://arxiv.org/abs/not-an-id"}])
+        assert _extract_arxiv_id(work) == "doi:10.1038/s41524-020-00406-3"
+
+    def test_an_arxiv_doi_still_wins_over_locations(self) -> None:
+        """Order is unchanged where the DOI already answers the question."""
+        work = {
+            "doi": "https://doi.org/10.48550/arXiv.2401.12345",
+            "id": "x",
+            "ids": {},
+            "locations": [{"landing_page_url": "http://arxiv.org/abs/9999.99999"}],
+        }
+        assert _extract_arxiv_id(work) == "2401.12345"
+
+    def test_locations_is_requested_from_the_api(self) -> None:
+        """A select that omits it makes the whole fix a no-op that still passes unit tests."""
+        with patch("reporadar.sources.openalex.urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = _mock_response({"results": []})
+            search_papers("q")
+            url = mock_urlopen.call_args[0][0].full_url
+        assert "locations" in url
