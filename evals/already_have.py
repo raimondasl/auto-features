@@ -38,7 +38,7 @@ sys.path.insert(0, str(EVALS.parent / "src"))
 from harness import WORK_DIR  # noqa: E402
 from label_pool import fisher_exact  # noqa: E402
 from score3_mechanism import collect  # noqa: E402
-from second_judge import ACTIONABLE, CACHE, DEFAULT_MODEL  # noqa: E402
+from second_judge import ACTIONABLE, DEFAULT_MODEL, second_cache_path  # noqa: E402
 
 from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.profiler import cited_arxiv_ids_of  # noqa: E402
@@ -82,7 +82,7 @@ def main() -> int:
             cited_by_case[case] = cited_arxiv_ids_of(WORK_DIR / case)
         # The PRODUCT's rule, not a second copy of it (digest.py:244).
         r["cited"] = dedup_id(str(r["arxiv_id"])) in cited_by_case[case]
-        p = CACHE / args.model / case / f"{r['arxiv_id'].replace('/', '_')}.json"
+        p = second_cache_path(args.model, case, r["arxiv_id"])
         if p.is_file():
             r["sonnet_non_actionable"] = (
                 int(json.loads(p.read_text(encoding="utf-8"))["score"]) < ACTIONABLE

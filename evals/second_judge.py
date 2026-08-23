@@ -54,6 +54,7 @@ import argparse
 import hashlib
 import json
 import random
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -178,6 +179,35 @@ def sample(
     return out
 
 
+def second_cache_path(model: str, case: str, paper_id: str) -> Path:
+    """Where one second-judge verdict lives. Sanitised the way the gold cache already was.
+
+    This used to be ``paper['arxiv_id'].replace('/', '_')``, which leaves the **colon** in a
+    synthetic id like ``doi:10.1038/s42256-023-00716-3``. On Windows a colon in a path is the
+    NTFS alternate-data-stream separator, so every non-arXiv verdict this project ever bought
+    was written into a stream hanging off a zero-byte file named ``doi`` — **93 of them across
+    11 cases**, 82 from §21's Europe PMC arm, invisible to ``ls``, ``glob`` and ``find``, and
+    silently dropped by any copy to another filesystem. They read back through this same
+    function, which is why §21.2's numbers are right and why nothing ever noticed.
+
+    ``judge._cache_path`` has always sanitised with this exact expression. Two implementations
+    of one invariant, and the second was wrong — the fourth time this project has paid for that.
+    Fixing it orphans the 93, which re-buy for about $1 when a run next needs them.
+    """
+    return CACHE / model / case / f"{safe_paper_id(paper_id)}.json"
+
+
+def safe_paper_id(paper_id: str) -> str:
+    """A paper id as a filename, for any verdict cache. The rule, in one place.
+
+    Byte-identical to ``judge._cache_path``'s expression, so the two caches agree on what a
+    paper is called. Exported because `.work/second_judge` is not the only cache keyed by a
+    paper id — `proposes_method`'s classifier cache and `redacted_judge`'s arms share the
+    hazard, and a colon is legal in a POSIX filename and is not one on NTFS.
+    """
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", paper_id)
+
+
 def second_verdict(case: str, ctx: str, paper: dict[str, Any], model: str) -> int:
     """One Sonnet verdict, cached OUTSIDE the gold cache.
 
@@ -186,7 +216,7 @@ def second_verdict(case: str, ctx: str, paper: dict[str, Any], model: str) -> in
     real difference between the two conditions and it is not removable while the judges are
     different vendors — it is a limitation of the comparison, reported as one.
     """
-    path = CACHE / model / case / f"{paper['arxiv_id'].replace('/', '_')}.json"
+    path = second_cache_path(model, case, str(paper["arxiv_id"]))
     if path.is_file():
         return int(json.loads(path.read_text(encoding="utf-8"))["score"])
     prompt = f"{judge_mod.RUBRIC}\n\n{judge_mod._build_user_prompt(ctx, paper)}"

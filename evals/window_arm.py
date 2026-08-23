@@ -43,8 +43,8 @@ from label_pool import fisher_exact  # noqa: E402
 from run_judge_eval import RESULTS_DIR  # noqa: E402
 from second_judge import (  # noqa: E402
     ACTIONABLE,
-    CACHE,
     DEFAULT_MODEL,
+    second_cache_path,
     second_verdict,
     verify_contexts,
 )
@@ -162,7 +162,7 @@ def main() -> int:
     already = {
         (r["case"], r["arxiv_id"])
         for r in band["1-15"]
-        if (CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json").is_file()
+        if second_cache_path(args.model, r["case"], r["arxiv_id"]).is_file()
     }
     targets = band["16-30"] + [r for r in band["1-15"] if (r["case"], r["arxiv_id"]) not in already]
     by_case: dict[str, dict[str, dict[str, Any]]] = {}
@@ -186,7 +186,7 @@ def main() -> int:
     if args.report:
         keep = []
         for r in targets:
-            p = CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+            p = second_cache_path(args.model, r["case"], r["arxiv_id"])
             if p.is_file():
                 r["sonnet_score"] = int(json.loads(p.read_text(encoding="utf-8"))["score"])
                 keep.append(r)
@@ -214,7 +214,7 @@ def main() -> int:
 
     # Ranks 1-15 already have Sonnet labels from §21's second_judge_arm pass, where available.
     for r in band["1-15"]:
-        p = CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+        p = second_cache_path(args.model, r["case"], r["arxiv_id"])
         if p.is_file():
             r["sonnet_score"] = int(json.loads(p.read_text(encoding="utf-8"))["score"])
 

@@ -4433,6 +4433,225 @@ behaviour is a different question. Whether a domain filter would fix §38.5(a). 
 remain the standing warning, and six cases is six cases.
 
 ---
+## 39. RESULT — the journal channel clears its bar, and every case it touched shows a paper twice (2026-08-23)
+
+Run 2026-08-23 against §38. Two live arms over the matsci-6, both seeded, no baseline arm, plus
+the second judge over the shown papers. **~$14.**
+
+The bar is met. The finding that matters is a defect the bar could not see.
+
+### 39.1 PRIMARY — the funnel
+
+| case | pool | of which OpenAlex | window | new in window | gate ≥2 | Top Picks |
+|---|---|---|---|---|---|---|
+| mat-mlip | 918 | 277 | 15 | **0** | 0 | 0 |
+| mat-chgpot | 687 | 183 | 15 | 5 | 5 | 5 |
+| mat-descriptors | 713 | 223 | 15 | 1 | 1 | 1 |
+| mat-toolkit | 902 | 335 | 15 | 5 | 5 | 2 |
+| mat-featurize | 853 | 353 | 15 | 3 | 3 | 2 |
+| mat-phonon | 896 | 341 | 15 | 2 | 1 | 1 |
+| **total** | **4969** | **1712 (34.5%)** | 90 | **16 (17.8%)** | **15** | **11** |
+
+**1.83 OpenAlex papers per case reach Top Picks**, against a WIN bar of ≥1. The channel is live
+and journal literature reaches a digest for the first time in this project.
+
+The ranker is doing real work. OpenAlex is **34.5% of the merged pool and 17.8% of the window** —
+it is *under-represented* in the window relative to its pool share, by half. `mat-mlip` is the
+extreme case: 277 OpenAlex papers into the pool and **zero** into the window, including the
+"ASE"-in-*ACM Transactions on Graphics* false match §38.5(c) named in advance.
+
+The optimistic probe said 4.3 per case into a top-10 without HyDE or the rerank. With both, it is
+1.83. §38.9's first prediction — that HyDE and the rerank would cost some but not all of it — is
+the right shape at roughly half the magnitude I assumed.
+
+### 39.2 SECONDARY — precision, within-arm, under both judges
+
+| origin | shown | GPT-5.5 | Sonnet |
+|---|---|---|---|
+| arXiv | 54 | 0.852 [0.734, 0.923] | 0.537 [0.406, 0.663] |
+| **OpenAlex** | 11 | **0.818 [0.523, 0.949]** | **0.455 [0.213, 0.720]** |
+
+Judge distributions: arXiv GPT `{1:8, 2:31, 3:15}` / Sonnet `{0:2, 1:23, 2:20, 3:9}`; OpenAlex GPT
+`{1:2, 2:5, 3:4}` / Sonnet `{0:1, 1:5, 2:4, 3:1}`.
+
+**Lower under both judges, and separated under neither.** The intervals overlap heavily — n=11
+gives OpenAlex a 43-point-wide GPT interval — so the honest claim is *not established as worse*,
+which is the same shape as §21.2's *not established as better*, pointing the other way.
+
+**Both bar conditions are met: WIN.**
+
+### 39.3 The prediction was right and its reasoning was wrong
+
+§38.9's second prediction said precision would be lower, and gave a mechanism: 76% of the
+OpenAlex pool is off-domain, so contamination should reach the digest. **The direction held and
+the mechanism did not.**
+
+Of the 11 papers shown, OpenAlex's own field label says **9 are Materials Science**, one Computer
+Science and one Earth and Planetary Sciences — and both of those are mislabelled matsci papers
+(*G-CHGNet*, a crystal Hamiltonian GNN; a *Physical Review B* lattice-dynamics paper). **Zero
+cardiology. Zero meteorology. Zero molecular biology.** The cardiology and weather journals that
+made §38.5(a) vivid — 20 papers from the *Journal of the American College of Cardiology*, 19 from
+*Monthly Weather Review* — did not survive to a single digest slot.
+
+Ten of the eleven are journal articles. The venues are the ones §6 called unreachable: *Nature
+Machine Intelligence*, *Computer Physics Communications* (×2), *npj Computational Materials* (×2),
+*The Journal of Chemical Physics*, *Physical Review B*, *ACS Applied Materials & Interfaces*,
+*ACS Engineering Au*, *Molecular Physics*.
+
+So the domain filter §38.5(a) proposed is **not licensed by this run**. The pool is contaminated;
+the digest is not. Ranking and gating already handle it, and a filter would be a fix for a problem
+that stops before the user.
+
+### 39.4 TERTIARY and QUATERNARY
+
+**Paired delta: +0.667 net@2/case, 95% CI [−0.83, +2.33], p = 1.0000.** §38.7 declared anything
+inside ±4 unresolved, and this is inside the project's 1.04 noise floor as well. **Unresolved**,
+reported that way because it was written down beforehand.
+
+Per case: mat-mlip 0, mat-chgpot +1, mat-descriptors −1, mat-toolkit +2, mat-featurize −2,
+mat-phonon +4.
+
+**Displacement: 14 of 58 control Top Picks displaced, 24.1%.** Against Europe PMC's 44% (§21.4),
+and §38.9's third prediction said it would be smaller for the stated reason — OpenAlex is 34.5% of
+this pool where Europe PMC was over half of its own. **Correct, and for the right reason.**
+
+### 39.5 The finding: every case the channel touched shows one paper twice
+
+`evals/source_funnel.py`, token-Jaccard ≥ 0.70 on titles, **every claimed pair printed** because
+title matching is the technique §30 failed on:
+
+| case | judge | id | judge | id |
+|---|---|---|---|---|
+| mat-chgpot | 3 | `2302.14231v2` | 3 | `doi:10.1038/s42256-023-00716-3` |
+| mat-descriptors | 1 | `2303.14046v1` | 1 | `doi:10.1063/5.0151031` |
+| mat-toolkit | 2 | `2503.03837v1` | 2 | `doi:10.1038/s41524-025-01742-y` |
+| mat-featurize | 1 | `2005.00707v2` | 1 | `doi:10.1038/s41524-020-00406-3` |
+| mat-phonon | 2 | `1510.04418v1` | 3 | `doi:10.1103/physrevb.92.184301` |
+
+**Five pairs, all cross-origin, one in every one of the five cases that received an OpenAlex
+paper. The control arm has zero.** The preprint and its published version are one paper to a
+reader and two ids to this pipeline: `dedup_id` normalises versions and DOIs but nothing links
+`2005.00707` to `doi:10.1038/s41524-020-00406-3`. An arXiv-only pipeline could not produce this
+class of duplicate; adding a journal index is what creates it.
+
+**So 5 of the 11 papers the channel contributed were already in front of the user.** Genuine new
+literature is **6 papers, 1.0 per case** — still over the WIN bar, and half of what the primary
+reports.
+
+**It does not manufacture the gain, which was my first suspicion and it was wrong.** Dropping the
+OpenAlex copy of each pair moves the treatment mean from **+5.833 to +6.000** — the delta against
+control goes *up*, from +0.667 to +0.833, because two of the five duplicates were judged 1 and
+were costing the digest a slot as well as repeating it. The metric is roughly neutral to the
+defect. A reader is not.
+
+**How much of it is fixable.** OpenAlex records a `locations` list, and for 2 of the 5 it names the
+arXiv landing page — `arxiv.org/abs/2005.00707` and `arxiv.org/abs/1510.04418` — so preferring an
+arXiv id found there would merge those two at the id layer. The other three, CHGNet included,
+list no arXiv location at all and their `ids` blocks carry only `doi`/`openalex`/`pmid`/`mag`.
+**Two of five from metadata; the rest would need title matching, which this project does not
+trust.** Recorded as a bounded, partial fix rather than a solved problem.
+
+Related and separate: `doi:10.1021/acs.jctc.5c00955.s001` reached `mat-chgpot`'s Top Picks — the
+**supporting-information file** of a JCTC paper, hosted on Figshare and indexed by OpenAlex as a
+work in its own right. §38.5(b) named it in advance as a pool defect; it is now a digest defect.
+GPT scored it 2.
+
+### 39.6 A cache bug that hid 93 bought verdicts, in plain sight, since §21
+
+`second_verdict` built its cache path as `paper['arxiv_id'].replace('/', '_')`. That leaves the
+**colon** in `doi:10.1038/s42256-023-00716-3` — and on Windows a colon in a path is the NTFS
+alternate-data-stream separator. Every non-arXiv verdict this project has ever bought was written
+into a stream hanging off a zero-byte file named `doi`:
+
+| | |
+|---|---|
+| hidden verdicts | **93**, across 11 cases |
+| of which from §21's Europe PMC arm | **82** |
+| visible to `ls`, `glob`, `find` | none |
+| survives a copy to any non-NTFS filesystem | no |
+
+They read back correctly, because the same expression wrote and read them. That is why nothing
+noticed for two days and two arms: **§21.2's numbers are right and could not be re-derived by any
+tool that walks the directory.**
+
+`judge._cache_path` has sanitised with `re.sub(r"[^A-Za-z0-9_.-]", "_", …)` since it was written.
+One invariant, two implementations, and the wrong one had been hand-copied into **ten** eval
+modules. All ten now call `second_judge.second_cache_path` / `safe_paper_id`, and
+`tests/test_second_judge_cache.py` fails if any of them hand-rolls it again — the same guard shape
+`tests/test_paper_id.py` uses for `dedup_id`.
+
+The 93 were migrated out of the streams rather than re-bought, which cost $0 and preserved §21's
+cache. On a POSIX machine the same code produced a legal file named `doi:…json`, so the cache was
+never portable between platforms either.
+
+**Found only because `--report` came back with 54 rows instead of 65** after the fix orphaned
+them. A fix that silently halves an artifact is how a cache bug announces itself.
+
+### 39.7 Free evidence for §37, from a paper the judges scored twice
+
+The CHGNet duplicate is the same paper judged twice by the same judge, on the same repository,
+under the same rubric — differing only in which version's metadata was sent.
+
+| record | GPT | Sonnet |
+|---|---|---|
+| `2302.14231v2` (arXiv preprint) | 3 | **0** |
+| `doi:10.1038/s42256-023-00716-3` (Nature Machine Intelligence) | 3 | **3** |
+
+And the justifications identify the *same fact* and draw opposite conclusions from it:
+
+> **0:** "This is the paper the repository itself is the reference implementation of, so it
+> describes the existing codebase rather than offering a new improvement."
+>
+> **3:** "This is the original CHGNet paper describing the exact architecture, training data, and
+> charge-informed methodology that this repository implements, making it the foundational
+> reference for the codebase rather than a general related work."
+
+That Sonnet-0 is one of the three GPT-3 self-papers §32.4 was built on. §37 concluded from
+held-out data that §32.4's mechanism does not survive; this is the same conclusion from a
+different direction and it arrived for free, out of an experiment about journals.
+
+### 39.8 Predictions, scored
+
+1. *"Top Picks on ≥5 of 6 cases."* **Correct**, exactly at the bar — 5 of 6, `mat-mlip` contributing
+   nothing.
+2. *"Precision lower under both judges."* **Directionally correct, not separated** — and §39.3
+   refutes the mechanism I argued it from. Right answer, wrong reason, which §38.9 said in advance
+   would be the interesting failure.
+3. *"Displacement smaller than 44%."* **Correct**, 24.1%, and for the stated reason.
+4. *"The tertiary will be unresolved."* **Correct.**
+
+Four of four on the letter. §38.9 flagged that prediction 2 was the one carrying information, and
+what it carried turned out to be the opposite of what I meant by it: the ranker cleans up
+contamination better than pool composition suggests, which §38.9 named as the lesson if the
+prediction failed. It half-failed and the lesson stands.
+
+### 39.9 What this licenses
+
+- **§6's "journal-only literature is reachable through OpenAlex" is now a statement about a
+  digest, not an adapter.** *Nature Machine Intelligence*, *Computer Physics Communications*, *npj
+  Computational Materials*, *JCTC*, *Physical Review B* have all been judged inside a real digest.
+  That sentence has been marked "built, never measured" since §6.
+- **The measured statement:** on six materials repositories, OpenAlex supplied **1.83 of the ~10.8
+  papers shown per case — 1.0 of them not already in the digest** — at a precision statistically
+  indistinguishable from, and numerically below, the arXiv papers beside them, under two judges.
+- **Not licensed: that adding the source raises net@2.** The tertiary is unresolved and §21.3's
+  lesson applies unchanged.
+- **Not licensed: the domain filter of §38.5(a).** The contamination is real in the pool and does
+  not reach the digest. Do not fix what the ranker already handles.
+- **Licensed and worth doing: cross-scheme deduplication.** Five of six cases show a reader the
+  same paper twice, the control shows none, and OpenAlex's own `locations` field closes two of the
+  five. This is the first defect in a while whose size, cause and partial fix are all measured.
+- **One draw, six repositories**, and §5's matsci values (+1, −1, +9) remain the standing warning.
+
+### 39.10 A stale check found on the way
+
+`evals/source_ab_report.py` prints *"the treatment arm returned no `ss:` papers"* for any arm —
+its validity check hardcodes the Semantic Scholar prefix it was built for. It printed that warning
+on a run where the treatment returned 37 new papers across 6 of 6 cases, and its own next line
+said so. Harmless here because the correct check is right underneath it, and recorded because a
+warning that is wrong by construction is a warning a future reader will believe.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):

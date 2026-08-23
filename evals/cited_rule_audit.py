@@ -33,7 +33,7 @@ sys.path.insert(0, str(EVALS.parent / "src"))
 
 from harness import WORK_DIR  # noqa: E402
 from run_judge_eval import RESULTS_DIR  # noqa: E402
-from second_judge import ACTIONABLE, CACHE, DEFAULT_MODEL  # noqa: E402
+from second_judge import ACTIONABLE, DEFAULT_MODEL, second_cache_path  # noqa: E402
 
 from reporadar.paper_id import dedup_id  # noqa: E402
 from reporadar.profiler import cited_arxiv_ids_of  # noqa: E402
@@ -83,7 +83,7 @@ def load() -> tuple[list[dict[str, Any]], int]:
                     # The PRODUCT's test (digest.py:244), not a second copy of it.
                     "cited": dedup_id(str(p["arxiv_id"])) in cited[case],
                 }
-                sp = CACHE / DEFAULT_MODEL / case / f"{p['arxiv_id'].replace('/', '_')}.json"
+                sp = second_cache_path(DEFAULT_MODEL, case, p["arxiv_id"])
                 if sp.is_file():
                     row["sonnet"] = int(json.loads(sp.read_text(encoding="utf-8"))["score"])
                 out.append(row)

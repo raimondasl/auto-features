@@ -77,6 +77,7 @@ from relation_probe import (  # noqa: E402
     _repo_terms,
     _verdicts,
 )
+from second_judge import safe_paper_id  # noqa: E402
 
 from reporadar.config import SuggestionsConfig  # noqa: E402
 from reporadar.llm_client import complete  # noqa: E402
@@ -152,7 +153,7 @@ def sample_papers(cases: list[str], n: int, rng: random.Random) -> list[tuple[st
 
 
 def verdict(case: str, arm: str, ctx: str, paper: dict[str, Any]) -> int | None:
-    path = CACHE / arm / case / f"{paper['arxiv_id'].replace('/', '_')}.json"
+    path = CACHE / arm / case / f"{safe_paper_id(str(paper['arxiv_id']))}.json"
     if path.is_file():
         return int(json.loads(path.read_text(encoding="utf-8"))["score"])
     prompt = f"{judge_mod.RUBRIC}\n\n{judge_mod._build_user_prompt(ctx, paper)}"
