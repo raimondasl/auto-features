@@ -3611,8 +3611,8 @@ against GPT labels could ever have found it.
   means second-judging self-papers as a class on a population that did not generate this
   observation — and that is a pre-registration, not a next step.
 
-  **Written as §36** (`evals/cited_holdout.py`), on the 24 repo-cited papers that carry no Sonnet
-  label at all. §36.3 records, before the bar, that two self-paper labels already visible in the
+  **RESOLVED, §37: the mechanism is refuted and the lead is off the board.** Written as §36
+  (`evals/cited_holdout.py`), on the 24 repo-cited papers that carry no Sonnet label at all. §36.3 records, before the bar, that two self-paper labels already visible in the
   cache contradict §32.4's absolute form — *OpenMM 8* and phonopy's implementation paper are both
   Sonnet 3 — so what §36 tests is the graded claim, not "every one".
 
@@ -4024,6 +4024,195 @@ further money at all.
 It also does not reach self-papers outside the cited class. `numerics/1907.10121` (*SciPy 1.0*,
 scipy's own paper, GPT 1, no Sonnet label) sits right there and is excluded, because admitting it
 would mean picking papers by hand, and that is the failure mode this arm exists to avoid.
+
+---
+## 37. RESULT — §32.4 is refuted as a mechanism, and the ordinal scale reverses its sign (2026-08-22)
+
+Run 2026-08-22 against §36, **$1.04**, 95 Sonnet verdicts. `evals/cited_holdout.py`.
+
+The pre-registered verdict is **UNRESOLVED**. The useful result is not that: it is that the
+*mechanism* §32.4 proposed does not survive contact with held-out data, and that on the full
+ordinal scale the effect runs the other way.
+
+### 37.1 A bug that would have reported a primary on 11 papers instead of 95
+
+`fetch_papers` keys its cache by `dedup_id` — version-stripped — and I looked papers up by their
+raw gold-cache id. `2401.08281v4` never matches `2401.08281`. The run silently resolved only the
+**11 papers whose gold id happens to carry no version suffix** and would have dropped the other
+84 as "no metadata".
+
+It was caught in flight, on two tells that did not require reading any verdict: `fetch_papers`
+printed `85/85` against a population of 95, and the Sonnet cache had grown by four several
+minutes in. The run was killed, the 11 verdicts it had written were deleted to restore the cache
+to its pre-run 654, and the population rebuilt **identically** to §36's — 24 treatment, 71
+controls, generating set 10, reproduction 10/7/3.
+
+**The second fix matters more than the bug.** Membership is defined as *"carries no Sonnet
+verdict"*, and this arm's entire job is to create Sonnet verdicts. A second invocation would
+therefore reclassify its own output: judged treatment papers would migrate into §32.3's
+generating set and push the reproduction check past ten, while judged controls would simply
+vanish from the control arm. The population is now frozen to
+`.work/cited_holdout_population.json` on first build. An arm whose population is defined by the
+absence of its own output has to snapshot that definition, and this one did not until it was
+bitten.
+
+### 37.2 PRIMARY — 0.846, p = 0.0588, UNRESOLVED
+
+| GPT-3 stratum | Sonnet ≥2 |
+|---|---|
+| cited (held out) | **11 / 13 = 0.846** |
+| matched controls | **39 / 39 = 1.000** |
+| ratio | **0.846** |
+| one-sided Fisher | **p = 0.0588** |
+
+Bars were CONFIRM at ratio ≤ 0.67 with p < 0.05, KILL at ≥ 0.90. Neither is met.
+
+**The control rate came in at 1.000, not the 0.92 the power calculation assumed** (§36.5 used the
+corpus-wide 116/126). That cuts both ways and both are worth stating. It makes the test *more*
+sensitive — with only two sub-cut papers in the entire 52, 11/13 is the second least likely
+arrangement there is, which is why p sits at 0.0588 on a difference of two papers. And it means
+the CONFIRM bar needed **five** failures in the cited arm when the whole stratum contained two.
+The bar was reachable; the data did not go there.
+
+### 37.3 SECONDARY — the direction is not consistent across strata
+
+| GPT | cited | controls | ratio | p |
+|---|---|---|---|---|
+| 1 | 0/5 = 0.000 | 1/15 = 0.067 | 0.000 | 0.7500 |
+| 2 | 3/6 = 0.500 | 7/17 = 0.412 | **1.214** | 0.8032 |
+| 3 | 11/13 = 0.846 | 39/39 = 1.000 | 0.846 | 0.0588 |
+
+GPT-2 runs **backwards** — cited papers clear the cut *more* often than their controls. GPT-1 is
+a floor on both arms and says nothing, exactly as §36.4 predicted it would. Only the primary
+stratum points the hypothesised way, and it does so by two papers.
+
+**The control arm is matched.** Median vintage 2023-02 on both sides, which was the confound
+§36.2 built the matching for: a repository cites its prior art, so an unmatched cited arm skews
+old and "Sonnet dislikes older papers" could have worn the effect's clothes. It cannot here.
+
+### 37.4 POST-HOC — on the ordinal scale the sign reverses, and it is not close
+
+The binary cut at ≥2 is what was pre-registered, and it sees only the lower tail. The full
+distribution says something different:
+
+| GPT-3 stratum | Sonnet 1 | 2 | 3 | mean |
+|---|---|---|---|---|
+| cited | 2 | 2 | **9** | **2.538** |
+| controls | 0 | 31 | 8 | 2.205 |
+
+**69% of cited papers get a 3, against 21% of their matched controls.** Mann-Whitney U = 346,
+**z = +2.32 in favour of the cited arm** — the opposite direction to everything §32.4 proposed.
+
+Sonnet does not push papers a repository already cites *down*. It pushes them **out**. The cited
+arm is bimodal — either "this is exactly what you need" or "you already have this" — while the
+controls pile up at 2, the noncommittal middle. A binary endpoint at ≥2 is structurally incapable
+of seeing that, and I chose the binary endpoint because it is the cut the product ships.
+
+**This is post-hoc, one stratum, and it has an obvious rival explanation.** The cited papers are
+ControlNet, IP-Adapter, Latent Consistency Models, LoRA+, VB-LoRA, ColBERTv2 — a repository cites
+the famous work in its field, and a judge rewarding fame would produce exactly this. Nothing here
+separates "central to the repository" from "well known". Recorded as an observation, with the
+confound named, and **not** as a finding.
+
+### 37.5 TERTIARY — the self-paper claim, on everything now known
+
+The five named in §36.4, before any label was bought:
+
+| case | paper | GPT | Sonnet |
+|---|---|---|---|
+| `graph` | *Fast Graph Representation Learning with PyTorch Geometric* | 1 | 1 |
+| `rag` | *ColBERT* | 1 | 0 |
+| `rag` | *ColBERTv2* | **3** | **3** |
+| `speech` | *Whisper* | 1 | 0 |
+| `ann` | *The Faiss library* | 1 | 1 |
+
+Four of the five sit at GPT 1 and Sonnet scored them 0 or 1 — which is **agreement**, not
+divergence, and §36.4 said in advance that a confirmation there would be the base rate doing the
+work. The one that could discriminate is *ColBERTv2*, where GPT said 3 and **Sonnet said 3 too**.
+
+Every self-paper this project has a Sonnet label for, in one table:
+
+| GPT | Sonnet ≤1 | Sonnet ≥2 |
+|---|---|---|
+| GPT 1 | Minimap2, DScribe, PyG, ColBERT, Whisper, The Faiss library | *phonopy implementation strategies* (**3**) |
+| GPT 3 | CHGNet (0), PyG 2.0 (0), FAISS billion-scale (1) | **ColBERTv2 (3), OpenMM 8 (3)** |
+
+The GPT-3 row is the only one where the judges can disagree, and §32.4 was written when it read
+3 of 3. It now reads **3 of 5** — and **both** data points that arrived after §32.4 went the
+other way. One of those (OpenMM 8) was declared as already-seen in §36.3 before the bar was
+written; the other (ColBERTv2) is the arm's own held-out evidence, and it is n=1.
+
+**§32.4's mechanism — "Sonnet prices redundancy and GPT-5.5 does not" — is refuted.** Not
+overturned by a big contrary effect, but by the observation that its three supporting cases were
+three of five, that the held-out draw went against it, and that the ordinal scale points the
+opposite way.
+
+### 37.6 The two papers that did fail are the most interesting rows in the run
+
+| paper | repo | what it is |
+|---|---|---|
+| *InstructPix2Pix* | huggingface/diffusers | a pipeline diffusers ships |
+| *Soft Actor-Critic* (1801.01290) | DLR-RM/stable-baselines3 | an algorithm SB3 implements |
+
+Both are textbook *"the repository already has this"*, and Sonnet scored both 1 while GPT scored
+both 3. **So the mechanism exists.** What the run shows is that it is not systematic: seven other
+papers in the same stratum — ControlNet, IP-Adapter, LCM, LoRA+, VB-LoRA, LoRA-XS, Link-and-code
+— are equally implemented by their repositories, and Sonnet gave every one of them a 2 or a 3.
+
+That is the difference between a mechanism and a predictor, and it is the same wall §29 and §30
+hit from the other side. The thing is real in individual cases and does not generalise to a rule.
+
+### 37.7 Predictions, scored
+
+1. *"UNRESOLVED, ratio between 0.67 and 0.90."* **Correct** — 0.846.
+2. *"The ratio will be below 1.0."* **Correct as stated** at the primary, and I do not get much
+   credit for it: it is 1.214 at GPT-2, and §37.4 shows the ordinal sign is the other way, so the
+   interpretation the prediction stood for is wrong even though its literal claim is right.
+3. *"The tertiary's five will not be uniformly low, and ColBERTv2 in particular."* **Correct** —
+   ColBERTv2 is the one that broke the pattern, by name, in advance.
+
+Three of three, and §36.7 said before the run that this would be worth little: prediction 1 was
+the null-ish call that has now been right five times out of six, and prediction 2 is the one that
+carried information — it was supposed to say the lead was worth chasing, and §37.4 says it was
+measuring the wrong tail.
+
+### 37.8 What this licenses — the redundancy line closes, on magnitude rather than significance
+
+**§32.6's "live lead" comes off the board.** Not because the bar killed it — the bar said
+UNRESOLVED and I do not get to relabel that — but for three reasons the bar was not asked about:
+
+1. **The mechanism is refuted** (§37.5). Whatever the residual is, it is not "Sonnet prices
+   redundancy and GPT does not".
+2. **The ordinal sign is reversed** (§37.4). The one clear signal in this data favours cited
+   papers.
+3. **The bar can never confirm the observed effect at any n.** CONFIRM requires an observed
+   cited rate ≤ 0.67; the observed rate is 0.846. Buying more of this population would buy a
+   smaller p and never the ratio bar. This endpoint is not worth re-running larger, and that is
+   a stronger reason to stop than an unresolved p ever is.
+
+And the magnitude was never there to begin with. Taking 11/13 against 39/39 completely at face
+value, it is **+0.538 net@2 per shown paper against +1.000** on a class that is **10 of 310 Top
+Picks (3.2%, §32.1)**. §32.1 already measured the whole rule's effect on the headline at −0.027
+under GPT and +0.297 under Sonnet, both far under the 1.04 floor. There is no version of this
+that moves a number anyone reads.
+
+**Do not fund a sixth arm.** Five have now failed (§9.4 twice, §26, §29, §30) and this is the
+sixth attempt at the same question from the one angle that had not been tried. §37.4 is a real
+observation and it is the natural seventh — and it is post-hoc, single-stratum, and confounded
+with fame. The right thing to do with it is to write it down, which is what §37.4 is.
+
+**What stands.** §32.1's headline audit is untouched and §16.6's **+5.70 / 0.894** stands as
+published. The already-cited rule stays exactly as it ships, for the reason §32.6 gave — its sign
+flips with the judge — and this arm adds that its magnitude is too small to be worth the
+argument.
+
+**What is genuinely new and free.** The GPT-3 control rate is **39/39** — every matched
+non-cited paper GPT-5.5 scored 3 cleared Sonnet's actionable cut, over 8 cases and 6 domains.
+The corpus-wide figure is 116/126 (92%), so this is not a claim that the two judges never
+disagree at GPT-3; it is a control arm that happened to come back perfect, and its value is that
+it was measured as a control rather than chosen as an endpoint. It supports §19's rule that
+separations transfer across judges even when levels do not, and it is the reason the primary
+could turn on two papers.
 
 ---
 ## Appendix

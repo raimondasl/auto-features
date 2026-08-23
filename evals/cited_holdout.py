@@ -60,6 +60,7 @@ from reporadar.profiler import cited_arxiv_ids_of  # noqa: E402
 
 GOLD = EVALS / "cache" / "judge" / "v1" / "gpt-5.5"
 OUT = WORK_DIR / "cited_holdout.json"
+POP = WORK_DIR / "cited_holdout_population.json"  # frozen on first build, see build()
 
 CONTROLS_PER = 3  # matched non-cited papers per cited paper, same case and same GPT score
 PRIMARY_GPT = 3  # the stratum §32.4's observation lives in and the only one with power
@@ -112,6 +113,13 @@ def _gold_rows(case: str) -> dict[str, list[tuple[str, int]]]:
 def build() -> dict[str, Any]:
     """The whole population, deterministically. No seed, no sampling, no judgement calls.
 
+    **Frozen on first build, and it has to be.** Membership says "carries no Sonnet verdict",
+    and this arm's whole job is to CREATE Sonnet verdicts — so a second invocation would
+    reclassify its own output: judged treatment papers would migrate into §32.3's generating
+    set and blow the reproduction check past ten, while judged controls would vanish. That is
+    not hypothetical; the first run of this script died partway through and left eleven
+    verdicts behind (§37.1). The snapshot makes the arm resumable and the population fixed.
+
     A base id whose versions carry DISAGREEING GPT scores is dropped and reported: there is no
     fact of the matter about "the GPT label" for such a paper, and picking one would be a choice
     made by the author rather than by the rule. (`ann/1702.08734` is scored 1 and 3 under two
@@ -122,6 +130,8 @@ def build() -> dict[str, Any]:
     against a published 10/7/3. The generating set's membership is fixed by §32.3, not by this
     script's tidiness rule, so "already carries a Sonnet verdict" is decided first.
     """
+    if POP.is_file():
+        return dict(json.loads(POP.read_text(encoding="utf-8")))
     treatment: list[dict[str, Any]] = []
     eligible: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
     generating: list[dict[str, Any]] = []
@@ -184,7 +194,7 @@ def build() -> dict[str, Any]:
             taken.add(c["id"])
             controls.append({**c, "matched_to": t["id"]})
 
-    return {
+    pop = {
         "treatment": treatment,
         "controls": controls,
         "generating": generating,
@@ -192,6 +202,9 @@ def build() -> dict[str, Any]:
         "no_checkout": no_checkout,
         "short_strata": short,
     }
+    POP.parent.mkdir(parents=True, exist_ok=True)
+    POP.write_text(json.dumps(pop, indent=1), encoding="utf-8")
+    return pop
 
 
 def fisher_one_sided(a: int, b: int, c: int, d: int) -> float:
@@ -343,7 +356,10 @@ def main() -> int:
     papers = fetch_papers(sorted({r["id"] for r in work}))
     rows: list[dict[str, Any]] = []
     for r in work:
-        meta = papers.get(r["id"])
+        # fetch_papers keys its cache by dedup_id, so a versioned id never matches it directly.
+        # Looking up the raw id silently resolved only the 11 papers whose gold-cache id happens
+        # to carry no version suffix, and excluded the other 84 as "no metadata" (§37.1).
+        meta = papers.get(dedup_id(r["id"]))
         if meta is None:
             print(f"    ! {r['case']}/{r['id']} has no metadata — excluded")
             continue
