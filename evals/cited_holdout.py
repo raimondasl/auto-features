@@ -48,8 +48,8 @@ from diagnose_triage import fetch_papers  # noqa: E402
 from harness import WORK_DIR  # noqa: E402
 from second_judge import (  # noqa: E402
     ACTIONABLE,
-    CACHE,
     DEFAULT_MODEL,
+    second_cache_path,
     second_verdict,
     verify_contexts,
 )
@@ -151,7 +151,7 @@ def build() -> dict[str, Any]:
             seen = [
                 (pid, score)
                 for pid, score in versions
-                if (CACHE / DEFAULT_MODEL / case / f"{pid.replace('/', '_')}.json").is_file()
+                if second_cache_path(DEFAULT_MODEL, case, pid).is_file()
             ]
             if seen:
                 if base in cited:
@@ -240,7 +240,7 @@ def reproduction_check(generating: list[dict[str, Any]]) -> None:
     gpt = sum(1 for r in generating if r["gpt"] >= ACTIONABLE)
     son = 0
     for r in generating:
-        path = CACHE / DEFAULT_MODEL / r["case"] / f"{r['id'].replace('/', '_')}.json"
+        path = second_cache_path(DEFAULT_MODEL, r["case"], r["id"])
         son += int(json.loads(path.read_text(encoding="utf-8"))["score"]) >= ACTIONABLE
     ok = (
         len(generating) == PUBLISHED_REMOVED

@@ -38,8 +38,8 @@ sys.path.insert(0, str(EVALS.parent / "src"))
 from run_judge_eval import RESULTS_DIR  # noqa: E402
 from second_judge import (  # noqa: E402
     ACTIONABLE,
-    CACHE,
     DEFAULT_MODEL,
+    second_cache_path,
     second_verdict,
     verify_contexts,
 )
@@ -156,9 +156,7 @@ def main() -> int:
     for origin in ("arXiv", "new source"):
         print(f"  {origin:12} {sum(1 for r in rows if r['origin'] == origin):3d}")
     cached = sum(
-        1
-        for r in rows
-        if (CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json").is_file()
+        1 for r in rows if second_cache_path(args.model, r["case"], r["arxiv_id"]).is_file()
     )
     print(f"  cached: {cached}/{len(rows)}   to call: {len(rows) - cached}")
     if args.dry_run:
@@ -168,7 +166,7 @@ def main() -> int:
     if args.report:
         keep = []
         for r in rows:
-            p = CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+            p = second_cache_path(args.model, r["case"], r["arxiv_id"])
             if p.is_file():
                 r["sonnet_score"] = int(json.loads(p.read_text(encoding="utf-8"))["score"])
                 keep.append(r)

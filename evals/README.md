@@ -26,6 +26,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | can the profiler describe the repos cohort 3 excluded? (RESEARCH-scientific-software.md §33) | `blindspot_profiles.py` ($0, judge-free; 8 of 9 have zero anchors and the cause is exact) |
 | does the second judge price "the repo already has this"? (RESEARCH-scientific-software.md §36-37) | `cited_holdout.py` ($1.04; UNRESOLVED at the bar, but §32.4's mechanism is refuted and the ordinal sign reverses) |
 | what is the OpenAlex channel made of, on materials science? (RESEARCH-scientific-software.md §38) | `openalex_venue_mix.py` ($0, judge-free; 90.8% journal literature, ONE ChemRxiv paper in 1747, and 76% off-domain) |
+| where does a new source's contribution die, and is it shown twice? (RESEARCH-scientific-software.md §39) | `source_funnel.py` ($0, judge-free; the funnel, displacement, and the cross-scheme duplicate check) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -810,6 +811,19 @@ evals/
                      (top-10 divergence) before believing any delta, so a flag that
                      changed nothing reads VOID rather than "no effect", and refuses an arm
                      whose run file records a different `bigram_mode` than its label
+  source_funnel.py   $0, judge-free, offline: §20.7's PRIMARY endpoint as code rather than
+                     by hand -- per case, how many of a new source's papers enter the pool,
+                     survive into the ranked window, pass the gate and reach Top Picks, split
+                     by paper origin. With --control it adds §21.4's displacement table, and
+                     it always runs a cross-scheme DUPLICATE check: token-Jaccard >= 0.70 on
+                     titles, every claimed pair PRINTED because title matching is what §30
+                     failed on. RESULT (§39.5): on the matsci OpenAlex arm it found the same
+                     paper shown twice in 5 of 5 cases that received one -- an arXiv preprint
+                     beside its own journal version, which dedup_id cannot merge -- against
+                     ZERO in the control arm. Also reports net@2 with the duplicates dropped,
+                     which moved the mean +5.833 -> +6.000, so the defect costs a reader a
+                     slot without inflating the metric.
+
   source_ab_report.py
                      $0, reads two run files: does adding a paper source help? Verifies the
                      arms from their CONTENT (a source stamps `ss:`/`dblp:`/`iacr:` on what

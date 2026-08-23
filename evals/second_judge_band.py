@@ -67,10 +67,10 @@ from calibrate_finescale import INTERCEPT, MIN_ACTIONABLE, SLOPE, auc, shown_by_
 from finescale_domains import BREAK_EVEN, DEFAULT_LEGACY, DEFAULT_SCI  # noqa: E402
 from second_judge import (  # noqa: E402
     ACTIONABLE,
-    CACHE,
     DEFAULT_MODEL,
     WORK,
     cohens_kappa,
+    second_cache_path,
     second_verdict,
     verify_contexts,
 )
@@ -291,9 +291,7 @@ def main() -> int:
         print(f"  {p:7} {len(sub):4d} band  {sum(1 for r in sub if not r['shown']):3d} withheld")
 
     cached = sum(
-        1
-        for r in rows
-        if (CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json").is_file()
+        1 for r in rows if second_cache_path(args.model, r["case"], r["arxiv_id"]).is_file()
     )
     print(f"  already cached: {cached}/{len(rows)}   to call: {len(rows) - cached}")
     if args.dry_run:
@@ -333,7 +331,7 @@ def main() -> int:
     else:
         keep = []
         for r in rows:
-            path = CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+            path = second_cache_path(args.model, r["case"], r["arxiv_id"])
             if path.is_file():
                 r["sonnet_score"] = int(json.loads(path.read_text(encoding="utf-8"))["score"])
                 keep.append(r)

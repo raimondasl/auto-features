@@ -42,8 +42,8 @@ from harness import load_benchmark  # noqa: E402
 from label_pool import fisher_exact  # noqa: E402
 from second_judge import (  # noqa: E402
     ACTIONABLE,
-    CACHE,
     DEFAULT_MODEL,
+    second_cache_path,
     second_verdict,
     verify_contexts,
 )
@@ -315,9 +315,7 @@ def main() -> int:
         todo = [
             r
             for r in rows
-            if not (
-                CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
-            ).is_file()
+            if not (second_cache_path(args.model, r["case"], r["arxiv_id"])).is_file()
         ]
         print(f"\nVALIDITY — second-judging {len(todo)} score-3 papers with no Sonnet label")
         if todo:
@@ -348,7 +346,7 @@ def main() -> int:
                     except (LLMError, ValueError, KeyError) as exc:
                         print(f"  ! {futs[fut]['case']}: {str(exc)[:80]}")
         for r in rows:
-            p = CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+            p = second_cache_path(args.model, r["case"], r["arxiv_id"])
             if p.is_file():
                 s = int(json.loads(p.read_text(encoding="utf-8"))["score"])
                 r["sonnet_non_actionable"] = s < ACTIONABLE

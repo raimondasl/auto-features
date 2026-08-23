@@ -45,7 +45,13 @@ sys.path.insert(0, str(EVALS.parent / "src"))
 
 from label_pool import fisher_exact  # noqa: E402
 from score3_mechanism import collect  # noqa: E402
-from second_judge import ACTIONABLE, CACHE, DEFAULT_MODEL, cohens_kappa  # noqa: E402
+from second_judge import (  # noqa: E402
+    ACTIONABLE,
+    DEFAULT_MODEL,
+    cohens_kappa,
+    safe_paper_id,
+    second_cache_path,
+)
 from second_judge import _load_env as load_env  # noqa: E402
 
 from reporadar.config import SuggestionsConfig  # noqa: E402
@@ -88,7 +94,7 @@ def wilson(k: int, n: int) -> tuple[float, float]:
 
 
 def classify(row: dict[str, Any], model: str) -> str:
-    path = CLASSIFY_CACHE / model / row["case"] / f"{row['arxiv_id'].replace('/', '_')}.json"
+    path = CLASSIFY_CACHE / model / row["case"] / f"{safe_paper_id(row['arxiv_id'])}.json"
     if path.is_file():
         return str(json.loads(path.read_text(encoding="utf-8"))["contribution"])
     prompt = PROMPT % {"title": row["title"], "abstract": row["abstract"][:1800]}
@@ -137,7 +143,7 @@ def main() -> int:
 
     rows, _stats = collect()
     for r in rows:
-        p = CACHE / DEFAULT_MODEL / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+        p = second_cache_path(DEFAULT_MODEL, r["case"], r["arxiv_id"])
         if p.is_file():
             r["sonnet_non_actionable"] = (
                 int(json.loads(p.read_text(encoding="utf-8"))["score"]) < ACTIONABLE
@@ -146,7 +152,7 @@ def main() -> int:
         1
         for r in rows
         if (
-            CLASSIFY_CACHE / args.model / r["case"] / f"{r['arxiv_id'].replace('/', '_')}.json"
+            CLASSIFY_CACHE / args.model / r["case"] / f"{safe_paper_id(r['arxiv_id'])}.json"
         ).is_file()
     )
     print(
