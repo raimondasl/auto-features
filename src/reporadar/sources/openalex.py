@@ -12,7 +12,7 @@ import urllib.request
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from reporadar.paper_id import doi_key
+from reporadar.paper_id import doi_key, is_arxiv_id
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +89,52 @@ def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str:
     return " ".join(w for w in words if w)
 
 
+# `http://arxiv.org/abs/2005.00707`, `https://arxiv.org/pdf/1510.04418v2`, and the pre-2007
+# form `arxiv.org/abs/cs/0602007`. The captured id is validated by `is_arxiv_id` before use,
+# so a URL shape this does not anticipate degrades to "no arXiv id" rather than to a bad one.
+_ARXIV_URL_RE = re.compile(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+)", re.IGNORECASE)
+
+
+def _arxiv_id_from_locations(work: dict[str, Any]) -> str:
+    """An arXiv id from the work's OA locations, if OpenAlex records one.
+
+    A journal article and its arXiv preprint are one paper to a reader and, until this,
+    two ids to the pipeline: OpenAlex's `ids` block carries only doi/openalex/pmid/mag, so
+    the published version got a `doi:` id and never merged with the arXiv copy already in
+    the pool. §39.5 measured what that costs — the same paper shown TWICE in five of the
+    five benchmark cases the OpenAlex channel contributed to, against zero in the control.
+
+    `locations` is where OpenAlex does record it. Measured over those five duplicate pairs
+    it names an arXiv landing page for **two**; the other three (CHGNet included) list none,
+    so this closes part of the defect and the rest would need title matching, which §30 is
+    the standing reason not to trust.
+    """
+    for loc in work.get("locations") or []:
+        if not isinstance(loc, dict):
+            continue
+        for url in (loc.get("landing_page_url"), loc.get("pdf_url")):
+            match = _ARXIV_URL_RE.search(str(url or ""))
+            if not match:
+                continue
+            candidate = match.group(1).removesuffix(".pdf")
+            if is_arxiv_id(candidate):
+                return candidate
+    return ""
+
+
 def _extract_arxiv_id(work: dict[str, Any]) -> str:
     """The arXiv id, else the DOI id, else a synthetic OpenAlex one.
 
     `oa:W...` is an OpenAlex handle, so the same preprint reached the pool again under
     `ss:` from Semantic Scholar and `biorxiv:` from bioRxiv. Preferring the DOI (F15) gives
     all three the same id. See :func:`reporadar.paper_id.doi_key`.
+
+    An arXiv id beats the DOI where one is known, because the arXiv channel is always on and
+    a `doi:` id cannot merge with what it already collected. `sources/semantic_scholar.py`
+    has always ordered it that way (`externalIds["ArXiv"]` before `doi_key`); this adapter
+    was the one that did not. The digest's link is unaffected — `_normalize_paper` builds it
+    from the DOI independently — so this changes which record survives the merge, not what a
+    user clicks.
     """
     # Check IDs for arXiv
     ids = work.get("ids", {})
@@ -111,6 +151,10 @@ def _extract_arxiv_id(work: dict[str, Any]) -> str:
         parts = re.split(r"arxiv\.", doi, flags=re.IGNORECASE)
         if len(parts) > 1:
             return str(parts[-1])
+
+    from_locations = _arxiv_id_from_locations(work)
+    if from_locations:
+        return from_locations
 
     canonical = doi_key(doi)
     if canonical:
@@ -205,7 +249,7 @@ def search_papers(
         "filter": "type:article|preprint",
         "select": (
             "id,doi,title,authorships,abstract_inverted_index,"
-            "primary_topic,publication_date,open_access,ids,display_name"
+            "primary_topic,publication_date,open_access,ids,display_name,locations"
         ),
     }
     if api_key:

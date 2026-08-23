@@ -8,7 +8,7 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 
 - **Repo profiling** — extracts keywords via TF-IDF from README, docs, and dependency manifests (`requirements.txt`, `pyproject.toml`, `package.json`)
 - **arXiv collection** — queries the arXiv API with auto-generated and user-defined seed queries
-- **Multi-source** — opt into Semantic Scholar, OpenAlex, **bioRxiv** (biology), **DBLP** (systems/PL/DB), and **IACR ePrint** (cryptography) alongside arXiv via `sources:` — for repos whose literature isn't on arXiv. All are opt-in and off by default: none has been shown to improve results, and until 2026-08-12 they were all sent malformed queries (see `evals/RESULTS.md`, C-9), so treat them as unvalidated
+- **Multi-source** — opt into **Europe PMC** (bioRxiv/medRxiv), **OpenAlex** (journals), Semantic Scholar, **DBLP** (systems/PL/DB) and **IACR ePrint** (cryptography) alongside arXiv via `sources:` — for repos whose literature isn't on arXiv. All are opt-in and off by default. **Two are now measured end to end against a judge.** On six biology repositories Europe PMC supplied **4.8 of the ~9.7 papers shown per case**, at a precision at or above the arXiv papers beside it under two independent judges. On six materials-science repositories OpenAlex supplied **1.83 per case** — real journal literature, *Nature Machine Intelligence*, *Computer Physics Communications*, *npj Computational Materials* — at a precision statistically indistinguishable from them. Two caveats that are measured rather than hedged: a new source **displaces** incumbents rather than adding to them (24–44% of the previous Top Picks), so the net effect on digest quality is unresolved at six cases; and OpenAlex can show you a paper's journal version beside its own arXiv preprint — the two carry different ids, and OpenAlex only sometimes records the link between them, so this is partly fixed and partly not. Semantic Scholar, DBLP and IACR ePrint remain unvalidated, and until 2026-08-12 every one of them was sent malformed queries (`evals/RESULTS.md`, C-9)
 - **SQLite storage** — deduplicates papers across runs, tracks collection history
 - **Heuristic ranking** — scores papers by keyword overlap, category match, and recency with configurable weights
 - **Markdown digest** — three-tier output (Top Picks / Maybe Relevant / Muted) with score breakdowns and arXiv links
@@ -556,8 +556,19 @@ queries:
                                       #   none     — no phrase queries (measured worse)
 
 sources: [arxiv]                      # add: semantic_scholar, openalex, europepmc, dblp, iacr
-                                      #   europepmc — keyword search over bioRxiv/medRxiv
+                                      #   europepmc — keyword search over bioRxiv/medRxiv.
+                                      #               Measured on 6 bio repos: 4.8 papers/case
+                                      #               shown, precision >= the arXiv papers beside
+                                      #               them under two judges
+                                      #   openalex  — journals. Measured on 6 materials repos:
+                                      #               1.83 papers/case shown (1.0 of them not
+                                      #               already in the digest), precision level with
+                                      #               arXiv. 76% of what it RETURNS is off-domain
+                                      #               and the ranker filters essentially all of it
                                       #   biorxiv   — a DATE LISTING, not a search; prefer europepmc
+                                      # A source DISPLACES rather than adds: 24-44% of the
+                                      # previous Top Picks leave the window. Net effect on
+                                      # digest quality is unresolved at 6 cases.
 
 ranking:
   w_keyword: 1.0                      # Weight for keyword overlap score
