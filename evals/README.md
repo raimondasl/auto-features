@@ -25,6 +25,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | does the benchmark measure the product? (RESEARCH-scientific-software.md §32) | `cited_rule_audit.py` ($0; the headline stands, but the rule's sign flips with the judge) |
 | can the profiler describe the repos cohort 3 excluded? (RESEARCH-scientific-software.md §33) | `blindspot_profiles.py` ($0, judge-free; 8 of 9 have zero anchors and the cause is exact) |
 | does the second judge price "the repo already has this"? (RESEARCH-scientific-software.md §36-37) | `cited_holdout.py` ($1.04; UNRESOLVED at the bar, but §32.4's mechanism is refuted and the ordinal sign reverses) |
+| what is the OpenAlex channel made of, on materials science? (RESEARCH-scientific-software.md §38) | `openalex_venue_mix.py` ($0, judge-free; 90.8% journal literature, ONE ChemRxiv paper in 1747, and 76% off-domain) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -845,6 +846,20 @@ evals/
                      `http` 9/10 — where the correct output is nothing. Optimistic by
                      construction: no HyDE (~100 more competing candidates) and no triage
                      rerank, so treat the counts as an UPPER bound
+  openalex_venue_mix.py
+                     $0, judge-free: collects with sources.openalex UNCHANGED, then resolves
+                     every returned DOI for its venue, work type and OpenAlex's own
+                     primary_topic.field. Written because openalex_yield.py can say "OpenAlex
+                     competes" and cannot say WHAT competed -- the adapter selects only the
+                     fields the pipeline needs and venue is not one of them. RESULT (§38.4-5)
+                     over 1747 matsci papers: 90.8% peer-reviewed JOURNAL literature (npj
+                     Computational Materials, Computer Physics Communications, JCTC), 0.5%
+                     preprint servers and exactly ONE ChemRxiv paper -- so §20.12's "ChemRxiv
+                     via OpenAlex" named the right gap and the wrong server. Also finds only
+                     24.2% of the pool is Materials Science or Chemistry by OpenAlex's own
+                     field label, because `search=` has no domain filter the way Europe PMC's
+                     SRC:PPR does; and that supporting-information files enter as papers
+                     (an ACS `.s001` record shares mat-chgpot's top-10 with its own parent).
   openalex_yield.py  $0, no LLM, needs OPENALEX_API_KEY: the same stage-1 question for the
                      one source of five never measured in any form. Verdict 2026-08-14 on
                      25/25 cases (no refusals, 0 arXiv requests — the response cache served
@@ -854,6 +869,12 @@ evals/
                      cases**. But 6 of those land in the three NEGATIVE CONTROLS and 5 in
                      `numerics`, whose arXiv pool (55) is a quarter of the median — leaving
                      THREE won on merit across 25 cases. Do not spend on the A/B.
+                     THAT VERDICT IS STALE AND SCOPED (§38.1): it predates
+                     `type:article|preprint` (§12.1, which excluded every preprint until
+                     2026-08-19) and the 5->8 query-cap raise, and it never ran a `mat-*` or
+                     `bio-*` case. Re-run 2026-08-22 on the matsci-6: **26 reach a top-10
+                     across 6/6 cases**, 4.3 per case against 0.56 on the legacy 25, and 25
+                     of the 26 are non-arXiv. A judged A/B on matsci IS justified — §38.
                      Reports a case with any refused request as UNMEASURED, never zero:
                      the adapter returns [] for both a refusal and an empty answer, so this
                      wraps its request function and counts None returns. `--from-json`

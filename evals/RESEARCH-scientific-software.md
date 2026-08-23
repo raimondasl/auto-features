@@ -4215,6 +4215,224 @@ separations transfer across judges even when levels do not, and it is the reason
 could turn on two papers.
 
 ---
+## 38. PRE-REGISTERED — the OpenAlex arm for materials science, and what the $0 probes found first (2026-08-22)
+
+§20.12 and §21.6 both close on the same sentence: *"the matsci half — ChemRxiv via OpenAlex
+remains unexercised."* §6 lists **journal-only literature** (PRB, JCTC; Bioinformatics, Genome
+Biology, NAR) as reachable only through OpenAlex `type:article` and marks it *"built, never
+measured"*. This is that arm.
+
+Probing before writing the cheque — the discipline §13 established and §20 paid for — found that
+the channel is **not what the caveat said it was**, that its composition is 76% off-domain, and
+that it admits things that are not papers.
+
+### 38.1 Every OpenAlex number in this project is stale, in the direction that matters
+
+`evals/openalex_yield.py` last ran **2026-08-14**. Since then:
+
+- **2026-08-19 (§12.1)** replaced `filter=type:article` with `type:article|preprint`. The old
+  filter excluded *every* preprint — so the probe that was supposed to test the ChemRxiv route
+  could not have seen a single ChemRxiv paper.
+- **2026-08-19 (§12.2)** raised the keyword-source cap from 5 queries to 8, and **2026-08-21
+  (§21.0)** raised it in the harness too.
+- It ran on the **25 legacy cases**. No `mat-*` or `bio-*` case was ever probed.
+
+So "OpenAlex reaches 14 top-10s across 7 of 25 cases" describes an adapter that no longer exists,
+on a cohort that is not the one in question.
+
+### 38.2 Re-run on the matsci-6: the channel competes, at eight times the legacy rate
+
+`uv run python evals/openalex_yield.py --cases mat-mlip,…` — **$0**, no LLM.
+
+| case | arXiv pool | OpenAlex arrived | new | in top-10 |
+|---|---|---|---|---|
+| mat-mlip | 255 | 285 | 283 | 1 |
+| mat-chgpot | 149 | 206 | 199 | **6** |
+| mat-descriptors | 151 | 228 | 226 | 4 |
+| mat-toolkit | 208 | 335 | 335 | **6** |
+| mat-featurize | 210 | 362 | 362 | **7** |
+| mat-phonon | 219 | 341 | 341 | 2 |
+| **total** | | | | **26 across 6/6** |
+
+**4.3 per case, against 0.56 per case on the 25 legacy cases.** Optimistic by construction — no
+HyDE, no rerank — so treat it as an upper bound.
+
+**25 of the 26 are not arXiv papers**: 24 carry a DOI, one an `oa:` handle.
+
+### 38.3 What they are — and this is the answer to the question §6 asked
+
+Resolving those 24 DOIs against OpenAlex's metadata gives the venues:
+
+| venue | papers |
+|---|---|
+| Computer Physics Communications | 4 |
+| npj Computational Materials | 2 |
+| Nature Machine Intelligence, JCTC, J. Chem. Phys., Acta Cryst. B, ACS Appl. Mater. Interfaces, Frontiers in Materials, Molecular Physics, ACS Engineering Au, J. Phys. Chem. A | 1 each |
+
+**This is exactly the journal-only literature §6 called unreachable, reaching a ranked window.**
+Not a proxy for it — CPC, npj Computational Materials and JCTC by name.
+
+Several are the repositories' own papers: DScribe in CPC (`mat-descriptors`), CHGNet in Nature
+Machine Intelligence (`mat-chgpot`), Matbench in npj Computational Materials (`mat-featurize`).
+
+### 38.4 The caveat named the right gap and the wrong server
+
+`evals/openalex_venue_mix.py`, **$0**: collect with the adapter unchanged, then resolve every
+returned DOI for its venue and OpenAlex's own field label. **1747 papers over the matsci-6.**
+
+| bucket | n | share |
+|---|---|---|
+| **journal literature** | 1595 | **90.8%** |
+| `oa:` handle, no DOI | 87 | 5.0% |
+| arXiv paper under another name | 45 | 2.6% |
+| no venue | 10 | 0.6% |
+| **preprint server** | **9** | **0.5%** |
+| unresolved | 6 | 0.3% |
+| repository record | 5 | 0.3% |
+
+The nine preprints are 5 SSRN, 2 bioRxiv, 1 Research Square and **1 ChemRxiv**.
+
+**One ChemRxiv paper in 1747.** The route §20.12 and §21.6 kept naming is empirically negligible;
+the gap they were right about is filled by **peer-reviewed journals** instead. This is §35.3's
+shape a second time — a caveat that named a real deficiency and the wrong mechanism for it — and
+it is worth noticing that the project has now made that error twice in a fortnight.
+
+### 38.5 Three defects, found before the cheque rather than in the result
+
+**(a) 76% of the pool is off-domain.** OpenAlex's *own* `primary_topic.field` label, not a
+reading of venue names — §30 failed by sorting papers on what their titles sounded like, and
+this is precisely the claim that invites the same mistake:
+
+| field | share |
+|---|---|
+| Materials Science | 22.1% |
+| Biochemistry, Genetics and Molecular Biology | 15.4% |
+| Engineering | 10.4% |
+| Computer Science | 10.4% |
+| Medicine | 9.3% |
+| Earth and Planetary Sciences | 6.0% |
+| Physics and Astronomy | 5.1% |
+| Chemistry | 2.0% |
+
+**Materials Science + Chemistry = 24.2%.** The venue list is unambiguous about what the rest is:
+*Journal of the American College of Cardiology* (20), *Monthly Weather Review* (19), *J. Am. Soc.
+Echocardiography* (18), *Circulation* (14), *J. Atmospheric Sciences* (13), *Atmospheric
+Environment* (11).
+
+The cause is structural and not a bug: **OpenAlex `search=` has no domain filter.** Europe PMC's
+`SRC:PPR` scopes to life sciences by construction, which is why §21's channel arrived pre-filtered
+and this one does not. A generic query word reaches every field that uses it.
+
+**(b) Supporting information enters as a paper.** `mat-chgpot`'s top-10 contains both
+`doi:10.1021/acs.jctc.5c00955` — *Benchmarking CHGNet Universal MLIPs* in JCTC — and
+`doi:10.1021/acs.jctc.5c00955.s001`, **the same paper's supporting-information file**, indexed by
+OpenAlex as a work in its own right and hosted on Figshare. Two of fifteen slots for one paper.
+Five such repository records across the six pools, including three institutional repositories.
+
+**(c) A short acronym matches the wrong field entirely.** `mat-mlip`'s single OpenAlex top-10
+entry is `doi:10.1145/3528223.3530110` — titled *"ASE"*, in **ACM Transactions on Graphics**. Not
+the Atomic Simulation Environment. `mat-featurize` draws *clusterProfiler* (OMICS, 2012),
+*WGCNA* (BMC Bioinformatics, 2008) and **MESA** (*Astrophysical Journal Supplement*, 2010) — a
+stellar-astrophysics code — into a materials-featurisation digest.
+
+**None of these is fixed before the run.** §14.3's rule stands: fixing them now would measure a
+pipeline that does not ship and make the pre-registration meaningless. They are priced by the arm
+instead, and (a) has an obvious candidate repair — an OpenAlex `primary_topic.field.id` filter —
+which this run either licenses or does not.
+
+### 38.6 Design: two live arms over the matsci-6, paired by repository
+
+Mirrors §20.6, because that arm worked.
+
+- **Control**: `--sources arxiv`, collected live, seeded to `.work/pool-oa-control`.
+- **Treatment**: `--sources arxiv,openalex`, collected live, seeded to `.work/pool-oa-treat`.
+
+Both live in one session. **No Opus baseline arm** — the comparison is arm against arm.
+
+Cases: `mat-mlip`, `mat-chgpot`, `mat-descriptors`, `mat-toolkit`, `mat-featurize`, `mat-phonon`.
+Configuration is §14.4's, unchanged: `--rr-pool 50 --rr-rerank --rr-all-time --rr-hybrid
+--rr-sweep --rr-finescale --rr-hyde`.
+
+**Two checks §20 had to make that this one does not.** `openalex` is already wired into
+`evals/harness.collect_live_papers`, so §21.0's defect does not repeat; and `judge._ID_LABELS`
+already carries `doi` and `oa`, so §20.4's fix covers this arm's ids. Both verified, not assumed.
+
+**The frozen cohort-3 pool cannot be reused**, for §20.1's reason: `sources` is in `POOL_FLAGS`,
+so the fingerprint differs and `load_frozen_pool` refuses. Both arms collect live.
+
+### 38.7 Endpoints
+
+**PRIMARY — the funnel, judge-free.** Per case, of the OpenAlex papers collected: how many enter
+the pool, survive to the ranked top-15, are gated ≥2, and reach Top Picks. Counts, so no variance
+assumption is needed.
+
+**SECONDARY — precision of what it contributes, within the treatment arm, under both judges.**
+`evals/second_judge_arm.py`, Wilson intervals, exactly as §21.2. Splitting by origin *inside one
+arm* is what makes this readable; §19 is why the second judge runs in the same pass rather than
+after a surprise.
+
+**TERTIARY — the paired net@2 delta with its CI, declared underpowered in advance.** The measured
+matsci-6 per-case values from the cohort-3 session are `+0, +1, +4, +8, +9, +9` — **sd 4.070, SE
+1.662**, so an unpaired six-case comparison resolves nothing below about **±4.7**. Anything inside
+**±4** is reported as unresolved, not as a small effect. This is §16.3's instruction and §20.3's
+correction applied before the fact rather than after.
+
+**QUATERNARY — displacement**, which §21.4 shows is not optional. How many of the control arm's
+Top Picks the treatment arm pushes out of the window. Judge-free.
+
+### 38.8 Bars
+
+- **KILL (wiring, not result):** the adapter errors, or returns nothing on all six cases. A defect
+  to fix, and nothing about the channel's value may be concluded from it.
+- **WIN:** ≥1 OpenAlex paper per case on average reaches Top Picks **and** their judged precision
+  is not obviously worse than the arXiv papers' in the same arm — read as CI overlap under both
+  judges, which is the reading §21.2 had to make explicit after the fact.
+- **NULL, and a real result:** OpenAlex papers enter pools but ≈none reach Top Picks. The channel
+  is wired and inert, and §6's *"journal-only literature is reachable through OpenAlex"* becomes
+  a statement about an adapter rather than about a digest.
+- **LOSS, and the outcome §38.5(a) makes plausible:** they reach Top Picks and their precision is
+  materially below the arXiv papers beside them. Then the channel is a net cost as it ships, and
+  the domain filter stops being optional.
+- **The tertiary and quaternary have no bars.** They are magnitudes, reported with intervals.
+
+### 38.9 Predictions
+
+1. **OpenAlex papers will reach Top Picks on ≥5 of 6 cases.** The probe got 6/6 into a top-10
+   without HyDE or rerank; adding ~330 HyDE-enriched arXiv candidates and a rerank should cost
+   some but not all of that.
+2. **Their precision will be LOWER than the arXiv papers beside them, under both judges.** This
+   is the prediction that carries the information, and it is the opposite of §21.2's outcome.
+   The mechanism is measured rather than assumed: Europe PMC arrives domain-filtered by
+   `SRC:PPR` and OpenAlex does not, and three quarters of what OpenAlex returns here is
+   cardiology, meteorology and molecular biology.
+3. **Displacement will be smaller than §21.4's 44%.** Europe PMC was over half of every bio pool;
+   OpenAlex's ~293 papers against cohort-3 matsci pools averaging **525** is about 36%.
+4. **The tertiary will be unresolved.**
+
+**Calibration.** §21.5 scored 2 of 4 on the analogous arm, and both misses ran the same way: I
+underestimated a channel by reasoning from a mechanism without asking what it was competing
+against. Prediction 2 is a mechanism argument again — the difference is that both sides of it
+have now been measured, and if it is wrong the lesson is that the ranker cleans up contamination
+better than the pool composition suggests, which would itself be worth knowing.
+
+### 38.10 Cost
+
+Live collection on 6 cases × 2 arms, gate and fine-scale over each ranked window, and judging
+~15 papers per case-run. At the $0.80–2.00 per case-run cohort 3 implies without a baseline arm:
+**$10–24**, plus about **$1** for the second judge over the shown papers. No verdict cache is
+reusable — these are new pools.
+
+### 38.11 What this does not measure
+
+ChemRxiv, which §38.4 shows is not there to measure. The bio half of journal-only literature —
+*Bioinformatics*, *Genome Biology*, *NAR* — which OpenAlex reaches on `bio-*` cases and which
+this arm does not run. The recency path: `--rr-all-time` is the configuration under test, and
+`collect_papers` applies its date filter client-side to a relevance-ranked slice, so the 90-day
+behaviour is a different question. Whether a domain filter would fix §38.5(a). And whether a
+*different* six materials repositories would behave the same — §5's matsci values (+1, −1, +9)
+remain the standing warning, and six cases is six cases.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
