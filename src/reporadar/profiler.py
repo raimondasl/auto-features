@@ -867,7 +867,7 @@ def cited_arxiv_ids_of(repo_path: Path) -> frozenset[str]:
     return frozenset(ids)
 
 
-def _repo_prose(repo_path: Path, budget: int) -> str:
+def _repo_prose(repo_path: Path, budget: int, anchor: str = "start") -> str:
     """The repo's own description: its README, else its packaging description.
 
     Deliberately NOT ``_collect_text_corpus(repo)[0]``. That corpus puts the packaging
@@ -887,8 +887,69 @@ def _repo_prose(repo_path: Path, budget: int) -> str:
         if text:
             cleaned = _clean_document(text).strip()
             if cleaned:
-                return cleaned[:budget]
+                start = _prose_start(cleaned, repo_path, budget, anchor)
+                return cleaned[start : start + budget]
     return _packaging_metadata_text(repo_path).strip()[:budget]
+
+
+# "<name> is/are a/an ...", with the name as the SUBJECT — the verb follows it directly, and the
+# only thing allowed between is a parenthetical gloss ("scvi-tools (single-cell variational
+# inference tools) is a package"). An earlier version allowed 80 characters of slack and matched
+# "...getting started with Ruff, the default rule set IS A great place to start", which would have
+# replaced ruff's "An extremely fast Python linter and code formatter, written in Rust" with a note
+# from its configuration section. §42.1.
+_SELF_DESC_TEMPLATE = r"\b{name}\b\s*(?:\([^)\n]{{0,80}}\))?\s+(?:is|are)\s+an?\s+"
+
+
+def _prose_start(cleaned: str, repo_path: Path, budget: int, anchor: str) -> int:
+    """Offset the prose window should begin at. 0 is the shipped behaviour.
+
+    Under ``self_description`` the window re-anchors on the repository's own description **only
+    when that sentence falls outside the current window** — a README that already opens with it
+    keeps byte-identical prose. That condition is the whole of the change: without it the rule
+    moves 17 of 37 benchmark repositories, most by a handful of characters, for no gain (§42).
+
+    Never raises and never guesses: no README name to match, no sentence, or a sentence already
+    in view all return 0.
+    """
+    if anchor != "self_description":
+        return 0
+    name = _repo_name_for_prose(repo_path)
+    if not name:
+        return 0
+    match = re.search(_SELF_DESC_TEMPLATE.format(name=re.escape(name)), cleaned, re.IGNORECASE)
+    if match is None or match.start() < budget:
+        return 0
+    return match.start()
+
+
+_ORIGIN_URL_RE = re.compile(r"^\s*url\s*=\s*(\S+)", re.MULTILINE)
+
+
+def _repo_name_for_prose(repo_path: Path) -> str:
+    """The project's own name, for matching its self-description.
+
+    The git remote's basename when there is one, else the directory name. **Both are needed.**
+    A user's checkout is usually in a directory named after the project, and the benchmark's is
+    not — its clones are named for the case (`bio-align`, not `minimap2`), so a directory-only
+    rule would silently never fire on the very population that measures it. That is the shape of
+    §21.0's defect, where a flag existed and the dispatch behind it did not.
+
+    Read out of `.git/config` rather than by shelling out: the profiler runs on every `rr`
+    invocation and has no subprocess dependency today, and one added here would be paid on
+    repositories the rule never fires for.
+    """
+    config = repo_path / ".git" / "config"
+    if config.is_file():
+        try:
+            text = config.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = ""
+        for url in _ORIGIN_URL_RE.findall(text):
+            name = str(url).rstrip("/").split("/")[-1].removesuffix(".git")
+            if name:
+                return name
+    return repo_path.name
 
 
 # Matches TfidfVectorizer's token_pattern below, so "occurs in the corpus" is judged on
@@ -1058,7 +1119,11 @@ def profile_repo(
         anchors=anchors,
         domains=domains,
         source_signals=source_signals,
-        prose=_repo_prose(repo_path, getattr(profiler_cfg, "prose_chars", 300)),
+        prose=_repo_prose(
+            repo_path,
+            getattr(profiler_cfg, "prose_chars", 300),
+            getattr(profiler_cfg, "prose_anchor", "start"),
+        ),
         corpus_phrases=_observed_phrases(documents, keywords),
         cited_arxiv_ids=cited_arxiv_ids_of(repo_path),
     )

@@ -28,6 +28,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | what is the OpenAlex channel made of, on materials science? (RESEARCH-scientific-software.md §38) | `openalex_venue_mix.py` ($0, judge-free; 90.8% journal literature, ONE ChemRxiv paper in 1747, and 76% off-domain) |
 | where does a new source's contribution die, and is it shown twice? (RESEARCH-scientific-software.md §39) | `source_funnel.py` ($0, judge-free; the funnel, displacement, and the cross-scheme duplicate check) |
 | which repos would a profiler fix change, and how? (RESEARCH-scientific-software.md §41) | `prose_window_probe.py` ($0, judge-free; §15.3's defective stratum is TWO defects, and no single fix reaches both) |
+| does re-anchoring the prose window help? (RESEARCH-scientific-software.md §42-44) | `prose_anchor_arm.py` (~$3; LOSS — +6.0 on the case the rule was fitted to, -4.0 on the two held out) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -635,6 +636,21 @@ evals/
                      Sonnet scores all five 0 or 1, GPT scores three of them 3. Prints the
                      published figure beside the rebuilt one, which caught a 33-vs-37
                      denominator bug in this script before it reached the writeup.
+
+  prose_anchor_arm.py
+                     $0 to report, ~$3 to run: §42's stage 2. Two arms over the SAME frozen
+                     cohort-3 candidates, differing only in profiler.prose_anchor. The
+                     population is SPLIT and that is the point -- bio-align was chosen because
+                     it scores +0.0, so the rule was fitted to its README and it cannot also
+                     be evidence the rule generalises; bio-kmer and systems fell out
+                     mechanically and carry the held-out claim. RESULT (§44): pooled it is
+                     +2.0 and would have read "positive, unresolved"; SPLIT it is +6.0 on the
+                     training case and -4.0 on the held-out pair, which is the pre-registered
+                     LOSS. bio-align's +6.0 comes from the gate dropping minimap2's OWN paper
+                     once its prose stops being a phishing warning. systems loses because
+                     marketing copy makes the gate stop discriminating (predicted in §43.3
+                     before any label was bought). Prints every paper that moved, because n is
+                     papers and at this size the whole list is the evidence.
 
   prose_window_probe.py
                      $0, judge-free, offline: §15.3's defective stratum -- bio-align and

@@ -95,6 +95,7 @@ def case_profile(
     scan_source: bool,
     typed_anchors: bool = False,
     prose_chars: int | None = None,
+    prose_anchor: str = "start",
 ) -> Any:
     """The one place this harness builds a repository profile.
 
@@ -113,10 +114,15 @@ def case_profile(
     from reporadar.profiler import profile_repo
 
     cfg = (
-        ProfilerConfig(scan_source=scan_source, typed_anchors=typed_anchors)
+        ProfilerConfig(
+            scan_source=scan_source, typed_anchors=typed_anchors, prose_anchor=prose_anchor
+        )
         if prose_chars is None
         else ProfilerConfig(
-            scan_source=scan_source, typed_anchors=typed_anchors, prose_chars=prose_chars
+            scan_source=scan_source,
+            typed_anchors=typed_anchors,
+            prose_chars=prose_chars,
+            prose_anchor=prose_anchor,
         )
     )
     if typed_anchors:
@@ -424,6 +430,7 @@ def _triage_reporadar(
     prose_chars: int = 300,
     scan_source: bool = False,
     typed_anchors: bool = False,
+    prose_anchor: str = "start",
 ) -> dict[str, dict[str, Any]]:
     """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic).
 
@@ -437,7 +444,9 @@ def _triage_reporadar(
     from reporadar.config import SuggestionsConfig
     from reporadar.triage import triage_papers
 
-    profile = case_profile(repo_dir, scan_source=scan_source, prose_chars=prose_chars)
+    profile = case_profile(
+        repo_dir, scan_source=scan_source, prose_chars=prose_chars, prose_anchor=prose_anchor
+    )
     llm_cfg = SuggestionsConfig(
         provider="claude", claude_api_key=keys.get("ANTHROPIC_API_KEY", ""), claude_model=model
     )
@@ -471,6 +480,7 @@ def _apply_finescale(
         scan_source=args.rr_scan_source,
         typed_anchors=args.rr_typed_anchors,
         prose_chars=args.rr_prose_chars,
+        prose_anchor=args.rr_prose_anchor,
     )
     cfg = SimpleNamespace(
         openai_api_key=keys.get("OPENAI_API_KEY", ""),
@@ -892,6 +902,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             args.rr_prose_chars,
             scan_source=args.rr_scan_source,
             typed_anchors=args.rr_typed_anchors,
+            prose_anchor=args.rr_prose_anchor,
         )
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
@@ -1164,6 +1175,17 @@ def main() -> int:
         "the shipped default and the measured optimum (+22 net@2 over 0 on 602 labelled "
         "papers; 2000 and 6000 both score lower). 0 withholds it, which is the "
         "pre-2026-08-02 behaviour and the control arm for any prose measurement.",
+    )
+    parser.add_argument(
+        "--rr-prose-anchor",
+        choices=["start", "self_description"],
+        default="start",
+        help="WHERE the prose window starts (profiler.prose_anchor). `start` is the shipped "
+        "prefix. `self_description` re-anchors on the repo's own '<name> is a ...' sentence, and "
+        "ONLY when that sentence falls outside the window — 3 of 37 benchmark cases change and "
+        "34 are byte-identical (§41-42). Deliberately NOT in POOL_FLAGS: prose reaches only the "
+        "gate, and `prose_window_probe.py` verifies the collector's queries are unchanged under "
+        "it, so a frozen pool stays valid across the two arms.",
     )
     parser.add_argument(
         "--rr-hyde",

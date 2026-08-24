@@ -522,6 +522,11 @@ BENCHMARK_HEADLINE: dict[str, Any] = {
     "profiler.scan_source": False,  # harness.profile_case_repo default
     "profiler.typed_anchors": False,  # --rr-typed-anchors default; the measured arm sets it
     "profiler.prose_chars": 300,  # --rr-prose-chars default
+    # --rr-prose-anchor default. The headline runs `start`, the shipped prefix; §42 is the
+    # arm that tests `self_description` and it has not reported. Listed here rather than as
+    # NOT_UNDER_TEST because the benchmark DOES exercise it — it is under test at its
+    # default, which is the distinction this table exists to keep.
+    "profiler.prose_anchor": "start",
     "suggestions.provider": "claude",  # the gate's SuggestionsConfig(provider="claude")
     "suggestions.claude_model": "claude-haiku-4-5",  # --rr-triage-model default
     "suggestions.timeout": 30,
