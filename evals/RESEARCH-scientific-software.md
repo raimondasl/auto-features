@@ -4736,6 +4736,117 @@ is not made on the strength of a preference.
 and changes no fingerprint.
 
 ---
+## 41. The defective stratum is two defects wearing one label ($0, 2026-08-23)
+
+§15.3's defective stratum — `bio-align` and `mat-featurize`, both **exactly +0.0 net@2**, together
+supplying **8 of the 16 misses from 24 of the 112 returned papers** (§15.4) — is the largest
+unrepaired effect this project has measured. `evals/prose_window_probe.py` asks which candidate
+repair would reach it, **$0 and judge-free**.
+
+The answer is that no single repair does.
+
+### 41.1 The two cases are broken in unrelated ways
+
+| case | README code share | doc files | auto-generated | the actual defect |
+|---|---|---|---|---|
+| `bio-align` (minimap2) | 20% | **0** | — | **where the 300-char window lands** |
+| `mat-featurize` (matminer) | 14% | 30 | **20 (67%)** | **the doc corpus, not the prose** |
+
+`bio-align` ships no documentation at all, so nothing about doc handling can reach it. Badges are
+stripped, and the window then takes `## Getting Started`, a phishing warning and a shell block.
+*"Minimap2 is a versatile sequence alignment program that aligns DNA or mRNA sequences against a
+large reference database"* is at **line 59**, and the window ends at character 300.
+
+`mat-featurize`'s prose is **fine** — *"matminer is a library for performing data mining in the
+field of materials science"* is the first thing it says. Its keywords are `module`, `featurizers`,
+`tests`, `utils`, `test module`, `module contents`, because two thirds of its doc files are
+auto-generated Sphinx API pages.
+
+**Recorded because it was nearly a wrong guess.** Two hypotheses were proposed and measured away
+before this one: "the README is mostly code" (`bio-align` is 20% code, well under the 60% of
+`encryption` which is fine) and "auto-generated docs explain both" (`bio-align` has no docs). A
+single repair for §15.3's stratum would have fixed one case and been reported as fixing a stratum.
+
+### 41.2 Fix A — re-anchor the prose window, and the condition that is the whole proposal
+
+`_repo_prose` returns `_clean_document(README).strip()[:budget]`. Re-anchoring at the
+self-description leaves the prose **byte-identical only when that sentence starts at offset 0**.
+
+| rule | cases changed |
+|---|---|
+| re-anchor whenever a `<name> is a …` sentence exists | **22 of 37** |
+| re-anchor **only when it falls outside the window** | **4 of 37** |
+
+The unconditional version moves `cli`, `ann`, `thin-kv` and `webdev` by **nine characters** at 95%
+word overlap — past a title heading, for nothing — and would buy 22 cases of re-measurement to do
+it. The conditional version changes exactly four:
+
+| case | offset | word overlap |
+|---|---|---|
+| `linter` (ruff) | 8397 | 13% |
+| `systems` (redis) | 3288 | 19% |
+| **`bio-align` (minimap2)** | **2298** | **19%** |
+| `bio-kmer` (sourmash) | 502 | 11% |
+
+18 more already show the sentence inside the window, 3 have it at offset 0, and **12 have no such
+sentence at all** and must keep their behaviour exactly — the rule is a fallback for a window that
+missed, never a replacement for one.
+
+**The first version of this analysis reached "4" for the wrong reason.** It asked whether the
+sentence was *contained* in the current prose and counted a hit as "the profiler is right", which
+conflates *visible* with *unchanged*: a sentence at offset 120 shifts the window by 120 characters
+and drops its tail. The number survived the correction; the rule that produces it did not, and the
+gap between the two rules is 22 cases against 4.
+
+### 41.3 The arm is cheap, and that is measured rather than read off the imports
+
+`profile.prose` has exactly one consumer, `triage.py`. The probe does not assert this — it builds
+the collector's queries under the old and the new prose and diffs them:
+
+> **QUERIES UNCHANGED under the new prose: 4/4 cases.**
+
+So the candidate pool cannot move, and a prose arm may **reuse the cohort-3 frozen pool** rather
+than collecting live. That removes the largest variance term in any paired comparison here
+(§14.4's 0.49 Jaccard) as well as most of the cost. `assemble_repo_context` reads the raw README
+independently of `profile.prose`, so **every cached judge verdict stays valid** too: the marginal
+spend is re-gating four cases and judging only the papers a changed gate newly admits.
+
+**A note for whoever writes that pre-registration:** `rr_prose_chars` sits in `POOL_FLAGS`, which
+blocks frozen-pool reuse across prose settings. On this evidence the pool does not depend on prose
+at all, so the flag is over-conservative rather than wrong — it costs re-collection, never
+correctness — and a prose *selection* change does not touch the fingerprint in any case.
+
+### 41.4 Fix B — drop auto-generated API pages, and the trap in it
+
+| case | doc files | auto-generated | share |
+|---|---|---|---|
+| `bio-mdtraj` | 182 | 161 | **88%** |
+| `mat-featurize` | 30 | 20 | **67%** |
+| `rl` | 44 | 20 | 45% |
+| `cv` | 38 | 14 | 37% |
+| `mat-descriptors` | 245 | 64 | 26% |
+
+Detection is by content — `automodule::`, `Module contents`, `Submodules` — rather than by
+filename, because `matminer.featurizers.tests.rst` is obvious and `api/index.rst` is not.
+
+**`bio-mdtraj` is the most auto-generated corpus in the benchmark and scores +7.0 at precision
+1.00.** Removing 161 of its 182 documents could easily make it worse. So Fix B is wider (eight
+cases see keyword changes), riskier, and needs its own bar in the shape of "do not break what
+already works" — not a shared pre-registration with Fix A.
+
+### 41.5 What this licenses
+
+- **Fix A is the next arm**: four cases, frozen pool, cached verdicts, an endpoint that reaches
+  one of the two defective cases. It is the cheapest judged arm currently available.
+- **Fix B is a separate pre-registration**, and its bar is about `bio-mdtraj` rather than about
+  `mat-featurize`.
+- **§15.3's stratum label should not be used as a unit again.** It groups two repositories by
+  their score, and their causes have nothing in common.
+- **Nothing here says either change is an improvement.** The probe reports who changes. §16.1's
+  bar stands for whatever comes next: the last round of profiler work cost the ML benchmark
+  nothing measurable, and neither fix may cost it anything either.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):

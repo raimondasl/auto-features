@@ -27,6 +27,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | does the second judge price "the repo already has this"? (RESEARCH-scientific-software.md §36-37) | `cited_holdout.py` ($1.04; UNRESOLVED at the bar, but §32.4's mechanism is refuted and the ordinal sign reverses) |
 | what is the OpenAlex channel made of, on materials science? (RESEARCH-scientific-software.md §38) | `openalex_venue_mix.py` ($0, judge-free; 90.8% journal literature, ONE ChemRxiv paper in 1747, and 76% off-domain) |
 | where does a new source's contribution die, and is it shown twice? (RESEARCH-scientific-software.md §39) | `source_funnel.py` ($0, judge-free; the funnel, displacement, and the cross-scheme duplicate check) |
+| which repos would a profiler fix change, and how? (RESEARCH-scientific-software.md §41) | `prose_window_probe.py` ($0, judge-free; §15.3's defective stratum is TWO defects, and no single fix reaches both) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -634,6 +635,22 @@ evals/
                      Sonnet scores all five 0 or 1, GPT scores three of them 3. Prints the
                      published figure beside the rebuilt one, which caught a 33-vs-37
                      denominator bug in this script before it reached the writeup.
+
+  prose_window_probe.py
+                     $0, judge-free, offline: §15.3's defective stratum -- bio-align and
+                     mat-featurize, both EXACTLY +0.0 net@2, together 8 of the 16 misses -- is
+                     the largest unrepaired effect measured here. This asks which candidate
+                     repair reaches it. RESULT (§41): NEITHER reaches both. bio-align ships no
+                     docs and its 300-char prose window lands on a phishing warning and a shell
+                     block while "Minimap2 is a versatile sequence alignment program" sits at
+                     line 59; mat-featurize's prose is FINE and 20 of its 30 doc files are
+                     auto-generated Sphinx API pages. Reports Fix A (re-anchor the window on the
+                     repo's self-description) and Fix B (drop auto-generated API pages)
+                     separately. The distinction that matters: re-anchoring unconditionally
+                     changes 22 of 37 cases, most by nine characters for nothing; re-anchoring
+                     only when the sentence falls OUTSIDE the window changes 4. Also builds the
+                     collector's queries under both prose values and diffs them -- unchanged 4/4,
+                     so the pool cannot move and the cohort-3 frozen pool is reusable.
 
   proposes_method.py
                      ~$0.40, §28's primary (H-B): are the score-3 misfires papers that
