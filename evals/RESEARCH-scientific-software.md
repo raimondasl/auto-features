@@ -4946,7 +4946,10 @@ applied before the fact rather than discovered after.
 Three cases resolve nothing per-case; §20.7 had to learn this the same way. **The endpoint is
 per-paper, and it is exactly the metric.**
 
-**PRIMARY — the net@2 delta, decomposed per changed paper.** Every paper that enters Top Picks
+**PRIMARY — the net@2 delta over `bio-kmer` and `systems` only, decomposed per changed paper.**
+Those two fell out of the rule mechanically and were never chosen on their scores; `bio-align` was
+chosen precisely because it scores +0.0 and is therefore the training example (§42.5b). It is
+reported beside them, never inside them. Every paper that enters Top Picks
 contributes +1 if the judge calls it actionable and −2 if not; every paper that leaves contributes
 the negation of what it used to contribute. Their sum **is** the net@2 delta over the three cases,
 and its n is the number of papers that moved, not the number of repositories.
@@ -4956,6 +4959,53 @@ and its n is the number of papers that moved, not the number of repositories.
 
 **TERTIARY — precision on the shown set**, per arm, with Wilson intervals: does the digest get
 cleaner as well as longer?
+
+### 42.5b THE OVERFITTING OBJECTION, and what actually answers it
+
+The population narrowed **37 -> 22 -> 3**, each time after looking at data, and the rule was
+written while reading minimap2's README — the very case it repairs. That is a
+garden-of-forking-paths risk and it cannot be argued away. Three things are genuinely
+contaminated and are named here rather than defended:
+
+1. **`bio-align` was selected BECAUSE it scores +0.0.** It is the training example. A good result
+   there demonstrates that *this case is repairable*, not that the rule generalises.
+2. **The rule's shape was fitted to it.** "Find `<name> is a ...`" is what minimap2's README made
+   visible.
+3. **Three researcher degrees of freedom were exercised after seeing data** — the conditional
+   (22 -> 4), rejecting `linter` (4 -> 3), and the pattern itself.
+
+**What limits the damage** is that every narrowing was made on the *input* and none on the
+*outcome*. `linter` was rejected because the produced **text** was visibly worse, not because it
+scored badly: **no judge label or net@2 has been consulted for any of these three cases under the
+new prose.** Choosing a rule by reading its output is not the same act as choosing a result by
+reading a metric, and only the second manufactures a finding.
+
+**And the generalisation claim does not rest on the benchmark at all.** Whether this rule selects
+a description is a property of text, so it needs no labels and can be run on unlimited
+repositories for free. Run against §33's nine clones — never in the benchmark, never scored, never
+consulted while writing the rule:
+
+| | |
+|---|---|
+| external repos | 9 |
+| re-anchored | **1** — LAMMPS |
+| harmed, by inspection | **0** |
+
+LAMMPS goes from *"This is the LAMMPS software package… Copyright (2003) Sandia Corporation"* to
+**"LAMMPS is a classical molecular dynamics simulation code designed to run efficiently on
+parallel computers"**, on a repository that had no part in designing the rule.
+
+**It fails by not firing, never by firing wrongly**, which is the safe direction. `kallisto` says
+`__kallisto__ is a program for quantifying abundances of transcripts` and nf-core says
+`**nf-core/rnaseq** is a bioinformatics pipeline`; both are missed because the markdown emphasis
+markers sit between the name and the verb. **Declared and deliberately NOT fixed.** Three
+"obviously correct" tweaks have already been made after looking at data; a fourth is the forking
+path rather than a repair, and the rule is frozen as it stands.
+
+**Consequence for the endpoints, applied above:** the PRIMARY is split. `bio-kmer` and `systems`
+fell out of the rule mechanically and were never selected on outcome, so they carry the held-out
+claim at n = 2 — weak, and honest. `bio-align` is reported beside them as a demonstration. A weak
+uncontaminated number is worth more here than a strong contaminated one.
 
 ### 42.6 Bars
 
@@ -5000,6 +5050,83 @@ self-description sentence for it to find. Fix B (§41.4), which is the repair fo
 and carries the `bio-mdtraj` trap. Whether a better prose *selector* than "find the self-description"
 exists; this tests one rule, not the space. And whether prose is what `mat-featurize` is broken by
 — §41 says it is not.
+
+---
+## 43. STAGE 1 — the kill bar clears, and the movement points the wrong way (2026-08-24)
+
+§42.4's judge-free kill check, run 2026-08-24 on the frozen cohort-3 pool. **~$2** of Haiku gate
+and gpt-4o-mini fine-scale, both arms. `--rr-prose-anchor start` against `self_description`.
+
+### 43.1 The frozen-pool claim holds
+
+All three cases **reused** cohort-3 candidates — 641, 403 and 494 — with no live collection, which
+is what §41.3 predicted from the measured query invariance and what makes this arm cheap. The
+fingerprints match the cohort-3 run's, so both arms score literally the same papers.
+
+### 43.2 The gate moves, and the bar clears
+
+| case | gate ≥2, of the 15-paper window | Top Picks |
+|---|---|---|
+| | control → treatment | control → treatment |
+| `systems` (redis) | 7 → **15** | 7 → **10** |
+| `bio-align` (minimap2) | 13 → **11** | 11 → **10** |
+| `bio-kmer` (sourmash) | 4 → 4 | 3 → **1** |
+
+**KILL was "fewer than 3 papers change Top Picks membership."** The counts alone move by 3, 1 and
+2 — six, before counting substitutions that leave a count unchanged. **The bar clears
+comfortably: the treatment reaches the metric.**
+
+### 43.3 But two of the three move the wrong way, and the third is alarming
+
+Stage 1 buys no judge labels, so nothing here says whether the digests got better. What it does
+say is which way the gate moved, and §42.7's prediction 2 — *"`bio-align` improves"* — now has to
+survive an awkward fact:
+
+**`bio-align` shows FEWER Top Picks under the honest description, not more.** 13 → 11 at the gate,
+11 → 10 shown. That is not fatal — a stricter gate with higher precision is a better digest, and
+the whole point of net@2 is that it prices exactly that trade — but the naive story ("give the
+gate a real description and it finds more good papers") is already wrong.
+
+**`bio-kmer` collapses at the fine-scale stage.** The gate admits the same 4, but the band rescore
+goes from 3 of 4 clearing P ≥ 0.67 to **1 of 4**, and Top Picks fall 3 → 1. The new prose made the
+fine-scale map *less* confident about the same papers.
+
+**`systems` is the one to worry about.** The gate goes from 7 of 15 actionable to **15 of 15**. A
+gate that admits everything has stopped discriminating, and the prose it was given is
+*"Redis is a popular choice for developers worldwide due to its combination of speed, flexibility,
+and rich feature set"* — marketing copy, agreeable about everything. §42.2 called this swap "two
+mediocre paragraphs" and put `systems` in the population as the guard; the guard is flashing.
+
+This is a genuinely new hypothesis and it was not in §42: **prose quality may act on the gate's
+*calibration* rather than on its *accuracy*.** A vague, positive description could plausibly make
+every paper look relevant. Nothing here tests that — it is a reading of three numbers — but it is
+the reading that stage 2 should be prepared to see.
+
+### 43.4 A mistake, and what it cost
+
+Stage 1 was run with `--mock`, which mocks the judge — correct, since stage 1 is judge-free. But
+`--mock` also **suppresses the artifact write** (`run_judge_eval.py:1475`), deliberately, so that
+a mocked run cannot be mistaken for a real one. So this run produced **counts but not membership**:
+I can say Top Picks moved from 7 to 10, not which papers.
+
+The `actionable`, `precision` and `net@2` columns those runs printed are **mock-judge output and
+mean nothing** — `systems` printed −14.0 and −20.0, `bio-align` +8.0 and +7.0. Recorded explicitly
+because they look exactly like real numbers in a log, and §20.1's whole lesson is about a null
+that looked like a finding.
+
+Cost of the mistake: about **$2**, and stage 2 re-runs the gate anyway, so nothing is lost but the
+money. The kill decision — the only thing stage 1 was funded to make — is answered.
+
+### 43.5 What this licenses
+
+- **Stage 2 is unblocked by its own bar.** The treatment moves Top Picks membership in all three
+  cases.
+- **§42.7's prediction 2 is in trouble before a single label is bought**, and that is worth having
+  in writing now rather than after: `bio-align` shows fewer papers, not more, and whether that is
+  a repair or a regression is exactly what the judge decides.
+- **The `systems` guard clause in §42.6 — "LOSS if any single case drops by ≥4" — is now the
+  clause most likely to bind.** A gate at 15 of 15 is the shape of a case about to fail it.
+- **Nothing here is a result.** Three counts, no labels, one draw.
 
 ---
 ## Appendix

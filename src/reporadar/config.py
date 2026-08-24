@@ -276,6 +276,22 @@ class ProfilerConfig:
     # See evals/RESULTS.md -> "how much prose" for the sweep and its limits.
     prose_chars: int = 300
 
+    # WHERE the window starts, which the comment above already calls "a lottery on document
+    # layout". `start` is the shipped behaviour: the first `prose_chars` of the cleaned README.
+    # `self_description` re-anchors on the repository's own "<name> is a ..." sentence, and only
+    # when that sentence falls OUTSIDE the current window — so a README that already opens with
+    # its description is untouched.
+    #
+    # Measured before it was offered (evals/prose_window_probe.py, §41-42): re-anchoring
+    # unconditionally moves 17 of 37 benchmark repositories, most by a few characters at 95% word
+    # overlap, for nothing. Conditionally it moves 3. `bio-align` is the case it exists for — its
+    # window is a phishing warning and a build recipe while "Minimap2 is a versatile sequence
+    # alignment program" sits at line 59 — and on nine repositories outside the benchmark it
+    # fires once (LAMMPS, correctly) and harms none.
+    #
+    # UNVALIDATED as a digest improvement. §42 is the arm; until it reports, `start` ships.
+    prose_anchor: str = "start"  # "start" | "self_description"
+
 
 @dataclass
 class SuggestionsConfig:

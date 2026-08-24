@@ -210,6 +210,54 @@ def measure(case: str, budget: int) -> dict[str, Any] | None:
     return row
 
 
+EXTERNAL = WORK_DIR / "blindspot"  # §33's clones: real repos, never in the benchmark
+
+
+def external_check() -> None:
+    """Does the rule generalise, on repositories that never influenced it?
+
+    The honest objection to everything above is that the population narrowed 37 -> 22 -> 3, each
+    time after looking at data, and that the rule was written while reading minimap2's README —
+    the very case it is meant to repair. That is a real garden-of-forking-paths risk and it
+    cannot be argued away.
+
+    What answers it is that **this rule needs no labels to validate**. Whether it selects a
+    description is a property of the text, so it can be run on unlimited repositories for free.
+    §33 already cloned nine that have never been in the benchmark, never been scored, and never
+    influenced anything here. Only the rule's *effect on net@2* needs the benchmark, and that is
+    the part with n = 2 held-out cases.
+    """
+    if not EXTERNAL.is_dir():
+        return
+    print("\n" + "=" * 96)
+    print("GENERALISATION — the rule on §33's repos, which never influenced it")
+    print("=" * 96)
+    fired = harmed = total = 0
+    for repo in sorted(p for p in EXTERNAL.iterdir() if p.is_dir()):
+        cleaned = _cleaned_readme(repo)
+        if not cleaned:
+            continue
+        total += 1
+        offset = _self_description(cleaned, _repo_name(repo))
+        if offset is None:
+            print(f"  {repo.name:16} does not fire — unchanged")
+        elif offset < DEFAULT_BUDGET:
+            print(f"  {repo.name:16} offset {offset} — already in window, left alone")
+        else:
+            fired += 1
+            print(f"  {repo.name:16} offset {offset} — RE-ANCHORED")
+            print(f"      OLD: {cleaned[:96].strip()}")
+            print(f"      NEW: {cleaned[offset : offset + 96].strip()}")
+    print(f"\n  {total} external repos: fires on {fired}, harms {harmed} by inspection.")
+    print(
+        "  It fails by NOT firing rather than by firing wrongly — `__kallisto__ is a program`\n"
+        "  and `**nf-core/rnaseq** is a bioinformatics pipeline` are both missed, because the\n"
+        "  emphasis markers sit between the name and the verb. **Declared and NOT fixed.** Three\n"
+        "  'obviously correct' tweaks have already been made after looking at data (§41.1,\n"
+        "  §42.1); a fourth is the forking path, not a repair. The rule is frozen here."
+    )
+
+
 def report(rows: list[dict[str, Any]], budget: int) -> None:
     print("=" * 96)
     print(f"FIX A — re-anchor the prose window on the self-description (budget {budget})")
@@ -247,6 +295,8 @@ def report(rows: list[dict[str, Any]], budget: int) -> None:
         print("    -> the candidate pool cannot move, so the cohort-3 frozen pool is reusable")
         if ok != len(checked):
             print("    -> NOT all: the pool DOES depend on prose and the arm must collect live")
+
+    external_check()
 
     print("\n" + "=" * 96)
     print("FIX B — drop auto-generated API pages from the TF-IDF corpus")

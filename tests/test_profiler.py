@@ -726,3 +726,121 @@ class TestNonPythonManifests:
         (tmp_path / "Cargo.toml").write_text('[dependencies]\nmemchr = "2.7"\n', encoding="utf-8")
         anchors = _extract_anchors(tmp_path)
         assert anchors == ["torch"], "a repo that already profiles must be byte-identical"
+
+
+class TestProseAnchor:
+    """§42: where the 300-char window starts, and the condition that keeps it small.
+
+    `bio-align` scores exactly +0.0 net@2 because its window lands on a phishing warning and a
+    build recipe while "Minimap2 is a versatile sequence alignment program" sits at line 59
+    (§41). `prose_anchor="self_description"` re-anchors on that sentence — but only when it
+    falls outside the window, because re-anchoring unconditionally moves 17 of 37 benchmark
+    repositories, most by a handful of characters, for nothing.
+    """
+
+    def _repo(self, tmp_path: Path, readme: str, name: str = "minimap2") -> Path:
+        repo = tmp_path / name
+        repo.mkdir()
+        (repo / "README.md").write_text(readme, encoding="utf-8")
+        return repo
+
+    def _prose(self, repo: Path, anchor: str) -> str:
+        from reporadar.config import ProfilerConfig
+
+        return profile_repo(
+            repo, profiler_cfg=ProfilerConfig(prose_chars=300, prose_anchor=anchor)
+        ).prose
+
+    def test_the_shipped_default_is_the_prefix(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path, "Getting started. " + "x " * 200 + "minimap2 is a mapper.")
+        assert self._prose(repo, "start").startswith("Getting started.")
+
+    def test_it_re_anchors_when_the_description_is_out_of_view(self, tmp_path: Path) -> None:
+        """The bio-align shape: junk first, the real sentence far past the budget."""
+        repo = self._repo(
+            tmp_path,
+            "ALERT: phishing site. Do not use it. " + "filler " * 100 + "minimap2 is a versatile "
+            "sequence alignment program that aligns DNA sequences.",
+        )
+        assert self._prose(repo, "self_description").startswith("minimap2 is a versatile")
+
+    def test_it_leaves_a_description_that_is_already_in_view_alone(self, tmp_path: Path) -> None:
+        """The condition that keeps this a 3-case change rather than a 20-case one."""
+        readme = "# minimap2\n\nminimap2 is a versatile mapper. " + "detail " * 200
+        repo = self._repo(tmp_path, readme)
+        assert self._prose(repo, "self_description") == self._prose(repo, "start")
+
+    def test_no_such_sentence_leaves_the_prose_untouched(self, tmp_path: Path) -> None:
+        """17 of 37 benchmark repositories are in this case and must not move."""
+        readme = "Quickly search and compare data sets. " + "detail " * 200
+        repo = self._repo(tmp_path, readme)
+        assert self._prose(repo, "self_description") == self._prose(repo, "start")
+
+    def test_the_name_must_be_the_subject(self, tmp_path: Path) -> None:
+        """The ruff false positive (§42.1).
+
+        "...getting started with ruff, the default rule set IS A great place to start" matched a
+        pattern that allowed 80 characters of slack, and would have replaced ruff's real
+        description with a note from its configuration section.
+        """
+        readme = (
+            "An extremely fast Python linter, written in Rust. "
+            + "detail " * 100
+            + "If you're just getting started with ruff, the default rule set is a great place "
+            "to start."
+        )
+        repo = self._repo(tmp_path, readme, name="ruff")
+        assert self._prose(repo, "self_description") == self._prose(repo, "start")
+
+    def test_a_parenthetical_gloss_is_allowed(self, tmp_path: Path) -> None:
+        """scvi-tools introduces itself that way, and it is a real self-description."""
+        readme = (
+            "Badges and links. "
+            + "filler " * 100
+            + (
+                "scvi-tools (single-cell variational inference tools) is a package for "
+                "probabilistic modeling."
+            )
+        )
+        repo = self._repo(tmp_path, readme, name="scvi-tools")
+        assert self._prose(repo, "self_description").startswith("scvi-tools (single-cell")
+
+    def test_the_name_comes_from_git_config_when_the_directory_disagrees(
+        self, tmp_path: Path
+    ) -> None:
+        """The benchmark names its clones for the CASE, not the project.
+
+        `evals/.work/bio-align` holds minimap2. A directory-only rule would never fire on the
+        population that measures it — §21.0's shape, where a flag existed and the dispatch
+        behind it did not.
+        """
+        repo = self._repo(
+            tmp_path,
+            "ALERT: phishing. " + "filler " * 100 + "minimap2 is a versatile mapper for DNA.",
+            name="bio-align",
+        )
+        (repo / ".git").mkdir()
+        (repo / ".git" / "config").write_text(
+            '[remote "origin"]\n\turl = https://github.com/lh3/minimap2.git\n', encoding="utf-8"
+        )
+        assert self._prose(repo, "self_description").startswith("minimap2 is a versatile")
+
+    def test_an_unreadable_git_config_falls_back_rather_than_raising(self, tmp_path: Path) -> None:
+        readme = "ALERT. " + "filler " * 100 + "minimap2 is a versatile mapper for DNA."
+        repo = self._repo(tmp_path, readme)
+        (repo / ".git").mkdir()
+        (repo / ".git" / "config").write_text("not an ini file at all", encoding="utf-8")
+        assert self._prose(repo, "self_description").startswith("minimap2 is a versatile")
+
+    def test_prose_chars_zero_still_withholds_everything(self, tmp_path: Path) -> None:
+        """The privacy contract outranks the anchor: 0 means send no prose at all."""
+        from reporadar.config import ProfilerConfig
+
+        repo = self._repo(tmp_path, "filler " * 100 + "minimap2 is a versatile mapper.")
+        assert (
+            profile_repo(
+                repo,
+                profiler_cfg=ProfilerConfig(prose_chars=0, prose_anchor="self_description"),
+            ).prose
+            == ""
+        )
