@@ -5246,6 +5246,81 @@ were added *because the question was asked*, and the result is that a change whi
 shipped on a pooled number does not ship.
 
 ---
+## 45. §44's mechanism generalises: a gate that knows less admits more ($0, 2026-08-24)
+
+§44 saw `systems` handed marketing prose and gate **15 of 15 papers actionable**, and predicted the
+cause in §43.3 before any label was bought. That was one repository. This asks whether the effect
+exists in general — **at $0, because the measurement was already paid for.**
+
+`evals/diagnose_triage.py` ran the shipped gate over the same **602 labelled papers** under four
+repository descriptions. Every run is on disk with its judge label beside it. `evals/gate_prose_sensitivity.py`
+joins them on the papers all four scored.
+
+### 45.1 The effect is real, monotone, and it moves both axes at once
+
+| condition | admits | precision | recall | net@2 | AUC |
+|---|---|---|---|---|---|
+| **no prose at all** (`prose_chars: 0`) | **25.1%** | 0.828 | 74.4% | +73 | 0.918 |
+| the packaging one-liner | 22.1% | 0.880 | 69.6% | +85 | 0.922 |
+| **README prefix, 300 chars — ships** | **20.8%** | **0.920** | 68.5% | **+95** | **0.930** |
+| README prefix, 6000 chars | 21.3% | 0.898 | 68.5% | +89 | 0.917 |
+
+**The less the gate knows about the repository, the more it admits.** 25.1% → 22.1% → 20.8%,
+monotone in how much the description tells it. §44's single case generalises: a gate with no idea
+what the project is says yes to a quarter of everything put in front of it.
+
+**And it is not merely becoming strict.** Precision rises with it — 0.828 → 0.880 → 0.920 — and so
+does AUC, 0.918 → 0.922 → 0.930. Permissiveness and discrimination are different axes and this
+probe exists to keep them apart; here they happen to move together. The gate given a real
+description admits *fewer* papers and the ones it admits are *more often right*.
+
+**6000 characters reverses it** on every axis: admits more (21.3%), precision falls (0.898), AUC
+falls to 0.917 — below the no-prose condition. `ProfilerConfig.prose_chars` already records that
+300 beat 2000 and 6000 on net@2 and calls the choice "the argmax of noisy arms"; this adds a
+mechanism, which is that too much prose dilutes rather than informs.
+
+### 45.2 What is confirmed versus what is new
+
+**Confirmed, not discovered:** the +22 net@2 between no prose and 300 (+73 → +95) is already in
+`ProfilerConfig.prose_chars`'s comment. This reproduces it exactly, which is the reason to trust
+the rest of the row.
+
+**New:** the *decomposition*. The +22 is not the gate finding more good papers — recall **falls**,
+74.4% → 68.5%. It comes from the gate admitting **4.3 percentage points fewer papers** while its
+precision rises **9.2 points**. The shipped prose budget buys its gain by making the gate
+*refuse better*, not by making it *find more*.
+
+That is worth having in writing, because "give the gate more context so it finds more" is the
+intuition, and it is backwards.
+
+### 45.3 What this does NOT establish, and it is the half §44 was actually about
+
+Every condition here varies **how much** description the gate gets. None gives it a description
+that is present but *uninformative* — and that is precisely what `systems` had:
+*"Redis is a popular choice for developers worldwide due to its combination of speed, flexibility,
+and rich feature set."*
+
+So §44's specific mechanism — **vague, agreeable prose makes the gate agreeable** — remains a
+single case. What generalises is the weaker claim: **less information, more admission.** Whether
+misinformation is worse than no information is a different experiment, and no run on disk answers
+it.
+
+### 45.4 What this licenses
+
+- **The shipped 300-character budget is the peak on all five columns**, and now for a stated
+  reason rather than as an argmax. Do not raise it.
+- **`prose_chars: 0` costs more than the privacy note implies.** The setting is documented as a
+  disclosure control and it is a good one, but a user who sets it gets a gate that admits 25%
+  of its pool at precision 0.83 instead of 21% at 0.92. `rr audit` should say so; it currently
+  reports only what is sent.
+- **§44's `bio-align` result has a general shape behind it.** The gate dropped minimap2's own
+  paper once it knew what minimap2 was — and across 602 papers, knowing what the repo is makes the
+  gate refuse more and refuse better. The self-paper case is the sharpest instance of a real
+  effect, not an anecdote.
+- **Not licensed: any claim about vague descriptions**, which is the one §44 raised and §45.3
+  cannot reach.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
