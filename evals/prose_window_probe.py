@@ -109,8 +109,27 @@ def _self_description(cleaned: str, name: str) -> int | None:
     replacement for it, and §30 is the standing reason to distrust anything that classifies text
     by how it reads. 12 of 37 benchmark repositories have no such sentence at all and must keep
     their current behaviour exactly.
+
+    **The name has to be the SUBJECT, and the first version of this did not require that.** It
+    allowed up to 80 characters between the name and the verb, which matched
+    *"…getting started with Ruff, the default rule set **is a** great place to start"* — a
+    fragment from the middle of ruff's configuration section — and would have replaced *"An
+    extremely fast Python linter and code formatter, written in Rust"* with it. The best
+    description in the benchmark, traded for a config note, by a rule meant to repair bad
+    descriptions (§42.1).
+
+    So the name must be followed by the verb directly, with nothing between but an optional
+    parenthetical gloss — which real self-descriptions have and false positives do not:
+
+        minimap2 is a versatile sequence alignment program        0 chars between
+        sourmash is a k-mer analysis multitool                    0
+        Redis is a popular choice                                 0
+        scvi-tools (single-cell variational inference tools) is   a parenthetical
+        Ruff, the default rule set is a great place to start      25  -> REJECTED
     """
-    pattern = re.compile(rf"\b{re.escape(name)}\b[^.\n]{{0,80}}?\s+(?:is|are)\s+an?\s+", re.I)
+    pattern = re.compile(
+        rf"\b{re.escape(name)}\b\s*(?:\([^)\n]{{0,80}}\))?\s+(?:is|are)\s+an?\s+", re.I
+    )
     match = pattern.search(cleaned)
     return None if match is None else match.start()
 

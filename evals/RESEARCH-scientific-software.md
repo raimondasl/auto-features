@@ -4788,6 +4788,12 @@ it. The conditional version changes exactly four:
 | **`bio-align` (minimap2)** | **2298** | **19%** |
 | `bio-kmer` (sourmash) | 502 | 11% |
 
+**CORRECTED to three by §42.1.** `linter` was a false positive: the pattern allowed 80 characters
+between the name and the verb, so *"…getting started with Ruff, the default rule set **is a** great
+place to start"* matched, and re-anchoring there would have replaced ruff's *"An extremely fast
+Python linter and code formatter, written in Rust"* with a note from its configuration section.
+The rule now requires the name to be the sentence's subject.
+
 18 more already show the sentence inside the window, 3 have it at offset 0, and **12 have no such
 sentence at all** and must keep their behaviour exactly — the rule is a fallback for a window that
 missed, never a replacement for one.
@@ -4845,6 +4851,155 @@ already works" — not a shared pre-registration with Fix A.
 - **Nothing here says either change is an improvement.** The probe reports who changes. §16.1's
   bar stands for whatever comes next: the last round of profiler work cost the ML benchmark
   nothing measurable, and neither fix may cost it anything either.
+
+---
+## 42. PRE-REGISTERED — Fix A: re-anchor the prose window on the repository's self-description (2026-08-24)
+
+§41 established that `bio-align` scores **+0.0 net@2** because its 300-character prose window
+lands on a phishing warning and a shell block while *"Minimap2 is a versatile sequence alignment
+program"* sits at line 59. This is the arm that tests the repair.
+
+### 42.1 CORRECTION to §41 — the rule had a false positive, and it was the expensive kind
+
+§41 reported that the conditional rule changes **4 of 37** cases. **It changes 3.** The fourth was
+`linter`, and looking at what it would actually do there is what caught it:
+
+| | |
+|---|---|
+| ruff, old prose | *"An extremely fast Python linter and code formatter, written in Rust… 10-100x faster than existing linters"* |
+| ruff, new prose | *"Ruff, **the default rule set is a great place to start**: it catches a wide variety of common errors…"* |
+
+The pattern allowed up to 80 characters between the repository name and the verb, so
+*"…getting started with **Ruff**, the default rule set **is a** great place to start"* matched. The
+name was not the subject of the sentence. **A rule written to repair bad descriptions would have
+replaced the best description in the benchmark with a note from a configuration section.**
+
+Tightened so the name must be the subject — verb immediately after, with nothing between but an
+optional parenthetical gloss, which real self-descriptions have and false positives do not:
+
+```
+minimap2 is a versatile sequence alignment program        0 chars between
+sourmash is a k-mer analysis multitool                    0
+Redis is a popular choice                                 0
+scvi-tools (single-cell variational inference tools) is   a parenthetical
+Ruff, the default rule set is a great place to start      25   -> REJECTED
+```
+
+**This is the third wrong guess in this line of work**, after "the README is mostly code" and
+"auto-generated docs explain both" (§41.1). It was caught by printing the candidate output rather
+than the candidate count — the previous two were caught the same way. The lesson is cheap and
+worth stating: **a rule that changes text must be reviewed on the text it produces, not on how
+many rows it touches.**
+
+### 42.2 What changes, in full, before any number is bought
+
+Three cases. Both arms score the **same frozen cohort-3 candidates**; only the prose differs.
+
+| case | old prose (first 200 chars) | new prose (first 200 chars) |
+|---|---|---|
+| **`bio-align`** (minimap2) | *"## Getting Started **ALERT:** `minimap2.com` is a phishing site. Please don't use anything from that website. ```sh git clone / cd minimap2 && make…"* | *"Minimap2 is a versatile sequence alignment program that aligns DNA or mRNA sequences against a large reference database. Typical use cases include: (1) mapping PacBio or Oxford Nanopore genomic reads…"* |
+| **`bio-kmer`** (sourmash) | *"# sourmash Quickly search, compare, and analyze genomic and metagenomic data sets. Usage: sourmash sketch dna *.fq.gz…"* | *"sourmash is a k-mer analysis multitool, and we aim to provide stable, robust programmatic and command-line APIs for a variety of sequence comparisons. Some of our special sauce includes: `FracMinHash` sketching…"* |
+| **`systems`** (redis) | *"This document serves as both a quick start guide to Redis and a detailed resource for building it from source."* | *"Redis is a popular choice for developers worldwide due to its combination of speed, flexibility, and rich feature set."* |
+
+Stated honestly, because the bar should be read knowing it: **one of these is a clear repair, one
+is a probable improvement, and one is a swap between two mediocre paragraphs.** `bio-align` is the
+case the arm exists for. `bio-kmer`'s old prose was a serviceable tagline before it degraded into
+usage examples. `systems` trades a sentence about *the document* for a sentence about *the
+product*, and neither is good.
+
+**34 of 37 cases are unchanged**, measured rather than assumed — 14 already show the sentence
+inside the window, 3 have it at offset 0, and 17 have no such sentence at all. §16.1's bar (the ML
+benchmark must not move) is therefore satisfied by construction for all but `systems`, which is a
+legacy ML/systems case and is *in* the population precisely so the bar is tested rather than
+asserted.
+
+### 42.3 Why this is cheap, and it is measured
+
+`profile.prose` has exactly one consumer, `triage.py`. §41.3 did not assert that — it built the
+collector's queries under both prose values and diffed them: **unchanged 3/3.** So:
+
+- the candidate pool cannot move → **reuse `evals/.work/pool-cohort3`**, no live collection, and
+  §14.4's 0.49-Jaccard variance term — the largest in any paired comparison here — is removed
+- `assemble_repo_context` reads the raw README independently of `profile.prose` → **cached judge
+  verdicts stay valid**
+- the marginal spend is re-gating three cases plus judging only what a changed gate newly admits
+
+Because the pool is frozen and only the gate differs, the relevant noise floor is §14.4's
+**0.48 net@2/case**, not the 1.04 of a live paired comparison — about **1.44 total** over three
+cases.
+
+### 42.4 Stage 1 runs first, and it is the kill check (~$1)
+
+Re-gate the three frozen pools under both prose values with Haiku. **Judge-free.** Report:
+
+1. papers whose gate score changes;
+2. papers whose **window membership** changes;
+3. papers whose **Top Picks** membership changes.
+
+**KILL: fewer than 3 papers change Top Picks membership across the three cases.** Then the
+treatment does not reach the metric, the arm would measure zero by construction, and it stops
+before any judge spend. This is §20.1's trap — an endpoint that cannot move, funded anyway —
+applied before the fact rather than discovered after.
+
+### 42.5 Endpoints
+
+Three cases resolve nothing per-case; §20.7 had to learn this the same way. **The endpoint is
+per-paper, and it is exactly the metric.**
+
+**PRIMARY — the net@2 delta, decomposed per changed paper.** Every paper that enters Top Picks
+contributes +1 if the judge calls it actionable and −2 if not; every paper that leaves contributes
+the negation of what it used to contribute. Their sum **is** the net@2 delta over the three cases,
+and its n is the number of papers that moved, not the number of repositories.
+
+**SECONDARY — `bio-align` alone.** It is the case the arm exists for and the only one currently at
++0.0. Reported as a magnitude, n=1, no bar.
+
+**TERTIARY — precision on the shown set**, per arm, with Wilson intervals: does the digest get
+cleaner as well as longer?
+
+### 42.6 Bars
+
+| outcome | bar |
+|---|---|
+| **KILL** | fewer than 3 papers change Top Picks membership (stage 1, before judging) |
+| **WIN** | total net@2 delta **≥ +3.0** over the three cases **and** `bio-align` does not get worse |
+| **LOSS** | total **≤ −3.0**, or any single case drops by **≥ 4.0** |
+| **UNRESOLVED** | anything between |
+
++3.0 is about twice the 1.44 frozen-pool floor for three cases. The asymmetric single-case clause
+exists because a mean can hide a repository being wrecked, and `systems` is in this population as
+the guard against exactly that.
+
+### 42.7 Predictions
+
+1. **Stage 1 will show real movement.** Word overlap between old and new prose is 11–19% on all
+   three; the gate is reading a substantially different description.
+2. **`bio-align` improves.** Its current prose is not merely thin, it is *misleading* — a phishing
+   warning and a build recipe, for a sequence aligner.
+3. **The total will be UNRESOLVED**, between −3 and +3. Two of the three swaps are marginal, and
+   one repaired case cannot carry a three-case total past the bar on its own.
+4. **`systems` will not drop by 4.** Both of its paragraphs are mediocre; there is not much
+   distance between them to fall.
+
+**Calibration, as usual.** A null-ish headline has now been my prediction six times and right five,
+so prediction 3 should be read as the base rate rather than as insight. **Prediction 2 is the one
+carrying information**: it is the claim that the §15.3 defect has a fixable cause, and if it fails
+the whole line closes — not because the rule is bad, but because prose would then not be what
+`bio-align` is broken by.
+
+### 42.8 Cost
+
+**~$1** for stage 1 (Haiku over three frozen pools, both arms). **~$2–4** for stage 2, judging only
+papers a changed gate newly admits; everything already shown carries a cached verdict. **~$3–5
+total**, and stage 2 is not funded until stage 1 clears the kill bar.
+
+### 42.9 What this does not measure
+
+Whether the rule is right *in general* — three cases, and 17 of 37 repositories have no
+self-description sentence for it to find. Fix B (§41.4), which is the repair for `mat-featurize`
+and carries the `bio-mdtraj` trap. Whether a better prose *selector* than "find the self-description"
+exists; this tests one rule, not the space. And whether prose is what `mat-featurize` is broken by
+— §41 says it is not.
 
 ---
 ## Appendix
