@@ -5129,6 +5129,123 @@ money. The kill decision — the only thing stage 1 was funded to make — is an
 - **Nothing here is a result.** Three counts, no labels, one draw.
 
 ---
+## 44. RESULT — the rule wins on the case it was fitted to and loses on both held-out ones (2026-08-24)
+
+§42's stage 2, run 2026-08-24 on the frozen cohort-3 pool. **~$3.** Both arms score the same
+candidates and differ only in `profiler.prose_anchor`.
+
+**The pre-registered verdict is LOSS.** And the split endpoint §42.5b introduced — added *because*
+the overfitting objection was raised, not before it — is the only reason that is visible.
+
+### 44.1 The control reproduces the published run exactly
+
+| case | this control | §15.1 as published |
+|---|---|---|
+| `bio-align` | +0.0, 12 shown, 8 actionable, 0.67 | **+0.0, 12, 8, 0.67** |
+| `bio-kmer` | +3.0, 3 shown, 3 actionable, 1.00 | **+3.0, 3, 3, 1.00** |
+
+To the digit, four months of drift later, because the pool is frozen and the judge verdicts are
+cached. Any difference the treatment shows is the prose and not the weather.
+
+### 44.2 PRIMARY — held out: −4.0, a LOSS
+
+| case | net@2 | Δ | papers |
+|---|---|---|---|
+| `bio-kmer` | +3.0 → **+1.0** | **−2.0** | −2 |
+| `systems` | +3.0 → **+1.0** | **−2.0** | +4 |
+| **held-out total** | | **−4.0** | bar was LOSS at ≤ −3.0 |
+
+| `bio-align` *(training case)* | +0.0 → **+6.0** | **+6.0** | −3 |
+
+**Pooled over all three it is +2.0 — which would have been written up as "positive, unresolved".**
+Split, it is a rule that gains +6 on the repository whose README it was designed against and loses
+on both repositories it had never seen. That is the signature of overfitting, and §42.5b's split
+exists because the objection was put to me before the numbers arrived. It would not have been
+visible otherwise.
+
+### 44.3 Every paper that moved, because n is papers and this is all of them
+
+**`bio-align` (+6.0)** — three papers dropped, all judged 1:
+
+> *Minimap2: pairwise alignment for nucleotide sequences* — **the repository's own paper**
+> *Minimap and miniasm: fast mapping and de novo assembly* — its own predecessor
+> *Fast construction of FM-index for long sequence reads*
+
+**The mechanism is exact and it is the interesting part.** Under the old prose the gate was told
+minimap2 is a phishing warning and a build recipe; knowing nothing about the project, it admitted
+the project's own paper. Given *"Minimap2 is a versatile sequence alignment program that aligns
+DNA or mRNA sequences against a large reference database"*, it recognises that paper as describing
+what the repository **already is** and drops it.
+
+**`systems` (−2.0)** — four papers added, judged **1, 2, 1, 2**. Two actionable at +1 each, two not
+at −2 each. §43.3 predicted this from stage 1's 15-of-15 gate and named the mechanism —
+*"a vague, positive description could plausibly make every paper look relevant"* — and the prose it
+was handed is *"Redis is a popular choice for developers worldwide due to its combination of speed,
+flexibility, and rich feature set."* **Marketing copy is agreeable about everything, and so is a
+gate reading it.** The prediction was made before any label was bought and it held.
+
+**`bio-kmer` (−2.0)** — two papers dropped, **both judged 2**. The gate admitted the same four; the
+*fine-scale* stage went from 3 of 4 clearing P ≥ 0.67 to 1 of 4 and withheld two actionable papers.
+A different stage, a different failure.
+
+### 44.4 TERTIARY — precision rose while net@2 fell
+
+| | shown | actionable | precision |
+|---|---|---|---|
+| control | 21 | 16 | 0.762 |
+| treatment | 20 | 16 | **0.800** |
+
+Cleaner per paper, fewer papers, and net@2 down. That is the metric doing its job: a digest is not
+better for being more selective if selectivity costs it good papers, and `bio-kmer` lost two of
+three.
+
+### 44.5 Predictions, scored
+
+1. *"Stage 1 will show real movement."* **Correct** (§43.2).
+2. *"`bio-align` improves."* **Correct, and by more than anything else here — +6.0.** §43.3 had it
+   in trouble because Top Picks fell 12 → 9; falling was the repair.
+3. *"The total will be UNRESOLVED."* **Wrong on the pre-registered endpoint** — the held-out pair
+   is −4.0, past the bar. It would have been *right* on the pooled figure of +2.0, which is
+   precisely the endpoint §42.5b replaced.
+4. *"`systems` will not drop by 4."* **Correct** — it dropped 2.0, and the single-case guard did
+   not bind.
+
+Three of four, and the one that missed is the one worth having missed: I predicted the wrong
+answer to a question I had already replaced with a better one.
+
+### 44.6 What this licenses
+
+- **Do not make `self_description` the default.** It loses 4.0 net@2 across two repositories it
+  was not designed against. `profiler.prose_anchor` ships with `start`, and §44 is why.
+- **`bio-align`'s defect has a demonstrated repair, worth +6.0 net@2 on that repository**, taking
+  it from the worst case in the scientific cohort to above its mean. What is *not* licensed is
+  applying that repair everywhere.
+- **The gate prices redundancy once it knows what the repository is.** This is §32–§37's question
+  arriving from the opposite end: those six arms asked whether *judges* penalise a repository's own
+  paper and could not establish it; this shows the **gate** dropping three self-referential papers
+  the moment its prose stops being a phishing warning. The mechanism was never absent — it was
+  starved of the one input that makes it decidable.
+- **A vague description is worse than a short one.** `systems` traded a sentence about the document
+  for marketing copy and the gate stopped discriminating. "Find the self-description" is the wrong
+  objective; "find the *informative* description" is the right one, and this arm does not know how
+  to do that.
+- **Not licensed: a fourth tuning round.** The obvious next move — fire only when the current prose
+  is *uninformative* — is another rule fitted after seeing which cases lost. Three tweaks have
+  already been made against this data (§41.1, §42.1). The rule stays frozen and the arm stays
+  closed.
+
+### 44.7 What the objection bought
+
+The population narrowed 37 → 22 → 3 and the rule was written while reading the target's README.
+Asked how we would know this was not fitting, the answer taken was to split the training case out
+of the endpoint and to test the rule on nine repositories outside the benchmark (§42.5b).
+
+**The split changed the verdict from +2.0 "positive, unresolved" to −4.0 LOSS.** The external check
+gave the rule its only uncontaminated success — LAMMPS, correctly re-anchored, harming none. Both
+were added *because the question was asked*, and the result is that a change which would have
+shipped on a pooled number does not ship.
+
+---
 ## Appendix
 
 **Scratchpad** (`C:\Users\raimo\AppData\Local\Temp\claude\C--Users-raimo-auto-features\56bd6727-3c61-4ec9-bf98-ad1b7916a373\scratchpad\`):
