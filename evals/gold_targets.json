@@ -1,8 +1,18 @@
 {
- "_comment": "Frozen gold set. Derived by diagnose_pool.actionable_baseline_ids; pinned by tests/test_gold_targets.py. 'ids-only' marks a pick the current parser cannot re-derive from the cached raw answer -- see freeze_gold_targets.py.",
- "n_targets": 56,
- "n_cases": 20,
+ "_comment": "Frozen gold set. Derived by diagnose_pool.actionable_baseline_ids; pinned by tests/test_gold_targets.py. 'ids-only' marks a pick the current parser cannot re-derive from the cached raw answer -- see freeze_gold_targets.py. PUBLISHED RECALL FIGURES USE THE benchmark25 COHORT ONLY (56 targets); the scisoft cohort was added later and no published denominator includes it.",
+ "n_targets": 73,
+ "n_cases": 27,
  "n_ids_only": 9,
+ "cohorts": {
+  "benchmark25": {
+   "n_targets": 56,
+   "n_cases": 20
+  },
+  "scisoft": {
+   "n_targets": 17,
+   "n_cases": 7
+  }
+ },
  "orphans": {
   "rag": [
    "2304.01982",
@@ -27,6 +37,22 @@
    "1908.10396",
    "2403.04871",
    "2404.00774"
+  ],
+  "bio-align": [
+   "2506.11750",
+   "2606.03929"
+  ],
+  "bio-kmer": [
+   "1911.00675",
+   "2308.16862"
+  ],
+  "bio-mdsim": [
+   "2006.09250",
+   "2505.09727"
+  ],
+  "bio-mdtraj": [
+   "2003.09193",
+   "2305.18244"
   ],
   "columnar": [
    "1209.2137",
@@ -66,6 +92,21 @@
    "2305.09781",
    "2505.11695",
    "2507.01449"
+  ],
+  "mat-chgpot": [
+   "2408.15165",
+   "2504.15925",
+   "2507.14302"
+  ],
+  "mat-descriptors": [
+   "1712.05861",
+   "1909.04512",
+   "2101.08814",
+   "2105.08717"
+  ],
+  "mat-featurize": [
+   "1503.07406",
+   "1704.06439"
   ],
   "numerics": [
    "1011.2602",
@@ -126,6 +167,22 @@
    "2403.04871": "raw",
    "2404.00774": "raw"
   },
+  "bio-align": {
+   "2506.11750": "raw",
+   "2606.03929": "raw"
+  },
+  "bio-kmer": {
+   "1911.00675": "raw",
+   "2308.16862": "raw"
+  },
+  "bio-mdsim": {
+   "2006.09250": "raw",
+   "2505.09727": "raw"
+  },
+  "bio-mdtraj": {
+   "2003.09193": "raw",
+   "2305.18244": "raw"
+  },
   "columnar": {
    "1209.2137": "raw",
    "1611.07612": "raw",
@@ -164,6 +221,21 @@
    "2305.09781": "raw",
    "2505.11695": "raw",
    "2507.01449": "raw"
+  },
+  "mat-chgpot": {
+   "2408.15165": "raw",
+   "2504.15925": "raw",
+   "2507.14302": "raw"
+  },
+  "mat-descriptors": {
+   "1712.05861": "raw",
+   "1909.04512": "raw",
+   "2101.08814": "raw",
+   "2105.08717": "raw"
+  },
+  "mat-featurize": {
+   "1503.07406": "raw",
+   "1704.06439": "raw"
   },
   "numerics": {
    "1011.2602": "raw",

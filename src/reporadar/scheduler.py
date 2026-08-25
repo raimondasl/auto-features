@@ -36,24 +36,40 @@ def _build_command(config_path: str) -> str:
 
 
 def _get_current_crontab() -> str:
-    """Read the current user crontab."""
+    """Read the current user crontab.
+
+    ``surrogateescape``, not ``replace``, and the pairing with `_set_crontab` is the
+    reason. `add_cron_job` reads this, filters our own lines out, and writes the rest
+    BACK — so every byte here belongs to a cron entry we do not own. Bare ``text=True``
+    lets one undecodable byte kill the reader thread, which `subprocess.run` prints and
+    swallows, leaving ``stdout`` unset for `splitlines()` to crash on. ``replace`` would
+    be worse than the crash: it turns the user's other entries into U+FFFD and then
+    writes that over their crontab. ``surrogateescape`` round-trips the bytes exactly,
+    because `_set_crontab` encodes with the same codec and handler.
+    """
     result = subprocess.run(
         ["crontab", "-l"],
         capture_output=True,
         text=True,
+        errors="surrogateescape",
     )
     if result.returncode != 0:
         return ""
-    return result.stdout
+    return result.stdout or ""
 
 
 def _set_crontab(content: str) -> bool:
-    """Write content as the user crontab."""
+    """Write content as the user crontab.
+
+    The ``errors`` handler must match `_get_current_crontab`'s for the round trip to be
+    byte-exact; see the note there.
+    """
     result = subprocess.run(
         ["crontab", "-"],
         input=content,
         capture_output=True,
         text=True,
+        errors="surrogateescape",
     )
     return result.returncode == 0
 
@@ -163,9 +179,14 @@ def add_schtask(cron_expr: str, config_path: str) -> bool:
     )
 
     result = subprocess.run(
+        # `schtasks` writes in the console codepage, which is not necessarily the one
+        # `text=True` decodes with; nothing is written back, and only ASCII field labels
+        # are parsed, so a mangled character is cosmetic. A decode that RAISES is not —
+        # it leaves stdout unset and crashes the caller — hence `replace`.
         ["schtasks", "/Create", "/TN", TASK_NAME, "/TR", command, *sc_args, "/F"],
         capture_output=True,
         text=True,
+        errors="replace",
     )
     if result.returncode != 0:
         logger.warning("schtasks /Create failed: %s", result.stderr)
@@ -179,6 +200,7 @@ def list_schtasks() -> list[ScheduledTask]:
         ["schtasks", "/Query", "/TN", TASK_NAME, "/FO", "LIST", "/V"],
         capture_output=True,
         text=True,
+        errors="replace",
     )
     if result.returncode != 0:
         return []
@@ -186,7 +208,7 @@ def list_schtasks() -> list[ScheduledTask]:
     # Parse basic info from output
     command = ""
     schedule = ""
-    for line in result.stdout.splitlines():
+    for line in (result.stdout or "").splitlines():
         if "Task To Run:" in line:
             command = line.split(":", 1)[1].strip()
         elif "Schedule Type:" in line:
@@ -203,6 +225,7 @@ def remove_schtask() -> bool:
         ["schtasks", "/Delete", "/TN", TASK_NAME, "/F"],
         capture_output=True,
         text=True,
+        errors="replace",
     )
     return result.returncode == 0
 

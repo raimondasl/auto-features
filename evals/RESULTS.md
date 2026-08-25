@@ -1144,6 +1144,141 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The scientific cohort finally has the published comparator — and it is the strongest baseline we have measured. **[P14]**
+
+```bash
+uv run python evals/fill_cli_baseline.py --dry-run   # $0, what is still missing and why
+uv run python evals/fill_cli_baseline.py --compare   # $0, cli vs api wherever both exist
+```
+
+P13 left the twelve `bio-*`/`mat-*` cases scored against `api`, a comparator it had just
+shown to be a different system. Eight of them now have `cli` runs, at the **pinned
+discriminator `da766b38114e`**, so nothing about the other 25 moved. `--compare` reproduces
+P13's hand-computed 25-case figures to the digit (64/63/56, 0.889, +1.68 against 34/34/28,
+0.824, +0.64), which is the check that licenses reading the new block:
+
+| cohort | mode | picks | actionable | precision | net@2/case |
+|---|---|---|---|---|---|
+| benchmark25 (25) | `cli` | 64 | 56 | 0.889 | +1.68 |
+| benchmark25 (25) | `api` | 34 | 28 | 0.824 | +0.64 |
+| **scisoft (8)** | **`cli`** | **17** | **17** | **1.000** | **+2.12** |
+| scisoft (8) | `api` | 18 | 16 | 0.889 | +1.50 |
+
+**Three things follow, and none of them are comfortable.**
+
+**The comparator on scientific software is harder than the one in the paper.** 17 picks, 17
+actionable — the agentic baseline does not miss once on this cohort, and scores +2.12/case
+against the +1.68 (+1.84 corrected, C-25) it manages on the benchmark the headline is built
+from. Whatever we eventually claim here has a higher bar than the published one, and the
+cohort's earlier `api`-scored appearance understated that bar by 0.62/case.
+
+**The two modes share nothing at all here.** Zero overlapping picks across eight cases, and
+seven cases where both returned papers and neither agreed on a single one. On the original 25
+the modes at least shared 10 of 64. Whatever "the agentic baseline" denotes, it denotes
+something even less stable off the ML/systems distribution.
+
+**One case is a real abstention, not a gap.** `bio-singlecell` (scanpy) emitted an explicit
+empty JSON array, listing in prose the methods scanpy has *already* implemented
+(`flavor="pearson_residuals"`, HNSW, Leiden). That is the `webdev` shape, and C-25's
+block-keyed fallback correctly leaves it at zero rather than resurrecting anything.
+
+#### Four cases could not be measured at all, and raising the limit is not free
+
+`bio-scvi`, `mat-mlip`, `mat-toolkit` and `mat-phonon` all returned
+`subtype: error_max_turns` at `num_turns: 13`, against the `--max-turns 12` in `CLAUDE_FLAGS`
+— after retries, so not transient. **A third of the scientific cohort exhausts a turn budget
+that only 2 of the original 25 ever hit.** The budget was calibrated on ML and systems
+repositories and does not transfer to large scientific codebases.
+
+The obvious fix is the one that must not be applied casually: `_discriminator` hashes the
+flags, so raising the limit **re-runs all 37 cases and redefines the gold set** — precisely
+the 2026-08-09 incident, which moved `graph` from 3 targets to 4 and would have shifted every
+published recall denominator. Running the four at 30 turns *without* re-running the rest is
+worse still: `actionable_baseline_ids` reads `status`, not `_disc`, so the gold set would
+silently mix two comparator configurations, which is the defect P13 exists to name.
+
+So the four stay unmeasured, and the honest reading of the +2.12 above is that **it excludes
+the four largest and most complex repositories in the cohort** (scvi-tools, MACE, pymatgen,
+phonopy) — the ones the agent could not finish. The direction of that bias is unknown; the
+fact of it is not.
+
+#### The gold set is now two cohorts, and only one of them is published
+
+`evals/gold_targets.json` grows **56 → 73 targets across 20 → 27 cases**, purely additively:
+every case reports `lost=[]`. Because published recall figures (21/56, 34/56, 43/56) divide by
+the 25-case set alone, the artifact now carries a per-cohort split and
+`tests/test_gold_targets.py` pins **`benchmark25` at exactly 56**. Anyone computing recall
+over all 73 and comparing it to 43/56 would be committing C-17 with our own data.
+
+| cohort | targets | cases |
+|---|---|---|
+| `benchmark25` | 56 | 20 |
+| `scisoft` | 17 | 7 |
+
+**Cost** $7.04 recorded across 8 successful runs. True spend is higher and the instrument
+cannot say by how much: `run_baseline` reports `cost_usd` only on success, so the four
+turn-limit failures and one crashed attempt (C-26) were billed and never counted.
+
+### A decode that does not raise where it fails: twelve subprocess captures, one of them load-bearing for ground truth. **[C-26]**
+
+```bash
+uv run pytest tests/test_subprocess_decoding.py    # $0, surveys every subprocess call we own
+```
+
+Filling the missing `cli` baselines (below) died on its first case, after that case had
+already been billed for its answer. The traceback pointed at `json.loads`:
+
+```
+TypeError: the JSON object must be str, bytes or bytearray, not NoneType
+```
+
+**`claude --output-format json` emits UTF-8. `subprocess.run(text=True)` decodes with the
+LOCALE codec** — cp1252 on this project's Windows box — and byte `0x81`, at position 1556 of
+scanpy's answer, is undefined there. What makes this hard to read is what CPython does next:
+the reader thread raises `UnicodeDecodeError`, and `subprocess.run` **prints that traceback
+and swallows it**, returning a completed process whose `stdout` is `None`. So the decode
+fails in one place and the program dies in another, four frames away, with an error message
+about JSON. `tests/test_subprocess_decoding.py` demonstrates the swallow rather than
+asserting it, because it is the part nobody believes.
+
+**The survey found seven more, and one of them already carried the fix.** Reading every
+`subprocess.run`/`check_output`/`Popen` in `src/` and `evals/` — not the one that failed —
+turned up twelve captures that decode to text, seven with no `errors` handler:
+
+| site | what it captures | why it matters |
+|---|---|---|
+| `evals/mine_adoptions.py` ×5 | `git grep`, `git ls-tree`, `git clone` | the **31 mined adoptions** — the project's only model-free ground truth |
+| `evals/fetch_wants.py` | `gh api` issue titles | the arm whose whole point is keeping titles **verbatim** (P8) |
+| `evals/prose_window_probe.py` | `git config remote.origin.url` | `.stdout.strip()` on `None` |
+
+`mine_adoptions.py` is the instructive one: **line 157 already had `errors="replace"`**, added
+when someone hit this on a blob read — and the five identical `git` calls beside it, in the
+same file, did not. That is the C-9a/C-14b shape exactly: repaired where it was observed,
+left everywhere it was not. `git grep`'s output is where the arXiv ids are extracted, so one
+repository with a non-UTF-8 byte would have taken that repo's adoptions to zero.
+
+**The handler is not one-size-fits-all, and `replace` would have been a data-loss bug.**
+`scheduler._get_current_crontab` reads the user's **entire crontab**, filters our own lines
+out, and writes the rest back. Under `replace`, one undecodable byte in an entry belonging to
+somebody else comes back as U+FFFD and is then written over their crontab — strictly worse
+than the crash it would be fixing. That pair uses **`surrogateescape`** at both ends, which
+round-trips bytes exactly; a test asserts the two ends still agree, because a mismatch there
+is a silent one-way corruption. Three handlers, by what the caller does with the bytes:
+
+| bytes are… | handler | sites |
+|---|---|---|
+| a UTF-8 contract we can name | `encoding="utf-8", errors="replace"` | `claude`, `gh`, `git` |
+| read, edited and **written back** | `errors="surrogateescape"` | the crontab pair |
+| an arbitrary user command's output | locale codec, `errors="replace"` | `notify.run_shell_hook` |
+
+Two second lines of defence, since the next unhandled thing will not be this one:
+`_parse_cli_payload` now treats `None`/empty stdout as a **status** rather than an exception
+(every other failure in that module already was one), and `fill_cli_baseline` catches per
+case, so one bad repository cannot abort a paid batch on its first entry.
+
+**No published number moves** — the 25 `cli` caches parsed fine, which is why this survived
+six weeks. What it cost was one billed answer and a stalled batch.
+
 ### The comparator was understating itself, and the two baseline modes are different systems. **[P13, C-25]**
 
 ```bash

@@ -60,19 +60,41 @@ def provenance() -> dict[str, dict[str, str]]:
     return out
 
 
+def cohort_of(case: str) -> str:
+    """Which benchmark cohort a case belongs to.
+
+    The split is load-bearing, not cosmetic. Every published recall figure -- 21/56,
+    34/56, 43/56 -- is over the **25-case** benchmark, and the `bio-*`/`mat-*` cohort was
+    added later and measured separately. Once the scientific cases carry gold targets too,
+    a reader who divides by the full set gets a denominator no published number used: the
+    C-17 error, which is quoting a figure measured under one set of coordinates against
+    another. So the totals below are reported per cohort and the combined figure is
+    labelled as belonging to neither.
+    """
+    return "scisoft" if case.startswith(("bio-", "mat-")) else "benchmark25"
+
+
 def build() -> dict[str, object]:
     prov = provenance()
     orphans = {c: [i for i, p in v.items() if p == "ids-only"] for c, v in prov.items()}
     orphans = {c: v for c, v in orphans.items() if v}
+    cohorts: dict[str, dict[str, int]] = {}
+    for case, ids in prov.items():
+        bucket = cohorts.setdefault(cohort_of(case), {"n_targets": 0, "n_cases": 0})
+        bucket["n_targets"] += len(ids)
+        bucket["n_cases"] += 1
     return {
         "_comment": (
             "Frozen gold set. Derived by diagnose_pool.actionable_baseline_ids; pinned by "
             "tests/test_gold_targets.py. 'ids-only' marks a pick the current parser cannot "
-            "re-derive from the cached raw answer -- see freeze_gold_targets.py."
+            "re-derive from the cached raw answer -- see freeze_gold_targets.py. PUBLISHED "
+            "RECALL FIGURES USE THE benchmark25 COHORT ONLY (56 targets); the scisoft "
+            "cohort was added later and no published denominator includes it."
         ),
         "n_targets": sum(len(v) for v in prov.values()),
         "n_cases": len(prov),
         "n_ids_only": sum(len(v) for v in orphans.values()),
+        "cohorts": dict(sorted(cohorts.items())),
         "orphans": orphans,
         "targets": {c: sorted(v) for c, v in sorted(prov.items())},
         "provenance": {c: dict(sorted(v.items())) for c, v in sorted(prov.items())},
@@ -90,8 +112,15 @@ def main() -> int:
             raise SystemExit(f"no frozen artifact at {FROZEN}; run without --check first")
         frozen = json.loads(FROZEN.read_text(encoding="utf-8"))
         same = frozen.get("targets") == current["targets"]
-        print(f"frozen : {frozen.get('n_targets')} targets / {frozen.get('n_cases')} cases")
-        print(f"derived: {current['n_targets']} targets / {current['n_cases']} cases")
+        for label, data in (("frozen ", frozen), ("derived", current)):
+            per = ", ".join(
+                f"{name} {v['n_targets']}/{v['n_cases']}c"
+                for name, v in sorted((data.get("cohorts") or {}).items())
+            )
+            print(
+                f"{label}: {data.get('n_targets')} targets / {data.get('n_cases')} cases"
+                + (f"  [{per}]" if per else "")
+            )
         if same:
             print("MATCH -- the derivation still reproduces the frozen set")
             return 0

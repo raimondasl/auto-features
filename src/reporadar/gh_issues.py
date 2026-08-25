@@ -13,9 +13,12 @@ def check_gh_available() -> bool:
     """Check if the GitHub CLI (gh) is installed and authenticated."""
     try:
         result = subprocess.run(
+            # Only the return code is read here, so this cannot fail today; matched to
+            # `create_issue` so that reading `.stdout` later does not reintroduce the bug.
             ["gh", "--version"],
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
         return result.returncode == 0
@@ -95,13 +98,19 @@ def create_issue(
         result = subprocess.run(
             cmd,
             capture_output=True,
-            text=True,
+            # `gh` emits UTF-8; bare `text=True` decodes with the locale codec instead,
+            # and an undecodable byte leaves stdout/stderr unset rather than raising —
+            # so `.strip()` below would fail with an AttributeError this except clause
+            # does not catch. Paper titles reach `gh` on both the argv and the error
+            # paths, and they are not ASCII.
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         if result.returncode == 0:
-            url = result.stdout.strip()
+            url = (result.stdout or "").strip()
             return url if url else None
-        logger.warning("gh issue create failed: %s", result.stderr.strip())
+        logger.warning("gh issue create failed: %s", (result.stderr or "").strip())
         return None
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
         logger.warning("Failed to create issue: %s", exc)

@@ -41,9 +41,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import baseline as baseline_mod  # noqa: E402
 import judge as judge_mod  # noqa: E402
+from diagnose_pool import JUDGE, _judge_stem  # noqa: E402
 from harness import WORK_DIR, assemble_repo_context, clone_repo  # noqa: E402
 from run_judge_eval import load_dotenv  # noqa: E402
 from verify import resolve_references  # noqa: E402
+
+from reporadar.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 CLI_CACHE = EVALS / "cache" / "baseline" / "cli"
@@ -120,13 +123,89 @@ def run_case(case: dict[str, Any], *, model: str) -> dict[str, Any]:
     }
 
 
+def _judged(case: str, ids: list[str]) -> list[int]:
+    """Judge scores for *ids* in *case*, skipping any this judge never scored."""
+    out = []
+    for paper_id in ids:
+        for verdict in (JUDGE / case).glob(f"{_judge_stem(paper_id)}*.json"):
+            out.append(int(json.loads(verdict.read_text(encoding="utf-8"))["score"]))
+            break
+    return out
+
+
+def compare_modes() -> int:
+    """$0: `cli` against `api` on every case that has both. Reproduces [P13].
+
+    P13 measured the two modes as different systems on the original 25 and was computed by
+    hand; this is the same comparison from the same caches, and it now extends to whichever
+    scientific cases have acquired a `cli` run.
+    """
+    rows: list[dict[str, Any]] = []
+    for cache in sorted(CLI_CACHE.glob("*.json")):
+        case = cache.stem
+        other = EVALS / "cache" / "baseline" / "api" / f"{case}.json"
+        if not other.is_file():
+            continue
+        cli = json.loads(cache.read_text(encoding="utf-8"))
+        api = json.loads(other.read_text(encoding="utf-8"))
+        if cli.get("status") != "ok" or api.get("status") != "ok":
+            continue
+        cli_ids = [dedup_id(i) for i in cli.get("ids") or []]
+        api_ids = [dedup_id(i) for i in api.get("ids") or []]
+        rows.append(
+            {
+                "case": case,
+                "cohort": "scisoft" if case.startswith(("bio-", "mat-")) else "benchmark25",
+                "cli": cli_ids,
+                "api": api_ids,
+                "cli_scores": _judged(case, cli_ids),
+                "api_scores": _judged(case, api_ids),
+                "shared": sorted(set(cli_ids) & set(api_ids)),
+            }
+        )
+
+    def summarise(label: str, subset: list[dict[str, Any]]) -> None:
+        print(f"\n{label} -- {len(subset)} case(s) with both modes cached")
+        print(f"  {'':<6}{'picks':>7}{'judged':>8}{'actionable':>12}{'precision':>11}{'net@2':>9}")
+        for mode in ("cli", "api"):
+            picks = sum(len(r[mode]) for r in subset)
+            scores = [s for r in subset for s in r[f"{mode}_scores"]]
+            good = sum(1 for s in scores if s >= ACTIONABLE)
+            net = sum(1 if s >= ACTIONABLE else -2 for s in scores) / len(subset)
+            prec = f"{good / len(scores):.3f}" if scores else "n/a"
+            print(f"  {mode:<6}{picks:>7}{len(scores):>8}{good:>12}{prec:>11}{net:>+9.2f}")
+        shared = sum(len(r["shared"]) for r in subset)
+        both = [r for r in subset if r["cli"] and r["api"]]
+        agreed = [r for r in both if set(r["cli"]) == set(r["api"])]
+        print(f"  shared picks: {shared}   cases where both returned papers: {len(both)}")
+        print(f"  ...of which the two modes picked the SAME set: {len(agreed)}")
+
+    if not rows:
+        print("no case has both a cli and an api baseline cached.")
+        return 0
+    summarise("ALL", rows)
+    for cohort in ("benchmark25", "scisoft"):
+        subset = [r for r in rows if r["cohort"] == cohort]
+        if subset:
+            summarise(cohort, subset)
+    print(
+        "\nThe two modes are not one baseline under different transport [P13]. Read any "
+        "cross-cohort\nclaim with the mode it was measured against, not just the case set."
+    )
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run the `cli` baseline where none exists yet.")
     ap.add_argument("--case", help="Comma-separated subset (still skips cases that have a cache).")
     ap.add_argument("--dry-run", action="store_true", help="$0: list what would run.")
+    ap.add_argument("--compare", action="store_true", help="$0: cli vs api where both exist [P13].")
     ap.add_argument("--model", default=judge_mod.DEFAULT_JUDGE_MODEL, help="Judge model.")
     ap.add_argument("--out", help="Write the per-case summary here as JSON.")
     args = ap.parse_args()
+
+    if args.compare:
+        return compare_modes()
 
     # The `claude` subprocess inherits this process's environment, and without the key it
     # exits 1 with "Not logged in" -- which `run_baseline` correctly reports as an error
@@ -172,7 +251,16 @@ def main() -> int:
     spent = 0.0
     for i, case in enumerate(todo, start=1):
         print(f"\n[{i}/{len(todo)}] {case['name']}")
-        row = run_case(case, model=args.model)
+        try:
+            row = run_case(case, model=args.model)
+        except Exception as exc:  # noqa: BLE001 -- one bad case must not abort the batch
+            # 2026-08-25: a UnicodeDecodeError in `subprocess.run`'s reader thread left
+            # `stdout` unset, and the TypeError four frames later killed an 11-case run on
+            # its first case -- after it had been billed for the answer. The decode bug is
+            # fixed; this is the second line of defence, because the next unhandled thing
+            # will not be that one.
+            print(f"      !! crashed: {type(exc).__name__}: {str(exc)[:200]}")
+            row = {"case": case["name"], "status": "crashed", "raw": str(exc)[:200]}
         rows.append(row)
         spent += float(row.get("cost_usd") or 0.0)
         if row["status"] != "ok":

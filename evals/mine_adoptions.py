@@ -97,7 +97,11 @@ CITE_HEADING = re.compile(
 
 def git(repo: Path, *args: str, check: bool = True) -> str:
     out = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, encoding="utf-8"
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if check and out.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {out.stderr.strip()[:200]}")
@@ -115,6 +119,8 @@ def clone(case: str, url: str) -> Path | None:
         ["git", "clone", "--filter=blob:none", "--no-checkout", "--quiet", url, str(path)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if res.returncode != 0:
         print(f"    ! clone failed: {res.stderr.strip()[:160]}")
@@ -126,7 +132,11 @@ def ids_at(repo: Path, rev: str) -> set[str]:
     """Every arXiv id in the docs at *rev*, without checking anything out."""
     args = ["grep", "-h", "-I", "-i", "-o", "-E", GREP_PATTERN, rev, "--", *DOC_GLOBS]
     out = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, encoding="utf-8"
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     # git grep exits 1 when nothing matches, which is not an error here.
     return {m.group(1) for m in ID.finditer(out.stdout)}
@@ -148,6 +158,7 @@ def self_cited(repo: Path, rev: str) -> set[str]:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        errors="replace",
     ).stdout.splitlines()
     for path in listing:
         name = path.rsplit("/", 1)[-1].lower()
@@ -184,6 +195,7 @@ def t0_context(repo: Path, case: str, rev: str, max_readme: int = 3500) -> str:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        errors="replace",
     ).stdout.splitlines()
 
     def read(path: str, limit: int) -> str:
