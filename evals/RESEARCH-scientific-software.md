@@ -5305,6 +5305,12 @@ single case. What generalises is the weaker claim: **less information, more admi
 misinformation is worse than no information is a different experiment, and no run on disk answers
 it.
 
+**WRONG on the last sentence, corrected by §46.** Three runs on disk answer it — the LLM-paraphrase
+conditions — and they invert the sign: a present-but-paraphrased description is the LEAST
+permissive of any measured (16.1% admitted against the shipped 20.8%), with recall collapsing to
+52.4% and net@2 of +70, below giving the gate nothing at all. "Less information, more admission"
+holds for how MUCH the gate is told and reverses for WHOSE WORDS it is told in.
+
 ### 45.4 What this licenses
 
 - **The shipped 300-character budget is the peak on all five columns**, and now for a stated
@@ -5319,6 +5325,92 @@ it.
   effect, not an anecdote.
 - **Not licensed: any claim about vague descriptions**, which is the one §44 raised and §45.3
   cannot reach.
+
+---
+## 46. CORRECTION — §45.3 called a question unreachable that three runs on disk answer, and the sign inverts ($0, 2026-08-24)
+
+§45.3 closed with: *"no run on disk gives the gate a description that is present but
+uninformative"*, and recorded the vague-prose half of §44 as out of reach.
+
+**That was wrong.** `evals/diagnose_triage.py` has four more conditions than §45 used, and three of
+them are exactly that description. Adding them **inverts the sign of §45's headline for the axis it
+did not measure.**
+
+### 46.1 The axis §45 missed
+
+| condition | admits | precision | recall | net@2 | AUC |
+|---|---|---|---|---|---|
+| no prose at all | 25.1% | 0.828 | 74.4% | +73 | 0.918 |
+| **LLM paraphrase of the repo** | **16.1%** | 0.907 | **52.4%** | **+70** | 0.904 |
+| paraphrase, hedged | 16.4% | 0.889 | 52.4% | **+66** | 0.893 |
+| paraphrase, minus the gaps block | 19.1% | 0.887 | 60.7% | +76 | 0.910 |
+| verbatim sentences, semantically selected | 20.1% | 0.917 | 66.1% | +91 | 0.929 |
+| README prefix, 300 chars — **ships** | 20.8% | 0.920 | 68.5% | **+95** | 0.930 |
+
+A paraphrase is *present, fluent and on-topic*. It is the least permissive condition measured —
+**16.1% admitted against the shipped 20.8%** — its recall collapses to **52.4%**, and its net@2 of
+**+70 falls below giving the gate no description at all (+73)**.
+
+### 46.2 So there are two axes and they push opposite ways
+
+**AMOUNT** — how much description. Less amount, **more** admitted: 25.1% → 22.1% → 20.8%.
+
+**FIDELITY** — whose words. Less fidelity, **fewer** admitted: 20.8% → 16.1%, recall 68.5% → 52.4%.
+
+§45 measured the first, found "less information, more admission", and generalised it to
+information as such. **It does not generalise.** A description that is present but not in the
+repository's own words gives the gate nothing to match against, and it refuses — the opposite
+failure to the one §45 described.
+
+**Which also means §44's mechanism is still not established.** `systems` went to 15 of 15 on prose
+that was neither absent nor paraphrased: *"speed, flexibility, and rich feature set… keeps data
+primarily in memory and uses efficient data structures"* is real systems vocabulary with no scope
+— **broad**, not empty and not foreign. Neither axis here isolates breadth, and constructing prose
+that is broad-but-faithful would mean writing the treatment to obtain the result. It stays a
+recorded single-case anomaly.
+
+### 46.3 A finding that is not a correction: whose words beats which words
+
+| | net@2 | AUC |
+|---|---|---|
+| verbatim, **semantically** selected | +91 | 0.929 |
+| verbatim, **positionally** selected (the shipped prefix) | +95 | 0.930 |
+| **paraphrase** of the same content | **+70** | 0.904 |
+
+Choosing *which* verbatim sentences to show costs 4 net@2 and nothing in AUC. Paraphrasing them
+costs **21**. The shipped prefix is a crude selector and it barely matters that it is crude — what
+matters is that the words are the repository's own.
+
+This is `paper/DRAFT.md`'s NR-12 (*"paraphrase destroys term-of-art vocabulary; verbatim extraction
+recovers +21"*) measured on the permissiveness axis rather than only on net@2, and it makes the
+`prose_chars` comment's "argmax of noisy arms" caveat less worrying: 300 is not winning by luck of
+document layout so much as by being verbatim at all.
+
+### 46.4 How the mistake happened, since it is the same one twice
+
+§45 picked four conditions, ordered them by amount, saw a clean monotone trend and wrote the
+general claim. The other four conditions were in the same directory. **The trend was real and the
+generalisation was not**, and nothing in the §45 run would have revealed that, because every
+condition in it varied the same axis.
+
+The pattern to notice: *§45 was itself written to correct an over-general reading of §44*, and it
+over-generalised in turn. Both were caught by looking at more of the same data rather than by
+buying any.
+
+### 46.5 Fix B (§41.4) is closed, and not because it was tested
+
+The remaining repair for §15.3's defective stratum — dropping auto-generated API pages — is
+**withdrawn without a run.** The benchmark holds **four** cases at or above 30% auto-generated
+docs, and one of them (`bio-mdtraj`, 88%, +7.0 at precision 1.00) is the one most likely to be
+damaged by it. One training case and three held out cannot support a rule; §44 spent $5
+demonstrating exactly that at a better ratio.
+
+Getting more evidence would mean adding repositories to the benchmark **and** buying judged
+outcomes for them — the $30+ path — for a fix whose upside is one case currently scoring +0.0.
+**Not worth doing at the available evidence**, which is §35's conclusion for §35's reason.
+
+That leaves `mat-featurize` a known, diagnosed, unrepaired defect, which is a better state than a
+repair fitted to it.
 
 ---
 ## Appendix

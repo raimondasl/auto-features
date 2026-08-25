@@ -29,7 +29,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | where does a new source's contribution die, and is it shown twice? (RESEARCH-scientific-software.md §39) | `source_funnel.py` ($0, judge-free; the funnel, displacement, and the cross-scheme duplicate check) |
 | which repos would a profiler fix change, and how? (RESEARCH-scientific-software.md §41) | `prose_window_probe.py` ($0, judge-free; §15.3's defective stratum is TWO defects, and no single fix reaches both) |
 | does re-anchoring the prose window help? (RESEARCH-scientific-software.md §42-44) | `prose_anchor_arm.py` (~$3; LOSS — +6.0 on the case the rule was fitted to, -4.0 on the two held out) |
-| how much does the gate depend on what it is told the repo IS? (RESEARCH-scientific-software.md §45) | `gate_prose_sensitivity.py` ($0; less description = MORE admitted, and the shipped 300 chars is the peak) |
+| how much does the gate depend on what it is told the repo IS? (RESEARCH-scientific-software.md §45-46) | `gate_prose_sensitivity.py` ($0; two axes that push OPPOSITE ways — less amount admits more, less fidelity admits less) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -1032,9 +1032,13 @@ evals/
                      0.920 and AUC 0.918 -> 0.930 alongside. 6000 chars reverses every column.
                      The new part is the DECOMPOSITION: the known +22 net@2 for prose is not the
                      gate finding more good papers (recall FALLS, 74.4% -> 68.5%) but refusing
-                     better. Keeps permissiveness and discrimination as separate axes on
-                     purpose. Cannot speak to VAGUE prose, which is what §44 actually saw --
-                     no run on disk gives the gate a description that is present but useless.
+                     better. CORRECTED by §46: the four conditions §45 skipped DO give the gate
+                     a present-but-uninformative description, and the sign inverts. An LLM
+                     paraphrase is the LEAST permissive condition measured (16.1%), recall
+                     collapses to 52.4%, and net@2 +70 falls BELOW no description at all. So
+                     amount and fidelity are separate axes pushing opposite ways, and selection
+                     barely matters once the words are verbatim (extractive +91 vs the
+                     positional prefix +95, against paraphrase's +70).
 
   gate_shape.py
                      $0, judge-free: the gate's score distribution per case and its emission
