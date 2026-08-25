@@ -16,7 +16,8 @@ repeated here — it lives in:
 The measured configuration (`rr init --measured`) ships HyDE dense discovery, hybrid
 fusion, the Haiku actionability gate, and the fine-scale logprob rescore. Published
 headline: **mean net@2 +5.72** on the 25-repo benchmark against the agentic baseline's
-+1.56 (paired +4.16, sign p = 0.0004), precision 0.892; independent draws of the same
++1.56 (paired +4.16, sign p = 0.0004), precision 0.892 — the comparator is understated
+by ~0.28/case and corrects to ≈ +1.84 / paired ≈ +3.88 (C-25); independent draws of the same
 configuration land +5.7 to +6.2, one-flag control variants around +4.8–+5.2 (C-7: a
 single draw's level is not a property of the method). The keyword-only default remains **−8.12** — worse than emitting nothing.
 

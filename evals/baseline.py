@@ -102,6 +102,19 @@ def _parse_recommendations(text: str) -> tuple[list[str], list[str]]:
     return ids, titles
 
 
+def _has_answer_block(text: str) -> bool:
+    """Did the model actually answer here, or is this cache holding a note?
+
+    An explicit ``[]`` is an ANSWER -- the abstention `_parse_recommendations` is built to
+    respect -- so its absence is what distinguishes "the model recommended nothing" from
+    "this `raw` is not a model reply at all". `webdev` is the case that makes the
+    distinction load-bearing: it says *"My recommendation is to recommend nothing"*, emits
+    ``[]``, and still carries four ids scraped by an older parser from prose. Falling back
+    on the mere absence of parsed ids would resurrect exactly those.
+    """
+    return bool(re.search(r"```(?:json)?\s*\[.*?\]\s*```", text, re.DOTALL))
+
+
 def _cache_path(mode: str, repo_name: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9_.-]", "_", repo_name)
     return CACHE_DIR / mode / f"{safe}.json"
@@ -323,7 +336,24 @@ def run_baseline(
             # already-cached runs. The model's answer (the expensive artifact)
             # is what we cache; parsing it is cheap and must not be frozen.
             if cached.get("status") == "ok" and cached.get("raw"):
-                cached["ids"], cached["titles"] = _parse_recommendations(cached["raw"])
+                ids, titles = _parse_recommendations(cached["raw"])
+                # ...unless `raw` is not an answer. Three caches (`compiler`, `graph`,
+                # `storage`) hold a 128-character restoration note where their transcript
+                # used to be, after a 30-turn re-run displaced the 12-turn entry on
+                # 2026-08-09 and only the ids could be recovered from the run record.
+                # Replaying a note yields nothing, so those cases scored as ABSTENTIONS in
+                # every run since -- while `diagnose_pool.actionable_baseline_ids`, reading
+                # the same file's `ids` field, counted their seven targets. One cache, two
+                # consumers, opposite answers, and the baseline forfeited +0.28 net@2/case
+                # of its own picks.
+                #
+                # Falling back is deliberately NARROW: only when the replay finds nothing
+                # AND stored ids exist. An empty `[]` block is a real abstention and must
+                # survive as one -- `webdev` says "I recommend nothing" in prose and stores
+                # four ids scraped by an older parser, so a wider rule would resurrect
+                # exactly the picks the authoritative-block fix was written to discard.
+                if ids or titles or not cached.get("ids") or _has_answer_block(cached["raw"]):
+                    cached["ids"], cached["titles"] = ids, titles
             return cached
         # else: model/prompt/flags/context changed -> stale, re-run
 
