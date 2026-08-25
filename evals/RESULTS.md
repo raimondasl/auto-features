@@ -1169,13 +1169,51 @@ counted their seven targets. One cache, two consumers, opposite answers.
 |---|---|
 | published baseline | **+1.56 net@2/case** (sum +39 over 25) |
 | forfeited on those three cases | 7 picks, **all judged ≥ 2** → **+7 = +0.28/case** |
-| corrected baseline | **≈ +1.84/case** |
-| published paired margin +4.16 | becomes **≈ +3.88** |
+| corrected baseline | **+1.84/case**, 58 shown / 54 actionable, precision 0.931 |
+| published paired margin +4.16 | becomes **+3.88**, CI [+2.24, +5.60], 17 w / 2 l / 6 t |
+| published sign *p* = 0.0004 | becomes ***p* = 0.0007** (`compiler` moves from a win to a tie) |
 
-**The comparator was understated and RepoRadar's margin overstated, by ~0.28/case.**
-Significance is untouched — the paired CI floor is +2.44 — but the level is wrong and is
-restated here. The fix is a narrow fallback: when a cached `raw` contains **no
-recommendation block at all**, fall back to the stored ids.
+**The comparator was understated and RepoRadar's margin overstated, by 0.28/case — 7% of
+the margin.** Significance survives (CI floor +2.24) but the level was wrong and is restated
+here; `evals/restate_c25.py` re-derives both columns from the cited run file and
+`tests/test_restate_c25.py` pins them. The fix is a narrow fallback: when a cached `raw`
+contains **no recommendation block at all**, fall back to the stored ids.
+
+**The blast radius is exact, because the damage has a date.** Four paired runs postdate
+2026-08-09 and read the damaged caches; `restate_c25.py` finds and restates all four. (Runs
+before that date are left alone: `storage` genuinely abstained on 08-07 and `graph` on
+07-12, and "correcting" those would manufacture picks the run never had.)
+
+| draw | paired, as measured | corrected | sign *p* | corrected |
+|---|---|---|---|---|
+| 08-10 (23 of 25 paired) | +2.26 | +1.96 | 0.0414 | **0.1153** |
+| 08-11 (24 of 25) | +2.50 | +2.21 | 0.0001 | 0.0007 |
+| 08-14 (24 of 25) | +3.79 | +3.50 | 0.0001 | 0.0007 |
+| **08-15, the headline (25)** | **+4.16** | **+3.88** | 0.0004 | 0.0007 |
+
+The comparator gains +0.28 to +0.30 per case in every one — a constant defect, not a
+draw-dependent one. **The 08-10 draw loses significance outright** (p = 0.0414 → 0.1153): one
+of four independent draws of the shipped system no longer separates from the baseline. It is
+the draw §8.7 already flags as the weak one, so this sharpens an existing caveat rather than
+raising a new one, but it belongs beside the headline. Two smaller consequences: the
+baseline's precision rises with its picks (0.938 → 0.945 on the 08-14 draw), so the "four
+times as many papers at lower precision" caveat widens from five points to nearly six; and
+the three draws with a failed `thin-lang` baseline pair over 23–24 cases, not 25, which the
+artifact now records per run instead of leaving to be rediscovered.
+
+**The run artifacts never recorded which baseline mode produced them.** Identifying the four
+above as `cli` required matching each run's picks back against both caches (45/45, 48/48,
+48/48, 51/51 for `cli`; the 08-20 run matches `api` 34/34). Given P13 immediately below —
+`cli` and `api` are different systems — a results file that cannot say which comparator it
+ran against is a gap of the same family as the defect this entry is about.
+
+**One thing the restatement turned up on the way.** Reproducing the published CI needed the
+cases fed in *sorted* order: `bigram_report.paired_bootstrap` draws indices from a seeded
+RNG, so its interval depends on the ORDER the deltas arrive in and not only on their values.
+File order gives [+2.44, **+5.96**] where sorted order gives the published [+2.44, +6.00] —
+one grid step, decision-irrelevant, and still two people computing "the same" CI from the
+same run file and disagreeing. No published number moves, so this is not a correction; the
+restatement sorts, and says so.
 
 **Narrow is the whole design.** The obvious rule — "fall back whenever the replay yields no
 ids" — is wrong, and `webdev` is why. It says *"My recommendation is to recommend nothing"*,
@@ -1666,14 +1704,18 @@ so it never got refreshed. It re-ran here and succeeded, which is where the $4.3
 published +5.42/+5.12 split existed only because one baseline was missing; that split is now
 gone.
 
-| | RepoRadar (window 15) | Opus 4.8 baseline |
-|---|---|---|
-| mean net@2, **25 cases** | **+5.72** | +1.56 *(understated; ≈ +1.84 corrected — C-25)* |
-| shown / actionable | 212 / 189 | 51 / 47 |
-| precision | 0.892 | **0.922** |
-| net-negative repositories | 0 | 1 |
+| | RepoRadar (window 15) | baseline, as measured | baseline, corrected **[C-25]** |
+|---|---|---|---|
+| mean net@2, **25 cases** | **+5.72** | +1.56 | **+1.84** |
+| shown / actionable | 212 / 189 | 51 / 47 | 58 / 54 |
+| precision | 0.892 | 0.922 | **0.931** |
+| net-negative repositories | 0 | 1 | 1 |
 
-**Paired +4.16, 95% CI [+2.44, +6.00], 18 w / 2 l / 5 t, sign *p* = 0.0004.**
+**As measured: paired +4.16, 95% CI [+2.44, +6.00], 18 w / 2 l / 5 t, sign *p* = 0.0004.**
+**Corrected: paired +3.88, 95% CI [+2.24, +5.60], 17 w / 2 l / 6 t, sign *p* = 0.0007.**
+Both columns from `evals/restate_c25.py`, pinned by `tests/test_restate_c25.py`. RepoRadar's
+own column does not move — net@2 reads a system's own returned papers, so the whole
+correction is a transfer from our margin into the comparator's.
 
 **What this changes, and what it does not.** `BENCHMARK_HEADLINE`, the measured preset and
 the audit now agree at 1.5; pass (d) reports all 39 measured fields reproduced. The

@@ -54,6 +54,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | is the fine-scale map calibrated on scientific software? (RESEARCH-scientific-software.md §18.2) | `finescale_domains.py` ($0; reads `finescale_p` straight from a results artifact — `calibrate_finescale.py --analyse` cannot, its cache holds only the 22 legacy cases) |
 | what shape are the gate's scores? (RESEARCH-scientific-software.md §18.4–§18.5) | `gate_shape.py` ($0, judge-free; the 37-case control that retracted §17.4) |
 | gold-set freeze + provenance (guards every recall denominator) | `freeze_gold_targets.py` ($0; writes evals/gold_targets.json, pinned by tests/test_gold_targets.py) |
+| §8.7, §8.10 every paired run restated with the comparator's forfeited picks (C-25) | `restate_c25.py` ($0; finds the four runs that read the damaged caches, re-derives both columns for each, writes evals/restated_runs.json, pinned by tests/test_restate_c25.py) |
 | off-arXiv corpus yield, peS2o/OpenScholar (P12) | `openscholar_yield.py` ($0; S2 batch over the judged-actionable non-arXiv papers) |
 | typed README spans as an anchor channel (P9) | `nerdme_probe.py` (~$0.02 once to extract, then `--report` is $0; reuses `relation_probe.py`'s matching) |
 | is P9's signal judge circularity? (P10) | `redacted_judge.py` (~$4; two Sonnet arms over the same papers, spans masked in one) |

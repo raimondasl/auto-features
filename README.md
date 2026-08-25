@@ -61,7 +61,7 @@ the weak one.
 | disk | none | ~1.1 GB (one time) |
 | cost per repo per run | $0 | **~$0.01–0.02** |
 
-> **Restated 2026-08-17 [C-25].** The baseline's +1.56 is understated by **~0.28/case**: three cases (`compiler`, `graph`, `storage`) whose cached transcripts were replaced by a restoration note in 2026-08-09 replayed as abstentions, forfeiting seven of the baseline's own picks — all judged actionable. Corrected, the comparator is **≈ +1.84** and the paired margin **≈ +3.88**; significance is unaffected (CI floor +2.44). The figures below are the run files as measured. See evals/RESULTS.md → **[P13, C-25]**.
+> **Restated 2026-08-25 [C-25].** The baseline's +1.56 is understated by **0.28/case**: three cases (`compiler`, `graph`, `storage`) whose cached transcripts were replaced by a restoration note in 2026-08-09 replayed as abstentions, forfeiting seven of the baseline's own picks — all judged actionable. Corrected, the comparator is **+1.84** (58 shown / 54 actionable, precision 0.931) and the paired margin **+3.88**, 95% CI [+2.24, +5.60], 17 w / 2 l / 6 t, sign *p* = 0.0007. RepoRadar's own +5.72 does not move: net@2 reads a system's own returned papers. The figures below are the run files as measured; `uv run python evals/restate_c25.py` prints both columns. See evals/RESULTS.md → **[P13, C-25]**.
 
 **"0 of 25" is this draw's value, not a property of the method.** The same configuration has
 produced 1 and 2 net-negative repositories on other draws; a run that happens to have none
