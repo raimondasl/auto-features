@@ -74,38 +74,43 @@ papers, ~50% actionable rate, concentrated in `bio-*`/`mat-*` — and no shipped
 can reach it. But a static snapshot is not the way, and that is now measured rather than
 assumed. Revisit only with a corpus that updates.
 
-### 2. Finish the scientific cohort's comparator — blocked on a turn budget, not on money [P14]
+### 2. The gold set is a sample, not ground truth — and that outranks the turn budget [P15]
 
-Eight of the twelve `bio-*`/`mat-*` cases now carry the published `cli` comparator and 17
-gold targets of their own (`evals/fill_cli_baseline.py`, $7.04, at the pinned discriminator
-so the other 25 did not move). Two results change what any future claim on this cohort has
-to clear:
+The 30-turn question is **answered and parked**: on six cases probed with a paired fresh
+12-turn control, the cap bound on none of them (all controls returned `ok`; reaching
+`--max-turns` fails loudly), and the turn effect on picks is **−0.13 Jaccard, CI [−0.38,
++0.11], n = 5** — inside the noise of simply re-running. Raising the cap is not the priority
+it looked like. The four `error_max_turns` cases stay unmeasured, and P14's +2.12 keeps its
+"excludes the four largest repositories" caveat.
 
-- **The baseline is *stronger* here than on the benchmark the headline uses** — 17 picks,
-  17 actionable, precision **1.000**, **+2.12 net@2/case** against +1.68 (+1.84 corrected)
-  on the 25. Scoring this cohort against `api`, as everything before P14 did, understated
-  the bar by 0.62/case.
-- **`cli` and `api` share literally zero picks here**, across eight cases and seven where
-  both returned papers. P13's "different systems" finding is sharper off-distribution.
+**What the control arm found instead is the real item.** A re-run of the *identical*
+configuration disagrees with the stored answer on **~59% of picks** (mean J = 0.41). Pick
+counts swing 3→5, 4→2, 2→1→3, and `bio-singlecell` **abstained in the cache and returned two
+papers on re-run** — abstention is not stable either.
 
-**What is blocked.** `bio-scvi`, `mat-mlip`, `mat-toolkit` and `mat-phonon` return
-`error_max_turns` at the `--max-turns 12` in `CLAUDE_FLAGS` — a third of the cohort, against
-2 of the original 25. Raising the limit changes `_discriminator`, which re-runs **all 37**
-cases and redefines the gold set (the 2026-08-09 incident). Running only those four at 30
-turns is worse: the gold set would then mix two comparator configurations silently, since
-`actionable_baseline_ids` reads `status` and not `_disc`.
+Every published recall denominator (21/56, 34/56, 43/56) divides by a gold set derived from
+**one draw** of that process. It has been treated as ground truth; it is a sample. This also
+reframes 2026-08-09: that was read as "a flag change invalidated the caches", when re-running
+at all would have moved the set nearly as much.
 
-So this needs a decision, not an afternoon:
+**What to do about it, cheapest first.** All of these are now subscription-billed rather than
+dollar-billed, which is what makes them thinkable:
 
-| option | cost | what it buys / costs |
+| option | cost | what it buys |
 |---|---|---|
-| **leave at 8/12** | $0 | +2.12 stands but excludes the four largest repos; bias direction unknown |
-| re-run all 37 at 30 turns | ~$40 | one comparator config across the benchmark; **redefines the gold set**, so every published recall denominator must be re-derived and re-stated |
-| a second pinned config, namespaced | ~$15 | four cases measured, but two comparators in one benchmark — do not do this without a cache-level guard that refuses to mix them |
+| **measure the spread** — re-run the baseline on all 25 benchmark cases k times, report how many gold targets are stable across draws | k × 25 agentic runs | the number that should accompany every `/56`: how much of the denominator is draw-dependent |
+| **union gold set** — take the union of picks across k draws as the target set | same runs | a denominator that stops moving, at the cost of being larger and looser |
+| **stability-weighted recall** — weight each target by the fraction of draws it appears in | same runs | keeps a single number, prices its own uncertainty |
+| leave it, document it | $0 | every recall figure carries "single draw" as a caveat |
 
-Recommendation: leave it at 8/12 until something actually needs the four. The +2.12 is
-already enough to price any scientific-software claim, and the note about which repositories
-are missing travels with it. On that recommendation the next thing to *do* is item 3.
+Recommendation: **measure the spread first (k = 3 on the 25)** and decide the denominator
+question with the number in hand. Do not adopt a union or a weighting before knowing whether
+the instability is 10% or 60% of targets — the probe says ~59% of *picks*, but picks are not
+targets, and the judge filter may absorb much of it.
+
+Until that is known, no re-run of the baseline should be undertaken for any *other* reason,
+because it would move the gold set as a side effect and confound this measurement.
+
 
 ### 3. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
 

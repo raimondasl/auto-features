@@ -1,0 +1,230 @@
+{
+  "_comment": "P15: does raising --max-turns 12 -> 30 change what the baseline recommends on cases that already succeed at 12? Arms run with use_cache=False; the shared caches are untouched. See evals/turn_budget_probe.py for the pre-registration.",
+  "control_turns": 12,
+  "treatment_turns": 30,
+  "cases": [
+    {
+      "case": "rag",
+      "cohort": "benchmark25",
+      "cached": {
+        "status": "ok",
+        "ids": [
+          "2409.14683",
+          "2404.02805",
+          "2501.17788"
+        ],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "2409.14683",
+          "2404.02805",
+          "2501.17788",
+          "2304.01982",
+          "2405.19504"
+        ],
+        "num_turns": 16,
+        "cost_usd": 1.5200819999999997,
+        "max_turns": 12,
+        "raw_head": "I now have enough to give grounded recommendations. Here's my analysis.\n\n## What this codebase is\n\nThis is **ColBERT (v2) + PLAID** \u2014 the canonical late-interaction retriever. The "
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "2404.02805",
+          "2501.17788",
+          "2304.01982"
+        ],
+        "num_turns": 18,
+        "cost_usd": 1.472695,
+        "max_turns": 30,
+        "raw_head": "I now have enough to make high-confidence recommendations. Key finding: this repo **already implements token pooling** (Clavi\u00e9 et al. 2024, `pool_embeddings_hierarchical`), so I ex"
+      },
+      "j_cached_control": 0.6,
+      "j_control_treat": 0.6
+    },
+    {
+      "case": "linter",
+      "cohort": "benchmark25",
+      "cached": {
+        "status": "ok",
+        "ids": [
+          "1907.05590",
+          "2111.03354",
+          "1908.05839"
+        ],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "2311.10426",
+          "1907.05590",
+          "2306.06391",
+          "2111.03354",
+          "2508.03830"
+        ],
+        "num_turns": 17,
+        "cost_usd": 0.9857209999999998,
+        "max_turns": 12,
+        "raw_head": "I now have enough to write a grounded set of recommendations. I inspected ty's type-checker core and found the concrete anchors: `set_theoretic.rs` (union/intersection/negation), `"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "1907.05590",
+          "2508.03830",
+          "2111.03354"
+        ],
+        "num_turns": 14,
+        "cost_usd": 0.8184739999999998,
+        "max_turns": 30,
+        "raw_head": "I have enough to give grounded recommendations. The gradual+set-theoretic ICFP'17 paper isn't on arXiv, so I'll set it aside despite its relevance. Here's my assessment.\n\n## Contex"
+      },
+      "j_cached_control": 0.3333333333333333,
+      "j_control_treat": 0.6
+    },
+    {
+      "case": "http",
+      "cohort": "benchmark25",
+      "cached": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": 9,
+        "cost_usd": 0.573044,
+        "max_turns": 12,
+        "raw_head": "I've examined the codebase and searched the relevant research areas. Here's my honest assessment.\n\n## What this codebase is\n\nThis is **`requests`** (psf/requests), the mature Pytho"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": 17,
+        "cost_usd": 1.1057645,
+        "max_turns": 30,
+        "raw_head": "I've examined the codebase (this is **`requests`**, the psf HTTP client library) and searched arxiv across the surfaces where research could plausibly apply: charset/encoding detec"
+      },
+      "j_cached_control": null,
+      "j_control_treat": null
+    },
+    {
+      "case": "mat-descriptors",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "ok",
+        "ids": [
+          "1712.05861",
+          "2105.08717",
+          "2101.08814",
+          "1909.04512"
+        ],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "1712.05861",
+          "2209.01948",
+          "2105.08717",
+          "2101.08814"
+        ],
+        "num_turns": 16,
+        "cost_usd": 1.0005955000000002,
+        "max_turns": 12,
+        "raw_head": "I've gathered enough to make grounded recommendations. Here's my summary.\n\n## What this codebase is\n\n**DScribe** (SINGROUP) turns atomic structures into fixed-size numerical descri"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "2101.08814",
+          "1907.02384"
+        ],
+        "num_turns": 13,
+        "cost_usd": 0.7218635,
+        "max_turns": 30,
+        "raw_head": "Confirmed \u2014 DScribe's SOAP uses only GTO and polynomial radial bases (no spherical Bessel), and its C++ kernels (`soapGTO.cpp`, `soapGeneral.cpp`) compute the density expansion dir"
+      },
+      "j_cached_control": 0.6,
+      "j_control_treat": 0.2
+    },
+    {
+      "case": "bio-align",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "ok",
+        "ids": [
+          "2606.03929",
+          "2506.11750"
+        ],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "2506.11750"
+        ],
+        "num_turns": 17,
+        "cost_usd": 1.061413,
+        "max_turns": 12,
+        "raw_head": "## What this repository is\n\nThis is **minimap2** (Heng Li's long\u2011read aligner, r1302 / v2.31). Its hot path is a classic **seed\u2013chain\u2013extend** pipeline, spread across:\n\n- **Seeding"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "2112.08687",
+          "2606.03929",
+          "2002.05200"
+        ],
+        "num_turns": 17,
+        "cost_usd": 0.9306670000000001,
+        "max_turns": 30,
+        "raw_head": "All three verified as real arXiv papers. Here's my assessment.\n\n## Summary\n\nThis repository is **minimap2** (Heng Li's long-read aligner). Its hot path is the classic *seed\u2013chain\u2013e"
+      },
+      "j_cached_control": 0.5,
+      "j_control_treat": 0.0
+    },
+    {
+      "case": "bio-singlecell",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "1907.02647",
+          "2012.04456"
+        ],
+        "num_turns": 17,
+        "cost_usd": 0.9848754999999999,
+        "max_turns": 12,
+        "raw_head": "I have what I need. Key finding: the \"deviance feature selection\" work is only on bioRxiv/Genome Biology, but the **GLM-PCA** method paper (arXiv 1907.02647) and **PaCMAP** (arXiv "
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "1712.09005"
+        ],
+        "num_turns": 24,
+        "cost_usd": 1.450604,
+        "max_turns": 30,
+        "raw_head": "## Summary\n\nThis repository is **Scanpy**, the mature scverse single-cell analysis toolkit. I read its algorithmic modules (`tools/`, `preprocessing/`) and its `references.bib`, wh"
+      },
+      "j_cached_control": 0.0,
+      "j_control_treat": 0.0
+    }
+  ]
+}

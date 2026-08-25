@@ -207,7 +207,19 @@ def _parse_cli_payload(stdout: str | None) -> tuple[dict[str, Any] | None, str]:
         return None, "claude returned an empty result"
     cost = float(payload.get("total_cost_usd", 0.0) or 0.0)
     ids, titles = _parse_recommendations(raw_text)
-    return {"ids": ids, "titles": titles, "raw": raw_text, "cost_usd": cost, "status": "ok"}, ""
+    return {
+        "ids": ids,
+        "titles": titles,
+        "raw": raw_text,
+        "cost_usd": cost,
+        # How many turns the agent actually used. Kept because it is the only direct
+        # evidence of whether `--max-turns` was an active constraint or slack headroom:
+        # a run that finishes in 8 turns would behave identically at any higher cap, and
+        # a `error_max_turns` failure is the same number pressed against the ceiling.
+        # Absent from every cache written before 2026-08-26.
+        "num_turns": payload.get("num_turns"),
+        "status": "ok",
+    }, ""
 
 
 @functools.lru_cache(maxsize=4)

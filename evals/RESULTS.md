@@ -1144,6 +1144,110 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The turn budget is not the problem. The comparator is barely reproducible. **[P15, C-27]**
+
+```bash
+uv run python evals/turn_budget_probe.py --report   # $0, re-read the stored arms
+```
+
+P14 left four `bio-*`/`mat-*` cases unmeasured against `error_max_turns` at `--max-turns 12`,
+and the obvious fix — raise the cap — re-runs all 37 cases and re-derives the gold set. So the
+question was whether raising it *changes anything on the cases that already succeed*: if not,
+the re-run is a restatement; if so, a rebuild.
+
+Six cases, three per cohort, chosen and written down before the first call. Three arms each:
+the stored answer (**A**), a **fresh 12-turn control** (**B**), and a **30-turn treatment**
+(**C**), B and C run back to back under one auth. Every arm ran with `use_cache=False`, so the
+33 stored answers were neither read nor overwritten.
+
+**The control arm is the whole design.** Comparing a 30-turn run against the *cache* cannot
+separate "the cap mattered" from "it is a different draw". Only B–vs–C isolates the turn
+change, and only A–vs–B says what a re-run costs by itself.
+
+| case | cohort | cached | control (12t) | treat (30t) | J(A,B) | J(B,C) |
+|---|---|---|---|---|---|---|
+| `rag` | bench25 | 3 | **5** | 3 | 0.60 | 0.60 |
+| `linter` | bench25 | 3 | **5** | 3 | 0.33 | 0.60 |
+| `http` | bench25 | 0 | 0 | 0 | n/a | n/a |
+| `mat-descriptors` | scisoft | 4 | 4 | **2** | 0.60 | 0.20 |
+| `bio-align` | scisoft | 2 | **1** | **3** | 0.50 | 0.00 |
+| `bio-singlecell` | scisoft | **0** | **2** | 1 | 0.00 | 0.00 |
+
+#### The turn question: no, and also unanswerable at this n
+
+**The cap bound on nothing.** All six controls returned `ok` at 12 turns — and reaching
+`--max-turns` is loud, not silent (it fails with `error_max_turns`, which is exactly how P14's
+four cases present). So on these six, 12 turns was never reached.
+
+**The turn effect is inside the noise.** Paired per case, `J(B,C) − J(A,B)` is **−0.13**,
+bootstrap CI **[−0.38, +0.11]**, n = 5. Individually: `+0.00, +0.27, −0.40, −0.50, +0.00`. The
+probe cannot separate a real turn effect from a different draw, and no amount of reading the
+table harder will change that. **Verdict: inconclusive**, which at n = 6 against the noise
+below is the outcome that should have been expected.
+
+#### What the control arm actually found, which is worse
+
+**A re-run of the identical configuration disagrees with the stored answer on ~59% of its
+picks.** Mean J(cached, control) = **0.41** across five cases. Not a different prompt, not a
+different model, not a different turn budget — the same configuration, run again.
+
+The per-case detail is sharper than the mean:
+
+* `rag` and `linter` each returned **5** picks where the cache holds 3.
+* `bio-align` returned **1** where the cache holds 2; the 30-turn arm returned **3**.
+* **`bio-singlecell` abstained in the cache and returned 2 picks on re-run.** scanpy's stored
+  answer is an explicit `[]` with prose explaining what scanpy already implements — the
+  `webdev` shape, quoted in P14 as a *real* abstention. It is not a stable one.
+
+**This is the finding that matters, and it is not about turns.** The gold set — 56 targets on
+the benchmark25 cohort, the denominator under every published recall figure (21/56, 34/56,
+43/56) — is derived from **one draw** of a process that reproduces about two picks in five.
+Re-running the baseline at *any* setting moves it. The 2026-08-09 incident was read as "a
+flag change invalidated the caches"; the truth underneath is that re-running at all would
+have done nearly as much, and the flag change only forced the issue.
+
+That reframes the 30-turn decision. There is no configuration under which the gold set is
+stable and a turn change disturbs it. There is a gold set that is a **sample**, and it has
+been treated as ground truth.
+
+#### The auth question, answered as far as this can answer it
+
+The benchmark25 caches were written under a signed-in CLI, the scientific ones under
+`ANTHROPIC_API_KEY` (P14, and the question the auth change left open). If the auth path
+changed what the agent recommends, A-vs-B similarity should be systematically worse for the
+cohort whose auth changed.
+
+| cohort | cached auth | mean J(cached, control) | n |
+|---|---|---|---|
+| benchmark25 | signed-in CLI | 0.47 | 2 |
+| scisoft | `ANTHROPIC_API_KEY` | 0.37 | 3 |
+
+Comparable, and both swamped by the nondeterminism above. **No evidence the auth path matters
+— and this design could not have detected a modest effect if it did.** Reported as "not shown
+to differ", not as "shown not to differ".
+
+#### C-27 — the primary measure was measuring a different quantity
+
+The pre-registration made **`num_turns` the primary measure**: a 30-turn arm that never
+exceeds 12 turns would prove the cap was slack. The run disproved the measure, not the
+hypothesis — every *control* arm, capped at 12, reported `num_turns` of **16, 17 or 9** and
+still returned `ok`.
+
+`--max-turns` is enforced: measured directly, `--max-turns 2` on a tool-using prompt fails
+with `error_max_turns` at `num_turns: 3`. The two numbers simply count different things, and
+what each counts is not established here. Read as pre-registered, the rule would have printed
+*"6 of 6 cases exceeded the cap — ACTIVE CONSTRAINT"* and declared a rebuild.
+
+The valid measure was in the same payload the whole time: **`status`**. Hitting the cap fails
+loudly, so `ok` at 12 turns *is* the proof that the cap was not reached. The probe now reads
+that, prints `num_turns` as an observation, and never thresholds it. Note the direction of the
+correction — it makes the answer *less* decisive rather than more convenient, which is the
+only reason a rule rewritten after seeing data deserves any credence at all.
+
+**Cost** 12 agentic runs, subscription-billed. Nothing written to the shared caches; the 33
+`cli` answers were additionally backed up to `evals/.work/cache-backup-20260826-baseline-cli/`
+before the first call.
+
 ### The scientific cohort finally has the published comparator — and it is the strongest baseline we have measured. **[P14]**
 
 ```bash
