@@ -66,6 +66,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from reporadar.citations import _s2_batch_post  # noqa: E402
 from reporadar.paper_id import is_arxiv_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
@@ -92,8 +93,10 @@ def is_arxiv(stem: str) -> bool:
 
 S2_BATCH = "https://api.semanticscholar.org/graph/v1/paper/batch"
 S2_FIELDS = "externalIds,title,isOpenAccess,openAccessPdf,publicationDate,year,corpusId"
-# RESEARCH.md §3.4: sustained polling earned this machine a ~70-minute IP block. Request
-# RATE is the lever. The batch endpoint is one request per 100 ids rather than one per id.
+# RESEARCH.md §3.4: sustained polling earned this machine a ~70-minute IP block, and
+# `reporadar.s2_rate` exists because four independent limiters permit four requests per
+# second. This module reaches S2 through `citations._s2_batch_post`, which waits on that
+# shared gate; the local sleep below is belt-and-braces for the loop, not the limiter.
 BATCH_SIZE = 100
 BATCH_SLEEP = 3.0
 
@@ -130,21 +133,13 @@ def resolve(ids: list[str]) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for start in range(0, len(ids), BATCH_SIZE):
         chunk = ids[start : start + BATCH_SIZE]
-        body = json.dumps({"ids": chunk}).encode()
-        headers = {"Content-Type": "application/json"}
-        if key:
-            headers["x-api-key"] = key
-        req = urllib.request.Request(f"{S2_BATCH}?fields={S2_FIELDS}", data=body, headers=headers)
-        for attempt in range(4):
-            try:
-                data = json.loads(urllib.request.urlopen(req, timeout=90).read())
-                break
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-                if attempt == 3:
-                    print(f"  batch {start // BATCH_SIZE} FAILED after 4 tries: {exc}")
-                    data = [None] * len(chunk)
-                    break
-                time.sleep(5 * (attempt + 1))
+        # Shared transport, shared rate gate. The first version of this function
+        # re-implemented the POST and never called `s2_rate.wait_turn()` -- the precise
+        # defect `src/reporadar/s2_rate.py` was written to prevent.
+        data = _s2_batch_post(chunk, S2_FIELDS, key or None, 3, 2.0)
+        if data is None:
+            print(f"  batch {start // BATCH_SIZE} FAILED; recording as unresolved")
+            data = [None] * len(chunk)
         # S2 returns null for ids it cannot resolve, positionally aligned with the request.
         for qid, rec in zip(chunk, data, strict=False):
             out[qid] = rec or {}

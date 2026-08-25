@@ -41,6 +41,18 @@ WORK = EVALS / ".work"
 ACTIONABLE = 2
 
 
+def _judge_stem(paper_id: str) -> str:
+    """The filename stem `judge._cache_path` would write this id under.
+
+    Delegates rather than re-deriving: a second sanitiser that drifts from the judge's is
+    the C-9/C-12 shape, and the drift is invisible because it only affects ids nobody
+    looks at -- which is exactly how the arXiv-only gold set went unnoticed.
+    """
+    import judge as _judge
+
+    return _judge._cache_path("m", "r", paper_id).stem
+
+
 def actionable_baseline_ids(case: str) -> list[str]:
     """arXiv ids the baseline recommended *and* the judge confirmed actionable.
 
@@ -66,7 +78,13 @@ def actionable_baseline_ids(case: str) -> list[str]:
         return []
     out: list[str] = []
     for paper_id in data.get("ids") or []:
-        for verdict in (JUDGE / case).glob(f"{paper_id}*.json"):
+        # The judge writes its verdict under a SANITISED filename -- `judge._cache_path`
+        # replaces every character outside [A-Za-z0-9_.-], so `doi:10.1101/x` is stored as
+        # `doi_10.1101_x.json`. Globbing the raw id therefore matched nothing for any
+        # non-arXiv paper, which silently guaranteed that the gold set could only ever
+        # contain arXiv ids -- on top of the baseline prompt already demanding one.
+        # Sanitise the same way rather than a second time by hand (C-12).
+        for verdict in (JUDGE / case).glob(f"{_judge_stem(paper_id)}*.json"):
             if json.loads(verdict.read_text(encoding="utf-8"))["score"] >= ACTIONABLE:
                 out.append(paper_id)
             break

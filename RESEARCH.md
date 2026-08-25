@@ -823,14 +823,17 @@ discovery channel (HyDE). The gate and the rescore downstream extract what the p
 knows; the remaining losses are coverage failures in `llminfer`/`compiler`/`numerics`,
 where 5 of 6 missed targets are reached by neither shipped channel.
 
-**Two corrections from P12 (2026-08-17), both about the gold set.** The union figure
-quoted in §7 and §8 is **36/56 = 64%**, not 36/48 = 75%: the benchmark gained 8 thin-case
-targets after the HyDE replication ran on 2026-08-06, and those were never measured against
-the index — *unknown*, not unreached. And the gold set is **arXiv-only by construction**,
+**Corrections from P12 (2026-08-17), and one correction to those.** The union figure is
+**43/56 = 77%** (HyDE 34/56 in top-1k, hop 21/56, 22 HyDE-only), re-measured on 2026-08-17
+after the benchmark gained 8 thin-case targets the 2026-08-06 replication never saw. P12
+first published this as "36/56 = 64%" by counting those 8 unmeasured targets as misses;
+7 of the 8 are in fact reached (C-24). The gold set is **arXiv-only by construction**,
 because `evals/baseline.py` requires the baseline to answer as `{"arxiv_id": ...}`. That
 makes gold-target recall structurally blind to off-arXiv value the product does deliver:
 159 non-arXiv papers have been judged and **79 are actionable**, with 11 cases (every
-`bio-*` and `mat-*`) holding actionable non-arXiv papers and no gold targets at all. Recall
+`bio-*` and `mat-*`) holding actionable non-arXiv papers and no gold targets at all. (P12
+also claimed those papers were actionable at a *higher* rate than arXiv ones; within the
+same cases it is 48.4% against 46.2%, and that comparison is withdrawn — C-23.) Recall
 against gold targets is a free proxy for retrieval work; `net@2` remains the only measure of
 what the product is worth.
 
