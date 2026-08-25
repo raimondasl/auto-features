@@ -1144,6 +1144,89 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The comparator was understating itself, and the two baseline modes are different systems. **[P13, C-25]**
+
+```bash
+uv run python evals/freeze_gold_targets.py --check   # $0, pins every recall denominator
+```
+
+Preparation for letting the baseline recommend non-arXiv papers turned up two things about
+the comparator that have nothing to do with arXiv, both measured at $0 from cached runs.
+
+#### C-25 — three cases scored as abstentions while contributing seven gold targets
+
+`run_baseline` re-parses the cached `raw` on every cache hit, deliberately, so that a parser
+fix reaches already-cached runs. Three `cli` caches cannot survive that: `compiler`, `graph`
+and `storage` hold a **128-character restoration note** where their transcript used to be,
+after the 2026-08-09 30-turn re-run displaced the 12-turn entry and only their ids could be
+recovered from a run record. Replaying a note parses to nothing.
+
+So in **every headline run since**, those three reported `n_returned = 0, abstained = True`
+— while `diagnose_pool.actionable_baseline_ids`, reading the `ids` field of the *same file*,
+counted their seven targets. One cache, two consumers, opposite answers.
+
+| | |
+|---|---|
+| published baseline | **+1.56 net@2/case** (sum +39 over 25) |
+| forfeited on those three cases | 7 picks, **all judged ≥ 2** → **+7 = +0.28/case** |
+| corrected baseline | **≈ +1.84/case** |
+| published paired margin +4.16 | becomes **≈ +3.88** |
+
+**The comparator was understated and RepoRadar's margin overstated, by ~0.28/case.**
+Significance is untouched — the paired CI floor is +2.44 — but the level is wrong and is
+restated here. The fix is a narrow fallback: when a cached `raw` contains **no
+recommendation block at all**, fall back to the stored ids.
+
+**Narrow is the whole design.** The obvious rule — "fall back whenever the replay yields no
+ids" — is wrong, and `webdev` is why. It says *"My recommendation is to recommend nothing"*,
+emits an explicit ```` ```json [] ````, and **still carries four ids** an older parser
+scraped from its prose, including `publication/2256929`, a bare URL path. An empty array is
+an *answer*; the absence of a fenced block is not. Keying on the block (`_has_answer_block`)
+keeps `webdev` at zero and recovers only the three damaged caches. Both halves are pinned in
+`tests/test_eval_baseline_replay.py`, including `webdev`'s real artifact.
+
+**The gold set does not move.** `evals/gold_targets.json` now freezes all 56 targets with
+per-id provenance, and `tests/test_gold_targets.py` pins the live derivation against it
+(mutation-checked: removing one id fails the suite). Nine targets are labelled `ids-only` —
+not reproducible from any surviving `raw`:
+
+| case | ids-only targets |
+|---|---|
+| `compiler` | 1601.05400, 2004.03082 |
+| `graph` | 2111.14522, 2202.13013, 2303.06147 |
+| `rag` | 2304.01982, 2505.11471 |
+| `storage` | 2311.15380, 2408.05625 |
+
+They are frozen **at 56 rather than the 51 the parser yields**, because dropping them would
+move every published denominator for a reason unrelated to any research question. The
+weakness is now inherited knowingly. And it matters that `evals/cache/` is gitignored: until
+this artifact, the gold set existed only on one machine. The *reasoning* behind those nine
+is gone for good — the run record they were restored from keeps ids and verdicts, not the
+model's answer.
+
+#### P13 — `cli` and `api` are not two runs of one baseline
+
+Both modes have cached runs over the same 25 cases, so this is free. It is also decisive:
+
+| | picks | judged | actionable | precision | net@2/case |
+|---|---|---|---|---|---|
+| `cli` (agentic, Claude Code + web tools) | 64 | 63 | 56 | **0.889** | **+1.68** |
+| `api` (Messages API + server tools) | 34 | 34 | 28 | 0.824 | +0.64 |
+
+**Only 10 picks are shared**, and the only three cases with identical pick sets are the
+three where *both* returned nothing (`cli`, `encryption`, `http`). There is **no case where
+both found papers and agreed**. `cli` finds 1.9× as many papers at higher precision and
+scores 2.6× the net@2.
+
+**Consequence for the 12 `bio-*`/`mat-*` cases**, which have `api` runs only: they are
+currently measured against a comparator roughly 2.6× weaker than the other 25, and their
+25 picks (22 actionable) cannot be compared across that boundary. Any cross-case claim
+mixing them with the main benchmark is comparing two different systems. They need `cli`
+runs before they can carry gold targets on the same footing — which is what the three-arm
+validation below is for.
+
+**Cost** $0 (both from cached artifacts).
+
 ### The off-arXiv corpus question: the literature is there, the snapshot is two years stale. **[P12]**
 
 ```bash
@@ -1585,7 +1668,7 @@ gone.
 
 | | RepoRadar (window 15) | Opus 4.8 baseline |
 |---|---|---|
-| mean net@2, **25 cases** | **+5.72** | +1.56 |
+| mean net@2, **25 cases** | **+5.72** | +1.56 *(understated; ≈ +1.84 corrected — C-25)* |
 | shown / actionable | 212 / 189 | 51 / 47 |
 | precision | 0.892 | **0.922** |
 | net-negative repositories | 0 | 1 |
