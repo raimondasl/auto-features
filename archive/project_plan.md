@@ -1,3 +1,9 @@
+> **ARCHIVED 2026-08-17.** The original product sketch (initial commit 2026-02-22), kept verbatim
+> for provenance. Everything in scope here shipped by 2026-02 and the product has since
+> grown far beyond it. Living documents: [`README.md`](../README.md) (what ships),
+> [`PLANS.md`](../PLANS.md) (what's next), [`RESEARCH.md`](../RESEARCH.md) (what was
+> measured), [`ROADMAP.md`](../ROADMAP.md) (the feature/probe ledger).
+
 Here’s a **practical MVP plan** for a personal, repo-focused “arXiv discovery + digest + lightweight suggestions” tool, built almost entirely from **free, easy APIs/libraries**.
 
 ---

@@ -1,3 +1,7 @@
+> **ARCHIVED 2026-08-17.** The MVP build plan (initial commit 2026-02-22), kept verbatim. All five
+> phases and every acceptance criterion were met by 2026-02; `git log` holds the phase-by-phase
+> history. Living documents: [`README.md`](../README.md), [`PLANS.md`](../PLANS.md), [`RESEARCH.md`](../RESEARCH.md), [`ROADMAP.md`](../ROADMAP.md).
+
 # RepoRadar MVP Plan
 
 ## Overview

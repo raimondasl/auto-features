@@ -6803,7 +6803,7 @@ and precision is untouched. But this changes the shape of the problem rather tha
 the pool now *contains* the answers, so selection becomes a real and tractable problem
 instead of a moot one. At ~10,000 papers per repo it is a heavier load than the embedding
 cache and vector index carry today, and the filter that reduces it is unbuilt — see
-[`RETRIEVAL_DESIGN.md`](../RETRIEVAL_DESIGN.md).
+[`RETRIEVAL_DESIGN.md`](../archive/RETRIEVAL_DESIGN.md).
 
 ### Negative result 3 — citation-sorted retrieval is a multiplier, not a fix
 

@@ -9,7 +9,7 @@ there a cut that keeps ~all the targets while removing most of the pool?
     uv run python evals/sweep_hop_filter.py                 # instant, offline, free
 
 **Coupling degree is used as a THRESHOLD, never as a sort key.** That is not a stylistic
-choice: RETRIEVAL_DESIGN.md's three architectures agree, and it is the one thing they agree
+choice: archive/RETRIEVAL_DESIGN.md's three architectures agree, and it is the one thing they agree
 on, that ranking by coupling/similarity/citation-count surfaces the repo's own *ancestry* —
 ResNet and COCO for `cv`, BERT and DPR for `rag`. Those are what the repo already knows. A
 filter may use the signal to discard; a ranker must not use it to choose.

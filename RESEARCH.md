@@ -8,9 +8,11 @@ that were true when they were measured.
 > **Sections 1–6 are the record as of 2026-08-02 and are left as written.** The campaign
 > continued for six more days (ROADMAP P1–P9, then the score-2 band work) and **overturned
 > two of this document's load-bearing conclusions**: that the gate is at its ceiling, and
-> that search is the binding constraint. §7 and §8 have been rewritten to the current state;
-> where an earlier section contradicts them, §7 wins. The full later record is
-> [`evals/RESULTS.md`](evals/RESULTS.md) and [`paper/DRAFT.md`](paper/DRAFT.md).
+> that search is the binding constraint. §7 and §8 were rewritten on 2026-08-09; **§9
+> (2026-08-17) is the current state and wins where any earlier section contradicts it.**
+> The full later record is [`evals/RESULTS.md`](evals/RESULTS.md) and
+> [`paper/DRAFT.md`](paper/DRAFT.md); **open plans now live in [`PLANS.md`](PLANS.md)**,
+> not in this file.
 
 **Every number here is reproducible.** The commands are given inline; raw per-run detail
 lives in [`evals/RESULTS.md`](evals/RESULTS.md), which is chronological and much longer.
@@ -616,7 +618,7 @@ and neither would have been legible if the prediction hadn't been written down f
 
 ---
 
-## 7. Where things stand (rewritten 2026-08-09)
+## 7. Where things stand (rewritten 2026-08-09; superseded by §9 where they conflict)
 
 | stage | status |
 |---|---|
@@ -639,7 +641,7 @@ and neither would have been legible if the prediction hadn't been written down f
 
 ---
 
-## 8. Open directions (rewritten 2026-08-09)
+## 8. Open directions (rewritten 2026-08-09; the open list has moved to PLANS.md)
 
 Four of the six directions listed here on 2026-08-02 were subsequently measured. They are
 kept with their answers, because a direction that came back negative is worth more than a
@@ -782,3 +784,47 @@ nothing in the benchmark can currently see it.
    Note the agentic baseline **failed outright on 2 of 3 thin cases** at the 12-turn limit
    that has never bound on the 22 thick ones, so this is a hard regime for agents too, not
    a defect unique to RepoRadar.
+
+---
+
+## 9. Where things stand (2026-08-17)
+
+Two of §7's rows are stale and are corrected here; the rest of §7 stands.
+
+**Search: one channel shipped and measured, one archived-in-place.** HyDE shipped
+(PRs #105/#106) and is the measured configuration's core: end to end it is worth **+1.36
+net@2** and took the system to **+4.55 vs the baseline's +1.82, sign p = 0.0075** — the
+first p < 0.05 result in the project's history. The published 25-repo headline for the
+full measured configuration is **+5.72** at precision 0.892 (README). The
+bibliography-seeded hop remains in `evals/` only, its shipping case weakened by HyDE's
+coverage (§8.1). §7's "neither ships yet" is therefore half-stale: read it as the
+2026-08-09 snapshot it is.
+
+**The typed-anchor campaign (2026-08-16/17) closed the profile side.** The self-scan
+digest exercise (`reports/`) surfaced NERdME-style typed README-span extraction as the one
+buildable idea; it was probed, adversarially audited, cleared of judge circularity, built
+behind `profiler.typed_anchors`, and measured end to end:
+
+- **P9** — typed spans discriminate where the shipped manifest channel does not
+  (+27.5pt Mantel–Haenszel vs −0.6pt), with two corrections to the prior record: NR-39's
+  "only anchors discriminate" was a case-mix artifact (**C-21**) and its "keywords are
+  noise" a saturation artifact (**C-22**).
+- **P10** — the signal is not the judge echoing its own input: 0.87 of the gap survives
+  redacting every span from the judge's view, and the direction reproduces on a second
+  judge vendor (an informal 112-paper cross-check, not a powered replication).
+- **P11** — none of it reaches the digest: paired **−0.32 net@2/case** (7+/8−/10=,
+  p = 1.0), and the nine manifest-less repos the mechanism exists for came in at −1.00
+  against a pre-registered +0 to +2. Roadmap item 16 is **closed**, the flag ships off.
+
+**The lesson that now governs proposals — four nulls, one positive.** Profile-side changes
+have won their stage-1 probes and moved nothing end to end four times (NR-33 +0.00,
+NR-35 +0.00, NR-36 −0.52, P11 −0.32); the one class of change that converted is a
+discovery channel (HyDE). The gate and the rescore downstream extract what the profile
+knows; the remaining losses are coverage failures in `llminfer`/`compiler`/`numerics`,
+where 5 of 6 missed targets are reached by neither shipped channel.
+
+**Where planning lives now.** [`PLANS.md`](PLANS.md) is the single forward-looking
+document — ranked open items, each with its probe, cost and kill condition. §8 above is
+kept as the 2026-08-09 record of what was open then and how each item resolved;
+[`archive/`](archive/) holds the superseded plans (MVP plan, original sketch,
+`RETRIEVAL_DESIGN.md` with all three verdicts).

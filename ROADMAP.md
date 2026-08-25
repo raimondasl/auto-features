@@ -2,6 +2,13 @@
 
 **v1.0.0 shipped.** Milestones 1–5 of the original roadmap are complete: polished CLI (`status`/`history`/`--diff`), embedding + citation ranking, multi-source collection (arXiv/Semantic Scholar/OpenAlex), Papers With Code enrichment, GitHub issue export, five digest formats, scheduling, Slack/Discord/email notifications, watch mode, multi-repo workspaces, trend detection, source-code analysis, LLM suggestion engine, and a rating-driven feedback loop — backed by ~500 tests. The original milestone-by-milestone plan is preserved in git history (`git log ROADMAP.md`).
 
+> **Role note, 2026-08-17.** This file is the **ledger**: feature-by-feature and
+> probe-by-probe history, statuses, re-derivations and verdicts. It is append-and-correct,
+> never pruned. **The forward-looking plan has moved to [`PLANS.md`](PLANS.md)** — a short,
+> ranked list of open items with probes and kill conditions; start there for "what next".
+> Superseded planning documents (MVP plan, original sketch, the retrieval design studies)
+> are preserved verbatim in [`archive/`](archive/).
+
 This document is the **next-generation roadmap (Roadmap 2.0)**, produced 2026-07-03 from a codebase audit plus six parallel web-research sweeps (discovery-tool landscape, paper-to-code agents, retrieval/ranking tech, ecosystem integration channels, data sources & signals, frontier AI capabilities). Every feature was **adversarially verified against live APIs and current documentation on 2026-07-03** — verification corrections (dead services, changed pricing, wrong module names) are folded into the text below.
 
 ---
@@ -209,7 +216,7 @@ rubric's treatment of method-divergence are the direct response.
 ### P1. Persist the citation-hop pool with direction-aware coupling degrees; sweep the coupling filter offline
 
 **Grounding:** §3.5 — the hop is the only channel with recall, unshipped at 92,014
-candidates. RETRIEVAL_DESIGN Design 1's filter numbers (cv 14,867→2,115 keeping 3/3) are
+candidates. archive/RETRIEVAL_DESIGN.md Design 1's filter numbers (cv 14,867→2,115 keeping 3/3) are
 REPORTED against a pool that matches neither the buggy nor the corrected state — treat as
 hypothesis. Coupling degree is used as a **threshold only, never a sort** (the measured
 ancestry warning). The backward direction provably contributes uniquely (Soft-NMS is
@@ -304,7 +311,7 @@ on P4 or feature 10's non-arXiv adapters.
 
 ### P4. Verify Design 2's four load-bearing dependencies ($0, half a day), then blind HyDE replication
 
-**Grounding:** RETRIEVAL_DESIGN Design 2 is the largest single recall candidate (REPORTED:
+**Grounding:** archive/RETRIEVAL_DESIGN.md Design 2 is the largest single recall candidate (REPORTED:
 HyDE-4 8/24 top-100 vs 1/24 for TF-IDF; covers crypto 2/2 and systems 1/1 — precisely the
 hop's structural zeros; additive with the hop, union ≥17/24) and **every dependency is
 explicitly unverified** — in a project where one REPORTED estimate was off 10× and another
@@ -585,7 +592,7 @@ The proposal was that the "lacks" prompt is not failing — it finds papers that
 a repo, while the whole benchmark is built on a judge that asks whether a paper would
 *improve* one ("directly addresses a known limitation or core capability"). Those two
 hypotheses predict identical numbers in
-[Negative result 7](../evals/RESULTS.md), so it was a real gap in that conclusion.
+[Negative result 7](evals/RESULTS.md), so it was a real gap in that conclusion.
 
 **Measured** (`evals/extend_vs_improve.py`, ~$3): no dissociation. Under a rubric written to
 reward new capability and cap refinements at 1, `lacks` papers score **1.75 → 1.38**, i.e.

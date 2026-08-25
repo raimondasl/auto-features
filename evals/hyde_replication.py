@@ -1,7 +1,7 @@
 """P4 stage 2: blind HyDE replication against the real 3.1M-vector arXiv index.
 
 Authorised by stage 1 (`evals/verify_hyde_deps.py`), which passed 4/4. This asks the only
-question that matters about RETRIEVAL_DESIGN Design 2: if the LLM writes *the abstract of
+question that matters about archive/RETRIEVAL_DESIGN.md Design 2: if the LLM writes *the abstract of
 the paper it wishes existed* for a repo, embeds it, and searches all of arXiv, do the
 benchmark's known-good papers come back?
 
