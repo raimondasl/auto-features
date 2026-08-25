@@ -47,28 +47,32 @@ touches the pool. Pool-affecting changes cannot reuse frozen pools (`POOL_FLAGS`
 
 ## Open items, ranked
 
-### 1. OpenScholar datastore as a second HyDE corpus — NEXT UP
+### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
-The one surviving build candidate from the self-scan digest review
-(`reports/papers-vs-the-ledger.html`), and the only open item that is a discovery-channel
-change aimed at the named coverage hole. Every prior non-arXiv attempt failed through
-**keyword APIs** (NR-27, NR-31/32, NR-34, C-9 — the refutations hit the query channel,
-not the corpus); dense HyDE over OpenScholar's ~45M open-access papers is the untried
-variant that uses the mechanism that worked. Absorbs ROADMAP item 10's goal for the
-off-arXiv repos.
+**Answered 2026-08-17, $0, `evals/openscholar_yield.py`.** Both the original item and its
+rewrite are resolved, and neither the way they were posed.
 
-- **Stage-1 probe, $0:** (a) membership — are the 5–6 never-reached gold targets in the
-  released datastore at all (plus, secondarily, the one IACR paper NR-27 got judged
-  actionable)?
-  (b) reproducibility — can a locally computed vector reproduce a stored one
-  bit-identically, the Design 2 fifth-dependency check the shipped index had to pass?
-- **Kill:** fewer than 4/6 targets present, or the encoder is not reproducible.
-- **Then:** rank probe on the 48-target gold set; live Tier B only after both.
-- **Honest prior:** stage-1 wins are 0-for-4 on profile changes but 1-for-1 on discovery
-  channels; this is the reference class that has paid before. Build cost if it survives is
-  large (index scale, encoder verification), which is what the probe is for.
+The first version's stage-1 check was mis-specified: it asked whether the never-reached gold
+targets are in OpenScholar's datastore, and they are already in **ours** — all 56 gold
+targets sit in the shipped arXiv index, the unreached ones at ranks up to 223,245. That is a
+**ranking** failure; more corpus cannot fix it. The rewrite then asked the right question
+against the right ground truth (the 79 judged-actionable non-arXiv papers, which the
+arXiv-only gold set is structurally blind to) and got: **43/79 = 54.4%, MARGINAL** — with
+**zero** papers excluded for access and **38% excluded purely by date**, 28 of them from
+2025–2026.
 
-### 2. LitSearch as a recall regression gauge for the dense index — instrument, one afternoon
+**peS2o v3 is not too narrow; it is frozen at October 2024.** For a freshness product that
+is disqualifying, and it worsens with time. Adoption would also have meant ~378 GB (≈875× the
+arXiv index) and a full re-embed, since its vectors come from OpenScholar's retriever rather
+than ours.
+
+**What survives as a requirement for any future proposal:** a second dense corpus must be
+**re-syncable** the way `rr sync-index` is. The off-arXiv value is real — 79 actionable
+papers, ~50% actionable rate, concentrated in `bio-*`/`mat-*` — and no shipped dense channel
+can reach it. But a static snapshot is not the way, and that is now measured rather than
+assumed. Revisit only with a corpus that updates.
+
+### 2. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
 
 597 gold-labelled queries (arXiv:2407.18940) over recent ML/NLP — squarely inside the
 index's coverage. The binary-quantized index has bit-identical encoder verification but
@@ -138,3 +142,5 @@ with ROADMAP item 12's unshipped Topics work if it ever passes.
 | `w_embedding: 1.5` | resolved **positive**, +1.00/case, keep | NR-38 |
 | Research-gap radar, query rewriting, gap-phrase search | four independent negatives on the same mechanism | ROADMAP 14/19 |
 | Multi-source keyword adapters (S2/OpenAlex/IACR/bioRxiv) | built, wired, measured null-to-negative | NR-27..34, C-9 |
+| OpenScholar/peS2o as a second dense corpus | literature is there, snapshot frozen at Oct 2024; 38% of known off-arXiv value postdates it | P12 |
+| "gold targets the channels cannot reach" | mis-framed: all 56 are in the index already; it is a ranking failure, not coverage | P12 |
