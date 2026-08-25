@@ -1170,14 +1170,12 @@ returned "6/6 present", read as a pass, and established nothing.
 baseline pick judged ≥ 2, and `evals/baseline.py` demands the baseline answer as
 `{"arxiv_id": ...}` — so **no non-arXiv paper can ever become one**. That structural blind
 spot was invisible because the benchmark *does* surface off-arXiv value: **159 non-arXiv
-papers judged, 79 actionable** (~50%, above the ~30% arXiv base rate), and **11 cases have
-actionable non-arXiv papers and zero gold targets** — every `bio-*` and `mat-*` case, 59 of
-the 79 papers. `net@2` counts them; gold-target recall is blind to them.
+papers judged, 79 actionable**, and **11 cases have actionable non-arXiv papers and zero
+gold targets** — every `bio-*` and `mat-*` case, 59 of the 79 papers. `net@2` counts them;
+gold-target recall is blind to them.
 
-Two documentation corrections fall out. The union figure is **36/56 = 64%**, not the
-published 36/48 = 75%: the benchmark grew by 8 thin-case targets after the HyDE replication
-ran (2026-08-06) and they were never measured against the index — they are *unknown*, not
-unreached. And 17 of 37 cases have no gold targets at all: 12 (`bio-*`/`mat-*`) never had a
+One documentation correction falls out (a second, attempted here, was itself wrong — see
+the correction block below). 17 of 37 cases have no gold targets at all: 12 (`bio-*`/`mat-*`) never had a
 baseline run, 3 (`cli`, `http`, `encryption`) had the baseline correctly return nothing, and
 2 (`webdev`, `linter`) had every baseline pick judged below 2.
 
@@ -1235,6 +1233,35 @@ inclusion rule (open access, in S2ORC, published by the October 2024 cutoff)?
 > dates, not of the lookup.
 >
 > **Cost** $0.
+>
+> #### CORRECTION — the actionable-rate comparison was a denominator swap **[C-23]**
+>
+> This entry first read the non-arXiv cohort as *"79 actionable (~50%, above the ~30% arXiv
+> base rate)"*, and the ~30% came from the **602-paper labelled set** — a different
+> population from the judge cache the 79 were counted in. Recomputed within the same cases:
+> **arXiv 48.4% (1259/2602) against non-arXiv 46.2% (84/182)**. Non-arXiv papers are
+> marginally *less* actionable, not more.
+>
+> What the entry actually needed was the **count**, not the rate: 79 actionable papers that
+> gold-target recall cannot see, 59 of them in cases with no gold targets at all. That claim
+> is untouched. The rate comparison was decoration, and it was wrong in the direction that
+> flattered the argument — the §6.1/C-7 shape, arriving through a denominator rather than a
+> draw.
+>
+> #### CORRECTION — "the union is 64%" counted *unmeasured* as *unreached* **[C-24]**
+>
+> This entry also corrected the published union figure from 36/48 = 75% down to
+> "**36/56 = 64%**", on the grounds that 8 thin-case targets entered the benchmark after the
+> HyDE replication of 2026-08-06 and were never measured. The premise was right and **the
+> arithmetic was not**: an unmeasured target is *unknown*, and this treated all 8 as misses.
+> The entry said so in the same sentence and then published the number anyway.
+>
+> Re-running `evals/hyde_replication.py` over all 56 targets (2026-08-17, ~$0.01 of Haiku for
+> the three missing cases) measures them: **7 of the 8 are reached**, `thin-kv` at ranks 4, 5
+> and 14. The honest figures are **HyDE 34/56 in top-1k, hop 21/56, union 43/56 = 77%**,
+> with 22 targets reachable only by HyDE — slightly *better* than the 75% this tried to
+> correct downward. Filling a measurement gap improved the number; assuming its contents did
+> not.
 
 ### Typed anchors end to end: the channel is real and it does not reach the digest. **[P11]**
 
