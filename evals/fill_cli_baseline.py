@@ -22,8 +22,17 @@ discriminator has moved (which would invalidate all 25 existing caches at once).
 guard is overridable from the command line; moving the gold set should require editing code
 and meaning it.
 
+**Who pays.** The `cli` baseline authenticates either through a signed-in `claude` CLI, which
+bills the user's Claude subscription, or through ANTHROPIC_API_KEY, which bills the API. This
+script resolves and *prints* which one a run will use before spending, because the two are
+indistinguishable afterwards and may not even give the agent the same tools -- the CLI warns
+that a visible key disables connectors. Prefer the subscription:
+
+    claude auth login     # interactive, once; or `claude setup-token` for headless runs
+
     uv run python evals/fill_cli_baseline.py --dry-run   # $0: what would run, and why
-    uv run python evals/fill_cli_baseline.py             # ~$10: the 12 missing cases
+    uv run python evals/fill_cli_baseline.py --compare   # $0: cli vs api where both exist
+    uv run python evals/fill_cli_baseline.py             # the cases with no cli baseline yet
 """
 
 from __future__ import annotations
@@ -207,16 +216,33 @@ def main() -> int:
     if args.compare:
         return compare_modes()
 
-    # The `claude` subprocess inherits this process's environment, and without the key it
-    # exits 1 with "Not logged in" -- which `run_baseline` correctly reports as an error
-    # rather than an abstention, but only after paying for the round trip.
     load_dotenv(EVALS / ".env")
     if not args.dry_run:
-        for key in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"):
-            if not os.environ.get(key):
-                print(f"! {key} is not set (evals/.env). The baseline needs the first and")
-                print("  the judge the second; running without either wastes the other.")
-                return 1
+        # The judge is unconditional -- no key, no gold targets, and the baseline spend
+        # would be wasted.
+        if not os.environ.get("OPENAI_API_KEY"):
+            print("! OPENAI_API_KEY is not set (evals/.env); the judge cannot run, so the")
+            print("  baseline spend would buy picks nobody can score. Refusing.")
+            return 1
+        # The baseline needs EITHER a signed-in CLI (billed to the subscription, preferred)
+        # or the API key (billed per token). Resolve it here and say which, because the two
+        # are not visibly different afterwards and they may not offer the agent the same
+        # tools -- the CLI's own warning is that a present key disables connectors.
+        auth = baseline_mod.cli_auth_mode()
+        if auth == "api" and not os.environ.get("ANTHROPIC_API_KEY"):
+            print("! the `claude` CLI is signed out and ANTHROPIC_API_KEY is unset, so the")
+            print("  baseline cannot authenticate at all. Either:")
+            print("    claude auth login          # bills your Claude subscription")
+            print("    claude setup-token         # same, long-lived, for headless runs")
+            print("  or put ANTHROPIC_API_KEY in evals/.env to bill the API instead.")
+            return 1
+        billed = "your Claude subscription" if auth == "subscription" else "the API key"
+        print(f"baseline auth: {auth} -- these runs bill {billed}.")
+        if auth == "api":
+            print(
+                f"  (`claude auth login` then re-run to use the subscription; "
+                f"{baseline_mod._CLI_AUTH_ENV}=subscription to require it.)"
+            )
 
     live = baseline_mod._discriminator("cli", "", None)
     if live != PINNED_DISCRIMINATOR:

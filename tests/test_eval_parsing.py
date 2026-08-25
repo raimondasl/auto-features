@@ -15,6 +15,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import baseline
+import pytest
 from baseline import _parse_cli_payload, _parse_recommendations, _run_cli
 from verify import extract_arxiv_ids
 
@@ -102,6 +103,22 @@ class TestParseCliPayload:
 
 
 class TestRunCliRetry:
+    """Retry behaviour in isolation from the auth probe.
+
+    `_run_cli` resolves which account pays before it spends (`cli_auth_mode`), and under
+    "auto" that asks the CLI via a subprocess of its own. These tests stub the answer so
+    `subprocess.run` counts only real baseline attempts — otherwise the probe consumes a
+    stubbed call and the retry arithmetic below silently measures something else.
+    `tests/test_baseline_cli_auth.py` covers the probe itself.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _fixed_auth(self, monkeypatch):
+        baseline.cli_logged_in.cache_clear()
+        monkeypatch.setenv("RR_EVAL_CLI_AUTH", "api")
+        yield
+        baseline.cli_logged_in.cache_clear()
+
     def test_transient_failure_then_success(self) -> None:
         # First call fails (exit 1), retry succeeds — the eval should not lose the baseline.
         calls = [_proc(1, stderr="segfault"), _proc(0, stdout=_ok_stdout("```json\n[]\n```"))]

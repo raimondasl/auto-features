@@ -7,14 +7,23 @@
                 context is passed in the prompt instead of a filesystem mount.
 
 Both parse the recommended papers out of the answer. Every run records a
-`status` ("ok" | "missing_cli" | "error" | "timeout" | "no_key") and its raw
-output, and **failures are never cached** — so a broken run retries next time
-instead of silently poisoning the cache. Caches are keyed by mode, so a --mock
-run can never be served to a real run.
+`status` ("ok" | "missing_cli" | "no_cli_login" | "error" | "timeout" | "no_key")
+and its raw output, and **failures are never cached** — so a broken run retries
+next time instead of silently poisoning the cache. Caches are keyed by mode, so a
+--mock run can never be served to a real run.
+
+The `cli` mode has two ways to authenticate and they are not interchangeable: a
+signed-in CLI bills the user's Claude subscription, while a visible
+ANTHROPIC_API_KEY bills the API *and*, by the CLI's own warning, disables
+connectors — so the agent may not have the same tools under each. `cli_auth_mode`
+resolves which one a run uses (default: prefer the subscription when signed in),
+and the choice is recorded in the cache entry rather than hashed into its
+discriminator, so asking the question later does not invalidate everything.
 """
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -37,6 +46,22 @@ _CLI_AUTH_CONFLICT_MARKERS = (
     "takes precedence over your claude.ai login",
     "connectors are disabled because ANTHROPIC_API_KEY",
 )
+
+# How the `claude` subprocess should authenticate.
+#
+#   "auto"          -- ask the CLI; if it is signed in, hide ANTHROPIC_API_KEY from the
+#                      subprocess so the run bills the subscription. (default)
+#   "subscription"  -- always hide the key. Fails loudly when not signed in, which is what
+#                      you want for a run you intend to bill to the subscription.
+#   "api"           -- always pass the key through, the pre-2026-08-26 behaviour.
+#
+# This matters beyond billing. The CLI's own warning -- one of the conflict markers above --
+# is that a present ANTHROPIC_API_KEY *disables connectors*, so the two auth paths do not
+# necessarily give the agent the same tools. Two runs of "the same" baseline under different
+# auth are therefore not automatically the same comparator, and `cli_auth_mode` is recorded
+# in every cache entry from here on so a future reader can tell which one produced it.
+_CLI_AUTH_ENV = "RR_EVAL_CLI_AUTH"
+_CLI_AUTH_CHOICES = ("auto", "subscription", "api")
 
 BASELINE_MODEL = "claude-opus-4-8"
 # Opus 4.8 pricing ($/1M tokens) for a rough cost estimate (excludes web-search fees).
@@ -185,13 +210,68 @@ def _parse_cli_payload(stdout: str | None) -> tuple[dict[str, Any] | None, str]:
     return {"ids": ids, "titles": titles, "raw": raw_text, "cost_usd": cost, "status": "ok"}, ""
 
 
+@functools.lru_cache(maxsize=4)
+def cli_logged_in(claude_bin: str = "claude") -> bool | None:
+    """Is the `claude` CLI signed in to an Anthropic account?
+
+    Returns None when the question cannot be answered (no CLI, unexpected output) so the
+    caller can fall back rather than assert something false. Asked with ANTHROPIC_API_KEY
+    removed from the child's environment: with the key present the CLI reports the key as
+    its auth method, which is exactly the state we are trying to distinguish from a login.
+
+    Cached because auth does not change mid-run and a 37-case sweep would otherwise spawn 37
+    identical probes. Tests that stub the answer must call ``cli_logged_in.cache_clear()``.
+    """
+    env = os.environ.copy()
+    env.pop("ANTHROPIC_API_KEY", None)
+    try:
+        proc = subprocess.run(
+            [claude_bin, "auth", "status"],
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            env=env,
+            stdin=subprocess.DEVNULL,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+    try:
+        return bool(json.loads(proc.stdout or "").get("loggedIn"))
+    except (json.JSONDecodeError, AttributeError):
+        return None
+
+
+def cli_auth_mode(claude_bin: str = "claude") -> str:
+    """Resolve `RR_EVAL_CLI_AUTH` to "subscription" or "api" for this run."""
+    requested = (os.environ.get(_CLI_AUTH_ENV) or "auto").strip().lower()
+    if requested not in _CLI_AUTH_CHOICES:
+        raise ValueError(f"{_CLI_AUTH_ENV} must be one of {_CLI_AUTH_CHOICES}, got {requested!r}")
+    if requested != "auto":
+        return requested
+    # Signed in -> prefer the subscription. Not signed in (or unknowable) -> the key is the
+    # only thing that can work, so leave it in place rather than guaranteeing a failure.
+    return "subscription" if cli_logged_in(claude_bin) else "api"
+
+
 def _run_cli(repo_dir: Path, *, flags: list[str] | None, timeout: int) -> dict[str, Any]:
     claude_bin = os.environ.get("RR_EVAL_CLAUDE_BIN", "claude")
     env_flags = os.environ.get("RR_EVAL_CLAUDE_FLAGS")
     flag_list = flags or (env_flags.split() if env_flags else CLAUDE_FLAGS)
     cmd = [claude_bin, "-p", *flag_list, BASELINE_PROMPT]
 
-    strip_api_key = False  # flipped once we see the API-key-vs-claude.ai-login conflict
+    auth = cli_auth_mode(claude_bin)
+    if auth == "subscription" and cli_logged_in(claude_bin) is False:
+        return _empty(
+            "no_cli_login",
+            f"{_CLI_AUTH_ENV}=subscription but `{claude_bin} auth status` reports signed out. "
+            f"Run `{claude_bin} auth login` (or `{claude_bin} setup-token`), or set "
+            f"{_CLI_AUTH_ENV}=api to bill the API key instead.",
+        )
+    # Hide the key for the whole run under subscription auth, rather than only after the CLI
+    # complains: the complaint is a warning the CLI does not always emit, and a run that
+    # silently billed the API key is not one you can tell apart afterwards.
+    strip_api_key = auth == "subscription"
     last_err = _empty("error", "claude did not produce a result")
     for attempt in range(_CLI_MAX_RETRIES + 1):
         env = os.environ.copy()
@@ -383,6 +463,13 @@ def run_baseline(
         out = _run_cli(repo_dir, flags=flags, timeout=timeout)
 
     out["_disc"] = disc
+    if mode == "cli" and not mock:
+        # Recorded, not hashed. A present ANTHROPIC_API_KEY changes which tools the CLI
+        # offers the agent, so two `cli` runs under different auth are not self-evidently
+        # the same comparator — and the caches written before 2026-08-26 do not say which
+        # they were. Hashing it into `_disc` would invalidate all of those at once, which
+        # is the 2026-08-09 mistake; recording it lets the question be asked instead.
+        out["cli_auth_mode"] = cli_auth_mode(os.environ.get("RR_EVAL_CLAUDE_BIN", "claude"))
     # Only cache clean runs — a failure must retry next time, never be served.
     if use_cache and out.get("status") == "ok":
         cache_file.parent.mkdir(parents=True, exist_ok=True)
