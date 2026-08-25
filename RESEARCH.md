@@ -823,6 +823,17 @@ discovery channel (HyDE). The gate and the rescore downstream extract what the p
 knows; the remaining losses are coverage failures in `llminfer`/`compiler`/`numerics`,
 where 5 of 6 missed targets are reached by neither shipped channel.
 
+**Two corrections from P12 (2026-08-17), both about the gold set.** The union figure
+quoted in §7 and §8 is **36/56 = 64%**, not 36/48 = 75%: the benchmark gained 8 thin-case
+targets after the HyDE replication ran on 2026-08-06, and those were never measured against
+the index — *unknown*, not unreached. And the gold set is **arXiv-only by construction**,
+because `evals/baseline.py` requires the baseline to answer as `{"arxiv_id": ...}`. That
+makes gold-target recall structurally blind to off-arXiv value the product does deliver:
+159 non-arXiv papers have been judged and **79 are actionable**, with 11 cases (every
+`bio-*` and `mat-*`) holding actionable non-arXiv papers and no gold targets at all. Recall
+against gold targets is a free proxy for retrieval work; `net@2` remains the only measure of
+what the product is worth.
+
 **Where planning lives now.** [`PLANS.md`](PLANS.md) is the single forward-looking
 document — ranked open items, each with its probe, cost and kill condition. §8 above is
 kept as the 2026-08-09 record of what was open then and how each item resolved;

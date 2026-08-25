@@ -1144,6 +1144,98 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The off-arXiv corpus question: the literature is there, the snapshot is two years stale. **[P12]**
+
+```bash
+uv run python evals/openscholar_yield.py            # ~1 min, S2 batch, no LLM, $0
+uv run python evals/openscholar_yield.py --report   # $0 thereafter
+```
+
+PLANS item 1 proposed building a second dense index over OpenScholar's peS2o v3 datastore
+(arXiv:2411.14199) to reach the literature the arXiv-only index cannot hold. **Its stated
+stage-1 check was refuted before it ran, and the replacement returned a different answer
+than the one the item was arguing about.**
+
+#### The original probe was mis-specified, and finding that cost $0
+
+The check as written asked whether the gold targets the shipped channels never reach are in
+the OpenScholar datastore. They are already in **ours**: all **56 of 56** gold targets are
+present in the local 3.1M-vector arXiv index (verified against the shard id files; the
+sync-time dependency check independently recorded 48/48). The unreached ones sit at ranks
+1,358 / 2,586 / 6,699 / 9,131 / 9,165 / **223,245**. Those are **ranking** failures, and a
+larger corpus cannot fix one — Hamming top-k only gains competitors. The probe would have
+returned "6/6 present", read as a pass, and established nothing.
+
+**And the gold set cannot ask the question the item was really about.** A gold target is a
+baseline pick judged ≥ 2, and `evals/baseline.py` demands the baseline answer as
+`{"arxiv_id": ...}` — so **no non-arXiv paper can ever become one**. That structural blind
+spot was invisible because the benchmark *does* surface off-arXiv value: **159 non-arXiv
+papers judged, 79 actionable** (~50%, above the ~30% arXiv base rate), and **11 cases have
+actionable non-arXiv papers and zero gold targets** — every `bio-*` and `mat-*` case, 59 of
+the 79 papers. `net@2` counts them; gold-target recall is blind to them.
+
+Two documentation corrections fall out. The union figure is **36/56 = 64%**, not the
+published 36/48 = 75%: the benchmark grew by 8 thin-case targets after the HyDE replication
+ran (2026-08-06) and they were never measured against the index — they are *unknown*, not
+unreached. And 17 of 37 cases have no gold targets at all: 12 (`bio-*`/`mat-*`) never had a
+baseline run, 3 (`cli`, `http`, `encryption`) had the baseline correctly return nothing, and
+2 (`webdev`, `linter`) had every baseline pick judged below 2.
+
+#### The replacement probe, and the pre-registered result
+
+Ground truth: the 79 already-judged actionable non-arXiv papers — free, needing no baseline,
+carrying no arXiv restriction. Question: what share would peS2o v3 contain, under its stated
+inclusion rule (open access, in S2ORC, published by the October 2024 cutoff)?
+
+> **RESULT (2026-08-17) — 43/79 = 54.4%. MARGINAL by the pre-registered rule, and the
+> mechanism is not the one predicted.**
+>
+> | exclusion | n | share |
+> |---|---|---|
+> | **included** | **43** | **54.4%** |
+> | after the Oct-2024 cutoff | **30** | 38.0% |
+> | unresolved by S2 | 5 | 6.3% |
+> | no S2 handle (one IACR paper) | 1 | 1.3% |
+> | **not open access** | **0** | **0.0%** |
+>
+> Predicted 50–70%, kill below 50%, pass at 70% — so the number landed in band. **The
+> reasoning behind it was wrong.** The prediction was that closed-access chemistry and
+> materials journals (`10.1021`, `10.1016`, `10.1063`) would be the main loss. **Not one
+> paper was excluded for access.** Every single exclusion that peS2o's own rule can explain
+> is a *date*: 30 papers published after the snapshot, of which **28 are from 2025–2026**
+> (2025: 17, 2026: 11). By cohort the post-cutoff losses are bio 19, other 7, mat 4.
+>
+> **So the corpus is not too narrow. It is too old.** peS2o v3 holds the right kind of
+> literature — the access test excludes nothing — but OpenScholar's artifact was last
+> modified 2024-11-18 and is frozen. For a product whose output is *"what is new that could
+> improve your repo"*, a corpus that ends in October 2024 is structurally disqualified, and
+> the deficit **grows with time** rather than shrinking. 54.4% today is the best this
+> artifact will ever score.
+>
+> **What a PASS would have cost, priced before the run.** ~378 GB of passages against the
+> arXiv index's 432 MB (≈875×), and its precomputed vectors come from OpenScholar's own
+> retriever rather than `mxbai-embed-large-v1` — so adoption means **re-embedding the
+> corpus**, not syncing an index. PLANS' original check (b), "reproduce a stored vector
+> bit-identically", does not apply: that check exists for a corpus shipping *our* encoder's
+> vectors, and this one ships someone else's.
+>
+> **Verdict: do not build on this artifact.** Not because the idea is wrong — the
+> off-arXiv value is real and measurable (79 actionable papers prove it) — but because a
+> frozen snapshot cannot serve a freshness product. What the probe establishes for any
+> future proposal is a **requirement the original item never stated**: a second dense
+> corpus must be *re-syncable*, like `rr sync-index` is, or it decays into exactly this.
+>
+> **Unverified, and stated as such.** The plan was to anchor the S2-rule inference by
+> looking up a sample of corpus ids as `raw_id` in the datastore itself through the HF
+> datasets-server. The endpoint returned "dataset index is loading", then 502s, then
+> "Unexpected error" across three attempts. **The 54.4% is therefore inference from
+> peS2o's stated inclusion rule, not a lookup in the artifact** — the `raw_id` field is
+> confirmed to be an S2 corpus id, but no membership was directly observed. The direction
+> of the finding does not depend on it: the 38% post-cutoff exclusion is a property of
+> dates, not of the lookup.
+>
+> **Cost** $0.
+
 ### Typed anchors end to end: the channel is real and it does not reach the digest. **[P11]**
 
 ```bash
