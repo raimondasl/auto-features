@@ -215,9 +215,15 @@ def cli_logged_in(claude_bin: str = "claude") -> bool | None:
     """Is the `claude` CLI signed in to an Anthropic account?
 
     Returns None when the question cannot be answered (no CLI, unexpected output) so the
-    caller can fall back rather than assert something false. Asked with ANTHROPIC_API_KEY
-    removed from the child's environment: with the key present the CLI reports the key as
-    its auth method, which is exactly the state we are trying to distinguish from a login.
+    caller can fall back rather than assert something false.
+
+    Asked with ANTHROPIC_API_KEY removed from the child's environment. The question we need
+    answered is "is there a login to fall back on if the key is hidden", and hiding the key
+    is the only way to ask it that cannot be confounded by the key. Measured 2026-08-26 on
+    Claude Code's current build, the answer happens to be identical either way -- with the
+    key visible it still reports ``authMethod: "claude.ai"`` -- so this is a precaution
+    against a CLI that reports the key as its auth method, not a workaround for one that
+    does. Stated as a precaution because that is what the evidence supports.
 
     Cached because auth does not change mid-run and a 37-case sweep would otherwise spawn 37
     identical probes. Tests that stub the answer must call ``cli_logged_in.cache_clear()``.
@@ -469,7 +475,12 @@ def run_baseline(
         # the same comparator — and the caches written before 2026-08-26 do not say which
         # they were. Hashing it into `_disc` would invalidate all of those at once, which
         # is the 2026-08-09 mistake; recording it lets the question be asked instead.
-        out["cli_auth_mode"] = cli_auth_mode(os.environ.get("RR_EVAL_CLAUDE_BIN", "claude"))
+        auth = cli_auth_mode(os.environ.get("RR_EVAL_CLAUDE_BIN", "claude"))
+        out["cli_auth_mode"] = auth
+        # `total_cost_usd` is reported either way, but under subscription auth it is what
+        # the tokens WOULD have cost on the API, not money spent. Summing it across a sweep
+        # and calling the total "spend" would be a fabricated number; label it at the source.
+        out["cost_basis"] = "api-dollars" if auth == "api" else "subscription-notional"
     # Only cache clean runs — a failure must retry next time, never be served.
     if use_cache and out.get("status") == "ok":
         cache_file.parent.mkdir(parents=True, exist_ok=True)

@@ -301,7 +301,16 @@ def main() -> int:
 
     ok = [r for r in rows if r["status"] == "ok"]
     gold = sum(len(r["gold_targets"]) for r in ok)
-    print(f"\n{len(ok)}/{len(rows)} ran. {gold} new gold target(s). baseline spend ${spent:.2f}")
+    # Under subscription auth the CLI still reports `total_cost_usd`, but it is what these
+    # tokens WOULD have cost on the API rather than money spent. Calling that "spend" would
+    # be a fabricated figure, so the label follows the auth mode.
+    label = "baseline spend" if auth == "api" else "baseline cost-equivalent (subscription)"
+    print(f"\n{len(ok)}/{len(rows)} ran. {gold} new gold target(s). {label} ${spent:.2f}")
+    if any(r["status"] != "ok" for r in rows):
+        print(
+            "  NB: failed runs report no cost, so the figure above counts successes only —"
+            "\n      a turn-limit failure is a full agentic run that this cannot see."
+        )
     if ok:
         mean = sum(r["net_at_2"] for r in ok) / len(ok)
         print(f"baseline net@2 over the cases that ran: {mean:+.2f}/case")
