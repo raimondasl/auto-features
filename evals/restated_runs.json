@@ -1,0 +1,368 @@
+{
+  "_comment": "Every published run C-25 touches, restated. 'as_measured' is what each run file contains; 'corrected' restores the picks three damaged caches forfeited. Derived by evals/restate_c25.py; pinned by tests/test_restate_c25.py.",
+  "damaged_caches": [
+    "compiler",
+    "graph",
+    "storage"
+  ],
+  "damage_date": "20260809",
+  "runs": [
+    {
+      "run_file": "judge-gpt-5.5-20260810T151649Z.json",
+      "n_cases": 23,
+      "n_cases_in_run": 25,
+      "baseline_failed": [
+        "speech",
+        "thin-lang"
+      ],
+      "is_headline": false,
+      "forfeited": [
+        {
+          "case": "compiler",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        },
+        {
+          "case": "graph",
+          "baseline_was": 0.0,
+          "baseline_now": 3.0,
+          "judge_scores": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "case": "storage",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        }
+      ],
+      "reporadar_shown": 127,
+      "reporadar_actionable": 114,
+      "as_measured": {
+        "reporadar": 3.83,
+        "baseline": 1.57,
+        "paired": 2.26,
+        "ci": [
+          0.87,
+          3.7
+        ],
+        "wins": 15,
+        "losses": 5,
+        "ties": 3,
+        "sign_p": 0.041389,
+        "baseline_shown": 45,
+        "baseline_actionable": 42,
+        "baseline_precision": 0.933
+      },
+      "corrected": {
+        "reporadar": 3.83,
+        "baseline": 1.87,
+        "paired": 1.96,
+        "ci": [
+          0.65,
+          3.26
+        ],
+        "wins": 14,
+        "losses": 6,
+        "ties": 3,
+        "sign_p": 0.115318,
+        "baseline_shown": 52,
+        "baseline_actionable": 49,
+        "baseline_precision": 0.942
+      }
+    },
+    {
+      "run_file": "judge-gpt-5.5-20260811T050358Z.json",
+      "n_cases": 24,
+      "n_cases_in_run": 25,
+      "baseline_failed": [
+        "thin-lang"
+      ],
+      "is_headline": false,
+      "forfeited": [
+        {
+          "case": "compiler",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        },
+        {
+          "case": "graph",
+          "baseline_was": 0.0,
+          "baseline_now": 3.0,
+          "judge_scores": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "case": "storage",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        }
+      ],
+      "reporadar_shown": 132,
+      "reporadar_actionable": 121,
+      "as_measured": {
+        "reporadar": 4.12,
+        "baseline": 1.62,
+        "paired": 2.5,
+        "ci": [
+          1.5,
+          3.58
+        ],
+        "wins": 18,
+        "losses": 1,
+        "ties": 5,
+        "sign_p": 7.6e-05,
+        "baseline_shown": 48,
+        "baseline_actionable": 45,
+        "baseline_precision": 0.938
+      },
+      "corrected": {
+        "reporadar": 4.12,
+        "baseline": 1.92,
+        "paired": 2.21,
+        "ci": [
+          1.25,
+          3.25
+        ],
+        "wins": 17,
+        "losses": 2,
+        "ties": 5,
+        "sign_p": 0.000729,
+        "baseline_shown": 55,
+        "baseline_actionable": 52,
+        "baseline_precision": 0.945
+      }
+    },
+    {
+      "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-20260814T175835Z.json",
+      "n_cases": 24,
+      "n_cases_in_run": 25,
+      "baseline_failed": [
+        "thin-lang"
+      ],
+      "is_headline": false,
+      "forfeited": [
+        {
+          "case": "compiler",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        },
+        {
+          "case": "graph",
+          "baseline_was": 0.0,
+          "baseline_now": 3.0,
+          "judge_scores": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "case": "storage",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        }
+      ],
+      "reporadar_shown": 196,
+      "reporadar_actionable": 174,
+      "as_measured": {
+        "reporadar": 5.42,
+        "baseline": 1.63,
+        "paired": 3.79,
+        "ci": [
+          2.17,
+          5.58
+        ],
+        "wins": 18,
+        "losses": 1,
+        "ties": 5,
+        "sign_p": 7.6e-05,
+        "baseline_shown": 48,
+        "baseline_actionable": 45,
+        "baseline_precision": 0.938
+      },
+      "corrected": {
+        "reporadar": 5.42,
+        "baseline": 1.92,
+        "paired": 3.5,
+        "ci": [
+          1.96,
+          5.12
+        ],
+        "wins": 17,
+        "losses": 2,
+        "ties": 5,
+        "sign_p": 0.000729,
+        "baseline_shown": 55,
+        "baseline_actionable": 52,
+        "baseline_precision": 0.945
+      }
+    },
+    {
+      "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json",
+      "n_cases": 25,
+      "n_cases_in_run": 25,
+      "baseline_failed": [],
+      "is_headline": true,
+      "forfeited": [
+        {
+          "case": "compiler",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        },
+        {
+          "case": "graph",
+          "baseline_was": 0.0,
+          "baseline_now": 3.0,
+          "judge_scores": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "case": "storage",
+          "baseline_was": 0.0,
+          "baseline_now": 2.0,
+          "judge_scores": [
+            2,
+            2
+          ]
+        }
+      ],
+      "reporadar_shown": 212,
+      "reporadar_actionable": 189,
+      "as_measured": {
+        "reporadar": 5.72,
+        "baseline": 1.56,
+        "paired": 4.16,
+        "ci": [
+          2.44,
+          6.0
+        ],
+        "wins": 18,
+        "losses": 2,
+        "ties": 5,
+        "sign_p": 0.000402,
+        "baseline_shown": 51,
+        "baseline_actionable": 47,
+        "baseline_precision": 0.922
+      },
+      "corrected": {
+        "reporadar": 5.72,
+        "baseline": 1.84,
+        "paired": 3.88,
+        "ci": [
+          2.24,
+          5.6
+        ],
+        "wins": 17,
+        "losses": 2,
+        "ties": 6,
+        "sign_p": 0.000729,
+        "baseline_shown": 58,
+        "baseline_actionable": 54,
+        "baseline_precision": 0.931
+      }
+    }
+  ],
+  "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json",
+  "n_cases": 25,
+  "forfeited": [
+    {
+      "case": "compiler",
+      "baseline_was": 0.0,
+      "baseline_now": 2.0,
+      "judge_scores": [
+        2,
+        2
+      ]
+    },
+    {
+      "case": "graph",
+      "baseline_was": 0.0,
+      "baseline_now": 3.0,
+      "judge_scores": [
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "case": "storage",
+      "baseline_was": 0.0,
+      "baseline_now": 2.0,
+      "judge_scores": [
+        2,
+        2
+      ]
+    }
+  ],
+  "reporadar_shown": 212,
+  "reporadar_actionable": 189,
+  "as_measured": {
+    "reporadar": 5.72,
+    "baseline": 1.56,
+    "paired": 4.16,
+    "ci": [
+      2.44,
+      6.0
+    ],
+    "wins": 18,
+    "losses": 2,
+    "ties": 5,
+    "sign_p": 0.000402,
+    "baseline_shown": 51,
+    "baseline_actionable": 47,
+    "baseline_precision": 0.922
+  },
+  "corrected": {
+    "reporadar": 5.72,
+    "baseline": 1.84,
+    "paired": 3.88,
+    "ci": [
+      2.24,
+      5.6
+    ],
+    "wins": 17,
+    "losses": 2,
+    "ties": 6,
+    "sign_p": 0.000729,
+    "baseline_shown": 58,
+    "baseline_actionable": 54,
+    "baseline_precision": 0.931
+  }
+}

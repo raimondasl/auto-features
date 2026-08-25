@@ -8,16 +8,17 @@ repeated here — it lives in:
 |---|---|
 | [`RESEARCH.md`](RESEARCH.md) | the experiment record, organised by problem (§9 is current) |
 | [`ROADMAP.md`](ROADMAP.md) | the feature/probe ledger, item by item, with verdicts |
-| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P11, NR series, C-1–22; a few NR ids are assigned in paper/DRAFT.md's appendix) |
+| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P13, NR series, C-1–25; a few NR ids are assigned in paper/DRAFT.md's appendix) |
 | [`archive/`](archive/) | superseded plans, kept verbatim (MVP plan, original sketch, retrieval designs) |
 
-## Where the system stands (2026-08-17)
+## Where the system stands (2026-08-25)
 
 The measured configuration (`rr init --measured`) ships HyDE dense discovery, hybrid
 fusion, the Haiku actionability gate, and the fine-scale logprob rescore. Published
 headline: **mean net@2 +5.72** on the 25-repo benchmark against the agentic baseline's
 +1.56 (paired +4.16, sign p = 0.0004), precision 0.892 — the comparator is understated
-by ~0.28/case and corrects to ≈ +1.84 / paired ≈ +3.88 (C-25); independent draws of the same
+by 0.28/case and corrects to **+1.84 / paired +3.88**, CI [+2.24, +5.60], p = 0.0007
+(C-25; `evals/restate_c25.py`); independent draws of the same
 configuration land +5.7 to +6.2, one-flag control variants around +4.8–+5.2 (C-7: a
 single draw's level is not a property of the method). The keyword-only default remains **−8.12** — worse than emitting nothing.
 
@@ -73,7 +74,40 @@ papers, ~50% actionable rate, concentrated in `bio-*`/`mat-*` — and no shipped
 can reach it. But a static snapshot is not the way, and that is now measured rather than
 assumed. Revisit only with a corpus that updates.
 
-### 2. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
+### 2. Finish the scientific cohort's comparator — blocked on a turn budget, not on money [P14]
+
+Eight of the twelve `bio-*`/`mat-*` cases now carry the published `cli` comparator and 17
+gold targets of their own (`evals/fill_cli_baseline.py`, $7.04, at the pinned discriminator
+so the other 25 did not move). Two results change what any future claim on this cohort has
+to clear:
+
+- **The baseline is *stronger* here than on the benchmark the headline uses** — 17 picks,
+  17 actionable, precision **1.000**, **+2.12 net@2/case** against +1.68 (+1.84 corrected)
+  on the 25. Scoring this cohort against `api`, as everything before P14 did, understated
+  the bar by 0.62/case.
+- **`cli` and `api` share literally zero picks here**, across eight cases and seven where
+  both returned papers. P13's "different systems" finding is sharper off-distribution.
+
+**What is blocked.** `bio-scvi`, `mat-mlip`, `mat-toolkit` and `mat-phonon` return
+`error_max_turns` at the `--max-turns 12` in `CLAUDE_FLAGS` — a third of the cohort, against
+2 of the original 25. Raising the limit changes `_discriminator`, which re-runs **all 37**
+cases and redefines the gold set (the 2026-08-09 incident). Running only those four at 30
+turns is worse: the gold set would then mix two comparator configurations silently, since
+`actionable_baseline_ids` reads `status` and not `_disc`.
+
+So this needs a decision, not an afternoon:
+
+| option | cost | what it buys / costs |
+|---|---|---|
+| **leave at 8/12** | $0 | +2.12 stands but excludes the four largest repos; bias direction unknown |
+| re-run all 37 at 30 turns | ~$40 | one comparator config across the benchmark; **redefines the gold set**, so every published recall denominator must be re-derived and re-stated |
+| a second pinned config, namespaced | ~$15 | four cases measured, but two comparators in one benchmark — do not do this without a cache-level guard that refuses to mix them |
+
+Recommendation: leave it at 8/12 until something actually needs the four. The +2.12 is
+already enough to price any scientific-software claim, and the note about which repositories
+are missing travels with it. On that recommendation the next thing to *do* is item 3.
+
+### 3. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
 
 597 gold-labelled queries (arXiv:2407.18940) over recent ML/NLP — squarely inside the
 index's coverage. The binary-quantized index has bit-identical encoder verification but
@@ -82,7 +116,7 @@ or one bad yearly shard silently cost 15 points of recall. Embed the queries, fr
 recall@5/@20, wire as an exit-nonzero gate after `rr sync-index`. Explicitly **not** a
 net@2 claim — researcher questions are a different register from repo→paper.
 
-### 3. $0 hygiene, run when convenient
+### 4. $0 hygiene, run when convenient
 
 - **Judge-contamination re-analysis** (from LitLLMs): stratify the already-cached judge
   verdicts by paper publication date vs judge-model cutoff; test whether actionability
@@ -93,7 +127,7 @@ net@2 claim — researcher questions are a different register from repo→paper.
   16 closed; run it only if a new repo-side proposal appears, and run it *before* that
   proposal's Tier B.
 
-### 4. OpenAlex-Topic community match for ordering the gate-admitted band — $0 probe, weak prior
+### 5. OpenAlex-Topic community match for ordering the gate-admitted band — $0 probe, weak prior
 
 The one open idea downstream of the gate, which is where the four-null record says any
 remaining headroom must be. From "Topic Is Not Agenda" (arXiv:2605.07158), reduced to its
@@ -103,7 +137,7 @@ at 0.585; the finescale incumbent at 0.841). No graph build under any circumstan
 S2 truncation wall (§3.5 correction) and six no-bibliography repos price it out. Pairs
 with ROADMAP item 12's unshipped Topics work if it ever passes.
 
-### 5. Product work, judged on demand rather than evidence
+### 6. Product work, judged on demand rather than evidence
 
 - **`rr ask`** (ROADMAP 15) — citation-grounded Q&A, "a product bet, not a research one",
   sequenced v2.0. OpenScholar's cite-or-abstain recipe and PaperQA2 are the named
@@ -116,7 +150,7 @@ with ROADMAP item 12's unshipped Topics work if it ever passes.
   labelled headers. Cosmetic, cannot touch net@2 by construction; if done, assert
   digest-set equality in tests.
 
-### 6. Held — real gaps with no affordable next step
+### 7. Held — real gaps with no affordable next step
 
 - **Thin docs** — still the sharpest gap (RESEARCH.md §8.6; measured in paper/DRAFT.md
   §12.1–12.2). What remains unestablished is the expensive implication: `scan_source`

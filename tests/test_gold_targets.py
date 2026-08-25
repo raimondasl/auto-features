@@ -20,6 +20,13 @@ A failure here is not necessarily a bug. It means a denominator moved, and the q
 whether that was intended. If it was, re-freeze deliberately:
 
     uv run python evals/freeze_gold_targets.py
+
+**The set is now two cohorts, and only one of them is published.** On 2026-08-25 the
+`bio-*`/`mat-*` cases got the `cli` comparator the other 25 had always been measured
+against, and brought 17 gold targets of their own. Those are real targets and they belong
+in the artifact -- but no published figure divides by them, so the artifact carries a
+per-cohort split and `benchmark25` is pinned at **56** below. Anyone computing recall over
+all 73 and comparing it to 43/56 would be committing C-17 with our own data.
 """
 
 from __future__ import annotations
@@ -59,6 +66,37 @@ class TestTheArtifactIsSelfConsistent:
     def test_no_duplicate_ids_within_a_case(self, frozen):
         for case, ids in frozen["targets"].items():
             assert len(ids) == len(set(ids)), f"{case} has duplicate target ids"
+
+    def test_the_published_denominator_is_still_56(self, frozen):
+        """The one number in this file that published figures actually divide by.
+
+        21/56, 34/56 and 43/56 are over the **25-case** benchmark. The `bio-*`/`mat-*`
+        cohort was added later and carries its own targets; adding them must never move
+        this. If it does, every recall figure in the paper and RESULTS.md is wrong by
+        exactly the C-17 mechanism -- a number measured under one set of coordinates
+        quoted against another.
+        """
+        assert frozen["cohorts"]["benchmark25"] == {"n_targets": 56, "n_cases": 20}
+
+    def test_the_cohorts_partition_the_set(self, frozen):
+        from freeze_gold_targets import cohort_of
+
+        counted = {}
+        for case, ids in frozen["targets"].items():
+            bucket = counted.setdefault(cohort_of(case), {"n_targets": 0, "n_cases": 0})
+            bucket["n_targets"] += len(ids)
+            bucket["n_cases"] += 1
+        assert counted == frozen["cohorts"]
+        assert sum(c["n_targets"] for c in counted.values()) == frozen["n_targets"]
+        assert sum(c["n_cases"] for c in counted.values()) == frozen["n_cases"]
+
+    def test_the_scientific_cohort_is_all_bio_or_mat(self, frozen):
+        """A miscategorised case would quietly move the published denominator."""
+        from freeze_gold_targets import cohort_of
+
+        sci = {c for c in frozen["targets"] if cohort_of(c) == "scisoft"}
+        assert sci and all(c.startswith(("bio-", "mat-")) for c in sci)
+        assert not any(c.startswith(("bio-", "mat-")) for c in frozen["targets"] if c not in sci)
 
     def test_provenance_covers_every_target(self, frozen):
         for case, ids in frozen["targets"].items():

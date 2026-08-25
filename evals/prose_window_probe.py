@@ -87,6 +87,8 @@ def _repo_name(repo: Path) -> str:
         ["git", "-C", str(repo), "config", "--get", "remote.origin.url"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     ).stdout.strip()
     return url.rstrip("/").split("/")[-1].removesuffix(".git") if url else repo.name
 

@@ -152,14 +152,22 @@ def _run_mock() -> dict[str, Any]:
 # ── mode: cli (Claude Code headless) ───────────────────────────────────────
 
 
-def _parse_cli_payload(stdout: str) -> tuple[dict[str, Any] | None, str]:
+def _parse_cli_payload(stdout: str | None) -> tuple[dict[str, Any] | None, str]:
     """Parse `claude -p --output-format json` stdout into an ok baseline dict.
 
     Returns (ok_dict, "") on success or (None, reason). `claude` reports internal
     failures (turn-limit, execution errors) via is_error / subtype while still
     exiting 0; a non-JSON stdout means it printed a raw error. All of these are
     failures — never parse them for "recommendations".
+
+    ``stdout`` is typed optional because `subprocess.run` really can hand back
+    ``None``: a reader thread that dies decoding leaves the attribute unset, and it
+    prints the traceback rather than raising into the caller. Every other failure in
+    this module is a `status` a caller can act on, so this one is too — an exception
+    here aborts a whole batch, several frames from the actual cause.
     """
+    if not stdout:
+        return None, "claude produced no readable stdout (decode failure or empty output)"
     try:
         payload = json.loads(stdout)
     except json.JSONDecodeError:
@@ -197,7 +205,17 @@ def _run_cli(repo_dir: Path, *, flags: list[str] | None, timeout: int) -> dict[s
                 cmd,
                 cwd=str(repo_dir),
                 capture_output=True,
-                text=True,
+                # NOT bare text=True. That decodes with the LOCALE codec, which on this
+                # project's Windows box is cp1252 — and `claude --output-format json` emits
+                # UTF-8, by contract. One undefined byte (0x81, position 1556 of scanpy's
+                # answer, 2026-08-25) makes the reader thread raise UnicodeDecodeError,
+                # which `subprocess.run` prints and swallows, handing back `stdout=None`.
+                # The TypeError then surfaced four frames away in `json.loads`, uncaught,
+                # killing an 11-case batch on its first case after it had already been
+                # billed for the answer. The encoding is knowable here, so state it; the
+                # decode must never be the thing that fails, so replace rather than raise.
+                encoding="utf-8",
+                errors="replace",
                 timeout=timeout,
                 env=env,
                 # DEVNULL, not inherited. Without this the CLI inherits the parent's stdin

@@ -74,9 +74,13 @@ def fetch(slug: str) -> list[str]:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        # Issue titles are the least ASCII data this project touches, and this arm exists
+        # to keep them VERBATIM. Without `errors` a single bad byte leaves stdout unset and
+        # the failure lands on `.splitlines()`, three lines below the cause.
+        errors="replace",
     )
     if res.returncode != 0:
-        raise RuntimeError(res.stderr.strip()[:200])
+        raise RuntimeError((res.stderr or "").strip()[:200])
     titles = [t.strip()[:MAX_TITLE_CHARS] for t in res.stdout.splitlines() if t.strip()]
     return titles[:TOP_N]
 

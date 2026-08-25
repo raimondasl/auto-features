@@ -75,7 +75,12 @@ def run_shell_hook(command: str, summary: DigestSummary) -> bool:
             shell=True,
             env=env,
             capture_output=True,
+            # The locale codec is kept here, unlike the `gh` and `claude` calls: this runs
+            # an ARBITRARY user command whose output encoding is genuinely not ours to
+            # assert. Only `errors` is pinned, so a stray byte can never leave `stderr`
+            # unset and turn a failed hook into a crash inside the warning that reports it.
             text=True,
+            errors="replace",
             timeout=60,
         )
         if result.returncode != 0:
