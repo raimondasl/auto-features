@@ -29,6 +29,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | where does a new source's contribution die, and is it shown twice? (RESEARCH-scientific-software.md §39) | `source_funnel.py` ($0, judge-free; the funnel, displacement, and the cross-scheme duplicate check) |
 | which repos would a profiler fix change, and how? (RESEARCH-scientific-software.md §41) | `prose_window_probe.py` ($0, judge-free; §15.3's defective stratum is TWO defects, and no single fix reaches both) |
 | does re-anchoring the prose window help? (RESEARCH-scientific-software.md §42-44) | `prose_anchor_arm.py` (~$3; LOSS — +6.0 on the case the rule was fitted to, -4.0 on the two held out) |
+| how much does the gate depend on what it is told the repo IS? (RESEARCH-scientific-software.md §45) | `gate_prose_sensitivity.py` ($0; less description = MORE admitted, and the shipped 300 chars is the peak) |
 | §4.5 debugging the benchmark | `run_eval.py`, `harness.py` |
 | §5.1–5.2 retrieval failure, register mismatch | `diagnose_pool.py`, `diagnose_query_generation.py`, `gap_match.py`, `extend_vs_improve.py` |
 | §5.3 citation hop | `diagnose_citation_hop.py`, `build_hop_pool.py`, `hop_reach.py`, `sweep_hop_filter.py`, `synth_seeds.py`, `fill_pool_metadata.py` |
@@ -1019,6 +1020,21 @@ evals/
                      and projects every judged conclusion through second_judge.py's transition
                      table BEFORE stating it -- the check that would have caught RESEARCH
                      §17.2 before it was written.
+
+  gate_prose_sensitivity.py
+                     $0, no new calls: joins the four diagnose_triage runs that scored the SAME
+                     602 labelled papers under four repository descriptions, and asks how much
+                     the gate depends on what it is told the repo is. Written because §44 saw
+                     ONE repository handed marketing prose gate 15 of 15 papers actionable.
+                     RESULT (§45): the effect generalises and is monotone -- no prose admits
+                     25.1% of the pool, the packaging one-liner 22.1%, the shipped 300 chars
+                     20.8% -- and it is not merely strictness, since precision rises 0.828 ->
+                     0.920 and AUC 0.918 -> 0.930 alongside. 6000 chars reverses every column.
+                     The new part is the DECOMPOSITION: the known +22 net@2 for prose is not the
+                     gate finding more good papers (recall FALLS, 74.4% -> 68.5%) but refusing
+                     better. Keeps permissiveness and discrimination as separate axes on
+                     purpose. Cannot speak to VAGUE prose, which is what §44 actually saw --
+                     no run on disk gives the gate a description that is present but useless.
 
   gate_shape.py
                      $0, judge-free: the gate's score distribution per case and its emission
