@@ -1,6 +1,6 @@
 """P4 stage 1: verify Design 2's four load-bearing dependencies before building on them.
 
-RETRIEVAL_DESIGN Design 2 ("Wanted Poster") is the largest single recall candidate in the
+archive/RETRIEVAL_DESIGN.md Design 2 ("Wanted Poster") is the largest single recall candidate in the
 project — REPORTED 8/24 in top-100 against 1/24 for TF-IDF, and it covers `crypto` and
 `systems`, which are structural zeros for the citation hop. It is also the design whose
 every dependency is explicitly unverified, in a project where one REPORTED estimate was off

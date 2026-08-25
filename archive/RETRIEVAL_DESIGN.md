@@ -1,9 +1,18 @@
+> **ARCHIVED 2026-08-17 — every question this document posed is answered.** All three
+> designs were measured (verdict box below stands). One line has since gone stale: Design 2
+> (HyDE) is no longer "unshipped" — it shipped in PRs #105/#106 and is the measured
+> configuration's best channel (+1.36 net@2 end to end; the full system with it cleared p < 0.05 vs the
+> baseline for the first time). Design 1's hop remains in `evals/` only; Design 3 was never built and its
+> negative (similarity is the wrong relation) held through P9-P11. Kept verbatim as the
+> design-reasoning record; historical references to `RETRIEVAL_DESIGN.md` in
+> `evals/RESULTS.md` and `reports/` refer to this file.
+
 # Retrieval design — where RepoRadar's candidate pool comes from, and what to do about it
 
 **Status: three designs proposed 2026-08-02; all three now measured (2026-08-06/09).** This
 records the candidate architectures and the evidence for and against each, so the design work
 is not lost and is not redone. Read [`evals/RESULTS.md` → Candidate-pool
-diagnosis](evals/RESULTS.md) first — it holds the measurements this is reasoning about.
+diagnosis](../evals/RESULTS.md) first — it holds the measurements this is reasoning about.
 
 > ### Verdicts, so nobody reads the sketches as open questions
 >

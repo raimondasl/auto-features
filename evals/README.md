@@ -577,7 +577,7 @@ evals/
                      at 1 good paper per 5111 candidates (recall solved, precision not)
   verify_hyde_deps.py
                      free/keyless, P4 stage 1: the four load-bearing dependencies of
-                     RETRIEVAL_DESIGN Design 2 — does the 3.1M-vector arXiv index exist
+                     archive/RETRIEVAL_DESIGN.md Design 2 — does the 3.1M-vector arXiv index exist
                      under a usable licence, is columnar range-fetch real, is the query
                      latency reproducible, are the targets in it. Gates stage 2 at 4/4
   hyde_replication.py
