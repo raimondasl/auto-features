@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import baseline as baseline_mod  # noqa: E402
 from build_hop_pool import resolve_targets  # noqa: E402
-from diagnose_pool import BASELINE  # noqa: E402
+from diagnose_pool import BASELINE, JUDGE, _judge_stem  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 FROZEN = EVALS / "gold_targets.json"
@@ -60,6 +60,31 @@ def provenance() -> dict[str, dict[str, str]]:
     return out
 
 
+def incomplete() -> dict[str, list[str]]:
+    """{case: picks the judge has no verdict for} -- cases that are not finished.
+
+    A cached baseline whose picks were never judged looks exactly like one whose picks were
+    all judged below the bar: it contributes no gold targets either way. `mat-phonon` reached
+    that state on 2026-08-26 when arXiv throttled (HTTP 429) mid-run and one of its three
+    picks could not be resolved, so it was never scored. Recording the gap is what keeps this
+    artifact from asserting a completeness it does not have -- the same reason `ids-only`
+    provenance is labelled rather than dropped.
+    """
+    out: dict[str, list[str]] = {}
+    for cache in sorted(BASELINE.glob("*.json")):
+        data = json.loads(cache.read_text(encoding="utf-8"))
+        if data.get("status") != "ok":
+            continue
+        raw = data.get("raw") or ""
+        ids, _ = baseline_mod._parse_recommendations(raw)
+        if not ids and not baseline_mod._has_answer_block(raw):
+            ids = list(data.get("ids") or [])
+        missing = [i for i in ids if not list((JUDGE / cache.stem).glob(f"{_judge_stem(i)}*.json"))]
+        if missing:
+            out[cache.stem] = missing
+    return out
+
+
 def cohort_of(case: str) -> str:
     """Which benchmark cohort a case belongs to.
 
@@ -76,6 +101,7 @@ def cohort_of(case: str) -> str:
 
 def build() -> dict[str, object]:
     prov = provenance()
+    pending = incomplete()
     orphans = {c: [i for i, p in v.items() if p == "ids-only"] for c, v in prov.items()}
     orphans = {c: v for c, v in orphans.items() if v}
     cohorts: dict[str, dict[str, int]] = {}
@@ -95,6 +121,10 @@ def build() -> dict[str, object]:
         "n_cases": len(prov),
         "n_ids_only": sum(len(v) for v in orphans.values()),
         "cohorts": dict(sorted(cohorts.items())),
+        # Cases whose cached picks are not all judged. They contribute whatever targets they
+        # have, and the shortfall is named rather than left to look like a judge rejection.
+        "incomplete": pending,
+        "n_incomplete_picks": sum(len(v) for v in pending.values()),
         "orphans": orphans,
         "targets": {c: sorted(v) for c, v in sorted(prov.items())},
         "provenance": {c: dict(sorted(v.items())) for c, v in sorted(prov.items())},
@@ -138,6 +168,11 @@ def main() -> int:
     print(f"  {current['n_ids_only']} not reproducible from `raw`:")
     for case, ids in sorted(current["orphans"].items()):  # type: ignore[union-attr]
         print(f"    {case:12} {ids}")
+    if current["incomplete"]:  # type: ignore[index]
+        print(f"  {current['n_incomplete_picks']} pick(s) cached but NOT JUDGED:")
+        for case, ids in sorted(current["incomplete"].items()):  # type: ignore[union-attr]
+            print(f"    {case:12} {ids}")
+        print("    (these cases are unfinished; re-run fill_cli_baseline.py to judge them)")
     return 0
 
 

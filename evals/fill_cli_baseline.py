@@ -67,19 +67,54 @@ ACTIONABLE = 2
 PINNED_DISCRIMINATOR = "da766b38114e"
 
 
-def missing_cases(bench: dict[str, Any], only: set[str] | None) -> list[dict[str, Any]]:
-    """Cases with a live repo and no `cli` baseline cache yet."""
-    out = []
+def cached_picks(case: str) -> list[str] | None:
+    """The picks a cached `cli` run holds, or None when there is no usable cache."""
+    path = CLI_CACHE / f"{case}.json"
+    if not path.is_file():
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("status") != "ok":
+        return None
+    raw = data.get("raw") or ""
+    ids, _ = baseline_mod._parse_recommendations(raw)
+    if not ids and not baseline_mod._has_answer_block(raw):
+        ids = list(data.get("ids") or [])  # the C-25 fallback
+    return ids
+
+
+def unjudged(case: str, ids: list[str]) -> list[str]:
+    """Which of *ids* the judge has no verdict for."""
+    return [i for i in ids if not list((JUDGE / case).glob(f"{_judge_stem(i)}*.json"))]
+
+
+def incomplete_cases(
+    bench: dict[str, Any], only: set[str] | None
+) -> tuple[list[dict[str, Any]], list[tuple[dict[str, Any], list[str]]]]:
+    """Split candidates into (needs a baseline run, needs only judging).
+
+    A case is not finished when it has a cache but some of its picks were never judged, and
+    that state is reachable: `run_baseline` caches as soon as the model answers, while this
+    driver can still bail afterwards -- an arXiv lookup failure did exactly that to
+    `mat-phonon` on 2026-08-26, leaving 3 cached picks with 1 unjudged. Keyed on the cache
+    file alone, the case then looks DONE forever, and its unjudged pick is indistinguishable
+    from one the judge scored below the bar: void read as null, in the gold set.
+
+    The two lists are kept apart because the remedies differ and one of them is dangerous:
+    a case with no cache needs the baseline run, and a case WITH a cache must never be
+    re-run -- that redefines ground truth -- so it gets judging only.
+    """
+    to_run: list[dict[str, Any]] = []
+    to_judge: list[tuple[dict[str, Any], list[str]]] = []
     for case in bench["cases"]:
         name = case["name"]
-        if only is not None and name not in only:
+        if (only is not None and name not in only) or not case.get("live_repo"):
             continue
-        if not case.get("live_repo"):
-            continue
-        if (CLI_CACHE / f"{name}.json").is_file():
-            continue
-        out.append(case)
-    return out
+        picks = cached_picks(name)
+        if picks is None:
+            to_run.append(case)
+        elif missing := unjudged(name, picks):
+            to_judge.append((case, missing))
+    return to_run, to_judge
 
 
 def run_case(case: dict[str, Any], *, model: str) -> dict[str, Any]:
@@ -96,15 +131,15 @@ def run_case(case: dict[str, Any], *, model: str) -> dict[str, Any]:
         return {"case": name, "status": status, "raw": (result.get("raw") or "")[:200]}
 
     papers, hallucinated, lookup_failed = resolve_references(result["ids"], result["titles"])
+    # An arXiv outage is not the baseline's fault, and a paper we could not verify must not
+    # be judged as if we had (C-15's rule: a collection failure is loud, not scored). What
+    # the first version got wrong was bailing on the WHOLE case: `run_baseline` has already
+    # cached the model's answer by this point, so an early return left a finished-looking
+    # cache whose picks were never judged, and `incomplete_cases` is the other half of that
+    # repair. Judge everything that did resolve, and report the shortfall so the case is
+    # picked up again rather than silently counted as complete.
     if lookup_failed:
-        # An arXiv outage is not the baseline's fault, and a paper we could not verify must
-        # not be judged as if we had (C-15's rule: a collection failure is loud, not scored).
-        return {
-            "case": name,
-            "status": "arxiv_unverified",
-            "n_lookup_failed": lookup_failed,
-            "cost_usd": result.get("cost_usd", 0.0),
-        }
+        print(f"      ! arXiv lookup failed for {lookup_failed} ref(s); judging the rest")
 
     scores: dict[str, int] = {}
     failed = 0
@@ -120,15 +155,61 @@ def run_case(case: dict[str, Any], *, model: str) -> dict[str, Any]:
     gold = sorted(pid for pid, s in scores.items() if s >= ACTIONABLE)
     return {
         "case": name,
-        "status": "ok",
+        # "partial" when something the baseline recommended could not be verified or judged:
+        # the cache is real and stays, but the case is not finished and must be revisited.
+        "status": "partial" if (lookup_failed or failed) else "ok",
         "n_returned": len(result["ids"]) + len(result["titles"]),
         "n_resolved": len(papers),
+        "n_lookup_failed": lookup_failed,
         "n_hallucinated": hallucinated,
         "n_judged": len(scores),
         "n_judge_failed": failed,
         "gold_targets": gold,
         "net_at_2": sum(1 if s >= ACTIONABLE else -2 for s in scores.values()),
         "cost_usd": result.get("cost_usd", 0.0),
+    }
+
+
+def judge_only(case: dict[str, Any], ids: list[str], *, model: str) -> dict[str, Any]:
+    """Score picks a cached run already made. **Never re-runs the baseline.**
+
+    This is the safe half of the repair: the cached answer is ground truth for this case, so
+    completing it must not touch `run_baseline` at all -- re-running would redefine the gold
+    set, which is the one thing this script exists to prevent.
+    """
+    name = case["name"]
+    dest = clone_repo(case["live_repo"], WORK_DIR / name, reuse=True)
+    if dest is None:
+        return {"case": name, "status": "clone_failed"}
+    repo_context = assemble_repo_context(dest)
+    papers, hallucinated, lookup_failed = resolve_references(ids, [])
+    if lookup_failed:
+        print(f"      ! arXiv lookup failed for {lookup_failed} ref(s); judging the rest")
+
+    scores: dict[str, int] = {}
+    failed = 0
+    for paper in papers:
+        try:
+            verdict = judge_mod.judge_paper(name, repo_context, paper, model=model)
+        except Exception as exc:  # noqa: BLE001 -- never score an unjudged paper as 0
+            failed += 1
+            print(f"      ! judge failed for {paper['arxiv_id']}: {str(exc)[:120]}")
+            continue
+        scores[paper["arxiv_id"]] = int(verdict["score"])
+
+    return {
+        "case": name,
+        "status": "partial" if (lookup_failed or failed) else "ok",
+        "mode": "judge-only",
+        "n_returned": len(ids),
+        "n_resolved": len(papers),
+        "n_lookup_failed": lookup_failed,
+        "n_hallucinated": hallucinated,
+        "n_judged": len(scores),
+        "n_judge_failed": failed,
+        "gold_targets": sorted(p for p, s in scores.items() if s >= ACTIONABLE),
+        "net_at_2": sum(1 if s >= ACTIONABLE else -2 for s in scores.values()),
+        "cost_usd": 0.0,
     }
 
 
@@ -258,27 +339,39 @@ def main() -> int:
         if unknown := only - known:
             print(f"! unknown case(s): {sorted(unknown)}")
             return 1
-    todo = missing_cases(bench, only)
+    todo, to_judge = incomplete_cases(bench, only)
     have = sorted(p.stem for p in CLI_CACHE.glob("*.json"))
 
     print(f"cli baselines on disk: {len(have)}")
     print(f"cases with no cli baseline: {len(todo)}")
     for case in todo:
         print(f"  {case['name']:<18} {case['live_repo']}")
-    if only and (skipped := sorted(only - {c["name"] for c in todo})):
-        print("\nskipped (already have a cli cache -- re-running would move the gold set):")
+    if to_judge:
+        print(f"cases cached but not fully judged: {len(to_judge)}  (judged, never re-run)")
+        for case, missing in to_judge:
+            print(f"  {case['name']:<18} {len(missing)} unjudged pick(s): {missing}")
+    handled = {c["name"] for c in todo} | {c["name"] for c, _ in to_judge}
+    if only and (skipped := sorted(only - handled)):
+        print("\nskipped (cached and fully judged -- re-running would move the gold set):")
         for name in skipped:
             print(f"  {name}")
-    if args.dry_run or not todo:
+    if args.dry_run or not (todo or to_judge):
         print("\n(dry run)" if args.dry_run else "\nnothing to do.")
         return 0
 
     rows = []
     spent = 0.0
-    for i, case in enumerate(todo, start=1):
-        print(f"\n[{i}/{len(todo)}] {case['name']}")
+    work: list[tuple[dict[str, Any], list[str] | None]] = [(c, None) for c in todo]
+    work += [(c, m) for c, m in to_judge]
+    for i, (case, missing) in enumerate(work, start=1):
+        label = "judge-only" if missing is not None else "baseline+judge"
+        print(f"\n[{i}/{len(work)}] {case['name']} ({label})")
         try:
-            row = run_case(case, model=args.model)
+            row = (
+                judge_only(case, missing, model=args.model)
+                if missing is not None
+                else run_case(case, model=args.model)
+            )
         except Exception as exc:  # noqa: BLE001 -- one bad case must not abort the batch
             # 2026-08-25: a UnicodeDecodeError in `subprocess.run`'s reader thread left
             # `stdout` unset, and the TypeError four frames later killed an 11-case run on
@@ -289,7 +382,7 @@ def main() -> int:
             row = {"case": case["name"], "status": "crashed", "raw": str(exc)[:200]}
         rows.append(row)
         spent += float(row.get("cost_usd") or 0.0)
-        if row["status"] != "ok":
+        if row["status"] not in ("ok", "partial"):
             print(f"      !! did not run [{row['status']}] {row.get('raw', '')}")
             continue
         print(
@@ -298,8 +391,13 @@ def main() -> int:
             f"{len(row['gold_targets'])} actionable, net@2 {row['net_at_2']:+.0f} "
             f"(${row['cost_usd']:.2f})"
         )
+        if row["status"] == "partial":
+            print(
+                f"      ! PARTIAL: {row.get('n_lookup_failed', 0)} unverified, "
+                f"{row.get('n_judge_failed', 0)} unjudged — re-run to finish this case"
+            )
 
-    ok = [r for r in rows if r["status"] == "ok"]
+    ok = [r for r in rows if r["status"] in ("ok", "partial")]
     gold = sum(len(r["gold_targets"]) for r in ok)
     # Under subscription auth the CLI still reports `total_cost_usd`, but it is what these
     # tokens WOULD have cost on the API rather than money spent. Calling that "spend" would

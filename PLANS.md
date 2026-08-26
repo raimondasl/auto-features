@@ -8,7 +8,7 @@ repeated here — it lives in:
 |---|---|
 | [`RESEARCH.md`](RESEARCH.md) | the experiment record, organised by problem (§9 is current) |
 | [`ROADMAP.md`](ROADMAP.md) | the feature/probe ledger, item by item, with verdicts |
-| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P15, NR series, C-1–29; a few NR ids are assigned in paper/DRAFT.md's appendix) |
+| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P15, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
 | [`archive/`](archive/) | superseded plans, kept verbatim (MVP plan, original sketch, retrieval designs) |
 
 ## Where the system stands (2026-08-25)
@@ -88,11 +88,23 @@ identical flags, `mat-mlip`/MACE and `mat-phonon`/phonopy **succeed at 12 turns*
 — that the budget "does not transfer to large scientific codebases" — attributed to domain
 what belongs to nondeterminism.
 
-**Free consequence, do this first:** `mat-mlip` and `mat-phonon` can get `cli` baselines and
-gold targets for the price of a re-run at *unchanged* flags, taking the scientific cohort
-from 8/12 to 10/12 without touching the discriminator. It adds targets rather than moving
-any, exactly as P14 did. Note it also adds two more single-draw targets to a gold set the
-item below argues is already a sample — worth doing, worth doing knowingly.
+**Done, and it half worked [C-30].** Re-run at unchanged flags, `mat-phonon` succeeded
+(3 picks, **+2 gold targets**) but **`mat-mlip` failed at 12 turns again** — one success in
+three draws. "We already know they succeed" over-read a single draw: C-28's point is that
+the *failures* are draws, and the successes are draws in the same way. Cohort **8/12 → 9/12**;
+gold set 73 → 75; `benchmark25` untouched at 56.
+
+The run also stranded a cache — `mat-phonon`'s baseline was cached, then arXiv threw HTTP 429
+and none of its picks were judged, leaving a case that looked finished and contributed
+nothing, indistinguishable from one the judge had rejected. Repaired at the root
+(`incomplete_cases` / `judge_only` / an `incomplete` field in the frozen artifact); one pick
+remains unjudged until the throttle clears.
+
+**Still open on this cohort:** `bio-scvi`, `mat-mlip`, `mat-toolkit`. Given the draw
+behaviour, retrying them at unchanged flags is cheap and may simply work — but note the
+selection effect it feeds: every cached answer is conditioned on a run that *completed*, so
+cases whose agent tends to run long are represented only by their short draws. That bias is
+benchmark-wide, unmeasured, and gets slightly worse each time we retry until success.
 
 **What the control arm found instead is the real item.** A re-run of the *identical*
 configuration disagrees with the stored answer on **~59% of picks** (mean J = 0.41). Pick

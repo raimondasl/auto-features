@@ -1317,6 +1317,60 @@ compare. The A-vs-B statistics are now computed only over cases with a successfu
 published figure carried the wrong value; it existed for about ten minutes, in this session,
 in a statistic written to price exactly this class of error.
 
+
+#### Cashing in C-28: one of the two rescued cases did not stay rescued **[C-30]**
+
+C-28 showed `mat-mlip` and `mat-phonon` succeeding at 12 turns where P14 had recorded
+`error_max_turns`, so both looked collectable at unchanged flags. Run for real:
+
+| case | repository | outcome | picks | gold targets |
+|---|---|---|---|---|
+| `mat-mlip` | MACE | **`error_max_turns` again** | — | — |
+| `mat-phonon` | phonopy | ok, `num_turns` 25 | 3 | **+2** (both judged 2) |
+
+**`mat-mlip` has now failed at 12 turns twice and succeeded once** — P14 fail, P15 probe
+success, this run fail. One success in three draws. That is not a rescue, it is a coin, and
+"we already know they succeed" was the wrong reading of a single draw; C-28's finding is that
+the *failures* are draws, and the successes are draws in exactly the same way. The scientific
+cohort goes 8/12 → **9/12**, not 10/12.
+
+**The gold set grows 73 → 75, and `benchmark25` stays at 56** — the published denominator is
+untouched, as it must be.
+
+#### A cached case with unjudged picks, which looks identical to a rejected one **[C-30]**
+
+`mat-phonon` also exposed a defect worth more than the case. Its baseline **succeeded** and
+`run_baseline` cached it; then `resolve_references` hit **arXiv HTTP 429** on one of the three
+picks, and `fill_cli_baseline` returned `arxiv_unverified` and judged *none* of them. The
+driver keyed "done" on the existence of a cache file, so from that moment the case was:
+
+* **finished**, as far as `fill_cli_baseline` was concerned — it would be skipped forever;
+* **contributing 0 gold targets**, indistinguishable from a case whose picks the judge scored
+  below the bar.
+
+Void read as null, in the gold set. A survey of all 34 cached cases found it confined to
+`mat-phonon` — created by this run — but only because nothing had thrown between the cache
+write and the judge loop before.
+
+Three repairs, all at the root rather than at the symptom:
+
+* **`incomplete_cases` replaces `missing_cases`**, splitting candidates into *needs a
+  baseline run* and *needs only judging*. The split is not cosmetic: a case with a cache must
+  **never** be re-run, because that redefines ground truth, so it gets a `judge_only` path
+  that does not touch `run_baseline` at all.
+* **A lookup failure no longer abandons the whole case.** It judges everything that did
+  resolve, returns `partial`, and says so — the C-15 rule (never score an unverified paper)
+  was right, but bailing on the verified ones with it was not.
+* **`gold_targets.json` records unjudged picks**, so the artifact cannot assert a
+  completeness it does not have. `tests/test_gold_targets.py` pins that the field matches its
+  count and that no case is both `incomplete` and `ids-only` — those labels mean opposite
+  things about whether a pick was judged.
+
+The remaining pick, `1703.03212`, is still unresolved: arXiv answers **429 for a known-good
+control id too**, so this is a throttle rather than a hallucination, and the harness declining
+to score it is C-4 working as intended. `mat-phonon` is frozen as **incomplete** until the
+rate limit clears.
+
 **Cost** 20 agentic runs across both arms (6 cases + 4 rescue cases x 2 arms),
 subscription-billed. Nothing was written to the shared caches -- every arm ran with
 `use_cache=False`, and the 33 `cli` answers were backed up to
