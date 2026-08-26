@@ -90,6 +90,23 @@ class TestTheArtifactIsSelfConsistent:
         assert sum(c["n_targets"] for c in counted.values()) == frozen["n_targets"]
         assert sum(c["n_cases"] for c in counted.values()) == frozen["n_cases"]
 
+    def test_unfinished_cases_are_named_not_hidden(self, frozen):
+        """A cached pick nobody judged contributes nothing — exactly like a rejected one.
+
+        `mat-phonon` reached that state when arXiv throttled (HTTP 429) mid-run and one of
+        its three picks could not be resolved, so it was never scored. Without this field
+        the case reads as "the judge found one paper unactionable", which is a different
+        claim and one nobody measured. Void, not null, in the gold set itself.
+        """
+        pending = frozen["incomplete"]
+        assert frozen["n_incomplete_picks"] == sum(len(v) for v in pending.values())
+        assert all(v for v in pending.values()), "an empty entry says nothing; drop the key"
+        for case in pending:
+            assert case not in frozen["orphans"], (
+                f"{case} cannot be both unjudged and ids-only — the orphan label means the "
+                "pick WAS judged, from a cache whose raw no longer reproduces it"
+            )
+
     def test_the_scientific_cohort_is_all_bio_or_mat(self, frozen):
         """A miscategorised case would quietly move the published denominator."""
         from freeze_gold_targets import cohort_of

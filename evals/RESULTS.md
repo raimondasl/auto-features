@@ -1144,6 +1144,81 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The witness set v2: coverage was never recall, and the honest measures say something worse. **[P16]**
+
+```bash
+uv run python evals/witness_set.py --report   # $0, re-print from the committed artifact
+uv run python evals/witness_set.py --check    # $0, re-derive and diff
+```
+
+The gold set is one draw of one searcher's discovery distribution, filtered by the judge
+(P15 measured the draw noise at ~59% of picks). Its coverage was published as "recall", and
+it is not: the judge marks ~2% of random arXiv papers actionable, so the true positive set is
+order 10³–10⁴ per repository — unmeasurable, and not the quantity anyone wants. What the set
+provides is per-member **certificates** (this paper is findable and judged actionable), i.e.
+pooled relevance judgments with a pool of one system and one draw.
+
+`evals/witness_set.json` is the pooled version, built entirely from already-judged material:
+
+| source | witnesses | what it is |
+|---|---|---|
+| `cli` | 75 | the gold set, exactly (a test pins v2 to v1 — the first draft forked it, C-12 shape) |
+| `api` | 50 | a different searcher entirely (P13) |
+| `reporadar` | 189 | the headline run's own judged-actionable returns — in the set, excluded from grading (LOSO) |
+| `adoption` | 19 | git-history-mined, the only model-free source (judged against the repo at t0) |
+| **total** | **319** / 31 cases | overlap histogram: **306 singletons, 12 in two sources, 1 in three** |
+
+Four discovery distributions, nearly disjoint — the single strongest fact in the artifact.
+Each source is blind to most of what the others certify.
+
+#### Reach, restated as a probability — and it is low
+
+Reach = P(witness ∈ the shipped configuration's frozen candidate pool), per source, Wilson
+CI, RepoRadar-sourced witnesses excluded from every denominator:
+
+| into | `cli` | `api` | `adoption` | pooled non-self |
+|---|---|---|---|---|
+| `pool-wemb` (headline, 25 cases) | 8/56 = **0.14** [0.07, 0.26] | 7/28 = 0.25 | **1/19 = 0.05** | 13/93 = **0.14** [0.08, 0.23] |
+| `pool-cohort3` (37 cases) | 15/75 = 0.20 | 15/50 = 0.30 | 1/19 = 0.05 | 29/133 = **0.22** [0.16, 0.30] |
+
+**This does not contradict the published 43/56 = 77% — it completes it.** That figure measured
+the hop and HyDE channels at top-1000 depth in isolation; witnesses sit at median rank 837 in
+the dense index, and the shipped collection cuts far shallower. Both are true: the channels
+*can* reach three-quarters of the witnesses at depth, and the pool the system actually ranks
+contains one-seventh of them. And the headline +5.72 coexists with 14% witness reach because
+the pool is dense in *other* actionable papers (58% in the HyDE top-100 stratum) — our own
+data demonstrating that witness coverage and recall are different quantities.
+
+**The adoption row is the sharpest.** 1 of 19 papers that repositories *demonstrably went on
+to adopt* is in the shipped pool. NR-1 said repos do not cite what would improve them; this
+says our collection cannot fetch what they later adopt either. The model-free source, the one
+with no judge in its loop, is the one the system is blindest to.
+
+#### At the digest: regret, not coverage
+
+A missed witness costs only what it would displace: +1 filling an empty slot, +3 displacing a
+shown paper judged < 2. Bounded by the window, so a growing witness set can only reveal
+headroom, never inflate it. Against the headline run: **mean regret +3.48 net@2/case on top
+of +5.72** — an oracle showing the best *known* 15 per case sits near +9.2. Concentrated:
+`vectordb` +14, `speech` +9, `ann` +8, `llminfer` +7. Caveat that keeps it honest: at 14%
+reach, most of that regret is a **discovery** deficit, not a selection one — the witnesses are
+not in the pool for any selector to find.
+
+#### How incomplete is the witness set itself?
+
+The three cli draws (P15) as capture occasions, pick-level: S_obs = 24, f1 = 12, f2 = 7,
+**Chao1 ≥ 34** — the cli-findable population on those six cases is at least ~40% larger than
+three draws have shown, and the singleton fraction (half) says the set is nowhere near
+saturation. The k = 3 spread runs planned in PLANS item 2 extend this curve for free.
+
+**Semantics, fixed on purpose:** growing the set tightens the intervals instead of degrading
+any number; a new source scoring lower *is* the pooling-bias measurement; and nothing here is
+a recall claim. Pinned by `tests/test_witness_set.py` (artifact-internal arithmetic on any
+machine; live re-derivation and an id-normalisation invariant where the caches exist),
+mutation-verified in both directions.
+
+**Cost** $0 — every member already had a verdict.
+
 ### The turn budget is not the problem. The comparator is barely reproducible. **[P15, C-27]**
 
 ```bash
@@ -1316,6 +1391,60 @@ the verdict line from *inconclusive* to *rebuild*, entirely on rows that had not
 compare. The A-vs-B statistics are now computed only over cases with a successful cache. No
 published figure carried the wrong value; it existed for about ten minutes, in this session,
 in a statistic written to price exactly this class of error.
+
+
+#### Cashing in C-28: one of the two rescued cases did not stay rescued **[C-30]**
+
+C-28 showed `mat-mlip` and `mat-phonon` succeeding at 12 turns where P14 had recorded
+`error_max_turns`, so both looked collectable at unchanged flags. Run for real:
+
+| case | repository | outcome | picks | gold targets |
+|---|---|---|---|---|
+| `mat-mlip` | MACE | **`error_max_turns` again** | — | — |
+| `mat-phonon` | phonopy | ok, `num_turns` 25 | 3 | **+2** (both judged 2) |
+
+**`mat-mlip` has now failed at 12 turns twice and succeeded once** — P14 fail, P15 probe
+success, this run fail. One success in three draws. That is not a rescue, it is a coin, and
+"we already know they succeed" was the wrong reading of a single draw; C-28's finding is that
+the *failures* are draws, and the successes are draws in exactly the same way. The scientific
+cohort goes 8/12 → **9/12**, not 10/12.
+
+**The gold set grows 73 → 75, and `benchmark25` stays at 56** — the published denominator is
+untouched, as it must be.
+
+#### A cached case with unjudged picks, which looks identical to a rejected one **[C-30]**
+
+`mat-phonon` also exposed a defect worth more than the case. Its baseline **succeeded** and
+`run_baseline` cached it; then `resolve_references` hit **arXiv HTTP 429** on one of the three
+picks, and `fill_cli_baseline` returned `arxiv_unverified` and judged *none* of them. The
+driver keyed "done" on the existence of a cache file, so from that moment the case was:
+
+* **finished**, as far as `fill_cli_baseline` was concerned — it would be skipped forever;
+* **contributing 0 gold targets**, indistinguishable from a case whose picks the judge scored
+  below the bar.
+
+Void read as null, in the gold set. A survey of all 34 cached cases found it confined to
+`mat-phonon` — created by this run — but only because nothing had thrown between the cache
+write and the judge loop before.
+
+Three repairs, all at the root rather than at the symptom:
+
+* **`incomplete_cases` replaces `missing_cases`**, splitting candidates into *needs a
+  baseline run* and *needs only judging*. The split is not cosmetic: a case with a cache must
+  **never** be re-run, because that redefines ground truth, so it gets a `judge_only` path
+  that does not touch `run_baseline` at all.
+* **A lookup failure no longer abandons the whole case.** It judges everything that did
+  resolve, returns `partial`, and says so — the C-15 rule (never score an unverified paper)
+  was right, but bailing on the verified ones with it was not.
+* **`gold_targets.json` records unjudged picks**, so the artifact cannot assert a
+  completeness it does not have. `tests/test_gold_targets.py` pins that the field matches its
+  count and that no case is both `incomplete` and `ids-only` — those labels mean opposite
+  things about whether a pick was judged.
+
+The remaining pick, `1703.03212`, is still unresolved: arXiv answers **429 for a known-good
+control id too**, so this is a throttle rather than a hallucination, and the harness declining
+to score it is C-4 working as intended. `mat-phonon` is frozen as **incomplete** until the
+rate limit clears.
 
 **Cost** 20 agentic runs across both arms (6 cases + 4 rescue cases x 2 arms),
 subscription-billed. Nothing was written to the shared caches -- every arm ran with
