@@ -1,0 +1,2292 @@
+{
+ "_comment": "Pooled witness set (v2) with per-source provenance, reach probabilities (leave-one-source-out), digest regret, and a capture estimate. Derived by evals/witness_set.py; pinned by tests/test_witness_set.py. NOT a recall denominator: see the module docstring for what each number means.",
+ "n_witnesses": 319,
+ "n_cases": 31,
+ "by_source": {
+  "adoption": 19,
+  "api": 50,
+  "cli": 75,
+  "reporadar": 189
+ },
+ "n_non_self": 133,
+ "witnesses": {
+  "ann": {
+   "1603.08390": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1702.08734": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1802.06466": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1908.10396": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2008.03260": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2103.09944": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2304.04759": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2310.13870": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2312.03940": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2402.02044": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2403.04871": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2404.00774": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2409.09913": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2601.11808": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2603.20009": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "bio-align": {
+   "2506.11750": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2606.03929": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "bio-kmer": {
+   "1702.01284": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1706.07290": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1911.00675": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2208.10578": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2308.16862": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "bio-mdsim": {
+   "2006.09250": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2201.08110": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2202.02541": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2310.03121": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2505.09727": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "bio-mdtraj": {
+   "1410.5447": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2003.09193": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2305.18244": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "columnar": {
+   "1209.2137": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1611.07612": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2004.14471": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2105.09894": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2106.13020": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2204.06074": {
+    "judge": 2,
+    "sources": [
+     "api",
+     "reporadar"
+    ]
+   },
+   "2204.12889": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2210.06827": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2412.02192": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2502.06112": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2504.06151": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2607.07696": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2607.11271": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "compiler": {
+   "1601.05400": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1901.03771": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2004.03082": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2407.13712": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "crypto": {
+   "1709.01552": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1812.04959": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2007.11481": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2108.04600": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2405.18993": {
+    "judge": 2,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2606.13445": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "cv": {
+   "1404.0736": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1704.04503": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2005.03572": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2012.07177": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2109.01123": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2111.12126": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2112.01698": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2112.09290": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2201.03545": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2202.06934": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2203.16527": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2308.05168": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2309.03893": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2408.00350": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.12871": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2510.15783": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "db": {
+   "2307.15255": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2401.15210": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2404.16486": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2408.13480": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2410.12496": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2410.14066": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2502.09541": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2502.15181": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2503.21087": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2504.01157": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2506.13670": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2510.07963": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2511.16455": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2512.01490": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2603.15023": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2606.03946": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "diffusion": {
+   "2106.15282": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2302.02412": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2302.04304": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2303.06555": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2304.07087": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2306.00964": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2312.06899": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2404.08799": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2408.02054": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2408.17095": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2410.05317": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2411.05007": {
+    "judge": 3,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2501.00289": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2503.07578": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2508.16211": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2510.12789": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2511.14993": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2511.22982": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2601.21610": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2602.00744": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2604.24877": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "encryption": {
+   "1806.03160": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "graph": {
+   "2007.02835": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2101.07956": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2106.09671": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2111.14522": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2112.02052": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2112.10558": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2201.08821": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2202.13013": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2205.12454": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2207.09955": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2208.09151": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2210.14709": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2303.06147": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2305.10863": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2308.13466": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2310.11009": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2311.02399": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2311.02909": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2312.02368": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2312.04615": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2402.07630": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2403.14853": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2409.11129": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2409.14500": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2410.22697": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2412.20379": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "linter": {
+   "2310.01530": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   }
+  },
+  "llminfer": {
+   "2210.17323": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2211.17192": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2305.09781": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2306.03078": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2307.03738": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2405.03594": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2406.17415": {
+    "judge": 3,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2501.00032": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2505.11695": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2505.17331": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2507.01449": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2602.19626": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2603.17891": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2604.21026": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2605.20706": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2607.09791": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "mat-chgpot": {
+   "2101.03164": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2202.02450": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2204.05249": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2206.07697": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2408.15165": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2502.12147": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2504.15925": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2507.14302": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "mat-descriptors": {
+   "1712.05861": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1905.02142": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1907.02384": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1909.04512": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2101.08814": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2105.08717": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2209.02362": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   }
+  },
+  "mat-featurize": {
+   "1503.07406": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1606.09551": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1704.06439": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "mat-mlip": {
+   "2502.15582": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2507.14302": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   }
+  },
+  "mat-phonon": {
+   "1510.04418": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1805.08904": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2103.03973": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2209.13823": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2401.17531": {
+    "judge": 2,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   }
+  },
+  "numerics": {
+   "1011.2602": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1603.04166": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2112.11508": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2403.15632": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2511.18429": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   }
+  },
+  "peft": {
+   "2210.07558": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2306.07967": {
+    "judge": 3,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2404.03592": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2405.12130": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2405.13952": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2405.17357": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2405.19597": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2407.09946": {
+    "judge": 3,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2409.05926": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2502.03884": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2504.00254": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2505.12433": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2506.00236": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2506.16289": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2507.03220": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.15974": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2509.18629": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2510.02630": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2510.08396": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2602.15195": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "rag": {
+   "2103.09944": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2112.01488": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2203.13088": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2205.09707": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2208.08942": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2212.01340": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2303.00807": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
+   "2303.07678": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2304.01982": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api",
+     "reporadar"
+    ]
+   },
+   "2308.11512": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2404.02805": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2404.14989": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2405.00975": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2406.17968": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2409.14683": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "reporadar"
+    ]
+   },
+   "2412.03193": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2501.17788": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2505.11471": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2602.02827": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "rl": {
+   "1509.06461": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1511.05952": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1801.01290": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1903.08894": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1906.02771": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2110.02034": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2111.15382": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2301.03679": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2301.10919": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2302.00671": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2312.07624": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2403.09110": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2407.20230": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2412.06685": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.25174": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2601.01803": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2606.21525": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "speech": {
+   "2211.17192": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2303.00747": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2305.11095": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2307.03183": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2311.00430": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2405.03484": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2406.04512": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2406.10052": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2412.11272": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2502.01547": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2507.21522": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2508.12301": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2510.24992": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2604.25611": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "storage": {
+   "2010.12734": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2101.06801": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2109.13142": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2207.01503": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2307.16693": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2311.15380": {
+    "judge": 2,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2406.18099": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2408.05625": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2411.11091": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2504.17178": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2506.04678": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2506.14630": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.10714": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2602.01873": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2604.13743": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2605.23815": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "systems": {
+   "1506.08800": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1512.00727": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "1702.01284": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "1703.08425": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1905.01403": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2002.02017": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2208.10578": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2306.06742": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2505.05847": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   }
+  },
+  "thin-gnn": {
+   "1706.02216": {
+    "judge": 2,
+    "sources": [
+     "api"
+    ]
+   },
+   "2002.07962": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2003.01332": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2005.03300": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2010.05337": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2104.06700": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2104.10569": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2205.12454": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2206.00057": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2212.05009": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2305.09887": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2410.22697": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "thin-kv": {
+   "1306.3906": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1801.06340": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1811.02059": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "1906.01365": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2003.10554": {
+    "judge": 3,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2211.00741": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2301.07313": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2312.01229": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2403.11221": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.07157": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2511.14067": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2603.09122": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2607.02856": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   }
+  },
+  "thin-lang": {
+   "1503.07792": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "1603.01112": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2002.06183": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   }
+  },
+  "vectordb": {
+   "1603.09320": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2401.02116": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2402.02044": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2403.04871": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2404.18812": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2405.12497": {
+    "judge": 3,
+    "sources": [
+     "api"
+    ]
+   },
+   "2408.04443": {
+    "judge": 2,
+    "sources": [
+     "cli"
+    ]
+   },
+   "2409.09913": {
+    "judge": 2,
+    "sources": [
+     "cli",
+     "api"
+    ]
+   },
+   "2501.10479": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2502.01528": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2503.04422": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.12086": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2509.25487": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2510.27141": {
+    "judge": 3,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2601.11557": {
+    "judge": 2,
+    "sources": [
+     "reporadar"
+    ]
+   },
+   "2607.00768": {
+    "judge": 3,
+    "sources": [
+     "cli"
+    ]
+   }
+  }
+ },
+ "reach": [
+  {
+   "pool": "pool-wemb",
+   "cases_covered": 25,
+   "cli": {
+    "n": 56,
+    "reached": 8,
+    "p": 0.143,
+    "ci": [
+     0.074,
+     0.257
+    ]
+   },
+   "api": {
+    "n": 28,
+    "reached": 7,
+    "p": 0.25,
+    "ci": [
+     0.127,
+     0.434
+    ]
+   },
+   "adoption": {
+    "n": 19,
+    "reached": 1,
+    "p": 0.053,
+    "ci": [
+     0.009,
+     0.246
+    ]
+   },
+   "pooled_non_self": {
+    "n": 93,
+    "reached": 13,
+    "p": 0.14,
+    "ci": [
+     0.084,
+     0.225
+    ]
+   }
+  },
+  {
+   "pool": "pool-cohort3",
+   "cases_covered": 37,
+   "cli": {
+    "n": 75,
+    "reached": 15,
+    "p": 0.2,
+    "ci": [
+     0.125,
+     0.304
+    ]
+   },
+   "api": {
+    "n": 50,
+    "reached": 15,
+    "p": 0.3,
+    "ci": [
+     0.191,
+     0.438
+    ]
+   },
+   "adoption": {
+    "n": 19,
+    "reached": 1,
+    "p": 0.053,
+    "ci": [
+     0.009,
+     0.246
+    ]
+   },
+   "pooled_non_self": {
+    "n": 133,
+    "reached": 29,
+    "p": 0.218,
+    "ci": [
+     0.156,
+     0.296
+    ]
+   }
+  }
+ ],
+ "regret": {
+  "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json",
+  "window": 15,
+  "per_case": {
+   "ann": {
+    "actual_net2": 7,
+    "witnesses_available": 4,
+    "fills": 2,
+    "swaps": 2,
+    "regret": 8
+   },
+   "cli": {
+    "actual_net2": 0,
+    "witnesses_available": 0,
+    "fills": 0,
+    "swaps": 0,
+    "regret": 0
+   },
+   "columnar": {
+    "actual_net2": 7,
+    "witnesses_available": 4,
+    "fills": 4,
+    "swaps": 0,
+    "regret": 4
+   },
+   "compiler": {
+    "actual_net2": 2,
+    "witnesses_available": 2,
+    "fills": 2,
+    "swaps": 0,
+    "regret": 2
+   },
+   "crypto": {
+    "actual_net2": 4,
+    "witnesses_available": 2,
+    "fills": 2,
+    "swaps": 0,
+    "regret": 2
+   },
+   "cv": {
+    "actual_net2": 10,
+    "witnesses_available": 4,
+    "fills": 2,
+    "swaps": 1,
+    "regret": 5
+   },
+   "db": {
+    "actual_net2": 11,
+    "witnesses_available": 3,
+    "fills": 1,
+    "swaps": 1,
+    "regret": 4
+   },
+   "diffusion": {
+    "actual_net2": 15,
+    "witnesses_available": 6,
+    "fills": 0,
+    "swaps": 0,
+    "regret": 0
+   },
+   "encryption": {
+    "actual_net2": 1,
+    "witnesses_available": 0,
+    "fills": 0,
+    "swaps": 0,
+    "regret": 0
+   },
+   "graph": {
+    "actual_net2": 12,
+    "witnesses_available": 12,
+    "fills": 0,
+    "swaps": 1,
+    "regret": 3
+   },
+   "http": {
+    "actual_net2": 0,
+    "witnesses_available": 0,
+    "fills": 0,
+    "swaps": 0,
+    "regret": 0
+   },
+   "linter": {
+    "actual_net2": 0,
+    "witnesses_available": 1,
+    "fills": 1,
+    "swaps": 0,
+    "regret": 1
+   },
+   "llminfer": {
+    "actual_net2": 8,
+    "witnesses_available": 6,
+    "fills": 4,
+    "swaps": 1,
+    "regret": 7
+   },
+   "numerics": {
+    "actual_net2": 2,
+    "witnesses_available": 3,
+    "fills": 3,
+    "swaps": 0,
+    "regret": 3
+   },
+   "peft": {
+    "actual_net2": 12,
+    "witnesses_available": 6,
+    "fills": 0,
+    "swaps": 1,
+    "regret": 3
+   },
+   "rag": {
+    "actual_net2": 10,
+    "witnesses_available": 7,
+    "fills": 2,
+    "swaps": 1,
+    "regret": 5
+   },
+   "rl": {
+    "actual_net2": 13,
+    "witnesses_available": 4,
+    "fills": 2,
+    "swaps": 0,
+    "regret": 2
+   },
+   "speech": {
+    "actual_net2": 3,
+    "witnesses_available": 3,
+    "fills": 0,
+    "swaps": 3,
+    "regret": 9
+   },
+   "storage": {
+    "actual_net2": 13,
+    "witnesses_available": 3,
+    "fills": 2,
+    "swaps": 0,
+    "regret": 2
+   },
+   "systems": {
+    "actual_net2": 3,
+    "witnesses_available": 4,
+    "fills": 4,
+    "swaps": 0,
+    "regret": 4
+   },
+   "thin-gnn": {
+    "actual_net2": 2,
+    "witnesses_available": 4,
+    "fills": 4,
+    "swaps": 0,
+    "regret": 4
+   },
+   "thin-kv": {
+    "actual_net2": 6,
+    "witnesses_available": 3,
+    "fills": 3,
+    "swaps": 0,
+    "regret": 3
+   },
+   "thin-lang": {
+    "actual_net2": 1,
+    "witnesses_available": 2,
+    "fills": 2,
+    "swaps": 0,
+    "regret": 2
+   },
+   "vectordb": {
+    "actual_net2": 1,
+    "witnesses_available": 7,
+    "fills": 2,
+    "swaps": 4,
+    "regret": 14
+   },
+   "webdev": {
+    "actual_net2": 0,
+    "witnesses_available": 0,
+    "fills": 0,
+    "swaps": 0,
+    "regret": 0
+   }
+  },
+  "mean_actual_net2": 5.72,
+  "mean_regret": 3.48
+ },
+ "capture": {
+  "cli_draws": {
+   "cases": [
+    "bio-align",
+    "bio-singlecell",
+    "http",
+    "linter",
+    "mat-descriptors",
+    "rag"
+   ],
+   "occasions": 3,
+   "unit": "pick (mostly unjudged)",
+   "s_obs": 24,
+   "f1": 12,
+   "f2": 7,
+   "chao1_lower_bound": 34.3
+  },
+  "source_overlap": {
+   "1": 306,
+   "2": 12,
+   "3": 1
+  }
+ }
+}

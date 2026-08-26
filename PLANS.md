@@ -8,7 +8,7 @@ repeated here — it lives in:
 |---|---|
 | [`RESEARCH.md`](RESEARCH.md) | the experiment record, organised by problem (§9 is current) |
 | [`ROADMAP.md`](ROADMAP.md) | the feature/probe ledger, item by item, with verdicts |
-| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P15, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
+| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P16, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
 | [`archive/`](archive/) | superseded plans, kept verbatim (MVP plan, original sketch, retrieval designs) |
 
 ## Where the system stands (2026-08-25)
@@ -126,13 +126,23 @@ dollar-billed, which is what makes them thinkable:
 | **stability-weighted recall** — weight each target by the fraction of draws it appears in | same runs | keeps a single number, prices its own uncertainty |
 | leave it, document it | $0 | every recall figure carries "single draw" as a caveat |
 
-Recommendation: **measure the spread first (k = 3 on the 25)** and decide the denominator
-question with the number in hand. Do not adopt a union or a weighting before knowing whether
-the instability is 10% or 60% of targets — the probe says ~59% of *picks*, but picks are not
-targets, and the judge filter may absorb much of it.
+**The witness set v2 is built [P16]** (`evals/witness_set.py`, $0): 319 witnesses across
+four sources (cli 75 = the gold set exactly, api 50, reporadar 189, adoption 19), nearly
+disjoint (306 of 319 single-source). Coverage is restated as per-source reach probabilities
+with CIs (LOSO — reporadar grades nothing it found itself), digest-level coverage is replaced
+by regret@15, and the union/denominator question dissolves: growing the set tightens the
+intervals instead of degrading any number. Two findings that outrank the bookkeeping: the
+shipped pool contains only **~14–22% of non-self witnesses** (channels reach 77% at depth
+1000; the pool cuts far shallower — the gap is the rank story of §5.5 made concrete), and
+**1 of 19 adoption-mined papers** — the model-free source — is in the pool at all. Digest
+regret vs known witnesses is **+3.48 net@2/case** on top of +5.72, nearly all of it a
+discovery deficit rather than a selection one.
 
-Until that is known, no re-run of the baseline should be undertaken for any *other* reason,
-because it would move the gold set as a side effect and confound this measurement.
+Recommendation, updated: **measure the spread next (k = 3 on the 25)** — it now serves three
+purposes at once: the gold-set stability number, the capture-curve extension (Chao1 ≥ 34 vs
+24 observed on the probe's six cases says the cli-findable population is far from
+saturated), and fresh witnesses for v2. Until it runs, no baseline re-run for any *other*
+reason — it would move the gold set as a side effect and confound the measurement.
 
 
 ### 3. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
