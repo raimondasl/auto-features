@@ -1271,6 +1271,110 @@
    "n_judge_failed": 0,
    "num_turns": 21,
    "cost_usd": 1.9249305
+  },
+  "4/rag": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2409.14683",
+    "2404.02805",
+    "2501.17788",
+    "2304.01982",
+    "2405.19504"
+   ],
+   "num_turns": 16,
+   "cost_usd": 1.7047815000000002,
+   "max_turns": 30,
+   "duration_s": 142.1,
+   "targets": [
+    "2304.01982",
+    "2404.02805",
+    "2405.19504",
+    "2409.14683",
+    "2501.17788"
+   ],
+   "scores": {
+    "2304.01982": 3,
+    "2404.02805": 3,
+    "2405.19504": 3,
+    "2409.14683": 3,
+    "2501.17788": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_judge_failed": 0
+  },
+  "4/vectordb": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.18812",
+    "2405.19504"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.3246164999999996,
+   "max_turns": 30,
+   "duration_s": 154.0,
+   "targets": [
+    "2404.18812",
+    "2405.19504"
+   ],
+   "scores": {
+    "2404.18812": 2,
+    "2405.19504": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_judge_failed": 0
+  },
+  "4/linter": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2311.10426",
+    "1907.05590",
+    "2508.03830"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.4739645,
+   "max_turns": 30,
+   "duration_s": 207.1,
+   "targets": [
+    "2311.10426"
+   ],
+   "scores": {
+    "1907.05590": 1,
+    "2311.10426": 2,
+    "2508.03830": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_judge_failed": 0
+  },
+  "4/thin-lang": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1705.05828",
+    "1808.00225",
+    "2104.01270"
+   ],
+   "num_turns": 27,
+   "cost_usd": 1.6331239999999998,
+   "max_turns": 30,
+   "duration_s": 208.0,
+   "targets": [
+    "1808.00225",
+    "2104.01270"
+   ],
+   "scores": {
+    "1705.05828": 1,
+    "1808.00225": 2,
+    "2104.01270": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_judge_failed": 0
   }
  }
 }

@@ -69,6 +69,11 @@ _PRICE_IN, _PRICE_OUT = 5.0, 25.0
 
 # Headless CLI flags. Configurable because they vary by Claude Code version;
 # override the whole list with RR_EVAL_CLAUDE_FLAGS (space-separated) if needed.
+# The shipped turn cap. Named so probes can vary it without retyping the flag list, and so
+# "what did this run use" is answerable from one place. Every published cache was written
+# under this value; changing it changes `_discriminator` and re-runs all of them.
+DEFAULT_MAX_TURNS = 12
+
 CLAUDE_FLAGS = [
     "--model",
     BASELINE_MODEL,
@@ -77,7 +82,7 @@ CLAUDE_FLAGS = [
     "--allowedTools",
     "WebSearch,WebFetch",
     "--max-turns",
-    "12",
+    str(DEFAULT_MAX_TURNS),
 ]
 
 BASELINE_PROMPT = (
