@@ -946,7 +946,12 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         print("        baseline skipped (--baseline none) — pool is RepoRadar's top-10 only")
     elif baseline_status != "ok":
         print(f"        !! BASELINE DID NOT RUN [{baseline_status}]: {b.get('raw', '')[:200]}")
-    b_papers, n_halluc, n_lookup_failed = resolve_references(b["ids"], b["titles"])
+    b_papers, n_halluc, n_lookup_failed, n_unjudgeable = resolve_references(b["ids"], b["titles"])
+    if n_unjudgeable:
+        # Real papers with no abstract anywhere we ask. Not the baseline's fault and not a
+        # transient failure, so neither counter above may absorb them — but they are papers
+        # the baseline found and we cannot score, which is worth saying out loud.
+        print(f"        ! {n_unjudgeable} baseline ref(s) exist but carry no abstract")
     if n_lookup_failed:
         # An arXiv outage can't be blamed on the baseline — mark it unverified
         # rather than counting real papers as hallucinated.

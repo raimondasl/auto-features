@@ -130,7 +130,9 @@ def run_case(case: dict[str, Any], *, model: str) -> dict[str, Any]:
         # Failures are never cached, so this retries next run rather than poisoning the set.
         return {"case": name, "status": status, "raw": (result.get("raw") or "")[:200]}
 
-    papers, hallucinated, lookup_failed = resolve_references(result["ids"], result["titles"])
+    papers, hallucinated, lookup_failed, unjudgeable = resolve_references(
+        result["ids"], result["titles"]
+    )
     # An arXiv outage is not the baseline's fault, and a paper we could not verify must not
     # be judged as if we had (C-15's rule: a collection failure is loud, not scored). What
     # the first version got wrong was bailing on the WHOLE case: `run_baseline` has already
@@ -157,7 +159,11 @@ def run_case(case: dict[str, Any], *, model: str) -> dict[str, Any]:
         "case": name,
         # "partial" when something the baseline recommended could not be verified or judged:
         # the cache is real and stays, but the case is not finished and must be revisited.
+        # `unjudgeable` is deliberately NOT in this condition: a DOI that exists but carries
+        # no abstract anywhere will never resolve, so retrying the case forever would be the
+        # C-30 stranding with extra steps. It is reported, not retried.
         "status": "partial" if (lookup_failed or failed) else "ok",
+        "n_unjudgeable": unjudgeable,
         "n_returned": len(result["ids"]) + len(result["titles"]),
         "n_resolved": len(papers),
         "n_lookup_failed": lookup_failed,
@@ -182,7 +188,7 @@ def judge_only(case: dict[str, Any], ids: list[str], *, model: str) -> dict[str,
     if dest is None:
         return {"case": name, "status": "clone_failed"}
     repo_context = assemble_repo_context(dest)
-    papers, hallucinated, lookup_failed = resolve_references(ids, [])
+    papers, hallucinated, lookup_failed, unjudgeable = resolve_references(ids, [])
     if lookup_failed:
         print(f"      ! arXiv lookup failed for {lookup_failed} ref(s); judging the rest")
 
@@ -200,6 +206,7 @@ def judge_only(case: dict[str, Any], ids: list[str], *, model: str) -> dict[str,
     return {
         "case": name,
         "status": "partial" if (lookup_failed or failed) else "ok",
+        "n_unjudgeable": unjudgeable,
         "mode": "judge-only",
         "n_returned": len(ids),
         "n_resolved": len(papers),

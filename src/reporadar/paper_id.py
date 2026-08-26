@@ -32,7 +32,21 @@ import re
 # version of `dedup_id` left their versions on — which is how it came to disagree with the
 # `split("v")[0]` rule used elsewhere for the same job.
 _ARXIV_NEW = r"\d{4}\.\d{4,5}"
-_ARXIV_OLD = r"[a-z-]+(?:\.[A-Za-z-]+)?/\d{7}"
+
+# The real arXiv archive stems. The old-style pattern used to be `[a-z-]+/\d{7}`, which
+# accepts any lowercase word before the slash — so `publication/2256929`, the ResearchGate
+# URL path that C-25 was written about, answered TRUE to `is_arxiv_id`. `evals/verify.py`
+# had already been hardened with this allowlist for `extract_arxiv_ids`, which left two
+# rules for "is this an arXiv id" disagreeing about the one id the project knows is bogus:
+# the C-14 shape, inside the module that exists to prevent it. The list lives here, and
+# verify.py imports it, so there is one rule again. ("math-ph" precedes "math" so the
+# longer stem wins.)
+ARXIV_ARCHIVES = (
+    "astro-ph|cond-mat|gr-qc|hep-ex|hep-lat|hep-ph|hep-th|math-ph|math|nlin|"
+    "nucl-ex|nucl-th|quant-ph|q-bio|q-fin|cs|econ|eess|physics|stat|"
+    "alg-geom|funct-an|dg-ga|chao-dyn|solv-int|patt-sol|adap-org|cmp-lg|mtrl-th|supr-con"
+)
+_ARXIV_OLD = rf"(?:{ARXIV_ARCHIVES})(?:\.[A-Za-z-]+)?/\d{{7}}"
 
 # With a version suffix, for version-insensitive cross-source dedup. Both are anchored and
 # neither can match a synthetic `ss:`/`dblp:`/`oa:`/`iacr:`/`biorxiv:`/`doi:` id, which must
