@@ -183,20 +183,41 @@ falls out of the split:
   +3.88` would have to be re-measured. That is a separate, deliberate decision — and
   `gold_spread.py` cannot touch it, since it never writes `cache/baseline/cli/`.
 
-**The v2 prompt is blocked on a prerequisite nobody has done.** `verify.resolve_references`
-resolves arXiv ids only, and `BASELINE_PROMPT` demands `{"arxiv_id": ...}`. A v2 baseline that
-recommends a *Nature* paper today produces a pick that cannot be verified, cannot be judged,
-and therefore cannot become a witness — the non-arXiv region would stay invisible while
-looking like it had been searched. Widen verification first: reuse `citations._s2_batch_post`,
-EuropePMC as tier 2 (it recovers 5 of the 77 bioRxiv DOIs S2 returns null for), and the DOI
-Handle API as the authoritative existence test.
-
 Recommended order: **(1) widen `resolve_references`** — no LLM spend, unblocks everything;
 **(2) v2-prompt witness draws** at 30 turns with concurrency, the highest-value searcher
 change because P16 measured the shipped pool reaching *1 of 19* adoption-mined papers and P12
 found 79 judged-actionable non-arXiv papers the arXiv-only set is structurally blind to;
 **(3) Opus 5** as a further witness source, lower marginal value since it searches the same
 arXiv-shaped space; **(4) the comparator re-measurement**, deliberately and separately.
+
+**(1) is done** (PR #204). `verify.resolve_references` now classifies four outcomes across
+arXiv, the DOI Handle API, Semantic Scholar and Europe PMC — and widening it exposed C-31, a
+second "is this an arXiv id" rule answering *True* for the one id the project knows is bogus.
+
+**(2) is drafted and unrun.** `BASELINE_PROMPT_V2` allows journal, conference and
+bioRxiv/medRxiv papers and asks for `{"id", "title"}` where `id` is an arXiv id **or** a bare
+DOI. Three things it had to get right before a single call:
+
+* **The prompt is versioned, not edited.** `_cache_path` had no discriminator in it, so
+  editing `BASELINE_PROMPT` in place would not have invalidated the 34 stored answers — it
+  would have overwritten them, which is how `compiler`, `graph` and `storage` came to hold a
+  restoration note instead of a transcript on 2026-08-09. v1 keeps its exact path and its
+  pinned discriminator `da766b38114e`; v2 writes to `cache/baseline/cli-v2/`.
+* **The parser was widened over live data.** `run_baseline` re-derives ids from cached `raw`
+  on every hit, so accepting `id`/`doi` re-parses the gold set. Safe only because all 130
+  stored recommendation items carry exactly `arxiv_id` and `title` — surveyed, then pinned as
+  a test rather than left as a claim.
+* **One id per reference.** `paper_id.canonical_ref` collapses every DOI spelling to
+  `doi:…`, because a pick is stored as the model wrote it while the resolver returns the
+  prefixed form — which would have broken `gold_spread`'s own `targets ⊆ picks` invariant for
+  every non-arXiv paper.
+
+To run it: `uv run python evals/gold_spread.py --prompt-version v2 --max-turns 30
+--concurrency 4`. It writes `gold_spread_v2.json`, never `gold_spread.json`, and `report`
+refuses to call its overlap with the frozen set "reproducibility" or apply the P17 decision
+rule to it — a different prompt is a different searcher, not a redraw. **Open**: those draws
+are not yet wired into `witness_set.gather_witnesses`, which today pools cli/api/reporadar/
+adoption and reads no `gold_spread` artifact at all.
 
 
 ### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon

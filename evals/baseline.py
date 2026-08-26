@@ -6,6 +6,14 @@
                 web_search tool. Works without the Claude Code CLI — the repo
                 context is passed in the prompt instead of a filesystem mount.
 
+The prompt is **versioned**, not edited. `BASELINE_PROMPT` (v1) is the published comparator:
+arXiv-only, and every figure in the paper was measured against it. `BASELINE_PROMPT_V2` opens
+the task to journal, conference and bioRxiv papers, which is a *witness-generator* change —
+P12 found 79 judged-actionable non-arXiv papers the arXiv-only set is structurally blind to.
+The two have separate cache directories, because `_disc` is a staleness check and not an
+address: without that, running v2 would have overwritten the v1 answers in place rather than
+sitting beside them.
+
 Both parse the recommended papers out of the answer. Every run records a
 `status` ("ok" | "missing_cli" | "no_cli_login" | "error" | "timeout" | "no_key")
 and its raw output, and **failures are never cached** — so a broken run retries
@@ -95,9 +103,83 @@ BASELINE_PROMPT = (
     "Use an empty array [] if you recommend nothing."
 )
 
+# v2: the same task, over the whole literature instead of arXiv alone.
+#
+# The first two sentences and the last are BYTE-IDENTICAL to v1, on purpose. This is meant to
+# be a one-variable change -- scope and the identifier schema -- so that if v2 is ever
+# promoted to the published comparator, the difference in its score is attributable to what
+# it was allowed to search rather than to incidentally better prompting. In particular it
+# gains no anti-hallucination coaching that v1 lacks, even though `doi_exists` now makes an
+# invented DOI cost something; adding that here would confound the two.
+#
+# The one sentence that is not pure scope is "Recommend a paper only if you can give one of
+# these identifiers", and it earns its place: a pick with no resolvable id is classified
+# `unjudgeable` by `verify.resolve_reference`, which means it is dropped without ever being
+# scored. Silent disappearance is the failure mode this prompt exists to remove, so the
+# schema requirement has to be stated rather than implied. v1 implied it by offering only an
+# `arxiv_id` field; v2 offers a choice, so the requirement has to be said out loud.
+#
+# The field is `id`, not `arxiv_id`. A key called `arxiv_id` holding `10.1038/...` is the
+# misnamed-container shape this project has already paid for twice (C-12, C-14): the name
+# would have been the documentation, and it would have been false.
+BASELINE_PROMPT_V2 = (
+    "Please fetch and summarize research papers that relate to the code in this "
+    "repository and propose methods to improve it. Focus on papers whose methods "
+    "could actually be applied to improve this codebase; it is better to recommend "
+    "nothing than to recommend papers that are not genuinely useful. "
+    "Papers from anywhere are in scope: arXiv preprints, peer-reviewed journal and "
+    "conference papers, and bioRxiv/medRxiv preprints all count equally. "
+    "End your response with a fenced ```json code block containing a JSON array of "
+    'the papers you recommend, each as {"id": "...", "title": "..."}, where "id" is '
+    'the paper\'s arXiv id if it has one (e.g. "2401.12345" or "cond-mat/0403023") '
+    'and otherwise its DOI in bare form (e.g. "10.1038/s41586-021-03819-2"). '
+    "Recommend a paper only if you can give one of these two identifiers for it. "
+    "Use an empty array [] if you recommend nothing."
+)
+
+# Selectable rather than swapped. `_cache_path` had no discriminator in it, so editing the
+# prompt in place would not invalidate the 34 stored answers -- it would OVERWRITE them, and
+# that has happened: `compiler`, `graph` and `storage` still hold a 128-character restoration
+# note where their transcript used to be, after a 30-turn re-run displaced the 12-turn entry
+# on 2026-08-09. Naming the versions and keying the cache on the name makes the collision
+# structurally impossible instead of a thing to remember.
+PROMPTS = {"v1": BASELINE_PROMPT, "v2": BASELINE_PROMPT_V2}
+# v1 is the published comparator; every figure in the paper was measured against it. Promoting
+# v2 is a separate, deliberate decision that requires re-measuring `+1.84 / paired +3.88`.
+DEFAULT_PROMPT_VERSION = "v1"
+
+
+def prompt_for(version: str) -> str:
+    """The prompt text for *version*, or a loud failure. Never falls back to v1.
+
+    A typo'd `--prompt-version` that quietly ran v1 would produce a v2-labelled artifact full
+    of v1 draws, and nothing downstream could tell: the rows would be well-formed, the picks
+    plausible, the arXiv-only distribution unremarkable. That is the void-not-null shape.
+    """
+    try:
+        return PROMPTS[version]
+    except KeyError:
+        raise ValueError(f"unknown prompt version {version!r}; known: {sorted(PROMPTS)}") from None
+
+
+# The keys an item may carry its identifier under, in priority order. `arxiv_id` is v1's
+# field; `id` is v2's; `doi` is neither, and is accepted because a model told it may answer
+# with a DOI is liable to name the field after what it put in it.
+#
+# Widening this is safe for the stored answers, and that was checked rather than assumed: a
+# survey of all 34 caches on 2026-08-26 found 130 recommendation items carrying exactly two
+# keys between them, `arxiv_id` and `title`, and nothing else. So no cached run can re-parse
+# differently because of the new keys -- which matters, because `run_baseline` replays this
+# function over cached `raw` on every hit, and a parser change moves published denominators.
+_ID_KEYS = ("arxiv_id", "id", "doi")
+
 
 def _parse_recommendations(text: str) -> tuple[list[str], list[str]]:
-    """Extract (arxiv_ids, titles) from the baseline's answer.
+    """Extract (ids, titles) from the baseline's answer.
+
+    The ids are references, not necessarily arXiv ids: under `BASELINE_PROMPT_V2` an entry
+    may be a DOI. `verify.resolve_reference` is what decides which registry can answer for
+    one, so this function does not classify -- it only refuses to lose them.
 
     The ```json recommendation block is authoritative: when the baseline emits
     one (even an empty ``[]`` — an explicit abstention), those are its only
@@ -119,8 +201,9 @@ def _parse_recommendations(text: str) -> tuple[list[str], list[str]]:
         for it in items:
             if not isinstance(it, dict):
                 continue
-            if it.get("arxiv_id"):
-                ids.append(str(it["arxiv_id"]))
+            ref = next((str(it[k]).strip() for k in _ID_KEYS if it.get(k)), "")
+            if ref:
+                ids.append(ref)
             elif it.get("title"):
                 titles.append(str(it["title"]))
 
@@ -145,15 +228,39 @@ def _has_answer_block(text: str) -> bool:
     return bool(re.search(r"```(?:json)?\s*\[.*?\]\s*```", text, re.DOTALL))
 
 
-def _cache_path(mode: str, repo_name: str) -> Path:
+def _cache_path(mode: str, repo_name: str, prompt_version: str = DEFAULT_PROMPT_VERSION) -> Path:
+    """Where a run's answer is stored. **The prompt version is part of the location.**
+
+    `_discriminator` is a staleness check, not an address: a cached entry whose hash no
+    longer matches is re-run and the answer is written back to the SAME file. So before this
+    parameter existed, a prompt change did not invalidate the 34 stored answers, it destroyed
+    them -- three of them for real, on 2026-08-09, and their transcripts are unrecoverable.
+
+    v1 keeps the exact path it has always had (``cache/baseline/cli/ann.json``), so this
+    change moves no existing file and needs no migration. Every other version gets a sibling
+    directory. That also means the consumers which hardcode ``cache/baseline/cli`` -- the
+    gold-set derivation, `diagnose_pool`, `witness_set`, `fill_cli_baseline` -- keep reading
+    the comparator only, and cannot absorb v2 picks by accident.
+    """
     safe = re.sub(r"[^A-Za-z0-9_.-]", "_", repo_name)
-    return CACHE_DIR / mode / f"{safe}.json"
+    folder = mode if prompt_version == DEFAULT_PROMPT_VERSION else f"{mode}-{prompt_version}"
+    return CACHE_DIR / folder / f"{safe}.json"
 
 
-def _discriminator(mode: str, repo_context: str, flags: list[str] | None) -> str:
+def _discriminator(
+    mode: str,
+    repo_context: str,
+    flags: list[str] | None,
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
+) -> str:
     """Hash the inputs that change the baseline's answer, so a model/prompt/flag
-    (or, for api mode, repo-context) change invalidates a stale cached run."""
-    parts = [BASELINE_MODEL, BASELINE_PROMPT, mode]
+    (or, for api mode, repo-context) change invalidates a stale cached run.
+
+    The PROMPT TEXT is hashed, not the version label, so editing `BASELINE_PROMPT_V2` still
+    invalidates v2's own caches. Hashing the label would let the text drift underneath a
+    stable name -- the version equivalent of a cache key that stops tracking its input.
+    """
+    parts = [BASELINE_MODEL, prompt_for(prompt_version), mode]
     if mode == "api":
         parts.append(repo_context)
     elif mode == "cli":
@@ -277,11 +384,17 @@ def cli_auth_mode(claude_bin: str = "claude") -> str:
     return "subscription" if cli_logged_in(claude_bin) else "api"
 
 
-def _run_cli(repo_dir: Path, *, flags: list[str] | None, timeout: int) -> dict[str, Any]:
+def _run_cli(
+    repo_dir: Path,
+    *,
+    flags: list[str] | None,
+    timeout: int,
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
+) -> dict[str, Any]:
     claude_bin = os.environ.get("RR_EVAL_CLAUDE_BIN", "claude")
     env_flags = os.environ.get("RR_EVAL_CLAUDE_FLAGS")
     flag_list = flags or (env_flags.split() if env_flags else CLAUDE_FLAGS)
-    cmd = [claude_bin, "-p", *flag_list, BASELINE_PROMPT]
+    cmd = [claude_bin, "-p", *flag_list, prompt_for(prompt_version)]
 
     auth = cli_auth_mode(claude_bin)
     if auth == "subscription" and cli_logged_in(claude_bin) is False:
@@ -372,7 +485,12 @@ def _estimate_cost(usage: Any) -> float:
     return (tin / 1_000_000) * _PRICE_IN + (tout / 1_000_000) * _PRICE_OUT
 
 
-def _run_api(repo_context: str, *, max_uses: int = 8) -> dict[str, Any]:
+def _run_api(
+    repo_context: str,
+    *,
+    max_uses: int = 8,
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
+) -> dict[str, Any]:
     try:
         from anthropic import Anthropic
     except ImportError:
@@ -388,7 +506,7 @@ def _run_api(repo_context: str, *, max_uses: int = 8) -> dict[str, Any]:
     messages: list[dict[str, Any]] = [
         {
             "role": "user",
-            "content": f"{BASELINE_PROMPT}\n\n# Repository context\n{repo_context}",
+            "content": (f"{prompt_for(prompt_version)}\n\n# Repository context\n{repo_context}"),
         }
     ]
 
@@ -440,15 +558,18 @@ def run_baseline(
     use_cache: bool = True,
     flags: list[str] | None = None,
     timeout: int = 900,
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
 ) -> dict[str, Any]:
     """Run the baseline for one repo. Returns {ids, titles, raw, cost_usd, status}.
 
-    Only successful runs (status == "ok") are cached, and caches are per-mode, so
-    a mock run can never be served to a real run and a failure always retries.
+    Only successful runs (status == "ok") are cached, and caches are per-mode **and per
+    prompt version**, so a mock run can never be served to a real run, a failure always
+    retries, and a v2 run cannot displace the v1 answer the published figures rest on.
     """
     effective_mode = "mock" if mock else mode
-    cache_file = _cache_path(effective_mode, repo_name)
-    disc = _discriminator(effective_mode, repo_context, flags)
+    prompt_for(prompt_version)  # fail here, not after paying for a run under a typo'd version
+    cache_file = _cache_path(effective_mode, repo_name, prompt_version)
+    disc = _discriminator(effective_mode, repo_context, flags, prompt_version)
 
     if use_cache and cache_file.exists():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -481,11 +602,15 @@ def run_baseline(
     if mock:
         out = _run_mock()
     elif mode == "api":
-        out = _run_api(repo_context)
+        out = _run_api(repo_context, prompt_version=prompt_version)
     else:
-        out = _run_cli(repo_dir, flags=flags, timeout=timeout)
+        out = _run_cli(repo_dir, flags=flags, timeout=timeout, prompt_version=prompt_version)
 
     out["_disc"] = disc
+    # Recorded as well as hashed and pathed. `_disc` is 12 hex characters and says nothing to
+    # a reader; the 34 caches written before today carry no version field at all, and the
+    # answer for those is v1 by construction (it was the only prompt that existed).
+    out["prompt_version"] = prompt_version
     if mode == "cli" and not mock:
         # Recorded, not hashed. A present ANTHROPIC_API_KEY changes which tools the CLI
         # offers the agent, so two `cli` runs under different auth are not self-evidently
