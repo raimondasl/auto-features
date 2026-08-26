@@ -2,6 +2,7 @@
  "_comment": "k independent redraws of the cli baseline over the benchmark25 cohort, judged, to price how much of the gold set is a property of the draw. Derived by evals/gold_spread.py; pinned by tests/test_gold_spread.py. Written incrementally -- a partial artifact is expected and resumable.",
  "cohort": "benchmark25",
  "draws": 3,
+ "prompt_version": "v1",
  "results": {
   "1/crypto": {
    "status": "error",

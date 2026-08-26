@@ -56,10 +56,20 @@ assumed to be 1..k, so a trial at a different cap cannot be silently omitted fro
 None of this touches `cache/baseline/cli/` or `_discriminator`: the published comparator is a
 separate question from the witness generator, and this script only ever does the latter.
 
+**The prompt is a parameter too, and it is a stronger one than the cap.** `--prompt-version
+v2` draws with `BASELINE_PROMPT_V2`, which allows non-arXiv papers. That is not a redraw of
+this probe's configuration — it is a *different searcher*, so it writes its own artifact
+(`gold_spread_v2.json`), its draw numbers cannot collide with these, and `report` refuses to
+call its overlap with the frozen set "reproducibility" or to apply the pre-registered
+decision rule to it. Those draws exist to widen the witness set (P16), which is the
+baseline's witness-generator role and owes no validation; the published comparator is a
+separate question and `cache/baseline/cli/` is still never touched here.
+
     uv run python evals/gold_spread.py --dry-run   # $0, the plan and what is already done
     uv run python evals/gold_spread.py             # k draws at the shipped cap, resumable
     uv run python evals/gold_spread.py --max-turns 30 --concurrency 4    # a faster variant
     uv run python evals/gold_spread.py --report    # $0, re-read the artifact
+    uv run python evals/gold_spread.py --prompt-version v2 --max-turns 30 --concurrency 4
 """
 
 from __future__ import annotations
@@ -85,11 +95,26 @@ from harness import WORK_DIR, assemble_repo_context, clone_repo  # noqa: E402
 from run_judge_eval import load_dotenv  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from reporadar.paper_id import canonical_ref, dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 OUT = EVALS / "gold_spread.json"
 GOLD = EVALS / "gold_targets.json"
+
+
+def out_path(prompt_version: str) -> Path:
+    """One artifact per prompt version, rather than one artifact with a version column.
+
+    Rows are keyed `{draw}/{case}`, and every analysis in `report` splits that key. A v2 draw
+    sharing the file would collide with v1's draw 1 on the key -- so `todo_baseline` would
+    find the work already done and run nothing at all, silently. Separate files make a v2
+    draw impossible to mistake for a v1 one, which is the same rule `report` already applies
+    to turn caps: different configuration, different figures, never averaged.
+    """
+    if prompt_version == baseline_mod.DEFAULT_PROMPT_VERSION:
+        return OUT
+    return EVALS / f"gold_spread_{prompt_version}.json"
+
 
 DRAWS = 3
 # The cohort every published denominator is over. The scientific cases were added later and
@@ -125,7 +150,12 @@ def _turn_flags(max_turns: int) -> list[str] | None:
     return flags
 
 
-def run_baseline_only(case: dict[str, Any], *, max_turns: int) -> dict[str, Any]:
+def run_baseline_only(
+    case: dict[str, Any],
+    *,
+    max_turns: int,
+    prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION,
+) -> dict[str, Any]:
     """Phase A: the agentic run alone. **Touches no network service we rate-limit.**
 
     This is what makes concurrency safe. `run_baseline` shells out to `claude` and parses the
@@ -144,6 +174,7 @@ def run_baseline_only(case: dict[str, Any], *, max_turns: int) -> dict[str, Any]
         mode="cli",
         use_cache=False,  # never read, never write -- the stored gold set is untouchable here
         flags=_turn_flags(max_turns),
+        prompt_version=prompt_version,
     )
     elapsed = round(time.monotonic() - started, 1)
     if result.get("status") != "ok":
@@ -153,17 +184,23 @@ def run_baseline_only(case: dict[str, Any], *, max_turns: int) -> dict[str, Any]
             "phase": "judged",
             "raw": (result.get("raw") or "")[:160],
             "max_turns": max_turns,
+            "prompt_version": prompt_version,
             "duration_s": elapsed,
         }
     return {
         "status": "baseline_ok",
         "phase": "baseline",
-        "picks": [dedup_id(i) for i in result.get("ids") or []],
+        # `canonical_ref`, not `dedup_id`: under v2 a pick can be a DOI, and the resolver
+        # hands the same paper back in the prefixed `doi:` form. Two spellings of one id
+        # would break this artifact's own `targets <= picks` invariant for every non-arXiv
+        # paper. For an arXiv id the two functions are identical, so no stored row moves.
+        "picks": [canonical_ref(i) for i in result.get("ids") or []],
         "raw_ids": list(result.get("ids") or []),
         "raw_titles": list(result.get("titles") or []),
         "num_turns": result.get("num_turns"),
         "cost_usd": result.get("cost_usd", 0.0),
         "max_turns": max_turns,
+        "prompt_version": prompt_version,
         "duration_s": elapsed,
     }
 
@@ -178,7 +215,7 @@ def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, A
     scores: dict[str, int] = {}
     judge_failed = 0
     for paper in papers:
-        pid = dedup_id(paper["arxiv_id"])
+        pid = canonical_ref(paper["arxiv_id"])
         try:
             scores[pid] = int(
                 judge_mod.judge_paper(case_name, context, paper, model=model)["score"]
@@ -203,9 +240,19 @@ def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, A
     }
 
 
-def load_artifact() -> dict[str, Any]:
-    if OUT.is_file():
-        return json.loads(OUT.read_text(encoding="utf-8"))
+def load_artifact(prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION) -> dict[str, Any]:
+    path = out_path(prompt_version)
+    if path.is_file():
+        stored = json.loads(path.read_text(encoding="utf-8"))
+        # An artifact that does not say which prompt produced it is v1: it predates the
+        # versions. Anything that says otherwise is a file being opened under the wrong flag,
+        # and merging the two would mix configurations under one set of draw numbers.
+        found = stored.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
+        if found != prompt_version:
+            raise SystemExit(
+                f"! {path.name} was written under prompt {found!r}, not {prompt_version!r}."
+            )
+        return stored
     return {
         "_comment": (
             "k independent redraws of the cli baseline over the benchmark25 cohort, judged, "
@@ -215,12 +262,14 @@ def load_artifact() -> dict[str, Any]:
         ),
         "cohort": COHORT,
         "draws": DRAWS,
+        "prompt_version": prompt_version,
         "results": {},
     }
 
 
 def save(artifact: dict[str, Any]) -> None:
-    OUT.write_text(json.dumps(artifact, indent=1) + "\n", encoding="utf-8")
+    path = out_path(artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION))
+    path.write_text(json.dumps(artifact, indent=1) + "\n", encoding="utf-8")
 
 
 # ── analysis ───────────────────────────────────────────────────────────────
@@ -267,6 +316,18 @@ def report(artifact: dict[str, Any]) -> int:
         )
         bucket.setdefault(int(d), []).append(case)
 
+    version = artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
+    print(f"prompt: {version}")
+    if version != baseline_mod.DEFAULT_PROMPT_VERSION:
+        # The pre-registered decision rule at the bottom of this report was registered for
+        # redraws of the SAME configuration; it prices sampling noise. A different prompt is
+        # a different searcher, so the same arithmetic answers a different question and the
+        # rule must not be applied to it. Say so here rather than trusting a reader to notice.
+        print(
+            "  NOTE: a different searcher, not a redraw. The overlap figures below are\n"
+            "  COVERAGE of the frozen set by this configuration, not reproducibility, and\n"
+            "  the pre-registered decision rule does NOT apply to them."
+        )
     print(f"frozen {COHORT} gold set: {n_frozen} targets / {len(frozen)} cases")
     all_draws = sorted(set(ok_by_draw) | set(partial_by_draw) | set(failed_by_draw))
     for d in all_draws:
@@ -375,7 +436,11 @@ def report(artifact: dict[str, Any]) -> int:
 
     if per_draw_repro:
         mean = sum(per_draw_repro) / len(per_draw_repro)
-        print(f"\nmean reproducibility of the frozen set: {mean:.2f}")
+        label = "reproducibility" if version == baseline_mod.DEFAULT_PROMPT_VERSION else "coverage"
+        print(f"\nmean {label} of the frozen set: {mean:.2f}")
+        if version != baseline_mod.DEFAULT_PROMPT_VERSION:
+            print("  (different searcher — no verdict; see the note at the top.)")
+            return 0
         print("  pick-level agreement measured by P15 for comparison: 0.41")
         if mean < 2 / 3:
             verdict = "the denominator is NOT stable — published recall needs an interval"
@@ -401,6 +466,15 @@ def main() -> int:
         help="Agent turn cap. Recorded per row; does NOT touch the shipped caches.",
     )
     ap.add_argument(
+        "--prompt-version",
+        default=baseline_mod.DEFAULT_PROMPT_VERSION,
+        choices=sorted(baseline_mod.PROMPTS),
+        help=(
+            "Which baseline prompt to draw with. v2 allows non-arXiv papers. "
+            "Each version writes its OWN artifact; draws are never mixed."
+        ),
+    )
+    ap.add_argument(
         "--concurrency",
         type=int,
         default=1,
@@ -408,7 +482,7 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    artifact = load_artifact()
+    artifact = load_artifact(args.prompt_version)
     if args.report:
         return report(artifact)
 
@@ -432,7 +506,11 @@ def main() -> int:
         f"recorded: {len(by_key)}   need a baseline: {len(todo_baseline)}   "
         f"need judging: {len(todo_judge)}"
     )
-    print(f"turn cap: {args.max_turns}   phase-A concurrency: {args.concurrency}")
+    print(
+        f"turn cap: {args.max_turns}   prompt: {args.prompt_version}"
+        f"   phase-A concurrency: {args.concurrency}"
+    )
+    print(f"artifact: {out_path(args.prompt_version).name}")
     if args.dry_run:
         print("\n(dry run)")
         return 0
@@ -463,7 +541,12 @@ def main() -> int:
         done = 0
         with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as pool:
             futures = {
-                pool.submit(run_baseline_only, case, max_turns=args.max_turns): (draw, case)
+                pool.submit(
+                    run_baseline_only,
+                    case,
+                    max_turns=args.max_turns,
+                    prompt_version=args.prompt_version,
+                ): (draw, case)
                 for draw, case in todo_baseline
             }
             for fut in as_completed(futures):

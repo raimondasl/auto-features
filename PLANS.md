@@ -126,17 +126,33 @@ dollar-billed, which is what makes them thinkable:
 | **stability-weighted recall** — weight each target by the fraction of draws it appears in | same runs | keeps a single number, prices its own uncertainty |
 | leave it, document it | $0 | every recall figure carries "single draw" as a caveat |
 
-**The witness set v2 is built [P16]** (`evals/witness_set.py`, $0): 319 witnesses across
-four sources (cli 75 = the gold set exactly, api 50, reporadar 189, adoption 19), nearly
-disjoint (306 of 319 single-source). Coverage is restated as per-source reach probabilities
-with CIs (LOSO — reporadar grades nothing it found itself), digest-level coverage is replaced
-by regret@15, and the union/denominator question dissolves: growing the set tightens the
-intervals instead of degrading any number. Two findings that outrank the bookkeeping: the
-shipped pool contains only **~14–22% of non-self witnesses** (channels reach 77% at depth
-1000; the pool cuts far shallower — the gap is the rank story of §5.5 made concrete), and
-**1 of 19 adoption-mined papers** — the model-free source — is in the pool at all. Digest
-regret vs known witnesses is **+3.48 net@2/case** on top of +5.72, nearly all of it a
-discovery deficit rather than a selection one.
+**The witness set v2 is built [P16]** (`evals/witness_set.py`, $0). Coverage is restated as
+per-source reach probabilities with CIs (LOSO — reporadar grades nothing it found itself),
+digest-level coverage is replaced by regret@15, and the union/denominator question dissolves:
+growing the set tightens the intervals instead of degrading any number. Two findings that
+outrank the bookkeeping: the shipped pool contains only **~14–23% of non-self witnesses**
+(channels reach 77% at depth 1000; the pool cuts far shallower — the gap is the rank story of
+§5.5 made concrete), and **1 of 19 adoption-mined papers** — the model-free source — is in
+the pool at all.
+
+**The P17 redraws are now pooled into it, and the set grew by a fifth.** 319 → **385
+witnesses** over 31 cases: cli 75 (the gold set exactly, untouched), cli-redraw 92,
+cli-redraw@30 10, api 50, reporadar 189, adoption 19. Still nearly disjoint — 349 of 385
+single-source. Each draw is labelled by the *configuration* that produced it rather than by
+the file it came from, because the prompt and the turn cap both change what gets found; `cli`
+stays exactly the frozen gold-set derivation and its reach is unmoved at 8/56. Two things
+follow:
+
+- **Digest regret is +4.80 net@2/case** on top of +5.72, against **+3.48 measured over the
+  319-witness set**. Regret is a function of the set's size by construction — more
+  certificates reveal more headroom, bounded by the digest window — so both are correct at
+  their own size and the pair is quoted rather than the older figure overwritten (C-17).
+  It remains almost entirely a discovery deficit rather than a selection one.
+- **Chao1 at witness level over three cli-redraws: ≥ 236.5 against 92 observed**, with 68 of
+  the 92 seen in exactly one draw. Kept apart from the pick-level P15 estimate (≥ 34.3 over
+  24) because the units differ. Redrawing one searcher three times found under 40% of what
+  that *single configuration* can find — which is the quantitative case for pooling more
+  searchers, i.e. for the v2 prompt, rather than for more draws of this one.
 
 **The k = 3 spread is run [P17]** — 75 draws over the 25 cases, judged, caches untouched.
 It answers the item and closes it:
@@ -183,20 +199,48 @@ falls out of the split:
   +3.88` would have to be re-measured. That is a separate, deliberate decision — and
   `gold_spread.py` cannot touch it, since it never writes `cache/baseline/cli/`.
 
-**The v2 prompt is blocked on a prerequisite nobody has done.** `verify.resolve_references`
-resolves arXiv ids only, and `BASELINE_PROMPT` demands `{"arxiv_id": ...}`. A v2 baseline that
-recommends a *Nature* paper today produces a pick that cannot be verified, cannot be judged,
-and therefore cannot become a witness — the non-arXiv region would stay invisible while
-looking like it had been searched. Widen verification first: reuse `citations._s2_batch_post`,
-EuropePMC as tier 2 (it recovers 5 of the 77 bioRxiv DOIs S2 returns null for), and the DOI
-Handle API as the authoritative existence test.
-
 Recommended order: **(1) widen `resolve_references`** — no LLM spend, unblocks everything;
 **(2) v2-prompt witness draws** at 30 turns with concurrency, the highest-value searcher
 change because P16 measured the shipped pool reaching *1 of 19* adoption-mined papers and P12
 found 79 judged-actionable non-arXiv papers the arXiv-only set is structurally blind to;
 **(3) Opus 5** as a further witness source, lower marginal value since it searches the same
 arXiv-shaped space; **(4) the comparator re-measurement**, deliberately and separately.
+
+**(1) is done** (PR #204). `verify.resolve_references` now classifies four outcomes across
+arXiv, the DOI Handle API, Semantic Scholar and Europe PMC — and widening it exposed C-31, a
+second "is this an arXiv id" rule answering *True* for the one id the project knows is bogus.
+
+**(2) is drafted and unrun.** `BASELINE_PROMPT_V2` allows journal, conference and
+bioRxiv/medRxiv papers and asks for `{"id", "title"}` where `id` is an arXiv id **or** a bare
+DOI. Three things it had to get right before a single call:
+
+* **The prompt is versioned, not edited.** `_cache_path` had no discriminator in it, so
+  editing `BASELINE_PROMPT` in place would not have invalidated the 34 stored answers — it
+  would have overwritten them, which is how `compiler`, `graph` and `storage` came to hold a
+  restoration note instead of a transcript on 2026-08-09. v1 keeps its exact path and its
+  pinned discriminator `da766b38114e`; v2 writes to `cache/baseline/cli-v2/`.
+* **The parser was widened over live data.** `run_baseline` re-derives ids from cached `raw`
+  on every hit, so accepting `id`/`doi` re-parses the gold set. Safe only because all 130
+  stored recommendation items carry exactly `arxiv_id` and `title` — surveyed, then pinned as
+  a test rather than left as a claim.
+* **One id per reference.** `paper_id.canonical_ref` collapses every DOI spelling to
+  `doi:…`, because a pick is stored as the model wrote it while the resolver returns the
+  prefixed form — which would have broken `gold_spread`'s own `targets ⊆ picks` invariant for
+  every non-arXiv paper.
+
+To run it: `uv run python evals/gold_spread.py --prompt-version v2 --max-turns 30
+--concurrency 4`. It writes `gold_spread_v2.json`, never `gold_spread.json`, and `report`
+refuses to call its overlap with the frozen set "reproducibility" or apply the P17 decision
+rule to it — a different prompt is a different searcher, not a redraw.
+
+**The draws now reach the witness set.** `witness_set.gather_witnesses` reads every judged
+`gold_spread` row across every prompt version, labelling each by its configuration
+(`cli-redraw`, `cli-redraw@30`, `cli-v2@30`, …). Wiring it against the *existing* v1 draws
+first was the point: it grew the set 319 → 385 and moved regret +3.48 → +4.80 **before** any
+v2 call is billed, so when the v2 draws land, whatever moves is attributable to the prompt
+rather than to the plumbing arriving at the same time. Source labels are discovered from the
+data, so a v2 draw appears in the reach table on its own; `tests/test_witness_set.py` pins the
+full label set, so a new one still has to be classified self or grading by a human.
 
 
 ### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon

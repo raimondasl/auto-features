@@ -138,3 +138,21 @@ def dedup_id(arxiv_id: str) -> str:
     """
     match = _ARXIV_VER_RE.match(arxiv_id) or _ARXIV_OLD_VER_RE.match(arxiv_id)
     return match.group(1) if match else arxiv_id
+
+
+def canonical_ref(ref: str) -> str:
+    """One id for a reference, whichever of the two schemes it is written in.
+
+    Composed rather than new: a DOI in any accepted form becomes :func:`doi_key`'s ``doi:``
+    id, and everything else falls to :func:`dedup_id`. Both are idempotent, so applying this
+    to an already-canonical id is a no-op — which is what lets a caller apply it on both
+    sides of a comparison without tracking which side has been through it.
+
+    It exists because the baseline's v2 prompt made the two schemes meet. A pick arrives as
+    the model wrote it (``10.1038/s41586-021-03819-2``), while the same paper comes back from
+    `verify.resolve_by_doi_s2` carrying the prefixed form in its ``arxiv_id`` field — so
+    `gold_spread`'s stored picks and its judged targets would have disagreed about identity
+    for every non-arXiv paper, and its own ``targets <= picks`` invariant would have failed.
+    For an arXiv id this is exactly ``dedup_id`` and changes nothing about the stored runs.
+    """
+    return doi_key(ref) or dedup_id(ref)
