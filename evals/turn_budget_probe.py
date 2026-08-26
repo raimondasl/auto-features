@@ -212,6 +212,27 @@ def build(cases: list[str]) -> dict[str, Any]:
     }
 
 
+def merge_into(path: Path, fresh: dict[str, Any]) -> dict[str, Any]:
+    """Merge freshly-run cases into whatever the artifact already holds, keyed by case.
+
+    Write-by-replacement is how a `--case` subset destroys a full-set result, and this
+    project has paid for it four times now -- three scripts before merge-by-key became the
+    standard write pattern, and then this one: a rescue run over four cases overwrote the
+    six-case probe it was meant to complement, because a patch that added `--out` reached
+    the read path and not the write path. Recovered from git; the repair is to stop making
+    the write destructive at all.
+    """
+    if not path.is_file():
+        return fresh
+    merged = json.loads(path.read_text(encoding="utf-8"))
+    by_case = {r["case"]: r for r in merged.get("cases", [])}
+    for row in fresh["cases"]:
+        by_case[row["case"]] = row
+    merged.update({k: v for k, v in fresh.items() if k != "cases"})
+    merged["cases"] = [by_case[k] for k in sorted(by_case)]
+    return merged
+
+
 def report(data: dict[str, Any]) -> int:
     rows = [r for r in data["cases"] if "control" in r]
     if not rows:
@@ -235,22 +256,54 @@ def report(data: dict[str, Any]) -> int:
         )
 
     # --- the kill condition, checked before anything is interpreted -----------------
-    broke = [r["case"] for r in rows if r["control"]["status"] != "ok"]
+    # It fires only where the CACHE SAYS THE CASE SUCCEEDED. On a case with no successful
+    # cache -- the four P14 could not measure -- a failing 12-turn control is the expected
+    # result being reproduced, not an instrument problem. The first version keyed on the
+    # control alone and cried kill on exactly the run it was pointed at.
+    broke = [
+        r["case"]
+        for r in rows
+        if r["control"]["status"] != "ok" and r["cached"].get("status") == "ok"
+    ]
+    reproduced = [
+        r["case"]
+        for r in rows
+        if r["control"]["status"] != "ok" and r["cached"].get("status") != "ok"
+    ]
+    if reproduced:
+        print(f"\n12-turn control failed on {reproduced} — expected: no successful cache")
+        print("   exists for these, so the failure is the known result reproducing.")
     if broke:
-        print(f"\n!! KILL CONDITION: the 12-turn control failed on {broke}.")
-        print("   The cap is being reached nondeterministically; treat every J below as")
-        print("   uninterpretable and do not read a verdict off this run.")
+        print(f"\n!! KILL CONDITION: the 12-turn control failed on {broke}, which the cache")
+        print("   records as SUCCEEDING. The boundary is being reached nondeterministically;")
+        print("   treat every J below as uninterpretable and read no verdict off this run.")
         return 1
+
+    # A case with no successful cache has NOTHING to compare a re-run against. Its
+    # `j_cached_control` computes to 0.0 -- an empty cached set against a non-empty control
+    # -- which reads as total disagreement and is really an absent measurement. Counting
+    # those dragged the "what re-running costs" figure from 0.41 to 0.29 on the merged run:
+    # void scored as null, in the statistic written to price exactly that kind of noise.
+    comparable = [r for r in rows if r["cached"].get("status") == "ok"]
+    rescue = [r for r in rows if r["cached"].get("status") != "ok"]
+    if rescue:
+        fixed = [r["case"] for r in rescue if r["treat"]["status"] == "ok"]
+        at_12 = [r["case"] for r in rescue if r["control"]["status"] == "ok"]
+        print(f"\ncases with no successful cache ({len(rescue)}): {[r['case'] for r in rescue]}")
+        print(f"  succeeded at {CONTROL_TURNS} turns on a FRESH draw: {at_12 or 'none'}")
+        print(f"  succeeded at {TREATMENT_TURNS} turns:               {fixed or 'none'}")
+        if at_12:
+            print("  -> the earlier failures are DRAWS, not properties of these repositories.")
 
     # --- primary measure: did any arm actually REACH the cap? ----------------------
     # Read off `status`, not `num_turns`. Reaching `--max-turns` fails loudly with
     # `error_max_turns` (that is how P14's four cases present), so `ok` at 12 means the cap
     # was never reached. `num_turns` is NOT the quantity the cap bounds -- controls capped
     # at 12 report 16 and 17 while succeeding -- so it is printed and never thresholded.
-    capped = [r["case"] for r in rows if r["control"]["status"] != "ok"]
+    capped = [r["case"] for r in comparable if r["control"]["status"] != "ok"]
     print(f"\nreached the {CONTROL_TURNS}-turn cap (control arm): {capped or 'none'}")
     if not capped:
-        print(f"  -> the cap bound on no case probed; all {len(rows)} controls finished.")
+        print(f"  -> the cap bound on none of the {len(comparable)} cases with a cache.")
     obs = ", ".join(
         f"{r['case']}={r['control']['num_turns']}/{r['treat']['num_turns']}" for r in rows
     )
@@ -260,11 +313,11 @@ def report(data: dict[str, Any]) -> int:
     # --- the secondary measure, PAIRED, against the yardstick it must beat ----------
     paired = [
         (r["case"], r["j_control_treat"] - r["j_cached_control"])
-        for r in rows
+        for r in comparable
         if r["j_control_treat"] is not None and r["j_cached_control"] is not None
     ]
-    jab = [r["j_cached_control"] for r in rows if r["j_cached_control"] is not None]
-    jbc = [r["j_control_treat"] for r in rows if r["j_control_treat"] is not None]
+    jab = [r["j_cached_control"] for r in comparable if r["j_cached_control"] is not None]
+    jbc = [r["j_control_treat"] for r in comparable if r["j_control_treat"] is not None]
     m_ab = sum(jab) / len(jab) if jab else float("nan")
     m_bc = sum(jbc) / len(jbc) if jbc else float("nan")
     print(f"\nmean J(cached, control) = {m_ab:.2f}   <- what re-running ALONE costs")
@@ -289,7 +342,7 @@ def report(data: dict[str, Any]) -> int:
     for cohort in ("benchmark25", "scisoft"):
         vals = [
             r["j_cached_control"]
-            for r in rows
+            for r in comparable
             if r["cohort"] == cohort and r["j_cached_control"] is not None
         ]
         if vals:
@@ -347,9 +400,9 @@ def main() -> int:
             print(f"! no clone for {case}; run the benchmark once first.")
             return 1
 
-    data = build(cases)
-    OUT.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    print(f"\nwrote {OUT.name}")
+    data = merge_into(out_path, build(cases))
+    out_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"\nwrote {out_path.name} ({len(data['cases'])} case(s) total)")
     return report(data)
 
 

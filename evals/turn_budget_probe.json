@@ -4,14 +4,13 @@
   "treatment_turns": 30,
   "cases": [
     {
-      "case": "rag",
-      "cohort": "benchmark25",
+      "case": "bio-align",
+      "cohort": "scisoft",
       "cached": {
         "status": "ok",
         "ids": [
-          "2409.14683",
-          "2404.02805",
-          "2501.17788"
+          "2606.03929",
+          "2506.11750"
         ],
         "num_turns": null,
         "cli_auth_mode": null
@@ -19,31 +18,116 @@
       "control": {
         "status": "ok",
         "ids": [
-          "2409.14683",
-          "2404.02805",
-          "2501.17788",
-          "2304.01982",
-          "2405.19504"
+          "2506.11750"
         ],
-        "num_turns": 16,
-        "cost_usd": 1.5200819999999997,
+        "num_turns": 17,
+        "cost_usd": 1.061413,
         "max_turns": 12,
-        "raw_head": "I now have enough to give grounded recommendations. Here's my analysis.\n\n## What this codebase is\n\nThis is **ColBERT (v2) + PLAID** \u2014 the canonical late-interaction retriever. The "
+        "raw_head": "## What this repository is\n\nThis is **minimap2** (Heng Li's long\u2011read aligner, r1302 / v2.31). Its hot path is a classic **seed\u2013chain\u2013extend** pipeline, spread across:\n\n- **Seeding"
       },
       "treat": {
         "status": "ok",
         "ids": [
-          "2404.02805",
-          "2501.17788",
-          "2304.01982"
+          "2112.08687",
+          "2606.03929",
+          "2002.05200"
         ],
-        "num_turns": 18,
-        "cost_usd": 1.472695,
+        "num_turns": 17,
+        "cost_usd": 0.9306670000000001,
         "max_turns": 30,
-        "raw_head": "I now have enough to make high-confidence recommendations. Key finding: this repo **already implements token pooling** (Clavi\u00e9 et al. 2024, `pool_embeddings_hierarchical`), so I ex"
+        "raw_head": "All three verified as real arXiv papers. Here's my assessment.\n\n## Summary\n\nThis repository is **minimap2** (Heng Li's long-read aligner). Its hot path is the classic *seed\u2013chain\u2013e"
       },
-      "j_cached_control": 0.6,
-      "j_control_treat": 0.6
+      "j_cached_control": 0.5,
+      "j_control_treat": 0.0
+    },
+    {
+      "case": "bio-scvi",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "missing"
+      },
+      "control": {
+        "status": "error",
+        "ids": [],
+        "num_turns": null,
+        "cost_usd": 0.0,
+        "max_turns": 12,
+        "raw_head": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"error_max_turns\",\"duration_ms\":209982,\"duration_api_ms\":223896,\"is_error\":true,\"num_turns\":13,\"stop_reason\":\"tool_us"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "2402.04412",
+          "2507.11789"
+        ],
+        "num_turns": 17,
+        "cost_usd": 1.0069179999999998,
+        "max_turns": 30,
+        "raw_head": "Confirmed. `src/scvi/module/_vae.py:543` hardcodes `pz = Normal(zeros, ones)` \u2014 a fixed standard-Normal prior \u2014 and the loss uses analytic KL. That's exactly the component both my "
+      },
+      "j_cached_control": null,
+      "j_control_treat": 0.0
+    },
+    {
+      "case": "bio-singlecell",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "1907.02647",
+          "2012.04456"
+        ],
+        "num_turns": 17,
+        "cost_usd": 0.9848754999999999,
+        "max_turns": 12,
+        "raw_head": "I have what I need. Key finding: the \"deviance feature selection\" work is only on bioRxiv/Genome Biology, but the **GLM-PCA** method paper (arXiv 1907.02647) and **PaCMAP** (arXiv "
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "1712.09005"
+        ],
+        "num_turns": 24,
+        "cost_usd": 1.450604,
+        "max_turns": 30,
+        "raw_head": "## Summary\n\nThis repository is **Scanpy**, the mature scverse single-cell analysis toolkit. I read its algorithmic modules (`tools/`, `preprocessing/`) and its `references.bib`, wh"
+      },
+      "j_cached_control": 0.0,
+      "j_control_treat": 0.0
+    },
+    {
+      "case": "http",
+      "cohort": "benchmark25",
+      "cached": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": 9,
+        "cost_usd": 0.573044,
+        "max_turns": 12,
+        "raw_head": "I've examined the codebase and searched the relevant research areas. Here's my honest assessment.\n\n## What this codebase is\n\nThis is **`requests`** (psf/requests), the mature Pytho"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": 17,
+        "cost_usd": 1.1057645,
+        "max_turns": 30,
+        "raw_head": "I've examined the codebase (this is **`requests`**, the psf HTTP client library) and searched arxiv across the surfaces where research could plausibly apply: charset/encoding detec"
+      },
+      "j_cached_control": null,
+      "j_control_treat": null
     },
     {
       "case": "linter",
@@ -88,34 +172,6 @@
       "j_control_treat": 0.6
     },
     {
-      "case": "http",
-      "cohort": "benchmark25",
-      "cached": {
-        "status": "ok",
-        "ids": [],
-        "num_turns": null,
-        "cli_auth_mode": null
-      },
-      "control": {
-        "status": "ok",
-        "ids": [],
-        "num_turns": 9,
-        "cost_usd": 0.573044,
-        "max_turns": 12,
-        "raw_head": "I've examined the codebase and searched the relevant research areas. Here's my honest assessment.\n\n## What this codebase is\n\nThis is **`requests`** (psf/requests), the mature Pytho"
-      },
-      "treat": {
-        "status": "ok",
-        "ids": [],
-        "num_turns": 17,
-        "cost_usd": 1.1057645,
-        "max_turns": 30,
-        "raw_head": "I've examined the codebase (this is **`requests`**, the psf HTTP client library) and searched arxiv across the surfaces where research could plausibly apply: charset/encoding detec"
-      },
-      "j_cached_control": null,
-      "j_control_treat": null
-    },
-    {
       "case": "mat-descriptors",
       "cohort": "scisoft",
       "cached": {
@@ -157,74 +213,135 @@
       "j_control_treat": 0.2
     },
     {
-      "case": "bio-align",
+      "case": "mat-mlip",
       "cohort": "scisoft",
       "cached": {
-        "status": "ok",
-        "ids": [
-          "2606.03929",
-          "2506.11750"
-        ],
-        "num_turns": null,
-        "cli_auth_mode": null
+        "status": "missing"
       },
       "control": {
         "status": "ok",
         "ids": [
-          "2506.11750"
+          "2402.16621",
+          "2502.15582"
         ],
-        "num_turns": 17,
-        "cost_usd": 1.061413,
+        "num_turns": 22,
+        "cost_usd": 1.073181,
         "max_turns": 12,
-        "raw_head": "## What this repository is\n\nThis is **minimap2** (Heng Li's long\u2011read aligner, r1302 / v2.31). Its hot path is a classic **seed\u2013chain\u2013extend** pipeline, spread across:\n\n- **Seeding"
+        "raw_head": "I have enough to make well-grounded recommendations. Let me note my decisions:\n\n- **Long-range electrostatics (\"easier than we thought\", 2512.18029, Kim & Cheng)** \u2014 this *is* the "
       },
       "treat": {
         "status": "ok",
         "ids": [
-          "2112.08687",
-          "2606.03929",
-          "2002.05200"
+          "2606.15892",
+          "2508.16086",
+          "2502.15582"
         ],
-        "num_turns": 17,
-        "cost_usd": 0.9306670000000001,
+        "num_turns": 26,
+        "cost_usd": 1.2226895,
         "max_turns": 30,
-        "raw_head": "All three verified as real arXiv papers. Here's my assessment.\n\n## Summary\n\nThis repository is **minimap2** (Heng Li's long-read aligner). Its hot path is the classic *seed\u2013chain\u2013e"
-      },
-      "j_cached_control": 0.5,
-      "j_control_treat": 0.0
-    },
-    {
-      "case": "bio-singlecell",
-      "cohort": "scisoft",
-      "cached": {
-        "status": "ok",
-        "ids": [],
-        "num_turns": null,
-        "cli_auth_mode": null
-      },
-      "control": {
-        "status": "ok",
-        "ids": [
-          "1907.02647",
-          "2012.04456"
-        ],
-        "num_turns": 17,
-        "cost_usd": 0.9848754999999999,
-        "max_turns": 12,
-        "raw_head": "I have what I need. Key finding: the \"deviance feature selection\" work is only on bioRxiv/Genome Biology, but the **GLM-PCA** method paper (arXiv 1907.02647) and **PaCMAP** (arXiv "
-      },
-      "treat": {
-        "status": "ok",
-        "ids": [
-          "1712.09005"
-        ],
-        "num_turns": 24,
-        "cost_usd": 1.450604,
-        "max_turns": 30,
-        "raw_head": "## Summary\n\nThis repository is **Scanpy**, the mature scverse single-cell analysis toolkit. I read its algorithmic modules (`tools/`, `preprocessing/`) and its `references.bib`, wh"
+        "raw_head": "I now have enough to give a well-grounded answer. Let me summarize what MACE already implements versus what these papers genuinely add.\n\n## Summary\n\nI read through the MACE codebas"
       },
       "j_cached_control": 0.0,
-      "j_control_treat": 0.0
+      "j_control_treat": 0.25
+    },
+    {
+      "case": "mat-phonon",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "missing"
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "2103.03973",
+          "1303.1145",
+          "1811.09267"
+        ],
+        "num_turns": 17,
+        "cost_usd": 0.899004,
+        "max_turns": 12,
+        "raw_head": "I now have enough to make precise recommendations. The key finding from phonopy's own docs is decisive: phonopy **generates** finite-temperature random displacements but leaves the"
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "2103.03973",
+          "2401.17531"
+        ],
+        "num_turns": 17,
+        "cost_usd": 1.2039644999999997,
+        "max_turns": 30,
+        "raw_head": "I've mapped the codebase's scientific methods against the literature. Let me summarize what I found and what's genuinely applicable.\n\n## Codebase context\n\nPhonopy computes harmonic"
+      },
+      "j_cached_control": 0.0,
+      "j_control_treat": 0.25
+    },
+    {
+      "case": "mat-toolkit",
+      "cohort": "scisoft",
+      "cached": {
+        "status": "missing"
+      },
+      "control": {
+        "status": "error",
+        "ids": [],
+        "num_turns": null,
+        "cost_usd": 0.0,
+        "max_turns": 12,
+        "raw_head": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"error_max_turns\",\"duration_ms\":63894,\"duration_api_ms\":61391,\"is_error\":true,\"num_turns\":13,\"stop_reason\":\"tool_use\""
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [],
+        "num_turns": 23,
+        "cost_usd": 1.4323679999999999,
+        "max_turns": 30,
+        "raw_head": "I've now investigated the strongest candidates against the actual code. Let me consolidate rather than keep searching, because the pattern is clear and the task explicitly rewards "
+      },
+      "j_cached_control": null,
+      "j_control_treat": null
+    },
+    {
+      "case": "rag",
+      "cohort": "benchmark25",
+      "cached": {
+        "status": "ok",
+        "ids": [
+          "2409.14683",
+          "2404.02805",
+          "2501.17788"
+        ],
+        "num_turns": null,
+        "cli_auth_mode": null
+      },
+      "control": {
+        "status": "ok",
+        "ids": [
+          "2409.14683",
+          "2404.02805",
+          "2501.17788",
+          "2304.01982",
+          "2405.19504"
+        ],
+        "num_turns": 16,
+        "cost_usd": 1.5200819999999997,
+        "max_turns": 12,
+        "raw_head": "I now have enough to give grounded recommendations. Here's my analysis.\n\n## What this codebase is\n\nThis is **ColBERT (v2) + PLAID** \u2014 the canonical late-interaction retriever. The "
+      },
+      "treat": {
+        "status": "ok",
+        "ids": [
+          "2404.02805",
+          "2501.17788",
+          "2304.01982"
+        ],
+        "num_turns": 18,
+        "cost_usd": 1.472695,
+        "max_turns": 30,
+        "raw_head": "I now have enough to make high-confidence recommendations. Key finding: this repo **already implements token pooling** (Clavi\u00e9 et al. 2024, `pool_embeddings_hierarchical`), so I ex"
+      },
+      "j_cached_control": 0.6,
+      "j_control_treat": 0.6
     }
   ]
 }

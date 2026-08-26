@@ -8,7 +8,7 @@ repeated here — it lives in:
 |---|---|
 | [`RESEARCH.md`](RESEARCH.md) | the experiment record, organised by problem (§9 is current) |
 | [`ROADMAP.md`](ROADMAP.md) | the feature/probe ledger, item by item, with verdicts |
-| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P13, NR series, C-1–25; a few NR ids are assigned in paper/DRAFT.md's appendix) |
+| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P15, NR series, C-1–29; a few NR ids are assigned in paper/DRAFT.md's appendix) |
 | [`archive/`](archive/) | superseded plans, kept verbatim (MVP plan, original sketch, retrieval designs) |
 
 ## Where the system stands (2026-08-25)
@@ -80,8 +80,19 @@ The 30-turn question is **answered and parked**: on six cases probed with a pair
 12-turn control, the cap bound on none of them (all controls returned `ok`; reaching
 `--max-turns` fails loudly), and the turn effect on picks is **−0.13 Jaccard, CI [−0.38,
 +0.11], n = 5** — inside the noise of simply re-running. Raising the cap is not the priority
-it looked like. The four `error_max_turns` cases stay unmeasured, and P14's +2.12 keeps its
-"excludes the four largest repositories" caveat.
+it looked like.
+
+**And two of the four "turn-limited" cases were never turn-limited [C-28].** Re-run at the
+identical flags, `mat-mlip`/MACE and `mat-phonon`/phonopy **succeed at 12 turns**; only
+`bio-scvi` and `mat-toolkit` reproduced their failure, and both complete at 30. P14's reading
+— that the budget "does not transfer to large scientific codebases" — attributed to domain
+what belongs to nondeterminism.
+
+**Free consequence, do this first:** `mat-mlip` and `mat-phonon` can get `cli` baselines and
+gold targets for the price of a re-run at *unchanged* flags, taking the scientific cohort
+from 8/12 to 10/12 without touching the discriminator. It adds targets rather than moving
+any, exactly as P14 did. Note it also adds two more single-draw targets to a gold set the
+item below argues is already a sample — worth doing, worth doing knowingly.
 
 **What the control arm found instead is the real item.** A re-run of the *identical*
 configuration disagrees with the stored answer on **~59% of picks** (mean J = 0.41). Pick

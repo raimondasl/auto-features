@@ -1258,9 +1258,70 @@ that, prints `num_turns` as an observation, and never thresholds it. Note the di
 correction — it makes the answer *less* decisive rather than more convenient, which is the
 only reason a rule rewritten after seeing data deserves any credence at all.
 
-**Cost** 12 agentic runs, subscription-billed. Nothing written to the shared caches; the 33
-`cli` answers were additionally backed up to `evals/.work/cache-backup-20260826-baseline-cli/`
-before the first call.
+
+#### The four "turn-limit" cases: two of them were never turn-limited **[C-28]**
+
+The probe above covered only cases that already succeed, which measures what raising the cap
+would *cost* and says nothing about what it would *buy*. Running the same three arms over the
+four cases P14 could not measure — `bio-scvi`/scvi-tools, `mat-mlip`/MACE,
+`mat-toolkit`/pymatgen, `mat-phonon`/phonopy — answers the other half, and contradicts P14:
+
+| case | repository | fresh 12-turn control | 30-turn treatment |
+|---|---|---|---|
+| `mat-mlip` | MACE | **ok, 2 picks** | ok, 3 picks |
+| `mat-phonon` | phonopy | **ok, 3 picks** | ok, 2 picks |
+| `bio-scvi` | scvi-tools | `error_max_turns` | **ok, 2 picks** |
+| `mat-toolkit` | pymatgen | `error_max_turns` | **ok, 0 picks** (abstains) |
+
+**Two of the four succeed at twelve turns on a fresh draw**, under the identical
+configuration that failed in P14. So P14's claim — *"a third of the scientific cohort
+exhausts a turn budget that only 2 of the original 25 ever hit"*, offered as evidence that
+the budget "does not transfer to large scientific codebases" — is **wrong in its mechanism**.
+It is the same nondeterminism the control arm measured above, surfacing at the cap instead of
+in the pick list. Half of that "domain effect" is weather.
+
+What survives: `bio-scvi` and `mat-toolkit` did reproduce their failure at 12 and did
+complete at 30. So the cap is real for *some* cases on *some* draws — a rate, not a property,
+and the rate is not measured here.
+
+**Two cheap consequences.** `mat-mlip` and `mat-phonon` can have `cli` baselines and gold
+targets for the price of a re-run at the *unchanged* flags, taking the scientific cohort from
+8/12 to 10/12 without touching the discriminator. And P14's +2.12 caveat — "excludes the four
+largest repositories" — should be read as excluding four repositories that a re-run would
+partly have included, not four the comparator cannot handle.
+
+#### Three defects in this probe, found by running it **[C-29]**
+
+The instrument needed three repairs, and one of them destroyed data:
+
+**The `--out` flag reached the read path and not the write path.** A four-case rescue run
+therefore **overwrote the six-case artifact** it was meant to complement, because the patch
+adding `--out` replaced `OUT` in `--report` and left `OUT.write_text` alone — and the two
+`str.replace` calls that should have caught it carried no assertion. This is *precisely*
+lesson 4 of the methodology section — "partial runs overwriting whole-set artifacts", three
+scripts before merge-by-key became the standard write pattern — reproduced in a brand-new
+script in the same session that quotes it. Recovered from git (the artifact had been
+committed), and repaired at the root: `merge_into` now merges fresh cases into the stored set
+by case name, so the write is not destructive at all.
+
+**The kill condition fired on the run it was pointed at.** It read "the 12-turn control
+failed", which on the four cases with no successful cache is *the expected result
+reproducing*, not an instrument fault. Now scoped to cases the cache records as succeeding.
+
+**Void scored as null, in the noise statistic itself.** For a case with no cache,
+`J(cached, control)` computes to 0.0 — an empty stored set against a non-empty control —
+which reads as total disagreement when it is an absent measurement. Merging the four
+cacheless cases in therefore dragged "what re-running alone costs" from **0.41 to 0.29**, and
+the verdict line from *inconclusive* to *rebuild*, entirely on rows that had nothing to
+compare. The A-vs-B statistics are now computed only over cases with a successful cache. No
+published figure carried the wrong value; it existed for about ten minutes, in this session,
+in a statistic written to price exactly this class of error.
+
+**Cost** 20 agentic runs across both arms (6 cases + 4 rescue cases x 2 arms),
+subscription-billed. Nothing was written to the shared caches -- every arm ran with
+`use_cache=False`, and the 33 `cli` answers were backed up to
+`evals/.work/cache-backup-20260826-baseline-cli/` before the first call and verified
+byte-identical after the last.
 
 ### The scientific cohort finally has the published comparator — and it is the strongest baseline we have measured. **[P14]**
 
@@ -1307,6 +1368,13 @@ block-keyed fallback correctly leaves it at zero rather than resurrecting anythi
 — after retries, so not transient. **A third of the scientific cohort exhausts a turn budget
 that only 2 of the original 25 ever hit.** The budget was calibrated on ML and systems
 repositories and does not transfer to large scientific codebases.
+
+> **Corrected 2026-08-26 [C-28].** The mechanism above is wrong. Re-run at the *identical*
+> flags, `mat-mlip` and `mat-phonon` **succeed at 12 turns** — the failures are draws, not
+> properties of these repositories, and "does not transfer to large scientific codebases"
+> attributes to domain what belongs to nondeterminism. `bio-scvi` and `mat-toolkit` did
+> reproduce their failure and complete at 30. See **[P15, C-28]** above; "after retries, so
+> not transient" was the claim to distrust, and retries within one session are not draws.
 
 The obvious fix is the one that must not be applied casually: `_discriminator` hashes the
 flags, so raising the limit **re-runs all 37 cases and redefines the gold set** — precisely
