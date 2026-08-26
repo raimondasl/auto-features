@@ -712,13 +712,23 @@ draws. What survives is that the *estimates* are stable across draws (four sets,
 intervals), which is what licenses quoting them with binomial error. What does not survive is
 any claim resting on a difference of a few targets. A pooled set built from every already-judged
 source (baseline, a second baseline implementation, our own returns, git-history adoptions, and
-three independent redraws of the baseline) is **349-of-385 single-source**, so even the pooled
-version is closer to a union of blind spots than to ground truth; papers no searcher surfaces
-are invisible to every instrument here. Pooling the redraws in prices that directly: over the
-nineteen repositories where three draws completed, 68 of 92 certified papers appear in exactly
-one of them, and Chao1 puts the population that *one configuration* can certify at **≥ 237**.
-Three draws of our strongest searcher found under 40% of what it alone can find, which bounds
-how much of the actionable literature any set assembled this way can be expected to hold.
+six independent redraws of the baseline under two prompts) is **393-of-462 single-source**, so
+even the pooled version is closer to a union of blind spots than to ground truth; papers no
+searcher surfaces are invisible to every instrument here. Pooling the redraws in prices that
+directly: over the repositories where three draws completed, 68 of 92 certified papers appear
+in exactly one of them, and Chao1 puts the population that *one configuration* can certify at
+**≥ 237**. Three draws of our strongest searcher found under 40% of what it alone can find,
+which bounds how much of the actionable literature any set assembled this way can be expected
+to hold.
+
+**And one of those blind spots is the instrument's, not the searchers'.** Rerunning the
+baseline under a prompt that permits non-arXiv papers returns 97 DOIs across 75 draws, of
+which **41 name real papers that no abstract source we query can supply** — overwhelmingly ACM
+proceedings, which is to say the venue where much of the software-engineering literature this
+system exists to surface is actually published. They exist, they are certainly relevant, and
+they are unscoreable here. Every measurement in this paper is therefore conditioned not only
+on arXiv coverage (§9) but on abstract availability, and the two are not the same limit: the
+second one silently deletes evidence from venues the first would have let through.
 
 **The metric rewards shyness.** net@2 charges 2 per false positive, so a precision stage — our main result — is exactly what it flatters, and it flatters the precision-preserving pool expansion of §8.5 the same way. The recall deficit it structurally undervalues (gate recall 0.60) is narrowed but not closed: three of the six pure-retrieval losses are repaired, two remain, and both are repositories whose bibliographies are too thin for the citation hop and whose targets the dense channel does not reach either. A user who wants discovery may prefer a different λ, and nothing here optimizes reading-time value directly.
 

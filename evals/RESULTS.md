@@ -1144,6 +1144,81 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The v2 prompt reaches past arXiv, and the instrument becomes the binding constraint. **[P19, C-32]**
+
+`BASELINE_PROMPT_V2` permits journal, conference and bioRxiv/medRxiv papers and asks for an
+arXiv id **or** a bare DOI. 75 draws over the benchmark25 cohort at a 30-turn cap, 2026-08-26,
+**0 failed and 0 partial** — against 6/5/3 failures in the three 12-turn v1 draws.
+
+| | picks | DOI picks | targets | DOI targets | precision |
+|---|---|---|---|---|---|
+| v1 @12 turns (23 cases) | 140 | 0 | 124 | 0 | 0.912 |
+| **v2 @30 turns (25 cases)** | **270** | **97** | **196** | **36** | **0.867** |
+
+**It reaches what it was written to reach.** 36% of picks and 18% of targets are non-arXiv —
+papers v1 had no field to name in an answer, and so could not have contributed a witness
+however well it searched. Precision falls, but the caps differ and that comparison is
+confounded; the only clean control is the four cases carrying a v1@30 draw, where v2 returned
+67 picks against 13 and 30 targets against 10.
+
+**The limit has moved from the model to the instrument.** 44 of the 270 references could not
+be scored, and **every one is a DOI**: 41 `unjudgeable` — real papers, proven to exist, whose
+abstracts neither Semantic Scholar nor Europe PMC carries — and 3 `hallucinated`. Most are
+ACM (`10.1145/…`): POPL, PLDI, OOPSLA, CACM, which is where a large part of the
+software-engineering literature this system exists to surface is actually published. A
+Crossref or OpenAlex abstract tier is now the highest-value verification work available.
+
+**3 invented DOIs in 97 (3.1%)**, caught by the DOI Handle API rather than by the prompt. v2
+was deliberately given no anti-fabrication instruction v1 lacks, so this is the unassisted
+rate, and it is the number a comparator re-measurement would have to price.
+
+**Pooled in, the witness set goes 385 → 462** and digest regret **+4.80 → +5.56** net@2/case.
+Reach into `pool-wemb`: `cli` unmoved at 8/56, `cli-redraw` at 19/92, and `cli-v2@30` at
+**19/135 = 0.141**, the lowest of the family. Pooled non-self reach therefore *fell*, 0.174 →
+0.149 — the measure working, not regressing: the new source found papers the shipped
+collection step is even less likely to have fetched. Chao1 for `cli-v2@30` is **≥ 252.3** from
+135 observed with 88 singletons, so this searcher is no nearer exhaustion than the last one.
+
+#### A refusal and a rejection are not the same failure **[C-32]**
+
+This was the first run to send non-arXiv references through `resolve_by_doi_s2` in bulk, and
+it exposed a defect the widening itself introduced. `_s2_batch_post` returns `None` for two
+unrelated reasons — Semantic Scholar **refused** (429, retries exhausted) and Semantic Scholar
+**rejected the id** (HTTP 400, no record) — and the DOI tier read both as refusal. The comment
+there was explicit that a 429 must never harden into a verdict about the paper (C-4), and
+correct; it simply had no way to tell the two apart.
+
+The consequence was self-perpetuating rather than merely wrong. A real ACM paper with no
+abstract in either source came back `lookup_failed` instead of `unjudgeable`, which marks the
+row **retryable** — so every future invocation would re-ask a question that could never come
+back differently. Five rows were in that state and had already been asked twice.
+
+`_s2_batch_post` now takes an optional `status` out-parameter (the pattern `fetch_references`
+already used) recording the HTTP code of a non-retryable failure. The product callers are
+unchanged and still see "None means skip the batch"; only `verify.py`, which turns the answer
+into a verdict, reads the code. A 4xx that is not 429 falls through to Europe PMC and then to
+`unjudgeable`; everything else still raises.
+
+Two smaller defects surfaced in the same run and are fixed with it:
+
+* **A `partial` row was partial forever.** It carries `phase: "judged"`, so no re-invocation
+  ever revisited it — the C-30 shape one layer over. `retryable` now derives the answer from
+  the outcome counters rather than the status, and `repair_row` re-asks only the picks with no
+  verdict. That is possible at all because `picks` survives on the row even though `raw_ids`
+  is dropped: it holds the same references, already canonicalised. **19 of the sweep's 22
+  lookup failures landed inside one window of serial judging in draw 1**, all recoverable —
+  the retry took the sweep from 10 partial rows to 0.
+* **A counter that grows every time you look at it.** The first `repair_row` accumulated
+  `n_hallucinated` and `n_unjudgeable` while replacing `n_lookup_failed`, against its own
+  comment. After two passes `1/linter` reported **31 unjudgeable references against 12 picks
+  without a verdict**, and the sweep's total read 71 where the truth was 44. Nothing crashed
+  and every number stayed plausible. The identity that catches it — *picks without a verdict
+  equals hallucinated + lookup_failed + unjudgeable* — is now pinned for both sweeps in
+  `tests/test_gold_spread_v2.py`.
+
+No published figure was ever computed from the wrong values; all three defects were found and
+corrected inside the run that produced them.
+
 ### Two phases, four workers, thirty turns: the witness generator gets 2.6x faster and stops failing. **[P18]**
 
 ```bash

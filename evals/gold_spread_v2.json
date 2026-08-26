@@ -1,0 +1,2103 @@
+{
+ "_comment": "k independent redraws of the cli baseline over the benchmark25 cohort, judged, to price how much of the gold set is a property of the draw. Derived by evals/gold_spread.py; pinned by tests/test_gold_spread.py. Written incrementally -- a partial artifact is expected and resumable.",
+ "cohort": "benchmark25",
+ "draws": 3,
+ "prompt_version": "v2",
+ "results": {
+  "1/cv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1704.04503",
+    "2012.07177",
+    "1912.02424",
+    "2006.04388"
+   ],
+   "num_turns": 11,
+   "cost_usd": 0.923945,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 134.1,
+   "targets": [
+    "1704.04503",
+    "1912.02424",
+    "2006.04388",
+    "2012.07177"
+   ],
+   "scores": {
+    "1704.04503": 3,
+    "1912.02424": 3,
+    "2006.04388": 2,
+    "2012.07177": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/webdev": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.5555/3620237.3620547"
+   ],
+   "num_turns": 16,
+   "cost_usd": 1.389909,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 141.9,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 1,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/rl": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1509.06461",
+    "1511.05952",
+    "1902.05605",
+    "2006.05990"
+   ],
+   "num_turns": 16,
+   "cost_usd": 1.4193795,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 159.1,
+   "targets": [
+    "1509.06461",
+    "1511.05952",
+    "1902.05605"
+   ],
+   "scores": {
+    "1509.06461": 3,
+    "1511.05952": 3,
+    "1902.05605": 3,
+    "2006.05990": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/rag": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2409.14683",
+    "2404.02805",
+    "2501.17788",
+    "2405.19504"
+   ],
+   "num_turns": 15,
+   "cost_usd": 1.480496,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 164.1,
+   "targets": [
+    "2404.02805",
+    "2405.19504",
+    "2409.14683",
+    "2501.17788"
+   ],
+   "scores": {
+    "2404.02805": 3,
+    "2405.19504": 3,
+    "2409.14683": 3,
+    "2501.17788": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/graph": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2202.13013",
+    "2303.06147",
+    "2210.11790"
+   ],
+   "num_turns": 17,
+   "cost_usd": 0.9911395000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 127.9,
+   "targets": [
+    "2202.13013",
+    "2210.11790",
+    "2303.06147"
+   ],
+   "scores": {
+    "2202.13013": 2,
+    "2210.11790": 2,
+    "2303.06147": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/peft": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2407.18242",
+    "2410.20625",
+    "2402.02347"
+   ],
+   "num_turns": 20,
+   "cost_usd": 1.0175295,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 175.7,
+   "targets": [
+    "2402.02347",
+    "2407.18242",
+    "2410.20625"
+   ],
+   "scores": {
+    "2402.02347": 2,
+    "2407.18242": 3,
+    "2410.20625": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/diffusion": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2406.08070",
+    "2310.17347"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.0219855,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 185.7,
+   "targets": [
+    "2310.17347",
+    "2406.08070"
+   ],
+   "scores": {
+    "2310.17347": 3,
+    "2406.08070": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/cli": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [],
+   "num_turns": 11,
+   "cost_usd": 0.7018964999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 102.9,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/systems": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1512.00727",
+    "2308.16862"
+   ],
+   "num_turns": 19,
+   "cost_usd": 1.108445,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 154.2,
+   "targets": [
+    "1512.00727",
+    "2308.16862"
+   ],
+   "scores": {
+    "1512.00727": 3,
+    "2308.16862": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/crypto": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1109/sp54263.2024.00220"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.4385594999999998,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 222.2,
+   "targets": [
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1109/sp54263.2024.00220"
+   ],
+   "scores": {
+    "doi:10.1109/sp.2014.15": 2,
+    "doi:10.1109/sp54263.2024.00220": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/speech": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2303.00747",
+    "2603.06193",
+    "2501.11378",
+    "2606.07473",
+    "2509.09987",
+    "2406.02560",
+    "2104.04045",
+    "2210.15097",
+    "1904.09751",
+    "2310.06434",
+    "2101.05525",
+    "2305.11095",
+    "2311.00430",
+    "2507.21522"
+   ],
+   "num_turns": 7,
+   "cost_usd": 4.202575749999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 384.8,
+   "targets": [
+    "1904.09751",
+    "2101.05525",
+    "2104.04045",
+    "2303.00747",
+    "2305.11095",
+    "2310.06434",
+    "2311.00430",
+    "2406.02560",
+    "2501.11378",
+    "2507.21522",
+    "2509.09987",
+    "2603.06193",
+    "2606.07473"
+   ],
+   "scores": {
+    "1904.09751": 2,
+    "2101.05525": 2,
+    "2104.04045": 2,
+    "2210.15097": 1,
+    "2303.00747": 3,
+    "2305.11095": 3,
+    "2310.06434": 2,
+    "2311.00430": 3,
+    "2406.02560": 2,
+    "2501.11378": 3,
+    "2507.21522": 3,
+    "2509.09987": 3,
+    "2603.06193": 3,
+    "2606.07473": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/db": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2505.04153",
+    "2502.05912",
+    "2506.13670",
+    "2502.15181",
+    "2607.11271"
+   ],
+   "num_turns": 15,
+   "cost_usd": 1.085889,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 167.2,
+   "targets": [
+    "2502.05912",
+    "2502.15181",
+    "2505.04153",
+    "2506.13670",
+    "2607.11271"
+   ],
+   "scores": {
+    "2502.05912": 3,
+    "2502.15181": 3,
+    "2505.04153": 3,
+    "2506.13670": 3,
+    "2607.11271": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/http": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-031-17143-7_9",
+    "doi:10.1109/spw54247.2022.9833883"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.411436,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 224.4,
+   "targets": [
+    "doi:10.1109/spw54247.2022.9833883"
+   ],
+   "scores": {
+    "doi:10.1109/spw54247.2022.9833883": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "1/storage": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3035918.3064054",
+    "2005.14213",
+    "doi:10.1145/3318464.3389731",
+    "doi:10.1145/3183713.3196931",
+    "doi:10.1145/3380905",
+    "2110.13801"
+   ],
+   "num_turns": 12,
+   "cost_usd": 1.2222025,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 166.5,
+   "targets": [
+    "2005.14213",
+    "2110.13801",
+    "doi:10.1145/3035918.3064054",
+    "doi:10.1145/3183713.3196931",
+    "doi:10.1145/3318464.3389731"
+   ],
+   "scores": {
+    "2005.14213": 3,
+    "2110.13801": 3,
+    "doi:10.1145/3035918.3064054": 3,
+    "doi:10.1145/3183713.3196931": 3,
+    "doi:10.1145/3318464.3389731": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "1/compiler": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1912.05036",
+    "doi:10.1145/2693261",
+    "doi:10.1007/978-3-642-37051-9_6"
+   ],
+   "num_turns": 18,
+   "cost_usd": 0.8248445,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 141.6,
+   "targets": [
+    "1912.05036"
+   ],
+   "scores": {
+    "1912.05036": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "1/numerics": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1011.2602",
+    "1209.0735",
+    "doi:10.1016/j.cam.2012.11.021"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.3771839999999997,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 253.6,
+   "targets": [
+    "1011.2602",
+    "1209.0735"
+   ],
+   "scores": {
+    "1011.2602": 2,
+    "1209.0735": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "1/llminfer": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2406.11235",
+    "2402.02750",
+    "2509.02510"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.0309315000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 178.0,
+   "targets": [
+    "2402.02750",
+    "2406.11235",
+    "2509.02510"
+   ],
+   "scores": {
+    "2402.02750": 3,
+    "2406.11235": 3,
+    "2509.02510": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/vectordb": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.18812",
+    "2405.01117",
+    "2405.12497",
+    "2409.09913"
+   ],
+   "num_turns": 26,
+   "cost_usd": 3.8664059999999996,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 258.4,
+   "targets": [
+    "2404.18812",
+    "2405.01117",
+    "2405.12497",
+    "2409.09913"
+   ],
+   "scores": {
+    "2404.18812": 2,
+    "2405.01117": 2,
+    "2405.12497": 3,
+    "2409.09913": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/ann": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2411.12229",
+    "2206.11408",
+    "2408.08933"
+   ],
+   "num_turns": 15,
+   "cost_usd": 0.8629845,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 144.0,
+   "targets": [
+    "2206.11408",
+    "2408.08933",
+    "2411.12229"
+   ],
+   "scores": {
+    "2206.11408": 3,
+    "2408.08933": 2,
+    "2411.12229": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/encryption": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-031-07085-3_29",
+    "doi:10.62056/a3qj89n4e"
+   ],
+   "num_turns": 15,
+   "cost_usd": 0.9904159999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 182.0,
+   "targets": [
+    "doi:10.62056/a3qj89n4e"
+   ],
+   "scores": {
+    "doi:10.62056/a3qj89n4e": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "1/columnar": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3626717",
+    "doi:10.14778/3407790.3407851",
+    "doi:10.1145/3589263",
+    "1603.05346"
+   ],
+   "num_turns": 16,
+   "cost_usd": 1.078381,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 208.9,
+   "targets": [
+    "1603.05346",
+    "doi:10.1145/3589263",
+    "doi:10.1145/3626717",
+    "doi:10.14778/3407790.3407851"
+   ],
+   "scores": {
+    "1603.05346": 2,
+    "doi:10.1145/3589263": 2,
+    "doi:10.1145/3626717": 2,
+    "doi:10.14778/3407790.3407851": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/thin-kv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-319-14472-6_2",
+    "doi:10.1145/3318464.3386134"
+   ],
+   "num_turns": 24,
+   "cost_usd": 2.2202245000000005,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 159.0,
+   "targets": [],
+   "scores": {
+    "doi:10.1145/3318464.3386134": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "1/thin-lang": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/2594291.2594324",
+    "1503.07792",
+    "doi:10.1145/3236774",
+    "doi:10.1007/978-3-642-37051-9_6"
+   ],
+   "num_turns": 24,
+   "cost_usd": 1.4400010000000003,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 206.2,
+   "targets": [
+    "1503.07792"
+   ],
+   "scores": {
+    "1503.07792": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 3,
+   "n_judge_failed": 0
+  },
+  "1/linter": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/1391289.1391293",
+    "doi:10.1145/3290329",
+    "doi:10.1145/3110285",
+    "doi:10.1145/2837614.2837670",
+    "doi:10.1145/3498674",
+    "doi:10.1145/1863543.1863561",
+    "doi:10.1007/978-3-642-35873-9_21",
+    "doi:10.1145/103135.103136",
+    "1908.05839",
+    "doi:10.1017/s0956796807006223",
+    "1503.07792",
+    "2104.01270",
+    "doi:10.1145/3563303",
+    "doi:10.1145/3236774",
+    "doi:10.1145/3110250",
+    "2310.01530",
+    "doi:10.1002/spe.4380111102",
+    "doi:10.1145/1053468.1053473",
+    "1806.11150",
+    "1804.07133",
+    "doi:10.1145/293677.293678",
+    "doi:10.1145/258916.258920",
+    "doi:10.1145/3238147.3238213",
+    "doi:10.1145/1287624.1287633",
+    "1902.06111",
+    "doi:10.1145/3338906.3338952"
+   ],
+   "num_turns": 1,
+   "cost_usd": 5.337979000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 410.6,
+   "targets": [
+    "1503.07792",
+    "1902.06111",
+    "2104.01270",
+    "2310.01530",
+    "doi:10.1145/3338906.3338952"
+   ],
+   "scores": {
+    "1503.07792": 2,
+    "1804.07133": 1,
+    "1806.11150": 1,
+    "1902.06111": 2,
+    "1908.05839": 1,
+    "2104.01270": 2,
+    "2310.01530": 2,
+    "doi:10.1145/2837614.2837670": 0,
+    "doi:10.1145/3110285": 1,
+    "doi:10.1145/3238147.3238213": 1,
+    "doi:10.1145/3290329": 1,
+    "doi:10.1145/3338906.3338952": 3,
+    "doi:10.1145/3498674": 1,
+    "doi:10.1145/3563303": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 12,
+   "n_judge_failed": 0
+  },
+  "2/rag": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2409.14683",
+    "2404.02805",
+    "2501.17788",
+    "2304.01982"
+   ],
+   "num_turns": 14,
+   "cost_usd": 1.2797834999999997,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 117.0,
+   "targets": [
+    "2304.01982",
+    "2404.02805",
+    "2409.14683",
+    "2501.17788"
+   ],
+   "scores": {
+    "2304.01982": 3,
+    "2404.02805": 3,
+    "2409.14683": 3,
+    "2501.17788": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "1/thin-gnn": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2010.16103",
+    "2003.01332",
+    "2002.07962",
+    "2006.10637",
+    "doi:10.1145/3447548.3467408"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.9561354999999998,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 167.9,
+   "targets": [
+    "2002.07962",
+    "2003.01332",
+    "2006.10637",
+    "2010.16103"
+   ],
+   "scores": {
+    "2002.07962": 2,
+    "2003.01332": 2,
+    "2006.10637": 2,
+    "2010.16103": 2,
+    "doi:10.1145/3447548.3467408": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/cv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1912.02424",
+    "2006.04388",
+    "2012.07177",
+    "1704.04503"
+   ],
+   "num_turns": 18,
+   "cost_usd": 1.182112,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 132.9,
+   "targets": [
+    "1704.04503",
+    "1912.02424",
+    "2006.04388",
+    "2012.07177"
+   ],
+   "scores": {
+    "1704.04503": 3,
+    "1912.02424": 3,
+    "2006.04388": 2,
+    "2012.07177": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/rl": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2403.03950",
+    "2205.07802",
+    "1602.07714",
+    "2006.05990"
+   ],
+   "num_turns": 27,
+   "cost_usd": 1.7075229999999997,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 198.7,
+   "targets": [
+    "1602.07714",
+    "2205.07802",
+    "2403.03950"
+   ],
+   "scores": {
+    "1602.07714": 2,
+    "2006.05990": 1,
+    "2205.07802": 2,
+    "2403.03950": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/webdev": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1109/sp46214.2022.9833637"
+   ],
+   "num_turns": 18,
+   "cost_usd": 1.160659,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 181.0,
+   "targets": [],
+   "scores": {
+    "doi:10.1109/sp46214.2022.9833637": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/peft": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2407.18242",
+    "2405.12130"
+   ],
+   "num_turns": 18,
+   "cost_usd": 0.9120605,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 156.9,
+   "targets": [
+    "2405.12130",
+    "2407.18242"
+   ],
+   "scores": {
+    "2405.12130": 3,
+    "2407.18242": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/diffusion": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2506.19852",
+    "2502.01776",
+    "2502.18137"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.1834540000000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 161.0,
+   "targets": [
+    "2502.01776",
+    "2502.18137",
+    "2506.19852"
+   ],
+   "scores": {
+    "2502.01776": 3,
+    "2502.18137": 3,
+    "2506.19852": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/speech": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2211.17192",
+    "2311.00430",
+    "2303.00747"
+   ],
+   "num_turns": 13,
+   "cost_usd": 1.2472750000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 105.0,
+   "targets": [
+    "2211.17192",
+    "2303.00747",
+    "2311.00430"
+   ],
+   "scores": {
+    "2211.17192": 3,
+    "2303.00747": 3,
+    "2311.00430": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/graph": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2303.06147",
+    "2302.01524",
+    "2301.09474"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.1959560000000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 178.5,
+   "targets": [
+    "2301.09474",
+    "2302.01524",
+    "2303.06147"
+   ],
+   "scores": {
+    "2301.09474": 2,
+    "2302.01524": 2,
+    "2303.06147": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/systems": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2308.16862",
+    "1512.00727",
+    "doi:10.5555/3691825.3691893"
+   ],
+   "num_turns": 21,
+   "cost_usd": 1.1886525000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 194.0,
+   "targets": [
+    "1512.00727",
+    "2308.16862"
+   ],
+   "scores": {
+    "1512.00727": 3,
+    "2308.16862": 3
+   },
+   "n_hallucinated": 1,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/cli": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/363958.363994",
+    "doi:10.1002/spe.4380111102"
+   ],
+   "num_turns": 13,
+   "cost_usd": 0.821026,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 135.9,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "2/crypto": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3573105.3575684",
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1145/3548606.3560594"
+   ],
+   "num_turns": 18,
+   "cost_usd": 1.2127235,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 221.3,
+   "targets": [
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1145/3548606.3560594",
+    "doi:10.1145/3573105.3575684"
+   ],
+   "scores": {
+    "doi:10.1109/sp.2014.15": 2,
+    "doi:10.1145/3548606.3560594": 2,
+    "doi:10.1145/3573105.3575684": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/http": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3460120.3485384",
+    "2405.17737"
+   ],
+   "num_turns": 17,
+   "cost_usd": 0.9975275,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 166.3,
+   "targets": [],
+   "scores": {
+    "2405.17737": 1,
+    "doi:10.1145/3460120.3485384": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/db": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.14778/3648160.3648175",
+    "doi:10.1145/3589263"
+   ],
+   "num_turns": 12,
+   "cost_usd": 0.9026070000000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 148.9,
+   "targets": [
+    "doi:10.1145/3589263",
+    "doi:10.14778/3648160.3648175"
+   ],
+   "scores": {
+    "doi:10.1145/3589263": 2,
+    "doi:10.14778/3648160.3648175": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/storage": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.5555/3691825.3691893",
+    "doi:10.1145/3600006.3613147",
+    "2311.15380",
+    "doi:10.1145/3035918.3064054"
+   ],
+   "num_turns": 11,
+   "cost_usd": 1.0335174999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 147.3,
+   "targets": [
+    "2311.15380",
+    "doi:10.1145/3035918.3064054",
+    "doi:10.1145/3600006.3613147"
+   ],
+   "scores": {
+    "2311.15380": 2,
+    "doi:10.1145/3035918.3064054": 3,
+    "doi:10.1145/3600006.3613147": 2
+   },
+   "n_hallucinated": 1,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/numerics": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.3390/math7121174",
+    "doi:10.1016/j.cam.2012.11.021",
+    "doi:10.1007/s10444-017-9530-3"
+   ],
+   "num_turns": 16,
+   "cost_usd": 0.9740875,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 200.5,
+   "targets": [
+    "doi:10.3390/math7121174"
+   ],
+   "scores": {
+    "doi:10.3390/math7121174": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "2/compiler": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1912.05036",
+    "doi:10.1145/3547621",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/2594291.2594334"
+   ],
+   "num_turns": 18,
+   "cost_usd": 0.952875,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 163.1,
+   "targets": [
+    "1912.05036"
+   ],
+   "scores": {
+    "1912.05036": 2,
+    "doi:10.1145/3547621": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "2/vectordb": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2405.19504",
+    "2404.18812",
+    "2409.09913"
+   ],
+   "num_turns": 24,
+   "cost_usd": 1.358214,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 188.0,
+   "targets": [
+    "2404.18812",
+    "2405.19504",
+    "2409.09913"
+   ],
+   "scores": {
+    "2404.18812": 2,
+    "2405.19504": 2,
+    "2409.09913": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/llminfer": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2406.10774"
+   ],
+   "num_turns": 18,
+   "cost_usd": 1.381125,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 228.8,
+   "targets": [
+    "2406.10774"
+   ],
+   "scores": {
+    "2406.10774": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/linter": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2310.01530",
+    "1907.05590",
+    "doi:10.1145/3110285"
+   ],
+   "num_turns": 14,
+   "cost_usd": 0.889282,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 161.2,
+   "targets": [
+    "2310.01530"
+   ],
+   "scores": {
+    "1907.05590": 1,
+    "2310.01530": 2,
+    "doi:10.1145/3110285": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/encryption": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-031-07085-3_29"
+   ],
+   "num_turns": 15,
+   "cost_usd": 1.4414755,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 194.2,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "2/ann": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.00774",
+    "1908.10396",
+    "2403.04871"
+   ],
+   "num_turns": 14,
+   "cost_usd": 1.0128475,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 128.7,
+   "targets": [
+    "1908.10396",
+    "2403.04871",
+    "2404.00774"
+   ],
+   "scores": {
+    "1908.10396": 3,
+    "2403.04871": 3,
+    "2404.00774": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "2/columnar": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.14778/3407790.3407851",
+    "doi:10.1145/3626717",
+    "doi:10.1145/2452376.2452456",
+    "1603.05346"
+   ],
+   "num_turns": 15,
+   "cost_usd": 0.9474615,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 161.4,
+   "targets": [
+    "1603.05346",
+    "doi:10.1145/3626717",
+    "doi:10.14778/3407790.3407851"
+   ],
+   "scores": {
+    "1603.05346": 2,
+    "doi:10.1145/3626717": 2,
+    "doi:10.14778/3407790.3407851": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "2/thin-lang": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/2594291.2594324",
+    "doi:10.1145/3236774"
+   ],
+   "num_turns": 24,
+   "cost_usd": 1.5144135,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 159.5,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "2/thin-kv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3318464.3386134",
+    "doi:10.1007/978-3-319-14472-6_2",
+    "doi:10.1145/1620585.1620587"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.9291405,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 181.2,
+   "targets": [],
+   "scores": {
+    "doi:10.1145/3318464.3386134": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "2/thin-gnn": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2004.05718",
+    "2205.12454",
+    "2003.01332",
+    "2005.09863"
+   ],
+   "num_turns": 28,
+   "cost_usd": 2.8991175000000005,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 176.2,
+   "targets": [
+    "2003.01332",
+    "2004.05718",
+    "2005.09863",
+    "2205.12454"
+   ],
+   "scores": {
+    "2003.01332": 2,
+    "2004.05718": 2,
+    "2005.09863": 2,
+    "2205.12454": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/cv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2112.01527",
+    "2012.07177",
+    "2203.03605"
+   ],
+   "num_turns": 11,
+   "cost_usd": 0.7030095,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 113.0,
+   "targets": [
+    "2012.07177",
+    "2112.01527",
+    "2203.03605"
+   ],
+   "scores": {
+    "2012.07177": 3,
+    "2112.01527": 3,
+    "2203.03605": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/rag": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2501.17788",
+    "2404.02805",
+    "2304.01982",
+    "2108.10341",
+    "2403.13291",
+    "2405.19504"
+   ],
+   "num_turns": 16,
+   "cost_usd": 1.3137365,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 155.8,
+   "targets": [
+    "2108.10341",
+    "2304.01982",
+    "2403.13291",
+    "2404.02805",
+    "2405.19504",
+    "2501.17788"
+   ],
+   "scores": {
+    "2108.10341": 3,
+    "2304.01982": 3,
+    "2403.13291": 3,
+    "2404.02805": 3,
+    "2405.19504": 3,
+    "2501.17788": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/rl": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1509.06461",
+    "1511.05952",
+    "1511.06581"
+   ],
+   "num_turns": 21,
+   "cost_usd": 1.0138909999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 145.9,
+   "targets": [
+    "1509.06461",
+    "1511.05952",
+    "1511.06581"
+   ],
+   "scores": {
+    "1509.06461": 3,
+    "1511.05952": 3,
+    "1511.06581": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/webdev": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [],
+   "num_turns": 10,
+   "cost_usd": 0.8462600000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 107.7,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/peft": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2405.12130",
+    "2406.09044",
+    "2407.18242",
+    "2412.06071",
+    "2409.14396"
+   ],
+   "num_turns": 14,
+   "cost_usd": 1.0863854999999998,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 192.6,
+   "targets": [
+    "2405.12130",
+    "2406.09044",
+    "2407.18242",
+    "2409.14396",
+    "2412.06071"
+   ],
+   "scores": {
+    "2405.12130": 3,
+    "2406.09044": 3,
+    "2407.18242": 3,
+    "2409.14396": 3,
+    "2412.06071": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/speech": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2303.00747",
+    "2311.00430",
+    "2211.17192"
+   ],
+   "num_turns": 12,
+   "cost_usd": 1.54802,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 115.2,
+   "targets": [
+    "2211.17192",
+    "2303.00747",
+    "2311.00430"
+   ],
+   "scores": {
+    "2211.17192": 3,
+    "2303.00747": 3,
+    "2311.00430": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/diffusion": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2502.15894",
+    "2502.07508"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.6163805,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 209.8,
+   "targets": [
+    "2502.07508",
+    "2502.15894"
+   ],
+   "scores": {
+    "2502.07508": 2,
+    "2502.15894": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/graph": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2303.06147",
+    "2210.11790",
+    "2310.01267",
+    "2202.13013"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.0493199999999998,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 186.5,
+   "targets": [
+    "2202.13013",
+    "2210.11790",
+    "2303.06147",
+    "2310.01267"
+   ],
+   "scores": {
+    "2202.13013": 2,
+    "2210.11790": 2,
+    "2303.06147": 3,
+    "2310.01267": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/crypto": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1145/3510416",
+    "doi:10.1145/3548606.3560594",
+    "doi:10.1145/3573105.3575684",
+    "2405.18993"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.1308665000000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 188.9,
+   "targets": [
+    "2405.18993",
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1145/3510416",
+    "doi:10.1145/3548606.3560594",
+    "doi:10.1145/3573105.3575684"
+   ],
+   "scores": {
+    "2405.18993": 2,
+    "doi:10.1109/sp.2014.15": 2,
+    "doi:10.1145/3510416": 2,
+    "doi:10.1145/3548606.3560594": 2,
+    "doi:10.1145/3573105.3575684": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/cli": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/363958.363994"
+   ],
+   "num_turns": 12,
+   "cost_usd": 0.8437724999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 145.8,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "3/systems": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2308.16862",
+    "doi:10.1145/3600006.3613147"
+   ],
+   "num_turns": 14,
+   "cost_usd": 1.529561,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 191.2,
+   "targets": [
+    "2308.16862",
+    "doi:10.1145/3600006.3613147"
+   ],
+   "scores": {
+    "2308.16862": 3,
+    "doi:10.1145/3600006.3613147": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/http": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1109/spw54247.2022.9833883",
+    "doi:10.1145/3460120.3485384",
+    "2405.17737"
+   ],
+   "num_turns": 23,
+   "cost_usd": 1.2850765000000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 213.1,
+   "targets": [
+    "doi:10.1109/spw54247.2022.9833883"
+   ],
+   "scores": {
+    "2405.17737": 1,
+    "doi:10.1109/spw54247.2022.9833883": 2,
+    "doi:10.1145/3460120.3485384": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/storage": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3276980",
+    "2006.04777",
+    "doi:10.1145/3183713.3196927",
+    "2010.12734",
+    "doi:10.1145/3448016.3457273",
+    "2110.13801"
+   ],
+   "num_turns": 12,
+   "cost_usd": 1.1337745,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 162.4,
+   "targets": [
+    "2006.04777",
+    "2010.12734",
+    "2110.13801",
+    "doi:10.1145/3183713.3196927",
+    "doi:10.1145/3276980",
+    "doi:10.1145/3448016.3457273"
+   ],
+   "scores": {
+    "2006.04777": 3,
+    "2010.12734": 3,
+    "2110.13801": 3,
+    "doi:10.1145/3183713.3196927": 3,
+    "doi:10.1145/3276980": 3,
+    "doi:10.1145/3448016.3457273": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/db": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2502.15181",
+    "2306.15374",
+    "2607.11271",
+    "doi:10.1145/3709676"
+   ],
+   "num_turns": 19,
+   "cost_usd": 1.069445,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 189.0,
+   "targets": [
+    "2306.15374",
+    "2502.15181",
+    "2607.11271",
+    "doi:10.1145/3709676"
+   ],
+   "scores": {
+    "2306.15374": 2,
+    "2502.15181": 3,
+    "2607.11271": 2,
+    "doi:10.1145/3709676": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/compiler": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/2693261",
+    "1912.05036"
+   ],
+   "num_turns": 19,
+   "cost_usd": 0.940326,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 178.4,
+   "targets": [
+    "1912.05036"
+   ],
+   "scores": {
+    "1912.05036": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "3/vectordb": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.18812",
+    "2405.01117"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.676078,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 157.6,
+   "targets": [
+    "2404.18812",
+    "2405.01117"
+   ],
+   "scores": {
+    "2404.18812": 2,
+    "2405.01117": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/numerics": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1303.6451",
+    "1204.4763",
+    "1808.06736",
+    "2010.05659"
+   ],
+   "num_turns": 34,
+   "cost_usd": 1.4716170000000004,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 332.3,
+   "targets": [
+    "1204.4763",
+    "1303.6451",
+    "1808.06736",
+    "2010.05659"
+   ],
+   "scores": {
+    "1204.4763": 2,
+    "1303.6451": 2,
+    "1808.06736": 2,
+    "2010.05659": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/llminfer": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2402.02750",
+    "2404.00456",
+    "2508.04257"
+   ],
+   "num_turns": 17,
+   "cost_usd": 1.1973785,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 220.0,
+   "targets": [
+    "2402.02750",
+    "2404.00456",
+    "2508.04257"
+   ],
+   "scores": {
+    "2402.02750": 3,
+    "2404.00456": 3,
+    "2508.04257": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/linter": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/1391289.1391293",
+    "doi:10.1145/3110285",
+    "1907.05590",
+    "doi:10.1145/3498674",
+    "1908.05839"
+   ],
+   "num_turns": 13,
+   "cost_usd": 0.9584284999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 180.3,
+   "targets": [],
+   "scores": {
+    "1907.05590": 1,
+    "1908.05839": 1,
+    "doi:10.1145/3110285": 1,
+    "doi:10.1145/3498674": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "3/encryption": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-031-07085-3_29",
+    "doi:10.62056/a3qj89n4e"
+   ],
+   "num_turns": 16,
+   "cost_usd": 1.511224,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 179.6,
+   "targets": [
+    "doi:10.62056/a3qj89n4e"
+   ],
+   "scores": {
+    "doi:10.62056/a3qj89n4e": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0
+  },
+  "3/columnar": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.14778/3407790.3407851",
+    "doi:10.1145/3626717",
+    "doi:10.14778/3598581.3598587",
+    "doi:10.1145/3589263"
+   ],
+   "num_turns": 12,
+   "cost_usd": 0.8854504999999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 142.4,
+   "targets": [
+    "doi:10.1145/3589263",
+    "doi:10.1145/3626717",
+    "doi:10.14778/3407790.3407851",
+    "doi:10.14778/3598581.3598587"
+   ],
+   "scores": {
+    "doi:10.1145/3589263": 2,
+    "doi:10.1145/3626717": 2,
+    "doi:10.14778/3407790.3407851": 2,
+    "doi:10.14778/3598581.3598587": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/ann": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1908.10396",
+    "2404.00774",
+    "2501.03078",
+    "2403.04871"
+   ],
+   "num_turns": 14,
+   "cost_usd": 1.03206,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 191.7,
+   "targets": [
+    "1908.10396",
+    "2403.04871",
+    "2404.00774",
+    "2501.03078"
+   ],
+   "scores": {
+    "1908.10396": 3,
+    "2403.04871": 3,
+    "2404.00774": 3,
+    "2501.03078": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/thin-lang": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/293677.293678",
+    "doi:10.1145/2666356.2594324",
+    "1804.07133",
+    "1908.05839"
+   ],
+   "num_turns": 27,
+   "cost_usd": 1.332774,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 184.5,
+   "targets": [],
+   "scores": {
+    "1804.07133": 1,
+    "1908.05839": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0
+  },
+  "3/thin-kv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1504.00204",
+    "2003.10554",
+    "1908.04509",
+    "doi:10.1145/3318464.3386134"
+   ],
+   "num_turns": 21,
+   "cost_usd": 2.037969,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 179.0,
+   "targets": [
+    "1504.00204",
+    "1908.04509",
+    "2003.10554"
+   ],
+   "scores": {
+    "1504.00204": 2,
+    "1908.04509": 2,
+    "2003.10554": 3,
+    "doi:10.1145/3318464.3386134": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  },
+  "3/thin-gnn": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2003.01332",
+    "2004.05718",
+    "1907.04931",
+    "2010.16103",
+    "2205.12454",
+    "2302.11636"
+   ],
+   "num_turns": 29,
+   "cost_usd": 2.9171989999999997,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "duration_s": 193.6,
+   "targets": [
+    "1907.04931",
+    "2003.01332",
+    "2004.05718",
+    "2010.16103",
+    "2205.12454",
+    "2302.11636"
+   ],
+   "scores": {
+    "1907.04931": 3,
+    "2003.01332": 2,
+    "2004.05718": 2,
+    "2010.16103": 2,
+    "2205.12454": 2,
+    "2302.11636": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0
+  }
+ }
+}

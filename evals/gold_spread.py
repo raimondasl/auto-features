@@ -240,6 +240,81 @@ def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, A
     }
 
 
+def unscored_picks(row: dict[str, Any]) -> list[str]:
+    """Picks a judged row never scored — its retry set, recovered from `picks`.
+
+    `judge_row` drops `raw_ids` once it has judged, so for a while a failed lookup left a
+    COUNT and no identity. It turns out nothing was lost: `picks` holds the same references
+    already canonicalised, and `resolve_reference` takes either scheme, so the difference
+    against `scores` is exactly what could not be resolved or judged.
+    """
+    scored = row.get("scores") or {}
+    return [p for p in row.get("picks") or [] if p not in scored]
+
+
+def retryable(row: dict[str, Any]) -> bool:
+    """Is this partial row worth another network call?
+
+    The four outcomes `verify` classifies exist precisely so this question has an answer.
+    A `lookup_failed` is OUR infrastructure failing — transient, and retrying is how the row
+    stops being a floor. An `unjudgeable` is a real paper no source carries an abstract for:
+    permanent, so retrying it forever is the C-30 trap run in reverse, a row that can never
+    be finished being asked again on every invocation.
+
+    So the retry condition reads `n_lookup_failed`, never `status` alone. The 2026-08-26 v2
+    sweep is why this exists: 19 of its 22 lookup failures landed in draw 1, inside one
+    window of serial judging, and every one of them was recoverable — while 33 unjudgeable
+    references in the same sweep were not, and must never be asked about again.
+    """
+    return bool(
+        row.get("status") == "partial"
+        and (row.get("n_lookup_failed") or 0) > 0
+        and unscored_picks(row)
+    )
+
+
+def repair_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, Any]:
+    """Re-resolve and judge only what a partial row missed, then merge.
+
+    Deliberately narrow. It never re-resolves a pick that already has a verdict — those cost
+    an arXiv call to re-fetch and cannot change — and it never re-runs the baseline, because
+    a redraw would be a different draw wearing this one's number.
+    """
+    context = assemble_repo_context(WORK_DIR / case_name)
+    papers, hallucinated, lookup_failed, unjudgeable = resolve_references(unscored_picks(row), [])
+    scores = dict(row.get("scores") or {})
+    judge_failed = 0
+    for paper in papers:
+        pid = canonical_ref(paper["arxiv_id"])
+        try:
+            scores[pid] = int(
+                judge_mod.judge_paper(case_name, context, paper, model=model)["score"]
+            )
+        except Exception as exc:  # noqa: BLE001 -- an unjudged paper is never scored 0
+            judge_failed += 1
+            print(f"        ! judge failed for {pid}: {str(exc)[:100]}")
+    return {
+        **row,
+        "status": "partial" if (lookup_failed or judge_failed) else "ok",
+        "targets": sorted(p for p, s in scores.items() if s >= ACTIONABLE),
+        "scores": dict(sorted(scores.items())),
+        # ALL THREE are replaced, not accumulated. `unscored_picks` is every open question
+        # on the row, so this pass re-asked all of them and its answers are the current
+        # state. Accumulating instead double-counts a reference that fails twice, and the
+        # first version of this function did exactly that for two of the three: after two
+        # repair passes `1/linter` reported 31 unjudgeable references against 12 unscored
+        # picks, and the sweep's total read 71 where the truth was 44. A counter that grows
+        # every time you look at it is a history wearing a backlog's name.
+        #
+        # `test_gold_spread.py` pins the identity this restores — h + l + u equals the
+        # number of picks with no verdict — so the next version cannot drift either way.
+        "n_hallucinated": hallucinated,
+        "n_lookup_failed": lookup_failed,
+        "n_unjudgeable": unjudgeable,
+        "n_judge_failed": judge_failed,
+    }
+
+
 def load_artifact(prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION) -> dict[str, Any]:
     path = out_path(prompt_version)
     if path.is_file():
@@ -500,11 +575,16 @@ def main() -> int:
         (d, c) for d in range(1, args.draws + 1) for c in cases if f"{d}/{c['name']}" not in by_key
     ]
     todo_judge = [k for k, row in by_key.items() if row.get("phase") == "baseline"]
+    # A partial row used to be partial forever: it carries `phase: "judged"`, so no
+    # re-invocation ever looked at it again, and the transient failures inside it were
+    # indistinguishable from permanent ones. `retryable` reads the outcome counts rather
+    # than the status, so only the rows with a recoverable gap come back.
+    todo_repair = sorted(k for k, row in by_key.items() if retryable(row))
 
     print(f"cohort: {len(cases)} case(s) x {args.draws} draw(s)")
     print(
         f"recorded: {len(by_key)}   need a baseline: {len(todo_baseline)}   "
-        f"need judging: {len(todo_judge)}"
+        f"need judging: {len(todo_judge)}   partial and retryable: {len(todo_repair)}"
     )
     print(
         f"turn cap: {args.max_turns}   prompt: {args.prompt_version}"
@@ -514,7 +594,7 @@ def main() -> int:
     if args.dry_run:
         print("\n(dry run)")
         return 0
-    if not (todo_baseline or todo_judge):
+    if not (todo_baseline or todo_judge or todo_repair):
         print("\nnothing to do; use --report.")
         return report(artifact)
 
@@ -586,8 +666,32 @@ def main() -> int:
                 f"  [{n}/{len(todo_judge)}] {key:<18} {len(row['targets'])} target(s)"
                 f"  [{row['status']}]"
             )
+        todo_repair = sorted(k for k, row in artifact["results"].items() if retryable(row))
 
-    print(f"\nwrote {OUT.name}\n")
+    # ── phase C: re-ask only the questions a transient failure left open ──
+    if todo_repair:
+        print(f"\n=== phase C: retrying {len(todo_repair)} partial row(s) (serial) ===")
+        for n, key in enumerate(todo_repair, start=1):
+            case_name = key.split("/", 1)[1]
+            before = len(artifact["results"][key].get("targets") or [])
+            try:
+                row = repair_row(case_name, artifact["results"][key], model=args.model)
+            except Exception as exc:  # noqa: BLE001
+                print(f"  !! {key} crashed while retrying: {type(exc).__name__}: {str(exc)[:140]}")
+                continue
+            record(key, row)
+            print(
+                f"  [{n}/{len(todo_repair)}] {key:<18} {before} -> {len(row['targets'])} "
+                f"target(s)  [{row['status']}]"
+            )
+
+    # `out_path`, not `OUT`. The version reached the read path and the write path but not
+    # this line, so a v2 run that correctly wrote `gold_spread_v2.json` announced that it had
+    # written `gold_spread.json` -- the file holding every published denominator. Nothing was
+    # damaged, but the only thing a reader had to go on said otherwise, and "did the run just
+    # destroy the v1 artifact" is not a question a status line should raise. C-29 was the
+    # same omission one path over.
+    print(f"\nwrote {out_path(args.prompt_version).name}\n")
     return report(artifact)
 
 
