@@ -122,13 +122,22 @@ class TestTheWidenedParserOnStoredAnswers:
         items across the caches carrying exactly `arxiv_id` and `title`. If a future cache
         arrives with an `id` field written under v1, this fails and the widening has to be
         re-argued instead of silently re-deriving the gold set.
+
+        **Skipped, not failed, where the caches are absent.** `evals/cache/baseline/` is
+        gitignored, so CI has no cache tree at all and never can. The first version asserted
+        `seen >= 30` unconditionally to stop the loop passing vacuously — the right worry,
+        the wrong mechanism: it turned "this machine legitimately has no data" into a red
+        build, and it broke main for two merges because the gates were run here, where the
+        tree exists, and not read on CI, where it does not. A skip keeps the guard honest
+        (a skipped test is visibly not-run) without claiming a defect that is not there.
         """
-        seen = 0
-        for path in sorted(CACHE.rglob("*.json")):
+        caches = sorted(CACHE.rglob("*.json"))
+        if not caches:
+            pytest.skip("no local baseline cache (gitignored); nothing to re-parse")
+        assert len(caches) >= 30, "the cache tree is present but far smaller than expected"
+        for path in caches:
             raw = json.loads(path.read_text(encoding="utf-8")).get("raw") or ""
             assert baseline_mod._parse_recommendations(raw) == self._old_rule(raw), path.name
-            seen += 1
-        assert seen >= 30, "the cache tree looks empty; this test would prove nothing"
 
 
 class TestParsingAV2Answer:
