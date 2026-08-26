@@ -10,12 +10,19 @@ a pool of one system and one draw.
 
 This module builds the honest version:
 
-* **Pool the sources that are already judged.** Four discovery distributions, at $0:
-  `cli` baseline picks, `api` baseline picks (a different system -- P13), RepoRadar's own
-  returned papers from the headline run, and the git-history adoptions (the only model-free
-  source; judged against the repo as it was *before* adoption, which is a different judging
-  context and is recorded as such). Every member carries its judge score and full source
+* **Pool the sources that are already judged.** At $0: `cli` baseline picks, `api` baseline
+  picks (a different system -- P13), RepoRadar's own returned papers from the headline run,
+  the git-history adoptions (the only model-free source; judged against the repo as it was
+  *before* adoption, which is a different judging context and is recorded as such), and every
+  judged `gold_spread` redraw. Every member carries its judge score and full source
   provenance -- a witness found by two sources is one witness with two sources.
+
+* **A source is a CONFIGURATION, not a file.** The redraws arrive labelled by what produced
+  them -- `cli-redraw`, `cli-redraw@30`, `cli-v2@30` -- because the prompt and the turn cap
+  both change what gets found, and a reach probability pooled across them would describe no
+  searcher that exists. `cli` stays exactly the frozen gold-set derivation; nothing is folded
+  into it. Labels are DISCOVERED from the data rather than declared, so a configuration that
+  has been drawn always appears in the reach table instead of being silently absent.
 
 * **Reach is a probability, not a count ratio.** For each non-self source S,
   ``P(witness in candidate pool | witness drawn from S)`` with a Wilson interval. Growing
@@ -30,10 +37,13 @@ This module builds the honest version:
   witness, +3 for swapping one in over a shown paper judged < 2. Bounded by the digest
   width, so a growing witness set can only *reveal* headroom, never inflate it.
 
-* **The capture curve says how incomplete the set still is.** Three independent `cli` draws
-  exist for five cases (the P15 probe); treating them as capture occasions gives a Chao1
-  lower bound on the cli-findable population. Draw-level captures are *picks* (mostly
-  unjudged), so this section is labelled pick-level, not witness-level.
+* **The capture curve says how incomplete the set still is, and the answer is "very".**
+  Two estimators, kept apart because their units differ. The P15 probe gives three arms over
+  five cases at PICK level (mostly unjudged): Chao1 >= 34.3 against 24 observed. The P17
+  redraws give three occasions over 19 cases at WITNESS level, every unit judged: 92 observed,
+  68 of them seen in exactly one draw, **Chao1 >= 236.5**. Two and a half times what three
+  draws of the same searcher found, from a single configuration -- which is the quantitative
+  case for pooling more searchers rather than redrawing this one.
 
 **Reach here is membership in a frozen candidate pool** (`pool-wemb`, the headline's 25-case
 pool; `pool-cohort3`, the 37-case pool of the scientific session) -- "did the shipped
@@ -60,7 +70,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import baseline as baseline_mod  # noqa: E402
 from diagnose_pool import JUDGE, _judge_stem  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from reporadar.paper_id import canonical_ref, dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 FROZEN = EVALS / "witness_set.json"
@@ -78,10 +88,91 @@ ADOPTIONS = WORK / "adoptions.json"
 TURN_PROBE = EVALS / "turn_budget_probe.json"
 POOLS = ("pool-wemb", "pool-cohort3")
 
-# Sources whose witnesses may grade RepoRadar's reach. `reporadar` is excluded from every
-# reach and regret computation (leave-one-source-out) but kept in the set: a future system
-# graded against this artifact should face RepoRadar's finds too.
-NON_SELF = ("cli", "api", "adoption")
+# Leave-one-source-out: a source may grade RepoRadar's reach unless RepoRadar produced it.
+# `reporadar` witnesses are in the pool by construction, and grading a system against a pool
+# containing its own finds is how pooled evaluation flatters incumbents. They stay in the set
+# — a future system graded against this artifact should face RepoRadar's finds too.
+#
+# This is a list of the SELF sources rather than an allowlist of the others because the
+# source labels are no longer a fixed set: `gold_spread` draws mint one per configuration
+# (`cli-redraw`, `cli-redraw@30`, `cli-v2@30`, ...). Under an allowlist a new label would be
+# silently dropped from every reach denominator — a witness that grades nothing, invisibly,
+# which is the void-not-null failure this project keeps paying for. The cost of the inversion
+# is that a future *self* source has to be added here; `tests/test_witness_set.py` pins the
+# full label set so that addition cannot be forgotten quietly.
+SELF_SOURCES = ("reporadar",)
+# Display order for `report`; labels outside it are printed after, discovered from the data.
+KNOWN_ORDER = ("cli", "cli-redraw", "cli-v2", "api", "adoption")
+
+
+def is_non_self(source: str) -> bool:
+    return source not in SELF_SOURCES
+
+
+def non_self_sources(sources: list[str]) -> list[str]:
+    return [s for s in sources if is_non_self(s)]
+
+
+def draw_source_label(row: dict[str, Any]) -> str:
+    """The source label for one `gold_spread` row: a searcher, not a file.
+
+    A draw is labelled by the CONFIGURATION that produced it, because that is what a
+    discovery distribution is. Two things vary and both change what gets found:
+
+    * the prompt — v2 is allowed to recommend journal and bioRxiv papers, so it searches a
+      region v1 structurally cannot reach;
+    * the turn cap — a 30-turn agent searches longer and surfaces different papers.
+
+    So they are separate labels, and `reach` reports each separately with its own interval
+    rather than pooling them into one number that describes no searcher that exists. Rows
+    written before the cap was recorded carry no `max_turns`, and the shipped cap is what
+    they ran at — the same default `gold_spread.report` uses, so the two agree by
+    construction rather than by coincidence.
+
+    None of these is `cli`. `cli` means the stored gold-set derivation exactly, and
+    `tests/test_witness_set.py` asserts that equality — a redraw folded in there would
+    silently redefine the set every published recall figure divides by.
+    """
+    version = row.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
+    cap = row.get("max_turns", baseline_mod.DEFAULT_MAX_TURNS)
+    stem = "cli-redraw" if version == baseline_mod.DEFAULT_PROMPT_VERSION else f"cli-{version}"
+    return stem if cap == baseline_mod.DEFAULT_MAX_TURNS else f"{stem}@{cap}"
+
+
+def _draw_rows() -> list[tuple[str, str, dict[str, Any]]]:
+    """(draw, case, row) for every judged `gold_spread` row, across all prompt versions.
+
+    The artifact paths come from `gold_spread.out_path` rather than being rebuilt here: two
+    modules deriving the same filename is how this project has repeatedly ended up with two
+    answers to one question (C-12, C-14, C-31). The import is deferred because `gold_spread`
+    pulls in the arXiv client, which costs ~1.9 s that the rest of this module never needs.
+
+    **Both `ok` and `partial` rows count, which is the opposite of what `gold_spread` does**,
+    and the difference is not an inconsistency. `gold_spread` computes a RATIO — reproduced
+    over frozen — so a row whose target set is a floor biases its denominator downward and
+    manufactures instability that is really an arXiv 429. A witness set is a UNION: a floor
+    contributes fewer certificates and claims nothing about what it missed. The set has never
+    claimed completeness — that is what the capture curve is for.
+    """
+    from gold_spread import out_path
+
+    rows: list[tuple[str, str, dict[str, Any]]] = []
+    for version in sorted(baseline_mod.PROMPTS):
+        path = out_path(version)
+        if not path.is_file():
+            continue
+        artifact = json.loads(path.read_text(encoding="utf-8"))
+        stored = artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
+        if stored != version:
+            # `out_path` addressed this file as `version` and the file says otherwise. Reading
+            # it anyway would file one searcher's draws under another's label.
+            raise SystemExit(f"! {path.name} says prompt {stored!r}, not {version!r}")
+        for key, row in artifact.get("results", {}).items():
+            if row.get("status") not in ("ok", "partial"):
+                continue
+            draw, case = key.split("/", 1)
+            rows.append((draw, case, row))
+    return rows
 
 
 def _judge_score(case: str, paper_id: str) -> int | None:
@@ -170,6 +261,27 @@ def gather_witnesses() -> dict[str, dict[str, dict[str, Any]]]:
             if row.get("usable") and not row.get("self_cited") and row.get("judge") is not None:
                 add(row["case"], dedup_id(row["id"]), "adoption", int(row["judge"]))
 
+    # The `gold_spread` redraws. Each is an independent draw of a named configuration, and
+    # every pick in them was already judged — so they are witnesses that cost nothing more to
+    # collect, and the largest single expansion available to this set.
+    #
+    # The row's own `scores` enumerate the candidates; the SHARED verdict cache decides the
+    # value. That asymmetry is the invariant this module is built on: one verdict per
+    # (case, paper), so a witness found by four sources cannot carry four opinions. Trusting
+    # the row's copy instead would let a witness's score depend on which source reached
+    # `add()` first, which is not a property of the paper.
+    for _draw, case, row in _draw_rows():
+        for pid in row.get("scores") or {}:
+            canonical = canonical_ref(pid)
+            score = _judge_score(case, canonical)
+            if score is None:
+                # A judged pick whose verdict the cache cannot produce means the draw and the
+                # cache disagree about what was scored. Skip loudly rather than fall back to
+                # the row's copy, which would hide the drift behind a plausible number.
+                print(f"! {case}/{canonical} was judged in a draw but has no cached verdict")
+                continue
+            add(case, canonical, draw_source_label(row), score)
+
     return witnesses
 
 
@@ -184,17 +296,30 @@ def _pool_ids(pool: str) -> dict[str, set[str]]:
     return out
 
 
+def source_labels(witnesses: dict[str, dict[str, dict[str, Any]]]) -> list[str]:
+    """Every source label present, in display order: known ones first, then the rest sorted.
+
+    Discovered rather than declared, so a configuration that has been drawn always appears in
+    the reach table. A label the code did not anticipate showing up with a small `n` is
+    informative; a label silently absent is not distinguishable from a source that found
+    nothing, which is the distinction this project has paid for repeatedly.
+    """
+    found = {s for papers in witnesses.values() for m in papers.values() for s in m["sources"]}
+    return [s for s in KNOWN_ORDER if s in found] + sorted(found - set(KNOWN_ORDER))
+
+
 def reach(witnesses: dict[str, dict[str, dict[str, Any]]], pool: str) -> dict[str, Any] | None:
     pools = _pool_ids(pool)
     if not pools:
         return None
-    rows: dict[str, dict[str, int]] = {s: {"n": 0, "reached": 0} for s in NON_SELF}
+    labels = [s for s in source_labels(witnesses) if is_non_self(s)]
+    rows: dict[str, dict[str, int]] = {s: {"n": 0, "reached": 0} for s in labels}
     rows["pooled_non_self"] = {"n": 0, "reached": 0}
     for case, papers in witnesses.items():
         if case not in pools:
             continue
         for pid, meta in papers.items():
-            non_self = [s for s in meta["sources"] if s in NON_SELF]
+            non_self = non_self_sources(meta["sources"])
             if not non_self:
                 continue  # reporadar-only: in the pool by construction, grades nothing
             hit = pid in pools[case]
@@ -203,7 +328,7 @@ def reach(witnesses: dict[str, dict[str, dict[str, Any]]], pool: str) -> dict[st
                 rows[source]["reached"] += hit
             rows["pooled_non_self"]["n"] += 1
             rows["pooled_non_self"]["reached"] += hit
-    out: dict[str, Any] = {"pool": pool, "cases_covered": len(pools)}
+    out: dict[str, Any] = {"pool": pool, "cases_covered": len(pools), "graded_by": labels}
     for label, r in rows.items():
         lo, hi = _wilson(r["reached"], r["n"])
         out[label] = {
@@ -238,7 +363,7 @@ def regret(witnesses: dict[str, dict[str, dict[str, Any]]]) -> dict[str, Any] | 
         avail = sum(
             1
             for pid, meta in witnesses.get(case, {}).items()
-            if pid not in shown_ids and any(s in NON_SELF for s in meta["sources"])
+            if pid not in shown_ids and non_self_sources(meta["sources"])
         )
         free = max(0, DIGEST_WINDOW - len(shown_scores))
         fills = min(free, avail)
@@ -297,6 +422,46 @@ def capture(witnesses: dict[str, dict[str, dict[str, Any]]]) -> dict[str, Any]:
             "f2": f2,
             "chao1_lower_bound": round(chao1, 1),
         }
+    # The same estimator at WITNESS level, over the `gold_spread` redraws. Strictly better
+    # evidence than the block above -- every unit is judged, and it covers the 25-case cohort
+    # rather than 5 cases -- but it is a different quantity, so it is a separate entry rather
+    # than a replacement. Chao1 over picks estimates how many papers this searcher COULD name;
+    # Chao1 over witnesses estimates how many it could name that are actually actionable.
+    #
+    # Occasions are draws of ONE configuration. Pooling a 12-turn and a 30-turn draw as two
+    # occasions of one searcher would understate f1 -- a paper only the longer run can find
+    # looks like a rare capture of the shorter one rather than out of its reach entirely --
+    # and Chao1 is driven by exactly that count.
+    by_config: dict[str, dict[str, set[tuple[str, str]]]] = {}
+    for draw, case, row in _draw_rows():
+        seen = by_config.setdefault(draw_source_label(row), {}).setdefault(draw, set())
+        for pid in row.get("targets") or []:
+            seen.add((case, canonical_ref(pid)))
+    redraws: dict[str, Any] = {}
+    for label, draws in sorted(by_config.items()):
+        if len(draws) < 2:
+            continue  # one occasion cannot estimate what a second would have added
+        counts: dict[tuple[str, str], int] = {}
+        for members in draws.values():
+            for key in members:
+                counts[key] = counts.get(key, 0) + 1
+        s_obs = len(counts)
+        f1 = sum(1 for c in counts.values() if c == 1)
+        f2 = sum(1 for c in counts.values() if c == 2)
+        redraws[label] = {
+            "occasions": len(draws),
+            "unit": "witness (judged >= 2)",
+            "cases": len({c for m in draws.values() for c, _ in m}),
+            "s_obs": s_obs,
+            "f1": f1,
+            "f2": f2,
+            "chao1_lower_bound": round(
+                s_obs + (f1 * f1 / (2 * f2) if f2 else f1 * (f1 - 1) / 2), 1
+            ),
+        }
+    if redraws:
+        out["redraws"] = redraws
+
     overlap: dict[int, int] = {}
     for papers in witnesses.values():
         for meta in papers.values():
@@ -326,11 +491,12 @@ def build() -> dict[str, Any]:
         "n_witnesses": sum(len(p) for p in witnesses.values()),
         "n_cases": len(witnesses),
         "by_source": dict(sorted(by_source.items())),
+        "sources": source_labels(witnesses),
         "n_non_self": sum(
             1
             for papers in witnesses.values()
             for meta in papers.values()
-            if any(s in NON_SELF for s in meta["sources"])
+            if non_self_sources(meta["sources"])
         ),
         "witnesses": {
             case: {pid: witnesses[case][pid] for pid in sorted(witnesses[case])}
@@ -349,7 +515,7 @@ def report(data: dict[str, Any]) -> None:
     )
     for r in data.get("reach") or []:
         print(f"\nreach into {r['pool']} ({r['cases_covered']} case(s) with a pool):")
-        for label in (*NON_SELF, "pooled_non_self"):
+        for label in (*(r.get("graded_by") or []), "pooled_non_self"):
             row = r.get(label)
             if not row or not row["n"]:
                 continue
@@ -377,6 +543,12 @@ def report(data: dict[str, Any]) -> None:
         print(
             f"\ncapture, 3 cli draws over {len(c['cases'])} case(s) [{c['unit']}]: "
             f"S_obs={c['s_obs']}  f1={c['f1']}  f2={c['f2']}  "
+            f"Chao1 >= {c['chao1_lower_bound']}"
+        )
+    for label, c in (cap.get("redraws") or {}).items():
+        print(
+            f"capture, {c['occasions']} {label} draw(s) over {c['cases']} case(s) "
+            f"[{c['unit']}]: S_obs={c['s_obs']}  f1={c['f1']}  f2={c['f2']}  "
             f"Chao1 >= {c['chao1_lower_bound']}"
         )
     print(f"source-overlap histogram (witness-level): {cap.get('source_overlap')}")

@@ -36,8 +36,15 @@ sys.path.insert(0, str(ROOT / "evals"))
 FROZEN = ROOT / "evals" / "witness_set.json"
 GOLD = ROOT / "evals" / "gold_targets.json"
 
-KNOWN_SOURCES = {"cli", "api", "reporadar", "adoption"}
-NON_SELF = {"cli", "api", "adoption"}
+# Written out rather than imported, and that is the point: `witness_set` derives its labels
+# from whatever draws exist, so a new configuration appears in the artifact on its own. This
+# set is the review gate on that — a label nobody declared here fails the suite, and whoever
+# adds it has to decide whether it is a self source (excluded from every reach denominator)
+# or a grading one. `SELF` is the only asymmetry in the design; getting a new source's side
+# wrong is invisible in every number the artifact prints.
+KNOWN_SOURCES = {"cli", "cli-redraw", "cli-redraw@30", "api", "reporadar", "adoption"}
+SELF = {"reporadar"}
+NON_SELF = KNOWN_SOURCES - SELF
 
 
 @pytest.fixture(scope="module")
@@ -79,10 +86,32 @@ class TestTheCommittedArtifact:
         cli = {c: ids for c, ids in cli.items() if ids}
         assert cli == {c: sorted(v) for c, v in gold.items()}
 
+    def test_the_source_list_matches_the_witnesses(self, artifact):
+        """`sources` is derived, so it can drift from the set it claims to describe."""
+        found = {
+            s
+            for papers in artifact["witnesses"].values()
+            for m in papers.values()
+            for s in m["sources"]
+        }
+        assert set(artifact["sources"]) == found
+        assert found <= KNOWN_SOURCES, f"undeclared source label(s): {found - KNOWN_SOURCES}"
+
+    def test_every_reach_table_grades_by_every_non_self_source_present(self, artifact):
+        """The failure this guards is a source that is in the set but in no denominator.
+
+        It would be invisible: every printed number stays well-formed and simply describes
+        fewer witnesses than the artifact holds. A source that grades nothing is not a source
+        scoring zero — void, not null — so the two are separated here by construction.
+        """
+        present = {s for s in artifact["sources"] if s not in SELF}
+        for r in artifact["reach"]:
+            assert set(r["graded_by"]) == present, r["pool"]
+
     def test_reach_rows_are_probabilities_with_sane_intervals(self, artifact):
         for r in artifact["reach"]:
             source_ns = []
-            for label in (*NON_SELF, "pooled_non_self"):
+            for label in (*r["graded_by"], "pooled_non_self"):
                 row = r[label]
                 assert 0 <= row["reached"] <= row["n"]
                 if row["n"]:
@@ -114,17 +143,53 @@ class TestTheCommittedArtifact:
         assert "pick" in c["unit"], "draw-level captures are picks, and must say so"
         assert sum(cap["source_overlap"].values()) == artifact["n_witnesses"]
 
+    def test_the_two_capture_estimators_never_merge(self, artifact):
+        """One counts picks, the other counts witnesses. A reader who averages them is
+        wrong, so each block states its own unit and they live under different keys."""
+        cap = artifact["capture"]
+        assert "pick" in cap["cli_draws"]["unit"]
+        for label, c in cap["redraws"].items():
+            assert "witness" in c["unit"], label
+            assert c["occasions"] >= 2, f"{label}: one occasion estimates nothing"
+            assert c["chao1_lower_bound"] >= c["s_obs"], label
+            assert c["f1"] + c["f2"] <= c["s_obs"], label
+
     def test_the_headline_regret_figures(self, artifact):
-        """The numbers the write-up quotes; a hand-edit fails here on any machine."""
+        """The numbers the write-up quotes; a hand-edit fails here on any machine.
+
+        Regret is a function of the witness set's SIZE, by design — it counts unshown
+        witnesses that would fill or displace, so a larger set reveals more headroom (never
+        inflates it: the digest window bounds it). It was **+3.48 over 319 witnesses** before
+        the `gold_spread` redraws were pooled in and **+4.80 over 385** after. Both are
+        correct at their own set size, and the pair is quoted together rather than the older
+        one being overwritten — the C-17 rule.
+        """
         reg = artifact["regret"]
-        assert reg["mean_actual_net2"] == 5.72
-        assert reg["mean_regret"] == 3.48
+        assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
+        assert reg["mean_regret"] == 4.80
+        assert artifact["n_witnesses"] == 385
 
     def test_the_headline_reach_figures(self, artifact):
+        """`cli` at 8/56 is the load-bearing line: pooling 102 redraw witnesses in must not
+        move the frozen gold-set source by one paper."""
         wemb = next(r for r in artifact["reach"] if r["pool"] == "pool-wemb")
         assert (wemb["cli"]["reached"], wemb["cli"]["n"]) == (8, 56)
         assert (wemb["adoption"]["reached"], wemb["adoption"]["n"]) == (1, 19)
-        assert wemb["pooled_non_self"]["p"] == 0.14
+        assert (wemb["cli-redraw"]["reached"], wemb["cli-redraw"]["n"]) == (19, 92)
+        assert wemb["pooled_non_self"]["p"] == 0.174
+
+    def test_the_redraws_agree_with_cli_on_reach(self, artifact):
+        """A consistency check that costs nothing and would catch a mislabelled source.
+
+        `cli` and `cli-redraw` are the same prompt, model and cap — different draws of one
+        searcher. Their reach into the pool is estimating the same quantity, so the intervals
+        must overlap. If they ever stop, either a draw was filed under the wrong label or the
+        pool is not the fixed object it is assumed to be.
+        """
+        wemb = next(r for r in artifact["reach"] if r["pool"] == "pool-wemb")
+        lo_a, hi_a = wemb["cli"]["ci"]
+        lo_b, hi_b = wemb["cli-redraw"]["ci"]
+        assert lo_a <= hi_b and lo_b <= hi_a, "same searcher, disjoint reach intervals"
 
 
 class TestTheLiveDerivation:
