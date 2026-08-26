@@ -170,12 +170,17 @@ class TestTheCommittedArtifact:
         inflates it: the digest window bounds it). The series, each figure correct at its own
         set size and none of them overwriting the last (the C-17 rule): **+3.48 over 319**
         witnesses from four sources, **+4.80 over 385** with the P17 v1 redraws pooled in,
-        **+5.56 over 462** with the v2-prompt sweep as well.
+        **+5.56 over 462** with the v2-prompt sweep as well, **+6.24 over 482** once the
+        OpenAlex tier made 31 previously-unscoreable references judgeable.
+
+        The last step is worth separating from the others: it added no new *search*. Those
+        papers had already been found and named by a searcher already in the pool — the set
+        grew because the instrument could finally read them.
         """
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
-        assert reg["mean_regret"] == 5.56
-        assert artifact["n_witnesses"] == 462
+        assert reg["mean_regret"] == 6.24
+        assert artifact["n_witnesses"] == 482
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not
@@ -183,18 +188,20 @@ class TestTheCommittedArtifact:
         `adoption` — a source's reach is a property of that source, and the only figure a new
         source may change is the pooled one.
 
-        And it did: pooled reach FELL from 0.174 to 0.149 when `cli-v2@30` joined, because
-        v2's witnesses are the ones the shipped pool is least likely to hold (0.141, the
-        lowest of the cli family). A larger witness set lowering pooled reach is the measure
-        working — it means the new source found papers we do not fetch, which is the answer
+        And it did: pooled reach FELL from 0.174 to 0.149 when `cli-v2@30` joined, and again
+        to 0.138 when the OpenAlex tier let 31 more of its references be judged. `cli-v2@30`
+        itself sits at 0.123, the lowest of the family and *falling as it grows* — the
+        non-arXiv papers the tier unlocked are ones the shipped pool holds even less often
+        than the arXiv ones. A larger witness set lowering pooled reach is the measure
+        working: it means the new witnesses are papers we do not fetch, which is the answer
         the question was asked for.
         """
         wemb = next(r for r in artifact["reach"] if r["pool"] == "pool-wemb")
         assert (wemb["cli"]["reached"], wemb["cli"]["n"]) == (8, 56)
         assert (wemb["adoption"]["reached"], wemb["adoption"]["n"]) == (1, 19)
         assert (wemb["cli-redraw"]["reached"], wemb["cli-redraw"]["n"]) == (19, 92)
-        assert (wemb["cli-v2@30"]["reached"], wemb["cli-v2@30"]["n"]) == (19, 135)
-        assert wemb["pooled_non_self"]["p"] == 0.149
+        assert (wemb["cli-v2@30"]["reached"], wemb["cli-v2@30"]["n"]) == (19, 155)
+        assert wemb["pooled_non_self"]["p"] == 0.138
 
     def test_the_redraws_agree_with_cli_on_reach(self, artifact):
         """A consistency check that costs nothing and would catch a mislabelled source.

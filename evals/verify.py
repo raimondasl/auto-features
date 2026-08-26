@@ -34,9 +34,14 @@ finding before:
 
 Resolution is tiered, cheapest and most authoritative first: arXiv for arXiv ids;
 then Semantic Scholar's batch endpoint by DOI; then Europe PMC, which carries the
-bioRxiv/medRxiv preprints S2 returns null for; then the DOI Handle API, which
-answers only *does this exist* and is used to separate `hallucinated` from
-`unjudgeable`.
+bioRxiv/medRxiv preprints S2 returns null for; then OpenAlex, which carries the
+ACM proceedings neither of the others does; and the DOI Handle API, which answers
+only *does this exist* and is used to separate `hallucinated` from `unjudgeable`.
+
+The tier list is named in ``TIER_SET`` and recorded by callers on every judged row,
+because **`unjudgeable` is permanent only relative to the sources we asked**. Adding
+a tier turns each stored one into a claim its evidence no longer supports, so a row
+judged under a smaller set becomes retryable exactly once.
 """
 
 from __future__ import annotations
@@ -56,6 +61,7 @@ from reporadar.paper_id import ARXIV_ARCHIVES, dedup_id, doi_key, is_arxiv_id
 from reporadar.sources.europepmc import EPMC_SEARCH
 from reporadar.sources.europepmc import _normalize as _epmc_normalize
 from reporadar.sources.europepmc import _request_json as _epmc_request
+from reporadar.sources.openalex import fetch_work_by_doi, reconstruct_abstract
 
 
 class SourceUnavailable(Exception):
@@ -152,6 +158,40 @@ def resolve_by_title(client: arxiv.Client, title: str) -> dict[str, Any] | None:
 
 DOI_HANDLE_URL = "https://doi.org/api/handles/"
 _HANDLE_FOUND = 1  # responseCode 1 = handle exists; 100 = HANDLE NOT FOUND
+
+# The sources `resolve_reference` consults, in order. **`unjudgeable` is permanent only
+# relative to THIS tuple**, and that distinction is the whole reason it is written down.
+#
+# The four outcomes divide failures into transient (`lookup_failed`, retry) and permanent
+# (`unjudgeable`, never retry). The permanence is real — asking Semantic Scholar a second
+# time for an abstract it does not have cannot succeed, and `gold_spread.retryable` refuses
+# to, because a row that is re-asked forever is C-30 in reverse. But the permanence is a
+# property of the SOURCES WE ASKED, not of the paper. Add a source and every stored
+# `unjudgeable` becomes a claim its evidence no longer supports.
+#
+# So a run records the tier set it was judged under, and a row becomes retryable again
+# exactly when the current set is a strict superset of the recorded one — more places to
+# look, and only then. A tier being *removed* is not grounds to re-ask: it can only find
+# less. This is `prompt_version`'s lesson one module over — a cached verdict has to record
+# the configuration that produced it, or it silently outlives its own justification.
+TIER_SET = ("arxiv", "doi.org", "s2", "europepmc", "openalex")
+
+# What a row with no recorded tier set was judged under. The v2 sweep of 2026-08-26 ran on
+# these four; the v1 sweep predates the widening entirely and carries no `n_unjudgeable`
+# field at all. The default is only ever consulted for rows that HAVE unjudgeable
+# references — a row with none is never re-asked whatever it was judged under — so it
+# describes exactly the rows it needs to and claims nothing about the others.
+LEGACY_TIER_SET = ("arxiv", "doi.org", "s2", "europepmc")
+
+
+def tiers_grew(recorded: list[str] | tuple[str, ...] | None) -> bool:
+    """Would re-asking find sources the recorded run did not have?
+
+    Strict superset, not inequality: reordering the same sources changes nothing about what
+    can be found, and losing one can only find less. Only growth justifies spending calls to
+    overturn a verdict that was correct when it was made.
+    """
+    return set(TIER_SET) > set(recorded if recorded is not None else LEGACY_TIER_SET)
 
 
 def doi_exists(doi: str) -> bool | None:
@@ -255,6 +295,50 @@ def resolve_by_doi_epmc(doi: str) -> dict[str, Any] | None:
     return paper if paper and (paper.get("abstract") or "").strip() else None
 
 
+def resolve_by_doi_openalex(doi: str) -> dict[str, Any] | None:
+    """OpenAlex by DOI — the tier that reaches ACM, and most of what S2 and EPMC miss.
+
+    Added 2026-08-26 after the v2 sweep left 44 references unscoreable, every one a DOI and
+    most of them ACM: POPL, PLDI, OOPSLA, CACM. Probing all 28 distinct papers against both
+    candidate sources settled which to build: **OpenAlex has abstracts for 20, Crossref for
+    14, and Crossref adds exactly zero that OpenAlex does not already have.** One tier, not
+    two — the measurement is what stopped this being twice the work for no additional paper.
+
+    `reconstruct_abstract` is imported rather than reimplemented: OpenAlex stores abstracts
+    as a `{word: [positions]}` inverted index, and a second decoder for that would be the
+    C-14 shape in a new place.
+    """
+    key = doi_key(doi).removeprefix("doi:")
+    if not key:
+        return None
+    status: dict[str, int] = {}
+    try:
+        work = fetch_work_by_doi(key, status=status)
+    except Exception:  # noqa: BLE001 — an adapter raising is a refusal, not an absence
+        raise SourceUnavailable(f"OpenAlex lookup failed for {key}") from None
+    if work is None:
+        # Same split as the S2 tier (C-32). A recorded code means OpenAlex answered and had
+        # no record — an answer, so fall through. No code means the retries were spent
+        # without one, which must never harden into a verdict about the paper.
+        if not status.get("http"):
+            raise SourceUnavailable(f"OpenAlex refused the lookup for {key}")
+        return None
+    abstract = reconstruct_abstract(work.get("abstract_inverted_index"))
+    title = (work.get("title") or work.get("display_name") or "").strip()
+    # A record with no abstract is not a resolution: the caller needs something to judge on,
+    # and a titled stub in the pool is worse than an honest `unjudgeable`.
+    if not title or not abstract.strip():
+        return None
+    return {
+        "arxiv_id": doi_key(key),
+        "title": title,
+        "abstract": abstract.strip(),
+        "categories": [t["display_name"] for t in [work.get("primary_topic")] if t],
+        "url": work.get("doi") or f"https://doi.org/{key}",
+        "published": work.get("publication_date") or "",
+    }
+
+
 def resolve_reference(
     ref: str,
     client: arxiv.Client,
@@ -296,7 +380,15 @@ def resolve_reference(
     if not exists:
         return None, "hallucinated"
 
-    for lookup in (lambda: resolve_by_doi_s2(ref, s2_api_key), lambda: resolve_by_doi_epmc(ref)):
+    # Tier order is cheapest-and-broadest first, then the specialists. OpenAlex is last
+    # despite the best hit rate on the 2026-08-26 residual because S2 and EPMC were already
+    # measured on this corpus and OpenAlex was not; a tier that only ever runs on what the
+    # others missed is also the one whose marginal value stays visible in `n_unjudgeable`.
+    for lookup in (
+        lambda: resolve_by_doi_s2(ref, s2_api_key),
+        lambda: resolve_by_doi_epmc(ref),
+        lambda: resolve_by_doi_openalex(ref),
+    ):
         try:
             paper = lookup()
         except SourceUnavailable:

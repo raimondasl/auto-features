@@ -22,6 +22,7 @@ Two things this file protects that the v1 pins do not:
 
 from __future__ import annotations
 
+import collections
 import json
 import sys
 from pathlib import Path
@@ -66,7 +67,9 @@ class TestTheSweep:
         picks = [p for r in artifact["results"].values() for p in r["picks"]]
         targets = [t for r in artifact["results"].values() for t in r["targets"]]
         assert sum(p.startswith("doi:") for p in picks) == 97
-        assert sum(t.startswith("doi:") for t in targets) == 36
+        # 36 before the OpenAlex tier, 61 after. The searcher did not change; the 25 extra
+        # are papers it had already named and we could not previously read.
+        assert sum(t.startswith("doi:") for t in targets) == 61
         v1 = json.loads(V1.read_text(encoding="utf-8"))["results"]
         v1_picks = [p for r in v1.values() for p in (r.get("picks") or [])]
         assert not any(p.startswith("doi:") for p in v1_picks), "v1 cannot emit a DOI at all"
@@ -102,8 +105,8 @@ class TestTheCounterIdentity:
         counts against it. **0 lookup_failed** — a finished sweep has no backlog left.
         """
         rows = list(artifact["results"].values())
-        assert sum(len(_unscored(r)) for r in rows) == 44
-        assert sum(r["n_unjudgeable"] for r in rows) == 41
+        assert sum(len(_unscored(r)) for r in rows) == 13
+        assert sum(r["n_unjudgeable"] for r in rows) == 10
         assert sum(r["n_hallucinated"] for r in rows) == 3
         assert sum(r["n_lookup_failed"] for r in rows) == 0, "a finished sweep has no backlog"
 
@@ -115,26 +118,60 @@ class TestTheCounterIdentity:
         dois = sum(1 for r in rows for p in r["picks"] if p.startswith("doi:"))
         assert sum(r["n_hallucinated"] for r in rows) / dois < 0.05
 
-    def test_everything_unscored_is_a_doi(self, artifact):
-        """The gap is entirely non-arXiv, and mostly ACM: real papers with no abstract in
-        Semantic Scholar or Europe PMC. It is the cost of v2's reach, and it is permanent —
-        which is why these rows are `ok` rather than queued for a retry that cannot help."""
+    def test_no_acm_paper_is_unscoreable_any_more(self, artifact):
+        """This assertion used to say the opposite, and the inversion is the whole result.
+
+        Before the OpenAlex tier, ACM was the gap: `10.1145/…` accounted for more than half
+        of 44 unscoreable references — POPL, PLDI, OOPSLA, CACM, the venues a code benchmark
+        most needs to read. Semantic Scholar rejects many of those DOIs outright and Europe
+        PMC is biomedical. OpenAlex carries them, and **zero remain**.
+        """
         unscored = [p for r in artifact["results"].values() for p in _unscored(r)]
         assert unscored and all(p.startswith("doi:") for p in unscored)
-        acm = sum(1 for p in unscored if p.startswith("doi:10.1145/"))
-        assert acm >= len(unscored) // 2, f"only {acm}/{len(unscored)} are ACM"
+        assert not [p for p in unscored if p.startswith("doi:10.1145/")]
+
+    def test_the_residual_is_named_rather_than_chased(self, artifact):
+        """8 distinct papers, and the shape of what no tier reaches: Springer book chapters
+        (chronically abstract-free), one Elsevier journal paper, and two fabricated DOIs that
+        never existed. Pinned so the floor is a measured quantity rather than an impression."""
+        unscored = {p for r in artifact["results"].values() for p in _unscored(r)}
+        assert len(unscored) == 8
+        by_prefix = collections.Counter(p.split("/")[0].removeprefix("doi:") for p in unscored)
+        assert dict(by_prefix) == {"10.1007": 5, "10.5555": 2, "10.1016": 1}
 
 
 class TestRetryabilityIsDerived:
     def test_a_finished_row_is_never_retryable(self, artifact):
-        """The C-30 trap in reverse: a row that can never be completed must stop being asked."""
+        """The C-30 trap in reverse: a row that can never be completed must stop being asked.
+
+        "Finished" now means finished *under the current tier set*, which every row in the
+        committed artifact records. Adding a source is what legitimately reopens them, and
+        the row stamps the new set when it is re-asked, so the same growth cannot fire twice.
+        """
         import gold_spread
 
         for key, row in artifact["results"].items():
             assert not gold_spread.retryable(row), key
 
+    def test_every_row_with_an_open_question_records_who_was_asked(self, artifact):
+        """Only rows that were re-asked carry the stamp, and that is correct rather than
+        untidy. A row whose references all resolved has no `unjudgeable` verdict to
+        reopen, so no tier growth can ever reach it and back-stamping it with a tier set
+        that did not exist when it ran would be a fabricated provenance claim.
+
+        The invariant that actually matters is the one below: nothing is left retryable.
+        """
+        import verify
+
+        for key, row in artifact["results"].items():
+            if row.get("n_unjudgeable"):
+                assert row["tier_set"] == list(verify.TIER_SET), key
+
     def test_unjudgeable_alone_does_not_make_a_row_retryable(self):
+        """Not while the tier set is unchanged. The verdict was correct when it was made and
+        asking the same four sources again cannot overturn it."""
         import gold_spread
+        import verify
 
         row = {
             "status": "partial",
@@ -142,8 +179,40 @@ class TestRetryabilityIsDerived:
             "scores": {},
             "n_lookup_failed": 0,
             "n_unjudgeable": 1,
+            "tier_set": list(verify.TIER_SET),
         }
         assert gold_spread.unscored_picks(row) == ["doi:10.1145/x"]
+        assert not gold_spread.retryable(row)
+
+    def test_a_grown_tier_set_reopens_an_unjudgeable_row(self):
+        """The clause that cashed in the OpenAlex tier: 31 references stranded behind a
+        predicate correctly refusing to re-ask a settled question."""
+        import gold_spread
+        import verify
+
+        row = {
+            "status": "ok",  # note: not partial — a finished row can still be reopened
+            "picks": ["doi:10.1145/x"],
+            "scores": {},
+            "n_lookup_failed": 0,
+            "n_unjudgeable": 1,
+            "tier_set": list(verify.LEGACY_TIER_SET),
+        }
+        assert gold_spread.retryable(row)
+
+    def test_a_row_with_nothing_open_is_never_reopened(self):
+        """The tier clause must not re-ask rows that have no unanswered question, however
+        much the verifier has improved."""
+        import gold_spread
+        import verify
+
+        row = {
+            "status": "ok",
+            "picks": ["2401.12345"],
+            "scores": {"2401.12345": 3},
+            "n_unjudgeable": 0,
+            "tier_set": list(verify.LEGACY_TIER_SET),
+        }
         assert not gold_spread.retryable(row)
 
     def test_a_lookup_failure_does(self):

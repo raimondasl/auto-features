@@ -93,7 +93,7 @@ import judge as judge_mod  # noqa: E402
 from diagnose_pool import ACTIONABLE, JUDGE, _judge_stem  # noqa: E402
 from harness import WORK_DIR, assemble_repo_context, clone_repo  # noqa: E402
 from run_judge_eval import load_dotenv  # noqa: E402
-from verify import resolve_references  # noqa: E402
+from verify import TIER_SET, resolve_references, tiers_grew  # noqa: E402
 
 from reporadar.paper_id import canonical_ref, dedup_id  # noqa: E402
 
@@ -237,6 +237,10 @@ def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, A
         # resolves, so retrying would strand the row forever (C-30).
         "n_unjudgeable": unjudgeable,
         "n_judge_failed": judge_failed,
+        # Which sources produced the verdicts above. An `unjudgeable` means "none of these
+        # had an abstract", which stops being true the moment the list grows; recorded so
+        # `retryable` can tell, rather than inferred from the date the row was written.
+        "tier_set": list(TIER_SET),
     }
 
 
@@ -263,14 +267,25 @@ def retryable(row: dict[str, Any]) -> bool:
 
     So the retry condition reads `n_lookup_failed`, never `status` alone. The 2026-08-26 v2
     sweep is why this exists: 19 of its 22 lookup failures landed in draw 1, inside one
-    window of serial judging, and every one of them was recoverable — while 33 unjudgeable
-    references in the same sweep were not, and must never be asked about again.
+    window of serial judging, and every one of them was recoverable — while 41 unjudgeable
+    references in the same sweep were not, given the sources we had.
+
+    **Given the sources we had** is the second clause. `unjudgeable` is permanent relative to
+    a fixed tier set, not absolutely: adding a source turns every stored one into a claim its
+    evidence no longer supports. So a row also comes back when `verify.TIER_SET` has *grown*
+    since it was judged — once, because the row then records the new set. Without this the
+    31 references OpenAlex can supply would sit behind a predicate correctly refusing to ask
+    a question that had already been settled.
+
+    Note the asymmetry: a `status == "ok"` row can be retryable on the tier clause but never
+    on the lookup clause. A finished row has no backlog; it may still have a verdict that
+    only held because we could not look anywhere else.
     """
-    return bool(
-        row.get("status") == "partial"
-        and (row.get("n_lookup_failed") or 0) > 0
-        and unscored_picks(row)
-    )
+    if not unscored_picks(row):
+        return False
+    if (row.get("n_lookup_failed") or 0) > 0 and row.get("status") == "partial":
+        return True
+    return bool((row.get("n_unjudgeable") or 0) > 0 and tiers_grew(row.get("tier_set")))
 
 
 def repair_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, Any]:
@@ -312,6 +327,11 @@ def repair_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, 
         "n_lookup_failed": lookup_failed,
         "n_unjudgeable": unjudgeable,
         "n_judge_failed": judge_failed,
+        # Stamped here too, and this is the line that makes the tier clause terminate. A row
+        # re-asked because the tiers grew records the set it was re-asked under, so the same
+        # growth cannot trigger it twice. Without it every invocation would re-ask every
+        # unjudgeable reference forever — C-30 arriving through the door built to prevent it.
+        "tier_set": list(TIER_SET),
     }
 
 

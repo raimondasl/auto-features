@@ -1144,6 +1144,75 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The abstract gap was the binding constraint, and one tier closed most of it. **[P20]**
+
+The v2 sweep left 44 references unscoreable, every one a DOI and most of them ACM (P19). That
+is a limit on the instrument, not the searcher: the papers were found, named, and proven to
+exist, and nothing downstream could read them.
+
+**Which source to add was measured, not chosen.** All 28 distinct unscoreable papers were
+probed against both candidates before a line was written:
+
+| | has an abstract |
+|---|---|
+| **OpenAlex** | **20 / 28** |
+| Crossref | 14 / 28 |
+| Crossref ∩ not-OpenAlex | **0** |
+
+Every paper Crossref carries, OpenAlex carries too, and OpenAlex adds six more. The
+half-hour probe is the reason this was one tier rather than two — "Crossref or OpenAlex" was
+two options where the evidence supports one.
+
+**The result.** Unscoreable references **44 → 13**; non-arXiv targets **36 → 61**; sweep
+targets **196 → 221**; and **no ACM paper is unscoreable any more**. The searcher did not
+change, so all 25 new witnesses are papers v2 had already named. Witness set **462 → 482**,
+digest regret **+5.56 → +6.24** net@2/case.
+
+`cli-v2@30`'s reach into `pool-wemb` *fell* as it grew, 0.141 → **0.123**, and pooled non-self
+reach with it, 0.149 → **0.138**. That is the measure working: the papers the tier unlocked
+are ones the shipped collection step holds even less often than the arXiv ones.
+
+**The residual is 8 papers and is now a named floor**: five Springer book chapters
+(chronically abstract-free), one Elsevier journal paper, and two fabricated DOIs that never
+existed. Worth stating in the write-up rather than chasing.
+
+#### `unjudgeable` is permanent only relative to the sources you asked
+
+Adding a tier needed machinery, not just a function, and the reason is a genuine tension
+between two corrections this project already paid for. `unjudgeable` is deliberately *not*
+retryable — C-30 was the cost of a row that could never be finished being asked forever. But
+that permanence is a property of the tier list, not of the paper: the moment the list grows,
+every stored `unjudgeable` becomes a claim its evidence no longer supports. Left alone, the
+31 recoverable references would have sat behind a predicate correctly refusing to re-ask a
+question that had been settled.
+
+`verify.TIER_SET` names the tiers; every judged row records it; `retryable` reopens a row when
+the current set is a **strict superset** of the recorded one. Strictness is load-bearing in
+both directions — reordering changes nothing findable, and losing a tier can only find less,
+so neither should spend a call. `repair_row` stamps the new set, which is what makes the
+clause terminate instead of firing on every future invocation. It is `prompt_version`'s lesson
+one module over: a cached verdict has to carry the configuration that produced it, or it
+quietly outlives its own justification.
+
+Only rows with an `unjudgeable` verdict carry the stamp, and that asymmetry is deliberate: a
+row whose references all resolved has nothing a new tier could reopen, and back-stamping it
+with a tier set that did not exist when it ran would be a fabricated provenance claim.
+
+#### Two things the tests caught that review did not
+
+* **The stub fixture stopped covering every tier.** `tests/test_verify_widened.py` exists on
+  the rule that its tests must run with no network — "a test that needs Semantic Scholar to
+  be up is a test that reports the weather". Adding `openalex` to the resolution chain without
+  adding it to the fixture turned two existing tests into live HTTP requests, silently, on
+  exactly the paths that reach the new tier.
+* **A new test passed for the wrong reason.** `test_it_rescues_what_the_earlier_tiers_miss`
+  patched `fetch_work_by_doi`, but the fixture replaces `resolve_by_doi_openalex` wholesale,
+  so the patch had no effect at all. It is driven through the fixture now.
+
+`sources/openalex.py::_request_json` also carried the C-32 conflation already — `None` for
+both a spent 429 and a 404 — so the new tier received the same `status` out-parameter
+treatment at birth rather than reintroducing the bug one source over.
+
 ### The v2 prompt reaches past arXiv, and the instrument becomes the binding constraint. **[P19, C-32]**
 
 `BASELINE_PROMPT_V2` permits journal, conference and bioRxiv/medRxiv papers and asks for an

@@ -1,14 +1,14 @@
 {
  "_comment": "Pooled witness set (v2) with per-source provenance, reach probabilities (leave-one-source-out), digest regret, and a capture estimate. Derived by evals/witness_set.py; pinned by tests/test_witness_set.py. NOT a recall denominator: see the module docstring for what each number means.",
- "n_witnesses": 462,
- "n_cases": 32,
+ "n_witnesses": 482,
+ "n_cases": 33,
  "by_source": {
   "adoption": 19,
   "api": 50,
   "cli": 75,
   "cli-redraw": 92,
   "cli-redraw@30": 10,
-  "cli-v2@30": 135,
+  "cli-v2@30": 155,
   "reporadar": 189
  },
  "sources": [
@@ -20,7 +20,7 @@
   "cli-v2@30",
   "reporadar"
  ],
- "n_non_self": 281,
+ "n_non_self": 301,
  "witnesses": {
   "ann": {
    "1603.08390": {
@@ -244,6 +244,20 @@
     ]
    }
   },
+  "cli": {
+   "doi:10.1002/spe.4380111102": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/363958.363994": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   }
+  },
   "columnar": {
    "1209.2137": {
     "judge": 2,
@@ -368,6 +382,12 @@
      "cli-redraw"
     ]
    },
+   "doi:10.1145/2452376.2452456": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
    "doi:10.1145/3589263": {
     "judge": 2,
     "sources": [
@@ -430,6 +450,24 @@
     "judge": 2,
     "sources": [
      "reporadar"
+    ]
+   },
+   "doi:10.1007/978-3-642-37051-9_6": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/2594291.2594334": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/2693261": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
     ]
    }
   },
@@ -1259,6 +1297,54 @@
     "sources": [
      "cli-redraw",
      "cli-redraw@30"
+    ]
+   },
+   "doi:10.1002/spe.4380111102": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1017/s0956796807006223": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/103135.103136": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/1053468.1053473": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/1287624.1287633": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/258916.258920": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/293677.293678": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/3110250": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
     ]
    },
    "doi:10.1145/3338906.3338952": {
@@ -2511,6 +2597,12 @@
      "cli-v2@30"
     ]
    },
+   "doi:10.1145/3380905": {
+    "judge": 3,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
    "doi:10.1145/3448016.3457273": {
     "judge": 3,
     "sources": [
@@ -2815,6 +2907,12 @@
     "sources": [
      "reporadar"
     ]
+   },
+   "doi:10.1145/1620585.1620587": {
+    "judge": 3,
+    "sources": [
+     "cli-v2@30"
+    ]
    }
   },
   "thin-lang": {
@@ -2847,6 +2945,30 @@
     "judge": 2,
     "sources": [
      "cli-redraw@30"
+    ]
+   },
+   "doi:10.1007/978-3-642-37051-9_6": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/2666356.2594324": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/293677.293678": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/3236774": {
+    "judge": 2,
+    "sources": [
+     "cli-v2@30"
     ]
    }
   },
@@ -3025,21 +3147,21 @@
     ]
    },
    "cli-v2@30": {
-    "n": 135,
+    "n": 155,
     "reached": 19,
-    "p": 0.141,
+    "p": 0.123,
     "ci": [
-     0.092,
-     0.209
+     0.08,
+     0.184
     ]
    },
    "pooled_non_self": {
-    "n": 241,
+    "n": 261,
     "reached": 36,
-    "p": 0.149,
+    "p": 0.138,
     "ci": [
-     0.11,
-     0.2
+     0.101,
+     0.185
     ]
    }
   },
@@ -3100,21 +3222,21 @@
     ]
    },
    "cli-v2@30": {
-    "n": 135,
+    "n": 155,
     "reached": 16,
-    "p": 0.119,
+    "p": 0.103,
     "ci": [
-     0.074,
-     0.184
+     0.065,
+     0.161
     ]
    },
    "pooled_non_self": {
-    "n": 281,
+    "n": 301,
     "reached": 53,
-    "p": 0.189,
+    "p": 0.176,
     "ci": [
-     0.147,
-     0.238
+     0.137,
+     0.223
     ]
    }
   }
@@ -3132,24 +3254,24 @@
    },
    "cli": {
     "actual_net2": 0,
-    "witnesses_available": 0,
-    "fills": 0,
+    "witnesses_available": 2,
+    "fills": 2,
     "swaps": 0,
-    "regret": 0
+    "regret": 2
    },
    "columnar": {
     "actual_net2": 7,
-    "witnesses_available": 15,
+    "witnesses_available": 16,
     "fills": 5,
     "swaps": 1,
     "regret": 8
    },
    "compiler": {
     "actual_net2": 2,
-    "witnesses_available": 4,
-    "fills": 4,
+    "witnesses_available": 7,
+    "fills": 7,
     "swaps": 0,
-    "regret": 4
+    "regret": 7
    },
    "crypto": {
     "actual_net2": 4,
@@ -3202,10 +3324,10 @@
    },
    "linter": {
     "actual_net2": 0,
-    "witnesses_available": 6,
-    "fills": 6,
+    "witnesses_available": 14,
+    "fills": 14,
     "swaps": 0,
-    "regret": 6
+    "regret": 14
    },
    "llminfer": {
     "actual_net2": 8,
@@ -3251,7 +3373,7 @@
    },
    "storage": {
     "actual_net2": 13,
-    "witnesses_available": 19,
+    "witnesses_available": 20,
     "fills": 2,
     "swaps": 0,
     "regret": 2
@@ -3272,17 +3394,17 @@
    },
    "thin-kv": {
     "actual_net2": 6,
-    "witnesses_available": 5,
+    "witnesses_available": 6,
     "fills": 3,
     "swaps": 2,
     "regret": 9
    },
    "thin-lang": {
     "actual_net2": 1,
-    "witnesses_available": 4,
-    "fills": 4,
+    "witnesses_available": 8,
+    "fills": 8,
     "swaps": 0,
-    "regret": 4
+    "regret": 8
    },
    "vectordb": {
     "actual_net2": 1,
@@ -3300,7 +3422,7 @@
    }
   },
   "mean_actual_net2": 5.72,
-  "mean_regret": 5.56
+  "mean_regret": 6.24
  },
  "capture": {
   "cli_draws": {
@@ -3332,15 +3454,15 @@
    "cli-v2@30": {
     "occasions": 3,
     "unit": "witness (judged >= 2)",
-    "cases": 23,
-    "s_obs": 135,
-    "f1": 88,
-    "f2": 33,
-    "chao1_lower_bound": 252.3
+    "cases": 24,
+    "s_obs": 155,
+    "f1": 104,
+    "f2": 36,
+    "chao1_lower_bound": 305.2
    }
   },
   "source_overlap": {
-   "1": 393,
+   "1": 413,
    "2": 44,
    "3": 15,
    "4": 7,

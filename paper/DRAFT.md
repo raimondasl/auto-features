@@ -712,7 +712,7 @@ draws. What survives is that the *estimates* are stable across draws (four sets,
 intervals), which is what licenses quoting them with binomial error. What does not survive is
 any claim resting on a difference of a few targets. A pooled set built from every already-judged
 source (baseline, a second baseline implementation, our own returns, git-history adoptions, and
-six independent redraws of the baseline under two prompts) is **393-of-462 single-source**, so
+six independent redraws of the baseline under two prompts) is **413-of-482 single-source**, so
 even the pooled version is closer to a union of blind spots than to ground truth; papers no
 searcher surfaces are invisible to every instrument here. Pooling the redraws in prices that
 directly: over the repositories where three draws completed, 68 of 92 certified papers appear
@@ -721,14 +721,24 @@ in exactly one of them, and Chao1 puts the population that *one configuration* c
 which bounds how much of the actionable literature any set assembled this way can be expected
 to hold.
 
-**And one of those blind spots is the instrument's, not the searchers'.** Rerunning the
-baseline under a prompt that permits non-arXiv papers returns 97 DOIs across 75 draws, of
-which **41 name real papers that no abstract source we query can supply** — overwhelmingly ACM
-proceedings, which is to say the venue where much of the software-engineering literature this
-system exists to surface is actually published. They exist, they are certainly relevant, and
-they are unscoreable here. Every measurement in this paper is therefore conditioned not only
-on arXiv coverage (§9) but on abstract availability, and the two are not the same limit: the
-second one silently deletes evidence from venues the first would have let through.
+**And one of those blind spots was the instrument's, not the searchers'.** Rerunning the
+baseline under a prompt that permits non-arXiv papers returned 97 DOIs across 75 draws, of
+which **41 named real papers that no abstract source we then queried could supply** —
+overwhelmingly ACM proceedings, which is to say the venue where much of the software-
+engineering literature this system exists to surface is actually published. They existed,
+they were relevant, and they were unscoreable. Adding OpenAlex as a fourth metadata tier
+recovered **31 of the 41**, taking non-arXiv certified papers from 36 to 61 without changing
+the searcher at all: the same papers, already found and named, that nothing in the pipeline
+could read. **No ACM paper remains unscoreable.**
+
+Two things survive that repair, and they are the ones worth stating. The residual is small
+and specific — five Springer book chapters and one Elsevier paper — so the floor is a named
+quantity rather than an unknown. And the episode is itself the finding: for six weeks the
+benchmark could not see a body of directly relevant literature, and nothing in any number it
+produced indicated as much. Every measurement here is conditioned not only on arXiv coverage
+(§9) but on abstract availability, and the two are not the same limit — the second silently
+deletes evidence from venues the first would have let through. We found this one only by
+building a searcher that reached past arXiv and then auditing what it could not score.
 
 **The metric rewards shyness.** net@2 charges 2 per false positive, so a precision stage — our main result — is exactly what it flatters, and it flatters the precision-preserving pool expansion of §8.5 the same way. The recall deficit it structurally undervalues (gate recall 0.60) is narrowed but not closed: three of the six pure-retrieval losses are repaired, two remain, and both are repositories whose bibliographies are too thin for the citation hop and whose targets the dense channel does not reach either. A user who wants discovery may prefer a different λ, and nothing here optimizes reading-time value directly.
 
