@@ -1144,6 +1144,110 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The gold set is a sample, and now we know from how large a population. **[P17]**
+
+```bash
+uv run python evals/gold_spread.py --report   # $0, re-read the 75-run artifact
+```
+
+Every published recall denominator divides by a gold set derived from **one** run of the
+agentic baseline. P15 priced a re-run at the *pick* level (~59% disagreement) and left the
+question the denominators actually depend on: picks are not targets, and the judge might
+absorb the churn. Three more draws over the 25 benchmark cases, at unchanged flags, every
+pick judged, `use_cache=False` throughout — the 34 stored answers verified byte-identical
+afterwards.
+
+#### The pre-registered prediction failed
+
+> *Target-level reproducibility should EXCEED the pick-level 0.41, because the judge filter
+> is a stable function applied to a noisy input.*
+
+| | draw 1 | draw 2 | draw 3 | mean |
+|---|---|---|---|---|
+| frozen targets reproduced | 15/40 = 0.38 | 17/43 = 0.40 | 18/45 = 0.40 | **0.39** |
+
+**0.39 against the pick-level 0.41 — the judge absorbs nothing.** It is a filter on *which*
+papers, not a stabiliser of *whether*: a fresh draw finds different papers, and the judge
+certifies those instead. The pre-registered rule ( < 2/3 ) fires: **the membership of the
+denominator is not a stable quantity.**
+
+#### But the size is stable, and — the part that matters — so is the estimate
+
+Two things the reproducibility figure does *not* say. First, the denominator's **magnitude**
+barely moves: 38, 39, 46 targets against the frozen 40, 43, 45 on the same cases. Second, and
+decisively:
+
+| target set | in the shipped pool | p | 95% CI |
+|---|---|---|---|
+| frozen (the published set) | 8/56 | 0.143 | [0.074, 0.257] |
+| draw 1 | 6/39 | 0.154 | [0.072, 0.297] |
+| draw 2 | 8/39 | 0.205 | [0.108, 0.355] |
+| draw 3 | 12/46 | 0.261 | [0.156, 0.403] |
+
+**Four independent gold sets, four overlapping estimates of the same quantity** (pooled
+34/180 = 0.19, CI [0.14, 0.25]). This is what a *sample* behaves like: membership churn is
+**variance, not bias**. A reach fraction measured against any exchangeable draw is an
+unbiased estimate of the population reach rate, which is why the published figures survive —
+as **estimates with intervals**, not as exact fractions:
+
+| published as | read as |
+|---|---|
+| hop 21/56 | **0.38**, 95% CI [0.26, 0.51] |
+| HyDE 34/56 | **0.61**, 95% CI [0.48, 0.72] |
+| union 43/56 | **0.77**, 95% CI [0.64, 0.86] |
+
+The intervals are ±0.11 or so — wide enough that "36/48 → 43/56" style comparisons between
+adjacent figures were never resolving anything, and narrow enough that the qualitative claims
+(keyword channels 0–8%, hop+HyDE ~75%) stand comfortably. One honest wrinkle: the four reach
+estimates trend upward (0.143 → 0.261) and n does not resolve whether that is drift or noise.
+
+#### The population is far larger than anyone assumed
+
+Union of targets over the 11 cases present in every draw:
+
+| | frozen | +draw 1 | +draw 2 | +draw 3 |
+|---|---|---|---|---|
+| distinct targets | 33 | 50 | 63 | **81** |
+
+**No saturation whatsoever** — each draw adds 13–18 new targets and the curve is still
+climbing. Chao1 over the four occasions: S_obs = 81, f1 = **57**, f2 = 9 → **≥ 262**. So on
+eleven repositories the frozen set holds 33 of a cli-findable actionable population of at
+least ~262. (With 70% singletons Chao1 is a loose and unstable lower bound — which cuts the
+same way: the true figure is larger, not smaller.) P16 measured 4 sources as nearly disjoint;
+this measures a *single* source as nowhere near exhausted by itself.
+
+#### The failure rate is benchmark-wide, and it selects what the gold set contains
+
+| draw | ok | partial | failed | rate |
+|---|---|---|---|---|
+| 1 | 19 | 0 | 6 | 24% |
+| 2 | 20 | 0 | 5 | 20% |
+| 3 | 21 | 1 | 3 | 12% |
+
+**~19% of runs hit `error_max_turns`** at the shipped 12-turn budget, after three internal
+retries — not a scientific-cohort phenomenon (C-28) but a property of the comparator
+everywhere. And the pattern is not uniform: `thin-lang` and `vectordb` failed in **all three**
+draws, `thin-kv` in two.
+
+**Every one of those cases has a cached success in the gold set.** That is the selection
+effect named in PLANS item 2, now measured: repositories whose agent habitually runs over
+budget are represented in the denominator *only by their lucky draws*. `partial` rows
+(unresolved or unjudged picks) are recorded but excluded from every count above, because a
+floor read as a count would have manufactured instability out of an arXiv throttle.
+
+#### What this settles
+
+The union proposal that started this line of work is now measurable rather than intuitive: a
+union **does** stabilise membership, and it does so by growing toward a population of ≥262 on
+11 cases — so it converges to "everything this one searcher ever finds", not to ground truth.
+The better answer is the one the numbers point at: **stop treating the gold set as a set and
+treat it as a sample.** Report reach as a probability with an interval (P16's design, now
+validated by four independent draws agreeing), and use additional draws to tighten intervals
+rather than to chase a denominator that does not converge.
+
+**Cost** 74 agentic runs (subscription) plus judging; the shared baseline caches were never
+read or written, and the judge cache absorbed every repeated pick.
+
 ### The witness set v2: coverage was never recall, and the honest measures say something worse. **[P16]**
 
 ```bash

@@ -8,7 +8,7 @@ repeated here — it lives in:
 |---|---|
 | [`RESEARCH.md`](RESEARCH.md) | the experiment record, organised by problem (§9 is current) |
 | [`ROADMAP.md`](ROADMAP.md) | the feature/probe ledger, item by item, with verdicts |
-| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P16, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
+| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P17, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
 | [`archive/`](archive/) | superseded plans, kept verbatim (MVP plan, original sketch, retrieval designs) |
 
 ## Where the system stands (2026-08-25)
@@ -74,7 +74,7 @@ papers, ~50% actionable rate, concentrated in `bio-*`/`mat-*` — and no shipped
 can reach it. But a static snapshot is not the way, and that is now measured rather than
 assumed. Revisit only with a corpus that updates.
 
-### 2. The gold set is a sample, not ground truth — and that outranks the turn budget [P15]
+### 2. The gold set is a sample — measured, and it changes how every recall figure is read [P15, P16, P17]
 
 The 30-turn question is **answered and parked**: on six cases probed with a paired fresh
 12-turn control, the cap bound on none of them (all controls returned `ok`; reaching
@@ -138,11 +138,28 @@ shipped pool contains only **~14–22% of non-self witnesses** (channels reach 7
 regret vs known witnesses is **+3.48 net@2/case** on top of +5.72, nearly all of it a
 discovery deficit rather than a selection one.
 
-Recommendation, updated: **measure the spread next (k = 3 on the 25)** — it now serves three
-purposes at once: the gold-set stability number, the capture-curve extension (Chao1 ≥ 34 vs
-24 observed on the probe's six cases says the cli-findable population is far from
-saturated), and fresh witnesses for v2. Until it runs, no baseline re-run for any *other*
-reason — it would move the gold set as a side effect and confound the measurement.
+**The k = 3 spread is run [P17]** — 75 draws over the 25 cases, judged, caches untouched.
+It answers the item and closes it:
+
+- **The pre-registered prediction failed.** Target-level reproducibility is **0.39** against
+  the pick-level 0.41: the judge absorbs *none* of the churn. Membership of the denominator
+  is not stable, and the pre-registered rule (< 2/3) fires.
+- **But the estimate is stable.** Four independent gold sets give pool-reach estimates of
+  0.143 / 0.154 / 0.205 / 0.261 — all overlapping, pooled 0.19 [0.14, 0.25]. Membership churn
+  is **variance, not bias**, so the published figures survive as estimates with intervals:
+  hop **0.38** [0.26, 0.51], HyDE **0.61** [0.48, 0.72], union **0.77** [0.64, 0.86].
+- **No saturation, and the population is large.** Union over the 11 always-present cases runs
+  33 → 50 → 63 → **81** with no flattening; Chao1 ≥ **262** (70% singletons, so a loose lower
+  bound). A union converges to "everything this one searcher ever finds", not to ground truth.
+- **~19% of baseline runs hit `error_max_turns`** benchmark-wide, and `thin-lang` and
+  `vectordb` failed all three draws while sitting in the gold set via cached lucky draws —
+  the selection effect, now measured rather than suspected.
+
+**What follows, and it is a documentation change rather than an experiment:** stop treating
+the gold set as a set. Report reach as a probability with an interval (P16's design, now
+validated by four draws agreeing) and spend further draws on tightening intervals, never on
+chasing a denominator that does not converge. The remaining work is restating the recall
+figures in `paper/DRAFT.md` and `README.md` as estimates — no new measurement required.
 
 
 ### 3. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
