@@ -37,12 +37,28 @@ purpose: a verdict is a function of (case, paper, rubric) and is the same object
 for it, which is also why repeated picks across draws cost nothing.
 
 **Persistence is incremental and resumable.** The artifact is rewritten after every single
-case, and a re-invocation skips (draw, case) pairs it already holds. A 75-run job that loses
+row, under a lock, and a re-invocation skips what it already holds. A 75-run job that loses
 three hours of subscription usage to one exception is the C-29 shape, and this is a longer
 job than the one that taught it.
 
+**Two phases, because only one of them is rate-limited.** Phase A runs the agentic baselines
+and touches nothing we throttle -- `run_baseline` shells out to `claude` and parses the reply.
+Phase B verifies against arXiv and judges. The first version interleaved them, which made the
+whole job look arXiv-bound when seconds of it were: measured 2026-08-26, four runs at
+concurrency 4 compressed 711 s of phase-A work into 275 s of wall clock, with phase B still
+strictly serial and no throttling. `--concurrency` therefore applies to phase A only, by
+construction rather than by convention.
+
+**The turn cap is a parameter, and draws at different caps are different configurations.**
+`--max-turns` is recorded per row and `report` refuses to average across caps -- it analyses
+the shipped cap and lists the others separately. Draws are discovered from the artifact, not
+assumed to be 1..k, so a trial at a different cap cannot be silently omitted from the figures.
+None of this touches `cache/baseline/cli/` or `_discriminator`: the published comparator is a
+separate question from the witness generator, and this script only ever does the latter.
+
     uv run python evals/gold_spread.py --dry-run   # $0, the plan and what is already done
-    uv run python evals/gold_spread.py             # ~75 agentic runs + judging, resumable
+    uv run python evals/gold_spread.py             # k draws at the shipped cap, resumable
+    uv run python evals/gold_spread.py --max-turns 30 --concurrency 4    # a faster variant
     uv run python evals/gold_spread.py --report    # $0, re-read the artifact
 """
 
@@ -52,6 +68,9 @@ import argparse
 import json
 import os
 import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -93,47 +112,91 @@ def _judge_cached(case: str, paper_id: str) -> int | None:
     return None
 
 
-def run_one(case: dict[str, Any], *, model: str) -> dict[str, Any]:
-    """One fresh draw of one case: baseline (uncached) then judge (cached)."""
+def _turn_flags(max_turns: int) -> list[str] | None:
+    """`CLAUDE_FLAGS` with the cap replaced, or None to use the shipped list unchanged.
+
+    Built from the shipped list rather than retyped, so a change to the model or the allowed
+    tools cannot silently diverge between the probe and the product (the C-3 rule).
+    """
+    if max_turns == baseline_mod.DEFAULT_MAX_TURNS:
+        return None
+    flags = list(baseline_mod.CLAUDE_FLAGS)
+    flags[flags.index("--max-turns") + 1] = str(max_turns)
+    return flags
+
+
+def run_baseline_only(case: dict[str, Any], *, max_turns: int) -> dict[str, Any]:
+    """Phase A: the agentic run alone. **Touches no network service we rate-limit.**
+
+    This is what makes concurrency safe. `run_baseline` shells out to `claude` and parses the
+    reply; arXiv and the judge are not involved until phase B. The earlier serial design
+    interleaved them, which made the whole job look arXiv-bound when only seconds of it were.
+    """
     name = case["name"]
     dest = clone_repo(case["live_repo"], WORK_DIR / name, reuse=True)
     if dest is None:
-        return {"status": "clone_failed"}
-    context = assemble_repo_context(dest)
-
+        return {"status": "clone_failed", "phase": "judged"}
+    started = time.monotonic()
     result = baseline_mod.run_baseline(
         dest,
         repo_name=name,
-        repo_context=context,
+        repo_context=assemble_repo_context(dest),
         mode="cli",
         use_cache=False,  # never read, never write -- the stored gold set is untouchable here
+        flags=_turn_flags(max_turns),
     )
+    elapsed = round(time.monotonic() - started, 1)
     if result.get("status") != "ok":
-        return {"status": result.get("status", "error"), "raw": (result.get("raw") or "")[:160]}
+        # Nothing to judge, so this row is finished; `phase` says so and resume skips it.
+        return {
+            "status": result.get("status", "error"),
+            "phase": "judged",
+            "raw": (result.get("raw") or "")[:160],
+            "max_turns": max_turns,
+            "duration_s": elapsed,
+        }
+    return {
+        "status": "baseline_ok",
+        "phase": "baseline",
+        "picks": [dedup_id(i) for i in result.get("ids") or []],
+        "raw_ids": list(result.get("ids") or []),
+        "raw_titles": list(result.get("titles") or []),
+        "num_turns": result.get("num_turns"),
+        "cost_usd": result.get("cost_usd", 0.0),
+        "max_turns": max_turns,
+        "duration_s": elapsed,
+    }
 
-    picks = [dedup_id(i) for i in result.get("ids") or []]
-    papers, hallucinated, lookup_failed = resolve_references(result["ids"], result["titles"])
+
+def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, Any]:
+    """Phase B: verify against arXiv and judge. **Serial, because both are rate-limited.**"""
+    dest = WORK_DIR / case_name
+    context = assemble_repo_context(dest)
+    papers, hallucinated, lookup_failed = resolve_references(
+        row.get("raw_ids") or [], row.get("raw_titles") or []
+    )
     scores: dict[str, int] = {}
     judge_failed = 0
     for paper in papers:
         pid = dedup_id(paper["arxiv_id"])
         try:
-            scores[pid] = int(judge_mod.judge_paper(name, context, paper, model=model)["score"])
+            scores[pid] = int(
+                judge_mod.judge_paper(case_name, context, paper, model=model)["score"]
+            )
         except Exception as exc:  # noqa: BLE001 -- an unjudged paper is never scored 0
             judge_failed += 1
             print(f"        ! judge failed for {pid}: {str(exc)[:100]}")
     return {
+        **{k: v for k, v in row.items() if k not in ("raw_ids", "raw_titles")},
         # `partial` when something could not be verified or judged: the draw's picks are
         # real, but its TARGET set is a floor rather than a count.
         "status": "partial" if (lookup_failed or judge_failed) else "ok",
-        "picks": picks,
+        "phase": "judged",
         "targets": sorted(p for p, s in scores.items() if s >= ACTIONABLE),
         "scores": dict(sorted(scores.items())),
         "n_hallucinated": hallucinated,
         "n_lookup_failed": lookup_failed,
         "n_judge_failed": judge_failed,
-        "num_turns": result.get("num_turns"),
-        "cost_usd": result.get("cost_usd", 0.0),
     }
 
 
@@ -224,9 +287,39 @@ def report(artifact: dict[str, Any]) -> int:
         if part:
             print(f"           partial: {sorted(part)}")
 
-    draws = {d: t for d in range(1, DRAWS + 1) if (t := _draw_targets(artifact, d))}
+    # Draws are DISCOVERED, not assumed to be 1..DRAWS: a `--draws 4` trial would otherwise
+    # be recorded and silently omitted from every figure below.
+    present = sorted({int(k.split("/", 1)[0]) for k in artifact["results"]})
+    caps = {}
+    for d in present:
+        seen = {
+            row.get("max_turns", baseline_mod.DEFAULT_MAX_TURNS)
+            for key, row in artifact["results"].items()
+            if int(key.split("/", 1)[0]) == d
+        }
+        caps[d] = seen.pop() if len(seen) == 1 else "mixed"
+    if any(c != baseline_mod.DEFAULT_MAX_TURNS for c in caps.values()):
+        print(f"\nturn cap per draw: {caps}")
+        print("  Draws at different caps are DIFFERENT CONFIGURATIONS. The aggregate below")
+        print(f"  covers only draws at the shipped cap ({baseline_mod.DEFAULT_MAX_TURNS});")
+        print("  others are listed separately so the two are never averaged together.")
+
+    default_draws = [d for d in present if caps[d] == baseline_mod.DEFAULT_MAX_TURNS]
+    draws = {d: t for d in default_draws if (t := _draw_targets(artifact, d))}
+    other = {d: t for d in present if d not in default_draws and (t := _draw_targets(artifact, d))}
+    for d, targets in sorted(other.items()):
+        shared = set(targets) & set(frozen)
+        hit = sum(len(frozen[c] & targets[c]) for c in shared)
+        tot = sum(len(frozen[c]) for c in shared)
+        n_t = sum(len(targets[c]) for c in shared)
+        print(
+            f"  draw {d} @ {caps[d]} turns: {n_t} target(s) over {len(shared)} case(s); "
+            f"reproduces {hit}/{tot} of the frozen set"
+            if tot
+            else f"  draw {d} @ {caps[d]} turns: {n_t} target(s), no frozen overlap"
+        )
     if not draws:
-        print("\nno complete draws yet.")
+        print("\nno complete draws at the shipped cap yet.")
         return 0
 
     # --- the number the published denominators depend on -------------------------
@@ -298,6 +391,18 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="$0: plan and progress.")
     ap.add_argument("--report", action="store_true", help="$0: analyse the artifact.")
     ap.add_argument("--model", default=judge_mod.DEFAULT_JUDGE_MODEL)
+    ap.add_argument(
+        "--max-turns",
+        type=int,
+        default=baseline_mod.DEFAULT_MAX_TURNS,
+        help="Agent turn cap. Recorded per row; does NOT touch the shipped caches.",
+    )
+    ap.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Concurrent PHASE-A baselines. Phase B stays serial (arXiv + judge are gated).",
+    )
     args = ap.parse_args()
 
     artifact = load_artifact()
@@ -308,20 +413,27 @@ def main() -> int:
     cases = cohort_cases(bench)
     if args.case:
         want = set(args.case.split(","))
+        if unknown := want - {c["name"] for c in cases}:
+            print(f"! unknown case(s): {sorted(unknown)}")
+            return 1
         cases = [c for c in cases if c["name"] in want]
 
-    todo = [
-        (d, c)
-        for d in range(1, args.draws + 1)
-        for c in cases
-        if f"{d}/{c['name']}" not in artifact["results"]
+    by_key = artifact["results"]
+    todo_baseline = [
+        (d, c) for d in range(1, args.draws + 1) for c in cases if f"{d}/{c['name']}" not in by_key
     ]
-    print(f"cohort: {len(cases)} case(s) x {args.draws} draw(s) = {len(cases) * args.draws} runs")
-    print(f"already recorded: {len(artifact['results'])}   remaining: {len(todo)}")
+    todo_judge = [k for k, row in by_key.items() if row.get("phase") == "baseline"]
+
+    print(f"cohort: {len(cases)} case(s) x {args.draws} draw(s)")
+    print(
+        f"recorded: {len(by_key)}   need a baseline: {len(todo_baseline)}   "
+        f"need judging: {len(todo_judge)}"
+    )
+    print(f"turn cap: {args.max_turns}   phase-A concurrency: {args.concurrency}")
     if args.dry_run:
         print("\n(dry run)")
         return 0
-    if not todo:
+    if not (todo_baseline or todo_judge):
         print("\nnothing to do; use --report.")
         return report(artifact)
 
@@ -330,25 +442,64 @@ def main() -> int:
         # Picks without verdicts are not targets, and this whole probe is about targets.
         print("! OPENAI_API_KEY is not set; picks would be unjudgeable. Refusing.")
         return 1
-    auth = baseline_mod.cli_auth_mode()
-    print(f"baseline auth: {auth}   judge: {args.model}   baseline caches NOT touched")
+    print(f"baseline auth: {baseline_mod.cli_auth_mode()}   judge: {args.model}")
 
-    for n, (draw, case) in enumerate(todo, start=1):
-        print(f"\n[{n}/{len(todo)}] draw {draw} / {case['name']}")
-        try:
-            row = run_one(case, model=args.model)
-        except Exception as exc:  # noqa: BLE001 -- one bad case must not end a 75-run job
-            print(f"        !! crashed: {type(exc).__name__}: {str(exc)[:160]}")
-            row = {"status": "crashed", "raw": str(exc)[:160]}
-        artifact["results"][f"{draw}/{case['name']}"] = row
-        save(artifact)  # after EVERY case: this job is too long to lose (C-29)
-        if row["status"] in ("ok", "partial"):
+    lock = threading.Lock()
+
+    def record(key: str, row: dict[str, Any]) -> None:
+        # After EVERY row, under a lock. This job is too long to lose to one exception, and
+        # concurrent writers make a last-writer-wins save a data-loss bug rather than a race
+        # nobody notices (C-29 taught the serial version of this lesson).
+        with lock:
+            artifact["results"][key] = row
+            save(artifact)
+
+    # ── phase A: agentic runs, concurrent, no rate-limited service involved ──
+    if todo_baseline:
+        print(f"\n=== phase A: {len(todo_baseline)} baseline run(s) ===")
+        done = 0
+        with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as pool:
+            futures = {
+                pool.submit(run_baseline_only, case, max_turns=args.max_turns): (draw, case)
+                for draw, case in todo_baseline
+            }
+            for fut in as_completed(futures):
+                draw, case = futures[fut]
+                key = f"{draw}/{case['name']}"
+                try:
+                    row = fut.result()
+                except Exception as exc:  # noqa: BLE001 -- one bad case must not end the job
+                    print(f"  !! {key} crashed: {type(exc).__name__}: {str(exc)[:140]}")
+                    row = {"status": "crashed", "phase": "judged", "raw": str(exc)[:160]}
+                record(key, row)
+                done += 1
+                if row["status"] == "baseline_ok":
+                    print(
+                        f"  [{done}/{len(todo_baseline)}] {key:<18} {len(row['picks'])} pick(s)"
+                        f"  turns={row['num_turns']}  {row['duration_s']}s"
+                    )
+                else:
+                    print(
+                        f"  [{done}/{len(todo_baseline)}] {key:<18} !! {row['status']}"
+                        f"  {row.get('duration_s', '?')}s"
+                    )
+        todo_judge = [k for k, row in artifact["results"].items() if row.get("phase") == "baseline"]
+
+    # ── phase B: verify + judge, serial, because arXiv and the judge are gated ──
+    if todo_judge:
+        print(f"\n=== phase B: judging {len(todo_judge)} run(s) (serial) ===")
+        for n, key in enumerate(sorted(todo_judge), start=1):
+            case_name = key.split("/", 1)[1]
+            try:
+                row = judge_row(case_name, artifact["results"][key], model=args.model)
+            except Exception as exc:  # noqa: BLE001
+                print(f"  !! {key} crashed while judging: {type(exc).__name__}: {str(exc)[:140]}")
+                continue
+            record(key, row)
             print(
-                f"        {len(row['picks'])} pick(s), {len(row['targets'])} target(s)"
-                f"  turns={row['num_turns']}  [{row['status']}]"
+                f"  [{n}/{len(todo_judge)}] {key:<18} {len(row['targets'])} target(s)"
+                f"  [{row['status']}]"
             )
-        else:
-            print(f"        !! {row['status']}: {row.get('raw', '')[:120]}")
 
     print(f"\nwrote {OUT.name}\n")
     return report(artifact)

@@ -8,7 +8,7 @@ repeated here — it lives in:
 |---|---|
 | [`RESEARCH.md`](RESEARCH.md) | the experiment record, organised by problem (§9 is current) |
 | [`ROADMAP.md`](ROADMAP.md) | the feature/probe ledger, item by item, with verdicts |
-| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P17, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
+| [`evals/RESULTS.md`](evals/RESULTS.md) | the chronological raw record (P1–P18, NR series, C-1–30; a few NR ids are assigned in paper/DRAFT.md's appendix) |
 | [`archive/`](archive/) | superseded plans, kept verbatim (MVP plan, original sketch, retrieval designs) |
 
 ## Where the system stands (2026-08-25)
@@ -158,11 +158,48 @@ It answers the item and closes it:
 **What follows, and it is a documentation change rather than an experiment:** stop treating
 the gold set as a set. Report reach as a probability with an interval (P16's design, now
 validated by four draws agreeing) and spend further draws on tightening intervals, never on
-chasing a denominator that does not converge. The remaining work is restating the recall
-figures in `paper/DRAFT.md` and `README.md` as estimates — no new measurement required.
+chasing a denominator that does not converge. **Done** — restated in `paper/DRAFT.md` (§5.5,
+abstract, §12, lesson 15); `README.md` carries no recall fractions.
+
+**The generator is now cheap enough to use [P18].** `gold_spread.py` splits into phase A
+(agentic runs, concurrent — touches nothing rate-limited) and phase B (verify + judge,
+serial). A 4-case trial compressed 711 s of work into 275 s at concurrency 4, and **30 turns
+rescued both chronic failures** (`thin-lang`, `vectordb`, which failed all three 12-turn
+draws) with 0/4 failures. Safe because P15 measured the turn effect on *successful* runs as
+inside noise: raising the cap converts failures into successes without mixing populations.
+Nothing shared moved — `use_cache=False`, discriminator still `da766b38114e`.
+
+### 3. The baseline's next configurations, in the order the evidence supports
+
+Three changes are queued for the baseline — the **v2 prompt** (allow non-arXiv papers),
+**Opus 5**, and the **30-turn cap**. P13–P18 split the baseline's two roles, and the ordering
+falls out of the split:
+
+- **As a witness generator, no validation is owed.** Any searcher that yields
+  judged-actionable papers produces valid witnesses; there is nothing to attribute, because
+  the witness set is a pool rather than a comparison. The three-arm validation once planned
+  for v2/Opus-5 was a *comparator*-role requirement and does not apply here.
+- **As the published comparator, all three change the rival's strength**, so `+1.84 / paired
+  +3.88` would have to be re-measured. That is a separate, deliberate decision — and
+  `gold_spread.py` cannot touch it, since it never writes `cache/baseline/cli/`.
+
+**The v2 prompt is blocked on a prerequisite nobody has done.** `verify.resolve_references`
+resolves arXiv ids only, and `BASELINE_PROMPT` demands `{"arxiv_id": ...}`. A v2 baseline that
+recommends a *Nature* paper today produces a pick that cannot be verified, cannot be judged,
+and therefore cannot become a witness — the non-arXiv region would stay invisible while
+looking like it had been searched. Widen verification first: reuse `citations._s2_batch_post`,
+EuropePMC as tier 2 (it recovers 5 of the 77 bioRxiv DOIs S2 returns null for), and the DOI
+Handle API as the authoritative existence test.
+
+Recommended order: **(1) widen `resolve_references`** — no LLM spend, unblocks everything;
+**(2) v2-prompt witness draws** at 30 turns with concurrency, the highest-value searcher
+change because P16 measured the shipped pool reaching *1 of 19* adoption-mined papers and P12
+found 79 judged-actionable non-arXiv papers the arXiv-only set is structurally blind to;
+**(3) Opus 5** as a further witness source, lower marginal value since it searches the same
+arXiv-shaped space; **(4) the comparator re-measurement**, deliberately and separately.
 
 
-### 3. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
+### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
 
 597 gold-labelled queries (arXiv:2407.18940) over recent ML/NLP — squarely inside the
 index's coverage. The binary-quantized index has bit-identical encoder verification but
@@ -171,7 +208,7 @@ or one bad yearly shard silently cost 15 points of recall. Embed the queries, fr
 recall@5/@20, wire as an exit-nonzero gate after `rr sync-index`. Explicitly **not** a
 net@2 claim — researcher questions are a different register from repo→paper.
 
-### 4. $0 hygiene, run when convenient
+### 5. $0 hygiene, run when convenient
 
 - **Judge-contamination re-analysis** (from LitLLMs): stratify the already-cached judge
   verdicts by paper publication date vs judge-model cutoff; test whether actionability
@@ -182,7 +219,7 @@ net@2 claim — researcher questions are a different register from repo→paper.
   16 closed; run it only if a new repo-side proposal appears, and run it *before* that
   proposal's Tier B.
 
-### 5. OpenAlex-Topic community match for ordering the gate-admitted band — $0 probe, weak prior
+### 6. OpenAlex-Topic community match for ordering the gate-admitted band — $0 probe, weak prior
 
 The one open idea downstream of the gate, which is where the four-null record says any
 remaining headroom must be. From "Topic Is Not Agenda" (arXiv:2605.07158), reduced to its
@@ -192,7 +229,7 @@ at 0.585; the finescale incumbent at 0.841). No graph build under any circumstan
 S2 truncation wall (§3.5 correction) and six no-bibliography repos price it out. Pairs
 with ROADMAP item 12's unshipped Topics work if it ever passes.
 
-### 6. Product work, judged on demand rather than evidence
+### 7. Product work, judged on demand rather than evidence
 
 - **`rr ask`** (ROADMAP 15) — citation-grounded Q&A, "a product bet, not a research one",
   sequenced v2.0. OpenScholar's cite-or-abstain recipe and PaperQA2 are the named
@@ -205,7 +242,7 @@ with ROADMAP item 12's unshipped Topics work if it ever passes.
   labelled headers. Cosmetic, cannot touch net@2 by construction; if done, assert
   digest-set equality in tests.
 
-### 7. Held — real gaps with no affordable next step
+### 8. Held — real gaps with no affordable next step
 
 - **Thin docs** — still the sharpest gap (RESEARCH.md §8.6; measured in paper/DRAFT.md
   §12.1–12.2). What remains unestablished is the expensive implication: `scan_source`

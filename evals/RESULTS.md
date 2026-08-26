@@ -1144,6 +1144,60 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Two phases, four workers, thirty turns: the witness generator gets 2.6x faster and stops failing. **[P18]**
+
+```bash
+uv run python evals/gold_spread.py --max-turns 30 --concurrency 4   # the faster variant
+```
+
+P17's sweep took **4h39m for 74 runs**, of which **114 minutes — 41% — went to runs that
+produced nothing** (14 failures x 3 internal retries at ~2.7 min per attempt). The received
+explanation was that the job could not be parallelised because arXiv would throttle. That is
+true of *part* of the job, and the part is small.
+
+**The phases are separable, and only one is rate-limited.** `run_baseline` shells out to
+`claude` and parses the reply; arXiv and the judge are not touched until verification. Split
+into phase A (agentic runs, concurrent) and phase B (verify + judge, strictly serial), a
+four-case trial compressed **711 s of phase-A work into 275 s of wall clock** at concurrency
+4 — with no arXiv throttling, because phase B never runs concurrently by construction rather
+than by convention.
+
+**Thirty turns rescued both chronic failures.** Cases chosen before running: two that
+succeeded in all three 12-turn draws, and the two that failed in all three.
+
+| case | draws 1–3 @ 12 turns | draw 4 @ 30 turns | `num_turns` | duration |
+|---|---|---|---|---|
+| `rag` | ok, ok, ok | ok — 5 targets | 16 | 142 s |
+| `linter` | ok, ok, ok | ok — 1 target | 17 | 207 s |
+| **`thin-lang`** | **error, error, error** | **ok — 2 targets** | 27 | 208 s |
+| **`vectordb`** | **error, error, error** | **ok — 2 targets** | 17 | 154 s |
+
+**0 of 4 failed, against 3-of-3 failure for the two hard cases at the shipped cap.** This is
+the profile that makes the change safe rather than merely attractive: P15 measured the turn
+effect on what a *successful* run finds as inside noise, so raising the cap does not mix two
+populations — it converts failures into successes and leaves successes alone. `thin-lang`
+reports `num_turns` 27, the highest observed, which is consistent with it genuinely needing
+budget (with C-27's caveat that `num_turns` is not the quantity the cap bounds).
+
+**Nothing shared moved.** `cache/baseline/cli/` is byte-identical after the trial, the
+discriminator is still `da766b38114e`, and the gold set still re-derives. The script only
+ever runs with `use_cache=False`: it is a *witness generator*, and the published comparator is
+a separate question it cannot touch.
+
+**Draws at different caps are different configurations**, and `report` now enforces that
+rather than trusting anyone to remember: draws are discovered from the artifact instead of
+assumed to be `1..k` (so a trial cannot be silently omitted), each draw's cap is recorded and
+printed, and the P17 aggregate covers only the shipped cap with off-cap draws listed
+separately. A test fails if an off-cap draw appears in the per-draw reproducibility block.
+
+The 12-turn sweep also recorded no per-run timings, so P17's cost had to be reconstructed from
+file mtimes. Rows now carry `duration_s`.
+
+**Cost** 4 agentic runs. **Verdict:** for witness generation, 30 turns and concurrency 4 are
+strictly better — fewer wasted runs, no measured distortion of what a successful run finds,
+and the chronic failures (which the gold set had been representing only through their lucky
+draws) start contributing.
+
 ### The gold set is a sample, and now we know from how large a population. **[P17]**
 
 ```bash
