@@ -172,7 +172,7 @@ def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, A
     """Phase B: verify against arXiv and judge. **Serial, because both are rate-limited.**"""
     dest = WORK_DIR / case_name
     context = assemble_repo_context(dest)
-    papers, hallucinated, lookup_failed = resolve_references(
+    papers, hallucinated, lookup_failed, unjudgeable = resolve_references(
         row.get("raw_ids") or [], row.get("raw_titles") or []
     )
     scores: dict[str, int] = {}
@@ -196,6 +196,9 @@ def judge_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, A
         "scores": dict(sorted(scores.items())),
         "n_hallucinated": hallucinated,
         "n_lookup_failed": lookup_failed,
+        # Not part of the `partial` condition above: an existing-but-abstractless DOI never
+        # resolves, so retrying would strand the row forever (C-30).
+        "n_unjudgeable": unjudgeable,
         "n_judge_failed": judge_failed,
     }
 
