@@ -50,11 +50,22 @@ def _s2_batch_post(
     api_key: str | None,
     max_retries: int,
     base_delay: float,
+    status: dict[str, int] | None = None,
 ) -> list[Any] | None:
     """POST one batch (<= 500 ids) to the S2 paper/batch endpoint.
 
     Returns the parsed JSON list on success, or ``None`` on failure (so callers
     can degrade gracefully). Retries with backoff on 429 / transient errors.
+
+    ``status`` optionally receives ``{"http": <code>}`` for a NON-retryable HTTP failure —
+    the `stats` out-parameter pattern `fetch_references` already uses. It exists because
+    ``None`` answers two different questions with one value: *S2 would not talk to us*
+    (429, exhausted retries — transient) and *S2 rejected this id* (400 — a definitive
+    "no record"). The product callers are right not to care; they skip the batch either way.
+    `evals/verify.py` cares a great deal, because it turns the answer into a verdict about
+    the paper, and one of the two must never harden into one (C-4). Left unset, the caller
+    cannot tell them apart — which is exactly how a run of the v2 baseline came back with
+    real ACM papers filed as retry-forever infrastructure failures.
     """
     headers: dict[str, str] = {"Content-Type": "application/json"}
     if api_key:
@@ -88,6 +99,10 @@ def _s2_batch_post(
                 )
                 time.sleep(delay)
                 continue
+            # S2 answered, and the answer was a rejection. Recorded rather than raised so
+            # the product callers keep their "None means skip the batch" contract.
+            if status is not None:
+                status["http"] = exc.code
             logger.warning("Semantic Scholar API error: %s", exc)
             return None
         except (urllib.error.URLError, TimeoutError, OSError) as exc:

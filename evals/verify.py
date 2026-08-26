@@ -195,13 +195,26 @@ def resolve_by_doi_s2(doi: str, api_key: str | None = None) -> dict[str, Any] | 
     if not key:
         return None
     api_key = api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or None
-    data = _s2_batch_post([f"DOI:{key}"], "title,abstract,externalIds,year", api_key, 3, 2.0)
+    status: dict[str, int] = {}
+    data = _s2_batch_post(
+        [f"DOI:{key}"], "title,abstract,externalIds,year", api_key, 3, 2.0, status=status
+    )
     if data is None:
-        # `_s2_batch_post` returns None when S2 REFUSED and a list (with per-id nulls) when
-        # it answered. Collapsing the two would let a 429 fall through to the existence check
-        # and be recorded as a permanent `unjudgeable` — a transient failure frozen into a
-        # verdict about the paper. Refusal is raised so the caller counts it as retryable.
-        raise ArxivUnavailable(f"Semantic Scholar refused the lookup for {key}")
+        # `_s2_batch_post` returns None for two different reasons, and until 2026-08-26 this
+        # branch treated both as refusal. A 429 IS a refusal — raising it keeps a transient
+        # throttle from freezing into a verdict about the paper (C-4). A 400 is not: it is
+        # S2 answering that it holds no record under this id, which is the same state as the
+        # `not data` case below and belongs in the fall-through to Europe PMC.
+        #
+        # Conflating them was not theoretical. The first v2 sweep returned ACM DOIs by the
+        # dozen -- POPL, PLDI, CACM, exactly the literature a code benchmark should be
+        # reaching -- and S2 rejects a good number of them outright. Every one came back
+        # `lookup_failed`: a real paper, permanently unscoreable, filed as a transient
+        # infrastructure fault and queued for a retry that could never succeed. Five rows
+        # would have been re-asked on every future invocation, forever.
+        code = status.get("http")
+        if code is None or code == 429:
+            raise ArxivUnavailable(f"Semantic Scholar refused the lookup for {key}")
     if not data:
         return None
     rec = data[0]

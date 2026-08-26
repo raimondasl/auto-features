@@ -208,3 +208,91 @@ class TestCounters:
         )
         papers, *_ = verify.resolve_references(["1706.03762", "1706.03762v3"], [])
         assert len(papers) == 1
+
+
+class TestRefusalIsNotTheSameAsRejection:
+    """C-32: `_s2_batch_post` returned None for two different states, and the DOI tier read
+    both as refusal.
+
+    A 429 means *S2 would not talk to us* — transient, and hardening it into a verdict about
+    the paper is C-4 exactly. A 400 means *S2 rejected this id* — an answer, equivalent to
+    the empty-record case, and the right move is to fall through to the next tier.
+
+    Reading a 400 as refusal produced a specific, self-perpetuating wrong answer: a real
+    paper with no abstract anywhere is classified `lookup_failed` instead of `unjudgeable`,
+    which marks the row retryable, so every future invocation re-asks a question that can
+    never come back differently. The first v2 baseline sweep hit it on ACM DOIs — POPL,
+    PLDI, CACM — which is precisely the literature the v2 prompt exists to reach.
+    """
+
+    def _s2(self, monkeypatch, *, code=None, data=None):
+        def fake(_ids, _fields, _key, _retries, _delay, status=None):
+            if code is not None and status is not None:
+                status["http"] = code
+            return data
+
+        monkeypatch.setattr(verify, "_s2_batch_post", fake)
+
+    def test_a_400_is_an_answer_not_a_refusal(self, monkeypatch):
+        self._s2(monkeypatch, code=400)
+        assert verify.resolve_by_doi_s2("10.1145/3236774") is None
+
+    def test_a_429_that_exhausted_its_retries_still_raises(self, monkeypatch):
+        """No status recorded — the retry loop fell out the bottom, so S2 never answered."""
+        self._s2(monkeypatch)
+        with pytest.raises(verify.SourceUnavailable):
+            verify.resolve_by_doi_s2("10.1145/3236774")
+
+    def test_an_explicit_429_still_raises(self, monkeypatch):
+        self._s2(monkeypatch, code=429)
+        with pytest.raises(verify.SourceUnavailable):
+            verify.resolve_by_doi_s2("10.1145/3236774")
+
+    def test_the_acm_case_end_to_end_is_unjudgeable(self, monkeypatch):
+        """The outcome that decides whether the row can ever be finished."""
+        self._s2(monkeypatch, code=400)
+        monkeypatch.setattr(verify, "doi_exists", lambda _d: True)
+        monkeypatch.setattr(verify, "resolve_by_doi_epmc", lambda _d: None)
+        assert verify.resolve_reference("10.1145/3236774", _FakeClient())[1] == "unjudgeable"
+
+    def test_a_throttle_end_to_end_is_still_retryable(self, monkeypatch):
+        """The other half — this must NOT become a verdict about the paper."""
+        self._s2(monkeypatch, code=429)
+        monkeypatch.setattr(verify, "doi_exists", lambda _d: True)
+        assert verify.resolve_reference("10.1145/3236774", _FakeClient())[1] == "lookup_failed"
+
+
+class TestTheStatusOutParameter:
+    """The product's `None means skip` contract is unchanged; the code is reported beside it."""
+
+    def _post(self, monkeypatch, exc):
+        import urllib.request
+
+        from reporadar import citations
+
+        monkeypatch.setattr(citations.s2_rate, "wait_turn", lambda: None)
+        monkeypatch.setattr(citations.s2_rate, "note_throttled", lambda: None)
+        monkeypatch.setattr(citations.time, "sleep", lambda _s: None)
+
+        def boom(*_a, **_kw):
+            raise exc
+
+        monkeypatch.setattr(urllib.request, "urlopen", boom)
+        status: dict[str, int] = {}
+        return citations._s2_batch_post(["DOI:x"], "title", None, 2, 0.0, status=status), status
+
+    def test_a_rejection_records_its_code(self, monkeypatch):
+        import urllib.error
+
+        err = urllib.error.HTTPError("u", 400, "Bad Request", {}, None)  # type: ignore[arg-type]
+        data, status = self._post(monkeypatch, err)
+        assert data is None and status == {"http": 400}
+
+    def test_an_exhausted_throttle_records_nothing(self, monkeypatch):
+        """The 429 path `continue`s, so the loop falls out the bottom having recorded no
+        answer — which is what tells the caller it never got one."""
+        import urllib.error
+
+        err = urllib.error.HTTPError("u", 429, "Too Many", {}, None)  # type: ignore[arg-type]
+        data, status = self._post(monkeypatch, err)
+        assert data is None and status == {}

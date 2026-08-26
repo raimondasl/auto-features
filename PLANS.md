@@ -237,10 +237,44 @@ rule to it — a different prompt is a different searcher, not a redraw.
 `gold_spread` row across every prompt version, labelling each by its configuration
 (`cli-redraw`, `cli-redraw@30`, `cli-v2@30`, …). Wiring it against the *existing* v1 draws
 first was the point: it grew the set 319 → 385 and moved regret +3.48 → +4.80 **before** any
-v2 call is billed, so when the v2 draws land, whatever moves is attributable to the prompt
-rather than to the plumbing arriving at the same time. Source labels are discovered from the
-data, so a v2 draw appears in the reach table on its own; `tests/test_witness_set.py` pins the
-full label set, so a new one still has to be classified self or grading by a human.
+v2 call was billed, so what the v2 draws then moved is attributable to the prompt rather than
+to the plumbing arriving at the same time. Source labels are discovered from the data, so a
+v2 draw appears in the reach table on its own; `tests/test_witness_set.py` pins the full label
+set, so a new one still has to be classified self or grading by a human.
+
+### 3a. The v2 sweep is run — 75 draws, 2026-08-26
+
+`gold_spread_v2.json`, 25 cases × 3 draws at 30 turns, **0 failed and 0 partial** (v1's
+12-turn draws failed 6/5/3). Against v1's three 12-turn draws:
+
+| | picks | DOI picks | targets | DOI targets | precision |
+|---|---|---|---|---|---|
+| v1 @12 (23 cases) | 140 | 0 | 124 | 0 | 0.912 |
+| **v2 @30 (25 cases)** | **270** | **97** | **196** | **36** | **0.867** |
+
+**The prompt reaches what it was written to reach.** 36% of picks and 18% of targets are
+non-arXiv — papers v1 had no field to put in an answer. Precision falls 0.912 → 0.867, but
+the caps differ so that is not cleanly the prompt's doing; the only clean control is the four
+cases with a v1@30 draw, where v2 returned 67 picks to v1's 13 and 30 targets to 10.
+
+**The instrument, not the model, is now the binding constraint.** 44 of the 270 references
+could not be scored, and **every one of them is a DOI**: 41 `unjudgeable` — real papers,
+proven to exist, that neither Semantic Scholar nor Europe PMC carries an abstract for — and
+3 `hallucinated`. Most are ACM (`10.1145/…`): POPL, PLDI, OOPSLA, CACM, precisely the
+literature a code benchmark should be reading. **Closing that gap is now the highest-value
+verification work**, and a Crossref or OpenAlex abstract tier is the obvious next tier.
+
+**3 invented DOIs in 97** (3.1%), caught by the DOI Handle API rather than by the prompt —
+v2 was deliberately given no anti-fabrication coaching v1 lacks, so this is the unassisted
+rate and the number a comparator re-measurement would need.
+
+**Pooled into the witness set: 385 → 462 witnesses**, regret **+4.80 → +5.56** net@2/case.
+Reach into `pool-wemb`: `cli` unmoved at 8/56, `cli-redraw` at 19/92, and `cli-v2@30` at
+**19/135 = 0.141** — the lowest of the cli family. Pooled non-self reach consequently *fell*,
+0.174 → 0.149, which is the measure working rather than a regression: v2 found papers the
+shipped collection step is even less likely to fetch. Chao1 for `cli-v2@30` is **≥ 252.3**
+from 135 observed with 88 singletons, so this searcher is no closer to exhausted than the
+last one.
 
 
 ### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
