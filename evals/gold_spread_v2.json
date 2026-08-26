@@ -376,7 +376,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/storage": {
    "status": "ok",
@@ -399,19 +406,28 @@
     "2110.13801",
     "doi:10.1145/3035918.3064054",
     "doi:10.1145/3183713.3196931",
-    "doi:10.1145/3318464.3389731"
+    "doi:10.1145/3318464.3389731",
+    "doi:10.1145/3380905"
    ],
    "scores": {
     "2005.14213": 3,
     "2110.13801": 3,
     "doi:10.1145/3035918.3064054": 3,
     "doi:10.1145/3183713.3196931": 3,
-    "doi:10.1145/3318464.3389731": 3
+    "doi:10.1145/3318464.3389731": 3,
+    "doi:10.1145/3380905": 3
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/compiler": {
    "status": "ok",
@@ -427,15 +443,26 @@
    "prompt_version": "v2",
    "duration_s": 141.6,
    "targets": [
-    "1912.05036"
+    "1912.05036",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/2693261"
    ],
    "scores": {
-    "1912.05036": 2
+    "1912.05036": 2,
+    "doi:10.1007/978-3-642-37051-9_6": 2,
+    "doi:10.1145/2693261": 2
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/numerics": {
    "status": "ok",
@@ -461,7 +488,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/llminfer": {
    "status": "ok",
@@ -571,7 +605,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/columnar": {
    "status": "ok",
@@ -623,7 +664,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/thin-lang": {
    "status": "ok",
@@ -640,15 +688,27 @@
    "prompt_version": "v2",
    "duration_s": 206.2,
    "targets": [
-    "1503.07792"
+    "1503.07792",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/3236774"
    ],
    "scores": {
-    "1503.07792": 2
+    "1503.07792": 2,
+    "doi:10.1007/978-3-642-37051-9_6": 2,
+    "doi:10.1145/2594291.2594324": 1,
+    "doi:10.1145/3236774": 2
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 3,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "1/linter": {
    "status": "ok",
@@ -691,6 +751,14 @@
     "1902.06111",
     "2104.01270",
     "2310.01530",
+    "doi:10.1002/spe.4380111102",
+    "doi:10.1017/s0956796807006223",
+    "doi:10.1145/103135.103136",
+    "doi:10.1145/1053468.1053473",
+    "doi:10.1145/1287624.1287633",
+    "doi:10.1145/258916.258920",
+    "doi:10.1145/293677.293678",
+    "doi:10.1145/3110250",
     "doi:10.1145/3338906.3338952"
    ],
    "scores": {
@@ -701,8 +769,19 @@
     "1908.05839": 1,
     "2104.01270": 2,
     "2310.01530": 2,
+    "doi:10.1002/spe.4380111102": 2,
+    "doi:10.1017/s0956796807006223": 2,
+    "doi:10.1145/103135.103136": 2,
+    "doi:10.1145/1053468.1053473": 2,
+    "doi:10.1145/1287624.1287633": 2,
+    "doi:10.1145/1391289.1391293": 1,
+    "doi:10.1145/1863543.1863561": 1,
+    "doi:10.1145/258916.258920": 2,
     "doi:10.1145/2837614.2837670": 0,
+    "doi:10.1145/293677.293678": 2,
+    "doi:10.1145/3110250": 2,
     "doi:10.1145/3110285": 1,
+    "doi:10.1145/3236774": 0,
     "doi:10.1145/3238147.3238213": 1,
     "doi:10.1145/3290329": 1,
     "doi:10.1145/3338906.3338952": 3,
@@ -711,8 +790,15 @@
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 12,
-   "n_judge_failed": 0
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/rag": {
    "status": "ok",
@@ -1006,12 +1092,25 @@
    "max_turns": 30,
    "prompt_version": "v2",
    "duration_s": 135.9,
-   "targets": [],
-   "scores": {},
+   "targets": [
+    "doi:10.1002/spe.4380111102",
+    "doi:10.1145/363958.363994"
+   ],
+   "scores": {
+    "doi:10.1002/spe.4380111102": 2,
+    "doi:10.1145/363958.363994": 2
+   },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/crypto": {
    "status": "ok",
@@ -1139,7 +1238,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/compiler": {
    "status": "ok",
@@ -1156,16 +1262,27 @@
    "prompt_version": "v2",
    "duration_s": 163.1,
    "targets": [
-    "1912.05036"
+    "1912.05036",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/2594291.2594334"
    ],
    "scores": {
     "1912.05036": 2,
+    "doi:10.1007/978-3-642-37051-9_6": 2,
+    "doi:10.1145/2594291.2594334": 2,
     "doi:10.1145/3547621": 1
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/vectordb": {
    "status": "ok",
@@ -1259,7 +1376,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/ann": {
    "status": "ok",
@@ -1305,18 +1429,27 @@
    "duration_s": 161.4,
    "targets": [
     "1603.05346",
+    "doi:10.1145/2452376.2452456",
     "doi:10.1145/3626717",
     "doi:10.14778/3407790.3407851"
    ],
    "scores": {
     "1603.05346": 2,
+    "doi:10.1145/2452376.2452456": 2,
     "doi:10.1145/3626717": 2,
     "doi:10.14778/3407790.3407851": 2
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/thin-lang": {
    "status": "ok",
@@ -1330,12 +1463,24 @@
    "max_turns": 30,
    "prompt_version": "v2",
    "duration_s": 159.5,
-   "targets": [],
-   "scores": {},
+   "targets": [
+    "doi:10.1145/3236774"
+   ],
+   "scores": {
+    "doi:10.1145/2594291.2594324": 1,
+    "doi:10.1145/3236774": 2
+   },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/thin-kv": {
    "status": "ok",
@@ -1350,14 +1495,24 @@
    "max_turns": 30,
    "prompt_version": "v2",
    "duration_s": 181.2,
-   "targets": [],
+   "targets": [
+    "doi:10.1145/1620585.1620587"
+   ],
    "scores": {
+    "doi:10.1145/1620585.1620587": 3,
     "doi:10.1145/3318464.3386134": 1
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "2/thin-gnn": {
    "status": "ok",
@@ -1662,12 +1817,23 @@
    "max_turns": 30,
    "prompt_version": "v2",
    "duration_s": 145.8,
-   "targets": [],
-   "scores": {},
+   "targets": [
+    "doi:10.1145/363958.363994"
+   ],
+   "scores": {
+    "doi:10.1145/363958.363994": 2
+   },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "3/systems": {
    "status": "ok",
@@ -1802,15 +1968,26 @@
    "prompt_version": "v2",
    "duration_s": 178.4,
    "targets": [
-    "1912.05036"
+    "1912.05036",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/2693261"
    ],
    "scores": {
-    "1912.05036": 2
+    "1912.05036": 2,
+    "doi:10.1007/978-3-642-37051-9_6": 2,
+    "doi:10.1145/2693261": 2
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "3/vectordb": {
    "status": "ok",
@@ -1915,13 +2092,21 @@
    "scores": {
     "1907.05590": 1,
     "1908.05839": 1,
+    "doi:10.1145/1391289.1391293": 1,
     "doi:10.1145/3110285": 1,
     "doi:10.1145/3498674": 1
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "3/encryption": {
    "status": "ok",
@@ -1944,7 +2129,14 @@
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
    "n_unjudgeable": 1,
-   "n_judge_failed": 0
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "3/columnar": {
    "status": "ok",
@@ -2022,15 +2214,27 @@
    "max_turns": 30,
    "prompt_version": "v2",
    "duration_s": 184.5,
-   "targets": [],
+   "targets": [
+    "doi:10.1145/2666356.2594324",
+    "doi:10.1145/293677.293678"
+   ],
    "scores": {
     "1804.07133": 1,
-    "1908.05839": 1
+    "1908.05839": 1,
+    "doi:10.1145/2666356.2594324": 2,
+    "doi:10.1145/293677.293678": 2
    },
    "n_hallucinated": 0,
    "n_lookup_failed": 0,
-   "n_unjudgeable": 2,
-   "n_judge_failed": 0
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
   },
   "3/thin-kv": {
    "status": "ok",

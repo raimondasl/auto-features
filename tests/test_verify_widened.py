@@ -61,6 +61,8 @@ def stub(monkeypatch):
         s2_raises=False,
         epmc=None,
         epmc_raises=False,
+        openalex=None,
+        openalex_raises=False,
     ):
         def _by_id(client, ref):
             if arxiv_raises:
@@ -80,7 +82,18 @@ def stub(monkeypatch):
         monkeypatch.setattr(verify, "resolve_by_id", _by_id)
         monkeypatch.setattr(verify, "doi_exists", lambda doi: exists)
         monkeypatch.setattr(verify, "resolve_by_doi_s2", _s2)
+
+        def _oa(doi):
+            if openalex_raises:
+                raise verify.SourceUnavailable("openalex refused")
+            return openalex
+
         monkeypatch.setattr(verify, "resolve_by_doi_epmc", _epmc)
+        # Every tier, every time. A fixture that stops covering one turns the tests that use
+        # it into live network calls -- silently, and only for the paths that reach the new
+        # tier, which are exactly the interesting ones. Adding `openalex` to `TIER_SET`
+        # without adding it here broke two tests into real HTTP requests on the first run.
+        monkeypatch.setattr(verify, "resolve_by_doi_openalex", _oa)
 
     return apply
 
@@ -253,6 +266,7 @@ class TestRefusalIsNotTheSameAsRejection:
         self._s2(monkeypatch, code=400)
         monkeypatch.setattr(verify, "doi_exists", lambda _d: True)
         monkeypatch.setattr(verify, "resolve_by_doi_epmc", lambda _d: None)
+        monkeypatch.setattr(verify, "resolve_by_doi_openalex", lambda _d: None)
         assert verify.resolve_reference("10.1145/3236774", _FakeClient())[1] == "unjudgeable"
 
     def test_a_throttle_end_to_end_is_still_retryable(self, monkeypatch):
@@ -291,6 +305,153 @@ class TestTheStatusOutParameter:
     def test_an_exhausted_throttle_records_nothing(self, monkeypatch):
         """The 429 path `continue`s, so the loop falls out the bottom having recorded no
         answer — which is what tells the caller it never got one."""
+        import urllib.error
+
+        err = urllib.error.HTTPError("u", 429, "Too Many", {}, None)  # type: ignore[arg-type]
+        data, status = self._post(monkeypatch, err)
+        assert data is None and status == {}
+
+
+class TestTheOpenAlexTier:
+    """Tier 3, added 2026-08-26 for the ACM proceedings S2 and Europe PMC do not carry."""
+
+    def _oa(self, monkeypatch, *, work=None, code=None, raises=False):
+        def fake(_doi, status=None):
+            if raises:
+                raise RuntimeError("socket exploded")
+            if code is not None and status is not None:
+                status["http"] = code
+            return work
+
+        monkeypatch.setattr(verify, "fetch_work_by_doi", fake)
+
+    WORK = {
+        "title": "Build Systems à la Carte",
+        "abstract_inverted_index": {"Build": [0], "systems": [1], "matter": [2]},
+        "publication_date": "2018-07-30",
+        "primary_topic": {"display_name": "Programming Languages"},
+        "doi": "https://doi.org/10.1145/3236774",
+    }
+
+    def test_an_inverted_index_becomes_an_abstract(self, monkeypatch):
+        self._oa(monkeypatch, work=self.WORK)
+        paper = verify.resolve_by_doi_openalex("10.1145/3236774")
+        assert paper is not None
+        assert paper["abstract"] == "Build systems matter"
+        assert paper["arxiv_id"] == "doi:10.1145/3236774"
+
+    def test_a_record_with_no_abstract_is_not_a_resolution(self, monkeypatch):
+        """A titled stub in the pool is worse than an honest `unjudgeable` — there would be
+        nothing for the judge to score, and the paper would count as covered."""
+        self._oa(monkeypatch, work={"title": "T", "abstract_inverted_index": None})
+        assert verify.resolve_by_doi_openalex("10.1145/x") is None
+
+    def test_a_404_is_an_answer(self, monkeypatch):
+        self._oa(monkeypatch, code=404)
+        assert verify.resolve_by_doi_openalex("10.5555/nope") is None
+
+    def test_a_refusal_with_no_code_still_raises(self, monkeypatch):
+        """C-32 again, one source over: retries spent without an answer must not harden."""
+        self._oa(monkeypatch)
+        with pytest.raises(verify.SourceUnavailable):
+            verify.resolve_by_doi_openalex("10.1145/x")
+
+    def test_an_adapter_exception_is_a_refusal_not_an_absence(self, monkeypatch):
+        self._oa(monkeypatch, raises=True)
+        with pytest.raises(verify.SourceUnavailable):
+            verify.resolve_by_doi_openalex("10.1145/x")
+
+    def test_it_rescues_what_the_earlier_tiers_miss(self, stub):
+        """The whole point: S2 rejects it, Europe PMC is biomedical, OpenAlex has it.
+
+        Driven through the `stub` fixture rather than by patching `fetch_work_by_doi`: the
+        fixture replaces `resolve_by_doi_openalex` wholesale, so patching what that function
+        calls has no effect and the test would pass or fail for a reason unrelated to its
+        name. It did — this assertion failed the first time for exactly that.
+        """
+        resolved = {"arxiv_id": "doi:10.1145/3236774", "title": "Build Systems", "abstract": "A"}
+        stub(exists=True, s2=None, epmc=None, openalex=resolved)
+        paper, outcome = verify.resolve_reference("10.1145/3236774", _FakeClient())
+        assert outcome == "resolved" and paper["title"] == "Build Systems"
+
+    def test_it_does_not_rescue_what_nobody_has(self, stub, monkeypatch):
+        """The residual stays honest: 5 Springer chapters and an Elsevier paper on the
+        2026-08-26 sweep had no abstract in any of the four sources."""
+        stub(exists=True, s2=None, epmc=None, openalex=None)
+        assert verify.resolve_reference("10.1007/978-3-031-07085-3_29", _FakeClient())[1] == (
+            "unjudgeable"
+        )
+
+    def test_arxiv_never_reaches_the_doi_tiers(self, stub):
+        # every DOI tier set to raise: reaching any of them fails the test loudly
+        stub(arxiv_paper=ARXIV_PAPER, openalex_raises=True, s2_raises=True, epmc_raises=True)
+        assert verify.resolve_reference("1706.03762", _FakeClient())[1] == "resolved"
+
+
+class TestTheTierSetIsRecordedBecauseUnjudgeableIsRelative:
+    """`unjudgeable` says "none of the sources we asked had an abstract".
+
+    That is permanent given a fixed tier list and obsolete the moment the list grows. The
+    verdict therefore has to carry the list that produced it, or it outlives its evidence —
+    the same lesson as `prompt_version`, one module over.
+    """
+
+    def test_the_tier_set_names_the_tiers_that_exist(self):
+        assert verify.TIER_SET == ("arxiv", "doi.org", "s2", "europepmc", "openalex")
+        # The names are labels for the reader; the resolvers they stand for are checked by
+        # hand rather than by string-building, because `europepmc` is reached through
+        # `resolve_by_doi_epmc` and a convention that quietly did not hold would make this
+        # assertion pass for the wrong reason.
+        for fn in ("resolve_by_doi_s2", "resolve_by_doi_epmc", "resolve_by_doi_openalex"):
+            assert callable(getattr(verify, fn)), fn
+
+    def test_growth_reopens_the_question(self):
+        assert verify.tiers_grew(verify.LEGACY_TIER_SET)
+        assert verify.tiers_grew(["arxiv"])
+
+    def test_the_same_set_does_not(self):
+        """The clause has to terminate: a row re-asked under the current set records it, and
+        must not come back on the next invocation. Otherwise it is C-30 through the door
+        built to prevent C-30."""
+        assert not verify.tiers_grew(list(verify.TIER_SET))
+
+    def test_reordering_is_not_growth(self):
+        assert not verify.tiers_grew(list(reversed(verify.TIER_SET)))
+
+    def test_losing_a_tier_is_not_growth(self):
+        """Fewer places to look cannot overturn a not-found; re-asking would spend calls to
+        confirm what we already know."""
+        assert not verify.tiers_grew([*verify.TIER_SET, "crossref"])
+
+    def test_an_unrecorded_set_means_the_one_before_openalex(self):
+        """Rows written by the 2026-08-26 v2 sweep carry no field; they ran on four tiers."""
+        assert verify.tiers_grew(None)
+        assert set(verify.LEGACY_TIER_SET) < set(verify.TIER_SET)
+
+
+class TestTheOpenAlexStatusOutParameter:
+    def _post(self, monkeypatch, exc):
+        import urllib.request
+
+        from reporadar.sources import openalex
+
+        monkeypatch.setattr(openalex.time, "sleep", lambda _s: None)
+
+        def boom(*_a, **_kw):
+            raise exc
+
+        monkeypatch.setattr(urllib.request, "urlopen", boom)
+        status: dict[str, int] = {}
+        return openalex._request_json("https://x", max_retries=2, status=status), status
+
+    def test_a_404_records_its_code(self, monkeypatch):
+        import urllib.error
+
+        err = urllib.error.HTTPError("u", 404, "Not Found", {}, None)  # type: ignore[arg-type]
+        data, status = self._post(monkeypatch, err)
+        assert data is None and status == {"http": 404}
+
+    def test_an_exhausted_throttle_records_nothing(self, monkeypatch):
         import urllib.error
 
         err = urllib.error.HTTPError("u", 429, "Too Many", {}, None)  # type: ignore[arg-type]

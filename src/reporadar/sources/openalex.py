@@ -23,8 +23,18 @@ def _request_json(
     url: str,
     max_retries: int = 3,
     base_delay: float = 1.0,
+    status: dict[str, int] | None = None,
 ) -> Any | None:
-    """GET a JSON endpoint with retry and backoff."""
+    """GET a JSON endpoint with retry and backoff.
+
+    ``status`` optionally receives ``{"http": <code>}`` for a NON-retryable HTTP failure.
+    ``None`` alone cannot distinguish *OpenAlex would not answer* (429/5xx, retries spent)
+    from *OpenAlex has no such record* (404), and `evals/verify.py` turns that difference
+    into a verdict about a paper: the first is transient and must never harden, the second
+    is an answer and should fall through. Collapsing them is C-32, which this project has
+    now paid for once in `citations._s2_batch_post`; the same shape was already sitting
+    here. Product callers ignore it and keep the "None means skip" contract.
+    """
     last_exc: Exception | None = None
     for attempt in range(max_retries):
         try:
@@ -44,6 +54,9 @@ def _request_json(
                 )
                 time.sleep(delay)
                 continue
+            # OpenAlex answered, and the answer was "no". Recorded, not raised.
+            if status is not None:
+                status["http"] = exc.code
             logger.warning("OpenAlex API error: %s", exc)
             return None
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -303,3 +316,24 @@ def collect_papers(
             time.sleep(rate_limit)
 
     return list(seen.values())
+
+
+def fetch_work_by_doi(doi: str, status: dict[str, int] | None = None) -> dict[str, Any] | None:
+    """One OpenAlex work by DOI, raw. ``None`` when absent or unreachable.
+
+    Deliberately returns the raw work rather than a normalised paper. `_normalize_paper`
+    cannot serve this caller: it returns ``None`` for any work without an arXiv id, which is
+    every paper this function exists to fetch. Rather than loosen a rule the collection path
+    depends on, the eval verifier normalises what it needs and reuses
+    :func:`reconstruct_abstract`, which is the part with the actual logic in it.
+
+    No ``mailto`` is sent. OpenAlex's polite pool wants an address and the anonymous pool is
+    sufficient at this volume, and a user's email is not ours to hand to a third party for
+    a rate-limit courtesy.
+    """
+    key = doi_key(doi).removeprefix("doi:")
+    if not key:
+        return None
+    url = f"{OA_API_BASE}/works/doi:{urllib.parse.quote(key, safe='')}"
+    work = _request_json(url, status=status)
+    return work if isinstance(work, dict) else None

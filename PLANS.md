@@ -257,24 +257,43 @@ non-arXiv — papers v1 had no field to put in an answer. Precision falls 0.912 
 the caps differ so that is not cleanly the prompt's doing; the only clean control is the four
 cases with a v1@30 draw, where v2 returned 67 picks to v1's 13 and 30 targets to 10.
 
-**The instrument, not the model, is now the binding constraint.** 44 of the 270 references
-could not be scored, and **every one of them is a DOI**: 41 `unjudgeable` — real papers,
-proven to exist, that neither Semantic Scholar nor Europe PMC carries an abstract for — and
-3 `hallucinated`. Most are ACM (`10.1145/…`): POPL, PLDI, OOPSLA, CACM, precisely the
-literature a code benchmark should be reading. **Closing that gap is now the highest-value
-verification work**, and a Crossref or OpenAlex abstract tier is the obvious next tier.
+**The instrument was the binding constraint, and it has been fixed.** 44 of the 270
+references could not be scored, every one a DOI, most of them ACM (`10.1145/…`): POPL, PLDI,
+OOPSLA, CACM, precisely the literature a code benchmark should be reading.
+
+Which source to add was settled by measurement, not preference — all 28 distinct unscoreable
+papers probed against both candidates: **OpenAlex had abstracts for 20, Crossref for 14, and
+Crossref added exactly zero OpenAlex did not already have.** One tier, not two.
+
+**Shipped, and it cashed in: 44 unscoreable references → 13.** Non-arXiv targets 36 → **61**,
+sweep targets 196 → **221**, and **no ACM paper is unscoreable any more**. The searcher did
+not change: those 25 new witnesses are papers v2 had already found and named, which nothing
+in the pipeline could previously read. The residual 8 is now a named floor rather than an
+impression — 5 Springer book chapters, 1 Elsevier paper, and 2 fabricated DOIs.
+
+**`unjudgeable` is permanent only relative to the sources we asked**, which is why adding a
+tier needed machinery and not just a function. `verify.TIER_SET` names the tiers, every
+judged row records it, and `retryable` reopens a row when the current set is a strict
+superset of the recorded one — reordering is not growth, and losing a tier can only find
+less. Without it the 31 recoverable references would have sat behind a predicate correctly
+refusing to re-ask a settled question. It is `prompt_version`'s lesson one module over: a
+cached verdict has to carry the configuration that produced it, or it outlives its evidence.
 
 **3 invented DOIs in 97** (3.1%), caught by the DOI Handle API rather than by the prompt —
 v2 was deliberately given no anti-fabrication coaching v1 lacks, so this is the unassisted
 rate and the number a comparator re-measurement would need.
 
-**Pooled into the witness set: 385 → 462 witnesses**, regret **+4.80 → +5.56** net@2/case.
-Reach into `pool-wemb`: `cli` unmoved at 8/56, `cli-redraw` at 19/92, and `cli-v2@30` at
-**19/135 = 0.141** — the lowest of the cli family. Pooled non-self reach consequently *fell*,
-0.174 → 0.149, which is the measure working rather than a regression: v2 found papers the
-shipped collection step is even less likely to fetch. Chao1 for `cli-v2@30` is **≥ 252.3**
-from 135 observed with 88 singletons, so this searcher is no closer to exhausted than the
-last one.
+**Pooled into the witness set: 385 → 462 → 482 witnesses**, regret **+4.80 → +5.56 →
++6.24** net@2/case. Reach into `pool-wemb`: `cli` unmoved at 8/56, `cli-redraw` at 19/92, and
+`cli-v2@30` at **19/155 = 0.123** — the lowest of the family, and *falling as it grows*,
+because the papers the tier unlocked are ones the shipped pool holds even less often than the
+arXiv ones. Pooled non-self reach fell 0.174 → 0.149 → **0.138**, which is the measure working
+rather than a regression. Chao1 for `cli-v2@30` is **≥ 305.2** from 155 observed with 104
+singletons, so this searcher is no closer to exhausted than the last one.
+
+**Next in this line: Opus 5 as a further witness source** — lower marginal value than either
+of the last two changes, since it searches the same space v2 already reaches. The comparator
+re-measurement (§3, item 4) remains a separate and deliberate decision.
 
 
 ### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
