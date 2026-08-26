@@ -45,9 +45,11 @@ pre-registration made `num_turns` the primary measure, on the reasoning that a 3
 which never exceeds 12 turns proves the cap was slack. **`num_turns` is not the quantity
 `--max-turns` bounds**, and the run disproved it immediately: every *control* arm, capped at
 12, reported `num_turns` of 16, 17 or 9 and still returned `ok`. Measured directly,
-`--max-turns 2` on a tool-using prompt fails with `error_max_turns` at `num_turns: 3`, so the
-cap is enforced -- the two numbers simply count different things, and what each counts is not
-established here. The original rule would have read "6 of 6 cases exceeded the cap" and
+`--max-turns 2` on a tool-using prompt fails with `error_max_turns` at `num_turns: 3` and
+`--max-turns 12` on the real baseline prompt SUCCEEDS at `num_turns: 15`, so the cap is
+enforced and the two numbers count different things. What each counts is not defined by the
+payload; the operational rule is to read `status`, never `num_turns`.
+The original rule would have read "6 of 6 cases exceeded the cap" and
 declared a rebuild. It is retained above as an observation with that caveat attached, never
 as a threshold. Note the direction: the correction makes the answer *less* decisive, not more
 convenient.
@@ -55,14 +57,18 @@ convenient.
 **Case selection, fixed before running.** Three per cohort, spanning the outcome types, so
 no result can be attributed to a convenient subset:
 
-| case | cohort | cached | why |
+| case | repo | cohort | why |
 |---|---|---|---|
-| `rag` | bench25 | 5 picks, judged 3 | most productive; if the cap binds anywhere, here |
-| `linter` | bench25 | 3 picks, judged 1 | the net-negative case: does budget buy *quality*? |
-| `http` | bench25 | abstention | does budget turn "nothing" into something? |
-| `mat-descriptors` | scisoft | 4 picks | the productive scientific case |
-| `bio-align` | scisoft | 2 picks | a typical scientific case |
-| `bio-singlecell` | scisoft | abstention | scanpy declined explicitly, with reasons |
+| `rag` | ColBERT | bench25 | most productive; if the cap binds anywhere, here |
+| `linter` | ruff | bench25 | the net-negative case: does budget buy *quality*? |
+| `http` | requests | bench25 | does budget turn "nothing" into something? |
+| `mat-descriptors` | dscribe | scisoft | the productive scientific case |
+| `bio-align` | minimap2 | scisoft | a typical scientific case |
+| `bio-singlecell` | scanpy | scisoft | declined explicitly, with reasons |
+
+**These are the cases that already SUCCEED at 12 turns.** The four that fail
+(`bio-scvi`/scvi-tools, `mat-mlip`/MACE, `mat-toolkit`/pymatgen, `mat-phonon`/phonopy) are a
+separate question -- does raising the cap *rescue* them -- run with `--case` and `--out`.
 
 The cohort split is a second, free experiment: the benchmark25 caches were written under a
 signed-in CLI and the scientific ones under ANTHROPIC_API_KEY (P14, and the open question
@@ -313,13 +319,15 @@ def main() -> int:
     ap.add_argument("--case", help="Comma-separated override of the pre-registered set.")
     ap.add_argument("--dry-run", action="store_true", help="$0: print the plan.")
     ap.add_argument("--report", action="store_true", help="$0: re-read the stored artifact.")
+    ap.add_argument("--out", help="Write/read a different artifact than the default.")
     args = ap.parse_args()
+    out_path = Path(args.out) if args.out else OUT
 
     if args.report:
-        if not OUT.is_file():
-            print(f"no artifact at {OUT}")
+        if not out_path.is_file():
+            print(f"no artifact at {out_path}")
             return 1
-        return report(json.loads(OUT.read_text(encoding="utf-8")))
+        return report(json.loads(out_path.read_text(encoding="utf-8")))
 
     cases = args.case.split(",") if args.case else list(CASES)
     load_dotenv(EVALS / ".env")

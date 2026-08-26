@@ -1164,14 +1164,17 @@ the stored answer (**A**), a **fresh 12-turn control** (**B**), and a **30-turn 
 separate "the cap mattered" from "it is a different draw". Only B–vs–C isolates the turn
 change, and only A–vs–B says what a re-run costs by itself.
 
-| case | cohort | cached | control (12t) | treat (30t) | J(A,B) | J(B,C) |
-|---|---|---|---|---|---|---|
-| `rag` | bench25 | 3 | **5** | 3 | 0.60 | 0.60 |
-| `linter` | bench25 | 3 | **5** | 3 | 0.33 | 0.60 |
-| `http` | bench25 | 0 | 0 | 0 | n/a | n/a |
-| `mat-descriptors` | scisoft | 4 | 4 | **2** | 0.60 | 0.20 |
-| `bio-align` | scisoft | 2 | **1** | **3** | 0.50 | 0.00 |
-| `bio-singlecell` | scisoft | **0** | **2** | 1 | 0.00 | 0.00 |
+Case ids are benchmark labels, not repository names; both are given because the prose below
+refers to the software, and a reader should not have to hold the mapping in their head.
+
+| case | repository | cohort | cached | control (12t) | treat (30t) | J(A,B) | J(B,C) |
+|---|---|---|---|---|---|---|---|
+| `rag` | ColBERT | bench25 | 3 | **5** | 3 | 0.60 | 0.60 |
+| `linter` | ruff | bench25 | 3 | **5** | 3 | 0.33 | 0.60 |
+| `http` | requests | bench25 | 0 | 0 | 0 | n/a | n/a |
+| `mat-descriptors` | dscribe | scisoft | 4 | 4 | **2** | 0.60 | 0.20 |
+| `bio-align` | minimap2 | scisoft | 2 | **1** | **3** | 0.50 | 0.00 |
+| `bio-singlecell` | **scanpy** | scisoft | **0** | **2** | 1 | 0.00 | 0.00 |
 
 #### The turn question: no, and also unanswerable at this n
 
@@ -1195,9 +1198,9 @@ The per-case detail is sharper than the mean:
 
 * `rag` and `linter` each returned **5** picks where the cache holds 3.
 * `bio-align` returned **1** where the cache holds 2; the 30-turn arm returned **3**.
-* **`bio-singlecell` abstained in the cache and returned 2 picks on re-run.** scanpy's stored
-  answer is an explicit `[]` with prose explaining what scanpy already implements — the
-  `webdev` shape, quoted in P14 as a *real* abstention. It is not a stable one.
+* **`bio-singlecell` (scanpy) abstained in the cache and returned 2 picks on re-run.** Its
+  stored answer is an explicit `[]` with prose explaining what scanpy already implements —
+  the `webdev` shape, quoted in P14 as a *real* abstention. It is not a stable one.
 
 **This is the finding that matters, and it is not about turns.** The gold set — 56 targets on
 the benchmark25 cohort, the denominator under every published recall figure (21/56, 34/56,
@@ -1233,10 +1236,21 @@ exceeds 12 turns would prove the cap was slack. The run disproved the measure, n
 hypothesis — every *control* arm, capped at 12, reported `num_turns` of **16, 17 or 9** and
 still returned `ok`.
 
-`--max-turns` is enforced: measured directly, `--max-turns 2` on a tool-using prompt fails
-with `error_max_turns` at `num_turns: 3`. The two numbers simply count different things, and
-what each counts is not established here. Read as pre-registered, the rule would have printed
-*"6 of 6 cases exceeded the cap — ACTIVE CONSTRAINT"* and declared a rebuild.
+`--max-turns` is enforced, and `num_turns` is simply a different counter. Measured directly
+against the CLI, outside our harness:
+
+| invocation | outcome | `num_turns` |
+|---|---|---|
+| `--max-turns 2`, tool-using prompt | `error_max_turns` | 3 |
+| `--max-turns 12`, the real baseline prompt in ColBERT | **success** | **15** |
+| `--max-turns 30`, a two-fetch prompt | success | 6 |
+
+So a run capped at 12 can succeed while reporting 15, which settles it: `num_turns` counts
+something larger than whatever `--max-turns` bounds — plausibly tool-result steps as well as
+model turns, though the payload does not define either field and we are not going to guess.
+**The operational rule is the one that needs no theory: read `subtype`/`status` to learn
+whether the cap was hit, never `num_turns`.** Read as pre-registered, the rule would have
+printed *"6 of 6 cases exceeded the cap — ACTIVE CONSTRAINT"* and declared a rebuild.
 
 The valid measure was in the same payload the whole time: **`status`**. Hitting the cap fails
 loudly, so `ok` at 12 turns *is* the proof that the cap was not reached. The probe now reads
