@@ -101,6 +101,23 @@ class TestParseCliPayload:
         ok, reason = _parse_cli_payload(json.dumps({"subtype": "success", "result": "   "}))
         assert ok is None and "empty result" in reason
 
+    def test_num_turns_is_kept(self) -> None:
+        """The only direct evidence of whether `--max-turns` was a constraint or headroom.
+
+        A run that finishes in 8 turns behaves identically at any higher cap; without this
+        number, "does raising the cap change anything" can only be answered by similarity
+        scores over a nondeterministic system (P15).
+        """
+        payload = json.loads(_ok_stdout("```json\n[]\n```"))
+        payload["num_turns"] = 7
+        ok, _ = _parse_cli_payload(json.dumps(payload))
+        assert ok is not None and ok["num_turns"] == 7
+
+    def test_num_turns_absent_is_none_not_zero(self) -> None:
+        """Caches written before 2026-08-26 have no such field; 0 would read as a real run."""
+        ok, _ = _parse_cli_payload(_ok_stdout("```json\n[]\n```"))
+        assert ok is not None and ok["num_turns"] is None
+
 
 class TestRunCliRetry:
     """Retry behaviour in isolation from the auth probe.

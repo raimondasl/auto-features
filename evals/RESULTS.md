@@ -1144,6 +1144,185 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The turn budget is not the problem. The comparator is barely reproducible. **[P15, C-27]**
+
+```bash
+uv run python evals/turn_budget_probe.py --report   # $0, re-read the stored arms
+```
+
+P14 left four `bio-*`/`mat-*` cases unmeasured against `error_max_turns` at `--max-turns 12`,
+and the obvious fix — raise the cap — re-runs all 37 cases and re-derives the gold set. So the
+question was whether raising it *changes anything on the cases that already succeed*: if not,
+the re-run is a restatement; if so, a rebuild.
+
+Six cases, three per cohort, chosen and written down before the first call. Three arms each:
+the stored answer (**A**), a **fresh 12-turn control** (**B**), and a **30-turn treatment**
+(**C**), B and C run back to back under one auth. Every arm ran with `use_cache=False`, so the
+33 stored answers were neither read nor overwritten.
+
+**The control arm is the whole design.** Comparing a 30-turn run against the *cache* cannot
+separate "the cap mattered" from "it is a different draw". Only B–vs–C isolates the turn
+change, and only A–vs–B says what a re-run costs by itself.
+
+Case ids are benchmark labels, not repository names; both are given because the prose below
+refers to the software, and a reader should not have to hold the mapping in their head.
+
+| case | repository | cohort | cached | control (12t) | treat (30t) | J(A,B) | J(B,C) |
+|---|---|---|---|---|---|---|---|
+| `rag` | ColBERT | bench25 | 3 | **5** | 3 | 0.60 | 0.60 |
+| `linter` | ruff | bench25 | 3 | **5** | 3 | 0.33 | 0.60 |
+| `http` | requests | bench25 | 0 | 0 | 0 | n/a | n/a |
+| `mat-descriptors` | dscribe | scisoft | 4 | 4 | **2** | 0.60 | 0.20 |
+| `bio-align` | minimap2 | scisoft | 2 | **1** | **3** | 0.50 | 0.00 |
+| `bio-singlecell` | **scanpy** | scisoft | **0** | **2** | 1 | 0.00 | 0.00 |
+
+#### The turn question: no, and also unanswerable at this n
+
+**The cap bound on nothing.** All six controls returned `ok` at 12 turns — and reaching
+`--max-turns` is loud, not silent (it fails with `error_max_turns`, which is exactly how P14's
+four cases present). So on these six, 12 turns was never reached.
+
+**The turn effect is inside the noise.** Paired per case, `J(B,C) − J(A,B)` is **−0.13**,
+bootstrap CI **[−0.38, +0.11]**, n = 5. Individually: `+0.00, +0.27, −0.40, −0.50, +0.00`. The
+probe cannot separate a real turn effect from a different draw, and no amount of reading the
+table harder will change that. **Verdict: inconclusive**, which at n = 6 against the noise
+below is the outcome that should have been expected.
+
+#### What the control arm actually found, which is worse
+
+**A re-run of the identical configuration disagrees with the stored answer on ~59% of its
+picks.** Mean J(cached, control) = **0.41** across five cases. Not a different prompt, not a
+different model, not a different turn budget — the same configuration, run again.
+
+The per-case detail is sharper than the mean:
+
+* `rag` and `linter` each returned **5** picks where the cache holds 3.
+* `bio-align` returned **1** where the cache holds 2; the 30-turn arm returned **3**.
+* **`bio-singlecell` (scanpy) abstained in the cache and returned 2 picks on re-run.** Its
+  stored answer is an explicit `[]` with prose explaining what scanpy already implements —
+  the `webdev` shape, quoted in P14 as a *real* abstention. It is not a stable one.
+
+**This is the finding that matters, and it is not about turns.** The gold set — 56 targets on
+the benchmark25 cohort, the denominator under every published recall figure (21/56, 34/56,
+43/56) — is derived from **one draw** of a process that reproduces about two picks in five.
+Re-running the baseline at *any* setting moves it. The 2026-08-09 incident was read as "a
+flag change invalidated the caches"; the truth underneath is that re-running at all would
+have done nearly as much, and the flag change only forced the issue.
+
+That reframes the 30-turn decision. There is no configuration under which the gold set is
+stable and a turn change disturbs it. There is a gold set that is a **sample**, and it has
+been treated as ground truth.
+
+#### The auth question, answered as far as this can answer it
+
+The benchmark25 caches were written under a signed-in CLI, the scientific ones under
+`ANTHROPIC_API_KEY` (P14, and the question the auth change left open). If the auth path
+changed what the agent recommends, A-vs-B similarity should be systematically worse for the
+cohort whose auth changed.
+
+| cohort | cached auth | mean J(cached, control) | n |
+|---|---|---|---|
+| benchmark25 | signed-in CLI | 0.47 | 2 |
+| scisoft | `ANTHROPIC_API_KEY` | 0.37 | 3 |
+
+Comparable, and both swamped by the nondeterminism above. **No evidence the auth path matters
+— and this design could not have detected a modest effect if it did.** Reported as "not shown
+to differ", not as "shown not to differ".
+
+#### C-27 — the primary measure was measuring a different quantity
+
+The pre-registration made **`num_turns` the primary measure**: a 30-turn arm that never
+exceeds 12 turns would prove the cap was slack. The run disproved the measure, not the
+hypothesis — every *control* arm, capped at 12, reported `num_turns` of **16, 17 or 9** and
+still returned `ok`.
+
+`--max-turns` is enforced, and `num_turns` is simply a different counter. Measured directly
+against the CLI, outside our harness:
+
+| invocation | outcome | `num_turns` |
+|---|---|---|
+| `--max-turns 2`, tool-using prompt | `error_max_turns` | 3 |
+| `--max-turns 12`, the real baseline prompt in ColBERT | **success** | **15** |
+| `--max-turns 30`, a two-fetch prompt | success | 6 |
+
+So a run capped at 12 can succeed while reporting 15, which settles it: `num_turns` counts
+something larger than whatever `--max-turns` bounds — plausibly tool-result steps as well as
+model turns, though the payload does not define either field and we are not going to guess.
+**The operational rule is the one that needs no theory: read `subtype`/`status` to learn
+whether the cap was hit, never `num_turns`.** Read as pre-registered, the rule would have
+printed *"6 of 6 cases exceeded the cap — ACTIVE CONSTRAINT"* and declared a rebuild.
+
+The valid measure was in the same payload the whole time: **`status`**. Hitting the cap fails
+loudly, so `ok` at 12 turns *is* the proof that the cap was not reached. The probe now reads
+that, prints `num_turns` as an observation, and never thresholds it. Note the direction of the
+correction — it makes the answer *less* decisive rather than more convenient, which is the
+only reason a rule rewritten after seeing data deserves any credence at all.
+
+
+#### The four "turn-limit" cases: two of them were never turn-limited **[C-28]**
+
+The probe above covered only cases that already succeed, which measures what raising the cap
+would *cost* and says nothing about what it would *buy*. Running the same three arms over the
+four cases P14 could not measure — `bio-scvi`/scvi-tools, `mat-mlip`/MACE,
+`mat-toolkit`/pymatgen, `mat-phonon`/phonopy — answers the other half, and contradicts P14:
+
+| case | repository | fresh 12-turn control | 30-turn treatment |
+|---|---|---|---|
+| `mat-mlip` | MACE | **ok, 2 picks** | ok, 3 picks |
+| `mat-phonon` | phonopy | **ok, 3 picks** | ok, 2 picks |
+| `bio-scvi` | scvi-tools | `error_max_turns` | **ok, 2 picks** |
+| `mat-toolkit` | pymatgen | `error_max_turns` | **ok, 0 picks** (abstains) |
+
+**Two of the four succeed at twelve turns on a fresh draw**, under the identical
+configuration that failed in P14. So P14's claim — *"a third of the scientific cohort
+exhausts a turn budget that only 2 of the original 25 ever hit"*, offered as evidence that
+the budget "does not transfer to large scientific codebases" — is **wrong in its mechanism**.
+It is the same nondeterminism the control arm measured above, surfacing at the cap instead of
+in the pick list. Half of that "domain effect" is weather.
+
+What survives: `bio-scvi` and `mat-toolkit` did reproduce their failure at 12 and did
+complete at 30. So the cap is real for *some* cases on *some* draws — a rate, not a property,
+and the rate is not measured here.
+
+**Two cheap consequences.** `mat-mlip` and `mat-phonon` can have `cli` baselines and gold
+targets for the price of a re-run at the *unchanged* flags, taking the scientific cohort from
+8/12 to 10/12 without touching the discriminator. And P14's +2.12 caveat — "excludes the four
+largest repositories" — should be read as excluding four repositories that a re-run would
+partly have included, not four the comparator cannot handle.
+
+#### Three defects in this probe, found by running it **[C-29]**
+
+The instrument needed three repairs, and one of them destroyed data:
+
+**The `--out` flag reached the read path and not the write path.** A four-case rescue run
+therefore **overwrote the six-case artifact** it was meant to complement, because the patch
+adding `--out` replaced `OUT` in `--report` and left `OUT.write_text` alone — and the two
+`str.replace` calls that should have caught it carried no assertion. This is *precisely*
+lesson 4 of the methodology section — "partial runs overwriting whole-set artifacts", three
+scripts before merge-by-key became the standard write pattern — reproduced in a brand-new
+script in the same session that quotes it. Recovered from git (the artifact had been
+committed), and repaired at the root: `merge_into` now merges fresh cases into the stored set
+by case name, so the write is not destructive at all.
+
+**The kill condition fired on the run it was pointed at.** It read "the 12-turn control
+failed", which on the four cases with no successful cache is *the expected result
+reproducing*, not an instrument fault. Now scoped to cases the cache records as succeeding.
+
+**Void scored as null, in the noise statistic itself.** For a case with no cache,
+`J(cached, control)` computes to 0.0 — an empty stored set against a non-empty control —
+which reads as total disagreement when it is an absent measurement. Merging the four
+cacheless cases in therefore dragged "what re-running alone costs" from **0.41 to 0.29**, and
+the verdict line from *inconclusive* to *rebuild*, entirely on rows that had nothing to
+compare. The A-vs-B statistics are now computed only over cases with a successful cache. No
+published figure carried the wrong value; it existed for about ten minutes, in this session,
+in a statistic written to price exactly this class of error.
+
+**Cost** 20 agentic runs across both arms (6 cases + 4 rescue cases x 2 arms),
+subscription-billed. Nothing was written to the shared caches -- every arm ran with
+`use_cache=False`, and the 33 `cli` answers were backed up to
+`evals/.work/cache-backup-20260826-baseline-cli/` before the first call and verified
+byte-identical after the last.
+
 ### The scientific cohort finally has the published comparator — and it is the strongest baseline we have measured. **[P14]**
 
 ```bash
@@ -1189,6 +1368,13 @@ block-keyed fallback correctly leaves it at zero rather than resurrecting anythi
 — after retries, so not transient. **A third of the scientific cohort exhausts a turn budget
 that only 2 of the original 25 ever hit.** The budget was calibrated on ML and systems
 repositories and does not transfer to large scientific codebases.
+
+> **Corrected 2026-08-26 [C-28].** The mechanism above is wrong. Re-run at the *identical*
+> flags, `mat-mlip` and `mat-phonon` **succeed at 12 turns** — the failures are draws, not
+> properties of these repositories, and "does not transfer to large scientific codebases"
+> attributes to domain what belongs to nondeterminism. `bio-scvi` and `mat-toolkit` did
+> reproduce their failure and complete at 30. See **[P15, C-28]** above; "after retries, so
+> not transient" was the claim to distrust, and retries within one session are not draws.
 
 The obvious fix is the one that must not be applied casually: `_discriminator` hashes the
 flags, so raising the limit **re-runs all 37 cases and redefines the gold set** — precisely
