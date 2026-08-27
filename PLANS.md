@@ -352,7 +352,28 @@ supports is a *relevance condition* on non-arXiv results — which is what the r
 component would have supplied if uncategorised papers did not escape it. That is the item
 worth opening, and it is a ranking change rather than a retrieval one.
 
-**OpenAlex is still worth probing, and P22 is the template.** Run the same $0 collision check
+**Probed, and it collides too [P23]: 48% off-domain against Europe PMC's 68%.** Same
+queries, same 25 repositories, classified by OpenAlex's own `primary_topic.field` taxonomy.
+Computer Science is the largest field at 34% and still a minority; Biochemistry (15%) and
+Medicine (8%) follow. Zero repositories get silence.
+
+The spread is wider and that is the finding: **24% (`speech`) to 84% (`webdev`)**, against
+Europe PMC's flatter 57–87%. Distinctive technical vocabularies retrieve cleanly; generic
+English does not. **That is P22's conclusion arriving by a second route — the collision is a
+property of the QUERY**, so no domain classifier can fix `webdev`, an ordinary software
+project whose queries happen to be common words.
+
+**Both probes together: no multi-source default, no per-domain routing.** The evidence points
+at a **relevance condition on non-arXiv results** — what the ranker's category component would
+already supply if uncategorised papers did not escape it (§9: 18 of 32 moved on that bias
+alone). One ranking change fixes both sources, which is the strongest sign it is the right
+one. **That is the item now worth opening.**
+
+**If a source is switched on regardless, OpenAlex is the one:** a third less noise, real
+ACM/IEEE/VLDB coverage (599 CS works), and a field label already on every result that a filter
+could read with no new machinery.
+
+**Superseded — the original note, kept for its reasoning:** Run the same $0 collision check
 before any judge call: OpenAlex is general rather than biomedical, so it may not collide at
 all — but "may not" is what P22 was written to stop us assuming. It reaches the 43 ACM/IEEE/VLDB
 targets Europe PMC structurally cannot, and `pool-oa-treat`/`pool-oa-control` exist (on the

@@ -1,4 +1,9 @@
-"""Does Europe PMC return biology to a compiler? A $0 keyword-collision probe. [P22]
+"""Does a keyword source return biology to a compiler? A $0 collision probe. [P22, P23]
+
+Two sources, one probe. `--source europepmc` is P22; `--source openalex` is P23. The query
+construction is shared because it is the part that must match what a real run sends; only the
+classification differs, and it has to, because the two indexes describe themselves differently
+(Europe PMC by MeSH, OpenAlex by its own field taxonomy).
 
 Europe PMC gave **+4.00 net@2** on the six bio cases (P21), and the mechanism was coverage
 rather than ranking: 54% of the shown digest came from it, at 0.97 precision. That is the
@@ -27,15 +32,17 @@ classification is by MeSH/journal metadata that Europe PMC returns anyway, not b
 a model asked "is this on-topic" would be the judge, at judge prices, and the point of a
 stage-1 probe is to be answerable without one.
 
-    uv run python evals/epmc_collision.py --dry-run   # $0: the queries, no network
-    uv run python evals/epmc_collision.py             # $0: + Europe PMC, writes the artifact
-    uv run python evals/epmc_collision.py --report    # $0: re-read the artifact
+    uv run python evals/epmc_collision.py --dry-run              # $0: the queries, no network
+    uv run python evals/epmc_collision.py                        # $0: Europe PMC  [P22]
+    uv run python evals/epmc_collision.py --source openalex      # $0: OpenAlex    [P23]
+    uv run python evals/epmc_collision.py --source openalex --report
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import urllib.parse
 from pathlib import Path
@@ -46,6 +53,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from harness import WORK_DIR, profile_case_repo  # noqa: E402
+from run_judge_eval import load_dotenv  # noqa: E402
 
 from reporadar.collector import build_queries, to_plain_keywords  # noqa: E402
 from reporadar.config import ArxivConfig, QueriesConfig  # noqa: E402
@@ -53,7 +61,14 @@ from reporadar.sources.europepmc import EPMC_SEARCH  # noqa: E402
 from reporadar.sources.europepmc import _request_json as epmc_request  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
-OUT = EVALS / "epmc_collision.json"
+SOURCES = ("europepmc", "openalex")
+
+
+def out_path(source: str) -> Path:
+    """One artifact per source. They measure different quantities under different taxonomies,
+    so a single file would invite exactly the averaging the numbers cannot support."""
+    return EVALS / f"{source}_collision.json"
+
 
 # The same cut the product applies: `pipeline` sends `queries[:KEYWORD_SOURCE_QUERIES]`.
 # Imported rather than retyped so the probe cannot measure a different query set than the
@@ -111,6 +126,69 @@ _JOURNAL_MARKERS = (
 )
 
 
+# OpenAlex labels every work with `primary_topic.field`, a 26-field taxonomy of its own.
+# That is a far better instrument than the biomedical flag Europe PMC forces on us: it does
+# not need a marker list, it cannot silently read an empty field, and it reports WHICH
+# discipline came back rather than a yes/no.
+#
+# "On domain" for this benchmark is the CS-adjacent set below. Every core-25 repository is a
+# software project, so a returned work in Medicine or Biochemistry is a collision by the same
+# argument P22 made -- the difference is that here the source itself says so.
+ON_DOMAIN_FIELDS = frozenset(
+    {
+        "Computer Science",
+        "Engineering",
+        "Mathematics",
+        "Physics and Astronomy",
+        "Decision Sciences",
+    }
+)
+
+
+def _oa_field(work: dict[str, Any]) -> str:
+    return ((work.get("primary_topic") or {}).get("field") or {}).get("display_name") or "(none)"
+
+
+def probe_openalex(case: str, queries: list[str], api_key: str | None) -> dict[str, Any]:
+    """P23. Uses the adapter's own `search_works`, so the filter and field selection are the
+    ones a real run sends rather than a second copy of them."""
+    from reporadar.sources.openalex import search_works
+
+    hits: list[dict[str, Any]] = []
+    per_query: dict[str, int] = {}
+    fields: dict[str, int] = {}
+    for q in queries:
+        try:
+            works = search_works(q, limit=PER_QUERY, api_key=api_key)
+        except Exception as exc:  # noqa: BLE001 -- a refusal is not an empty result
+            print(f"    ! {case}: OpenAlex failed for {q[:40]!r}: {str(exc)[:80]}")
+            per_query[q] = -1
+            continue
+        per_query[q] = len(works)
+        for w in works:
+            field = _oa_field(w)
+            fields[field] = fields.get(field, 0) + 1
+            hits.append(
+                {
+                    "query": q,
+                    "title": (w.get("title") or w.get("display_name") or "")[:120],
+                    "field": field,
+                    "off_domain": field not in ON_DOMAIN_FIELDS,
+                }
+            )
+    n = len(hits)
+    off = sum(1 for h in hits if h["off_domain"])
+    return {
+        "queries": queries,
+        "hits_per_query": per_query,
+        "n_hits": n,
+        "n_off_domain": off,
+        "off_domain_share": round(off / n, 3) if n else None,
+        "fields": dict(sorted(fields.items(), key=lambda kv: -kv[1])),
+        "sample": hits[:8],
+    }
+
+
 def queries_for(case: str) -> list[str]:
     """The plain-keyword queries a real run would send Europe PMC for this repository."""
     # `profile_case_repo` and `build_queries` are the SHARED implementations the harness and
@@ -163,41 +241,57 @@ def probe(case: str, queries: list[str]) -> dict[str, Any]:
 
 
 def report(data: dict[str, Any]) -> int:
-    print(f"{'case':<14}{'queries':>8}{'hits':>7}{'biomed':>8}{'share':>8}")
+    source = data.get("source", "europepmc")
+    flag_n = "n_biomedical" if source == "europepmc" else "n_off_domain"
+    flag_s = "biomedical_share" if source == "europepmc" else "off_domain_share"
+    label = "biomed" if source == "europepmc" else "off-dom"
+    print(f"source: {source}\n")
+    print(f"{'case':<14}{'queries':>8}{'hits':>7}{label:>8}{'share':>8}")
     tot_h = tot_b = 0
     for case, row in sorted(data["cases"].items()):
-        share = row["biomedical_share"]
+        share = row[flag_s]
         tot_h += row["n_hits"]
-        tot_b += row["n_biomedical"]
+        tot_b += row[flag_n]
         print(
-            f"{case:<14}{len(row['queries']):>8}{row['n_hits']:>7}{row['n_biomedical']:>8}"
+            f"{case:<14}{len(row['queries']):>8}{row['n_hits']:>7}{row[flag_n]:>8}"
             f"{(f'{share:.0%}' if share is not None else '-'):>8}"
         )
     print(f"{'TOTAL':<14}{'':>8}{tot_h:>7}{tot_b:>8}{(tot_b / tot_h if tot_h else 0):>7.0%}")
+    if source == "openalex":
+        agg: dict[str, int] = {}
+        for r in data["cases"].values():
+            for f, n in (r.get("fields") or {}).items():
+                agg[f] = agg.get(f, 0) + n
+        print("\nfields returned, all cases:")
+        for f, n in sorted(agg.items(), key=lambda kv: -kv[1])[:10]:
+            mark = "  " if f in ON_DOMAIN_FIELDS else "!!"
+            print(f"  {mark} {f:<40} {n:>5}  {n / max(1, sum(agg.values())):>5.0%}")
     silent = [c for c, r in data["cases"].items() if r["n_hits"] == 0]
-    print(f"\nrepositories Europe PMC returned NOTHING for: {len(silent)}/{len(data['cases'])}")
+    print(f"\nrepositories {source} returned NOTHING for: {len(silent)}/{len(data['cases'])}")
     if silent:
         print(f"  {sorted(silent)}")
+    what = "biomedical" if source == "europepmc" else "off-domain"
     print(
-        "\nReading: a high biomedical share on a non-biology repository is the COLLISION "
-        "case —\nthe channel answering confidently off-domain, which net@2 charges 2 per "
-        "paper for."
+        f"\nReading: a high {what} share on a software repository is the COLLISION case —"
+        "\nthe channel answering confidently off-domain, which net@2 charges 2 per paper for."
     )
     return 0
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Europe PMC keyword collision on the core 25.")
+    ap.add_argument("--source", default="europepmc", choices=SOURCES)
     ap.add_argument("--case", help="Comma-separated subset.")
     ap.add_argument("--dry-run", action="store_true", help="$0: print queries, no network.")
     ap.add_argument("--report", action="store_true", help="$0: re-read the artifact.")
     args = ap.parse_args()
 
+    out = out_path(args.source)
     if args.report:
-        if not OUT.is_file():
-            print(f"no artifact at {OUT}")
+        if not out.is_file():
+            print(f"no artifact at {out}")
             return 1
-        return report(json.loads(OUT.read_text(encoding="utf-8")))
+        return report(json.loads(out.read_text(encoding="utf-8")))
 
     bench = yaml.safe_load((EVALS / "benchmark.yaml").read_text(encoding="utf-8"))
     cases = [
@@ -209,13 +303,24 @@ def main() -> int:
         want = set(args.case.split(","))
         cases = [c for c in cases if c in want]
 
+    api_key = None
+    if args.source == "openalex":
+        load_dotenv(EVALS / ".env")
+        api_key = os.environ.get("OPENALEX_API_KEY") or None
+        if not api_key:
+            # Keyless OpenAlex is throttled to a small daily test allowance, which would
+            # silently truncate the result lists and understate whatever it returns.
+            print("! OPENALEX_API_KEY is not set; keyless results are throttled. Refusing.")
+            return 1
+
     out: dict[str, Any] = {
         "_comment": (
-            "P22: what Europe PMC returns for the core-25 repositories' own queries. No LLM "
-            "and no judge calls; `biomedical` is a coarse journal/keyword flag, not a "
-            "classifier. Derived by evals/epmc_collision.py, pinned by "
-            "tests/test_epmc_collision.py."
+            f"What {args.source} returns for the core-25 repositories' own queries. No LLM "
+            "and no judge calls. Europe PMC is classified by MeSH/Index Medicus (P22); "
+            "OpenAlex by its own primary_topic.field taxonomy (P23). Derived by "
+            "evals/epmc_collision.py, pinned by tests/test_epmc_collision.py."
         ),
+        "source": args.source,
         "per_query_hits": PER_QUERY,
         "cases": {},
     }
@@ -234,15 +339,16 @@ def main() -> int:
                 "sample": [],
             }
             continue
-        row = probe(case, qs)
+        row = probe(case, qs) if args.source == "europepmc" else probe_openalex(case, qs, api_key)
         out["cases"][case] = row
-        print(f"    -> {row['n_hits']} hits, {row['n_biomedical']} biomedical")
+        flagged = row.get("n_biomedical", row.get("n_off_domain"))
+        print(f"    -> {row['n_hits']} hits, {flagged} off-domain")
 
     if args.dry_run:
         print("\n(dry run — no network, nothing written)")
         return 0
-    OUT.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
-    print(f"\nwrote {OUT.name}\n")
+    out_path(args.source).write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    print(f"\nwrote {out_path(args.source).name}\n")
     return report(out)
 
 

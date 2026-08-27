@@ -233,17 +233,20 @@ def _normalize_paper(work: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def search_papers(
+def search_works(
     query: str,
     limit: int = 50,
     email: str | None = None,
     api_key: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Search OpenAlex for papers matching a query.
+    """Search OpenAlex and return the RAW works, before normalisation.
 
-    If *api_key* is provided it is sent as the ``api_key`` query parameter
-    (OpenAlex requires a key for its full free allowance since 2026-02-13).
-    If *email* is provided, uses the legacy polite pool.
+    Split out of :func:`search_papers` so that a caller needing metadata normalisation
+    discards -- `primary_topic.field`, say, which `_normalize_paper` reduces to a single
+    topic name -- does not have to rebuild this request and thereby measure a different
+    result set than the product fetches. The `filter` and `select` below decide what comes
+    back; a second copy of them would drift, and the drift would be invisible because both
+    copies would still return plausible papers.
     """
     params: dict[str, str] = {
         "search": query,
@@ -275,13 +278,27 @@ def search_papers(
     data = _request_json(url)
     if data is None:
         return []
+    works: list[dict[str, Any]] = data.get("results", []) or []
+    return [w for w in works if isinstance(w, dict)]
 
+
+def search_papers(
+    query: str,
+    limit: int = 50,
+    email: str | None = None,
+    api_key: str | None = None,
+) -> list[dict[str, Any]]:
+    """Search OpenAlex for papers matching a query, normalised for the pool.
+
+    If *api_key* is provided it is sent as the ``api_key`` query parameter
+    (OpenAlex requires a key for its full free allowance since 2026-02-13).
+    If *email* is provided, uses the legacy polite pool.
+    """
     results: list[dict[str, Any]] = []
-    for work in data.get("results", []):
+    for work in search_works(query, limit=limit, email=email, api_key=api_key):
         normalized = _normalize_paper(work)
         if normalized:
             results.append(normalized)
-
     return results
 
 
