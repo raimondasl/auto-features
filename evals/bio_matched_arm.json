@@ -1,0 +1,163 @@
+{
+ "_comment": "P21: RepoRadar on the six bio cases across three configurations, plus the Opus 5 draw for the same cases. Derived by evals/freeze_bio_arm.py from run files under evals/results/, which are gitignored; pinned by tests/test_bio_matched_arm.py. net@2 = #actionable - 2 x #non-actionable over what each system RETURNED.",
+ "arms": {
+  "w15_epmc_wemb15": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T163811Z.json",
+   "digest_window": 15,
+   "sources": [
+    "arxiv",
+    "europepmc"
+   ],
+   "w_embedding": 1.5,
+   "per_case": {
+    "bio-align": {
+     "n": 11,
+     "net2": 5
+    },
+    "bio-singlecell": {
+     "n": 12,
+     "net2": 9
+    },
+    "bio-scvi": {
+     "n": 15,
+     "net2": 15
+    },
+    "bio-mdsim": {
+     "n": 9,
+     "net2": 6
+    },
+    "bio-mdtraj": {
+     "n": 7,
+     "net2": 7
+    },
+    "bio-kmer": {
+     "n": 7,
+     "net2": 7
+    }
+   },
+   "mean_net2": 8.17
+  },
+  "w30_epmc_wemb0": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-20260821T152858Z.json",
+   "digest_window": 30,
+   "sources": [
+    "arxiv",
+    "europepmc"
+   ],
+   "w_embedding": 0.0,
+   "per_case": {
+    "bio-align": {
+     "n": 13,
+     "net2": 10,
+     "net2_truncated_15": 10
+    },
+    "bio-singlecell": {
+     "n": 17,
+     "net2": 14,
+     "net2_truncated_15": 12
+    },
+    "bio-scvi": {
+     "n": 22,
+     "net2": 22,
+     "net2_truncated_15": 15
+    },
+    "bio-mdsim": {
+     "n": 11,
+     "net2": 8,
+     "net2_truncated_15": 8
+    },
+    "bio-mdtraj": {
+     "n": 4,
+     "net2": 4,
+     "net2_truncated_15": 4
+    },
+    "bio-kmer": {
+     "n": 8,
+     "net2": 8,
+     "net2_truncated_15": 8
+    }
+   },
+   "mean_net2": 11,
+   "mean_net2_truncated_15": 9.5
+  },
+  "w15_arxiv_wemb0": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-20260820T060917Z.json",
+   "digest_window": 15,
+   "sources": [
+    "arxiv"
+   ],
+   "w_embedding": 0.0,
+   "per_case": {
+    "bio-align": {
+     "n": 12,
+     "net2": 0
+    },
+    "bio-singlecell": {
+     "n": 8,
+     "net2": 5
+    },
+    "bio-scvi": {
+     "n": 11,
+     "net2": 11
+    },
+    "bio-mdsim": {
+     "n": 7,
+     "net2": 7
+    },
+    "bio-mdtraj": {
+     "n": 7,
+     "net2": 7
+    },
+    "bio-kmer": {
+     "n": 3,
+     "net2": 3
+    }
+   },
+   "mean_net2": 5.5
+  }
+ },
+ "opus5": {
+  "source": "gold_spread_v2_opus5.json draw 1",
+  "prompt_version": "v2",
+  "max_turns": 30,
+  "per_case": {
+   "bio-scvi": {
+    "n": 18,
+    "net2": 12
+   },
+   "bio-singlecell": {
+    "n": 10,
+    "net2": 4
+   },
+   "bio-align": {
+    "n": 7,
+    "net2": 7
+   },
+   "bio-mdsim": {
+    "n": 6,
+    "net2": 6
+   },
+   "bio-kmer": {
+    "n": 12,
+    "net2": 6
+   },
+   "bio-mdtraj": {
+    "n": 0,
+    "net2": 0
+   }
+  },
+  "mean_net2": 5.83
+ },
+ "matched_comparison": {
+  "reporadar_arm": "w15_epmc_wemb15",
+  "paired_delta": 2.33,
+  "wins": 4,
+  "losses": 1,
+  "n_cases": 6
+ },
+ "decomposition": {
+  "window_30_to_15": -1.5,
+  "add_europepmc_at_wemb0": 4.0,
+  "wemb_0_to_1p5_at_w15": -1.33
+ }
+}
