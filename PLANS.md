@@ -291,9 +291,39 @@ arXiv ones. Pooled non-self reach fell 0.174 → 0.149 → **0.138**, which is t
 rather than a regression. Chao1 for `cli-v2@30` is **≥ 305.2** from 155 observed with 104
 singletons, so this searcher is no closer to exhausted than the last one.
 
-**Next in this line: Opus 5 as a further witness source** — lower marginal value than either
-of the last two changes, since it searches the same space v2 already reaches. The comparator
-re-measurement (§3, item 4) remains a separate and deliberate decision.
+**Opus 5, draw 1, is run — as a comparator candidate, with witnesses as the side benefit.**
+25/25 cases at the v2 prompt and a 30-turn cap, 2026-08-27. As a comparator it is stronger
+than Opus 4.8 and the reason is volume, not accuracy:
+
+| | mean net@2 | precision | papers returned |
+|---|---|---|---|
+| **Opus 5** | **+4.20** | 0.820 | ~9.2/case |
+| Opus 4.8 (draw 1) | +2.16 | 0.838 | ~4.0/case |
+
+19W/5L/1T paired on case. Precision is a hair *lower*; both sit well above net@2's
+break-even of p = 2/3, so returning 2.3x more papers is strictly rewarded. Opus 5 abstains
+less, which wins big on arXiv-rich cases (`llminfer` +12, `numerics` +11) and loses badly
+where near-abstention is right (`systems` -12, `http` -11).
+
+**It is not established yet, and the control says why.** Opus 4.8's own three draws give the
+noise floor — same model, prompt and cap on both sides — at 0.64 / -0.12 / -0.76. The Opus 5
+effect is +1.92 to +2.68 against each 4.8 draw, roughly 3x that floor, but **two of the three
+paired intervals cross zero** and all three rest on one Opus 5 draw. P17 already showed a
+single draw reproduces 39% of its own targets. **Two more draws (~$390 notional) are what a
+comparator claim would need.**
+
+Witness side benefit: 187 witnesses from 25 runs against Opus 4.8's 155 from 75. Set
+482 -> 592, regret +6.24 -> +7.52 net@2/case.
+
+**Cost, measured not guessed.** The CLI's `total_cost_usd` under subscription auth is
+notional API dollars, which is exactly this question. Opus 5 ran $163.91 for 21 runs
+(~$7.81/run) against Opus 4.8's $103.86 for 75 (~$1.38) — **5.6x per run**, decomposing into
+~4.8x per turn and ~30% more turns. One full draw over 25 cases is ~$195; over all 37, ~$290.
+
+**Extending to 37 cases (~$94/draw more) is the more informative direction**, not merely more
+of the same: the scientific cohort is where near-abstention is most often correct, and
+over-answering is precisely Opus 5's weakness, so those 12 cases should *reduce* its measured
+advantage. `--cohort benchmark25|scientific|all` now selects it.
 
 
 ### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon

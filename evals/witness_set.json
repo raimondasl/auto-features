@@ -1,6 +1,6 @@
 {
  "_comment": "Pooled witness set (v2) with per-source provenance, reach probabilities (leave-one-source-out), digest regret, and a capture estimate. Derived by evals/witness_set.py; pinned by tests/test_witness_set.py. NOT a recall denominator: see the module docstring for what each number means.",
- "n_witnesses": 572,
+ "n_witnesses": 592,
  "n_cases": 34,
  "by_source": {
   "adoption": 19,
@@ -8,7 +8,7 @@
   "cli": 75,
   "cli-redraw": 92,
   "cli-redraw@30": 10,
-  "cli-v2-opus5@30": 158,
+  "cli-v2-opus5@30": 187,
   "cli-v2@30": 155,
   "reporadar": 189
  },
@@ -22,7 +22,7 @@
   "cli-v2@30",
   "reporadar"
  ],
- "n_non_self": 394,
+ "n_non_self": 414,
  "witnesses": {
   "ann": {
    "1603.08390": {
@@ -344,6 +344,12 @@
      "cli-redraw"
     ]
    },
+   "1908.10693": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "2004.14471": {
     "judge": 2,
     "sources": [
@@ -353,7 +359,8 @@
    "2010.03090": {
     "judge": 3,
     "sources": [
-     "cli-redraw"
+     "cli-redraw",
+     "cli-v2-opus5@30"
     ]
    },
    "2101.01719": {
@@ -390,7 +397,8 @@
    "2205.05982": {
     "judge": 2,
     "sources": [
-     "cli-redraw"
+     "cli-redraw",
+     "cli-v2-opus5@30"
     ]
    },
    "2210.06827": {
@@ -448,6 +456,18 @@
      "cli-v2@30"
     ]
    },
+   "doi:10.1145/3221269.3223036": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1145/3465998.3466009": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "doi:10.1145/3589263": {
     "judge": 2,
     "sources": [
@@ -458,6 +478,24 @@
     "judge": 2,
     "sources": [
      "cli-v2@30"
+    ]
+   },
+   "doi:10.1145/3662010.3663442": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.14778/2850583.2850585": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.14778/3303753.3303757": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "doi:10.14778/3407790.3407851": {
@@ -3277,14 +3315,16 @@
     "sources": [
      "cli",
      "cli-redraw",
-     "cli-v2@30"
+     "cli-v2@30",
+     "cli-v2-opus5@30"
     ]
    },
    "2004.05718": {
     "judge": 2,
     "sources": [
      "cli-redraw",
-     "cli-v2@30"
+     "cli-v2@30",
+     "cli-v2-opus5@30"
     ]
    },
    "2005.03300": {
@@ -3303,6 +3343,12 @@
     "judge": 2,
     "sources": [
      "cli-v2@30"
+    ]
+   },
+   "2009.00142": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "2010.05337": {
@@ -3336,6 +3382,12 @@
      "cli-redraw"
     ]
    },
+   "2203.05556": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "2205.12454": {
     "judge": 2,
     "sources": [
@@ -3348,6 +3400,18 @@
     "judge": 2,
     "sources": [
      "reporadar"
+    ]
+   },
+   "2209.15486": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "2210.13339": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "2212.05009": {
@@ -3385,7 +3449,8 @@
    "1504.00204": {
     "judge": 2,
     "sources": [
-     "cli-v2@30"
+     "cli-v2@30",
+     "cli-v2-opus5@30"
     ]
    },
    "1801.06340": {
@@ -3413,13 +3478,26 @@
      "cli-v2@30"
     ]
    },
+   "1908.10693": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "2003.10554": {
     "judge": 3,
     "sources": [
      "cli",
      "api",
      "cli-redraw",
-     "cli-v2@30"
+     "cli-v2@30",
+     "cli-v2-opus5@30"
+    ]
+   },
+   "2103.09906": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "2211.00741": {
@@ -3432,7 +3510,8 @@
     "judge": 3,
     "sources": [
      "cli",
-     "cli-redraw"
+     "cli-redraw",
+     "cli-v2-opus5@30"
     ]
    },
    "2312.01229": {
@@ -3445,6 +3524,12 @@
     "judge": 2,
     "sources": [
      "reporadar"
+    ]
+   },
+   "2504.06975": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "2509.07157": {
@@ -3476,6 +3561,12 @@
     "sources": [
      "cli-v2@30"
     ]
+   },
+   "doi:10.1145/3448016.3457559": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
    }
   },
   "thin-lang": {
@@ -3490,6 +3581,12 @@
     "judge": 2,
     "sources": [
      "reporadar"
+    ]
+   },
+   "1807.06702": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "1808.00225": {
@@ -3513,7 +3610,14 @@
    "doi:10.1007/978-3-642-37051-9_6": {
     "judge": 2,
     "sources": [
-     "cli-v2@30"
+     "cli-v2@30",
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1145/1993498.1993532": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "doi:10.1145/2666356.2594324": {
@@ -3528,10 +3632,35 @@
      "cli-v2@30"
     ]
    },
+   "doi:10.1145/3062341.3062343": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1145/3180155.3180236": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "doi:10.1145/3236774": {
     "judge": 2,
     "sources": [
-     "cli-v2@30"
+     "cli-v2@30",
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1145/3519939.3523427": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1145/3597926.3604919": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    }
   },
@@ -3760,12 +3889,12 @@
     ]
    },
    "cli-v2-opus5@30": {
-    "n": 158,
-    "reached": 19,
-    "p": 0.12,
+    "n": 187,
+    "reached": 21,
+    "p": 0.112,
     "ci": [
-     0.078,
-     0.18
+     0.075,
+     0.166
     ]
    },
    "cli-v2@30": {
@@ -3778,12 +3907,12 @@
     ]
    },
    "pooled_non_self": {
-    "n": 354,
-    "reached": 47,
-    "p": 0.133,
+    "n": 374,
+    "reached": 48,
+    "p": 0.128,
     "ci": [
-     0.101,
-     0.172
+     0.098,
+     0.166
     ]
    }
   },
@@ -3845,12 +3974,12 @@
     ]
    },
    "cli-v2-opus5@30": {
-    "n": 158,
-    "reached": 17,
-    "p": 0.108,
+    "n": 187,
+    "reached": 19,
+    "p": 0.102,
     "ci": [
-     0.068,
-     0.166
+     0.066,
+     0.153
     ]
    },
    "cli-v2@30": {
@@ -3863,12 +3992,12 @@
     ]
    },
    "pooled_non_self": {
-    "n": 394,
-    "reached": 65,
-    "p": 0.165,
+    "n": 414,
+    "reached": 66,
+    "p": 0.159,
     "ci": [
-     0.132,
-     0.205
+     0.127,
+     0.198
     ]
    }
   }
@@ -3893,7 +4022,7 @@
    },
    "columnar": {
     "actual_net2": 7,
-    "witnesses_available": 16,
+    "witnesses_available": 22,
     "fills": 5,
     "swaps": 1,
     "regret": 8
@@ -4019,24 +4148,24 @@
    },
    "thin-gnn": {
     "actual_net2": 2,
-    "witnesses_available": 11,
+    "witnesses_available": 15,
     "fills": 4,
     "swaps": 3,
     "regret": 13
    },
    "thin-kv": {
     "actual_net2": 6,
-    "witnesses_available": 6,
+    "witnesses_available": 10,
     "fills": 3,
     "swaps": 2,
     "regret": 9
    },
    "thin-lang": {
     "actual_net2": 1,
-    "witnesses_available": 8,
-    "fills": 8,
+    "witnesses_available": 14,
+    "fills": 14,
     "swaps": 0,
-    "regret": 8
+    "regret": 14
    },
    "vectordb": {
     "actual_net2": 1,
@@ -4054,7 +4183,7 @@
    }
   },
   "mean_actual_net2": 5.72,
-  "mean_regret": 7.28
+  "mean_regret": 7.52
  },
  "capture": {
   "cli_draws": {
@@ -4094,11 +4223,11 @@
    }
   },
   "source_overlap": {
-   "1": 470,
-   "2": 61,
-   "3": 20,
+   "1": 485,
+   "2": 64,
+   "3": 21,
    "4": 13,
-   "5": 5,
+   "5": 6,
    "6": 2,
    "7": 1
   }

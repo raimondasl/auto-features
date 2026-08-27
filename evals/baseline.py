@@ -162,6 +162,25 @@ PROMPTS = {"v1": BASELINE_PROMPT, "v2": BASELINE_PROMPT_V2}
 # its exact path and its pinned discriminator.
 DEFAULT_MODEL = BASELINE_MODEL
 
+# Reasoning effort. `None` means "pass no --effort flag and take whatever the CLI defaults
+# to", which is what every run before 2026-08-27 did, knowingly or not.
+#
+# Measured that day, because it would have confounded the Opus 4.8 / Opus 5 comparison:
+# `--effort` moves output volume ~4.5x between `low` and `max`, and the CLI's unflagged
+# default measures as `high` on both models. So the two sweeps ARE comparable. But note how
+# nearly that went the other way -- `CLAUDE_EFFORT=xhigh` is set in this project's shell and
+# `_run_cli` copies the environment, so it looked for a while as though every baseline had
+# been running at a non-default effort. `claude -p` ignores the variable entirely (env low
+# vs max: 2125 vs 2143 output tokens; flag low vs max: 1047 vs 4662). Reading the code and
+# the environment gave the wrong answer; only running it gave the right one.
+#
+# It is recorded on every run from here on because the CLI's JSON payload does NOT report
+# it -- not in `usage`, not in `modelUsage` -- so for the 34 caches written before today the
+# effort they ran at is unrecoverable. The exposure is not today (everything used the
+# default) but a future default change making old and new caches incomparable while the
+# discriminator still matches.
+DEFAULT_EFFORT = None
+
 
 def model_tag(model: str) -> str:
     """A short, filesystem- and label-safe name for a model id.
@@ -208,6 +227,7 @@ def flags_for(
     *,
     max_turns: int | None = None,
     model: str | None = None,
+    effort: str | None = None,
 ) -> list[str]:
     """`CLAUDE_FLAGS` with the turn cap and/or model substituted. Built, never retyped.
 
@@ -223,7 +243,7 @@ def flags_for(
     product, which is the C-3 rule.
     """
     flags = list(base if base is not None else CLAUDE_FLAGS)
-    for name, value in (("--max-turns", max_turns), ("--model", model)):
+    for name, value in (("--max-turns", max_turns), ("--model", model), ("--effort", effort)):
         if value is None:
             continue
         if name in flags:
@@ -292,6 +312,7 @@ def _cache_path(
     repo_name: str,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
+    effort: str | None = DEFAULT_EFFORT,
 ) -> Path:
     """Where a run's answer is stored. **The prompt version is part of the location.**
 
@@ -312,6 +333,11 @@ def _cache_path(
         parts.append(prompt_version)
     if model != DEFAULT_MODEL:
         parts.append(model_tag(model))
+    if effort != DEFAULT_EFFORT:
+        # Only when PINNED. An unpinned run keeps the path it has always had, so nothing
+        # moves; a pinned one gets its own, so a `--effort max` sweep cannot overwrite the
+        # answers a default-effort sweep produced. Same rule as the model and the prompt.
+        parts.append(f"effort{effort}")
     return CACHE_DIR / "-".join(parts) / f"{safe}.json"
 
 
@@ -321,6 +347,7 @@ def _discriminator(
     flags: list[str] | None,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
+    effort: str | None = DEFAULT_EFFORT,
 ) -> str:
     """Hash the inputs that change the baseline's answer, so a model/prompt/flag
     (or, for api mode, repo-context) change invalidates a stale cached run.
@@ -330,6 +357,13 @@ def _discriminator(
     stable name -- the version equivalent of a cache key that stops tracking its input.
     """
     parts = [model, prompt_for(prompt_version), mode]
+    # Appended ONLY when pinned. `cli_auth_mode` had to be recorded-not-hashed because
+    # hashing it would have invalidated all 34 caches at once (the 2026-08-09 mistake), and
+    # effort would face the same problem if an unpinned run contributed `None` to the hash.
+    # Appending conditionally avoids the trade entirely: today's unpinned configuration keeps
+    # `da766b38114e` byte-for-byte, and a pinned run gets a hash that genuinely tracks it.
+    if effort != DEFAULT_EFFORT:
+        parts.append(f"effort={effort}")
     if mode == "api":
         parts.append(repo_context)
     elif mode == "cli":
@@ -460,6 +494,7 @@ def _run_cli(
     timeout: int,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
+    effort: str | None = DEFAULT_EFFORT,
 ) -> dict[str, Any]:
     claude_bin = os.environ.get("RR_EVAL_CLAUDE_BIN", "claude")
     env_flags = os.environ.get("RR_EVAL_CLAUDE_FLAGS")
@@ -467,7 +502,7 @@ def _run_cli(
     # The model wins over whatever the flag list carried. `run_baseline` hashes and paths on
     # `model`, so the subprocess has to be running that model or the cache entry is a label
     # attached to the wrong answer.
-    flag_list = flags_for(base, model=model)
+    flag_list = flags_for(base, model=model, effort=effort)
     cmd = [claude_bin, "-p", *flag_list, prompt_for(prompt_version)]
 
     auth = cli_auth_mode(claude_bin)
@@ -643,6 +678,7 @@ def run_baseline(
     timeout: int = 900,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
+    effort: str | None = DEFAULT_EFFORT,
 ) -> dict[str, Any]:
     """Run the baseline for one repo. Returns {ids, titles, raw, cost_usd, status}.
 
@@ -652,8 +688,8 @@ def run_baseline(
     """
     effective_mode = "mock" if mock else mode
     prompt_for(prompt_version)  # fail here, not after paying for a run under a typo'd version
-    cache_file = _cache_path(effective_mode, repo_name, prompt_version, model)
-    disc = _discriminator(effective_mode, repo_context, flags, prompt_version, model)
+    cache_file = _cache_path(effective_mode, repo_name, prompt_version, model, effort)
+    disc = _discriminator(effective_mode, repo_context, flags, prompt_version, model, effort)
 
     if use_cache and cache_file.exists():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -694,6 +730,7 @@ def run_baseline(
             timeout=timeout,
             prompt_version=prompt_version,
             model=model,
+            effort=effort,
         )
 
     out["_disc"] = disc
@@ -702,6 +739,9 @@ def run_baseline(
     # answer for those is v1 by construction (it was the only prompt that existed).
     out["prompt_version"] = prompt_version
     out["model"] = model
+    # `None` means "the CLI default, whatever that was on this date and version" -- an honest
+    # record of an unpinned run, and distinguishable from a run that pinned a level.
+    out["effort"] = effort
     if mode == "cli" and not mock:
         # Recorded, not hashed. A present ANTHROPIC_API_KEY changes which tools the CLI
         # offers the agent, so two `cli` runs under different auth are not self-evidently
