@@ -638,11 +638,37 @@ def load_frozen_pool(
     return papers
 
 
+def flag_values(args: argparse.Namespace, names: tuple[str, ...]) -> dict[str, Any]:
+    """`{flag: value}` for a flag group, read off `args` and driven by the group constant.
+
+    Written this way rather than as a hand-listed block for the reason `KEYWORD_SOURCES`
+    drives its fetcher loop: a constant and a hand-maintained mirror of it drift, and the
+    drift is silent. An audit on 2026-08-27 found **7 of the 12 POOL_FLAGS absent from every
+    run record** -- `rr_all_time`, `rr_prose_chars`, `rr_hyde`, `rr_hyde_index`,
+    `rr_hyde_hypotheses`, `rr_hyde_top_k`, `rr_triage_model`. So no artifact could answer
+    "was HyDE on?", and reconstructing the configuration of the 2026-08-21 bio arm required a
+    prose section of RESEARCH-scientific-software.md after the fingerprint guard rejected two
+    attempts at reproducing it.
+
+    That is the gap `digest_window` was recorded to close, in its original words: "an arm
+    cannot be reported under a window its own run file contradicts." A flag that decides the
+    pool deserves the same, and now gets it by construction rather than by remembering.
+
+    Paths are stringified because a `Path` is not JSON; everything else is already scalar.
+    """
+    out: dict[str, Any] = {}
+    for name in names:
+        value = getattr(args, name, None)
+        out[name] = str(value) if isinstance(value, Path) else value
+    return out
+
+
 def save_frozen_pool(
     pool_dir: Path,
     case_name: str,
     fingerprint: str,
     candidates: list[dict[str, Any]],
+    pool_config: dict[str, Any] | None = None,
 ) -> None:
     """Store the pool as collected, before ranking.
 
@@ -662,6 +688,12 @@ def save_frozen_pool(
                 # The flag SET the fingerprint was computed over, so a later mismatch can
                 # name what changed instead of printing two opaque hashes at the reader.
                 "pool_flags": list(POOL_FLAGS),
+                # The flag VALUES, not only their names. `pool_flags` alone lets a mismatch
+                # say which dimension appeared or vanished; it cannot say what the pool was
+                # collected AT, so a stranded pool could not describe itself and the settings
+                # had to be recovered from prose. Additive: pools written before this carry
+                # no `pool_config` and still read.
+                "pool_config": pool_config or {},
                 "collected_at": datetime.now(UTC).isoformat(),
                 "n": len(candidates),
                 "candidates": candidates,
@@ -869,7 +901,13 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             typed_anchors=args.rr_typed_anchors,
         )
         if args.rr_frozen_pool is not None:
-            save_frozen_pool(args.rr_frozen_pool, name, fingerprint, candidates)
+            save_frozen_pool(
+                args.rr_frozen_pool,
+                name,
+                fingerprint,
+                candidates,
+                pool_config=flag_values(args, POOL_FLAGS),
+            )
             pool_mode, collected_at = "frozen-seeded", datetime.now(UTC).isoformat()
             print(
                 f"        FROZEN POOL SEEDED: {len(candidates)} candidates written "
@@ -1084,6 +1122,11 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         # run file contradicts.
         "digest_window": args.rr_window,
         "sources": list(args.sources),
+        # Every flag that decides the pool, and every flag that decides the ranking, by
+        # construction. The individual keys above (sources, bigram_mode, digest_window, ...)
+        # stay for the reports that read them; these two are the complete record.
+        "pool_config": flag_values(args, POOL_FLAGS),
+        "ranking_config": flag_values(args, RANKING_FLAGS),
         "pool_size": len(pool_gains),
         "n_actionable_in_pool": n_relevant,
         "n_judge_failed": n_judge_failed,
