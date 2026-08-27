@@ -102,7 +102,7 @@ OUT = EVALS / "gold_spread.json"
 GOLD = EVALS / "gold_targets.json"
 
 
-def out_path(prompt_version: str) -> Path:
+def out_path(prompt_version: str, model: str = baseline_mod.DEFAULT_MODEL) -> Path:
     """One artifact per prompt version, rather than one artifact with a version column.
 
     Rows are keyed `{draw}/{case}`, and every analysis in `report` splits that key. A v2 draw
@@ -111,9 +111,12 @@ def out_path(prompt_version: str) -> Path:
     draw impossible to mistake for a v1 one, which is the same rule `report` already applies
     to turn caps: different configuration, different figures, never averaged.
     """
-    if prompt_version == baseline_mod.DEFAULT_PROMPT_VERSION:
-        return OUT
-    return EVALS / f"gold_spread_{prompt_version}.json"
+    parts = []
+    if prompt_version != baseline_mod.DEFAULT_PROMPT_VERSION:
+        parts.append(prompt_version)
+    if model != baseline_mod.DEFAULT_MODEL:
+        parts.append(baseline_mod.model_tag(model))
+    return OUT if not parts else EVALS / f"gold_spread_{'_'.join(parts)}.json"
 
 
 DRAWS = 3
@@ -121,6 +124,21 @@ DRAWS = 3
 # no published figure includes them; mixing them in would answer a question nobody asked.
 COHORT = "benchmark25"
 MAX_FAILED_PER_DRAW = 3  # kill condition
+
+# Run-level statuses that mean **the model was never asked**, so the row is not a
+# measurement and must not be treated as one. A `throttled` row is our quota running out; a
+# `no_cli_login` row is our session; neither says anything about the searcher, the prompt or
+# the repository. Both are recorded (never silently dropped) and both are re-attempted.
+#
+# `error` and `timeout` stay terminal on purpose: those are runs where the agent WAS asked
+# and could not finish, which is a fact about the configuration and belongs in the failure
+# rate `report` prints. The distinction is `lookup_failed` vs `unjudgeable` one level up.
+#
+# Learned the expensive way. The 2026-08-27 Opus 5 sweep exhausted the subscription 21 runs
+# in; the other 54 rows were recorded as terminal `error` in ~400 ms each, and `report` then
+# showed draws 2 and 3 at a 100% failure rate. That reads as "Opus 5 cannot do this" when it
+# means "we ran out of credit", and no re-invocation would ever have revisited them.
+UNASKED = ("throttled", "no_cli_login")
 
 
 def cohort_cases(bench: dict[str, Any]) -> list[dict[str, Any]]:
@@ -137,17 +155,17 @@ def _judge_cached(case: str, paper_id: str) -> int | None:
     return None
 
 
-def _turn_flags(max_turns: int) -> list[str] | None:
-    """`CLAUDE_FLAGS` with the cap replaced, or None to use the shipped list unchanged.
+def _turn_flags(max_turns: int, model: str = baseline_mod.DEFAULT_MODEL) -> list[str] | None:
+    """The shipped flags with this run's cap and model, or None when both are the defaults.
 
-    Built from the shipped list rather than retyped, so a change to the model or the allowed
-    tools cannot silently diverge between the probe and the product (the C-3 rule).
+    The substitution now lives in `baseline.flags_for` rather than here: two places editing
+    the same flag list is how the probe and the product drift, and the model axis needed the
+    identical operation. Returning None for the default pair keeps `_run_cli` on the shipped
+    list exactly, so nothing about the published configuration is rebuilt at all.
     """
-    if max_turns == baseline_mod.DEFAULT_MAX_TURNS:
+    if max_turns == baseline_mod.DEFAULT_MAX_TURNS and model == baseline_mod.DEFAULT_MODEL:
         return None
-    flags = list(baseline_mod.CLAUDE_FLAGS)
-    flags[flags.index("--max-turns") + 1] = str(max_turns)
-    return flags
+    return baseline_mod.flags_for(max_turns=max_turns, model=model)
 
 
 def run_baseline_only(
@@ -155,6 +173,7 @@ def run_baseline_only(
     *,
     max_turns: int,
     prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION,
+    model: str = baseline_mod.DEFAULT_MODEL,
 ) -> dict[str, Any]:
     """Phase A: the agentic run alone. **Touches no network service we rate-limit.**
 
@@ -173,8 +192,9 @@ def run_baseline_only(
         repo_context=assemble_repo_context(dest),
         mode="cli",
         use_cache=False,  # never read, never write -- the stored gold set is untouchable here
-        flags=_turn_flags(max_turns),
+        flags=_turn_flags(max_turns, model),
         prompt_version=prompt_version,
+        model=model,
     )
     elapsed = round(time.monotonic() - started, 1)
     if result.get("status") != "ok":
@@ -185,6 +205,7 @@ def run_baseline_only(
             "raw": (result.get("raw") or "")[:160],
             "max_turns": max_turns,
             "prompt_version": prompt_version,
+            "model": model,
             "duration_s": elapsed,
         }
     return {
@@ -201,6 +222,7 @@ def run_baseline_only(
         "cost_usd": result.get("cost_usd", 0.0),
         "max_turns": max_turns,
         "prompt_version": prompt_version,
+        "model": model,
         "duration_s": elapsed,
     }
 
@@ -335,10 +357,16 @@ def repair_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, 
     }
 
 
-def load_artifact(prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION) -> dict[str, Any]:
-    path = out_path(prompt_version)
+def load_artifact(
+    prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION,
+    model: str = baseline_mod.DEFAULT_MODEL,
+) -> dict[str, Any]:
+    path = out_path(prompt_version, model)
     if path.is_file():
         stored = json.loads(path.read_text(encoding="utf-8"))
+        found_model = stored.get("model", baseline_mod.DEFAULT_MODEL)
+        if found_model != model:
+            raise SystemExit(f"! {path.name} was written by {found_model!r}, not {model!r}.")
         # An artifact that does not say which prompt produced it is v1: it predates the
         # versions. Anything that says otherwise is a file being opened under the wrong flag,
         # and merging the two would mix configurations under one set of draw numbers.
@@ -358,12 +386,16 @@ def load_artifact(prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION) -> 
         "cohort": COHORT,
         "draws": DRAWS,
         "prompt_version": prompt_version,
+        "model": model,
         "results": {},
     }
 
 
 def save(artifact: dict[str, Any]) -> None:
-    path = out_path(artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION))
+    path = out_path(
+        artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION),
+        artifact.get("model", baseline_mod.DEFAULT_MODEL),
+    )
     path.write_text(json.dumps(artifact, indent=1) + "\n", encoding="utf-8")
 
 
@@ -400,8 +432,15 @@ def report(artifact: dict[str, Any]) -> int:
     ok_by_draw: dict[int, list[str]] = {}
     partial_by_draw: dict[int, list[str]] = {}
     failed_by_draw: dict[int, list[str]] = {}
+    unasked_by_draw: dict[int, list[str]] = {}
     for key, row in artifact["results"].items():
         d, case = key.split("/", 1)
+        if row["status"] in UNASKED:
+            # Void, not null: the run never happened, so it is neither a success nor a
+            # failure of this configuration. Reported separately so a reader can see the
+            # draw is incomplete rather than concluding the searcher failed on it.
+            unasked_by_draw.setdefault(int(d), []).append(case)
+            continue
         bucket = (
             ok_by_draw
             if row["status"] == "ok"
@@ -424,7 +463,9 @@ def report(artifact: dict[str, Any]) -> int:
             "  the pre-registered decision rule does NOT apply to them."
         )
     print(f"frozen {COHORT} gold set: {n_frozen} targets / {len(frozen)} cases")
-    all_draws = sorted(set(ok_by_draw) | set(partial_by_draw) | set(failed_by_draw))
+    all_draws = sorted(
+        set(ok_by_draw) | set(partial_by_draw) | set(failed_by_draw) | set(unasked_by_draw)
+    )
     for d in all_draws:
         good = ok_by_draw.get(d, [])
         part = partial_by_draw.get(d, [])
@@ -437,14 +478,20 @@ def report(artifact: dict[str, Any]) -> int:
             if len(bad) > MAX_FAILED_PER_DRAW
             else ""
         )
+        # A rate needs attempts in its denominator. When a draw was entirely throttled there
+        # are none, and printing "0% failure rate" would say the draw went perfectly — the
+        # void-as-null error arriving in the reporting layer, after the artifact got it right.
+        rate = f"{len(bad) / n:.0%} failure rate" if n else "NOT RUN — no attempts to rate"
         print(
             f"  draw {d}: {len(good)} ok, {len(part)} partial (excluded from counts), "
-            f"{len(bad)} failed = {len(bad) / n:.0%} failure rate{flag}"
+            f"{len(bad)} failed = {rate}{flag}"
         )
         if bad:
             print(f"           failed: {sorted(bad)}")
         if part:
             print(f"           partial: {sorted(part)}")
+        if never := unasked_by_draw.get(d, []):
+            print(f"           NEVER RUN (quota/login, not a result): {sorted(never)}")
 
     # Draws are DISCOVERED, not assumed to be 1..DRAWS: a `--draws 4` trial would otherwise
     # be recorded and silently omitted from every figure below.
@@ -570,6 +617,15 @@ def main() -> int:
         ),
     )
     ap.add_argument(
+        "--baseline-model",
+        default=baseline_mod.DEFAULT_MODEL,
+        help=(
+            "Which model the baseline runs. Named `--baseline-model` because `--model` is "
+            "already the JUDGE's, and one flag silently setting the other would be a probe "
+            "measuring something other than its name. Each model writes its OWN artifact."
+        ),
+    )
+    ap.add_argument(
         "--concurrency",
         type=int,
         default=1,
@@ -577,7 +633,7 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    artifact = load_artifact(args.prompt_version)
+    artifact = load_artifact(args.prompt_version, args.baseline_model)
     if args.report:
         return report(artifact)
 
@@ -592,7 +648,13 @@ def main() -> int:
 
     by_key = artifact["results"]
     todo_baseline = [
-        (d, c) for d in range(1, args.draws + 1) for c in cases if f"{d}/{c['name']}" not in by_key
+        (d, c)
+        for d in range(1, args.draws + 1)
+        for c in cases
+        # Absent, or present but never actually asked. Keying resume purely on presence is
+        # what would have frozen 54 quota failures into a permanent 100% failure rate.
+        if by_key.get(f"{d}/{c['name']}", {}).get("status", "__absent__")
+        in ("__absent__", *UNASKED)
     ]
     todo_judge = [k for k, row in by_key.items() if row.get("phase") == "baseline"]
     # A partial row used to be partial forever: it carries `phase: "judged"`, so no
@@ -608,9 +670,10 @@ def main() -> int:
     )
     print(
         f"turn cap: {args.max_turns}   prompt: {args.prompt_version}"
+        f"   baseline model: {args.baseline_model}"
         f"   phase-A concurrency: {args.concurrency}"
     )
-    print(f"artifact: {out_path(args.prompt_version).name}")
+    print(f"artifact: {out_path(args.prompt_version, args.baseline_model).name}")
     if args.dry_run:
         print("\n(dry run)")
         return 0
@@ -646,6 +709,7 @@ def main() -> int:
                     case,
                     max_turns=args.max_turns,
                     prompt_version=args.prompt_version,
+                    model=args.baseline_model,
                 ): (draw, case)
                 for draw, case in todo_baseline
             }
@@ -705,13 +769,14 @@ def main() -> int:
                 f"target(s)  [{row['status']}]"
             )
 
-    # `out_path`, not `OUT`. The version reached the read path and the write path but not
-    # this line, so a v2 run that correctly wrote `gold_spread_v2.json` announced that it had
-    # written `gold_spread.json` -- the file holding every published denominator. Nothing was
-    # damaged, but the only thing a reader had to go on said otherwise, and "did the run just
-    # destroy the v1 artifact" is not a question a status line should raise. C-29 was the
-    # same omission one path over.
-    print(f"\nwrote {out_path(args.prompt_version).name}\n")
+    # Every axis, every time. The prompt version reached the read path and the write path but
+    # not this line, so a v2 run that correctly wrote `gold_spread_v2.json` announced that it
+    # had written `gold_spread.json` -- the file holding every published denominator. Adding
+    # the model axis missed the SAME line again, which is the argument for taking the name
+    # from `out_path` rather than assembling it: the function that owns the answer is the one
+    # that should be asked, and a status line that has to be updated per axis will be wrong
+    # once per axis. C-29 was this omission one path over.
+    print(f"\nwrote {out_path(args.prompt_version, args.baseline_model).name}\n")
     return report(artifact)
 
 
