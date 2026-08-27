@@ -1,14 +1,14 @@
 {
  "_comment": "Pooled witness set (v2) with per-source provenance, reach probabilities (leave-one-source-out), digest regret, and a capture estimate. Derived by evals/witness_set.py; pinned by tests/test_witness_set.py. NOT a recall denominator: see the module docstring for what each number means.",
- "n_witnesses": 592,
- "n_cases": 34,
+ "n_witnesses": 638,
+ "n_cases": 36,
  "by_source": {
   "adoption": 19,
   "api": 50,
   "cli": 75,
   "cli-redraw": 92,
   "cli-redraw@30": 10,
-  "cli-v2-opus5@30": 187,
+  "cli-v2-opus5@30": 234,
   "cli-v2@30": 155,
   "reporadar": 189
  },
@@ -22,7 +22,7 @@
   "cli-v2@30",
   "reporadar"
  ],
- "n_non_self": 414,
+ "n_non_self": 460,
  "witnesses": {
   "ann": {
    "1603.08390": {
@@ -188,6 +188,48 @@
     "sources": [
      "cli"
     ]
+   },
+   "doi:10.1038/s41592-022-01457-8": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s43588-022-00201-8": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1093/bioinformatics/btaa435": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1093/bioinformatics/btad074": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1093/bioinformatics/btag083": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1371/journal.pcbi.1010638": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.4230/lipics.wabi.2024.11": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
    }
   },
   "bio-kmer": {
@@ -209,6 +251,12 @@
      "cli"
     ]
    },
+   "2101.00314": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "2208.10578": {
     "judge": 2,
     "sources": [
@@ -220,19 +268,104 @@
     "sources": [
      "cli"
     ]
+   },
+   "doi:10.1038/s41587-024-02412-y": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1089/cmb.2024.0714": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1093/bioinformatics/btae047": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1101/gr.277651.123": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1101/gr.277655.123": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1186/s13015-024-00251-9": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1186/s13015-025-00276-8": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1186/s13059-023-02961-6": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.14778/2735508.2735518": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
    }
   },
   "bio-mdsim": {
+   "1105.5749": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1307.1167": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1708.01539": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1909.07250": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
    "2006.09250": {
     "judge": 3,
     "sources": [
-     "cli"
+     "cli",
+     "cli-v2-opus5@30"
     ]
    },
    "2201.08110": {
     "judge": 2,
     "sources": [
      "api"
+    ]
+   },
+   "2201.09950": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    },
    "2202.02541": {
@@ -271,6 +404,154 @@
     "judge": 3,
     "sources": [
      "cli"
+    ]
+   }
+  },
+  "bio-scvi": {
+   "1507.02646": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1606.04934": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1802.02538": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1903.10145": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "1907.04809": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "2407.11734": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "2506.01883": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41467-020-19894-4": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41556-022-01072-x": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41588-021-00873-4": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41592-023-02035-2": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1073/pnas.2209124120": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1093/bib/bbaf397": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1101/gr.279886.124": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1186/s13059-025-03869-z": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.15252/msb.202211517": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   }
+  },
+  "bio-singlecell": {
+   "2207.00554": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1016/j.csbj.2021.06.043": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41467-019-13055-y": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41467-019-13056-x": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1038/s41592-025-02624-3": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1093/nargab/lqae124": {
+    "judge": 2,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1101/gr.280926.125": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
+    ]
+   },
+   "doi:10.1186/s13059-019-1861-6": {
+    "judge": 3,
+    "sources": [
+     "cli-v2-opus5@30"
     ]
    }
   },
@@ -3974,12 +4255,12 @@
     ]
    },
    "cli-v2-opus5@30": {
-    "n": 187,
-    "reached": 19,
-    "p": 0.102,
+    "n": 234,
+    "reached": 20,
+    "p": 0.085,
     "ci": [
-     0.066,
-     0.153
+     0.056,
+     0.128
     ]
    },
    "cli-v2@30": {
@@ -3992,12 +4273,12 @@
     ]
    },
    "pooled_non_self": {
-    "n": 414,
-    "reached": 66,
-    "p": 0.159,
+    "n": 460,
+    "reached": 67,
+    "p": 0.146,
     "ci": [
-     0.127,
-     0.198
+     0.116,
+     0.181
     ]
    }
   }
@@ -4223,8 +4504,8 @@
    }
   },
   "source_overlap": {
-   "1": 485,
-   "2": 64,
+   "1": 530,
+   "2": 65,
    "3": 21,
    "4": 13,
    "5": 6,
