@@ -1144,6 +1144,69 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### OpenAlex collides too — less, and differently. **[P23]**
+
+The same probe, the other source, run before any judge call. OpenAlex is a *general* index
+rather than a biomedical one, so the prediction was that it might not collide at all. It does,
+on nearly half of what it returns.
+
+| | Europe PMC (P22) | **OpenAlex (P23)** |
+|---|---|---|
+| repositories returning nothing | 0 / 25 | **0 / 25** |
+| hits | 1,721 | 1,740 |
+| off-domain | **68%** (MeSH-indexed) | **48%** (field not CS-adjacent) |
+| range across repositories | 57%–87% | **24%–84%** |
+
+**The instrument is better here, and that matters.** OpenAlex labels every work with
+`primary_topic.field` — its own 26-field taxonomy. No marker list, no field that can be
+silently empty (the P22 failure), and it reports *which* discipline came back:
+
+| field | share | |
+|---|---|---|
+| Computer Science | 34% | on |
+| Biochemistry, Genetics and Molecular Biology | 15% | **off** |
+| Medicine | 8% | **off** |
+| Engineering | 6% | on |
+| Physics and Astronomy | 5% | on |
+| Social Sciences | 5% | **off** |
+| Decision Sciences | 4% | on |
+| Materials Science | 3% | **off** |
+| Mathematics | 2% | on |
+| Neuroscience | 2% | **off** |
+
+**Computer Science is the largest single field and still a minority.** OpenAlex genuinely
+reaches the ACM/IEEE/VLDB literature Europe PMC structurally cannot — 599 CS works — but
+brings a great deal else with it.
+
+**The wider spread is the finding.** 24% (`speech`) to 84% (`webdev`), against Europe PMC's
+much flatter 57–87%. Repositories with distinctive technical vocabularies retrieve cleanly —
+`speech` 24%, `cv` 29%, `crypto` 30%. Repositories whose profiles yield generic English do
+not: `webdev` 84%, `systems` 73%, `thin-kv` 72%.
+
+That is P22's conclusion arriving a second time by a different route: **the collision is a
+property of the QUERY, not of the source and not of the repository.** A domain classifier
+routing sources per repository cannot fix `webdev`, because `webdev` is a perfectly ordinary
+software project whose queries happen to be common words.
+
+**Verdict, both probes together.** No multi-source default and no per-domain routing. What
+the evidence supports is a **relevance condition on non-arXiv results** — precisely what the
+ranker's category component would supply if uncategorised papers did not escape it (§9's
+measured bias, 18 of 32 papers moved). That is a ranking change, and it is the same fix for
+both sources, which is the strongest argument that it is the right one.
+
+**If a source is to be switched on anyway, OpenAlex is the one** — a third less noise, real
+CS coverage, and a field label already attached to every result that a filter could read
+without any new machinery.
+
+#### A label that lied, caught before it was quoted
+
+`report()` printed "repositories **Europe PMC** returned NOTHING for" and "a high
+**biomedical** share" regardless of `--source`, so the OpenAlex run's output described itself
+as a Europe PMC result. Nothing numeric was wrong; the frame around the numbers was. Fixed to
+read the source, and the two artifacts are separate files (`europepmc_collision.json`,
+`openalex_collision.json`) because they measure different quantities under different
+taxonomies and a single file would invite exactly the averaging they cannot support.
+
 ### Europe PMC answers a compiler confidently, and 68% of what it says is biology. **[P22]**
 
 P21 measured Europe PMC at **+4.00 net@2** on the six bio repositories, by *coverage* rather

@@ -31,7 +31,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-FROZEN = ROOT / "evals" / "epmc_collision.json"
+FROZEN = ROOT / "evals" / "europepmc_collision.json"
+OA = ROOT / "evals" / "openalex_collision.json"
 
 
 @pytest.fixture(scope="module")
@@ -133,3 +134,60 @@ class TestTheFlagIsSoundThisTime:
             for h in r["sample"]:
                 assert h["query"] in r["queries"], case
                 assert h["title"], case
+
+
+class TestTheOpenAlexArm:
+    """P23: the same probe, the other source, and a better instrument.
+
+    OpenAlex labels every work with `primary_topic.field` — its own 26-field taxonomy. That
+    needs no marker list, cannot silently read an empty field (the P22 failure), and reports
+    WHICH discipline came back rather than a yes/no.
+    """
+
+    @pytest.fixture(scope="class")
+    def oa(self) -> dict:
+        return json.loads(OA.read_text(encoding="utf-8"))
+
+    def test_openalex_is_cleaner_than_europe_pmc_but_not_clean(self, oa, artifact):
+        """48% against 68%. The headline is the comparison, not either number alone — and
+        neither supports switching a source on for every repository."""
+        oa_off = sum(r["n_off_domain"] for r in oa["cases"].values())
+        oa_tot = sum(r["n_hits"] for r in oa["cases"].values())
+        epmc_bio = sum(r["n_biomedical"] for r in artifact["cases"].values())
+        epmc_tot = sum(r["n_hits"] for r in artifact["cases"].values())
+        assert round(oa_off / oa_tot, 2) == 0.48
+        assert oa_off / oa_tot < epmc_bio / epmc_tot
+
+    def test_it_still_answers_every_repository(self, oa):
+        assert [c for c, r in oa["cases"].items() if r["n_hits"] == 0] == []
+
+    def test_computer_science_is_the_largest_field_but_a_minority(self, oa):
+        """34% — the single biggest field, and nowhere near a majority. OpenAlex CAN reach
+        the ACM/IEEE/VLDB literature Europe PMC structurally cannot; it just brings a great
+        deal else along."""
+        agg: dict[str, int] = {}
+        for r in oa["cases"].values():
+            for f, n in r["fields"].items():
+                agg[f] = agg.get(f, 0) + n
+        top = max(agg, key=agg.get)
+        assert top == "Computer Science"
+        assert 0.30 < agg[top] / sum(agg.values()) < 0.40
+
+    def test_the_spread_is_much_wider_than_europe_pmcs(self, oa, artifact):
+        """24% (`speech`) to 84% (`webdev`), against Europe PMC's 57–87%. The width is the
+        finding: distinctive technical vocabularies retrieve cleanly, generic English does
+        not — so the axis is the QUERY, which is what rules out per-domain routing."""
+        oa_shares = [r["off_domain_share"] for r in oa["cases"].values()]
+        epmc_shares = [r["biomedical_share"] for r in artifact["cases"].values()]
+        assert max(oa_shares) - min(oa_shares) > max(epmc_shares) - min(epmc_shares)
+        assert min(oa_shares) < 0.30 and max(oa_shares) > 0.80
+
+    def test_the_field_counts_reconcile_with_the_hits(self, oa):
+        for case, r in oa["cases"].items():
+            assert sum(r["fields"].values()) == r["n_hits"], case
+
+    def test_both_arms_share_one_query_builder(self, oa, artifact):
+        """The part that had to be shared: a probe measuring a query set no run sends would
+        answer a question about itself. Same repositories, same queries, both sources."""
+        for case in artifact["cases"]:
+            assert oa["cases"][case]["queries"] == artifact["cases"][case]["queries"], case

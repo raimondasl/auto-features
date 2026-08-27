@@ -1,0 +1,2212 @@
+{
+ "_comment": "What openalex returns for the core-25 repositories' own queries. No LLM and no judge calls. Europe PMC is classified by MeSH/Index Medicus (P22); OpenAlex by its own primary_topic.field taxonomy (P23). Derived by evals/epmc_collision.py, pinned by tests/test_epmc_collision.py.",
+ "source": "openalex",
+ "per_query_hits": 10,
+ "cases": {
+  "rag": {
+   "queries": [
+    "functions",
+    "indexer",
+    "searcher functions",
+    "trainer functions",
+    "trainer"
+   ],
+   "hits_per_query": {
+    "functions": 10,
+    "indexer": 10,
+    "searcher functions": 10,
+    "trainer functions": 10,
+    "trainer": 10
+   },
+   "n_hits": 50,
+   "n_off_domain": 19,
+   "off_domain_share": 0.38,
+   "fields": {
+    "Computer Science": 16,
+    "Mathematics": 7,
+    "Physics and Astronomy": 5,
+    "Biochemistry, Genetics and Molecular Biology": 4,
+    "Psychology": 3,
+    "Medicine": 3,
+    "Immunology and Microbiology": 3,
+    "Decision Sciences": 2,
+    "Environmental Science": 2,
+    "Chemical Engineering": 1,
+    "Chemistry": 1,
+    "Business, Management and Accounting": 1,
+    "Arts and Humanities": 1,
+    "Engineering": 1
+   },
+   "sample": [
+    {
+     "query": "functions",
+     "title": "Handbook of Mathematical Functions",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "functions",
+     "title": "Comparison of simple potential functions for simulating liquid water",
+     "field": "Chemical Engineering",
+     "off_domain": true
+    },
+    {
+     "query": "functions",
+     "title": "A Simplex Method for Function Minimization",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "functions",
+     "title": "Greedy function approximation: A gradient boosting machine.",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "functions",
+     "title": "Effect of the damping function in dispersion corrected density functional theory",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "functions",
+     "title": "Hierarchical Grouping to Optimize an Objective Function",
+     "field": "Chemistry",
+     "off_domain": true
+    },
+    {
+     "query": "functions",
+     "title": "The Structure and Function of Complex Networks",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "functions",
+     "title": "Executive Functions",
+     "field": "Psychology",
+     "off_domain": true
+    }
+   ]
+  },
+  "cv": {
+   "queries": [
+    "model data",
+    "augmentation models",
+    "detectron2",
+    "tutorials",
+    "model",
+    "data",
+    "evaluation"
+   ],
+   "hits_per_query": {
+    "model data": 10,
+    "augmentation models": 10,
+    "detectron2": 10,
+    "tutorials": 10,
+    "model": 10,
+    "data": 10,
+    "evaluation": 10
+   },
+   "n_hits": 70,
+   "n_off_domain": 20,
+   "off_domain_share": 0.286,
+   "fields": {
+    "Computer Science": 25,
+    "Decision Sciences": 10,
+    "Engineering": 7,
+    "Biochemistry, Genetics and Molecular Biology": 7,
+    "Mathematics": 6,
+    "Medicine": 5,
+    "Social Sciences": 3,
+    "Physics and Astronomy": 2,
+    "Chemistry": 2,
+    "Economics, Econometrics and Finance": 1,
+    "Agricultural and Biological Sciences": 1,
+    "Psychology": 1
+   },
+   "sample": [
+    {
+     "query": "model data",
+     "title": "Initial conditions and moment restrictions in dynamic panel data models",
+     "field": "Economics, Econometrics and Finance",
+     "off_domain": true
+    },
+    {
+     "query": "model data",
+     "title": "Longitudinal data analysis using generalized linear models",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "model data",
+     "title": "Hierarchical Linear Models: Applications and Data Analysis Methods.",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model data",
+     "title": "Hierarchical Linear Models: Applications and Data Analysis Methods",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "model data",
+     "title": "Some Models for Estimating Technical and Scale Inefficiencies in Data Envelopment Analysis",
+     "field": "Decision Sciences",
+     "off_domain": false
+    },
+    {
+     "query": "model data",
+     "title": "Random-Effects Models for Longitudinal Data",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "model data",
+     "title": "Modeling by shortest data description",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "model data",
+     "title": "A relational model of data for large shared data banks",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "rl": {
+   "queries": [
+    "learning using",
+    "using python",
+    "action policy",
+    "model",
+    "environments",
+    "env",
+    "rl",
+    "environment"
+   ],
+   "hits_per_query": {
+    "learning using": 10,
+    "using python": 10,
+    "action policy": 10,
+    "model": 10,
+    "environments": 10,
+    "env": 10,
+    "rl": 10,
+    "environment": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 40,
+   "off_domain_share": 0.5,
+   "fields": {
+    "Computer Science": 27,
+    "Environmental Science": 9,
+    "Biochemistry, Genetics and Molecular Biology": 8,
+    "Social Sciences": 7,
+    "Immunology and Microbiology": 7,
+    "Engineering": 6,
+    "Decision Sciences": 4,
+    "Physics and Astronomy": 3,
+    "Materials Science": 3,
+    "Medicine": 2,
+    "Economics, Econometrics and Finance": 2,
+    "Agricultural and Biological Sciences": 2
+   },
+   "sample": [
+    {
+     "query": "learning using",
+     "title": "Some Studies in Machine Learning Using the Game of Checkers",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "learning using",
+     "title": "Deep learning",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "learning using",
+     "title": "Semi-supervised learning using Gaussian fields and harmonic functions",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "learning using",
+     "title": "Deep Learning using Rectified Linear Units (ReLU)",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "learning using",
+     "title": "All-optical machine learning using diffractive deep neural networks",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "learning using",
+     "title": "Scikit-learn: Machine Learning in Python",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "learning using",
+     "title": "On-line Q-learning Using Connectionist Systems",
+     "field": "Social Sciences",
+     "off_domain": true
+    },
+    {
+     "query": "learning using",
+     "title": "Gradient-based learning applied to document recognition",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "webdev": {
+   "queries": [
+    "flask app",
+    "app application",
+    "server use",
+    "flask",
+    "app",
+    "application",
+    "request",
+    "server"
+   ],
+   "hits_per_query": {
+    "flask app": 10,
+    "app application": 10,
+    "server use": 10,
+    "flask": 10,
+    "app": 10,
+    "application": 10,
+    "request": 10,
+    "server": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 67,
+   "off_domain_share": 0.838,
+   "fields": {
+    "Biochemistry, Genetics and Molecular Biology": 25,
+    "Medicine": 11,
+    "Computer Science": 10,
+    "Health Professions": 5,
+    "Chemistry": 5,
+    "Arts and Humanities": 5,
+    "Social Sciences": 4,
+    "Materials Science": 3,
+    "Economics, Econometrics and Finance": 2,
+    "Agricultural and Biological Sciences": 2,
+    "Psychology": 2,
+    "Decision Sciences": 2,
+    "Environmental Science": 1,
+    "Engineering": 1,
+    "Energy": 1,
+    "Pharmacology, Toxicology and Pharmaceutics": 1
+   },
+   "sample": [
+    {
+     "query": "flask app",
+     "title": "Flask Web Development: Developing Web Applications with Python",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "flask app",
+     "title": "Distribution of the Estimators for Autoregressive Time Series with a Unit Root",
+     "field": "Economics, Econometrics and Finance",
+     "off_domain": true
+    },
+    {
+     "query": "flask app",
+     "title": "APP Processing Induced by Herpes Simplex Virus Type 1 (HSV-1) Yields Several APP Fragments in Human and Rat Neuronal Cel",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "flask app",
+     "title": "Study of the synthesis and secretion of normal and artificial mutants of murine amyloid precursor protein (APP): cleavag",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "flask app",
+     "title": "Iron accumulation in microglia triggers a cascade of events that leads to altered metabolism and compromised function in",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "flask app",
+     "title": "Secreted Glypican Binds to the Amyloid Precursor Protein of Alzheimer's Disease (APP) and Inhibits APP-induced Neurite O",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "flask app",
+     "title": "Easy phylotyping of Escherichia coli via the EzClermont web app and command-line tool",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "flask app",
+     "title": "Peripherally administered antibodies against amyloid \u03b2-peptide enter the central nervous system and reduce pathology in ",
+     "field": "Medicine",
+     "off_domain": true
+    }
+   ]
+  },
+  "peft": {
+   "queries": [
+    "model peft",
+    "peft lora",
+    "lora adapter",
+    "model",
+    "peft",
+    "lora",
+    "adapter",
+    "fine-tuning"
+   ],
+   "hits_per_query": {
+    "model peft": 10,
+    "peft lora": 10,
+    "lora adapter": 10,
+    "model": 10,
+    "peft": 10,
+    "lora": 10,
+    "adapter": 10,
+    "fine-tuning": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 27,
+   "off_domain_share": 0.338,
+   "fields": {
+    "Computer Science": 37,
+    "Biochemistry, Genetics and Molecular Biology": 15,
+    "Engineering": 10,
+    "Decision Sciences": 5,
+    "Immunology and Microbiology": 4,
+    "Materials Science": 3,
+    "Social Sciences": 2,
+    "Medicine": 2,
+    "Agricultural and Biological Sciences": 1,
+    "Mathematics": 1
+   },
+   "sample": [
+    {
+     "query": "model peft",
+     "title": "Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model peft",
+     "title": "PEFT-SP: Parameter-Efficient Fine-Tuning on Large Protein Language Models Improves Signal Peptide Prediction",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "model peft",
+     "title": "Parameter-efficient fine-tuning in large language models: a survey of methodologies",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model peft",
+     "title": "Parameter-Efficient Fine-Tuning for Large Models: A Comprehensive Survey",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model peft",
+     "title": "Democratizing protein language models with parameter-efficient fine-tuning",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "model peft",
+     "title": "Parameter-Efficient Fine-Tuning Methods for Pretrained Language Models: A Critical Review and Assessment",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model peft",
+     "title": "Beyond PEFT: Layer-Wise Optimization for More Effective and Efficient Large Code Model Tuning",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model peft",
+     "title": "Q-PEFT: Query-dependent Parameter Efficient Fine-tuning for Text Reranking with Large Language Models",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "diffusion": {
+   "queries": [
+    "model image",
+    "image torch",
+    "diffusion diffusers",
+    "model",
+    "image",
+    "torch",
+    "diffusion",
+    "diffusers"
+   ],
+   "hits_per_query": {
+    "model image": 10,
+    "image torch": 10,
+    "diffusion diffusers": 10,
+    "model": 10,
+    "image": 10,
+    "torch": 10,
+    "diffusion": 10,
+    "diffusers": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 35,
+   "off_domain_share": 0.438,
+   "fields": {
+    "Medicine": 20,
+    "Computer Science": 18,
+    "Engineering": 13,
+    "Biochemistry, Genetics and Molecular Biology": 6,
+    "Physics and Astronomy": 6,
+    "Decision Sciences": 5,
+    "Mathematics": 3,
+    "Social Sciences": 2,
+    "Economics, Econometrics and Finance": 2,
+    "Agricultural and Biological Sciences": 1,
+    "Neuroscience": 1,
+    "Environmental Science": 1,
+    "Immunology and Microbiology": 1,
+    "Chemistry": 1
+   },
+   "sample": [
+    {
+     "query": "model image",
+     "title": "Very Deep Convolutional Networks for Large-Scale Image Recognition",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model image",
+     "title": "NIH Image to ImageJ: 25 years of image analysis",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "model image",
+     "title": "A model of destination image formation",
+     "field": "Social Sciences",
+     "off_domain": true
+    },
+    {
+     "query": "model image",
+     "title": "Segmentation of brain MR images through a hidden Markov random field model and the expectation-maximization algorithm",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model image",
+     "title": "Object modelling by registration of multiple range images",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "model image",
+     "title": "Deep Inside Convolutional Networks: Visualising Image Classification\\n Models and Saliency Maps",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "model image",
+     "title": "Pore-scale imaging and modelling",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "model image",
+     "title": "Learning Multiple Layers of Features from Tiny Images",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "graph": {
+   "queries": [
+    "torch_geometric data",
+    "pytorch training",
+    "loader model",
+    "torch_geometric",
+    "data",
+    "datasets",
+    "graph",
+    "classes"
+   ],
+   "hits_per_query": {
+    "torch_geometric data": 10,
+    "pytorch training": 10,
+    "loader model": 10,
+    "torch_geometric": 10,
+    "data": 10,
+    "datasets": 10,
+    "graph": 10,
+    "classes": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 31,
+   "off_domain_share": 0.388,
+   "fields": {
+    "Computer Science": 27,
+    "Biochemistry, Genetics and Molecular Biology": 19,
+    "Engineering": 13,
+    "Mathematics": 4,
+    "Social Sciences": 4,
+    "Neuroscience": 3,
+    "Materials Science": 3,
+    "Physics and Astronomy": 3,
+    "Decision Sciences": 2,
+    "Medicine": 1,
+    "Environmental Science": 1
+   },
+   "sample": [
+    {
+     "query": "torch_geometric data",
+     "title": "Large-scale data classification based on the integrated fusion of fuzzy learning and graph neural network",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "scGraphformer: unveiling cellular heterogeneity and interactions in scRNA-seq data using a scalable graph transformer ne",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Spatial-ID: a cell typing method for spatially resolved transcriptomics via transfer learning and spatial embedding",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Graph Oriented Attention Networks",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Road Crash Injury Severity Prediction Using a Graph Neural Network Framework",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "PET-based lesion graphs meet clinical data: An interpretable cross-attention framework for DLBCL treatment response pred",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "A Survey on Hyperlink Prediction",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "ERL\u2010ProLiGraph: Enhanced representation learning on protein\u2010ligand graph structured data for binding affinity prediction",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "speech": {
+   "queries": [
+    "speech recognition",
+    "recognition model",
+    "model whisper",
+    "tiktoken",
+    "speech",
+    "recognition",
+    "model"
+   ],
+   "hits_per_query": {
+    "speech recognition": 10,
+    "recognition model": 10,
+    "model whisper": 10,
+    "tiktoken": 10,
+    "speech": 10,
+    "recognition": 10,
+    "model": 10
+   },
+   "n_hits": 70,
+   "n_off_domain": 17,
+   "off_domain_share": 0.243,
+   "fields": {
+    "Computer Science": 39,
+    "Engineering": 7,
+    "Decision Sciences": 5,
+    "Neuroscience": 3,
+    "Psychology": 3,
+    "Medicine": 3,
+    "Biochemistry, Genetics and Molecular Biology": 3,
+    "Arts and Humanities": 2,
+    "Earth and Planetary Sciences": 1,
+    "Physics and Astronomy": 1,
+    "Mathematics": 1,
+    "Immunology and Microbiology": 1,
+    "Social Sciences": 1
+   },
+   "sample": [
+    {
+     "query": "speech recognition",
+     "title": "A tutorial on hidden Markov models and selected applications in speech recognition",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Fundamentals of speech recognition",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Deep Neural Networks for Acoustic Modeling in Speech Recognition: The Shared Views of Four Research Groups",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Kaldi Speech Recognition Toolkit",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Speech Recognition with Primarily Temporal Cues",
+     "field": "Neuroscience",
+     "off_domain": true
+    },
+    {
+     "query": "speech recognition",
+     "title": "Speech and Language Processing: An Introduction to Natural Language Processing, Computational Linguistics, and Speech Re",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Convolutional Neural Networks for Speech Recognition",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Statistical Methods for Speech Recognition",
+     "field": "Psychology",
+     "off_domain": true
+    }
+   ]
+  },
+  "crypto": {
+   "queries": [
+    "cryptography",
+    "key",
+    "primitives",
+    "openssl",
+    "hazmat"
+   ],
+   "hits_per_query": {
+    "cryptography": 10,
+    "key": 10,
+    "primitives": 10,
+    "openssl": 10,
+    "hazmat": 10
+   },
+   "n_hits": 50,
+   "n_off_domain": 15,
+   "off_domain_share": 0.3,
+   "fields": {
+    "Computer Science": 24,
+    "Physics and Astronomy": 6,
+    "Social Sciences": 6,
+    "Decision Sciences": 4,
+    "Biochemistry, Genetics and Molecular Biology": 3,
+    "Earth and Planetary Sciences": 2,
+    "Environmental Science": 1,
+    "Medicine": 1,
+    "Neuroscience": 1,
+    "Arts and Humanities": 1,
+    "Engineering": 1
+   },
+   "sample": [
+    {
+     "query": "cryptography",
+     "title": "New directions in cryptography",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Quantum cryptography",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Quantum cryptography based on Bell\u2019s theorem",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Cryptography and Network Security: Principles and Practice",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Quantum cryptography: Public key distribution and coin tossing",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Cryptography: Theory and Practice",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Quantum cryptography: Public key distribution and coin tossing",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Advances in quantum cryptography",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "systems": {
+   "queries": [
+    "redis source",
+    "yes export",
+    "redis",
+    "source",
+    "data",
+    "cd",
+    "run"
+   ],
+   "hits_per_query": {
+    "redis source": 10,
+    "yes export": 10,
+    "redis": 10,
+    "source": 10,
+    "data": 10,
+    "cd": 10,
+    "run": 10
+   },
+   "n_hits": 70,
+   "n_off_domain": 51,
+   "off_domain_share": 0.729,
+   "fields": {
+    "Biochemistry, Genetics and Molecular Biology": 16,
+    "Social Sciences": 12,
+    "Economics, Econometrics and Finance": 11,
+    "Computer Science": 9,
+    "Physics and Astronomy": 4,
+    "Environmental Science": 3,
+    "Engineering": 3,
+    "Psychology": 3,
+    "Medicine": 2,
+    "Business, Management and Accounting": 2,
+    "Decision Sciences": 2,
+    "Neuroscience": 1,
+    "Earth and Planetary Sciences": 1,
+    "Mathematics": 1
+   },
+   "sample": [
+    {
+     "query": "redis source",
+     "title": "Are cloud providers exploiting open-source? An exploratory study of Redis license change",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "redis source",
+     "title": "Review on solving the forward problem in EEG source analysis",
+     "field": "Neuroscience",
+     "off_domain": true
+    },
+    {
+     "query": "redis source",
+     "title": "A survey of open source tools for machine learning with big data in the Hadoop ecosystem",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "redis source",
+     "title": "The Gent\u2013McWilliams Skew Flux",
+     "field": "Environmental Science",
+     "off_domain": true
+    },
+    {
+     "query": "redis source",
+     "title": "SIMHAR - Smart Distributed Web Crawler for the Hidden Web Using SIM+Hash and Redis Server",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "redis source",
+     "title": "A High Performance Memory Key-Value Database Based on Redis",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "redis source",
+     "title": "REDI: Towards knowledge graph-powered scholarly information management and research networking",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "redis source",
+     "title": "A Study of Performance and Comparison of NoSQL Databases: MongoDB, Cassandra, and Redis Using YCSB",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "cli": {
+   "queries": [
+    "click command",
+    "hello cli",
+    "use context",
+    "click",
+    "command",
+    "hello",
+    "cli",
+    "line"
+   ],
+   "hits_per_query": {
+    "click command": 10,
+    "hello cli": 10,
+    "use context": 10,
+    "click": 10,
+    "command": 10,
+    "hello": 10,
+    "cli": 10,
+    "line": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 49,
+   "off_domain_share": 0.613,
+   "fields": {
+    "Computer Science": 18,
+    "Biochemistry, Genetics and Molecular Biology": 9,
+    "Chemistry": 9,
+    "Social Sciences": 7,
+    "Neuroscience": 5,
+    "Medicine": 5,
+    "Physics and Astronomy": 4,
+    "Engineering": 4,
+    "Environmental Science": 3,
+    "Decision Sciences": 3,
+    "Arts and Humanities": 3,
+    "Mathematics": 2,
+    "Agricultural and Biological Sciences": 2,
+    "Psychology": 2,
+    "Business, Management and Accounting": 2,
+    "Materials Science": 1,
+    "Economics, Econometrics and Finance": 1
+   },
+   "sample": [
+    {
+     "query": "click command",
+     "title": "Investigation of the freely available easy-to-use software \u2018EZR\u2019 for medical statistics",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "click command",
+     "title": "UCSF ChimeraX : Structure visualization for researchers, educators, and developers",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "click command",
+     "title": "TBtools: An Integrative Toolkit Developed for Interactive Analyses of Big Biological Data",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "click command",
+     "title": "The click modular router",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "click command",
+     "title": "BLAST+: architecture and applications",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "click command",
+     "title": "Myogenic potentials generated by a click-evoked vestibulocollic reflex.",
+     "field": "Neuroscience",
+     "off_domain": true
+    },
+    {
+     "query": "click command",
+     "title": "Computational procedures for probing interactions in OLS and logistic regression: SPSS and SAS implementations",
+     "field": "Agricultural and Biological Sciences",
+     "off_domain": true
+    },
+    {
+     "query": "click command",
+     "title": "MEGA11: Molecular Evolutionary Genetics Analysis Version 11",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    }
+   ]
+  },
+  "http": {
+   "queries": [
+    "requests python",
+    "python community",
+    "requests",
+    "python",
+    "community",
+    "information",
+    "urllib3"
+   ],
+   "hits_per_query": {
+    "requests python": 10,
+    "python community": 10,
+    "requests": 10,
+    "python": 10,
+    "community": 10,
+    "information": 10,
+    "urllib3": 10
+   },
+   "n_hits": 70,
+   "n_off_domain": 29,
+   "off_domain_share": 0.414,
+   "fields": {
+    "Computer Science": 23,
+    "Physics and Astronomy": 11,
+    "Materials Science": 6,
+    "Arts and Humanities": 6,
+    "Neuroscience": 4,
+    "Biochemistry, Genetics and Molecular Biology": 4,
+    "Decision Sciences": 4,
+    "Medicine": 3,
+    "Social Sciences": 3,
+    "Engineering": 3,
+    "Pharmacology, Toxicology and Pharmaceutics": 1,
+    "Environmental Science": 1,
+    "Economics, Econometrics and Finance": 1
+   },
+   "sample": [
+    {
+     "query": "requests python",
+     "title": "scikit-image: image processing in Python",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "requests python",
+     "title": "PsychoPy\u2014Psychophysics software in Python",
+     "field": "Neuroscience",
+     "off_domain": true
+    },
+    {
+     "query": "requests python",
+     "title": "AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "requests python",
+     "title": "astroquery : An Astronomical Web-querying Package in Python",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "requests python",
+     "title": "galpy: A python LIBRARY FOR GALACTIC DYNAMICS",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "requests python",
+     "title": "Array programming with NumPy",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "requests python",
+     "title": "CIGALE: a python Code Investigating GALaxy Emission",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "requests python",
+     "title": "Python Requests Essentials",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "db": {
+   "queries": [
+    "guide support",
+    "duckdb",
+    "sql",
+    "run",
+    "use",
+    "page"
+   ],
+   "hits_per_query": {
+    "guide support": 10,
+    "duckdb": 10,
+    "sql": 10,
+    "run": 10,
+    "use": 10,
+    "page": 10
+   },
+   "n_hits": 60,
+   "n_off_domain": 24,
+   "off_domain_share": 0.4,
+   "fields": {
+    "Computer Science": 28,
+    "Social Sciences": 5,
+    "Economics, Econometrics and Finance": 5,
+    "Biochemistry, Genetics and Molecular Biology": 5,
+    "Physics and Astronomy": 4,
+    "Business, Management and Accounting": 2,
+    "Decision Sciences": 2,
+    "Dentistry": 1,
+    "Engineering": 1,
+    "Psychology": 1,
+    "Veterinary": 1,
+    "Health Professions": 1,
+    "Mathematics": 1,
+    "Chemistry": 1,
+    "Environmental Science": 1,
+    "Medicine": 1
+   },
+   "sample": [
+    {
+     "query": "guide support",
+     "title": "A Practical Guide to Support Vector Classication",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "guide support",
+     "title": "Data-Driven Guides: Supporting Expressive Design for Information Graphics",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "guide support",
+     "title": "Influence of surgical guide support and implant site location on accuracy of static Computer\u2010Assisted Implant Surgery",
+     "field": "Dentistry",
+     "off_domain": true
+    },
+    {
+     "query": "guide support",
+     "title": "Support vector machines",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "guide support",
+     "title": "Higher-order finite-element analysis of topographic guides supporting elastic surface waves",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "guide support",
+     "title": "From Mirroring to Guiding: A Review of State of the Art Technology for Supporting Collaborative Learning",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "guide support",
+     "title": "Social Support Measurement and Intervention: A Guide for Health and Social Scientists",
+     "field": "Psychology",
+     "off_domain": true
+    },
+    {
+     "query": "guide support",
+     "title": "The Multidimensional Scale of Perceived Social Support",
+     "field": "Social Sciences",
+     "off_domain": true
+    }
+   ]
+  },
+  "storage": {
+   "queries": [
+    "rocksdb write",
+    "wal memtable",
+    "memtable db",
+    "rocksdb",
+    "write",
+    "wal",
+    "memtable",
+    "db"
+   ],
+   "hits_per_query": {
+    "rocksdb write": 10,
+    "wal memtable": 10,
+    "memtable db": 10,
+    "rocksdb": 10,
+    "write": 10,
+    "wal": 10,
+    "memtable": 10,
+    "db": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 24,
+   "off_domain_share": 0.3,
+   "fields": {
+    "Computer Science": 53,
+    "Business, Management and Accounting": 8,
+    "Social Sciences": 6,
+    "Engineering": 3,
+    "Neuroscience": 2,
+    "Biochemistry, Genetics and Molecular Biology": 2,
+    "Medicine": 2,
+    "Psychology": 1,
+    "Arts and Humanities": 1,
+    "Materials Science": 1,
+    "Chemistry": 1
+   },
+   "sample": [
+    {
+     "query": "rocksdb write",
+     "title": "RocksDB: Evolution of Development Priorities in a Key-value Store Serving Large-scale Applications",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "MyRocks",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "Basic Performance Measurements of the Intel Optane DC Persistent Memory Module",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "SlimDB",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "Disaggregating RocksDB: A Production Experience",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "dCompaction: Delayed Compaction for the LSM-Tree",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "Redesigning LSMs for nonvolatile memory with NoveLSM",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "dCompaction: Speeding up Compaction of the LSM-Tree via Delayed Compaction",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "numerics": {
+   "queries": [
+    "distribution scipy",
+    "scipy support",
+    "support stats",
+    "distribution",
+    "scipy",
+    "support",
+    "stats",
+    "function"
+   ],
+   "hits_per_query": {
+    "distribution scipy": 10,
+    "scipy support": 10,
+    "support stats": 10,
+    "distribution": 10,
+    "scipy": 10,
+    "support": 10,
+    "stats": 10,
+    "function": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 39,
+   "off_domain_share": 0.487,
+   "fields": {
+    "Computer Science": 29,
+    "Medicine": 15,
+    "Biochemistry, Genetics and Molecular Biology": 8,
+    "Physics and Astronomy": 6,
+    "Mathematics": 4,
+    "Environmental Science": 3,
+    "Economics, Econometrics and Finance": 2,
+    "Neuroscience": 2,
+    "Psychology": 2,
+    "Social Sciences": 2,
+    "Earth and Planetary Sciences": 1,
+    "Immunology and Microbiology": 1,
+    "Decision Sciences": 1,
+    "Engineering": 1,
+    "Materials Science": 1,
+    "Chemical Engineering": 1,
+    "Chemistry": 1
+   },
+   "sample": [
+    {
+     "query": "distribution scipy",
+     "title": "SciPy 1.0: fundamental algorithms for scientific computing in Python",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "SciPy 1.0: fundamental algorithms for scientific computing in Python",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Distribution of the Estimators for Autoregressive Time Series with a Unit Root",
+     "field": "Economics, Econometrics and Finance",
+     "off_domain": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "QuTiP: An open-source Python framework for the dynamics of open quantum systems",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Array programming with NumPy",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "QuTiP 2: A Python framework for the dynamics of open quantum systems",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Highly accurate protein structure prediction with AlphaFold",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "PROCESSING OCEANOGRAPHIC DATA BY PYTHON LIBRARIES NUMPY, SCIPY AND PANDAS",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "compiler": {
+   "queries": [
+    "numba cuda",
+    "cuda function",
+    "python type",
+    "numba",
+    "cuda",
+    "function",
+    "python",
+    "type"
+   ],
+   "hits_per_query": {
+    "numba cuda": 10,
+    "cuda function": 10,
+    "python type": 10,
+    "numba": 10,
+    "cuda": 10,
+    "function": 10,
+    "python": 10,
+    "type": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 28,
+   "off_domain_share": 0.35,
+   "fields": {
+    "Computer Science": 34,
+    "Medicine": 8,
+    "Biochemistry, Genetics and Molecular Biology": 7,
+    "Mathematics": 6,
+    "Engineering": 5,
+    "Physics and Astronomy": 5,
+    "Materials Science": 5,
+    "Neuroscience": 3,
+    "Decision Sciences": 2,
+    "Social Sciences": 1,
+    "Environmental Science": 1,
+    "Chemical Engineering": 1,
+    "Chemistry": 1,
+    "Psychology": 1
+   },
+   "sample": [
+    {
+     "query": "numba cuda",
+     "title": "Exploring Numba and CuPy for GPU-Accelerated Monte Carlo Radiation Transport",
+     "field": "Mathematics",
+     "off_domain": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "mpi4py: Status Update After 12 Years of Development",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "numba cuda",
+     "title": "A Parallel Framework for Fast Charge/Discharge Scheduling of Battery Storage Systems in Microgrids",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Designing a High-Performance Boundary Element Library With OpenCL and Numba",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Real-Time Lung Tumor Tracking Using a CUDA Enabled Nonrigid Registration Algorithm for MRI",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Large language model evaluation for high\u2010performance computing software development",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "A Python-based flow solver for numerical simulations using an immersed boundary method on single GPUs",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Evaluating performance and portability of high-level programming models: Julia, Python/Numba, and Kokkos on exascale nod",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "llminfer": {
+   "queries": [
+    "gguf llama",
+    "llama model",
+    "cpp bash",
+    "gguf",
+    "llama",
+    "model",
+    "cpp",
+    "llama cpp"
+   ],
+   "hits_per_query": {
+    "gguf llama": 10,
+    "llama model": 10,
+    "cpp bash": 10,
+    "gguf": 10,
+    "llama": 10,
+    "model": 10,
+    "cpp": 10,
+    "llama cpp": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 44,
+   "off_domain_share": 0.55,
+   "fields": {
+    "Computer Science": 28,
+    "Medicine": 19,
+    "Biochemistry, Genetics and Molecular Biology": 10,
+    "Business, Management and Accounting": 6,
+    "Neuroscience": 5,
+    "Decision Sciences": 4,
+    "Engineering": 3,
+    "Psychology": 1,
+    "Nursing": 1,
+    "Social Sciences": 1,
+    "Chemistry": 1,
+    "Physics and Astronomy": 1
+   },
+   "sample": [
+    {
+     "query": "gguf llama",
+     "title": "ChatGPT, Llama, can you write my report? An experiment on assisted digital forensics reports written using (local) large",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "Design and Implementation of a Fine-Tuned Llama-Based AI Chatbot with Voice and Text Interaction Using Streamlit and Oll",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "Vision-Language and Large Language Model Performance in Gastroenterology: GPT, Claude, Llama, Phi, Mistral, Gemma, and Q",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "Detection of suicidality from medical text using privacy-preserving large language models",
+     "field": "Psychology",
+     "off_domain": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "Benchmarking the diagnostic performance of open source LLMs in 1933 Eurorad case reports",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "Performance of Large Language Models on Medical Oncology Examination Questions",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "De-Quantization Penalties for Interactive LLM Inference on Prosumer GPUs",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "Measuring and Improving the Energy Efficiency of Large Language Models Inference",
+     "field": "Computer Science",
+     "off_domain": false
+    }
+   ]
+  },
+  "vectordb": {
+   "queries": [
+    "qdrant",
+    "search",
+    "support",
+    "plan",
+    "vectors"
+   ],
+   "hits_per_query": {
+    "qdrant": 10,
+    "search": 10,
+    "support": 10,
+    "plan": 10,
+    "vectors": 10
+   },
+   "n_hits": 50,
+   "n_off_domain": 23,
+   "off_domain_share": 0.46,
+   "fields": {
+    "Computer Science": 25,
+    "Biochemistry, Genetics and Molecular Biology": 5,
+    "Social Sciences": 4,
+    "Medicine": 3,
+    "Psychology": 3,
+    "Economics, Econometrics and Finance": 3,
+    "Engineering": 2,
+    "Environmental Science": 2,
+    "Business, Management and Accounting": 2,
+    "Neuroscience": 1
+   },
+   "sample": [
+    {
+     "query": "qdrant",
+     "title": "PERFORMANCE ANALYSIS OF CHROMA, QDRANT, AND FAISS DATABASES",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "qdrant",
+     "title": "Multilingual audio classification: a scalable approach using Wav2Vec2 and qdrant",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "qdrant",
+     "title": "THE WRITABLE RETRIEVAL BASIN: Retrieval Basin Topology, Directional Stability, and Attractor Dynamics in AI-Mediated Kno",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "qdrant",
+     "title": "Almanac \u2014 Retrieval-Augmented Language Models for Clinical Medicine",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "qdrant",
+     "title": "Development and Evaluation of a Retrieval-Augmented Generation Chatbot for Orthopedic and Trauma Surgery Patient Educati",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "qdrant",
+     "title": "OpenClaw: WhatsApp-Native Agentic LLM Orchestration for Multi-Domain Small-Business Operations \u2014 A Three-Instance Produc",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "qdrant",
+     "title": "INTEGRASI QDRANT VECTOR DATABASE DAN DEEPSEEK AI UNTUK CHATBOT OTOMATIS PADA APLIKASI E-COMMERCE",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "qdrant",
+     "title": "LLM Selection and Vector Database Tuning: A Methodology for Enhancing RAG Systems",
+     "field": "Engineering",
+     "off_domain": false
+    }
+   ]
+  },
+  "linter": {
+   "queries": [
+    "ruff server",
+    "python lint",
+    "lint code",
+    "ruff",
+    "server",
+    "python",
+    "lint",
+    "code"
+   ],
+   "hits_per_query": {
+    "ruff server": 10,
+    "python lint": 10,
+    "lint code": 10,
+    "ruff": 10,
+    "server": 10,
+    "python": 10,
+    "lint": 10,
+    "code": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 49,
+   "off_domain_share": 0.613,
+   "fields": {
+    "Computer Science": 25,
+    "Biochemistry, Genetics and Molecular Biology": 20,
+    "Agricultural and Biological Sciences": 8,
+    "Materials Science": 7,
+    "Neuroscience": 4,
+    "Medicine": 3,
+    "Environmental Science": 3,
+    "Social Sciences": 2,
+    "Decision Sciences": 2,
+    "Physics and Astronomy": 2,
+    "Health Professions": 1,
+    "Business, Management and Accounting": 1,
+    "Mathematics": 1,
+    "Engineering": 1
+   },
+   "sample": [
+    {
+     "query": "ruff server",
+     "title": "Structural genomic changes underlie alternative reproductive strategies in the ruff (Philomachus pugnax)",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "ruff server",
+     "title": "Utilization of the PICO framework to improve searching PubMed for clinical questions",
+     "field": "Health Professions",
+     "off_domain": true
+    },
+    {
+     "query": "ruff server",
+     "title": "COMPUTER-AIDED PROTEIN DIRECTED EVOLUTION: A REVIEW OF WEB SERVERS, DATABASES AND OTHER COMPUTATIONAL TOOLS FOR PROTEIN ",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "ruff server",
+     "title": "InterPro in 2019: improving coverage, classification and access to protein sequence annotations",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "ruff server",
+     "title": "A survey of best practices for RNA-seq data analysis",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "ruff server",
+     "title": "Interspecies Papillomavirus Type Infection and a Novel Papillomavirus Type in Red Ruffed Lemurs (Varecia rubra)",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "ruff server",
+     "title": "Supporting Global Software Development with Event Notification Servers",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "ruff server",
+     "title": "Assessment of Remote Heart Rhythm Sampling Using the AliveCor Heart Monitor to Screen for Atrial Fibrillation",
+     "field": "Medicine",
+     "off_domain": true
+    }
+   ]
+  },
+  "encryption": {
+   "queries": [
+    "key file",
+    "jpg recipient",
+    "age",
+    "key",
+    "file",
+    "files",
+    "passphrase"
+   ],
+   "hits_per_query": {
+    "key file": 10,
+    "jpg recipient": 10,
+    "age": 10,
+    "key": 10,
+    "file": 10,
+    "files": 10,
+    "passphrase": 10
+   },
+   "n_hits": 70,
+   "n_off_domain": 39,
+   "off_domain_share": 0.557,
+   "fields": {
+    "Computer Science": 26,
+    "Biochemistry, Genetics and Molecular Biology": 19,
+    "Medicine": 8,
+    "Psychology": 4,
+    "Physics and Astronomy": 4,
+    "Materials Science": 4,
+    "Decision Sciences": 1,
+    "Agricultural and Biological Sciences": 1,
+    "Social Sciences": 1,
+    "Earth and Planetary Sciences": 1,
+    "Neuroscience": 1
+   },
+   "sample": [
+    {
+     "query": "key file",
+     "title": "P-curve: A key to the file-drawer.",
+     "field": "Decision Sciences",
+     "off_domain": false
+    },
+    {
+     "query": "key file",
+     "title": "A method for obtaining digital signatures and public-key cryptosystems",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "key file",
+     "title": "A remotely keyed file encryption scheme under mobile cloud computing",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "key file",
+     "title": "The Grid File",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "key file",
+     "title": "Deciphering key features in protein structures with the new ENDscript server",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "key file",
+     "title": "Posterior Summarization in Bayesian Phylogenetics Using Tracer 1.7",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "key file",
+     "title": "RSEM: accurate transcript quantification from RNA-Seq data with or without a reference genome",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "key file",
+     "title": "Scalable molecular dynamics with NAMD",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    }
+   ]
+  },
+  "ann": {
+   "queries": [
+    "vectors search",
+    "faiss",
+    "vectors",
+    "search",
+    "svs",
+    "similarity"
+   ],
+   "hits_per_query": {
+    "vectors search": 10,
+    "faiss": 10,
+    "vectors": 10,
+    "search": 10,
+    "svs": 10,
+    "similarity": 10
+   },
+   "n_hits": 60,
+   "n_off_domain": 26,
+   "off_domain_share": 0.433,
+   "fields": {
+    "Computer Science": 30,
+    "Medicine": 8,
+    "Biochemistry, Genetics and Molecular Biology": 7,
+    "Physics and Astronomy": 2,
+    "Engineering": 2,
+    "Environmental Science": 2,
+    "Neuroscience": 2,
+    "Economics, Econometrics and Finance": 2,
+    "Social Sciences": 2,
+    "Arts and Humanities": 1,
+    "Psychology": 1,
+    "Agricultural and Biological Sciences": 1
+   },
+   "sample": [
+    {
+     "query": "vectors search",
+     "title": "Accelerated Profile HMM Searches",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "vectors search",
+     "title": "Robust, Vectorized Search Algorithms for Interpolation on Unstructured Grids",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Enriching Word Vectors with Subword Information",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "vectors search",
+     "title": "A vector space model for automatic indexing",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Product Quantization for Nearest Neighbor Search",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Neural Machine Translation by Jointly Learning to Align and Translate",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Selective Search for Object Recognition",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Observation of a new particle in the search for the Standard Model Higgs boson with the ATLAS detector at the LHC",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    }
+   ]
+  },
+  "columnar": {
+   "queries": [
+    "arrow file",
+    "file distributed",
+    "use array",
+    "arrow",
+    "file",
+    "distributed",
+    "data",
+    "asf"
+   ],
+   "hits_per_query": {
+    "arrow file": 10,
+    "file distributed": 10,
+    "use array": 10,
+    "arrow": 10,
+    "file": 10,
+    "distributed": 10,
+    "data": 10,
+    "asf": 10
+   },
+   "n_hits": 80,
+   "n_off_domain": 46,
+   "off_domain_share": 0.575,
+   "fields": {
+    "Biochemistry, Genetics and Molecular Biology": 24,
+    "Computer Science": 23,
+    "Engineering": 6,
+    "Materials Science": 6,
+    "Neuroscience": 4,
+    "Earth and Planetary Sciences": 3,
+    "Physics and Astronomy": 3,
+    "Energy": 2,
+    "Arts and Humanities": 2,
+    "Psychology": 2,
+    "Chemistry": 1,
+    "Decision Sciences": 1,
+    "Mathematics": 1,
+    "Social Sciences": 1,
+    "Medicine": 1
+   },
+   "sample": [
+    {
+     "query": "arrow file",
+     "title": "The Sanger FASTQ file format for sequences with quality scores, and the Solexa/Illumina FASTQ variants",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Uncertainty and the Evaluation of Public Investment Decisions",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "arrow file",
+     "title": "RSEM: accurate transcript quantification from RNA-Seq data with or without a reference genome",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Potassium channels as multi-ion single-file pores.",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Avogadro: an advanced semantic chemical editor, visualization, and analysis platform",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "arrow file",
+     "title": "?Digital inking?: how to make perfect line drawings on computers",
+     "field": "Earth and Planetary Sciences",
+     "off_domain": true
+    },
+    {
+     "query": "arrow file",
+     "title": "A standard format for Les Houches Event Files",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "arrow file",
+     "title": "Mashtree: a rapid comparison of whole genome sequence files",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    }
+   ]
+  },
+  "thin-lang": {
+   "queries": [
+    "wip",
+    "status wip",
+    "status",
+    "programming language",
+    "programming"
+   ],
+   "hits_per_query": {
+    "wip": 10,
+    "status wip": 10,
+    "status": 10,
+    "programming language": 10,
+    "programming": 10
+   },
+   "n_hits": 50,
+   "n_off_domain": 29,
+   "off_domain_share": 0.58,
+   "fields": {
+    "Computer Science": 13,
+    "Biochemistry, Genetics and Molecular Biology": 12,
+    "Medicine": 4,
+    "Engineering": 4,
+    "Materials Science": 4,
+    "Decision Sciences": 2,
+    "Social Sciences": 2,
+    "Psychology": 2,
+    "Immunology and Microbiology": 1,
+    "Health Professions": 1,
+    "Business, Management and Accounting": 1,
+    "Environmental Science": 1,
+    "Economics, Econometrics and Finance": 1,
+    "Mathematics": 1,
+    "Physics and Astronomy": 1
+   },
+   "sample": [
+    {
+     "query": "wip",
+     "title": "Toca-1 Mediates Cdc42-Dependent Actin Nucleation by Activating the N-WASP-WIP Complex",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "wip",
+     "title": "A complex of N-WASP and WIP integrates signalling cascades that lead to actin polymerization",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "wip",
+     "title": "WIP, a protein associated with Wiskott\u2013Aldrich syndrome protein, induces actin polymerization and redistribution in lymp",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "wip",
+     "title": "WIP regulates N-WASP-mediated actin polymerization and filopodium formation",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "wip",
+     "title": "WIP Deficiency Reveals a Differential Role for WIP and the Actin Cytoskeleton in T and B Cell Activation",
+     "field": "Immunology and Microbiology",
+     "off_domain": true
+    },
+    {
+     "query": "wip",
+     "title": "WIP is a chaperone for Wiskott\u2013Aldrich syndrome protein (WASP)",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    },
+    {
+     "query": "wip",
+     "title": "Dynamic analysis of a WIP compensated decision support system",
+     "field": "Computer Science",
+     "off_domain": false
+    },
+    {
+     "query": "wip",
+     "title": "Structure of the N-WASP EVH1 Domain-WIP Complex",
+     "field": "Biochemistry, Genetics and Molecular Biology",
+     "off_domain": true
+    }
+   ]
+  },
+  "thin-kv": {
+   "queries": [
+    "sekas",
+    "run",
+    "data",
+    "group",
+    "tracing prost-build"
+   ],
+   "hits_per_query": {
+    "sekas": 10,
+    "run": 10,
+    "data": 10,
+    "group": 10,
+    "tracing prost-build": 10
+   },
+   "n_hits": 50,
+   "n_off_domain": 36,
+   "off_domain_share": 0.72,
+   "fields": {
+    "Social Sciences": 11,
+    "Biochemistry, Genetics and Molecular Biology": 7,
+    "Economics, Econometrics and Finance": 6,
+    "Decision Sciences": 5,
+    "Engineering": 3,
+    "Physics and Astronomy": 3,
+    "Environmental Science": 2,
+    "Medicine": 2,
+    "Business, Management and Accounting": 2,
+    "Computer Science": 2,
+    "Materials Science": 2,
+    "Agricultural and Biological Sciences": 1,
+    "Immunology and Microbiology": 1,
+    "Mathematics": 1,
+    "Arts and Humanities": 1,
+    "Psychology": 1
+   },
+   "sample": [
+    {
+     "query": "sekas",
+     "title": "Cleaner production opportunity assessment study in SEKA Balikesir pulp and paper mill",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "sekas",
+     "title": "Sequential (anaerobic/aerobic) biological treatment of Dalaman SEKA Pulp and Paper Industry effluent",
+     "field": "Environmental Science",
+     "off_domain": true
+    },
+    {
+     "query": "sekas",
+     "title": "SURVEY OF MEDICINAL PLANTS USED TO TREAT HUMAN DISEASES IN SEKA CHEKORSA, JIMMA ZONE, ETHIOPIA",
+     "field": "Agricultural and Biological Sciences",
+     "off_domain": true
+    },
+    {
+     "query": "sekas",
+     "title": "Long lasting insecticidal net use and its associated factors in Limmu Seka District, South West Ethiopia",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "sekas",
+     "title": "HIV reservoir size and persistence are driven by T cell survival and homeostatic proliferation",
+     "field": "Immunology and Microbiology",
+     "off_domain": true
+    },
+    {
+     "query": "sekas",
+     "title": "Representasi Makna Kultural dalam Gerakan Tari Seka Kontemporer Suku Kamoro Papua",
+     "field": "Social Sciences",
+     "off_domain": true
+    },
+    {
+     "query": "sekas",
+     "title": "Prevalence of smear positive pulmonary tuberculosis among patients attending Seka Health Center, Jimma, Oromia Region, E",
+     "field": "Medicine",
+     "off_domain": true
+    },
+    {
+     "query": "sekas",
+     "title": "Ngwaga wa Mopedi: seka sa ngwaga wa merafe ye mengwe ya Bibele",
+     "field": "Social Sciences",
+     "off_domain": true
+    }
+   ]
+  },
+  "thin-gnn": {
+   "queries": [
+    "dgf beam",
+    "graph data",
+    "dgf",
+    "beam",
+    "graph",
+    "data"
+   ],
+   "hits_per_query": {
+    "dgf beam": 10,
+    "graph data": 10,
+    "dgf": 10,
+    "beam": 10,
+    "graph": 10,
+    "data": 10
+   },
+   "n_hits": 60,
+   "n_off_domain": 23,
+   "off_domain_share": 0.383,
+   "fields": {
+    "Physics and Astronomy": 15,
+    "Computer Science": 10,
+    "Biochemistry, Genetics and Molecular Biology": 10,
+    "Engineering": 8,
+    "Medicine": 8,
+    "Mathematics": 3,
+    "Health Professions": 1,
+    "Psychology": 1,
+    "Chemistry": 1,
+    "Neuroscience": 1,
+    "Decision Sciences": 1,
+    "Social Sciences": 1
+   },
+   "sample": [
+    {
+     "query": "dgf beam",
+     "title": "Beam-driven chirping instability in DIII-D",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "On Euler\u2013Bernoulli discontinuous beam solutions via uniform-beam Green\u2019s functions",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "Cone-beam computed tomographic assessment of the inclination of the articular eminence in patients with temporomandibula",
+     "field": "Health Professions",
+     "off_domain": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "Isomeric states observed in heavy neutron-rich nuclei populated in the fragmentation of a 208 Pb beam",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "Dyadic Green's function of a cluster of spheres",
+     "field": "Engineering",
+     "off_domain": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "EVOLUTION OF OH AND CO-DARK MOLECULAR GAS FRACTION ACROSS A MOLECULAR CLOUD BOUNDARY IN TAURUS",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "The Miniball spectrometer",
+     "field": "Physics and Astronomy",
+     "off_domain": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "Study on Load Characteristics of Underwater Explosion Using RKDG-LS-DGF and BEM",
+     "field": "Engineering",
+     "off_domain": false
+    }
+   ]
+  }
+ }
+}
