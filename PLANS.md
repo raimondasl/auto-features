@@ -334,6 +334,30 @@ the one channel tested properly delivered ~175 uncategorised papers per reposito
 net@2**, and NR-11 recorded a wider pool making the headline *worse* when nothing ranked it.
 **That argues for one targeted probe rather than switching everything on.**
 
+**Answered for Europe PMC, and the answer is no [P22].** Sending each core-25 repository's
+own queries to Europe PMC returns hits for **all 25, never zero** — 1,721 hits, **68% indexed
+into MeSH**, every repository between 57% and 87%. `lint code` returns *"postoperative
+pneumoencephalus in posterior fossa surgery"*; `arrow file` returns zebrafish telomerase.
+
+That is the expensive outcome. A source that goes quiet outside its domain is free to enable
+everywhere; one that answers confidently off-domain feeds every repository's pool, where net@2
+charges 2 per false positive and non-arXiv papers escape the ranker's category component.
+
+**And the collision is a property of the QUERY, not the repository**, which rules out
+per-domain routing too: `crypto` gets real post-quantum cryptography from `cryptography` and
+biology from `key`. Any domain classifier would route `crypto` "on" and still admit the noise.
+
+**So: no multi-source default, and no per-domain routing on this evidence.** What the data
+supports is a *relevance condition* on non-arXiv results — which is what the ranker's category
+component would have supplied if uncategorised papers did not escape it. That is the item
+worth opening, and it is a ranking change rather than a retrieval one.
+
+**OpenAlex is still worth probing, and P22 is the template.** Run the same $0 collision check
+before any judge call: OpenAlex is general rather than biomedical, so it may not collide at
+all — but "may not" is what P22 was written to stop us assuming. It reaches the 43 ACM/IEEE/VLDB
+targets Europe PMC structurally cannot, and `pool-oa-treat`/`pool-oa-control` exist (on the
+`mat-` cases; a core-25 probe needs no pool at all).
+
 **OpenAlex as a retrieval source is the probe.** Europe PMC is biomedical and reaches the
 Nature/NAR/BMC end of Opus 5's non-arXiv targets; it cannot reach the **43 ACM/IEEE/VLDB**
 targets, which are the largest slice. P20 established that OpenAlex carries exactly those

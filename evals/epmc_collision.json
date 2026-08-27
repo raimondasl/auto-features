@@ -1,0 +1,2292 @@
+{
+ "_comment": "P22: what Europe PMC returns for the core-25 repositories' own queries. No LLM and no judge calls; `biomedical` is a coarse journal/keyword flag, not a classifier. Derived by evals/epmc_collision.py, pinned by tests/test_epmc_collision.py.",
+ "per_query_hits": 10,
+ "cases": {
+  "rag": {
+   "queries": [
+    "functions",
+    "indexer",
+    "searcher functions",
+    "trainer functions",
+    "trainer"
+   ],
+   "hits_per_query": {
+    "functions": 10,
+    "indexer": 10,
+    "searcher functions": 10,
+    "trainer functions": 10,
+    "trainer": 10
+   },
+   "n_hits": 50,
+   "n_biomedical": 33,
+   "biomedical_share": 0.66,
+   "sample": [
+    {
+     "query": "functions",
+     "title": "[ON THE ISSUE OF STAFF AND REGULATORY SUPPORT AND MAIN FUNCTIONS OF THE REGIONAL CENTER OF PUBLIC HEALTH AND MEDICAL PRE",
+     "journal": "Problemy sotsial'noi gigieny, zdravookhraneniia i istorii meditsiny",
+     "mesh": [
+      "Humans",
+      "Public Health",
+      "Preventive Health Services"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "functions",
+     "title": "The Functional-Delegability Frontier: Machine-Executable Functions and the Long-Run Industrial Revolution",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "functions",
+     "title": "Theory of mind as a mediator between executive functions and future-oriented thinking in adult teacher candidates of Sci",
+     "journal": "Applied neuropsychology. Adult",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "functions",
+     "title": "Protocol to investigate teacher-child neural scaffolding in executive functions and school readiness development in pres",
+     "journal": "PloS one",
+     "mesh": [
+      "Humans",
+      "Electroencephalography",
+      "Child Development"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "functions",
+     "title": "Functions of Non-Suicidal Self-Injury Among Adolescents with Eating Disorders",
+     "journal": "BJPsych open",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "functions",
+     "title": "A continuous-space analytical framework for committor functions from molecular dynamics.",
+     "journal": "The Journal of chemical physics",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "functions",
+     "title": "Derivation of the Exact Source Functions of the Grad\u2013Shafranov equation",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "functions",
+     "title": "Relationship Between External Abdominal Pressure, and Respiratory and Physical Functions in Older Individuals Living in ",
+     "journal": "Australasian journal on ageing",
+     "mesh": [
+      "Abdomen",
+      "Lung",
+      "Humans"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "cv": {
+   "queries": [
+    "model data",
+    "augmentation models",
+    "detectron2",
+    "tutorials",
+    "model",
+    "data",
+    "evaluation"
+   ],
+   "hits_per_query": {
+    "model data": 10,
+    "augmentation models": 10,
+    "detectron2": 10,
+    "tutorials": 10,
+    "model": 10,
+    "data": 10,
+    "evaluation": 10
+   },
+   "n_hits": 70,
+   "n_biomedical": 51,
+   "biomedical_share": 0.729,
+   "sample": [
+    {
+     "query": "model data",
+     "title": "An Embedded Model-Data Interactive Drive Method for Power System Dispatch",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model data",
+     "title": "Physics-informed structural diagnostics of model-data agreement beyond scalar metrics.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model data",
+     "title": "Large Language Model Data Governance and Integrity",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model data",
+     "title": "A global dataset of spatiotemporal drought events from reanalysis and hydrological model data for 1980-2024.",
+     "journal": "Scientific data",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model data",
+     "title": "Beyond the model: data infrastructure as the foundation for autonomous virtual laboratories.",
+     "journal": "Current opinion in biotechnology",
+     "mesh": [
+      "Humans",
+      "Biotechnology",
+      "Artificial Intelligence"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "model data",
+     "title": "Efficacy of a Large Language Model Data Extraction System in Evidence Reviews for Emerging Infectious Diseases: A Random",
+     "journal": "Open forum infectious diseases",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model data",
+     "title": "Overcoming single model bias through GRACE and multi model data reveals Iran water storage depletion drivers.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model data",
+     "title": "Model-Data Hybrid-Driven Wideband Channel Estimation for Beamspace Massive MIMO Systems.",
+     "journal": "Entropy (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "rl": {
+   "queries": [
+    "learning using",
+    "using python",
+    "action policy",
+    "model",
+    "environments",
+    "env",
+    "rl",
+    "environment"
+   ],
+   "hits_per_query": {
+    "learning using": 10,
+    "using python": 10,
+    "action policy": 10,
+    "model": 10,
+    "environments": 10,
+    "env": 10,
+    "rl": 10,
+    "environment": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 54,
+   "biomedical_share": 0.675,
+   "sample": [
+    {
+     "query": "learning using",
+     "title": "Explainable ensemble learning using SHAP for ERP anomaly detection.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "learning using",
+     "title": "Predicting children\u2019s early word learning using egocentric videos of their learning environments",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "learning using",
+     "title": "AI-Enabled Personalized Online Learning Using Reinforcement Learning",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "learning using",
+     "title": "Correction to \"Improving Sepsis Mortality Prediction With Machine Learning Using Full Region Synthetic Sampling Approach",
+     "journal": "Health science reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "learning using",
+     "title": "Age-stratified machine learning using de-identified clinical and transcriptomic data for pediatric appendicitis.",
+     "journal": "International journal of medical informatics",
+     "mesh": [
+      "Humans",
+      "Appendicitis",
+      "Bayes Theorem"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "learning using",
+     "title": "Predicting Readmissions or Post-Discharge Mortality After Cardiac Surgery with Machine Learning Using an Australian Data",
+     "journal": "Heart, lung & circulation",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "learning using",
+     "title": "Paving the Way for Point Cloud Video Representation Learning Using a PDE Model.",
+     "journal": "IEEE transactions on pattern analysis and machine intelligence",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "learning using",
+     "title": "Cross-Species Behavioral Representation Learning Using Domain-Adversarial Adaptation on Wearable IMU Signals.",
+     "journal": "Biomimetics (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "webdev": {
+   "queries": [
+    "flask app",
+    "app application",
+    "server use",
+    "flask",
+    "app",
+    "application",
+    "request",
+    "server"
+   ],
+   "hits_per_query": {
+    "flask app": 10,
+    "app application": 10,
+    "server use": 10,
+    "flask": 10,
+    "app": 10,
+    "application": 10,
+    "request": 10,
+    "server": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 59,
+   "biomedical_share": 0.738,
+   "sample": [
+    {
+     "query": "flask app",
+     "title": "Carapics: A Web-based Platform for Semi-quantitative Analysis of Structural Change in Biological Samples.",
+     "journal": "microPublication biology",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "flask app",
+     "title": "Simultaneous spectrophotometric eco-friendly analysis of triple-drug H.pylori regimen (Vonoprazan, Amoxicillin, Metronid",
+     "journal": "Scientific reports",
+     "mesh": [
+      "Helicobacter pylori",
+      "Amoxicillin",
+      "Sulfonamides"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "flask app",
+     "title": "Low-cost, open-source, full-stack software and Arduino-based hardware for control of commercially available animal behav",
+     "journal": "Behavior research methods",
+     "mesh": [
+      "Animals",
+      "Rats",
+      "Electric Stimulation"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "flask app",
+     "title": "Synergistic Flame Retardancy of Epoxy Resin with Aminated Multi-Walled Carbon Nanotubes and Ammonium Polyphosphate.",
+     "journal": "Polymers",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "flask app",
+     "title": "ssHiCstuff: a package for the design and analysis of ssDNA-specific Hi-C experiments.",
+     "journal": "Bioinformatics (Oxford, England)",
+     "mesh": [
+      "DNA, Single-Stranded",
+      "Computational Biology",
+      "Software"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "flask app",
+     "title": "Training large language models on narrow tasks can lead to broad misalignment.",
+     "journal": "Nature",
+     "mesh": [
+      "Humans",
+      "Artificial Intelligence",
+      "Large Language Models"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "flask app",
+     "title": "A Chlorine-Bearing Asymmetric Center as a Stereocontrol Element in a Short Formal Synthesis of Steviol.",
+     "journal": "Synthesis",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "flask app",
+     "title": "Fructose Intake Is Associated with Brain Metabolic Reprogramming and Exacerbation of Alzheimer-like Alterations in APP/P",
+     "journal": "International journal of molecular sciences",
+     "mesh": [
+      "Brain",
+      "Animals",
+      "Mice, Transgenic"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "peft": {
+   "queries": [
+    "model peft",
+    "peft lora",
+    "lora adapter",
+    "model",
+    "peft",
+    "lora",
+    "adapter",
+    "fine-tuning"
+   ],
+   "hits_per_query": {
+    "model peft": 10,
+    "peft lora": 10,
+    "lora adapter": 10,
+    "model": 10,
+    "peft": 10,
+    "lora": 10,
+    "adapter": 10,
+    "fine-tuning": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 50,
+   "biomedical_share": 0.625,
+   "sample": [
+    {
+     "query": "model peft",
+     "title": "Advancing Evidence-Based Medicine for Population, Intervention, Comparison, and Outcome Element Recognition and Extracti",
+     "journal": "Journal of medical Internet research",
+     "mesh": [
+      "Humans",
+      "Evidence-Based Medicine",
+      "Large Language Models"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "model peft",
+     "title": "LoLDU: Low-Rank Adaptation via Lower-Diag-Upper Decomposition for Parameter-Efficient Fine-Tuning.",
+     "journal": "IEEE transactions on neural networks and learning systems",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model peft",
+     "title": "Triplet Decomposition and Extensions: A General Framework for Parameter-Efficient Fine-Tuning.",
+     "journal": "IEEE transactions on pattern analysis and machine intelligence",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model peft",
+     "title": "U-SplitDoRA: an improved privacy-preserved U-shaped split parameter-efficient fine-tuning framework through weight decom",
+     "journal": "Frontiers in artificial intelligence",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model peft",
+     "title": "Gradient-Based Importance Smoothing for Dynamic Rank Allocation in Parameter-Efficient Fine-Tuning for Low-Resource Lang",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model peft",
+     "title": "Reliability-Weighted Spectral Allocation with Full Spectral Cores for Parameter-Efficient Visual Fine-Tuning",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model peft",
+     "title": "InfBA: Interference-Free Bottleneck Adaptation for Continual Learning.",
+     "journal": "IEEE transactions on pattern analysis and machine intelligence",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model peft",
+     "title": "DPAC: A tri-dimensional coordinated framework for breaking the efficiency ceiling in parameter-efficient fine-tuning.",
+     "journal": "Neural networks : the official journal of the International Neural Network Society",
+     "mesh": [],
+     "biomedical": true
+    }
+   ]
+  },
+  "diffusion": {
+   "queries": [
+    "model image",
+    "image torch",
+    "diffusion diffusers",
+    "model",
+    "image",
+    "torch",
+    "diffusion",
+    "diffusers"
+   ],
+   "hits_per_query": {
+    "model image": 10,
+    "image torch": 10,
+    "diffusion diffusers": 10,
+    "model": 10,
+    "image": 10,
+    "torch": 10,
+    "diffusion": 10,
+    "diffusers": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 59,
+   "biomedical_share": 0.738,
+   "sample": [
+    {
+     "query": "model image",
+     "title": "Flatback Deformity and Stiff Pelvic Mobility Alter the Optimal Cup Anteversion After Total Hip Arthroplasty: Insights fr",
+     "journal": "JB & JS open access",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model image",
+     "title": "A Multi-Model Image Enhancement and Tailored U-Net Architecture for Robust Diabetic Retinopathy Grading.",
+     "journal": "Diagnostics (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model image",
+     "title": "Leveraging multi-modal foundation model image encoders to enhance brain MRI-based headache classification.",
+     "journal": "Scientific reports",
+     "mesh": [
+      "Brain",
+      "Humans",
+      "Headache"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "model image",
+     "title": "JP6.1 Does periacetabular osteotomy shift the hip center in the anterior-posterior direction? Three-dimensional-to-two-d",
+     "journal": "Journal of hip preservation surgery",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model image",
+     "title": "Rate-Distortion-Complexity Optimized Framework for Multi-Model Image Compression.",
+     "journal": "IEEE transactions on image processing : a publication of the IEEE Signal Processing Society",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "model image",
+     "title": "Superior capsule reconstruction stabilizes the humeral head during scaption: in vivo 3-dimensional kinematic analysis us",
+     "journal": "JSES international",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "model image",
+     "title": "Bone marrow sparing oriented multi-model image registration in cervical cancer radiotherapy.",
+     "journal": "Computers in biology and medicine",
+     "mesh": [
+      "Bone Marrow",
+      "Humans",
+      "Tomography, X-Ray Computed"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "model image",
+     "title": "DRR acceleration using inexpensive GPUs for model-image registration based joint kinematic measurements.",
+     "journal": "Journal of biomechanics",
+     "mesh": [
+      "Joints",
+      "Humans",
+      "Algorithms"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "graph": {
+   "queries": [
+    "torch_geometric data",
+    "pytorch training",
+    "loader model",
+    "torch_geometric",
+    "data",
+    "datasets",
+    "graph",
+    "classes"
+   ],
+   "hits_per_query": {
+    "torch_geometric data": 10,
+    "pytorch training": 10,
+    "loader model": 10,
+    "torch_geometric": 10,
+    "data": 10,
+    "datasets": 10,
+    "graph": 10,
+    "classes": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 61,
+   "biomedical_share": 0.762,
+   "sample": [
+    {
+     "query": "torch_geometric data",
+     "title": "Spatially multimodal and multiscale network for representation learning from spatial multi-omics.",
+     "journal": "BMC genomics",
+     "mesh": [
+      "Humans",
+      "Computational Biology",
+      "Genomics"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "A multi-modal co-attention model for accurate drug-target interaction prediction.",
+     "journal": "PloS one",
+     "mesh": [
+      "Humans",
+      "Proteins",
+      "Computational Biology"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Adaptive graph contrastive learning with hard negative mining for multimodal hyperspectral and LiDAR classification.",
+     "journal": "iScience",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "A Survey on Hyperlink Prediction.",
+     "journal": "IEEE transactions on neural networks and learning systems",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Uncovering latent biological function associations through gene set embeddings.",
+     "journal": "BMC bioinformatics",
+     "mesh": [
+      "Animals",
+      "Humans",
+      "Mice"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Systema: a framework for evaluating genetic perturbation response prediction beyond systematic variation.",
+     "journal": "Nature biotechnology",
+     "mesh": [
+      "Humans",
+      "Gene Expression Profiling",
+      "Genomics"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "An effective heuristic for developing hybrid feature selection in high dimensional and low sample size datasets.",
+     "journal": "BMC bioinformatics",
+     "mesh": [
+      "Humans",
+      "Sample Size",
+      "Computational Biology"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "torch_geometric data",
+     "title": "Fast graph convolutional models incorporating matrix factorization for predicting microbe-disease associations.",
+     "journal": "Scientific reports",
+     "mesh": [
+      "Humans",
+      "Computational Biology",
+      "Algorithms"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "speech": {
+   "queries": [
+    "speech recognition",
+    "recognition model",
+    "model whisper",
+    "tiktoken",
+    "speech",
+    "recognition",
+    "model"
+   ],
+   "hits_per_query": {
+    "speech recognition": 10,
+    "recognition model": 10,
+    "model whisper": 10,
+    "tiktoken": 10,
+    "speech": 10,
+    "recognition": 10,
+    "model": 10
+   },
+   "n_hits": 70,
+   "n_biomedical": 44,
+   "biomedical_share": 0.629,
+   "sample": [
+    {
+     "query": "speech recognition",
+     "title": "Automatic speech recognition system for court proceedings in Ethiopia",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "SONIVA database: Speech recognition validation in aphasia.",
+     "journal": "Scientific data",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "speech recognition",
+     "title": "Effects of Listener Position on Speech Recognition in a Simulated Multitalker Environment. ",
+     "journal": "Audiology research",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Speech Representation System For The Karakalpak Automatic Speech Recognition",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Speech Recognition Deficits in Presbyacusis: Links to Cortical Structural and Functional Alterations.",
+     "journal": "World journal of otorhinolaryngology - head and neck surgery",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "A Multifunctional Eutectogel for Wide-Temperature and Intelligent Speech Recognition.",
+     "journal": "Small (Weinheim an der Bergstrasse, Germany)",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "speech recognition",
+     "title": "Omnilingual ASR: Open-Source Multilingual Speech Recognition for 1600+ Languages",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "speech recognition",
+     "title": "Bridging communication between hearing and visually impaired individuals via speech recognition and synthesis",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "crypto": {
+   "queries": [
+    "cryptography",
+    "key",
+    "primitives",
+    "openssl",
+    "hazmat"
+   ],
+   "hits_per_query": {
+    "cryptography": 10,
+    "key": 10,
+    "primitives": 10,
+    "openssl": 10,
+    "hazmat": 10
+   },
+   "n_hits": 50,
+   "n_biomedical": 33,
+   "biomedical_share": 0.66,
+   "sample": [
+    {
+     "query": "cryptography",
+     "title": "The Role of Cryptography in Blockchain: Ensuring Immutability, Transparency, and Security",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Design and implementation of image data sharing through a visual cryptography system with one-time password authenticati",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "cryptography",
+     "title": "Post-Quantum Cryptocode Constructions on Elliptic and Hyperelliptic Curves",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "cryptography",
+     "title": "Stern Zero-Knowledge Identification Protocol Based on Lee Distance. ",
+     "journal": "Entropy (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "cryptography",
+     "title": "ISNR-PQC: isometry noise resilience post quantum cryptography primitive.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "cryptography",
+     "title": "Post-quantum cryptography for healthcare: securing medical data, connected devices, and digital health infrastructure.",
+     "journal": "Frontiers in health services",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "cryptography",
+     "title": "Merits of geometric algebra applied to cryptography and machine learning.",
+     "journal": "Philosophical transactions. Series A, Mathematical, physical, and engineering sciences",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "cryptography",
+     "title": "Exploring hardware implementation feasibility of post-quantum cryptography in embedded systems: Evaluation of NIST-stand",
+     "journal": "PloS one",
+     "mesh": [
+      "Feasibility Studies",
+      "Algorithms",
+      "Computer Security"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "systems": {
+   "queries": [
+    "redis source",
+    "yes export",
+    "redis",
+    "source",
+    "data",
+    "cd",
+    "run"
+   ],
+   "hits_per_query": {
+    "redis source": 10,
+    "yes export": 10,
+    "redis": 10,
+    "source": 10,
+    "data": 10,
+    "cd": 10,
+    "run": 10
+   },
+   "n_hits": 70,
+   "n_biomedical": 48,
+   "biomedical_share": 0.686,
+   "sample": [
+    {
+     "query": "redis source",
+     "title": "Micro-Computed Tomography beamline at the Australian Synchrotron: data acquisition and processing pipeline.",
+     "journal": "Journal of synchrotron radiation",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "redis source",
+     "title": "Guided Query Navigation over Heterogeneous Multi-Source Databases: Pre-Validated SQL Routing as an Alternative to Free-F",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "redis source",
+     "title": "Development of a high-performance in-memory database architecture for intelligent video surveillance in critical patient",
+     "journal": "Frontiers in digital health",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "redis source",
+     "title": "IGC: Intelligence-Gated Crawling for Distributed Web Content Acquisition and RAG-Ready Vectorization",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "redis source",
+     "title": "Construction of a data-driven knowledge discovery path from the perspective of intelligent academic evaluation: an empir",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "redis source",
+     "title": "RAPD2: Rapid Automated Processing of Macromolecular Crystallographic Data 2",
+     "journal": "Structural dynamics (Melville, N.Y.)",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "redis source",
+     "title": "MQTT Broker Architectural Enhancements for High-Performance P2P Messaging: TBMQ Scalability and Reliability in Distribut",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "redis source",
+     "title": "Viscoelastic flow-integrated Raman spectroscopy platform  <sup>\u2020</sup>",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "cli": {
+   "queries": [
+    "click command",
+    "hello cli",
+    "use context",
+    "click",
+    "command",
+    "hello",
+    "cli",
+    "line"
+   ],
+   "hits_per_query": {
+    "click command": 10,
+    "hello cli": 10,
+    "use context": 10,
+    "click": 10,
+    "command": 10,
+    "hello": 10,
+    "cli": 10,
+    "line": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 54,
+   "biomedical_share": 0.675,
+   "sample": [
+    {
+     "query": "click command",
+     "title": "Bio-Inspired Gaze and Neural Command Fusion for Assistive Smartphone Interaction.",
+     "journal": "Biomimetics (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "click command",
+     "title": "Backseat driver architecture to passively follow sperm whales by their voices with an autonomous underwater glider.",
+     "journal": "Scientific reports",
+     "mesh": [
+      "Animals",
+      "Echolocation",
+      "Vocalization, Animal"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "click command",
+     "title": "Protocol to design and implement scalable wireless network system for high-throughput, automated behavioral and circuit ",
+     "journal": "STAR protocols",
+     "mesh": [
+      "Animals",
+      "Mice",
+      "Behavior, Animal"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "click command",
+     "title": "A Bioinformatics Workflow to Identify eccDNA Using ECCFP From Long-Read Nanopore Sequencing Data.",
+     "journal": "Bio-protocol",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "click command",
+     "title": "golgi: an open-source graphical platform for image-to-recruitment modeling of peripheral nerve stimulation",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "click command",
+     "title": "CasanovoGUI: a cross-platform desktop application for deep learning-based  <i>de novo</i>  peptide sequencing with Casan",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "click command",
+     "title": "Bridging the bioinformatics gap: tool selection for decentralized AMR genomic surveillance in Africa.",
+     "journal": "Frontiers in public health",
+     "mesh": [
+      "Humans",
+      "Computational Biology",
+      "Genomics"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "click command",
+     "title": "Protocol to benchmark and evaluate the status of imbalance measure using correlation, data complexity, and ablation anal",
+     "journal": "STAR protocols",
+     "mesh": [
+      "Humans",
+      "Computational Biology",
+      "Benchmarking"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "http": {
+   "queries": [
+    "requests python",
+    "python community",
+    "requests",
+    "python",
+    "community",
+    "information",
+    "urllib3"
+   ],
+   "hits_per_query": {
+    "requests python": 10,
+    "python community": 10,
+    "requests": 10,
+    "python": 10,
+    "community": 10,
+    "information": 10,
+    "urllib3": 10
+   },
+   "n_hits": 70,
+   "n_biomedical": 45,
+   "biomedical_share": 0.643,
+   "sample": [
+    {
+     "query": "requests python",
+     "title": "PandaMap: A Python Package for Comprehensive Visualization of Protein\u2013Ligand Interaction Networks",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "requests python",
+     "title": "Embedded ONNX Versus Python Sidecar Inference for Anomaly-Aware Availability Response in Spring Boot Microservices: An A",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "requests python",
+     "title": "An automated end-to-end pipeline for the management, de-identification, and distribution of whole-slide images using DIC",
+     "journal": "Journal of pathology informatics",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "requests python",
+     "title": "OMIO: A policy-driven Python library for reproducible microscopy image I/O",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "requests python",
+     "title": "QiboAgent: a practitioner's guideline to open source assistants for Quantum Computing code development",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "requests python",
+     "title": "afspm: A framework for manufacturer-agnostic automation in scanning probe microscopy.",
+     "journal": "Beilstein journal of nanotechnology",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "requests python",
+     "title": "AiWingman: A Local Continuity Overlay for Codex Task Portfolios with Retrospective Specification-Conformance Testing of ",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "requests python",
+     "title": "Navigating the lipid universe with LipidLibrarian: a cross-linked database for lipidomics data integration.",
+     "journal": "Journal of lipid research",
+     "mesh": [
+      "Lipids",
+      "Software",
+      "Databases, Factual"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "db": {
+   "queries": [
+    "guide support",
+    "duckdb",
+    "sql",
+    "run",
+    "use",
+    "page"
+   ],
+   "hits_per_query": {
+    "guide support": 10,
+    "duckdb": 10,
+    "sql": 10,
+    "run": 10,
+    "use": 10,
+    "page": 10
+   },
+   "n_hits": 60,
+   "n_biomedical": 38,
+   "biomedical_share": 0.633,
+   "sample": [
+    {
+     "query": "guide support",
+     "title": "Co-Designing Lived Experience Guide Support for First Responder Mental Health: Defining the Role and Considerations for ",
+     "journal": "Health expectations : an international journal of public participation in health care and health policy",
+     "mesh": [
+      "Humans",
+      "Mental Health",
+      "Mental Health Services"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "Influence of guide support on the accuracy of static Computer-Assisted Implant Surgery (sCAIS) in partially edentulous c",
+     "journal": "BMC oral health",
+     "mesh": [
+      "Maxilla",
+      "Humans",
+      "Jaw, Edentulous, Partially"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "Stand-Alone Large Bore Aspiration Catheter (0.072 Inch) for Both Guide Support and Clot Aspiration in Transradial Poster",
+     "journal": "Operative neurosurgery (Hagerstown, Md.)",
+     "mesh": [
+      "Humans",
+      "Thrombosis",
+      "Treatment Outcome"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "Influence of surgical guide support and implant site location on accuracy of static Computer-Assisted Implant Surgery.",
+     "journal": "Clinical oral implants research",
+     "mesh": [
+      "Humans",
+      "Mouth, Edentulous",
+      "Imaging, Three-Dimensional"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "Proximal buddy in jail technique: A bail out technique to increase guide support.",
+     "journal": "Cardiology journal",
+     "mesh": [
+      "Coronary Vessels",
+      "Radial Artery",
+      "Humans"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "Accuracy of orthodontic mini-implants placed at the anterior palate by tooth-borne or gingiva-borne guide support: a cad",
+     "journal": "Clinical oral investigations",
+     "mesh": [
+      "Palate",
+      "Gingiva",
+      "Humans"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "How best to assist struggling trainees? Developing an evidence-based framework to guide support interventions.",
+     "journal": "Education for primary care : an official publication of the Association of Course Organisers, National Association of GP Tutors, World Organisation of Family Doctors",
+     "mesh": [
+      "Humans",
+      "Health Knowledge, Attitudes, Practice",
+      "Learning"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "guide support",
+     "title": "Community Co-Design of a Quick Guide to Inform Digital Health Promotion Strategies for Asymptomatic Women at Risk of Chr",
+     "journal": "Health promotion journal of Australia : official journal of Australian Association of Health Promotion Professionals",
+     "mesh": [
+      "Humans",
+      "Chronic Disease",
+      "Health Knowledge, Attitudes, Practice"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "storage": {
+   "queries": [
+    "rocksdb write",
+    "wal memtable",
+    "memtable db",
+    "rocksdb",
+    "write",
+    "wal",
+    "memtable",
+    "db"
+   ],
+   "hits_per_query": {
+    "rocksdb write": 10,
+    "wal memtable": 2,
+    "memtable db": 2,
+    "rocksdb": 10,
+    "write": 10,
+    "wal": 10,
+    "memtable": 7,
+    "db": 10
+   },
+   "n_hits": 61,
+   "n_biomedical": 35,
+   "biomedical_share": 0.574,
+   "sample": [
+    {
+     "query": "rocksdb write",
+     "title": "Host-Guided Data Placement\u2014Whose Job Is It Anyway?",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "FragTracer: Real-Time Fragmentation Monitoring Tool for F2FS File System.",
+     "journal": "Sensors (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "rocksdb write",
+     "title": "Compaction-Aware Flash Memory Remapping for Key-Value Stores.",
+     "journal": "Micromachines",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "State Migration in Styx: Towards Serverless Transactional Functions.",
+     "journal": "The VLDB journal : very large data bases : a publication of the VLDB Endowment",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "SplitDB: Building a large-scale key-value store based on LSM-tree by split operations",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "Enabling Genomics Pipelines in Commodity Personal Computers With Flash Storage.",
+     "journal": "Frontiers in genetics",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "rocksdb write",
+     "title": "A New NVM Device Driver for IoT Time Series Database.",
+     "journal": "Micromachines",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "rocksdb write",
+     "title": "A New Embedded Key-Value Store for NVM Device Simulator.",
+     "journal": "Micromachines",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "numerics": {
+   "queries": [
+    "distribution scipy",
+    "scipy support",
+    "support stats",
+    "distribution",
+    "scipy",
+    "support",
+    "stats",
+    "function"
+   ],
+   "hits_per_query": {
+    "distribution scipy": 10,
+    "scipy support": 10,
+    "support stats": 10,
+    "distribution": 10,
+    "scipy": 10,
+    "support": 10,
+    "stats": 10,
+    "function": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 50,
+   "biomedical_share": 0.625,
+   "sample": [
+    {
+     "query": "distribution scipy",
+     "title": "Research on the evidence-based psychological diagnosis of poor students in medical higher education and the home-school ",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Host range and antibiotic resistance dissemination are shaped by distinct survival strategies of conjugative plasmids.",
+     "journal": "Nucleic acids research",
+     "mesh": [
+      "Enterobacteriaceae",
+      "Drug Resistance, Bacterial",
+      "Conjugation, Genetic"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "STRIKER: a spectral metadata repairing tool for expanding the comprehensiveness of spectral libraries.",
+     "journal": "Journal of cheminformatics",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Optimization of Diffusion MRI With Consideration of the Signal Decay in Biological Tissues.",
+     "journal": "Magnetic resonance in medicine",
+     "mesh": [
+      "Prostate",
+      "Humans",
+      "Image Interpretation, Computer-Assisted"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "FastMDAnalysis: Software for Automated Analysis of Molecular Dynamics Trajectories.",
+     "journal": "Journal of computational chemistry",
+     "mesh": [
+      "Proteins",
+      "Automation",
+      "Software"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Dynamical and Stochastic Analysis of a Piezoelectric Neuron Model for Intelligent Sensing Applications.",
+     "journal": "Sensors (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Demographic and clinical characteristics of patients undergoing evisceration: a six-year retrospective study in a tertia",
+     "journal": "BMC ophthalmology",
+     "mesh": [
+      "Humans",
+      "Eye Diseases",
+      "Eye Evisceration"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "distribution scipy",
+     "title": "Protocol to benchmark and evaluate the status of imbalance measure using correlation, data complexity, and ablation anal",
+     "journal": "STAR protocols",
+     "mesh": [
+      "Humans",
+      "Computational Biology",
+      "Benchmarking"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "compiler": {
+   "queries": [
+    "numba cuda",
+    "cuda function",
+    "python type",
+    "numba",
+    "cuda",
+    "function",
+    "python",
+    "type"
+   ],
+   "hits_per_query": {
+    "numba cuda": 10,
+    "cuda function": 10,
+    "python type": 10,
+    "numba": 10,
+    "cuda": 10,
+    "function": 10,
+    "python": 10,
+    "type": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 46,
+   "biomedical_share": 0.575,
+   "sample": [
+    {
+     "query": "numba cuda",
+     "title": "diffct: Differentiable CT Operators from Circular Orbits to Arbitrary Trajectories",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Rapid-PFP: Accelerating Prefix-Free Parsing with GPU Parallelism",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Accelerating Scientific Computing: A Comprehensive Analysis of Python Vectorization Paradigms and Performance Optimizati",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Accurate and Scalable Continuum Electrostatics for Large Biomolecular Systems: The &lt;i&gt;pyDelPhi&lt;/i&gt; Poisson-B",
+     "journal": "Journal of chemical information and modeling",
+     "mesh": [
+      "Models, Molecular",
+      "Static Electricity"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "numba cuda",
+     "title": "Comparing Geodesic Filtering to State-of-the-Art Algorithms: A Comprehensive Study and CUDA Implementation.",
+     "journal": "Journal of imaging",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "Barracuda: a dynamic, Turing-complete GPU virtual machine for high-performance simulations.",
+     "journal": "Medical & biological engineering & computing",
+     "mesh": [
+      "Humans",
+      "Magnetic Resonance Imaging",
+      "Computer Graphics"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "numba cuda",
+     "title": "A Python-based flow solver for numerical simulations using an immersed boundary method on single GPUs.",
+     "journal": "Computers & fluids",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "numba cuda",
+     "title": "&lt;i&gt;MUMOTT&lt;/i&gt;: a Python package for the analysis of multi-modal tensor tomography data.",
+     "journal": "Journal of applied crystallography",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "llminfer": {
+   "queries": [
+    "gguf llama",
+    "llama model",
+    "cpp bash",
+    "gguf",
+    "llama",
+    "model",
+    "cpp",
+    "llama cpp"
+   ],
+   "hits_per_query": {
+    "gguf llama": 10,
+    "llama model": 10,
+    "cpp bash": 10,
+    "gguf": 10,
+    "llama": 10,
+    "model": 10,
+    "cpp": 10,
+    "llama cpp": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 54,
+   "biomedical_share": 0.675,
+   "sample": [
+    {
+     "query": "gguf llama",
+     "title": "Benchmarking proprietary and open-source language and vision-language models for gastroenterology clinical reasoning.",
+     "journal": "NPJ digital medicine",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "Detecting stigmatizing language with large language models: mind the settings.",
+     "journal": "JAMIA open",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "MedicalPhoto: Open-Source Clinical Photo Management Software for Digital Transformation.",
+     "journal": "Annals of dermatology",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "Logit Fingerprinting: A Novel, Accuracy-Independent Method for Validating Large Language Model Stability in High-Stakes ",
+     "journal": "AMIA Joint Summits on Translational Science proceedings. AMIA Joint Summits on Translational Science",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "gguf llama",
+     "title": "Benchmarking the diagnostic performance of open source LLMs in 1933 Eurorad case reports.",
+     "journal": "NPJ digital medicine",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "RiemannInfer: improving transformer inference through Riemannian geometry.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "Large language models identify immigration attitudes in online discourse regardless of language.",
+     "journal": "Scientific reports",
+     "mesh": [
+      "Humans",
+      "Attitude",
+      "Language"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "gguf llama",
+     "title": "Evaluating Locally Run Large Language Models (Gemma 2, Mistral Nemo, and Llama 3) for Outpatient Otorhinolaryngology Car",
+     "journal": "JMIR formative research",
+     "mesh": [
+      "Humans",
+      "Ambulatory Care",
+      "Retrospective Studies"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "vectordb": {
+   "queries": [
+    "qdrant",
+    "search",
+    "support",
+    "plan",
+    "vectors"
+   ],
+   "hits_per_query": {
+    "qdrant": 10,
+    "search": 10,
+    "support": 10,
+    "plan": 10,
+    "vectors": 10
+   },
+   "n_hits": 50,
+   "n_biomedical": 33,
+   "biomedical_share": 0.66,
+   "sample": [
+    {
+     "query": "qdrant",
+     "title": "RAGtio: A Modular Framework for Systematic Evaluation of Hybrid Retrieval-Augmented Generation Pipelines",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "qdrant",
+     "title": "SousCoder: Cross-Application Confusion Detection for Proactive Developer Assistance",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "qdrant",
+     "title": "JADE: jawbone lesion diagnosis and decision supporting system.",
+     "journal": "Dento maxillo facial radiology",
+     "mesh": [
+      "Humans",
+      "Jaw Diseases",
+      "Diagnosis, Differential"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "qdrant",
+     "title": "OmniServe: An Extensible, Local-First Multimodal AI Assistant with Hybrid Retrieval, Speech, and On-Device Fine-Tuning",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "qdrant",
+     "title": "Auto Ontology: Towards Automated Term-to-Concept Assignment in Microbiology Analytics.",
+     "journal": "Studies in health technology and informatics",
+     "mesh": [
+      "Humans",
+      "Microbiology",
+      "Semantics"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "qdrant",
+     "title": "Cross-Agent Memory Architecture with Contextual Coherence and Factually Grounded Multi-Agent System",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "qdrant",
+     "title": "An Airflow-Orchestrated AI Pipeline for Podcast Transcription, Topic Modeling, and Recommendation System",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "qdrant",
+     "title": "Development and Evaluation of a Retrieval-Augmented Generation Chatbot for Orthopedic and Trauma Surgery Patient Educati",
+     "journal": "JMIR AI",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "linter": {
+   "queries": [
+    "ruff server",
+    "python lint",
+    "lint code",
+    "ruff",
+    "server",
+    "python",
+    "lint",
+    "code"
+   ],
+   "hits_per_query": {
+    "ruff server": 10,
+    "python lint": 10,
+    "lint code": 10,
+    "ruff": 10,
+    "server": 10,
+    "python": 10,
+    "lint": 10,
+    "code": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 49,
+   "biomedical_share": 0.613,
+   "sample": [
+    {
+     "query": "ruff server",
+     "title": "Integrating plant phenotypic and genotypic data in the AGENT project: a BrAPI service implementation.",
+     "journal": "Bioinformatics (Oxford, England)",
+     "mesh": [
+      "Hordeum",
+      "Triticum",
+      "Genomics"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "ruff server",
+     "title": "Delta opioid receptors on parvalbumin cells are necessary for the convulsant and anxiolytic effects of the delta agonist",
+     "journal": "Behavioural pharmacology",
+     "mesh": [
+      "Interneurons",
+      "Animals",
+      "Mice, Inbred C57BL"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "ruff server",
+     "title": "Building Adaptive School-Based Interventions for Caries (BASICS): study protocol for a Sequential, Multiple Assignment, ",
+     "journal": "Trials",
+     "mesh": [
+      "Humans",
+      "Dental Caries",
+      "Fluorides, Topical"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "ruff server",
+     "title": "Acquisition of Spacers from Foreign Prokaryotic Genomes by CRISPR-Cas Systems in Natural Environments.",
+     "journal": "Genome biology and evolution",
+     "mesh": [
+      "Bacteria",
+      "Archaea",
+      "DNA, Intergenic"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "ruff server",
+     "title": "A generalizable cross-continent prediction of esophageal squamous cell carcinoma using the oral microbiome",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "ruff server",
+     "title": "Inferring replication states of bacteria and viruses in enrichment cultures via long-read sequencing.",
+     "journal": "ISME communications",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "ruff server",
+     "title": "Key Amino Acids Controlling pH Optima in Avian Chia Paralogs: Mechanistic Insights into Functional Divergence.",
+     "journal": "Molecules (Basel, Switzerland)",
+     "mesh": [
+      "Animals",
+      "Chickens",
+      "Chitin"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "ruff server",
+     "title": "\ufeffFour new species of &lt;i&gt;Collybiopsis&lt;/i&gt; (Omphalotaceae, Agaricales) from subtropical regions of China.",
+     "journal": "MycoKeys",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "encryption": {
+   "queries": [
+    "key file",
+    "jpg recipient",
+    "age",
+    "key",
+    "file",
+    "files",
+    "passphrase"
+   ],
+   "hits_per_query": {
+    "key file": 10,
+    "jpg recipient": 10,
+    "age": 10,
+    "key": 10,
+    "file": 10,
+    "files": 10,
+    "passphrase": 10
+   },
+   "n_hits": 70,
+   "n_biomedical": 54,
+   "biomedical_share": 0.771,
+   "sample": [
+    {
+     "query": "key file",
+     "title": "A Dynamic Hybrid Cryptosystem Combining Unimodular Hill Cipher, Chaotic Logistic Maps, and ECC for Efficient Binary File",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "key file",
+     "title": "A Scalable Hybrid Encryption Framework Based on Unimodular Hill Cipher, Logistic Chaotic Key Generation, and AES-CBC for",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "key file",
+     "title": "Integrated in silico and in vivo approaches reveal naltrexone as a synergistic modulator of TLR4 and \u03bc-opioid receptors ",
+     "journal": "Molecular and cellular biochemistry",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "key file",
+     "title": "Intelligent Adaptive Hybrid Encryption Based on Unimodular Hill Cipher, RSA-OAEP, and Chaotic Logistic Maps for Universa",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "key file",
+     "title": "Ferroptosis-Based Peripheral Immune Dysregulation and Diagnostic Signatures in Parkinson's Disease: An RNA Transcriptomi",
+     "journal": "FASEB journal : official publication of the Federation of American Societies for Experimental Biology",
+     "mesh": [
+      "Humans",
+      "Parkinson Disease",
+      "Gene Expression Profiling"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "key file",
+     "title": "A Deterministic Complete Graph Hill Cipher with Shift128 Residual Encryption for Universal Binary Files",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "key file",
+     "title": "A Scalable Hybrid Encryption Framework Based on Unimodular Hill Cipher and Chaotic Logistic XOR Stream Cipher for Secure",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "key file",
+     "title": "Dissecting corneal drug permeability under experimental variability and drug cold-start challenges via hybrid machine le",
+     "journal": "Drug delivery and translational research",
+     "mesh": [],
+     "biomedical": true
+    }
+   ]
+  },
+  "ann": {
+   "queries": [
+    "vectors search",
+    "faiss",
+    "vectors",
+    "search",
+    "svs",
+    "similarity"
+   ],
+   "hits_per_query": {
+    "vectors search": 10,
+    "faiss": 10,
+    "vectors": 10,
+    "search": 10,
+    "svs": 10,
+    "similarity": 10
+   },
+   "n_hits": 60,
+   "n_biomedical": 35,
+   "biomedical_share": 0.583,
+   "sample": [
+    {
+     "query": "vectors search",
+     "title": "Context-dependent influence of path integration on nest plume following in desert ants.",
+     "journal": "iScience",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Query-Efficient Hard-Label Attack: A Prior-Guided Adam Ray Search Optimization.",
+     "journal": "Sensors (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "vectors search",
+     "title": "Eco-friendly dengue control using Toxorhynchites brevipalpis, a natural predator of Aedes aegypti larvae in Burkina Faso",
+     "journal": "Acta tropica",
+     "mesh": [
+      "Animals",
+      "Culicidae",
+      "Aedes"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "vectors search",
+     "title": "Mapping Scrub Typhus Across Multiple Hosts in India.",
+     "journal": "EcoHealth",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "vectors search",
+     "title": "Computational neural dynamics of goal-directed visual attention in macaques.",
+     "journal": "Science advances",
+     "mesh": [
+      "Visual Cortex",
+      "Animals",
+      "Macaca mulatta"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "vectors search",
+     "title": "Impacts of meteorological factors on zoonotic infections in domestic cat and dog populations: A scoping review of intern",
+     "journal": "One health (Amsterdam, Netherlands)",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "vectors search",
+     "title": "Color Recurrence Plots from Uniform Delay Embeddings for Bearing Degradation Tracking and Prognostics",
+     "journal": "Entropy (Basel, Switzerland)",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "vectors search",
+     "title": "Effects of insect-specific viruses on transmission, infection, and replication of arboviruses in co-infected mosquitoes:",
+     "journal": "Parasites & vectors",
+     "mesh": [],
+     "biomedical": true
+    }
+   ]
+  },
+  "columnar": {
+   "queries": [
+    "arrow file",
+    "file distributed",
+    "use array",
+    "arrow",
+    "file",
+    "distributed",
+    "data",
+    "asf"
+   ],
+   "hits_per_query": {
+    "arrow file": 10,
+    "file distributed": 10,
+    "use array": 10,
+    "arrow": 10,
+    "file": 10,
+    "distributed": 10,
+    "data": 10,
+    "asf": 10
+   },
+   "n_hits": 80,
+   "n_biomedical": 60,
+   "biomedical_share": 0.75,
+   "sample": [
+    {
+     "query": "arrow file",
+     "title": "When Breast Cancer Hides Elsewhere: Invasive Lobular Carcinoma Presenting as Gallbladder Disease.",
+     "journal": "Cureus",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "arrow file",
+     "title": "Correction: A non-canonical function of zebrafish telomerase reverse transcriptase is required for developmental hematop",
+     "journal": "PloS one",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Profiling cell dynamic changes of goat peripheral blood mononuclear cells after Pasteurella multocida infection with sin",
+     "journal": "Veterinary research",
+     "mesh": [
+      "Leukocytes, Mononuclear",
+      "Animals",
+      "Goats"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Sequoia affects Drosophila central nervous system development by regulating axonal extension and guidance.",
+     "journal": "PloS one",
+     "mesh": [
+      "Central Nervous System",
+      "Dendrites",
+      "Axons"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Scalable data harmonization for single-cell image-based profiling with CytoTable.",
+     "journal": "Patterns (New York, N.Y.)",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "arrow file",
+     "title": "A carotid web should not be excluded as the cause of a first-ever stroke in older patients with atherothrombotic risk fa",
+     "journal": "International journal of emergency medicine",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "arrow file",
+     "title": "54 Broad and shallow, deep and narrow, data track health\u2019s causal arrow",
+     "journal": "Journal of clinical and translational science",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "arrow file",
+     "title": "Live attenuated RH\u0394tkl1 and Pru\u0394pp2a-c mutants of Toxoplasma gondii are promising vaccine candidates conferring protecti",
+     "journal": "Infectious diseases of poverty",
+     "mesh": [
+      "Animals",
+      "Swine",
+      "Mice"
+     ],
+     "biomedical": true
+    }
+   ]
+  },
+  "thin-lang": {
+   "queries": [
+    "wip",
+    "status wip",
+    "status",
+    "programming language",
+    "programming"
+   ],
+   "hits_per_query": {
+    "wip": 10,
+    "status wip": 10,
+    "status": 10,
+    "programming language": 10,
+    "programming": 10
+   },
+   "n_hits": 50,
+   "n_biomedical": 38,
+   "biomedical_share": 0.76,
+   "sample": [
+    {
+     "query": "wip",
+     "title": "Regulation and dysregulation at a critical hematopoietic junction: The human WASP-WIP complex.",
+     "journal": "Journal of structural biology",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "WIP transcriptional regulators modulate developmental progression in both life cycle phases of a moss.",
+     "journal": "Proceedings of the National Academy of Sciences of the United States of America",
+     "mesh": [
+      "Bryophyta",
+      "Bryopsida",
+      "Indoleacetic Acids"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "Correction for Gomez Roldan et al., WIP transcriptional regulators modulate developmental progression in both life cycle",
+     "journal": "Proceedings of the National Academy of Sciences of the United States of America",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "Behavior of Escherichia coli O157:H7, Listeria monocytogenes, and Salmonella enterica During Storage of Work-in-Process ",
+     "journal": "Journal of food protection",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "Cement floor tiles based on waste ceramic and waste tires for EMI shielding.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "The leg-swing interface: a novel approach to seated VR locomotion with balanced immersion and physical load.",
+     "journal": "Scientific reports",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "Effects of temperature and sanitizer wash treatments on foodborne pathogen survival during storage of work-in-process fr",
+     "journal": "Food microbiology",
+     "mesh": [
+      "Escherichia coli O157",
+      "Salmonella enterica",
+      "Listeria monocytogenes"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "wip",
+     "title": "French version of the well-being in pregnancy (WIP) scale: translation and psychometric validation.",
+     "journal": "Journal of reproductive and infant psychology",
+     "mesh": [],
+     "biomedical": true
+    }
+   ]
+  },
+  "thin-kv": {
+   "queries": [
+    "sekas",
+    "run",
+    "data",
+    "group",
+    "tracing prost-build"
+   ],
+   "hits_per_query": {
+    "sekas": 10,
+    "run": 10,
+    "data": 10,
+    "group": 10,
+    "tracing prost-build": 10
+   },
+   "n_hits": 50,
+   "n_biomedical": 41,
+   "biomedical_share": 0.82,
+   "sample": [
+    {
+     "query": "sekas",
+     "title": "Particular tumor of the pancreas: A case report.",
+     "journal": "World journal of clinical cases",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "Granular cell tumour of the pancreas: a case report and systematic review.",
+     "journal": "Langenbeck's archives of surgery",
+     "mesh": [
+      "Pancreas",
+      "Humans",
+      "Granular Cell Tumor"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "A scoping review of somatization: characteristics and implications among health profession students.",
+     "journal": "BMC medical education",
+     "mesh": [
+      "Humans",
+      "Mental Health",
+      "Somatoform Disorders"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "Added value of 3D-DRIVE and SWI Magnetic Resonance Imaging Sequences in Intraventricular Neurocysticercosis (IVNCC): An ",
+     "journal": "Acta medica Lituanica",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "Hepatocyte-derived extracellular vesicles regulate liver regeneration through a negative feedback mechanism.",
+     "journal": "Journal of extracellular biology",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "Vitamin C mitigates hematological and biochemical alterations caused by di(2-ethylhexyl) phthalate toxicity in female al",
+     "journal": "Comparative clinical pathology",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "Metabolomic evaluation of Euphorbia pekinensis induced nephrotoxicity in rats.",
+     "journal": "Pharmaceutical biology",
+     "mesh": [
+      "Kidney",
+      "Animals",
+      "Rats"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "sekas",
+     "title": "METHODS AND APPARATUS FOR MEASURING AN ELECTROMAGNETIC RADIATION RESPONSE PROPERTY ASSOCIATED WITH A SUBSTRATE",
+     "journal": "",
+     "mesh": [],
+     "biomedical": false
+    }
+   ]
+  },
+  "thin-gnn": {
+   "queries": [
+    "dgf beam",
+    "graph data",
+    "dgf",
+    "beam",
+    "graph",
+    "data"
+   ],
+   "hits_per_query": {
+    "dgf beam": 10,
+    "graph data": 10,
+    "dgf": 10,
+    "beam": 10,
+    "graph": 10,
+    "data": 10
+   },
+   "n_hits": 60,
+   "n_biomedical": 52,
+   "biomedical_share": 0.867,
+   "sample": [
+    {
+     "query": "dgf beam",
+     "title": "Dose-Gradient Function-Guided Reduction of Radiation-Induced Heart Injury in Left-Sided Breast Cancer Treated With Helic",
+     "journal": "Technology in cancer research & treatment",
+     "mesh": [
+      "Humans",
+      "Breast Neoplasms",
+      "Radiation Injuries"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "Manipulating DNA and RNA structures via click-to-release caged nucleic acids for biological and biomedical applications.",
+     "journal": "Nucleic acids research",
+     "mesh": [
+      "Animals",
+      "Humans",
+      "Mice"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "Application value of ultrasonic contrast imaging and ultrasonic parameters in post-transplant renal surgery.",
+     "journal": "Frontiers in medicine",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "The long reach of childhood income inequality: a multinational twin study of gene-environment interplay on adult depress",
+     "journal": "Psychological medicine",
+     "mesh": [
+      "Humans",
+      "Depression",
+      "Adolescent"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "Rapid FTIR Spectral Fingerprinting of Kidney Allograft Perfusion Fluids Distinguishes DCD from DBD Donors: A Pilot Machi",
+     "journal": "Metabolites",
+     "mesh": [],
+     "biomedical": false
+    },
+    {
+     "query": "dgf beam",
+     "title": "NEON-SD: A 30-m Structural Diversity Product Derived from the NEON Discrete-Return LiDAR Point Cloud.",
+     "journal": "Scientific data",
+     "mesh": [],
+     "biomedical": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "A CBCT study of changes in temporomandibular joint morphology with immediate implant placement and immediate loaded full",
+     "journal": "BMC oral health",
+     "mesh": [
+      "Mandibular Condyle",
+      "Temporomandibular Joint",
+      "Humans"
+     ],
+     "biomedical": true
+    },
+    {
+     "query": "dgf beam",
+     "title": "Three-dimensional spatial analysis of temporomandibular joint in adolescent Class II division 1 malocclusion patients: c",
+     "journal": "Head & face medicine",
+     "mesh": [
+      "Mandible",
+      "Temporomandibular Joint",
+      "Humans"
+     ],
+     "biomedical": true
+    }
+   ]
+  }
+ }
+}

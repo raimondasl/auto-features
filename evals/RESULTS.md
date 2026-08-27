@@ -1144,6 +1144,71 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Europe PMC answers a compiler confidently, and 68% of what it says is biology. **[P22]**
+
+P21 measured Europe PMC at **+4.00 net@2** on the six bio repositories, by *coverage* rather
+than ranking: 54% of the shown digest came from it, at **0.97** precision. That is the
+strongest multi-source evidence this project has, and the obvious next move was a
+`arxiv,europepmc` default for every repository. This probe is why that would have been wrong.
+
+**$0, no LLM and no judge calls.** Each core-25 repository's OWN queries — built by
+`harness.profile_case_repo` and `collector.build_queries`, the shared implementations a real
+run uses — sent to Europe PMC's free API. Classification by Europe PMC's own cataloguing, not
+by a model: MeSH headings, assigned by NLM cataloguers, plus the Index Medicus subset.
+
+| | result |
+|---|---|
+| repositories returning **zero** hits | **0 / 25** |
+| total hits | 1,721 |
+| **indexed as biomedical** | **1,176 = 68%** |
+| range across repositories | 57% (`storage`, `compiler`) to 87% (`thin-gnn`) |
+
+**Every repository is above half.** This is not an average dragged up by a few outliers.
+
+The titles are the argument. Query `lint code` returns *"Occurrence of postoperative
+pneumoencephalus in posterior fossa surgery using the semi-sitting position"*. Query
+`arrow file` returns breast cancer, zebrafish telomerase, goat peripheral blood mononuclear
+cells. Query `ruff server` returns plant phenotyping and delta opioid receptors.
+
+**This is the expensive outcome, not the harmless one.** A source that stays silent outside
+its domain costs nothing to enable everywhere. A source that answers *confidently and
+off-domain* feeds the candidate pool of every repository — where net@2 charges **2 per false
+positive**, and where non-arXiv papers additionally escape the ranker's category component, a
+bias already measured moving 18 of 32 such papers into or out of the top-10.
+
+**It is not uniformly noise, and the pattern says what the axis really is.** `crypto` gets
+genuine post-quantum cryptography and blockchain papers; `compiler` gets GPU prefix-free
+parsing and Python vectorisation. Domain-neutral CS terms retrieve real CS work. Generic
+English does not: `key`, `arrow file`, `lint code`, `data`.
+
+So **the collision is a property of the QUERY, not of the repository** — and per-domain
+routing is therefore the wrong design as well as a premature one. `crypto` would be routed
+"on" by any domain classifier and still receives biology from its own query `key`.
+
+**Verdict: no multi-source default, and no per-domain routing on this evidence.** What the
+data supports is a *relevance* condition on non-arXiv results — the same thing the ranker's
+missing category component would have provided if uncategorised papers did not escape it.
+
+#### The first run of this probe reported 21%, and it measured nothing
+
+`_looks_biomedical` substring-matched journal names out of `journalTitle` and `pubType`. Both
+are `None` on essentially every Europe PMC record — the real fields are `meshHeadingList`,
+`subsetList`, and a nested `journalInfo`. So the flag compared against empty strings, returned
+False for everything it could not see, and reported that 79% of the hits were **not**
+biomedical.
+
+It failed in the direction that reads as good news, which is the direction that gets believed.
+Nothing about the run looked wrong: 25 cases, 1,721 hits, a plausible-looking 21%.
+
+It was caught by reading the sampled titles instead of the counter — they were transparently
+biological while the number said otherwise. The repair uses Europe PMC's own indexing rather
+than a guess about words, and `tests/test_epmc_collision.py::test_the_flag_reads_fields_that_exist`
+asserts that the two fields the broken version read are not sufficient on their own.
+
+The artifact now stores the **query** beside each sampled hit, so the next reader can check
+the collision rather than take 68% on trust — which is precisely what the first run's reader
+could not do.
+
 ### The bio comparison, measured at a matched configuration — and `w_embedding` costs 1.33 there. **[P21, NR-40]**
 
 The Opus 5 sweep ran the v2 prompt, so **it is not arXiv-limited**: on the bio cases **70% of
