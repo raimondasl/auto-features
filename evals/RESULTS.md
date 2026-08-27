@@ -1144,6 +1144,93 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The bio comparison, measured at a matched configuration — and `w_embedding` costs 1.33 there. **[P21, NR-40]**
+
+The Opus 5 sweep ran the v2 prompt, so **it is not arXiv-limited**: on the bio cases **70% of
+its picks and 68% of its certified targets are non-arXiv DOIs** (31 ACM, 10 Nature, 7 IEEE, 6
+Oxford/NAR, 5 VLDB across the whole sweep). Comparing that against an arXiv-only RepoRadar was
+not a like-for-like contest, and the first bio figure quoted here (+5.50 against Opus 5's
++5.83) was measured under exactly that asymmetry.
+
+**Two RepoRadar runs already covered bio and differed by 5.5 points**, entirely on
+configuration: 2026-08-20 at window 15 / arxiv-only gives +5.50, 2026-08-21 at window 30 /
+arxiv+europepmc gives +11.00. Neither is the shipped configuration and neither answers the
+question. So the missing arm was run: **window 15, sources arxiv+europepmc, `w_embedding`
+1.5**, against the frozen `pool-epmc-treat` so no new collection draw enters the comparison.
+
+| case | **w15 + epmc + wemb1.5** | w30 raw | w30 truncated to 15 | w15 arxiv-only | Opus 5 |
+|---|---|---|---|---|---|
+| bio-align | +5 | +10 | +10 | +0 | +7 |
+| bio-kmer | +7 | +8 | +8 | +3 | +6 |
+| bio-mdsim | +6 | +8 | +8 | +7 | +6 |
+| bio-mdtraj | +7 | +4 | +4 | +7 | 0 |
+| bio-scvi | +15 | +22 | +15 | +11 | +12 |
+| bio-singlecell | +9 | +14 | +12 | +5 | +4 |
+| **MEAN** | **+8.17** | +11.00 | +9.50 | +5.50 | +5.83 |
+
+**RepoRadar +8.17 against Opus 5's +5.83, paired +2.33, 4W/1L.** The arXiv-only run said
+-0.33; the reversal is the missing source, not the window.
+
+**The 5.5-point gap decomposes cleanly**, which is the point of running the arm rather than
+truncating:
+
+| axis | effect on bio net@2 |
+|---|---|
+| window 30 -> 15 | **-1.50** |
+| adding Europe PMC (at wemb 0.0) | **+4.00** |
+| `w_embedding` 0.0 -> 1.5 | **-1.33** |
+
+**NR-40: `w_embedding` 1.5 is worth -1.33 on the scientific cohort.** The value ships because
+it was tuned on the arXiv-only core 25; on bio it costs a point and a third. One 6-case run,
+so not conclusive — but it is the opposite sign from the assumption, and it was only visible
+because the axis was varied rather than derived. Truncating the window-30 run would have given
+window 15 + epmc at wemb **0.0** and quietly answered a different question.
+
+**Window truncation IS valid, and was verified rather than assumed.** The digest is
+`rerank_by_actionability(gated)[:top_n]` — a final cut on a list already ordered by
+`llm_score`, and `--rr-window` is *refused* when it exceeds the candidate depth, so it cannot
+silently reorder anything. Checked on the data: `llm_score` descends monotonically through all
+22 stored picks of the window-30 run. So w30 -> 15 above is a free, sound derivation; it just
+cannot reach the `w_embedding` axis.
+
+#### C-9 is repaired, and the non-arXiv sources are testable again
+
+C-9 recorded that every non-arXiv source had been sent arXiv boolean syntax as a keyword query
+for the whole of the product's history, and **C-9b** that the repair was published as "routed
+through all three call sites" when there were five and it routed two. Verified now against the
+live code rather than the note: `pipeline` computes `plain = [to_plain_keywords(q) ...]` **once**
+and every one of the six `KEYWORD_SOURCES` receives it — semantic_scholar, openalex, biorxiv,
+europepmc, iacr, dblp. On a real query,
+`(all:"vectorized execution" OR all:"columnar storage") AND (cat:cs.DB)` arrives as
+`vectorized execution columnar storage`.
+
+The design also defends itself: the fetchers keep real lazy `from ... import` statements rather
+than a table of module strings driving `importlib`, because — as the comment says — that
+"would have blinded `tests/test_stages.py`, which reads the import graph to prove the drift
+warning tells the truth. A guard that cannot see the import cannot check it."
+
+**So OpenAlex as a RETRIEVAL source is testable today**, and it is the obvious next probe: it
+reaches the ACM/IEEE/VLDB literature holding 43 of Opus 5's non-arXiv targets, where Europe PMC
+(biomedical) structurally cannot go — and P20 independently established that OpenAlex carries
+those abstracts, because that is what the new verifier tier does. `pool-oa-treat` and
+`pool-oa-control` are already on disk.
+
+#### The frozen-pool guard earned its keep, and exposed a recording gap
+
+The fingerprint guard **refused two attempts at this arm** and was right both times: the
+command omitted `--rr-all-time` and `--rr-hyde`, both POOL_FLAGS. Its message names the failure
+exactly — *"Reusing it would measure the old settings under the new run's name"* — and it
+volunteers that ranking flags are not part of the fingerprint, so varying `--rr-window` and
+`--rr-w-embedding` against a frozen pool is what freezing is for. Without it, a mislabelled arm
+would have shipped as a result.
+
+Recovering the right command required a **prose section of `RESEARCH-scientific-software.md`
+(§14.4)**, because **`rr_hyde` and `rr_all_time` are pool-affecting flags that run artifacts do
+not record**. The row stores `sources`, `bigram_mode`, `typed_anchors`, `scan_source` — not
+these two — and the frozen pool's `pool_flags` stores flag *names*, not values. So no artifact
+can answer "was HyDE on?" That is the same gap `digest_window` was recorded to close: *"an arm
+cannot be reported under a window its own run file contradicts."*
+
 ### The abstract gap was the binding constraint, and one tier closed most of it. **[P20]**
 
 The v2 sweep left 44 references unscoreable, every one a DOI and most of them ACM (P19). That

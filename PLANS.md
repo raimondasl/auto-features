@@ -320,6 +320,32 @@ notional API dollars, which is exactly this question. Opus 5 ran $163.91 for 21 
 (~$7.81/run) against Opus 4.8's $103.86 for 75 (~$1.38) — **5.6x per run**, decomposing into
 ~4.8x per turn and ~30% more turns. One full draw over 25 cases is ~$195; over all 37, ~$290.
 
+### 3c. The non-arXiv sources are testable again — OpenAlex is the next probe
+
+C-9 recorded that every non-arXiv source had been sent arXiv boolean syntax as a keyword query
+for the product's whole history, and C-9b that the repair was published as routing "all three
+call sites" when there were five and it routed two. **Verified against the live code
+2026-08-27: all six `KEYWORD_SOURCES` now receive the translated queries** from a single
+`to_plain_keywords` call. `(all:"vectorized execution") AND (cat:cs.DB)` arrives as
+`vectorized execution columnar storage`.
+
+So the objection to multi-source is no longer "it does not work". It is the measured evidence:
+the one channel tested properly delivered ~175 uncategorised papers per repository at **+0.00
+net@2**, and NR-11 recorded a wider pool making the headline *worse* when nothing ranked it.
+**That argues for one targeted probe rather than switching everything on.**
+
+**OpenAlex as a retrieval source is the probe.** Europe PMC is biomedical and reaches the
+Nature/NAR/BMC end of Opus 5's non-arXiv targets; it cannot reach the **43 ACM/IEEE/VLDB**
+targets, which are the largest slice. P20 established that OpenAlex carries exactly those
+abstracts — that is what the new verifier tier does. `pool-oa-treat` and `pool-oa-control` are
+already on disk, and `--sources arxiv,openalex` is one flag. Note `openalex` throttles keyless
+callers, so the probe needs `OPENALEX_API_KEY` (present in this environment).
+
+**Not "all seven sources".** `biorxiv` is documented as not a keyword search at all — its API
+is a date-interval listing, so under a long lookback it returns the oldest postings in the
+window rather than anything about the repository, and `validate_config` warns about precisely
+that.
+
 **The 6 bio cases are run, and they cost about twice what was projected.** $91.68 for six,
 **$15.28/run against the core cases' $8.06** — scientific repositories are larger and the
 agent works longer on them. The earlier ~$94 estimate for all 12 scientific cases used the
@@ -361,6 +387,13 @@ advantage is four cases where Opus 5 answers and is punished 2 per miss; RepoRad
 on 4 cases, Opus 5 on none. Change the penalty from 2 to 1 and the gap narrows to +0.80.
 **RepoRadar's edge over Opus 5 is abstention discipline, not discovery** — which is what
 DRAFT.md's own limitation ("the metric rewards shyness") predicts.
+
+**Superseded 2026-08-27 by the matched arm [P21].** The comparison below was between an
+arXiv-only RepoRadar and a baseline drawing **68% of its bio targets from outside arXiv** —
+not a like-for-like contest. Run at window 15 with `arxiv,europepmc` and `w_embedding` 1.5,
+**RepoRadar is +8.17 against Opus 5's +5.83, paired +2.33, 4W/1L.** The 5.5-point spread
+between the two old runs decomposes as window -1.50, Europe PMC **+4.00**, `w_embedding`
+**-1.33** [NR-40]. What follows is kept because it is what the arXiv-only data said.
 
 **On bio, quote the window-15 run and not the window-30 one.** Two RepoRadar runs cover the
 bio cases and differ by 5.5 points, entirely because of configuration:
