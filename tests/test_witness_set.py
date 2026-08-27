@@ -47,7 +47,7 @@ KNOWN_SOURCES = {
     "cli-redraw",
     "cli-redraw@30",
     "cli-v2@30",  # the v2-prompt sweep, 2026-08-26: grading, not self
-    "cli-v2-opus5@30",  # Opus 5, draw 1 complete (25 cases): grading, not self
+    "cli-v2-opus5@30",  # Opus 5, 25 core + 6 bio: grading, not self
     "api",
     "reporadar",
     "adoption",
@@ -173,7 +173,13 @@ class TestTheCommittedArtifact:
         witnesses from four sources, **+4.80 over 385** with the P17 v1 redraws pooled in,
         **+5.56 over 462** with the v2-prompt sweep as well, **+6.24 over 482** once the
         OpenAlex tier made 31 previously-unscoreable references judgeable, and **+7.28 over
-        572** with Opus 5's first 21 runs, and **+7.52 over 592** once that draw was
+        572** with Opus 5's first 21 runs, and **+7.52 over 592**.
+
+        It then stayed at +7.52 while the set grew to **638**, and that is not a bug: the six
+        bio cases added 47 witnesses, and regret is scored against the 25-case headline run,
+        which has no bio cases in it. A witness for a repository the run never covered cannot
+        displace anything shown. Growth outside the scored cohort is expected to move the
+        count and nothing else once that draw was
         completed to all 25 cases.
 
         The last step is worth separating from the others: it added no new *search*. Those
@@ -183,7 +189,7 @@ class TestTheCommittedArtifact:
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
         assert reg["mean_regret"] == 7.52
-        assert artifact["n_witnesses"] == 592
+        assert artifact["n_witnesses"] == 638
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not
@@ -216,7 +222,7 @@ class TestTheCommittedArtifact:
         labels = set(artifact["sources"])
         assert {"cli-v2@30", "cli-v2-opus5@30"} <= labels
         wemb = next(r for r in artifact["reach"] if r["pool"] == "pool-wemb")
-        assert wemb["cli-v2-opus5@30"]["n"] == 187, "25 runs, vs 155 from 75 of Opus 4.8's"
+        assert wemb["cli-v2-opus5@30"]["n"] == 187, "31 runs, vs 155 from 75 of Opus 4.8's"
 
     def test_the_redraws_agree_with_cli_on_reach(self, artifact):
         """A consistency check that costs nothing and would catch a mislabelled source.

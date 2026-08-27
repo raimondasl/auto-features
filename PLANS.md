@@ -320,10 +320,62 @@ notional API dollars, which is exactly this question. Opus 5 ran $163.91 for 21 
 (~$7.81/run) against Opus 4.8's $103.86 for 75 (~$1.38) — **5.6x per run**, decomposing into
 ~4.8x per turn and ~30% more turns. One full draw over 25 cases is ~$195; over all 37, ~$290.
 
-**Extending to 37 cases (~$94/draw more) is the more informative direction**, not merely more
-of the same: the scientific cohort is where near-abstention is most often correct, and
-over-answering is precisely Opus 5's weakness, so those 12 cases should *reduce* its measured
-advantage. `--cohort benchmark25|scientific|all` now selects it.
+**The 6 bio cases are run, and they cost about twice what was projected.** $91.68 for six,
+**$15.28/run against the core cases' $8.06** — scientific repositories are larger and the
+agent works longer on them. The earlier ~$94 estimate for all 12 scientific cases used the
+core-case mean and was out by 2x; measured, the 12 are ~$183 and a full 37-case draw is
+**~$385**, not ~$290. `bio-mdtraj` is the line worth remembering: **$20.22 and 22 minutes to
+return nothing** — an abstention costs what an answer costs, and net@2 scores it 0 either way.
+
+**The prediction that the scientific cohort would shrink Opus 5's advantage was wrong on the
+bio half.** Against the stored comparator (v1, 12 turns) Opus 5 is **+4.60 vs +1.60**, paired
+**+3.00** over the 5 bio cases with a stored run — a *larger* gap than the core 25's +2.04,
+because the v1/12-turn configuration is at its weakest here (2 picks per case, 0 for
+`bio-singlecell`). The 6 `mat-` cases are unrun and may still differ.
+
+### 3b. RepoRadar vs Opus 5 — the comparator question, and it is close
+
+Paired over the 25 core cases, RepoRadar's headline run against Opus 5 draw 1:
+
+| | mean net@2 |
+|---|---|
+| RepoRadar (shipped) | +5.72 |
+| Opus 5 (v2, 30 turns) | +4.20 |
+| **paired** | **+1.52**, 95% CI **[-1.08, +4.16]**, 12W/13L |
+
+Against the published v1/12-turn comparator the same run is paired **+3.88**, CI [+2.24,
++5.60], p = 0.0007. **So the margin falls to +1.52 and loses significance against a stronger
+baseline.** That does not make the published figure wrong — it is correct for the comparator
+it names — but the headline is sensitive to comparator strength, and Opus 5 at the v2 prompt
+and 30 turns is stronger on three axes at once.
+
+**Where the +1.52 comes from is the finding.** Split by whether Opus 5 over-answered:
+
+| | cases | RepoRadar | Opus 5 | delta |
+|---|---|---|---|---|
+| Opus 5 net@2 < 0 | 4 (`http`, `linter`, `systems`, `webdev`) | +0.75 | -10.25 | **+11.00** |
+| Opus 5 net@2 >= 0 | 21 | +6.67 | +6.95 | **-0.29** |
+
+On the 21 cases where Opus 5 does not over-answer, **RepoRadar is 0.29 behind**. The whole
+advantage is four cases where Opus 5 answers and is punished 2 per miss; RepoRadar abstains
+on 4 cases, Opus 5 on none. Change the penalty from 2 to 1 and the gap narrows to +0.80.
+**RepoRadar's edge over Opus 5 is abstention discipline, not discovery** — which is what
+DRAFT.md's own limitation ("the metric rewards shyness") predicts.
+
+**On bio, quote the window-15 run and not the window-30 one.** Two RepoRadar runs cover the
+bio cases and differ by 5.5 points, entirely because of configuration:
+
+| run | window | sources | bio net@2 | vs Opus 5 (+5.83) |
+|---|---|---|---|---|
+| 2026-08-20 (12 cases) | 15 | arxiv | **+5.50** | **-0.33** |
+| 2026-08-21 (6 cases) | **30** | arxiv + europepmc | +11.00 | +5.17 |
+
+net@2 sums over what is returned, so doubling the digest window mechanically raises it while
+precision stays above break-even — the same effect the 10 -> 15 change was measured at
+(+1.24/case). Comparing a window-30 RepoRadar against Opus 5 would be a rigged comparison.
+At the comparable window, **Opus 5 is slightly ahead of RepoRadar on bio**. Neither bio run
+uses the shipped `w_embedding` 1.5, so neither is the shipped configuration; the honest
+statement is that RepoRadar has no bio measurement at the shipped settings.
 
 
 ### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
