@@ -141,12 +141,30 @@ MAX_FAILED_PER_DRAW = 3  # kill condition
 UNASKED = ("throttled", "no_cli_login")
 
 
-def cohort_cases(bench: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
-        c
-        for c in bench["cases"]
-        if c.get("live_repo") and not c["name"].startswith(("bio-", "mat-"))
-    ]
+# Which repositories a sweep covers. Selectable, because the default was a decision that
+# stopped being visible: `benchmark25` is the cohort every published denominator is over, and
+# filtering the scientific cases out was right for P17, which was pricing exactly those
+# denominators. It is not right for a witness set, which has no denominator to protect and
+# was simply leaving 12 repositories' worth of certificates unclaimed -- and it is a live
+# choice, not an inherited default, for a comparator re-measurement.
+#
+# The cohort deliberately does NOT enter `out_path`. Unlike the prompt, the model and the
+# turn cap, it changes nothing about what any individual row MEANS -- it only selects which
+# rows get made. Rows are keyed `{draw}/{case}`, so widening a sweep adds cases rather than
+# colliding with them, and the case set is always recoverable from the rows themselves.
+COHORTS: dict[str, Any] = {
+    "benchmark25": lambda name: not name.startswith(("bio-", "mat-")),
+    "scientific": lambda name: name.startswith(("bio-", "mat-")),
+    "all": lambda _name: True,
+}
+
+
+def cohort_cases(bench: dict[str, Any], cohort: str = COHORT) -> list[dict[str, Any]]:
+    try:
+        keep = COHORTS[cohort]
+    except KeyError:
+        raise ValueError(f"unknown cohort {cohort!r}; known: {sorted(COHORTS)}") from None
+    return [c for c in bench["cases"] if c.get("live_repo") and keep(c["name"])]
 
 
 def _judge_cached(case: str, paper_id: str) -> int | None:
@@ -155,7 +173,11 @@ def _judge_cached(case: str, paper_id: str) -> int | None:
     return None
 
 
-def _turn_flags(max_turns: int, model: str = baseline_mod.DEFAULT_MODEL) -> list[str] | None:
+def _turn_flags(
+    max_turns: int,
+    model: str = baseline_mod.DEFAULT_MODEL,
+    effort: str | None = baseline_mod.DEFAULT_EFFORT,
+) -> list[str] | None:
     """The shipped flags with this run's cap and model, or None when both are the defaults.
 
     The substitution now lives in `baseline.flags_for` rather than here: two places editing
@@ -163,9 +185,13 @@ def _turn_flags(max_turns: int, model: str = baseline_mod.DEFAULT_MODEL) -> list
     identical operation. Returning None for the default pair keeps `_run_cli` on the shipped
     list exactly, so nothing about the published configuration is rebuilt at all.
     """
-    if max_turns == baseline_mod.DEFAULT_MAX_TURNS and model == baseline_mod.DEFAULT_MODEL:
+    if (
+        max_turns == baseline_mod.DEFAULT_MAX_TURNS
+        and model == baseline_mod.DEFAULT_MODEL
+        and effort == baseline_mod.DEFAULT_EFFORT
+    ):
         return None
-    return baseline_mod.flags_for(max_turns=max_turns, model=model)
+    return baseline_mod.flags_for(max_turns=max_turns, model=model, effort=effort)
 
 
 def run_baseline_only(
@@ -174,6 +200,8 @@ def run_baseline_only(
     max_turns: int,
     prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION,
     model: str = baseline_mod.DEFAULT_MODEL,
+    effort: str | None = baseline_mod.DEFAULT_EFFORT,
+    cohort: str = COHORT,
 ) -> dict[str, Any]:
     """Phase A: the agentic run alone. **Touches no network service we rate-limit.**
 
@@ -192,9 +220,10 @@ def run_baseline_only(
         repo_context=assemble_repo_context(dest),
         mode="cli",
         use_cache=False,  # never read, never write -- the stored gold set is untouchable here
-        flags=_turn_flags(max_turns, model),
+        flags=_turn_flags(max_turns, model, effort),
         prompt_version=prompt_version,
         model=model,
+        effort=effort,
     )
     elapsed = round(time.monotonic() - started, 1)
     if result.get("status") != "ok":
@@ -206,6 +235,8 @@ def run_baseline_only(
             "max_turns": max_turns,
             "prompt_version": prompt_version,
             "model": model,
+            "effort": effort,
+            "cohort": cohort,
             "duration_s": elapsed,
         }
     return {
@@ -223,6 +254,8 @@ def run_baseline_only(
         "max_turns": max_turns,
         "prompt_version": prompt_version,
         "model": model,
+        "effort": effort,
+        "cohort": cohort,
         "duration_s": elapsed,
     }
 
@@ -617,6 +650,26 @@ def main() -> int:
         ),
     )
     ap.add_argument(
+        "--effort",
+        default=baseline_mod.DEFAULT_EFFORT,
+        choices=["low", "medium", "high", "xhigh", "max"],
+        help=(
+            "Pin the agent's reasoning effort. Omit to take the CLI default (measured as "
+            "`high` on 2026-08-27). Recorded on every row either way; pinning also changes "
+            "the cache path and discriminator, so a pinned sweep cannot overwrite an "
+            "unpinned one."
+        ),
+    )
+    ap.add_argument(
+        "--cohort",
+        default=COHORT,
+        choices=sorted(COHORTS),
+        help=(
+            "Which repositories to sweep. benchmark25 = the 25 the published denominators "
+            "cover; scientific = the 12 bio-/mat- cases; all = 37. Recorded per row."
+        ),
+    )
+    ap.add_argument(
         "--baseline-model",
         default=baseline_mod.DEFAULT_MODEL,
         help=(
@@ -638,7 +691,7 @@ def main() -> int:
         return report(artifact)
 
     bench = yaml.safe_load((EVALS / "benchmark.yaml").read_text(encoding="utf-8"))
-    cases = cohort_cases(bench)
+    cases = cohort_cases(bench, args.cohort)
     if args.case:
         want = set(args.case.split(","))
         if unknown := want - {c["name"] for c in cases}:
@@ -663,7 +716,7 @@ def main() -> int:
     # than the status, so only the rows with a recoverable gap come back.
     todo_repair = sorted(k for k, row in by_key.items() if retryable(row))
 
-    print(f"cohort: {len(cases)} case(s) x {args.draws} draw(s)")
+    print(f"cohort: {args.cohort} — {len(cases)} case(s) x {args.draws} draw(s)")
     print(
         f"recorded: {len(by_key)}   need a baseline: {len(todo_baseline)}   "
         f"need judging: {len(todo_judge)}   partial and retryable: {len(todo_repair)}"
@@ -671,6 +724,7 @@ def main() -> int:
     print(
         f"turn cap: {args.max_turns}   prompt: {args.prompt_version}"
         f"   baseline model: {args.baseline_model}"
+        f"   effort: {args.effort or 'cli-default'}"
         f"   phase-A concurrency: {args.concurrency}"
     )
     print(f"artifact: {out_path(args.prompt_version, args.baseline_model).name}")
@@ -710,6 +764,8 @@ def main() -> int:
                     max_turns=args.max_turns,
                     prompt_version=args.prompt_version,
                     model=args.baseline_model,
+                    effort=args.effort,
+                    cohort=args.cohort,
                 ): (draw, case)
                 for draw, case in todo_baseline
             }

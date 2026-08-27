@@ -47,7 +47,7 @@ KNOWN_SOURCES = {
     "cli-redraw",
     "cli-redraw@30",
     "cli-v2@30",  # the v2-prompt sweep, 2026-08-26: grading, not self
-    "cli-v2-opus5@30",  # Opus 5, draw 1 only (quota-truncated): grading, not self
+    "cli-v2-opus5@30",  # Opus 5, draw 1 complete (25 cases): grading, not self
     "api",
     "reporadar",
     "adoption",
@@ -173,7 +173,8 @@ class TestTheCommittedArtifact:
         witnesses from four sources, **+4.80 over 385** with the P17 v1 redraws pooled in,
         **+5.56 over 462** with the v2-prompt sweep as well, **+6.24 over 482** once the
         OpenAlex tier made 31 previously-unscoreable references judgeable, and **+7.28 over
-        572** with Opus 5's (incomplete, 21-run) draw pooled in.
+        572** with Opus 5's first 21 runs, and **+7.52 over 592** once that draw was
+        completed to all 25 cases.
 
         The last step is worth separating from the others: it added no new *search*. Those
         papers had already been found and named by a searcher already in the pool — the set
@@ -181,8 +182,8 @@ class TestTheCommittedArtifact:
         """
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
-        assert reg["mean_regret"] == 7.28
-        assert artifact["n_witnesses"] == 572
+        assert reg["mean_regret"] == 7.52
+        assert artifact["n_witnesses"] == 592
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not
@@ -203,7 +204,7 @@ class TestTheCommittedArtifact:
         assert (wemb["adoption"]["reached"], wemb["adoption"]["n"]) == (1, 19)
         assert (wemb["cli-redraw"]["reached"], wemb["cli-redraw"]["n"]) == (19, 92)
         assert (wemb["cli-v2@30"]["reached"], wemb["cli-v2@30"]["n"]) == (19, 155)
-        assert wemb["pooled_non_self"]["p"] == 0.133
+        assert wemb["pooled_non_self"]["p"] == 0.128
 
     def test_opus5_is_a_separate_source_from_opus48(self, artifact):
         """A model is a searcher. Pooling the two under one label would hide the quantity
@@ -215,7 +216,7 @@ class TestTheCommittedArtifact:
         labels = set(artifact["sources"])
         assert {"cli-v2@30", "cli-v2-opus5@30"} <= labels
         wemb = next(r for r in artifact["reach"] if r["pool"] == "pool-wemb")
-        assert wemb["cli-v2-opus5@30"]["n"] == 158, "21 runs, and more witnesses than 75 of 4.8's"
+        assert wemb["cli-v2-opus5@30"]["n"] == 187, "25 runs, vs 155 from 75 of Opus 4.8's"
 
     def test_the_redraws_agree_with_cli_on_reach(self, artifact):
         """A consistency check that costs nothing and would catch a mislabelled source.

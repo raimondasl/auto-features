@@ -445,3 +445,86 @@ class TestResumeSkipsResultsAndNotAbsences:
 
         assert "error" not in gold_spread.UNASKED
         assert "timeout" not in gold_spread.UNASKED
+
+
+class TestEffortIsRecordedAndOptionallyPinned:
+    """Reasoning effort was an uncontrolled variable in every baseline run until 2026-08-27.
+
+    `CLAUDE_FLAGS` never set `--effort`, `_discriminator` never hashed it, no cache entry
+    recorded it, and the CLI's JSON payload does not report it — so for the 34 stored
+    answers it is unrecoverable. It happens to be benign: measurement that day showed every
+    run used the CLI default, which lands on `high` for both models. The exposure is a future
+    default change making old and new caches incomparable **while the discriminator still
+    matches**.
+    """
+
+    def test_unpinned_is_the_default_and_moves_nothing(self):
+        """The whole reason effort is appended conditionally rather than always hashed."""
+        assert baseline_mod.DEFAULT_EFFORT is None
+        assert baseline_mod._discriminator("cli", "", None) == PINNED_DISCRIMINATOR
+        assert baseline_mod._cache_path("cli", "ann").parent.name == "cli"
+
+    def test_pinning_changes_both_the_hash_and_the_address(self):
+        """`cli_auth_mode` had to be recorded-not-hashed because hashing would invalidate all
+        34 caches. Appending only when pinned avoids that trade entirely."""
+        d = baseline_mod._discriminator("cli", "", None, "v1", baseline_mod.DEFAULT_MODEL, "high")
+        assert d != PINNED_DISCRIMINATOR
+        pinned = baseline_mod._cache_path("cli", "ann", "v1", baseline_mod.DEFAULT_MODEL, "high")
+        assert pinned.parent.name != "cli"
+        assert pinned != baseline_mod._cache_path("cli", "ann")
+
+    def test_the_flag_appears_only_when_pinned(self):
+        assert "--effort" not in baseline_mod.flags_for()
+        assert baseline_mod.flags_for(effort="max")[-2:] == ["--effort", "max"]
+
+    def test_every_axis_composes_without_collision(self):
+        """prompt x model x effort — eight distinct destinations, none of them `cli/`."""
+        paths = {
+            baseline_mod._cache_path("cli", "ann", pv, m, e)
+            for pv in ("v1", "v2")
+            for m in (baseline_mod.DEFAULT_MODEL, "claude-opus-5")
+            for e in (None, "max")
+        }
+        assert len(paths) == 8
+
+    def test_the_env_var_is_not_the_mechanism(self):
+        """`CLAUDE_EFFORT` is set in this project's shell and `_run_cli` copies the
+        environment, so it *looks* like the lever. It is not: `claude -p` ignores it (env low
+        vs max gave 2125 vs 2143 output tokens; the flag gave 1047 vs 4662). Pinned here so
+        nobody re-derives the wrong answer from the code and the environment alone."""
+        assert "CLAUDE_EFFORT" not in " ".join(baseline_mod.CLAUDE_FLAGS)
+        assert "--effort" not in baseline_mod.CLAUDE_FLAGS
+
+
+class TestTheCohortIsSelectable:
+    def test_the_three_cohorts_partition_the_benchmark(self):
+        import gold_spread
+        import yaml
+
+        bench = yaml.safe_load((ROOT / "evals" / "benchmark.yaml").read_text(encoding="utf-8"))
+        sizes = {c: len(gold_spread.cohort_cases(bench, c)) for c in gold_spread.COHORTS}
+        assert sizes == {"benchmark25": 25, "scientific": 12, "all": 37}
+        core = {c["name"] for c in gold_spread.cohort_cases(bench, "benchmark25")}
+        sci = {c["name"] for c in gold_spread.cohort_cases(bench, "scientific")}
+        assert not core & sci, "the cohorts must not overlap"
+        assert core | sci == {c["name"] for c in gold_spread.cohort_cases(bench, "all")}
+
+    def test_the_default_is_still_the_published_cohort(self):
+        import gold_spread
+
+        assert gold_spread.COHORT == "benchmark25"
+
+    def test_an_unknown_cohort_fails_loudly(self):
+        import gold_spread
+
+        with pytest.raises(ValueError, match="unknown cohort"):
+            gold_spread.cohort_cases({"cases": []}, "everything")
+
+    def test_the_cohort_does_not_address_the_artifact(self):
+        """Unlike the prompt, the model and the cap, the cohort changes nothing about what a
+        row MEANS — it only selects which rows get made. Rows are keyed `{draw}/{case}`, so
+        widening a sweep adds cases rather than colliding with them, and putting the cohort in
+        the filename would instead force a re-run of everything already done."""
+        import gold_spread
+
+        assert gold_spread.out_path("v2", "claude-opus-5").name == "gold_spread_v2_opus5.json"
