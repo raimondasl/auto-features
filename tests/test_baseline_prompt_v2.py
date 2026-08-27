@@ -267,7 +267,7 @@ class TestTheArtifactCannotBeOpenedUnderTheWrongFlag:
 
         stray = tmp_path / "gold_spread_v2.json"
         stray.write_text(json.dumps({"prompt_version": "v1", "results": {}}), encoding="utf-8")
-        monkeypatch.setattr(gold_spread, "out_path", lambda _v: stray)
+        monkeypatch.setattr(gold_spread, "out_path", lambda *_a: stray)
         with pytest.raises(SystemExit, match="written under prompt"):
             gold_spread.load_artifact("v2")
 
@@ -278,7 +278,7 @@ class TestTheArtifactCannotBeOpenedUnderTheWrongFlag:
 
         old = tmp_path / "gold_spread.json"
         old.write_text(json.dumps({"results": {"1/ann": {}}}), encoding="utf-8")
-        monkeypatch.setattr(gold_spread, "out_path", lambda _v: old)
+        monkeypatch.setattr(gold_spread, "out_path", lambda *_a: old)
         assert gold_spread.load_artifact("v1")["results"] == {"1/ann": {}}
 
     def test_each_version_addresses_its_own_file(self):
@@ -287,3 +287,161 @@ class TestTheArtifactCannotBeOpenedUnderTheWrongFlag:
         assert gold_spread.out_path("v1") == gold_spread.OUT
         assert gold_spread.out_path("v2") != gold_spread.OUT
         assert gold_spread.out_path("v2").name == "gold_spread_v2.json"
+
+
+class TestTheModelIsAConfigurationAxisToo:
+    """Opus 5 needed the same treatment the v2 prompt got, for the same reason.
+
+    `_cache_path` is an ADDRESS. Two models writing one file is a silent overwrite, not a
+    comparison — the 2026-08-09 displacement that cost `compiler`, `graph` and `storage`
+    their transcripts, arriving through a second door.
+    """
+
+    def test_the_default_model_changes_no_path_and_no_hash(self):
+        """The whole safety argument: today's configuration is byte-identical to yesterday's."""
+        assert baseline_mod.DEFAULT_MODEL == baseline_mod.BASELINE_MODEL
+        assert baseline_mod._cache_path("cli", "ann") == CACHE / "cli" / "ann.json"
+        assert baseline_mod._discriminator("cli", "", None) == PINNED_DISCRIMINATOR
+
+    def test_a_second_model_gets_its_own_directory_and_hash(self):
+        v2_48 = baseline_mod._cache_path("cli", "ann", "v2", baseline_mod.DEFAULT_MODEL)
+        v2_o5 = baseline_mod._cache_path("cli", "ann", "v2", "claude-opus-5")
+        assert v2_48.parent != v2_o5.parent
+        assert baseline_mod._discriminator(
+            "cli", "", None, "v2", "claude-opus-5"
+        ) != baseline_mod._discriminator("cli", "", None, "v2")
+
+    def test_the_two_axes_compose(self):
+        """v1+default, v2+default, v1+opus5 and v2+opus5 are four distinct destinations."""
+        paths = {
+            baseline_mod._cache_path("cli", "ann", pv, m)
+            for pv in ("v1", "v2")
+            for m in (baseline_mod.DEFAULT_MODEL, "claude-opus-5")
+        }
+        assert len(paths) == 4
+
+    def test_the_tag_is_stable_and_safe(self):
+        assert baseline_mod.model_tag("claude-opus-5") == "opus5"
+        assert baseline_mod.model_tag("claude-opus-4-8") == "opus48"
+        assert "/" not in baseline_mod.model_tag("some/vendor:model-1.5")
+
+
+class TestTheFlagListCannotDisagreeWithTheRecordedModel:
+    """A run filed under one model that actually ran another is the void-not-null shape:
+    every field well-formed, the answer to a different question."""
+
+    def test_flags_for_substitutes_rather_than_appends(self):
+        flags = baseline_mod.flags_for(model="claude-opus-5", max_turns=30)
+        assert flags.count("--model") == 1 and flags.count("--max-turns") == 1
+        assert flags[flags.index("--model") + 1] == "claude-opus-5"
+        assert flags[flags.index("--max-turns") + 1] == "30"
+
+    def test_it_leaves_the_shipped_list_alone_when_asked_for_nothing(self):
+        assert baseline_mod.flags_for() == baseline_mod.CLAUDE_FLAGS
+        assert baseline_mod.flags_for() is not baseline_mod.CLAUDE_FLAGS, "must not alias"
+
+    def test_a_missing_flag_is_added_not_ignored(self):
+        assert baseline_mod.flags_for(["--output-format", "json"], model="m")[-2:] == [
+            "--model",
+            "m",
+        ]
+
+    def test_run_cli_runs_the_model_it_was_given_not_the_one_in_the_flags(self, monkeypatch):
+        """The trap this closes: a caller passing `model=` and a stale flag list would have
+        hashed and pathed on the new model while running the old one."""
+        seen: dict[str, list[str]] = {}
+
+        class _Proc:
+            returncode = 0
+            stdout = '{"result": "```json\n[]\n```", "total_cost_usd": 0.0}'
+            stderr = ""
+
+        monkeypatch.setattr(baseline_mod, "cli_auth_mode", lambda *_a, **_kw: "api")
+        monkeypatch.setattr(
+            baseline_mod.subprocess,
+            "run",
+            lambda cmd, **_kw: (seen.update(cmd=cmd), _Proc())[1],
+        )
+        stale = baseline_mod.flags_for(model=baseline_mod.DEFAULT_MODEL)
+        baseline_mod._run_cli(Path("."), flags=stale, timeout=5, model="claude-opus-5")
+        assert seen["cmd"][seen["cmd"].index("--model") + 1] == "claude-opus-5"
+
+
+class TestAThrottleIsNotAResult:
+    """The 2026-08-27 lesson, at the run level.
+
+    An Opus 5 sweep exhausted the subscription 21 runs in. The other 54 rows were each
+    recorded as a terminal `error` in ~400 ms, having done no work at all — and `report` then
+    showed two draws at a **100% failure rate**, which reads as "this model cannot do the
+    task" when it means "we ran out of credit". Worse, nothing would ever have re-run them:
+    resume keyed on a row being present, and they were.
+
+    Same shape as `lookup_failed` vs `unjudgeable` one level down, and as C-4 before that:
+    our infrastructure failing must never harden into a fact about the thing being measured.
+    """
+
+    class _Proc:
+        returncode = 1
+        stderr = ""
+        stdout = (
+            '{"type":"result","subtype":"success","is_error":true,'
+            '"api_error_status":429,"duration_ms":423}'
+        )
+
+    def _run(self, monkeypatch, proc):
+        calls = {"n": 0}
+
+        def fake_run(_cmd, **_kw):
+            calls["n"] += 1
+            return proc
+
+        monkeypatch.setattr(baseline_mod, "cli_auth_mode", lambda *_a, **_kw: "api")
+        monkeypatch.setattr(baseline_mod.subprocess, "run", fake_run)
+        monkeypatch.setattr(baseline_mod.time, "sleep", lambda _s: None)
+        return baseline_mod._run_cli(Path("."), flags=None, timeout=5), calls
+
+    def test_a_quota_exhaustion_is_its_own_status(self, monkeypatch):
+        out, _ = self._run(monkeypatch, self._Proc())
+        assert out["status"] == "throttled"
+
+    def test_it_does_not_burn_the_retries(self, monkeypatch):
+        """In-process backoff cannot restore a quota, and two more attempts at three seconds
+        just delay the resume that actually can."""
+        _, calls = self._run(monkeypatch, self._Proc())
+        assert calls["n"] == 1
+
+    def test_a_genuine_failure_is_still_an_error_and_still_retries(self, monkeypatch):
+        class _Real:
+            returncode = 1
+            stderr = "the agent hit its turn limit"
+            stdout = ""
+
+        out, calls = self._run(monkeypatch, _Real())
+        assert out["status"] == "error"
+        assert calls["n"] == baseline_mod._CLI_MAX_RETRIES + 1
+
+    def test_the_markers_match_what_the_cli_actually_emitted(self):
+        """Pinned against the real payload rather than a paraphrase of it."""
+        real = '{"type":"result","is_error":true,"api_error_status":429,"duration_ms":423}'
+        assert any(m in real.lower() for m in baseline_mod._CLI_THROTTLE_MARKERS)
+
+
+class TestResumeSkipsResultsAndNotAbsences:
+    def test_an_unasked_row_is_re_attempted(self):
+        """`throttled` and `no_cli_login` mean the model was never asked, so the row is not a
+        measurement. Resume must treat it as work outstanding, not work done."""
+        import gold_spread
+
+        for status in gold_spread.UNASKED:
+            assert status in gold_spread.UNASKED, status
+        assert "throttled" in gold_spread.UNASKED
+        assert "no_cli_login" in gold_spread.UNASKED
+
+    def test_a_real_failure_stays_terminal(self):
+        """`error` and `timeout` are runs the agent WAS asked and could not finish. That is a
+        fact about the configuration and belongs in the failure rate, not in the retry queue —
+        re-running them until they pass would launder a real result into a better one."""
+        import gold_spread
+
+        assert "error" not in gold_spread.UNASKED
+        assert "timeout" not in gold_spread.UNASKED

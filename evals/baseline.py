@@ -15,7 +15,8 @@ address: without that, running v2 would have overwritten the v1 answers in place
 sitting beside them.
 
 Both parse the recommended papers out of the answer. Every run records a
-`status` ("ok" | "missing_cli" | "no_cli_login" | "error" | "timeout" | "no_key")
+`status` ("ok" | "missing_cli" | "no_cli_login" | "throttled" | "error" | "timeout"
+| "no_key")
 and its raw output, and **failures are never cached** — so a broken run retries
 next time instead of silently poisoning the cache. Caches are keyed by mode, so a
 --mock run can never be served to a real run.
@@ -54,6 +55,16 @@ _CLI_AUTH_CONFLICT_MARKERS = (
     "takes precedence over your claude.ai login",
     "connectors are disabled because ANTHROPIC_API_KEY",
 )
+
+# The CLI exits non-zero with this in its JSON payload when the account is out of quota.
+# It is not a failure of the model, of the prompt, or of the repository: **the model was
+# never asked**. Distinguishing it from a real failure is the same rule as `lookup_failed`
+# vs `unjudgeable` one level up, and it was learned the same way -- the 2026-08-27 Opus 5
+# sweep exhausted the subscription 21 runs in, and the remaining 54 rows were each recorded
+# as a terminal `error` in ~400 ms, having done nothing. `report` then showed draws 2 and 3
+# at a 100% failure rate, which reads as "Opus 5 cannot do this" rather than "we ran out of
+# credit", and no re-invocation would ever have revisited them.
+_CLI_THROTTLE_MARKERS = ('"api_error_status":429', "rate limit", "usage limit", "quota")
 
 # How the `claude` subprocess should authenticate.
 #
@@ -144,6 +155,24 @@ BASELINE_PROMPT_V2 = (
 # on 2026-08-09. Naming the versions and keying the cache on the name makes the collision
 # structurally impossible instead of a thing to remember.
 PROMPTS = {"v1": BASELINE_PROMPT, "v2": BASELINE_PROMPT_V2}
+
+# The model is a configuration axis too, and it needs the same treatment the prompt got, for
+# the same reason: `_cache_path` is an address, so two models writing the same file is a
+# silent overwrite rather than a comparison. `BASELINE_MODEL` stays the default so v1 keeps
+# its exact path and its pinned discriminator.
+DEFAULT_MODEL = BASELINE_MODEL
+
+
+def model_tag(model: str) -> str:
+    """A short, filesystem- and label-safe name for a model id.
+
+    One helper rather than two, because this string is used both as a cache directory suffix
+    and as a witness-set source label, and the pair drifting apart is how a run ends up
+    filed under one name and analysed under another.
+    """
+    return re.sub(r"[^A-Za-z0-9]", "", model.removeprefix("claude-"))
+
+
 # v1 is the published comparator; every figure in the paper was measured against it. Promoting
 # v2 is a separate, deliberate decision that requires re-measuring `+1.84 / paired +3.88`.
 DEFAULT_PROMPT_VERSION = "v1"
@@ -172,6 +201,36 @@ def prompt_for(version: str) -> str:
 # differently because of the new keys -- which matters, because `run_baseline` replays this
 # function over cached `raw` on every hit, and a parser change moves published denominators.
 _ID_KEYS = ("arxiv_id", "id", "doi")
+
+
+def flags_for(
+    base: list[str] | None = None,
+    *,
+    max_turns: int | None = None,
+    model: str | None = None,
+) -> list[str]:
+    """`CLAUDE_FLAGS` with the turn cap and/or model substituted. Built, never retyped.
+
+    Both axes edit the same list, and both were being handled separately: `gold_spread`
+    rewrote `--max-turns` while `_run_cli` received the model only as whatever happened to
+    be inside the flag list it was handed. A caller that passed `model=` and no flags would
+    therefore have run the DEFAULT model under the new model's cache path and label — a run
+    that looks entirely correct and answers a different question, which is the failure mode
+    this project keeps paying for.
+
+    Substituting in one place makes the flags and the recorded configuration the same fact.
+    A change to the model or the allowed tools also cannot diverge between the probe and the
+    product, which is the C-3 rule.
+    """
+    flags = list(base if base is not None else CLAUDE_FLAGS)
+    for name, value in (("--max-turns", max_turns), ("--model", model)):
+        if value is None:
+            continue
+        if name in flags:
+            flags[flags.index(name) + 1] = str(value)
+        else:
+            flags += [name, str(value)]
+    return flags
 
 
 def _parse_recommendations(text: str) -> tuple[list[str], list[str]]:
@@ -228,7 +287,12 @@ def _has_answer_block(text: str) -> bool:
     return bool(re.search(r"```(?:json)?\s*\[.*?\]\s*```", text, re.DOTALL))
 
 
-def _cache_path(mode: str, repo_name: str, prompt_version: str = DEFAULT_PROMPT_VERSION) -> Path:
+def _cache_path(
+    mode: str,
+    repo_name: str,
+    prompt_version: str = DEFAULT_PROMPT_VERSION,
+    model: str = DEFAULT_MODEL,
+) -> Path:
     """Where a run's answer is stored. **The prompt version is part of the location.**
 
     `_discriminator` is a staleness check, not an address: a cached entry whose hash no
@@ -243,8 +307,12 @@ def _cache_path(mode: str, repo_name: str, prompt_version: str = DEFAULT_PROMPT_
     the comparator only, and cannot absorb v2 picks by accident.
     """
     safe = re.sub(r"[^A-Za-z0-9_.-]", "_", repo_name)
-    folder = mode if prompt_version == DEFAULT_PROMPT_VERSION else f"{mode}-{prompt_version}"
-    return CACHE_DIR / folder / f"{safe}.json"
+    parts = [mode]
+    if prompt_version != DEFAULT_PROMPT_VERSION:
+        parts.append(prompt_version)
+    if model != DEFAULT_MODEL:
+        parts.append(model_tag(model))
+    return CACHE_DIR / "-".join(parts) / f"{safe}.json"
 
 
 def _discriminator(
@@ -252,6 +320,7 @@ def _discriminator(
     repo_context: str,
     flags: list[str] | None,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
+    model: str = DEFAULT_MODEL,
 ) -> str:
     """Hash the inputs that change the baseline's answer, so a model/prompt/flag
     (or, for api mode, repo-context) change invalidates a stale cached run.
@@ -260,7 +329,7 @@ def _discriminator(
     invalidates v2's own caches. Hashing the label would let the text drift underneath a
     stable name -- the version equivalent of a cache key that stops tracking its input.
     """
-    parts = [BASELINE_MODEL, prompt_for(prompt_version), mode]
+    parts = [model, prompt_for(prompt_version), mode]
     if mode == "api":
         parts.append(repo_context)
     elif mode == "cli":
@@ -390,10 +459,15 @@ def _run_cli(
     flags: list[str] | None,
     timeout: int,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
+    model: str = DEFAULT_MODEL,
 ) -> dict[str, Any]:
     claude_bin = os.environ.get("RR_EVAL_CLAUDE_BIN", "claude")
     env_flags = os.environ.get("RR_EVAL_CLAUDE_FLAGS")
-    flag_list = flags or (env_flags.split() if env_flags else CLAUDE_FLAGS)
+    base = flags or (env_flags.split() if env_flags else CLAUDE_FLAGS)
+    # The model wins over whatever the flag list carried. `run_baseline` hashes and paths on
+    # `model`, so the subprocess has to be running that model or the cache entry is a label
+    # attached to the wrong answer.
+    flag_list = flags_for(base, model=model)
     cmd = [claude_bin, "-p", *flag_list, prompt_for(prompt_version)]
 
     auth = cli_auth_mode(claude_bin)
@@ -467,7 +541,15 @@ def _run_cli(
                 detail = f"stderr: {stderr[:400]}"
                 if stdout:
                     detail += f" | stdout: {stdout[:400]}"
-                last_err = _empty("error", f"claude exited {proc.returncode}. {detail}")
+                blob = f"{stderr} {stdout}".lower()
+                # Throttled is its OWN status, not an `error`. A caller has to be able to
+                # tell "asked and could not finish" from "never asked", because only the
+                # first is a measurement -- and in-process retry cannot help here, so the
+                # distinction has to survive out to the job that can come back tomorrow.
+                kind = "throttled" if any(m in blob for m in _CLI_THROTTLE_MARKERS) else "error"
+                last_err = _empty(kind, f"claude exited {proc.returncode}. {detail}")
+                if kind == "throttled":
+                    return last_err  # backing off three seconds will not restore a quota
                 if not strip_api_key and any(m in stderr for m in _CLI_AUTH_CONFLICT_MARKERS):
                     strip_api_key = True  # retry without the shadowing key
 
@@ -490,6 +572,7 @@ def _run_api(
     *,
     max_uses: int = 8,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
+    model: str = DEFAULT_MODEL,
 ) -> dict[str, Any]:
     try:
         from anthropic import Anthropic
@@ -516,7 +599,7 @@ def _run_api(
     try:
         for _ in range(6):  # continue across server-tool pause_turn boundaries
             resp = client.messages.create(
-                model=BASELINE_MODEL, max_tokens=8000, tools=tools, messages=messages
+                model=model, max_tokens=8000, tools=tools, messages=messages
             )
             cost += _estimate_cost(resp.usage)
             text_parts += [b.text for b in resp.content if b.type == "text"]
@@ -559,6 +642,7 @@ def run_baseline(
     flags: list[str] | None = None,
     timeout: int = 900,
     prompt_version: str = DEFAULT_PROMPT_VERSION,
+    model: str = DEFAULT_MODEL,
 ) -> dict[str, Any]:
     """Run the baseline for one repo. Returns {ids, titles, raw, cost_usd, status}.
 
@@ -568,8 +652,8 @@ def run_baseline(
     """
     effective_mode = "mock" if mock else mode
     prompt_for(prompt_version)  # fail here, not after paying for a run under a typo'd version
-    cache_file = _cache_path(effective_mode, repo_name, prompt_version)
-    disc = _discriminator(effective_mode, repo_context, flags, prompt_version)
+    cache_file = _cache_path(effective_mode, repo_name, prompt_version, model)
+    disc = _discriminator(effective_mode, repo_context, flags, prompt_version, model)
 
     if use_cache and cache_file.exists():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -602,15 +686,22 @@ def run_baseline(
     if mock:
         out = _run_mock()
     elif mode == "api":
-        out = _run_api(repo_context, prompt_version=prompt_version)
+        out = _run_api(repo_context, prompt_version=prompt_version, model=model)
     else:
-        out = _run_cli(repo_dir, flags=flags, timeout=timeout, prompt_version=prompt_version)
+        out = _run_cli(
+            repo_dir,
+            flags=flags,
+            timeout=timeout,
+            prompt_version=prompt_version,
+            model=model,
+        )
 
     out["_disc"] = disc
     # Recorded as well as hashed and pathed. `_disc` is 12 hex characters and says nothing to
     # a reader; the 34 caches written before today carry no version field at all, and the
     # answer for those is v1 by construction (it was the only prompt that existed).
     out["prompt_version"] = prompt_version
+    out["model"] = model
     if mode == "cli" and not mock:
         # Recorded, not hashed. A present ANTHROPIC_API_KEY changes which tools the CLI
         # offers the agent, so two `cli` runs under different auth are not self-evidently

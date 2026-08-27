@@ -102,7 +102,7 @@ POOLS = ("pool-wemb", "pool-cohort3")
 # full label set so that addition cannot be forgotten quietly.
 SELF_SOURCES = ("reporadar",)
 # Display order for `report`; labels outside it are printed after, discovered from the data.
-KNOWN_ORDER = ("cli", "cli-redraw", "cli-v2", "api", "adoption")
+KNOWN_ORDER = ("cli", "cli-redraw", "cli-v2", "cli-v2-opus5", "api", "adoption")
 
 
 def is_non_self(source: str) -> bool:
@@ -121,7 +121,14 @@ def draw_source_label(row: dict[str, Any]) -> str:
 
     * the prompt — v2 is allowed to recommend journal and bioRxiv papers, so it searches a
       region v1 structurally cannot reach;
-    * the turn cap — a 30-turn agent searches longer and surfaces different papers.
+    * the turn cap — a 30-turn agent searches longer and surfaces different papers;
+    * the model — a different model is a different searcher in the most literal sense.
+
+    The model matters more than it looked. Measured on the draws already in hand, v2 found
+    102 witnesses no v1 draw did, and only 44 of those were structural (non-arXiv papers v1
+    could not name at all) — **58 were arXiv papers v1 could have found and did not**. So a
+    searcher over identical territory contributes substantially, and pooling two models under
+    one label would hide exactly the quantity that makes running a second one worthwhile.
 
     So they are separate labels, and `reach` reports each separately with its own interval
     rather than pooling them into one number that describes no searcher that exists. Rows
@@ -135,7 +142,10 @@ def draw_source_label(row: dict[str, Any]) -> str:
     """
     version = row.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
     cap = row.get("max_turns", baseline_mod.DEFAULT_MAX_TURNS)
+    model = row.get("model", baseline_mod.DEFAULT_MODEL)
     stem = "cli-redraw" if version == baseline_mod.DEFAULT_PROMPT_VERSION else f"cli-{version}"
+    if model != baseline_mod.DEFAULT_MODEL:
+        stem = f"{stem}-{baseline_mod.model_tag(model)}"
     return stem if cap == baseline_mod.DEFAULT_MAX_TURNS else f"{stem}@{cap}"
 
 
@@ -157,16 +167,23 @@ def _draw_rows() -> list[tuple[str, str, dict[str, Any]]]:
     from gold_spread import out_path
 
     rows: list[tuple[str, str, dict[str, Any]]] = []
-    for version in sorted(baseline_mod.PROMPTS):
-        path = out_path(version)
-        if not path.is_file():
-            continue
+    # DISCOVERED by glob, not enumerated over one axis. The first version looped over the
+    # prompt versions and asked `out_path(version)` with the default model, so when the model
+    # became a second axis the Opus 5 sweep was simply never opened -- its rows invisible,
+    # its source label dead code, and `--check` passing because the derivation and the
+    # artifact agreed about a file neither had read. Enumerating axes means adding an axis
+    # silently narrows the search; globbing means a new configuration shows up on its own.
+    for path in sorted(EVALS.glob("gold_spread*.json")):
         artifact = json.loads(path.read_text(encoding="utf-8"))
-        stored = artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
-        if stored != version:
-            # `out_path` addressed this file as `version` and the file says otherwise. Reading
-            # it anyway would file one searcher's draws under another's label.
-            raise SystemExit(f"! {path.name} says prompt {stored!r}, not {version!r}")
+        version = artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
+        model = artifact.get("model", baseline_mod.DEFAULT_MODEL)
+        # The file has to be where its own contents say it belongs. A renamed or hand-copied
+        # artifact would otherwise file one searcher's draws under another's label.
+        if out_path(version, model) != path:
+            raise SystemExit(
+                f"! {path.name} declares prompt {version!r} / model {model!r}, which belongs "
+                f"at {out_path(version, model).name}"
+            )
         for key, row in artifact.get("results", {}).items():
             if row.get("status") not in ("ok", "partial"):
                 continue

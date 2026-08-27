@@ -1,0 +1,1619 @@
+{
+ "_comment": "k independent redraws of the cli baseline over the benchmark25 cohort, judged, to price how much of the gold set is a property of the draw. Derived by evals/gold_spread.py; pinned by tests/test_gold_spread.py. Written incrementally -- a partial artifact is expected and resumable.",
+ "cohort": "benchmark25",
+ "draws": 3,
+ "prompt_version": "v2",
+ "model": "claude-opus-5",
+ "results": {
+  "1/rl": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2108.13264",
+    "1709.06009",
+    "2407.04811",
+    "2403.03950",
+    "1511.05952",
+    "1509.06461",
+    "2006.05990",
+    "2205.07802"
+   ],
+   "num_turns": 23,
+   "cost_usd": 2.55284275,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 344.0,
+   "targets": [
+    "1509.06461",
+    "1511.05952",
+    "1709.06009",
+    "2108.13264",
+    "2205.07802",
+    "2403.03950",
+    "2407.04811"
+   ],
+   "scores": {
+    "1509.06461": 3,
+    "1511.05952": 3,
+    "1709.06009": 2,
+    "2006.05990": 1,
+    "2108.13264": 2,
+    "2205.07802": 2,
+    "2403.03950": 2,
+    "2407.04811": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/webdev": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.34726/5329",
+    "doi:10.1109/sp46214.2022.9833637",
+    "doi:10.1145/3471621.3471846",
+    "1912.10190",
+    "doi:10.21105/joss.01891"
+   ],
+   "num_turns": 33,
+   "cost_usd": 2.45285,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 355.9,
+   "targets": [
+    "doi:10.21105/joss.01891",
+    "doi:10.34726/5329"
+   ],
+   "scores": {
+    "1912.10190": 1,
+    "doi:10.1109/sp46214.2022.9833637": 1,
+    "doi:10.1145/3471621.3471846": 1,
+    "doi:10.21105/joss.01891": 2,
+    "doi:10.34726/5329": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/rag": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.14989",
+    "2501.17788",
+    "2404.02805",
+    "2304.01982",
+    "2606.26439",
+    "2409.14683",
+    "2505.11471",
+    "2504.01818",
+    "2606.05568",
+    "2405.19504",
+    "2607.18626",
+    "2101.06983"
+   ],
+   "num_turns": 1,
+   "cost_usd": 3.79684925,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 361.6,
+   "targets": [
+    "2101.06983",
+    "2304.01982",
+    "2404.02805",
+    "2404.14989",
+    "2405.19504",
+    "2409.14683",
+    "2501.17788",
+    "2504.01818",
+    "2505.11471",
+    "2606.05568",
+    "2606.26439",
+    "2607.18626"
+   ],
+   "scores": {
+    "2101.06983": 2,
+    "2304.01982": 3,
+    "2404.02805": 3,
+    "2404.14989": 2,
+    "2405.19504": 3,
+    "2409.14683": 3,
+    "2501.17788": 3,
+    "2504.01818": 3,
+    "2505.11471": 3,
+    "2606.05568": 3,
+    "2606.26439": 3,
+    "2607.18626": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/peft": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2603.22276",
+    "2407.18242",
+    "2505.18877",
+    "2502.04959",
+    "2604.27796"
+   ],
+   "num_turns": 43,
+   "cost_usd": 3.9558562500000005,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 374.6,
+   "targets": [
+    "2407.18242",
+    "2502.04959",
+    "2505.18877",
+    "2603.22276",
+    "2604.27796"
+   ],
+   "scores": {
+    "2407.18242": 3,
+    "2502.04959": 2,
+    "2505.18877": 3,
+    "2603.22276": 3,
+    "2604.27796": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/speech": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2509.09987",
+    "2408.16589",
+    "2303.00747",
+    "2307.14743",
+    "2311.00430",
+    "2211.17192",
+    "2603.06193",
+    "2510.19471",
+    "2501.11378"
+   ],
+   "num_turns": 16,
+   "cost_usd": 7.318047499999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 485.7,
+   "targets": [
+    "2211.17192",
+    "2303.00747",
+    "2307.14743",
+    "2311.00430",
+    "2408.16589",
+    "2501.11378",
+    "2509.09987",
+    "2510.19471",
+    "2603.06193"
+   ],
+   "scores": {
+    "2211.17192": 3,
+    "2303.00747": 3,
+    "2307.14743": 3,
+    "2311.00430": 3,
+    "2408.16589": 3,
+    "2501.11378": 3,
+    "2509.09987": 3,
+    "2510.19471": 3,
+    "2603.06193": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/cv": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2012.07177",
+    "2311.05613",
+    "2307.08691",
+    "2412.05496",
+    "1704.04503",
+    "1912.02424",
+    "2008.13367",
+    "2006.04388",
+    "1809.08545",
+    "2008.08115",
+    "2103.16562",
+    "2011.10772"
+   ],
+   "num_turns": 5,
+   "cost_usd": 7.271469750000005,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 1454.6,
+   "targets": [
+    "1704.04503",
+    "1809.08545",
+    "1912.02424",
+    "2006.04388",
+    "2008.08115",
+    "2008.13367",
+    "2011.10772",
+    "2012.07177",
+    "2103.16562",
+    "2307.08691",
+    "2311.05613",
+    "2412.05496"
+   ],
+   "scores": {
+    "1704.04503": 3,
+    "1809.08545": 3,
+    "1912.02424": 3,
+    "2006.04388": 2,
+    "2008.08115": 2,
+    "2008.13367": 3,
+    "2011.10772": 3,
+    "2012.07177": 3,
+    "2103.16562": 3,
+    "2307.08691": 2,
+    "2311.05613": 3,
+    "2412.05496": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/crypto": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1109/sp54263.2024.00220",
+    "doi:10.1145/3715785",
+    "doi:10.1145/3510416",
+    "doi:10.1145/3573105.3575684",
+    "doi:10.23919/date.2017.7927267"
+   ],
+   "num_turns": 43,
+   "cost_usd": 2.4380319999999998,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 364.7,
+   "targets": [
+    "doi:10.1109/sp54263.2024.00220",
+    "doi:10.1145/3510416",
+    "doi:10.1145/3573105.3575684",
+    "doi:10.1145/3715785",
+    "doi:10.23919/date.2017.7927267"
+   ],
+   "scores": {
+    "doi:10.1109/sp54263.2024.00220": 2,
+    "doi:10.1145/3510416": 2,
+    "doi:10.1145/3573105.3575684": 2,
+    "doi:10.1145/3715785": 2,
+    "doi:10.23919/date.2017.7927267": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/diffusion": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2506.19852",
+    "2507.13546",
+    "2508.16984",
+    "2509.11628",
+    "2607.02461",
+    "2411.05007",
+    "2605.11335",
+    "2608.16786"
+   ],
+   "num_turns": 41,
+   "cost_usd": 5.829894749999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 1318.9,
+   "targets": [
+    "2411.05007",
+    "2506.19852",
+    "2507.13546",
+    "2508.16984",
+    "2509.11628",
+    "2605.11335",
+    "2607.02461"
+   ],
+   "scores": {
+    "2411.05007": 3,
+    "2506.19852": 3,
+    "2507.13546": 3,
+    "2508.16984": 3,
+    "2509.11628": 3,
+    "2605.11335": 2,
+    "2607.02461": 3,
+    "2608.16786": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/cli": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.21105/joss.01891",
+    "doi:10.1145/2338965.2336763",
+    "2510.09907",
+    "doi:10.1145/2635868.2635929",
+    "doi:10.1145/3517193",
+    "doi:10.1109/issre55969.2022.00052"
+   ],
+   "num_turns": 24,
+   "cost_usd": 2.8458965000000003,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 338.2,
+   "targets": [
+    "2510.09907",
+    "doi:10.1109/issre55969.2022.00052",
+    "doi:10.1145/2338965.2336763",
+    "doi:10.1145/2635868.2635929",
+    "doi:10.21105/joss.01891"
+   ],
+   "scores": {
+    "2510.09907": 2,
+    "doi:10.1109/issre55969.2022.00052": 2,
+    "doi:10.1145/2338965.2336763": 2,
+    "doi:10.1145/2635868.2635929": 2,
+    "doi:10.1145/3517193": 1,
+    "doi:10.21105/joss.01891": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/db": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2307.15255",
+    "2502.15181",
+    "doi:10.14778/3797919.3797934",
+    "doi:10.1145/3709676",
+    "doi:10.14778/3749646.3749717",
+    "2607.11271",
+    "2506.13670"
+   ],
+   "num_turns": 9,
+   "cost_usd": 8.776806000000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 457.8,
+   "targets": [
+    "2307.15255",
+    "2502.15181",
+    "2506.13670",
+    "2607.11271",
+    "doi:10.1145/3709676",
+    "doi:10.14778/3749646.3749717",
+    "doi:10.14778/3797919.3797934"
+   ],
+   "scores": {
+    "2307.15255": 2,
+    "2502.15181": 3,
+    "2506.13670": 3,
+    "2607.11271": 2,
+    "doi:10.1145/3709676": 3,
+    "doi:10.14778/3749646.3749717": 3,
+    "doi:10.14778/3797919.3797934": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/graph": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2210.13339",
+    "2202.13013",
+    "2310.02579",
+    "2303.06147",
+    "2110.03753",
+    "2305.17589",
+    "2306.10453"
+   ],
+   "num_turns": 2,
+   "cost_usd": 7.72813825,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 2227.2,
+   "targets": [
+    "2110.03753",
+    "2202.13013",
+    "2210.13339",
+    "2303.06147",
+    "2305.17589",
+    "2306.10453",
+    "2310.02579"
+   ],
+   "scores": {
+    "2110.03753": 3,
+    "2202.13013": 2,
+    "2210.13339": 3,
+    "2303.06147": 3,
+    "2305.17589": 2,
+    "2306.10453": 2,
+    "2310.02579": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/systems": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2405.12497",
+    "2409.09913",
+    "2403.04871",
+    "2105.09613",
+    "doi:10.1137/060673096",
+    "2308.16862",
+    "1707.00788",
+    "doi:10.1145/74850.74870"
+   ],
+   "num_turns": 41,
+   "cost_usd": 13.233893750000004,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 1445.4,
+   "targets": [
+    "1707.00788",
+    "2308.16862"
+   ],
+   "scores": {
+    "1707.00788": 2,
+    "2105.09613": 1,
+    "2308.16862": 3,
+    "2403.04871": 1,
+    "2405.12497": 1,
+    "2409.09913": 1,
+    "doi:10.1137/060673096": 0,
+    "doi:10.1145/74850.74870": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/numerics": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/1132973.1132979",
+    "doi:10.1145/641876.641877",
+    "doi:10.1090/s0025-5718-00-01174-1",
+    "doi:10.1145/1824801.1824804",
+    "doi:10.1137/20m1365326",
+    "doi:10.3390/math7121174",
+    "0909.4061",
+    "2110.02820",
+    "1011.2602",
+    "doi:10.1111/1467-9868.00346",
+    "2009.02824",
+    "math/0612488",
+    "1407.7786",
+    "doi:10.1016/j.cam.2012.11.021"
+   ],
+   "num_turns": 52,
+   "cost_usd": 5.354356000000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 460.5,
+   "targets": [
+    "0909.4061",
+    "1011.2602",
+    "1407.7786",
+    "2009.02824",
+    "2110.02820",
+    "doi:10.1090/s0025-5718-00-01174-1",
+    "doi:10.1111/1467-9868.00346",
+    "doi:10.1137/20m1365326",
+    "doi:10.1145/1132973.1132979",
+    "doi:10.1145/1824801.1824804",
+    "doi:10.1145/641876.641877",
+    "doi:10.3390/math7121174",
+    "math/0612488"
+   ],
+   "scores": {
+    "0909.4061": 2,
+    "1011.2602": 2,
+    "1407.7786": 2,
+    "2009.02824": 2,
+    "2110.02820": 2,
+    "doi:10.1090/s0025-5718-00-01174-1": 2,
+    "doi:10.1111/1467-9868.00346": 2,
+    "doi:10.1137/20m1365326": 2,
+    "doi:10.1145/1132973.1132979": 2,
+    "doi:10.1145/1824801.1824804": 2,
+    "doi:10.1145/641876.641877": 2,
+    "doi:10.3390/math7121174": 3,
+    "math/0612488": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/storage": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/3035918.3064054",
+    "2606.18138",
+    "2311.15380",
+    "doi:10.1145/3600006.3613147",
+    "doi:10.1145/3380905",
+    "2005.14213",
+    "2506.08671"
+   ],
+   "num_turns": 18,
+   "cost_usd": 4.717347,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 1008.3,
+   "targets": [
+    "2005.14213",
+    "2311.15380",
+    "2506.08671",
+    "2606.18138",
+    "doi:10.1145/3035918.3064054",
+    "doi:10.1145/3380905",
+    "doi:10.1145/3600006.3613147"
+   ],
+   "scores": {
+    "2005.14213": 3,
+    "2311.15380": 2,
+    "2506.08671": 2,
+    "2606.18138": 2,
+    "doi:10.1145/3035918.3064054": 3,
+    "doi:10.1145/3380905": 3,
+    "doi:10.1145/3600006.3613147": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/compiler": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/103135.103136",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "2402.12637",
+    "doi:10.1145/113445.113448",
+    "doi:10.1145/3416510",
+    "doi:10.25080/majora-1b6fd038-012",
+    "doi:10.1145/2594291.2594334",
+    "doi:10.1145/3236774",
+    "1912.05036",
+    "doi:10.1145/2693261"
+   ],
+   "num_turns": 43,
+   "cost_usd": 10.048406000000005,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 547.5,
+   "targets": [
+    "1912.05036",
+    "2402.12637",
+    "doi:10.1007/978-3-642-37051-9_6",
+    "doi:10.1145/103135.103136",
+    "doi:10.1145/113445.113448",
+    "doi:10.1145/2594291.2594334",
+    "doi:10.1145/2693261",
+    "doi:10.25080/majora-1b6fd038-012"
+   ],
+   "scores": {
+    "1912.05036": 2,
+    "2402.12637": 2,
+    "doi:10.1007/978-3-642-37051-9_6": 2,
+    "doi:10.1145/103135.103136": 2,
+    "doi:10.1145/113445.113448": 2,
+    "doi:10.1145/2594291.2594334": 2,
+    "doi:10.1145/2693261": 2,
+    "doi:10.1145/3236774": 0,
+    "doi:10.1145/3416510": 1,
+    "doi:10.25080/majora-1b6fd038-012": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/llminfer": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.00456",
+    "2402.04396",
+    "2210.17323",
+    "2504.02692",
+    "2411.15100",
+    "2312.07104",
+    "2312.17238",
+    "2401.14361",
+    "2410.18351",
+    "2501.16383",
+    "2406.10774",
+    "2402.02750",
+    "2410.14649",
+    "2210.15191",
+    "2411.10666"
+   ],
+   "num_turns": 19,
+   "cost_usd": 23.871996999999986,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 650.4,
+   "targets": [
+    "2210.15191",
+    "2210.17323",
+    "2312.07104",
+    "2312.17238",
+    "2401.14361",
+    "2402.02750",
+    "2402.04396",
+    "2404.00456",
+    "2406.10774",
+    "2410.14649",
+    "2410.18351",
+    "2411.10666",
+    "2411.15100",
+    "2501.16383",
+    "2504.02692"
+   ],
+   "scores": {
+    "2210.15191": 3,
+    "2210.17323": 3,
+    "2312.07104": 3,
+    "2312.17238": 2,
+    "2401.14361": 3,
+    "2402.02750": 3,
+    "2402.04396": 3,
+    "2404.00456": 3,
+    "2406.10774": 3,
+    "2410.14649": 2,
+    "2410.18351": 3,
+    "2411.10666": 3,
+    "2411.15100": 3,
+    "2501.16383": 3,
+    "2504.02692": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/vectordb": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2405.01117",
+    "2404.18812",
+    "2409.09913",
+    "2304.04759",
+    "1908.10396",
+    "2405.19504",
+    "2104.03221",
+    "doi:10.1145/3318464.3380600",
+    "2210.11934",
+    "2503.04422",
+    "doi:10.1145/3600006.3613147"
+   ],
+   "num_turns": 1,
+   "cost_usd": 19.460718499999995,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 636.1,
+   "targets": [
+    "1908.10396",
+    "2104.03221",
+    "2210.11934",
+    "2304.04759",
+    "2404.18812",
+    "2405.01117",
+    "2405.19504",
+    "2409.09913",
+    "2503.04422",
+    "doi:10.1145/3318464.3380600"
+   ],
+   "scores": {
+    "1908.10396": 3,
+    "2104.03221": 3,
+    "2210.11934": 2,
+    "2304.04759": 3,
+    "2404.18812": 2,
+    "2405.01117": 2,
+    "2405.19504": 2,
+    "2409.09913": 2,
+    "2503.04422": 3,
+    "doi:10.1145/3318464.3380600": 2,
+    "doi:10.1145/3600006.3613147": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/linter": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1145/1391289.1391293",
+    "2603.22032",
+    "doi:10.1145/3290329",
+    "1907.05590",
+    "2408.14345",
+    "2306.06391",
+    "2311.10426",
+    "2404.00338",
+    "doi:10.1145/3519939.3523427",
+    "2311.04527",
+    "2310.01530",
+    "1804.07133",
+    "doi:10.1145/3715729"
+   ],
+   "num_turns": 3,
+   "cost_usd": 10.345949,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 595.7,
+   "targets": [
+    "2310.01530",
+    "2311.10426",
+    "doi:10.1145/3715729"
+   ],
+   "scores": {
+    "1804.07133": 1,
+    "1907.05590": 1,
+    "2306.06391": 0,
+    "2310.01530": 2,
+    "2311.04527": 1,
+    "2311.10426": 2,
+    "2404.00338": 1,
+    "2408.14345": 1,
+    "2603.22032": 1,
+    "doi:10.1145/1391289.1391293": 1,
+    "doi:10.1145/3290329": 1,
+    "doi:10.1145/3519939.3523427": 1,
+    "doi:10.1145/3715729": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/http": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1007/978-3-031-17143-7_9",
+    "doi:10.1109/spw54247.2022.9833883",
+    "doi:10.1109/sp.2017.27",
+    "2405.17737",
+    "doi:10.1109/dsn53405.2022.00014",
+    "doi:10.1145/3460120.3485384",
+    "1601.01229",
+    "doi:10.14722/ndss.2025.240523",
+    "2012.01946",
+    "doi:10.1145/1315245.1315298",
+    "doi:10.1145/3412841.3442036",
+    "doi:10.1145/2382196.2382204",
+    "doi:10.1145/2508859.2516655",
+    "doi:10.1109/sp.2014.15",
+    "doi:10.21105/joss.01891",
+    "doi:10.1007/978-3-030-47147-7_4",
+    "doi:10.1145/2338965.2336763",
+    "2510.09907",
+    "doi:10.4230/lipics.ecoop.2018.7",
+    "doi:10.1109/issre55969.2022.00052",
+    "2507.16051",
+    "doi:10.1145/3540250.3549114"
+   ],
+   "num_turns": 17,
+   "cost_usd": 8.660048250000001,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 2477.1,
+   "targets": [
+    "2507.16051",
+    "2510.09907",
+    "doi:10.1109/dsn53405.2022.00014",
+    "doi:10.1109/issre55969.2022.00052",
+    "doi:10.1109/sp.2014.15",
+    "doi:10.1109/sp.2017.27",
+    "doi:10.1109/spw54247.2022.9833883",
+    "doi:10.1145/2338965.2336763",
+    "doi:10.21105/joss.01891",
+    "doi:10.4230/lipics.ecoop.2018.7"
+   ],
+   "scores": {
+    "1601.01229": 0,
+    "2012.01946": 1,
+    "2405.17737": 1,
+    "2507.16051": 2,
+    "2510.09907": 2,
+    "doi:10.1109/dsn53405.2022.00014": 2,
+    "doi:10.1109/issre55969.2022.00052": 2,
+    "doi:10.1109/sp.2014.15": 2,
+    "doi:10.1109/sp.2017.27": 2,
+    "doi:10.1109/spw54247.2022.9833883": 2,
+    "doi:10.1145/1315245.1315298": 1,
+    "doi:10.1145/2338965.2336763": 2,
+    "doi:10.1145/2382196.2382204": 1,
+    "doi:10.1145/2508859.2516655": 1,
+    "doi:10.1145/3412841.3442036": 1,
+    "doi:10.1145/3460120.3485384": 1,
+    "doi:10.1145/3540250.3549114": 1,
+    "doi:10.14722/ndss.2025.240523": 1,
+    "doi:10.21105/joss.01891": 2,
+    "doi:10.4230/lipics.ecoop.2018.7": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 2,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/ann": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2104.03221",
+    "2404.00774",
+    "1908.10396",
+    "2403.04871",
+    "2501.03078",
+    "2502.13826",
+    "2405.19504",
+    "2412.01940"
+   ],
+   "num_turns": 34,
+   "cost_usd": 2.9022222499999994,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 324.8,
+   "targets": [
+    "1908.10396",
+    "2104.03221",
+    "2403.04871",
+    "2404.00774",
+    "2405.19504",
+    "2412.01940",
+    "2501.03078",
+    "2502.13826"
+   ],
+   "scores": {
+    "1908.10396": 3,
+    "2104.03221": 3,
+    "2403.04871": 3,
+    "2404.00774": 3,
+    "2405.19504": 3,
+    "2412.01940": 2,
+    "2501.03078": 3,
+    "2502.13826": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/encryption": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.62056/a3qj89n4e",
+    "doi:10.1007/978-3-032-26740-5_14",
+    "doi:10.1007/978-3-031-07082-2_15",
+    "doi:10.1145/3658644.3670283",
+    "doi:10.1007/978-3-030-77870-5_4",
+    "doi:10.1007/978-3-031-17146-8_14",
+    "doi:10.1007/978-3-031-07085-3_29",
+    "doi:10.1145/3460120.3484814",
+    "doi:10.1007/978-3-032-25333-0_10",
+    "doi:10.1007/978-3-319-56617-7_2",
+    "doi:10.1109/sp.2018.00009",
+    "1806.03160",
+    "doi:10.1007/978-3-030-64837-4_10"
+   ],
+   "num_turns": 8,
+   "cost_usd": 10.345466,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 677.2,
+   "targets": [
+    "1806.03160",
+    "doi:10.1145/3460120.3484814",
+    "doi:10.1145/3658644.3670283",
+    "doi:10.62056/a3qj89n4e"
+   ],
+   "scores": {
+    "1806.03160": 2,
+    "doi:10.1109/sp.2018.00009": 1,
+    "doi:10.1145/3460120.3484814": 2,
+    "doi:10.1145/3658644.3670283": 2,
+    "doi:10.62056/a3qj89n4e": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 8,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/thin-lang": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":389,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 497.2
+  },
+  "2/rag": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":450,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.9
+  },
+  "2/cv": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":394,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.0
+  },
+  "1/thin-gnn": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":748,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 316.0
+  },
+  "2/rl": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":406,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.3
+  },
+  "2/webdev": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":416,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.6
+  },
+  "2/peft": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":366,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.3
+  },
+  "2/diffusion": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":382,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.5
+  },
+  "2/graph": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":628,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.5
+  },
+  "2/speech": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":436,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.1
+  },
+  "2/crypto": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":464,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.3
+  },
+  "1/thin-kv": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":379,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 422.0
+  },
+  "2/systems": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":648,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.0
+  },
+  "1/columnar": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":423,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 716.8
+  },
+  "2/cli": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":455,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "2/http": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":398,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.6
+  },
+  "2/db": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":465,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.2
+  },
+  "2/storage": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":433,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.0
+  },
+  "2/numerics": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":402,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "2/compiler": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":404,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.1
+  },
+  "2/llminfer": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":674,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.3
+  },
+  "2/vectordb": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":432,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.8
+  },
+  "2/linter": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":440,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.8
+  },
+  "2/encryption": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":426,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.0
+  },
+  "2/ann": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":450,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.6
+  },
+  "2/columnar": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":391,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.8
+  },
+  "2/thin-lang": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":476,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.0
+  },
+  "2/thin-kv": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":457,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "2/thin-gnn": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":404,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.2
+  },
+  "3/rag": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":475,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.9
+  },
+  "3/cv": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":419,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.6
+  },
+  "3/rl": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":430,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.2
+  },
+  "3/peft": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":418,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.5
+  },
+  "3/webdev": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":412,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 18.3
+  },
+  "3/diffusion": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":387,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.3
+  },
+  "3/graph": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":378,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.0
+  },
+  "3/speech": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":418,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.3
+  },
+  "3/crypto": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":488,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 17.4
+  },
+  "3/systems": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":354,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "3/cli": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":425,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.8
+  },
+  "3/http": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":400,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "3/db": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":462,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.9
+  },
+  "3/storage": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":421,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "3/numerics": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":396,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.5
+  },
+  "3/compiler": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":511,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "3/llminfer": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":381,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.4
+  },
+  "3/vectordb": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":389,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.7
+  },
+  "3/linter": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":546,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 18.2
+  },
+  "3/encryption": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":411,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.0
+  },
+  "3/ann": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":487,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.8
+  },
+  "3/columnar": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":518,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.9
+  },
+  "3/thin-lang": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":439,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.5
+  },
+  "3/thin-kv": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":655,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 16.9
+  },
+  "3/thin-gnn": {
+   "status": "throttled",
+   "phase": "judged",
+   "raw": "claude exited 1. stderr:  | stdout: {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":373,\"duration_api_ms\":0,\"num_turns",
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "duration_s": 15.9
+  }
+ }
+}
