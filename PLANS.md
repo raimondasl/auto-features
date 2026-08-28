@@ -363,6 +363,23 @@ English does not. **That is P22's conclusion arriving by a second route — the 
 property of the QUERY**, so no domain classifier can fix `webdev`, an ordinary software
 project whose queries happen to be common words.
 
+**Measured against a matched control [P24, NR-41]: +0.32 on the core 25, CI [-0.24, +0.88].**
+Two fresh same-day frozen pools, 37 repositories, everything fixed but `sources`. The control
+reproduces the published headline to **+0.12**, so the delta is an effect and not a redraw.
+
+The mechanism is not what the collision probes implied. Europe PMC supplies **2 of 205 shown
+papers** on the core 25 — the gate rejects nearly all of it rather than admitting biomedical
+noise. Across all 37 cases **29 of 30** non-arXiv papers that reach a digest are actionable.
+**The "relevance condition" item below is therefore retired**: there is nothing for a filter to
+remove, and it was proposed from the collision measurement without first checking the digests.
+
+**P21's bio +4.00 does not survive the control** — matched, it is +1.00 over twelve scientific
+cases with an interval crossing zero. Most of it was the collection, not the source. That is a
+caution about every uncontrolled source comparison in this repository's history.
+
+**Where multi-source is worth having: the scientific cohort** (non-arXiv 23% of the digest at
+0.96 precision), and nowhere else on present evidence.
+
 **Both probes together: no multi-source default, no per-domain routing.** The evidence points
 at a **relevance condition on non-arXiv results** — what the ranker's category component would
 already supply if uncategorised papers did not escape it (§9: 18 of 32 moved on that bias
