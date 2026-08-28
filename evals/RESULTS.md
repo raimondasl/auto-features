@@ -1144,6 +1144,60 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### OpenAlex reaches the digest and costs -0.76: the gate is not uniformly robust. **[P25, C-33]**
+
+Same control as P24, same flags, `--sources arxiv,openalex`. `pool_config` confirms the arms
+differ in `sources` and nothing else.
+
+| cohort | control | +europepmc | **+openalex** | openalex paired | 95% CI | W/L |
+|---|---|---|---|---|---|---|
+| core 25 | +5.84 | +6.16 | **+5.40** | **-0.44** | [-1.56, +0.72] | 7/10 |
+| scientific 12 | +5.50 | +6.50 | **+4.08** | **-1.42** | [-3.58, +0.83] | 5/7 |
+| all 37 | +5.73 | +6.27 | **+4.97** | **-0.76** | [-1.81, +0.30] | 12/17 |
+
+Every interval crosses zero, so no single cohort is decisive. **The sign is consistent across
+all three**, and the win record is 12W/17L against Europe PMC's 14W/6L. Consistency is the
+evidence here, not any one delta.
+
+**Reach was never the constraint — precision was.**
+
+| | non-arXiv in digest | precision | non-actionable admitted |
+|---|---|---|---|
+| Europe PMC | 30 / 326 = 9% | **0.97** | **1** |
+| **OpenAlex** | **68 / 337 = 20%** | **0.75** | **17** |
+
+OpenAlex reaches the digest **more than twice as often** and is worth less for it. 17 misses
+at -2 each over 37 cases is about **-0.92/case** against an observed -0.76 — not an identity,
+since admitted papers also displace arXiv ones, but close enough that the penalty rather than
+the displacement is the dominant term.
+
+#### C-33: "the gate handles the collision" was true of one source, and was generalised
+
+P24 retired the relevance-filter item on the evidence that **29 of 30** non-arXiv papers
+reaching a digest were judged actionable. That evidence was Europe PMC only, and the
+conclusion drawn from it — that the gate handles off-domain material, so no filter is needed —
+does not survive a second source. OpenAlex admits **17** non-actionable papers where Europe
+PMC admitted 1.
+
+The corrected claim is narrower and more useful: **the gate rejects *obviously* off-domain
+material and admits *near-domain* material.** Europe PMC's neurosurgery paper beside a linter
+is easy to reject; OpenAlex's Engineering, Materials Science and Social Sciences results
+beside a compiler are not — and that is precisely the borderline population NR-11 recorded as
+making the headline *worse* when a wider pool met a near-binary gate.
+
+The item is reopened in that narrower form. Note what it took to find: the first version of
+this claim was made from one arm, in a PR, with the word "settled" in it.
+
+**Stacking is now measured rather than cautioned against.** +0.54 and -0.76 on the same 37
+cases; a three-source arm would most likely net negative.
+
+**And P23 predicted the wrong thing about this, for a defensible reason.** OpenAlex measured
+*cleaner* than Europe PMC on the collision probe — 48% off-domain against 68% — so it looked
+like the better candidate. It is the worse one, because the probe measured what a source
+RETURNS and the gate is what decides what survives. A source whose noise is obviously wrong is
+safer than one whose noise is plausibly right. **A $0 retrieval-side probe cannot predict a
+gate-side outcome**, which is worth remembering before the next one is used to rank candidates.
+
 ### Multi-source retrieval, against a matched control at last: +0.32 on the benchmark. **[P24, NR-41]**
 
 Every earlier multi-source figure in this project compared a run with a source enabled against

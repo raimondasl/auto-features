@@ -12,6 +12,11 @@ RES = pathlib.Path("evals/results")
 ARMS = {
     "control_arxiv": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json",
     "treat_arxiv_epmc": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T234024Z.json",
+    # P25. Same control, same flags, only `sources` differs -- so it drops into the same
+    # comparison without a second control being collected.
+    "treat_arxiv_openalex": (
+        "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260828T052915Z.json"
+    ),
 }
 HEADLINE = "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json"
 
@@ -67,25 +72,29 @@ COHORTS = {
     "scientific12": lambda c: c.startswith(("bio-", "mat-")),
     "all37": lambda _c: True,
 }
-treat = out["arms"]["treat_arxiv_epmc"]["per_case"]
 out["cohorts"] = {}
-for name, pred in COHORTS.items():
-    cases = sorted(c for c in ctrl if pred(c))
-    d = [treat[c]["net2"] - ctrl[c]["net2"] for c in cases]
-    shown = sum(treat[c]["n"] for c in cases)
-    na = sum(treat[c]["n_non_arxiv"] for c in cases)
-    good = sum(treat[c]["n_non_arxiv_actionable"] for c in cases)
-    out["cohorts"][name] = {
-        "n_cases": len(cases),
-        "control_mean": round(st.mean(ctrl[c]["net2"] for c in cases), 2),
-        "treatment_mean": round(st.mean(treat[c]["net2"] for c in cases), 2),
-        "paired_delta": round(st.mean(d), 2),
-        "wins": sum(1 for x in d if x > 0),
-        "losses": sum(1 for x in d if x < 0),
-        "non_arxiv_shown": na,
-        "non_arxiv_share": round(na / shown, 3),
-        "non_arxiv_actionable": good,
-    }
+for label in ("treat_arxiv_epmc", "treat_arxiv_openalex"):
+    treat = out["arms"][label]["per_case"]
+    out["cohorts"][label] = {}
+    for name, pred in COHORTS.items():
+        cases = sorted(c for c in ctrl if pred(c))
+        d = [treat[c]["net2"] - ctrl[c]["net2"] for c in cases]
+        shown = sum(treat[c]["n"] for c in cases)
+        na = sum(treat[c]["n_non_arxiv"] for c in cases)
+        good = sum(treat[c]["n_non_arxiv_actionable"] for c in cases)
+        out["cohorts"][label][name] = {
+            "n_cases": len(cases),
+            "control_mean": round(st.mean(ctrl[c]["net2"] for c in cases), 2),
+            "treatment_mean": round(st.mean(treat[c]["net2"] for c in cases), 2),
+            "paired_delta": round(st.mean(d), 2),
+            "wins": sum(1 for x in d if x > 0),
+            "losses": sum(1 for x in d if x < 0),
+            "non_arxiv_shown": na,
+            "non_arxiv_share": round(na / shown, 3),
+            "non_arxiv_actionable": good,
+            "non_arxiv_precision": round(good / na, 3) if na else None,
+            "non_arxiv_missed": na - good,
+        }
 pathlib.Path("evals/multisource_arm.json").write_text(
     json.dumps(out, indent=1) + "\n", encoding="utf-8"
 )

@@ -377,6 +377,21 @@ remove, and it was proposed from the collision measurement without first checkin
 cases with an interval crossing zero. Most of it was the collection, not the source. That is a
 caution about every uncontrolled source comparison in this repository's history.
 
+**OpenAlex measured too, and it goes the other way [P25]: -0.76 over 37 cases**, negative on
+every cohort (core 25 -0.44, scientific 12 -1.42), 12W/17L. It reaches the digest more than
+twice as often as Europe PMC (20% vs 9%) at **0.75 precision against 0.97**, admitting **17**
+non-actionable papers where Europe PMC admitted 1. Reach was never the constraint.
+
+**C-33: "the gate handles the collision" was generalised from one source and is false.** P24
+retired the relevance-filter item on Europe PMC evidence alone. Corrected: the gate rejects
+*obviously* off-domain material and admits *near-domain* material — biology beside a linter is
+easy, Engineering beside a compiler is not. **The item is reopened in that narrower form**, and
+it is now the best-supported open item on this list.
+
+**Stacking is measured, not cautioned against:** +0.54 and -0.76 on the same 37 cases. A
+three-source arm would most likely net negative. **No further source arms without a mechanism
+change first.**
+
 **Where multi-source is worth having: the scientific cohort** (non-arXiv 23% of the digest at
 0.96 precision), and nowhere else on present evidence.
 
