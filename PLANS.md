@@ -395,11 +395,22 @@ change first.**
 **Where multi-source is worth having: the scientific cohort** (non-arXiv 23% of the digest at
 0.96 precision), and nowhere else on present evidence.
 
-**Both probes together: no multi-source default, no per-domain routing.** The evidence points
-at a **relevance condition on non-arXiv results** — what the ranker's category component would
-already supply if uncategorised papers did not escape it (§9: 18 of 32 moved on that bias
-alone). One ranking change fixes both sources, which is the strongest sign it is the right
-one. **That is the item now worth opening.**
+**C-34 [P26]: the -0.76 was attributed to the wrong term, and the remedy followed the error.**
+Decomposing each arm's delta exactly — every non-arXiv paper is one the source supplied,
+everything else is arXiv churn — gives **+EPMC: +0.54 = +0.73 own papers − 0.19 displacement**
+and **+OpenAlex: −0.76 = +0.46 own papers − 1.22 displacement**. OpenAlex's own papers are
+**net positive**; the 17 misses arrive alongside 51 actionable ones. The loss is 142 arXiv
+papers leaving the digest and 100 different ones arriving. The materials six settle it: Europe
+PMC contributes *zero* papers there and the arm still moves +0.50/case, 16 arXiv out and 16 in
+— a source can move the score without appearing in the digest at all.
+
+**Both probes together: no multi-source default, no per-domain routing.** The obvious next item
+was a **relevance condition on non-arXiv results**. C-34 demotes it: that filter addresses the
+term which is already positive in both arms. **The term that costs is displacement**, it scales
+with how much a source is admitted, and both sources pay it — Europe PMC's own papers merely
+cover it. That is also the real argument against stacking a third source. A relevance condition
+may still be worth having for the near-domain admissions C-33 identified, but it is no longer
+the item with the best evidence behind it, and it would not have recovered the -0.76.
 
 **If a source is switched on regardless, OpenAlex is the one:** a third less noise, real
 ACM/IEEE/VLDB coverage (599 CS works), and a field label already on every result that a filter
@@ -437,6 +448,29 @@ because the v1/12-turn configuration is at its weakest here (2 picks per case, 0
 `bio-singlecell`). The 6 `mat-` cases are unrun and may still differ.
 
 ### 3b. RepoRadar vs Opus 5 — the comparator question, and it is close
+
+**Completed to all 37 cases 2026-08-28 [P26].** Six materials-science runs at the settings
+every other Opus 5 row used finish draw 1 ($58.34; arm to date $351.40). Against RepoRadar's
+arXiv+EPMC arm:
+
+| cohort | RepoRadar | Opus 5 | paired | |
+|---|---|---|---|---|
+| core 25 | +6.16 | +4.20 | +1.96 | 14W/10L |
+| bio 6 | +7.50 | +5.83 | +1.67 | 4W/1L |
+| **matsci 6** | +5.50 | **+8.67** | **−3.17** | 2W/4L |
+| **all 37** | +6.27 | +5.19 | **+1.08** CI [−0.97, +3.16] | 20W/15L |
+
+**The margin was +1.90 over 31 cases and is +1.08 over 37, interval now crossing zero.** The
+materials reversal is not volume: Opus 5 wins on precision there too (0.895 vs 0.841 —
+RepoRadar's worst cohort, Opus 5's best), and no source arm rescues it (+arXiv 5.00, +EPMC
+5.50, +OpenAlex 3.83). **It is not non-arXiv reach either:** matsci is where Opus 5 reaches
+outside arXiv *least* (6.6% of picks, vs 34% on core 25 and 70% on bio), worth +0.33 of the
++8.67. It picks better arXiv papers than our ranker does, from a literature the pool holds.
+
+**The split below replicates at n=37 and is the durable result:** on the 32 cases where Opus 5
+does not over-answer the two are level (−0.06); all of the +1.08 comes from 5 cases where it
+does, 4 of which RepoRadar abstains on outright (70% of the margin). Pinned in
+`evals/opus5_arm.json` / `tests/test_opus5_arm.py`.
 
 Paired over the 25 core cases, RepoRadar's headline run against Opus 5 draw 1:
 

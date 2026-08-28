@@ -175,12 +175,17 @@ class TestTheCommittedArtifact:
         OpenAlex tier made 31 previously-unscoreable references judgeable, and **+7.28 over
         572** with Opus 5's first 21 runs, and **+7.52 over 592**.
 
-        It then stayed at +7.52 while the set grew to **638**, and that is not a bug: the six
-        bio cases added 47 witnesses, and regret is scored against the 25-case headline run,
-        which has no bio cases in it. A witness for a repository the run never covered cannot
-        displace anything shown. Growth outside the scored cohort is expected to move the
-        count and nothing else once that draw was
-        completed to all 25 cases.
+        It then stayed at +7.52 while the set grew to **638** and again to **698**, and that
+        is not a bug: the six bio cases added 47 witnesses and the six materials cases added
+        60, while regret is scored against the 25-case headline run, which contains neither.
+        A witness for a repository the run never covered cannot displace anything shown, so
+        growth outside the scored cohort is expected to move the count and nothing else.
+
+        The materials step is the prediction being paid off rather than restated. The bio
+        step was the first time the count moved alone, and this docstring said then that any
+        further growth outside the 25 would do the same; it did, at twice the size. That is
+        worth more than the figure: a quantity that stays fixed under a change it should be
+        blind to is evidence the scoring cohort is actually held.
 
         The last step is worth separating from the others: it added no new *search*. Those
         papers had already been found and named by a searcher already in the pool — the set
@@ -189,7 +194,7 @@ class TestTheCommittedArtifact:
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
         assert reg["mean_regret"] == 7.52
-        assert artifact["n_witnesses"] == 638
+        assert artifact["n_witnesses"] == 698
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not

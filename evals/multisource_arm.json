@@ -770,7 +770,11 @@
     "non_arxiv_share": 0.01,
     "non_arxiv_actionable": 2,
     "non_arxiv_precision": 1.0,
-    "non_arxiv_missed": 0
+    "non_arxiv_missed": 0,
+    "delta_from_source_papers": 0.08,
+    "delta_from_arxiv_swap": 0.24,
+    "arxiv_added": 72,
+    "arxiv_dropped": 69
    },
    "scientific12": {
     "n_cases": 12,
@@ -783,7 +787,28 @@
     "non_arxiv_share": 0.233,
     "non_arxiv_actionable": 27,
     "non_arxiv_precision": 0.964,
-    "non_arxiv_missed": 1
+    "non_arxiv_missed": 1,
+    "delta_from_source_papers": 2.08,
+    "delta_from_arxiv_swap": -1.08,
+    "arxiv_added": 23,
+    "arxiv_dropped": 42
+   },
+   "matsci6": {
+    "n_cases": 6,
+    "control_mean": 5,
+    "treatment_mean": 5.5,
+    "paired_delta": 0.5,
+    "wins": 3,
+    "losses": 1,
+    "non_arxiv_shown": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_actionable": 0,
+    "non_arxiv_precision": null,
+    "non_arxiv_missed": 0,
+    "delta_from_source_papers": 0.0,
+    "delta_from_arxiv_swap": 0.5,
+    "arxiv_added": 16,
+    "arxiv_dropped": 16
    },
    "all37": {
     "n_cases": 37,
@@ -796,7 +821,11 @@
     "non_arxiv_share": 0.092,
     "non_arxiv_actionable": 29,
     "non_arxiv_precision": 0.967,
-    "non_arxiv_missed": 1
+    "non_arxiv_missed": 1,
+    "delta_from_source_papers": 0.73,
+    "delta_from_arxiv_swap": -0.19,
+    "arxiv_added": 95,
+    "arxiv_dropped": 111
    }
   },
   "treat_arxiv_openalex": {
@@ -811,7 +840,11 @@
     "non_arxiv_share": 0.069,
     "non_arxiv_actionable": 9,
     "non_arxiv_precision": 0.643,
-    "non_arxiv_missed": 5
+    "non_arxiv_missed": 5,
+    "delta_from_source_papers": -0.04,
+    "delta_from_arxiv_swap": -0.4,
+    "arxiv_added": 79,
+    "arxiv_dropped": 89
    },
    "scientific12": {
     "n_cases": 12,
@@ -824,7 +857,28 @@
     "non_arxiv_share": 0.406,
     "non_arxiv_actionable": 42,
     "non_arxiv_precision": 0.778,
-    "non_arxiv_missed": 12
+    "non_arxiv_missed": 12,
+    "delta_from_source_papers": 1.5,
+    "delta_from_arxiv_swap": -2.92,
+    "arxiv_added": 21,
+    "arxiv_dropped": 53
+   },
+   "matsci6": {
+    "n_cases": 6,
+    "control_mean": 5,
+    "treatment_mean": 3.83,
+    "paired_delta": -1.17,
+    "wins": 3,
+    "losses": 3,
+    "non_arxiv_shown": 9,
+    "non_arxiv_share": 0.132,
+    "non_arxiv_actionable": 7,
+    "non_arxiv_precision": 0.778,
+    "non_arxiv_missed": 2,
+    "delta_from_source_papers": 0.5,
+    "delta_from_arxiv_swap": -1.67,
+    "arxiv_added": 17,
+    "arxiv_dropped": 21
    },
    "all37": {
     "n_cases": 37,
@@ -837,7 +891,11 @@
     "non_arxiv_share": 0.202,
     "non_arxiv_actionable": 51,
     "non_arxiv_precision": 0.75,
-    "non_arxiv_missed": 17
+    "non_arxiv_missed": 17,
+    "delta_from_source_papers": 0.46,
+    "delta_from_arxiv_swap": -1.22,
+    "arxiv_added": 100,
+    "arxiv_dropped": 142
    }
   }
  }
