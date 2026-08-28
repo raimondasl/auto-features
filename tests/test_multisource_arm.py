@@ -176,14 +176,73 @@ class TestTheOpenAlexArmGoesTheOtherWay:
         assert epmc["non_arxiv_missed"] <= 1
         assert oa["non_arxiv_missed"] == 17
 
-    def test_the_misses_roughly_account_for_the_loss(self, artifact):
-        """17 misses x -2 over 37 cases is about -0.92/case against an observed -0.76. Not an
-        identity — the admitted papers also displace arXiv ones — but close enough that the
-        penalty, not the displacement, is the dominant term."""
+    def test_the_loss_is_displacement_not_the_misses(self, artifact):
+        """**C-34: the arithmetic matched and the mechanism was still wrong.**
+
+        P25 read the -0.76 off the 17 non-actionable papers: 17 x -2 over 37 cases is -0.92,
+        near enough to -0.76 to look like an explanation, and the test that stood here
+        asserted exactly that. It is a coincidence. Those 17 arrive alongside **51 actionable**
+        ones, so OpenAlex's own papers are worth **+0.46/case** -- net POSITIVE. The loss is
+        the second thing a source does: 142 arXiv papers leave the digest and 100 different
+        ones arrive, costing **-1.22/case**.
+
+        The two terms sum to the delta by construction, so this is a decomposition rather
+        than a model, and it reverses the reading. OpenAlex is not bad because of what it
+        brings; it is bad because of what it pushes out. That distinction decides the remedy:
+        a relevance filter on non-arXiv material would have addressed the wrong term.
+
+        The near-miss is the lesson. A quantity that lands within 0.16 of the observation is
+        the most dangerous kind of wrong explanation, because it is the kind nobody checks.
+        """
         oa = artifact["cohorts"]["treat_arxiv_openalex"]["all37"]
+        # The decomposition is exact -- the two terms are the delta, not an estimate of it.
+        assert oa["delta_from_source_papers"] + oa["delta_from_arxiv_swap"] == pytest.approx(
+            oa["paired_delta"], abs=0.01
+        )
+        assert oa["delta_from_source_papers"] > 0, "its own papers are net positive"
+        assert oa["delta_from_arxiv_swap"] < oa["paired_delta"] < 0
+        assert oa["arxiv_dropped"] > oa["arxiv_added"], "the digest shrinks in arXiv terms"
+        # And the retired claim, kept as a live refutation rather than deleted: the misses
+        # alone still land within 0.16 of the delta. The number was never the problem.
         implied = -2 * oa["non_arxiv_missed"] / oa["n_cases"]
-        assert implied < oa["paired_delta"] < 0
-        assert abs(implied - oa["paired_delta"]) < 0.5
+        assert abs(implied - oa["paired_delta"]) < 0.2, "close enough to have been believed"
+        assert implied < oa["delta_from_source_papers"], "yet it has the wrong sign entirely"
+
+    def test_both_sources_lose_ground_on_the_swap(self, artifact):
+        """The displacement term is not an OpenAlex quirk, which is what C-33 should have
+        taught before C-34 was written. Europe PMC pays it too -- -0.19/case over 37 -- it is
+        simply small enough there that its own papers (+0.73) cover it.
+
+        Held apart because it is the term that scales with how much a source is ADMITTED, and
+        OpenAlex is admitted more than twice as often. A third source would pay it a third
+        time, which is the real argument against stacking.
+        """
+        for label in ("treat_arxiv_epmc", "treat_arxiv_openalex"):
+            all37 = artifact["cohorts"][label]["all37"]
+            assert all37["delta_from_arxiv_swap"] < 0, label
+            assert all37["arxiv_dropped"] > all37["arxiv_added"], label
+        epmc = artifact["cohorts"]["treat_arxiv_epmc"]["all37"]
+        oa = artifact["cohorts"]["treat_arxiv_openalex"]["all37"]
+        assert oa["delta_from_arxiv_swap"] < epmc["delta_from_arxiv_swap"]
+        assert epmc["delta_from_source_papers"] > -epmc["delta_from_arxiv_swap"], (
+            "Europe PMC's own papers more than cover its displacement; OpenAlex's do not"
+        )
+        assert oa["delta_from_source_papers"] < -oa["delta_from_arxiv_swap"]
+
+    def test_the_materials_cases_isolate_the_swap_term(self, artifact):
+        """The cleanest evidence in the arm, and it is an accident of the cohort.
+
+        Europe PMC contributes **zero** papers to the materials six -- not few, none -- and
+        the arm still moves +0.50/case there. With the source term identically zero, the
+        whole delta is the swap: 16 arXiv papers out, 16 different ones in. A source can move
+        the score without appearing in the digest at all, which is the sharpest possible
+        statement of what P25 missed.
+        """
+        mat = artifact["cohorts"]["treat_arxiv_epmc"]["matsci6"]
+        assert mat["non_arxiv_shown"] == 0
+        assert mat["delta_from_source_papers"] == 0.0
+        assert mat["delta_from_arxiv_swap"] == mat["paired_delta"] == 0.5
+        assert mat["arxiv_added"] == mat["arxiv_dropped"] == 16
 
     def test_stacking_the_two_is_not_supported(self, artifact):
         """+0.54 and -0.76 on the same 37 cases. A three-source arm would most likely net

@@ -1,0 +1,798 @@
+{
+ "_comment": "P26: Opus 5 as a comparator over the COMPLETE 37-case cohort, against RepoRadar at three source configurations. Derived by evals/freeze_opus5_arm.py from evals/gold_spread_v2_opus5.json (in tree) and three run files under evals/results/ (gitignored); pinned by tests/test_opus5_arm.py. net@2 = #actionable - 2 x #non-actionable over what each system RETURNED; abstaining scores 0.",
+ "opus5_config": {
+  "artifact": "gold_spread_v2_opus5.json",
+  "draw": 1,
+  "prompt_version": "v2",
+  "max_turns": 30,
+  "model": "claude-opus-5",
+  "effort": null,
+  "cli_auth": "subscription",
+  "n_cases": 37,
+  "cost_usd": 351.4
+ },
+ "reporadar_arms": {
+  "arxiv": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json",
+   "sources": [
+    "arxiv"
+   ],
+   "digest_window": 15,
+   "w_embedding": 1.5
+  },
+  "arxiv_epmc": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T234024Z.json",
+   "sources": [
+    "arxiv",
+    "europepmc"
+   ],
+   "digest_window": 15,
+   "w_embedding": 1.5
+  },
+  "arxiv_openalex": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260828T052915Z.json",
+   "sources": [
+    "arxiv",
+    "openalex"
+   ],
+   "digest_window": 15,
+   "w_embedding": 1.5
+  }
+ },
+ "per_case": {
+  "ann": {
+   "opus5": 8,
+   "opus5_n": 8,
+   "arxiv": 10,
+   "arxiv_epmc": 10,
+   "arxiv_openalex": 7,
+   "arxiv_n": 13,
+   "arxiv_epmc_n": 13,
+   "arxiv_openalex_n": 13
+  },
+  "bio-align": {
+   "opus5": 7,
+   "opus5_n": 7,
+   "arxiv": 5,
+   "arxiv_epmc": 5,
+   "arxiv_openalex": 2,
+   "arxiv_n": 11,
+   "arxiv_epmc_n": 11,
+   "arxiv_openalex_n": 14
+  },
+  "bio-kmer": {
+   "opus5": 6,
+   "opus5_n": 12,
+   "arxiv": 2,
+   "arxiv_epmc": 7,
+   "arxiv_openalex": 7,
+   "arxiv_n": 2,
+   "arxiv_epmc_n": 7,
+   "arxiv_openalex_n": 7
+  },
+  "bio-mdsim": {
+   "opus5": 6,
+   "opus5_n": 6,
+   "arxiv": 6,
+   "arxiv_epmc": 6,
+   "arxiv_openalex": 1,
+   "arxiv_n": 9,
+   "arxiv_epmc_n": 9,
+   "arxiv_openalex_n": 13
+  },
+  "bio-mdtraj": {
+   "opus5": 0,
+   "opus5_n": 0,
+   "arxiv": 4,
+   "arxiv_epmc": 8,
+   "arxiv_openalex": -3,
+   "arxiv_n": 4,
+   "arxiv_epmc_n": 8,
+   "arxiv_openalex_n": 9
+  },
+  "bio-scvi": {
+   "opus5": 12,
+   "opus5_n": 18,
+   "arxiv": 11,
+   "arxiv_epmc": 13,
+   "arxiv_openalex": 14,
+   "arxiv_n": 11,
+   "arxiv_epmc_n": 13,
+   "arxiv_openalex_n": 14
+  },
+  "bio-singlecell": {
+   "opus5": 4,
+   "opus5_n": 10,
+   "arxiv": 8,
+   "arxiv_epmc": 6,
+   "arxiv_openalex": 5,
+   "arxiv_n": 11,
+   "arxiv_epmc_n": 9,
+   "arxiv_openalex_n": 8
+  },
+  "cli": {
+   "opus5": 3,
+   "opus5_n": 6,
+   "arxiv": 0,
+   "arxiv_epmc": 0,
+   "arxiv_openalex": 0,
+   "arxiv_n": 0,
+   "arxiv_epmc_n": 0,
+   "arxiv_openalex_n": 0
+  },
+  "columnar": {
+   "opus5": 4,
+   "opus5_n": 10,
+   "arxiv": 6,
+   "arxiv_epmc": 5,
+   "arxiv_openalex": 3,
+   "arxiv_n": 6,
+   "arxiv_epmc_n": 8,
+   "arxiv_openalex_n": 9
+  },
+  "compiler": {
+   "opus5": 4,
+   "opus5_n": 10,
+   "arxiv": 2,
+   "arxiv_epmc": 2,
+   "arxiv_openalex": 2,
+   "arxiv_n": 2,
+   "arxiv_epmc_n": 2,
+   "arxiv_openalex_n": 2
+  },
+  "crypto": {
+   "opus5": 5,
+   "opus5_n": 5,
+   "arxiv": 3,
+   "arxiv_epmc": 4,
+   "arxiv_openalex": 4,
+   "arxiv_n": 3,
+   "arxiv_epmc_n": 4,
+   "arxiv_openalex_n": 4
+  },
+  "cv": {
+   "opus5": 12,
+   "opus5_n": 12,
+   "arxiv": 3,
+   "arxiv_epmc": 6,
+   "arxiv_openalex": 6,
+   "arxiv_n": 9,
+   "arxiv_epmc_n": 12,
+   "arxiv_openalex_n": 9
+  },
+  "db": {
+   "opus5": 7,
+   "opus5_n": 7,
+   "arxiv": 10,
+   "arxiv_epmc": 12,
+   "arxiv_openalex": 8,
+   "arxiv_n": 13,
+   "arxiv_epmc_n": 12,
+   "arxiv_openalex_n": 11
+  },
+  "diffusion": {
+   "opus5": 5,
+   "opus5_n": 8,
+   "arxiv": 9,
+   "arxiv_epmc": 11,
+   "arxiv_openalex": 14,
+   "arxiv_n": 15,
+   "arxiv_epmc_n": 14,
+   "arxiv_openalex_n": 14
+  },
+  "encryption": {
+   "opus5": 2,
+   "opus5_n": 5,
+   "arxiv": 1,
+   "arxiv_epmc": 1,
+   "arxiv_openalex": 1,
+   "arxiv_n": 1,
+   "arxiv_epmc_n": 1,
+   "arxiv_openalex_n": 1
+  },
+  "graph": {
+   "opus5": 7,
+   "opus5_n": 7,
+   "arxiv": 14,
+   "arxiv_epmc": 15,
+   "arxiv_openalex": 14,
+   "arxiv_n": 14,
+   "arxiv_epmc_n": 15,
+   "arxiv_openalex_n": 14
+  },
+  "http": {
+   "opus5": -10,
+   "opus5_n": 20,
+   "arxiv": 0,
+   "arxiv_epmc": 0,
+   "arxiv_openalex": 0,
+   "arxiv_n": 0,
+   "arxiv_epmc_n": 0,
+   "arxiv_openalex_n": 0
+  },
+  "linter": {
+   "opus5": -17,
+   "opus5_n": 13,
+   "arxiv": 0,
+   "arxiv_epmc": 0,
+   "arxiv_openalex": 0,
+   "arxiv_n": 0,
+   "arxiv_epmc_n": 0,
+   "arxiv_openalex_n": 0
+  },
+  "llminfer": {
+   "opus5": 15,
+   "opus5_n": 15,
+   "arxiv": 6,
+   "arxiv_epmc": 6,
+   "arxiv_openalex": 0,
+   "arxiv_n": 9,
+   "arxiv_epmc_n": 9,
+   "arxiv_openalex_n": 9
+  },
+  "mat-chgpot": {
+   "opus5": 21,
+   "opus5_n": 24,
+   "arxiv": 9,
+   "arxiv_epmc": 9,
+   "arxiv_openalex": 12,
+   "arxiv_n": 12,
+   "arxiv_epmc_n": 12,
+   "arxiv_openalex_n": 15
+  },
+  "mat-descriptors": {
+   "opus5": 1,
+   "opus5_n": 7,
+   "arxiv": 9,
+   "arxiv_epmc": 9,
+   "arxiv_openalex": 4,
+   "arxiv_n": 12,
+   "arxiv_epmc_n": 12,
+   "arxiv_openalex_n": 13
+  },
+  "mat-featurize": {
+   "opus5": -2,
+   "opus5_n": 10,
+   "arxiv": 2,
+   "arxiv_epmc": -3,
+   "arxiv_openalex": -3,
+   "arxiv_n": 11,
+   "arxiv_epmc_n": 9,
+   "arxiv_openalex_n": 9
+  },
+  "mat-mlip": {
+   "opus5": 18,
+   "opus5_n": 18,
+   "arxiv": 4,
+   "arxiv_epmc": 8,
+   "arxiv_openalex": 5,
+   "arxiv_n": 13,
+   "arxiv_epmc_n": 14,
+   "arxiv_openalex_n": 14
+  },
+  "mat-phonon": {
+   "opus5": 6,
+   "opus5_n": 9,
+   "arxiv": 5,
+   "arxiv_epmc": 7,
+   "arxiv_openalex": 1,
+   "arxiv_n": 14,
+   "arxiv_epmc_n": 13,
+   "arxiv_openalex_n": 10
+  },
+  "mat-toolkit": {
+   "opus5": 8,
+   "opus5_n": 8,
+   "arxiv": 1,
+   "arxiv_epmc": 3,
+   "arxiv_openalex": 4,
+   "arxiv_n": 1,
+   "arxiv_epmc_n": 3,
+   "arxiv_openalex_n": 7
+  },
+  "numerics": {
+   "opus5": 13,
+   "opus5_n": 13,
+   "arxiv": 7,
+   "arxiv_epmc": 4,
+   "arxiv_openalex": 5,
+   "arxiv_n": 7,
+   "arxiv_epmc_n": 4,
+   "arxiv_openalex_n": 5
+  },
+  "peft": {
+   "opus5": 5,
+   "opus5_n": 5,
+   "arxiv": 12,
+   "arxiv_epmc": 12,
+   "arxiv_openalex": 12,
+   "arxiv_n": 15,
+   "arxiv_epmc_n": 15,
+   "arxiv_openalex_n": 15
+  },
+  "rag": {
+   "opus5": 12,
+   "opus5_n": 12,
+   "arxiv": 8,
+   "arxiv_epmc": 8,
+   "arxiv_openalex": 12,
+   "arxiv_n": 14,
+   "arxiv_epmc_n": 11,
+   "arxiv_openalex_n": 12
+  },
+  "rl": {
+   "opus5": 5,
+   "opus5_n": 8,
+   "arxiv": 12,
+   "arxiv_epmc": 15,
+   "arxiv_openalex": 8,
+   "arxiv_n": 12,
+   "arxiv_epmc_n": 15,
+   "arxiv_openalex_n": 11
+  },
+  "speech": {
+   "opus5": 9,
+   "opus5_n": 9,
+   "arxiv": 6,
+   "arxiv_epmc": 6,
+   "arxiv_openalex": 12,
+   "arxiv_n": 15,
+   "arxiv_epmc_n": 15,
+   "arxiv_openalex_n": 15
+  },
+  "storage": {
+   "opus5": 7,
+   "opus5_n": 7,
+   "arxiv": 13,
+   "arxiv_epmc": 13,
+   "arxiv_openalex": 8,
+   "arxiv_n": 13,
+   "arxiv_epmc_n": 13,
+   "arxiv_openalex_n": 14
+  },
+  "systems": {
+   "opus5": -10,
+   "opus5_n": 8,
+   "arxiv": 2,
+   "arxiv_epmc": 2,
+   "arxiv_openalex": 4,
+   "arxiv_n": 5,
+   "arxiv_epmc_n": 5,
+   "arxiv_openalex_n": 7
+  },
+  "thin-gnn": {
+   "opus5": 6,
+   "opus5_n": 6,
+   "arxiv": 8,
+   "arxiv_epmc": 6,
+   "arxiv_openalex": 6,
+   "arxiv_n": 14,
+   "arxiv_epmc_n": 15,
+   "arxiv_openalex_n": 15
+  },
+  "thin-kv": {
+   "opus5": 5,
+   "opus5_n": 8,
+   "arxiv": 8,
+   "arxiv_epmc": 9,
+   "arxiv_openalex": 4,
+   "arxiv_n": 8,
+   "arxiv_epmc_n": 9,
+   "arxiv_openalex_n": 10
+  },
+  "thin-lang": {
+   "opus5": 4,
+   "opus5_n": 10,
+   "arxiv": 0,
+   "arxiv_epmc": -2,
+   "arxiv_openalex": -2,
+   "arxiv_n": 0,
+   "arxiv_epmc_n": 1,
+   "arxiv_openalex_n": 1
+  },
+  "vectordb": {
+   "opus5": 8,
+   "opus5_n": 11,
+   "arxiv": 6,
+   "arxiv_epmc": 9,
+   "arxiv_openalex": 7,
+   "arxiv_n": 12,
+   "arxiv_epmc_n": 12,
+   "arxiv_openalex_n": 13
+  },
+  "webdev": {
+   "opus5": -4,
+   "opus5_n": 5,
+   "arxiv": 0,
+   "arxiv_epmc": 0,
+   "arxiv_openalex": 0,
+   "arxiv_n": 0,
+   "arxiv_epmc_n": 0,
+   "arxiv_openalex_n": 0
+  }
+ },
+ "cohorts": {
+  "core25": {
+   "n_cases": 25,
+   "opus5": {
+    "mean_net2": 4.2,
+    "shown": 228,
+    "shown_per_case": 9.1,
+    "precision": 0.82,
+    "arxiv_precision": 0.873,
+    "n_non_arxiv": 78,
+    "non_arxiv_share": 0.342,
+    "non_arxiv_precision": 0.718,
+    "non_arxiv_net2_per_case": 0.48
+   },
+   "arxiv": {
+    "mean_net2": 5.84,
+    "shown": 200,
+    "shown_per_case": 8.0,
+    "precision": 0.91,
+    "arxiv_precision": 0.91,
+    "n_non_arxiv": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_precision": null,
+    "non_arxiv_net2_per_case": 0.0
+   },
+   "arxiv_epmc": {
+    "mean_net2": 6.16,
+    "shown": 205,
+    "shown_per_case": 8.2,
+    "precision": 0.917,
+    "arxiv_precision": 0.916,
+    "n_non_arxiv": 2,
+    "non_arxiv_share": 0.01,
+    "non_arxiv_precision": 1.0,
+    "non_arxiv_net2_per_case": 0.08
+   },
+   "arxiv_openalex": {
+    "mean_net2": 5.4,
+    "shown": 204,
+    "shown_per_case": 8.2,
+    "precision": 0.887,
+    "arxiv_precision": 0.905,
+    "n_non_arxiv": 14,
+    "non_arxiv_share": 0.069,
+    "non_arxiv_precision": 0.643,
+    "non_arxiv_net2_per_case": -0.04
+   },
+   "paired_delta_primary_minus_opus5": 1.96,
+   "ci95": [
+    -0.56,
+    4.56
+   ],
+   "wins": 14,
+   "losses": 10
+  },
+  "bio6": {
+   "n_cases": 6,
+   "opus5": {
+    "mean_net2": 5.83,
+    "shown": 53,
+    "shown_per_case": 8.8,
+    "precision": 0.887,
+    "arxiv_precision": 0.938,
+    "n_non_arxiv": 37,
+    "non_arxiv_share": 0.698,
+    "non_arxiv_precision": 0.865,
+    "non_arxiv_net2_per_case": 3.67
+   },
+   "arxiv": {
+    "mean_net2": 6,
+    "shown": 48,
+    "shown_per_case": 8.0,
+    "precision": 0.917,
+    "arxiv_precision": 0.917,
+    "n_non_arxiv": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_precision": null,
+    "non_arxiv_net2_per_case": 0.0
+   },
+   "arxiv_epmc": {
+    "mean_net2": 7.5,
+    "shown": 57,
+    "shown_per_case": 9.5,
+    "precision": 0.93,
+    "arxiv_precision": 0.897,
+    "n_non_arxiv": 28,
+    "non_arxiv_share": 0.491,
+    "non_arxiv_precision": 0.964,
+    "non_arxiv_net2_per_case": 4.17
+   },
+   "arxiv_openalex": {
+    "mean_net2": 4.33,
+    "shown": 65,
+    "shown_per_case": 10.8,
+    "precision": 0.8,
+    "arxiv_precision": 0.85,
+    "n_non_arxiv": 45,
+    "non_arxiv_share": 0.692,
+    "non_arxiv_precision": 0.778,
+    "non_arxiv_net2_per_case": 2.5
+   },
+   "paired_delta_primary_minus_opus5": 1.67,
+   "ci95": [
+    -0.33,
+    4.5
+   ],
+   "wins": 4,
+   "losses": 1
+  },
+  "matsci6": {
+   "n_cases": 6,
+   "opus5": {
+    "mean_net2": 8.67,
+    "shown": 76,
+    "shown_per_case": 12.7,
+    "precision": 0.895,
+    "arxiv_precision": 0.901,
+    "n_non_arxiv": 5,
+    "non_arxiv_share": 0.066,
+    "non_arxiv_precision": 0.8,
+    "non_arxiv_net2_per_case": 0.33
+   },
+   "arxiv": {
+    "mean_net2": 5,
+    "shown": 63,
+    "shown_per_case": 10.5,
+    "precision": 0.825,
+    "arxiv_precision": 0.825,
+    "n_non_arxiv": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_precision": null,
+    "non_arxiv_net2_per_case": 0.0
+   },
+   "arxiv_epmc": {
+    "mean_net2": 5.5,
+    "shown": 63,
+    "shown_per_case": 10.5,
+    "precision": 0.841,
+    "arxiv_precision": 0.841,
+    "n_non_arxiv": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_precision": null,
+    "non_arxiv_net2_per_case": 0.0
+   },
+   "arxiv_openalex": {
+    "mean_net2": 3.83,
+    "shown": 68,
+    "shown_per_case": 11.3,
+    "precision": 0.779,
+    "arxiv_precision": 0.78,
+    "n_non_arxiv": 9,
+    "non_arxiv_share": 0.132,
+    "non_arxiv_precision": 0.778,
+    "non_arxiv_net2_per_case": 0.5
+   },
+   "paired_delta_primary_minus_opus5": -3.17,
+   "ci95": [
+    -8.67,
+    2.33
+   ],
+   "wins": 2,
+   "losses": 4
+  },
+  "scientific12": {
+   "n_cases": 12,
+   "opus5": {
+    "mean_net2": 7.25,
+    "shown": 129,
+    "shown_per_case": 10.8,
+    "precision": 0.891,
+    "arxiv_precision": 0.908,
+    "n_non_arxiv": 42,
+    "non_arxiv_share": 0.326,
+    "non_arxiv_precision": 0.857,
+    "non_arxiv_net2_per_case": 2.0
+   },
+   "arxiv": {
+    "mean_net2": 5.5,
+    "shown": 111,
+    "shown_per_case": 9.2,
+    "precision": 0.865,
+    "arxiv_precision": 0.865,
+    "n_non_arxiv": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_precision": null,
+    "non_arxiv_net2_per_case": 0.0
+   },
+   "arxiv_epmc": {
+    "mean_net2": 6.5,
+    "shown": 120,
+    "shown_per_case": 10.0,
+    "precision": 0.883,
+    "arxiv_precision": 0.859,
+    "n_non_arxiv": 28,
+    "non_arxiv_share": 0.233,
+    "non_arxiv_precision": 0.964,
+    "non_arxiv_net2_per_case": 2.08
+   },
+   "arxiv_openalex": {
+    "mean_net2": 4.08,
+    "shown": 133,
+    "shown_per_case": 11.1,
+    "precision": 0.789,
+    "arxiv_precision": 0.797,
+    "n_non_arxiv": 54,
+    "non_arxiv_share": 0.406,
+    "non_arxiv_precision": 0.778,
+    "non_arxiv_net2_per_case": 1.5
+   },
+   "paired_delta_primary_minus_opus5": -0.75,
+   "ci95": [
+    -4.25,
+    2.33
+   ],
+   "wins": 6,
+   "losses": 5
+  },
+  "all37": {
+   "n_cases": 37,
+   "opus5": {
+    "mean_net2": 5.19,
+    "shown": 357,
+    "shown_per_case": 9.6,
+    "precision": 0.846,
+    "arxiv_precision": 0.886,
+    "n_non_arxiv": 120,
+    "non_arxiv_share": 0.336,
+    "non_arxiv_precision": 0.767,
+    "non_arxiv_net2_per_case": 0.97
+   },
+   "arxiv": {
+    "mean_net2": 5.73,
+    "shown": 311,
+    "shown_per_case": 8.4,
+    "precision": 0.894,
+    "arxiv_precision": 0.894,
+    "n_non_arxiv": 0,
+    "non_arxiv_share": 0.0,
+    "non_arxiv_precision": null,
+    "non_arxiv_net2_per_case": 0.0
+   },
+   "arxiv_epmc": {
+    "mean_net2": 6.27,
+    "shown": 325,
+    "shown_per_case": 8.8,
+    "precision": 0.905,
+    "arxiv_precision": 0.898,
+    "n_non_arxiv": 30,
+    "non_arxiv_share": 0.092,
+    "non_arxiv_precision": 0.967,
+    "non_arxiv_net2_per_case": 0.73
+   },
+   "arxiv_openalex": {
+    "mean_net2": 4.97,
+    "shown": 337,
+    "shown_per_case": 9.1,
+    "precision": 0.849,
+    "arxiv_precision": 0.874,
+    "n_non_arxiv": 68,
+    "non_arxiv_share": 0.202,
+    "non_arxiv_precision": 0.75,
+    "non_arxiv_net2_per_case": 0.46
+   },
+   "paired_delta_primary_minus_opus5": 1.08,
+   "ci95": [
+    -0.97,
+    3.16
+   ],
+   "wins": 20,
+   "losses": 15
+  }
+ },
+ "margin_decomposition": {
+  "opus5_overanswered": {
+   "cases": [
+    "http",
+    "linter",
+    "mat-featurize",
+    "systems",
+    "webdev"
+   ],
+   "n_cases": 5,
+   "reporadar_mean": -0.2,
+   "opus5_mean": -8.6,
+   "paired_delta": 8.4,
+   "share_of_total_margin": 1.05
+  },
+  "opus5_not_overanswered": {
+   "cases": [
+    "ann",
+    "bio-align",
+    "bio-kmer",
+    "bio-mdsim",
+    "bio-mdtraj",
+    "bio-scvi",
+    "bio-singlecell",
+    "cli",
+    "columnar",
+    "compiler",
+    "crypto",
+    "cv",
+    "db",
+    "diffusion",
+    "encryption",
+    "graph",
+    "llminfer",
+    "mat-chgpot",
+    "mat-descriptors",
+    "mat-mlip",
+    "mat-phonon",
+    "mat-toolkit",
+    "numerics",
+    "peft",
+    "rag",
+    "rl",
+    "speech",
+    "storage",
+    "thin-gnn",
+    "thin-kv",
+    "thin-lang",
+    "vectordb"
+   ],
+   "n_cases": 32,
+   "reporadar_mean": 7.28,
+   "opus5_mean": 7.34,
+   "paired_delta": -0.06,
+   "share_of_total_margin": -0.05
+  },
+  "reporadar_abstained": {
+   "cases": [
+    "cli",
+    "http",
+    "linter",
+    "webdev"
+   ],
+   "n_cases": 4,
+   "reporadar_mean": 0,
+   "opus5_mean": -7,
+   "paired_delta": 7,
+   "share_of_total_margin": 0.7
+  },
+  "reporadar_answered": {
+   "cases": [
+    "ann",
+    "bio-align",
+    "bio-kmer",
+    "bio-mdsim",
+    "bio-mdtraj",
+    "bio-scvi",
+    "bio-singlecell",
+    "columnar",
+    "compiler",
+    "crypto",
+    "cv",
+    "db",
+    "diffusion",
+    "encryption",
+    "graph",
+    "llminfer",
+    "mat-chgpot",
+    "mat-descriptors",
+    "mat-featurize",
+    "mat-mlip",
+    "mat-phonon",
+    "mat-toolkit",
+    "numerics",
+    "peft",
+    "rag",
+    "rl",
+    "speech",
+    "storage",
+    "systems",
+    "thin-gnn",
+    "thin-kv",
+    "thin-lang",
+    "vectordb"
+   ],
+   "n_cases": 33,
+   "reporadar_mean": 7.03,
+   "opus5_mean": 6.67,
+   "paired_delta": 0.36,
+   "share_of_total_margin": 0.3
+  }
+ }
+}

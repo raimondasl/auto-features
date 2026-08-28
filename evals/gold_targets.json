@@ -1,6 +1,6 @@
 {
  "_comment": "Frozen gold set. Derived by diagnose_pool.actionable_baseline_ids; pinned by tests/test_gold_targets.py. 'ids-only' marks a pick the current parser cannot re-derive from the cached raw answer -- see freeze_gold_targets.py. PUBLISHED RECALL FIGURES USE THE benchmark25 COHORT ONLY (56 targets); the scisoft cohort was added later and no published denominator includes it.",
- "n_targets": 75,
+ "n_targets": 76,
  "n_cases": 28,
  "n_ids_only": 9,
  "cohorts": {
@@ -9,16 +9,12 @@
    "n_cases": 20
   },
   "scisoft": {
-   "n_targets": 19,
+   "n_targets": 20,
    "n_cases": 8
   }
  },
- "incomplete": {
-  "mat-phonon": [
-   "1703.03212"
-  ]
- },
- "n_incomplete_picks": 1,
+ "incomplete": {},
+ "n_incomplete_picks": 0,
  "orphans": {
   "rag": [
    "2304.01982",
@@ -116,6 +112,7 @@
   ],
   "mat-phonon": [
    "1510.04418",
+   "1703.03212",
    "2401.17531"
   ],
   "numerics": [
@@ -249,6 +246,7 @@
   },
   "mat-phonon": {
    "1510.04418": "raw",
+   "1703.03212": "raw",
    "2401.17531": "raw"
   },
   "numerics": {

@@ -1144,6 +1144,110 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The comparator arm, finished: the margin is shyness, and it crosses zero. **[P26, C-34]**
+
+Six materials-science runs at the settings every other Opus 5 row used (v2 prompt, 30-turn
+cap, `claude-opus-5`, effort unpinned, subscription auth). Draw 1 now covers all 37 cases.
+All six returned `ok` with **zero** hallucinated, unjudgeable or lookup-failed picks — the
+first cohort where every pick got a verdict. **$58.34**; the arm to date is **$351.40**.
+
+| cohort | RepoRadar (arXiv+EPMC) | Opus 5 | paired | |
+|---|---|---|---|---|
+| core 25 | +6.16 | +4.20 | **+1.96** | 14W/10L |
+| bio 6 | +7.50 | +5.83 | **+1.67** | 4W/1L |
+| **matsci 6** | +5.50 | **+8.67** | **−3.17** | 2W/4L |
+| **all 37** | **+6.27** | **+5.19** | **+1.08** CI [−0.97, +3.16] | 20W/15L |
+
+**The margin was +1.90 over 31 cases and is +1.08 over 37, with the interval now crossing
+zero.** Nothing was re-measured to produce that. Twelve cases the arm always intended to
+cover were finished, and the figure moved. A margin that holds only while a third of its
+cohort is missing is one to report with its interval attached.
+
+The materials reversal is not a volume artefact, which was the first thing to rule out —
+net@2 sums over what a system returns, and Opus 5 does return more there (12.7/case against
+10.5). It also wins on the **rate**: 0.895 precision against 0.841, RepoRadar's worst cohort
+and Opus 5's best. Everywhere else the ordering is the other way round (core 0.917/0.820,
+bio 0.930/0.887). No source arm rescues it either — arXiv-only +5.00, +EPMC +5.50,
++OpenAlex +3.83, all below +8.67.
+
+#### Where the margin lives, and what it is
+
+| split | n | RepoRadar | Opus 5 | paired |
+|---|---|---|---|---|
+| Opus 5 over-answered (net@2 < 0) | 5 | −0.20 | −8.60 | **+8.40** |
+| Opus 5 did not | 32 | +7.28 | +7.34 | **−0.06** |
+
+**On the 32 cases where Opus 5 does not over-answer, the two systems are level.** All of the
++1.08 — 105% of it — comes from five cases, and four of those (`cli`, `http`, `linter`,
+`webdev`) are ones where RepoRadar returns nothing at all and Opus 5 returns 5–20 papers,
+averaging −7. That split alone is 70% of the total margin. It was already visible on the core
+25 (21 cases, −0.29) and now replicates at n=32 with twelve cases that were not in it.
+
+RepoRadar's advantage over Opus 5 is a **shyness advantage, not a retrieval advantage.**
+net@2 charges 2 per false positive precisely to price shyness, so the advantage is real and
+the gate is what produces it. It is not the claim "we find better papers", and §5 should not
+be allowed to imply that it is.
+
+> **A comparison run and discarded.** Capping both systems at `min(n)` per case gives −0.49,
+> which reads as "the margin is just volume". It is not usable: the cap sets k=0 on exactly
+> the four abstention cases, deleting the behaviour under examination. A number that answers
+> a different question is worse than no number, because it looks like a check.
+
+#### Is Opus 5 winning on materials through non-arXiv sources? No — the opposite
+
+The v2 prompt lets the baseline cite anything, and Opus 5 uses that freely. Share of its
+picks that are not arXiv ids: **core 25 34%, bio 70%, matsci 6.6%** — 5 of 76 papers, worth
++0.33/case of a +8.67 result, under 4%. Materials science is where it reaches outside arXiv
+*least*, and it is the one cohort it wins. Restricted to arXiv alone it is still ahead there
+(0.901 against 0.841) and still behind on the core 25 (0.873 against 0.916).
+
+So the answer is not "it has better sources". On materials repositories it picks better
+arXiv papers than our ranker does, from a literature our pool already contains.
+
+#### C-34: the arithmetic matched and the mechanism was still wrong
+
+P25 attributed OpenAlex's −0.76 to its 17 non-actionable papers: 17 × −2 over 37 cases is
+−0.92, near enough to look like an explanation, and `test_the_misses_roughly_account_for_the_loss`
+asserted it. Decomposing the delta exactly — every non-arXiv paper is one the source
+supplied; everything else is arXiv churn — gives:
+
+| arm | delta | source's own papers | arXiv displaced |
+|---|---|---|---|
+| +EPMC, 37 | +0.54 | **+0.73** | −0.19 |
+| +OpenAlex, 37 | −0.76 | **+0.46** | **−1.22** |
+
+**OpenAlex's own papers are net positive.** The 17 misses arrive alongside 51 actionable
+ones. The loss is 142 arXiv papers leaving the digest and 100 different ones arriving. The
+two terms sum to the delta by construction, so this is a decomposition, not a model.
+
+The materials six settle it: Europe PMC contributes **zero** papers there and the arm still
+moves +0.50/case — 16 arXiv papers out, 16 in. **A source can move the score without
+appearing in the digest at all.**
+
+This reverses the remedy. A relevance filter on non-arXiv material — the item C-33 reopened
+— addresses the term that is already positive. The term that costs is displacement, which
+scales with how much a source is admitted and is paid by *both* sources; Europe PMC's own
+papers merely cover it. That is also the real argument against stacking a third source.
+
+The near-miss is the lesson worth keeping. −0.92 against an observed −0.76 is the most
+dangerous kind of wrong explanation: close enough that nobody checks it. C-33 was
+generalising a mechanism from one arm; C-34 is accepting a mechanism because its magnitude
+happened to fit. Both were written into a passing test.
+
+#### A gap closed on the way
+
+`mat-phonon`'s pick `1703.03212` had been unjudged since the case was added — the sole entry
+under `incomplete` in the gold set. Opus 5 picked the same paper, the judge scored it 2, and
+the verdict cache is shared, so the `cli` baseline's long-standing pick finally resolved.
+Gold set 75 → 76 targets, scisoft 19 → 20, **`incomplete` is empty for the first time**.
+`benchmark25` is untouched at 56 targets / 20 cases: no published denominator moved.
+
+The witness set grew 638 → 698 and regret held at exactly **+7.52**, which is what
+`test_the_headline_regret_figures` predicted for growth outside the scored 25-case cohort.
+Second confirmation, at 60 witnesses after the bio step's 47.
+
+**Cost** $58.34.
+
 ### OpenAlex reaches the digest and costs -0.76: the gate is not uniformly robust. **[P25, C-33]**
 
 Same control as P24, same flags, `--sources arxiv,openalex`. `pool_config` confirms the arms
