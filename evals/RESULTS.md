@@ -1144,6 +1144,69 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Multi-source retrieval, against a matched control at last: +0.32 on the benchmark. **[P24, NR-41]**
+
+Every earlier multi-source figure in this project compared a run with a source enabled against
+a run collected on a **different day** — P21's bio **+4.00** among them. This arm holds
+everything fixed but `sources`: two fresh frozen pools collected the same day, the same 37
+repositories, same window, same `w_embedding`, same HyDE, same gate.
+
+**The control reproduces the published headline.** +5.84 against the 2026-08-15 run's +5.72 on
+the same 25 cases — **delta +0.12**, far inside this project's own noise floor (Jaccard 0.49
+on the ranked top-10, its largest variance term). A fresh collection, a fresh HyDE pass and a
+fresh draw land essentially on the frozen pool. That is what licenses reading the treatment
+delta as an effect rather than as a redraw, and it independently confirms +5.72 was not a
+lucky draw.
+
+| cohort | control | treatment | paired | 95% CI | W/L | non-arXiv in digest |
+|---|---|---|---|---|---|---|
+| **core 25** | +5.84 | +6.16 | **+0.32** | [-0.24, +0.88] | 8/4 | **2 / 205 = 1%** |
+| scientific 12 | +5.50 | +6.50 | **+1.00** | [-0.67, +2.50] | 6/2 | 28 / 120 = 23% |
+| all 37 | +5.73 | +6.27 | +0.54 | [-0.08, +1.16] | 14/6 | 30 / 325 = 9% |
+
+**NR-41: on the benchmark's own cohort, Europe PMC buys +0.32 and the interval spans zero.**
+The mechanism is not what the collision probes implied. P22 measured 68% of Europe PMC's
+results for these repositories as MeSH-indexed and warned about biomedical papers reaching
+software digests. What actually happens is that **the channel supplies 2 of 205 shown
+papers** — the gate rejects nearly all of it. Off-domain results are not admitted and
+punished; they are discarded, exactly as the +0.00 for the one previously-measured channel
+already said.
+
+**P21's +4.00 does not survive the control.** Matched, the bio effect is +1.00 over twelve
+scientific cases with an interval crossing zero. Most of the original figure was the
+collection, not the source — which is what a matched control is for, and a caution about every
+uncontrolled source comparison in this repository's history.
+
+**The gate handles the collision, and the "relevance filter" item is retired.** Across all 37
+cases, **29 of 30** non-arXiv papers that reached a digest are judged actionable; one scored 1
+and none scored 0. There is nothing for a filter to remove. That item was proposed here from
+the collision measurement *without checking the digests first*; checking refuted it.
+
+**What this says about the paper.** §9's "one source, and a benchmark shaped like it" now has
+a measurement behind it rather than an argument: multi-source retrieval, done properly, is
+**+0.32 [-0.24, +0.88]** on the 25-repository benchmark. The judgement that these channels
+have not been shown to help survives contact with a controlled experiment. The scientific
+cohort is the one place the evidence points, and it is where the literature genuinely sits
+off arXiv.
+
+#### And against Opus 5, on the 31 cases it covers
+
+| cohort | RepoRadar (arxiv+epmc) | Opus 5 | paired | 95% CI | W/L |
+|---|---|---|---|---|---|
+| core 25 | +6.16 | +4.20 | +1.96 | [-0.56, +4.56] | 14/10 |
+| bio 6 | +7.50 | +5.83 | +1.67 | [-0.33, +4.50] | 4/1 |
+| **25 + 6 bio** | **+6.42** | **+4.52** | **+1.90** | **[-0.13, +4.06]** | 18/11 |
+
+Europe PMC accounts for about +0.55 of that (the arXiv-only control is +5.87 on the same 31).
+The interval still touches zero and rests on a single Opus 5 draw whose own same-model
+draw-to-draw spread was ±0.76 — so this is "probably ahead", not a result. But 18W/11L is a
+markedly better record than the 12W/13L reported when the comparison was arXiv-only RepoRadar
+against a baseline drawing a third of its wins from outside arXiv.
+
+**The published margin is +3.88 against the v1/12-turn comparator and +1.90 against Opus 5.**
+Roughly half of the headline does not survive a modern baseline. That is the number the paper
+will have to state.
+
 ### OpenAlex collides too — less, and differently. **[P23]**
 
 The same probe, the other source, run before any judge call. OpenAlex is a *general* index
