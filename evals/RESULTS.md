@@ -1144,6 +1144,97 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The judge is not date-biased. The retrieval is. **[NR-43]**
+
+Stored data only — 4,019 cached GPT-5.5 verdicts and the 837 Claude Sonnet 5 verdicts P7 paid
+for. No LLM calls, no judge calls, no new protocol. `evals/judge_date_stratify.py`.
+
+**The hypothesis** (from LitLLMs): an LLM judge has *seen* pre-cutoff papers in training,
+rewards that familiarity, and labels older work more kindly. If true, every recall and net@2
+figure in this project inherits the bias.
+
+**The design deliberately does not guess the cutoff.** Contamination produces a *step* at the
+judge's own cutoff date. Paper age also predicts actionability honestly — a recent paper is
+likelier to help a current codebase, and `recency` is one of the ranker's scoring components —
+so a smooth trend is expected and is not the thing being looked for. Testing for a
+discontinuity *anywhere* is strictly stronger than testing at a date we would have had to
+assume, and it costs nothing extra.
+
+**The trend is there and has no step in it:** 0.31 (2013) rising to 0.64 (2025), monotone
+enough. Then the newest month with real volume falls off it entirely — **2026-07 scores 0.233
+over 159 papers, CI [0.174, 0.304]**, against 0.46–0.68 for every other month of 2026. Not a
+taper. One month.
+
+#### The second judge settles it
+
+| period | n | GPT-5.5 | Sonnet | agreement |
+|---|---|---|---|---|
+| 2024 and earlier | 500 | 0.720 | 0.410 | 0.662 |
+| 2025 | 111 | 0.739 | 0.523 | 0.748 |
+| 2026 to June | 89 | 0.685 | 0.461 | 0.775 |
+| **2026-07** | 38 | **0.237** | **0.105** | **0.868** |
+
+**Both judges collapse, and they agree *most* where they collapse.** A bias belonging to one
+model's training data cannot appear in a second model trained differently — and if the newest
+papers were the ones a judge could not assess, its verdicts there would be *noisier* and
+agreement would fall. It rises to the highest of any period. **The hypothesis is refuted.**
+
+#### Two confounds, checked rather than argued away
+
+**Case mix.** The month over-represents `webdev`, `http` and `cli` — three of the four
+repositories RepoRadar abstains on, which run low in every period. So the comparison is made
+inside each repository: **10 of 11 cases fall, mean −0.221.**
+
+**The index boundary.** The dense index's newest paper is in this same month, so July is split
+between what the index holds and what only the live keyword channel could reach — and
+keyword-only retrieval is the configuration measured at −8.12. That would have been a tidy
+explanation, and it fails: the channel does matter (**0.156 outside the index against 0.333
+inside**) but the in-index half still falls far below June's 0.510.
+
+#### What is actually there: a 5.1× jump in outright rejections
+
+| period | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| 2024–2025 | 0.103 | 0.259 | 0.423 | 0.215 |
+| 2026 to June | 0.127 | 0.335 | 0.378 | 0.160 |
+| **2026-07** | **0.522** | 0.245 | 0.164 | 0.069 |
+
+A 0 means *"no relation to this repository"*. **Unfamiliarity does not have this shape** — an
+unfamiliar paper draws a hedged 1 or 2, and here scores 1, 2 *and* 3 all fall while only 0
+grows. Half the newest month is a flat rejection, five times the base rate, at the **highest
+judged volume of any month** (159, against 100 in June and 80 in May).
+
+Rising volume with collapsing precision, concentrated in the freshest slice, is what a ranker
+that pays for recency looks like from downstream. **The freshest slice is where off-topic
+material enters the pool — and RepoRadar is a freshness product.** That is a retrieval defect
+sitting directly on the product's core claim, and it was found by a probe aimed at the judge.
+
+#### The residual, recorded rather than buried
+
+If **both** judges' training cutoffs fall in mid-2026, both would be unfamiliar with July
+papers and both would mark them down — two models, one shared blind spot, the same prediction.
+The *single-judge* story is refuted; the *shared-cutoff* story is not, and the score-0 shape
+argues against it without excluding it. The artifact carries
+`shared_cutoff_excluded: false` so the limit travels with the number.
+
+**Cost** $0. Pinned by `tests/test_judge_date_stratify.py`.
+
+> #### A decode bug in the first draft, caught before it reached a conclusion
+>
+> `_month` returns `year * 12 + month` with month in 1..12, so December leaves a remainder of
+> 0 and a naive `m // 12` reports the **following** year. Every December was landing in the
+> next year's bucket. Invisible in aggregate and directly on the boundary the whole probe is
+> about — the first year table was quietly wrong at exactly the place the answer lives. The
+> inverse is `((m-1)//12, (m-1)%12+1)`, and every table was recomputed rather than patched.
+>
+> Related: the repository already held **four** hand-rolled arXiv-id→date parsers, and they
+> disagree. `cited_holdout._month` is correct (both id eras, 1990s handled, uses `dedup_id`);
+> `exp_features` handles new-style ids only; `verify_hyde_deps._year_of` returns `None` for
+> old-style ids on the stated grounds that they carry no YYMM prefix, which is false; and
+> `synth_seeds._yymm` returns a bare 4-digit int, so a 1993 paper (`9304`) sorts *after* a
+> 2022 one (`2201`). This probe imports the correct one rather than adding a fifth. The
+> consolidation is filed, not done.
+
 ### The dense index has a recall gauge at last, and the prefix question is settled. **[PLANS item 4]**
 
 The binary-quantized arXiv index sits under HyDE — +1.36 net@2 end to end, the project's first
