@@ -1144,6 +1144,70 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Opus 5's papers die in our queries, one rank tier below the cut. **[NR-45, opens item 10]**
+
+$0 — stored picks, stored index, stored pools, stored runs. `evals/opus5_funnel.py`. P26 left
+the comparator at +1.52 on the core 25 and −3.17 on materials science; this asks the
+operational follow-up: **which stage of ours loses the papers Opus 5 finds?**
+
+Each of Opus 5's **302 judged-actionable picks** walked through the shipped pipeline:
+
+| stage | all 37 | core 25 | bio 6 | matsci 6 | the 18 we lose |
+|---|---|---|---|---|---|
+| non-arXiv — out of reach by construction | 30.5% | 29.9% | **68.1%** | 5.9% | 31.9% |
+| not in our 3.1M index | **0.3%** | 0.5% | 0 | 0 | 0.5% |
+| **in the index, never reaches our pool** | **54.3%** | 57.8% | 29.8% | **61.8%** | **51.8%** |
+| pooled but not shown | 10.6% | 8.0% | 0 | 25.0% | 9.9% |
+| we showed it too | 4.3% | 3.7% | 2.1% | 7.4% | 5.8% |
+
+**P12 holds against a frontier model.** *One paper of 302* is outside the index. P12 reached
+"all 56 gold targets are already in the index, so this is a ranking failure, and more corpus
+cannot fix it" against our own gold set; pointing the same question at Opus 5's picks gives the
+same answer. The wider-corpus item stays closed.
+
+**The cohorts disagree about sources, and both disagreements were already measured.** Bio is
+68.1% non-arXiv — which is exactly why Europe PMC's own papers are worth +4.17/case there and
++0.08 on the core 25. Materials science is **5.9%**, so P24/P25's "no more sources" survives in
+the one cohort where reopening it would have been most tempting. Matsci also leaks 25%
+downstream at pooled-but-not-shown against the core's 8%, consistent with P26 finding Opus 5
+out-picking us there from arXiv material we already hold.
+
+#### The rank probe settles the cheap/expensive fork
+
+`hyde.top_k = 100` candidates per hypothesis, four hypotheses, the union feeds the ranker — so
+that cut is where the 164 died. Their ranks under **our own** cached hypotheses, over the
+shipped index with the shipped distance function:
+
+| cut | recovered of 104 | share |
+|---|---|---|
+| **100** (shipped) | 12 | **11.5%** |
+| 400 | 32 | 30.8% |
+| 1,000 | 51 | 49.0% |
+| 2,000 | 65 | 62.5% |
+| 5,000 | 82 | 78.8% |
+| 10,000 | 93 | 89.4% |
+
+**Median 1,087. p25 323, p75 3,562.** The hypotheses find these papers; the cut throws them
+away. Tens of thousands would have meant the hypotheses were in the wrong register — a
+mechanism problem. This is a parameter problem, which is the cheaper branch by a wide margin.
+
+Ranks cover **104 of the 164** — the cases whose hypotheses the replication froze — and **none
+of the six materials cases**, which is where 61.8% of losses are this stage. Generating those
+costs one LLM call each and should precede any arm. They are reported absent rather than
+imputed.
+
+#### What this does not establish
+
+**Reach is not net@2.** NR-11 recorded a wider pool meeting a near-binary gate and making the
+headline *worse*; P4's pool expansion measured as a wash until the fine-scale rescore ranked
+what the gate admitted (§8.2's composition finding). Widening `top_k` puts 4,000 candidates
+where 400 were and `gate_depth` still shows the gate 50 — more reach can arrive as more
+dilution. **Item 10 is therefore a measurement with a kill condition, not a patch**, and its
+stage 1 is free: witness reach over the 520 non-self witnesses, where `cli-v2-opus5@30` sits at
+0.142.
+
+**Cost** $0. Pinned by `tests/test_opus5_funnel.py`.
+
 ### OpenAlex Topics do not order the band, twice over. **[NR-44, closes item 6]**
 
 From "Topic Is Not Agenda" (arXiv:2605.07158), reduced to its cheapest testable form and run
