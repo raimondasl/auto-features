@@ -73,8 +73,9 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 6** — item 5's remaining bullet is conditional (it runs only if a
-repo-side proposal appears) and item 9 closed negative the day it opened.
+**Currently first: item 7** (product work, judged on demand). Every evidence-led item is now
+closed: 1-4 answered or built, 6 and 9 closed negative, and item 5's remaining bullet is
+conditional on a repo-side proposal that has not appeared.
 
 ### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
@@ -664,15 +665,33 @@ survives — the freshest slice is the hardest, 0.176 among never-shown against 
   16 closed; run it only if a new repo-side proposal appears, and run it *before* that
   proposal's Tier B.
 
-### 6. OpenAlex-Topic community match for ordering the gate-admitted band — $0 probe, weak prior
+### 6. OpenAlex-Topic community match — CLOSED NEGATIVE 2026-08-29 [NR-44]
 
-The one open idea downstream of the gate, which is where the four-null record says any
-remaining headroom must be. From "Topic Is Not Agenda" (arXiv:2605.07158), reduced to its
-cheapest testable form: OpenAlex Topic IDs as a free community proxy on the 602-paper
-labelled set. **Bar: AUC ≥ 0.65** within the score-2 band (the NR-21 metadata family sits
-at 0.585; the finescale incumbent at 0.841). No graph build under any circumstance — the
-S2 truncation wall (§3.5 correction) and six no-bibliography repos price it out. Pairs
-with ROADMAP item 12's unshipped Topics work if it ever passes.
+$0, no LLM, no judge. Pre-registered bar AUC >= 0.65 at the judge==3 target on testbed B.
+**Missed by a wide margin in both arms, with both intervals excluding the bar:**
+
+| arm | AUC | 95% CI |
+|---|---|---|
+| `repo_text` — OpenAlex classifies the repository's own description | **0.453** | [0.343, 0.571] |
+| `own_papers` — community from the case's own non-band papers | **0.409** | [0.297, 0.529] |
+
+Two independent failure modes, either one fatal. **The taxonomy is too coarse**:
+`subfield:Artificial Intelligence` is the modal community for six of nine scored cases, and a
+band already filtered to one topic cannot be ordered by a constant. **And the classifier cannot
+read software prose**: `diffusion` classifies as NMR spectroscopy (Physics), `cv` as brain-tumour
+detection (Neuroscience), `crypto` and `graph` as Computational Physics — §5's register mismatch
+reaching a new instrument. Real README prose fixes `cv` and leaves the others wrong, so it is the
+vocabulary, not the truncation.
+
+**Two corrections the probe forced.** The incumbent's 0.841 is pooled across three testbeds; on
+testbed B at judge==3 it is **0.760**. And "the 602-paper labelled set" is the whole labelled
+set — the band that can actually be scored is **108 papers with 41 positives**, giving an
+interval of about ±0.11. A marginal pass was never available here; the bar was set without
+reference to the resolution. It separates 0.65 from 0.45 easily, which is what was needed.
+
+**Do not reopen with a finer taxonomy alone** — both failures would have to be fixed, and the
+second is the project's oldest known obstacle. `evals/topic_community_probe.py`, pinned by
+`tests/test_topic_community_probe.py`.
 
 ### 7. Product work, judged on demand rather than evidence
 

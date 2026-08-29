@@ -1144,6 +1144,65 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### OpenAlex Topics do not order the band, twice over. **[NR-44, closes item 6]**
+
+From "Topic Is Not Agenda" (arXiv:2605.07158), reduced to its cheapest testable form and run
+for **$0** — no LLM, no judge. `evals/topic_community_probe.py`. Pre-registered bar: **AUC ≥
+0.65** at the `judge==3` target on testbed B.
+
+**A like-for-like correction first.** PLANS cites the fine-scale incumbent at 0.841. That is
+its *pooled* figure across three testbeds (A300 0.761, **B judge-3 0.760**, C wild 0.949). On
+the testbed this probe runs, the number to hold in mind is **0.760**.
+
+| arm | AUC | 95% CI | |
+|---|---|---|---|
+| `repo_text` — OpenAlex classifies the repository's own description | **0.453** | [0.343, 0.571] | fails |
+| `own_papers` — community from the case's own non-band papers | **0.409** | [0.297, 0.529] | fails |
+
+Both below chance at the point estimate, both intervals **excluding the bar**. Two independent
+failure modes, either one fatal.
+
+#### 1. The taxonomy is too coarse for the question
+
+`own_papers_modal` is `subfield:Artificial Intelligence` for **six of nine** scored cases. The
+band has already been filtered to one topic by the time it exists, so a topic label is close to
+constant across it — and a constant cannot order anything. This is the arm that needs no
+classifier, and it is the *weaker* of the two.
+
+#### 2. And the classifier cannot read software prose
+
+| case | repository | OpenAlex says |
+|---|---|---|
+| `diffusion` | diffusers | *NMR spectroscopy and applications* — **Physics and Astronomy** |
+| `cv` | detectron2 | *Brain Tumor Detection and Classification* — **Neuroscience** |
+| `crypto` | pyca/cryptography | *Computational Physics and Python Applications* |
+| `graph` | PyTorch-Geometric | *Computational Physics and Python Applications* |
+
+Three of eight correct. These are not near misses; they are different fields of science. It is
+**§5's register mismatch reaching a new instrument** — repository text describes what a project
+*has*, in software vocabulary, and an academic classifier reads "diffusion" as diffusion MRI.
+Feeding it real README prose instead of the keyword block fixes `cv` and leaves `diffusion` and
+`crypto` wrong, so it is the vocabulary and not the truncation.
+
+`systems` returns HTTP 500 from the classifier at every text length tried; it is excluded from
+that arm and counted, never scored 0, and still contributes to the arm that needs no classifier.
+
+#### What the testbed could and could not have shown
+
+PLANS describes "the 602-paper labelled set". 602 is the *whole* labelled set; the score-2 band
+inside it is **108 papers with 41 `judge==3` positives**, three of twelve cases contribute none,
+and `peft` (32) and `diffusion` (22) supply half of what remains. At that size the interval is
+about ±0.11, so this testbed **could never have separated a 0.65 pass from the 0.585 null** — a
+marginal pass was not on the table before the probe ran, and the bar was set without reference
+to the resolution available. It has no trouble at all separating 0.65 from 0.45, which is what
+happened, so the item closes on a clear negative rather than an ambiguous one.
+
+**Do not reopen with a finer taxonomy alone.** Both failures would have to be fixed: a
+discriminating community signal *and* one derivable from software text. The second is the
+harder half and is the project's oldest known obstacle.
+
+**Cost** $0. Pinned by `tests/test_topic_community_probe.py`.
+
 ### The freshest slice is fine. The sample was not. **[C-35, closes item 9]**
 
 Item 9's $0 probe, run the day after NR-43 filed it — and it kills the item, the mechanism and

@@ -1,0 +1,158 @@
+{
+ "_comment": "Item 6 / NR-44: OpenAlex Topics as a free community signal for ordering the gate-admitted band. $0 -- no LLM, no judge. Derived by evals/topic_community_probe.py; pinned by tests/test_topic_community_probe.py. Pre-registered bar AUC >= 0.65 at the judge==3 target on testbed B, where the fine-scale incumbent scores 0.760 and the NR-21 metadata family 0.585.",
+ "bar": 0.65,
+ "incumbent_finescale_testbed_b_judge3": 0.76,
+ "nr21_metadata_family": 0.585,
+ "testbed": {
+  "cases": 12,
+  "labelled_papers": 602,
+  "band2_papers": 108,
+  "cases_with_no_band": [
+   "cli",
+   "http",
+   "webdev"
+  ]
+ },
+ "coverage": {
+  "resolved": 102,
+  "unresolved": 6,
+  "cases_without_repo_topic": [
+   "systems"
+  ]
+ },
+ "per_case": {
+  "cli": {
+   "band": 0,
+   "note": "no score-2 band in this case"
+  },
+  "crypto": {
+   "band": 4,
+   "scored_repo_text": 4,
+   "scored_own_papers": 4,
+   "judge3": 1,
+   "repo_text_topic": "Computational Physics and Python Applications",
+   "repo_text_field": "Computer Science",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "cv": {
+   "band": 8,
+   "scored_repo_text": 6,
+   "scored_own_papers": 6,
+   "judge3": 5,
+   "repo_text_topic": "Brain Tumor Detection and Classification",
+   "repo_text_field": "Neuroscience",
+   "own_papers_modal": "subfield:Computer Vision and Pattern Recognition"
+  },
+  "diffusion": {
+   "band": 22,
+   "scored_repo_text": 21,
+   "scored_own_papers": 21,
+   "judge3": 3,
+   "repo_text_topic": "NMR spectroscopy and applications",
+   "repo_text_field": "Physics and Astronomy",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "graph": {
+   "band": 5,
+   "scored_repo_text": 5,
+   "scored_own_papers": 5,
+   "judge3": 1,
+   "repo_text_topic": "Computational Physics and Python Applications",
+   "repo_text_field": "Computer Science",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "http": {
+   "band": 0,
+   "note": "no score-2 band in this case"
+  },
+  "peft": {
+   "band": 32,
+   "scored_repo_text": 32,
+   "scored_own_papers": 32,
+   "judge3": 14,
+   "repo_text_topic": "Neural Networks and Applications",
+   "repo_text_field": "Computer Science",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "rag": {
+   "band": 10,
+   "scored_repo_text": 9,
+   "scored_own_papers": 9,
+   "judge3": 9,
+   "repo_text_topic": "Topic Modeling",
+   "repo_text_field": "Computer Science",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "rl": {
+   "band": 9,
+   "scored_repo_text": 8,
+   "scored_own_papers": 8,
+   "judge3": 2,
+   "repo_text_topic": "Reinforcement Learning in Robotics",
+   "repo_text_field": "Computer Science",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "speech": {
+   "band": 11,
+   "scored_repo_text": 11,
+   "scored_own_papers": 11,
+   "judge3": 1,
+   "repo_text_topic": "Speech Recognition and Synthesis",
+   "repo_text_field": "Computer Science",
+   "own_papers_modal": "subfield:Artificial Intelligence"
+  },
+  "systems": {
+   "band": 7,
+   "scored_repo_text": 0,
+   "scored_own_papers": 6,
+   "judge3": 5,
+   "repo_text_topic": null,
+   "repo_text_field": null,
+   "own_papers_modal": "field:Computer Science"
+  },
+  "webdev": {
+   "band": 0,
+   "note": "no score-2 band in this case"
+  }
+ },
+ "arms": {
+  "repo_text": {
+   "auc_judge3": 0.4529,
+   "auc_judge3_ci95": [
+    0.3427,
+    0.5709
+   ],
+   "n_scored": 96,
+   "n_positive": 33,
+   "auc_judge2": 0.462,
+   "auc_judge2_ci95": [
+    0.2048,
+    0.724
+   ],
+   "passes_bar": false
+  },
+  "own_papers": {
+   "auc_judge3": 0.4087,
+   "auc_judge3_ci95": [
+    0.2968,
+    0.5288
+   ],
+   "n_scored": 102,
+   "n_positive": 37,
+   "auc_judge2": 0.5316,
+   "auc_judge2_ci95": [
+    0.2925,
+    0.7768
+   ],
+   "passes_bar": false
+  }
+ },
+ "best_arm": "repo_text",
+ "verdict": {
+  "passes_bar": false,
+  "beats_metadata_family": false,
+  "ci_contains_bar": false,
+  "ci_contains_chance": true,
+  "testbed_could_resolve_the_bar": true
+ }
+}
