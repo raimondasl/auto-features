@@ -73,9 +73,10 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 7** (product work, judged on demand). Every evidence-led item is now
-closed: 1-4 answered or built, 6 and 9 closed negative, and item 5's remaining bullet is
-conditional on a repo-side proposal that has not appeared.
+**Currently first: item 10** — the funnel [NR-45] reopened an evidence-led direction, with its
+cheap/expensive fork already resolved and a free stage-1 evaluator. Items 1-4 are answered or
+built, 6 and 9 closed negative, and item 5's remainder is conditional on a repo-side proposal
+that has not appeared.
 
 ### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
@@ -698,13 +699,116 @@ second is the project's oldest known obstacle. `evals/topic_community_probe.py`,
 - **`rr ask`** (ROADMAP 15) — citation-grounded Q&A, "a product bet, not a research one",
   sequenced v2.0. OpenScholar's cite-or-abstain recipe and PaperQA2 are the named
   precedents when it happens.
-- **MCP distribution** (ROADMAP 2 remainder) — registry publish + Claude Code plugin. One
-  constraint recorded from the digest exercise: keep the server under ~10 tools
-  (Haiku-class tool-selection accuracy degrades at 10–15); prefer parameterized tools.
+- **MCP distribution** — promoted to its own entry, **item 11**, now that literature exists
+  for it.
 - **Zotero/BibTeX bridge** (ROADMAP 17) — pure integration, unaffected by any measurement.
 - **Digest theme headers** (from Eliot, 2605.27610) — cluster the ~15 shown papers under
   labelled headers. Cosmetic, cannot touch net@2 by construction; if done, assert
   digest-set equality in tests.
+
+### 10. Widen the HyDE union — the first evidence-led item in a while [NR-45]
+
+**Measured, not guessed.** Of Opus 5's 302 judged-actionable picks, **164 (54.3%) sit in our
+own 3.1M dense index and never reach our candidate pool**, against **one** paper outside the
+index entirely. The lever is pool assembly. P12's "more corpus cannot fix a ranking failure"
+now holds against a frontier model's picks, not just against the gold set.
+
+**And the fork is already resolved.** `hyde.top_k = 100` per hypothesis, four hypotheses, union
+feeds the ranker. Those papers' ranks under *our own* hypotheses:
+
+| cut | recovered | |
+|---|---|---|
+| **100** (shipped) | 12 / 104 | **11.5%** |
+| 1,000 | 51 | 49.0% |
+| 2,000 | 65 | 62.5% |
+| 5,000 | 82 | 78.8% |
+| 10,000 | 93 | 89.4% |
+
+Median rank **1,087**, p25 323, p75 3,562. **The union is too narrow; the hypotheses are in the
+right register.** That is the cheap branch — a config integer, not a new mechanism.
+
+**Why this is still a measurement and not a patch.** Reach is not net@2, and this project has
+the scar: **NR-11** recorded a wider pool meeting a near-binary gate and making the headline
+*worse*, and P4's pool expansion measured as a wash until the fine-scale rescore ranked what the
+gate admitted (§8.2's composition finding). Widening `top_k` puts 4,000 candidates where 400
+were, and `gate_depth` still shows the gate only 50 of them — so more reach can arrive as more
+dilution.
+
+**Stage 1 is free.** `w_embedding`/`rr_pool` are POOL_FLAGS, so a frozen pool cannot be reused —
+but **witness reach can be recomputed at $0** over the 520 non-self witnesses, where
+`cli-v2-opus5@30` currently sits at **0.142** and pooled non-self at 0.165. Widen the cut,
+re-derive the pools, read reach. **Pre-registered:** reach should rise materially at
+`top_k=1000`; if it does not, the rank probe's premise is wrong and the item dies there for
+nothing.
+
+**Stage 2 costs a Tier B run (~$25)** and only happens if stage 1 passes. **Kill condition:**
+net@2 must not fall. Given NR-11, falling is a live outcome, and `digest_window` interacts —
+report at the shipped 15.
+
+**Sequencing note.** Ranks were computed for 104 of the 164 — the cases whose hypotheses the
+replication froze. **None of the six materials cases is among them**, and matsci is the cohort
+we lose outright (−3.17) and where 61.8% of losses are this exact stage. Generating six
+hypothesis sets is one LLM call each; do that before stage 1 so the arm covers the cohort it
+most needs to.
+
+### 12. Iterative retrieval (PRF-HyDE) — the structural difference, sequenced behind item 10
+
+**The one thing Opus 5 does that our pipeline does not: it iterates.** Thirty turns of search,
+read, refine, search again. Our discovery is one-shot — four hypotheses generated from the repo
+profile, one search each, union, done. Pseudo-relevance feedback closes that gap in its cheapest
+form: seed a *second* round of hypotheses from round one's **gate-admitted abstracts**, search
+again, union the two rounds.
+
+**Why it belongs on the list.** Discovery-channel changes are the only family with a converting
+record here — HyDE end to end is +1.36 and produced the project's first p < 0.05. Profile-side
+is 0-for-4 (NR-33 +0.00, NR-35 +0.00, NR-36 −0.52, P11 −0.32). This is paper-side and it is a
+new channel rather than a better variant of a measured one, which is what the selection rule
+asks for.
+
+**Why it is sequenced second.** NR-45 measured the missing papers at median rank 1,087 under the
+hypotheses we *already generate*. Item 10 reaches roughly half of them by changing an integer.
+Doing the expensive structural thing before the cheap parametric one would confound them: a
+PRF arm run against `top_k=100` cannot be told apart from simply widening the cut. **Run item 10
+first; item 12's question is what remains after it.**
+
+**Free stage 1, same as item 10:** witness reach over the 520 non-self witnesses. A second round
+that does not raise reach has no path to raising net@2.
+
+**Prior art the self-run surfaced** (2026-08-29 digest, Maybe tier): *Novelty-Aware Agentic
+Retrieval* ([2606.22151](http://arxiv.org/abs/2606.22151)) — multi-step agentic retrieval for
+literature search, structured comparison of contributions; and *Discovering seminal works with
+marker papers* ([1901.07352](http://arxiv.org/abs/1901.07352)) — bibliometric expansion seeded
+from known-relevant markers, which is the citation hop's logic generalised and a plausible
+cheaper variant of the same idea. Read before designing the arm.
+
+**The honest risk.** Round two inherits round one's register. If the first round's admits are
+already the papers we would have found anyway, PRF re-searches the neighbourhood we have and
+adds nothing — and NR-11's warning applies here too, since a second round widens the pool
+against the same near-binary gate.
+
+### 11. MCP distribution — product work, and the self-run just supplied its reading list
+
+ROADMAP 2's remaining half: the server ships (`rr mcp` exposes `get_repo_profile`,
+`get_ranked_papers`, `explain_relevance`, `rate_paper`); what is missing is **registry publish
+plus a Claude Code plugin**. Unchanged in kind — a distribution bet, judged on demand rather
+than on evidence, and it cannot move net@2 by construction.
+
+**What is new is that RepoRadar's run on itself (2026-08-29, run #2) returned three MCP papers
+as its entire Top Picks tier**, all through the `all:mcp` query:
+
+| paper | gate | what it offers |
+|---|---|---|
+| [2608.23992](http://arxiv.org/abs/2608.23992) Hybrid Semantic Tool Discovery for Enterprise MCP Gateway | 3/3 | semantic ranking over large tool catalogues — the direct answer to the tool-count constraint below |
+| [2606.30317](http://arxiv.org/abs/2606.30317) MCP Server Architecture Patterns for LLM-Integrated Applications | 3/3 | a pattern survey; the first systematic one we have seen |
+| [2603.17339](http://arxiv.org/abs/2603.17339) citecheck: an MCP Server for Bibliographic Verification and Repair | 2/3 | adjacent to `verify.py`'s tier set, as a service rather than a library |
+
+**The constraint that still governs the design:** keep the server under ~10 tools — Haiku-class
+tool-selection accuracy degrades at 10-15 — and prefer parameterized tools over more of them.
+2608.23992 is interesting precisely because it attacks that ceiling from the other side, with
+retrieval over the catalogue instead of a smaller catalogue.
+
+**Sequencing:** unchanged. This waits for a decision that product work is on, not for another
+measurement. Nothing here is blocked.
 
 ### 8. Held — real gaps with no affordable next step
 
