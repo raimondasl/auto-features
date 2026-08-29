@@ -1144,6 +1144,93 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The dense index has a recall gauge at last, and the prefix question is settled. **[PLANS item 4]**
+
+The binary-quantized arXiv index sits under HyDE — +1.36 net@2 end to end, the project's first
+p < 0.05 — and was **verified for identity and unmeasured for usefulness**. `verify_encoder`
+proves our vectors reproduce the published ones bit-for-bit; nothing proved the index still
+*finds* anything. Binarisation, column pruning, a bad yearly shard or an encoder swap could
+have cost fifteen points of recall in silence.
+
+`evals/litsearch_recall.py`, $0, no LLM or judge calls. 597 LitSearch queries
+(arXiv:2407.18940), the shipped encoder, the shipped `hyde.search_index`.
+
+| arm | R@5 | R@20 | R@100 | found in top 100 | median rank when found |
+|---|---|---|---|---|---|
+| **bare** (the shipped form) | 0.247 | 0.376 | **0.560** | 279 | 8 |
+| prefixed | 0.259 | 0.396 | 0.530 | 264 | 5 |
+
+498 of 597 queries scored. Recall lands between 0.25 and 0.56 — far enough from both 0 and 1
+that a regression has somewhere to show, which is the property that makes a gauge worth having.
+
+#### Why this measures the index rather than the corpus
+
+**456 of 456 distinct gold arXiv papers are already in our shards.** 458 of LitSearch's 574
+gold papers carry an arXiv id; every one of them is indexed. So a query that fails, fails at
+*retrieval* — there is no coverage term to confound it with. The remaining 99 queries have no
+gold paper the index could return; they are **excluded and counted, never scored**. Counting
+them as misses would measure LitSearch's overlap with arXiv, drift upward every time arXiv
+grows, and bury the signal underneath — void read as null, one more time.
+
+The encoder is verified *before* anything is embedded, and the measurement refuses to run
+without Hamming 0. Otherwise an identity failure would arrive disguised as a retrieval result:
+recall would collapse, correctly, for a reason a recall number cannot name.
+
+#### The prefix: the aggregates said one thing and the paired test said another
+
+`mxbai-embed-large-v1` is an asymmetric retriever — documents bare, queries behind *"Represent
+this sentence for searching relevant passages: "*. The index holds bare abstracts, so the
+prefix belongs on the query side or nowhere. The aggregate table above says it wins at the top:
+**+0.012 at k=5, +0.020 at k=20**. Exact McNemar over the same 498 questions:
+
+| k | bare-only | prefixed-only | *p* | |
+|---|---|---|---|---|
+| 5 | 11 | 17 | 0.345 | not significant |
+| 20 | 12 | 22 | 0.121 | not significant |
+| **100** | **26** | 11 | **0.020** | **significant, favouring bare** |
+
+**Both apparent wins are noise, and the only difference that resolves goes the other way.**
+Two aggregate rates over the same questions are not a comparison, which is why the arms now run
+together and their per-query ranks are stored — the first version of this script reported two
+recalls and nothing else, and could not have answered the question it existed to raise.
+
+The gauge freezes on `bare`, which is also the form the product uses: HyDE embeds hypothetical
+abstracts with no prefix. That the measurement agrees is convenient, not the reason.
+
+#### What it is not
+
+**Not a net@2 claim, and it must never be quoted as one.** A researcher asking *"where can I
+find work on X"* is a different register from a repository that needs a paper to act on — §5's
+register-mismatch finding is precisely that the two do not transfer. This answers one question:
+*does the index still retrieve what it retrieved before?* The `_comment` in the artifact carries
+that caveat so a reader who greps `recall_at_20` finds it one line away.
+
+**Not one of the six gates.** `--check` re-measures, which is ~40 minutes of CPU against the
+six gates' two. It is a post-`rr sync-index` gate; `tests/test_litsearch_recall.py` reads the
+frozen artifact, which is the part CI can afford. Not in the product CLI either — `rr
+sync-index --verify` already answers the identity question, and this needs a dataset the
+product does not ship.
+
+**Cost** $0 (50 KB of LitSearch's `query` config and two S2 batch requests; the 1.26 GB and
+1.6 GB corpus configs are not needed and not fetched).
+
+> #### The script shipped with a ninth copy of the C-14 rule, and the guard caught it
+>
+> `litsearch_recall.py` needed "is this the same paper across a version suffix", and wrote
+> `str(arxiv_id).split("v")[0]` rather than calling `paper_id.dedup_id`. C-14 recorded that
+> exact expression at **eight** call sites; this was the ninth, written by someone who had
+> read C-14 the same week.
+>
+> `tests/test_paper_id.py::TestOneRuleEverywhere` failed on the new file before it was ever
+> committed, and the breakage is not hypothetical: **`solv-int/9304001` has a `v` in its
+> archive name**, so the local rule returns `sol`. **844 index ids collapsed into that one
+> string.**
+>
+> It did not move this measurement — the scored set is byte-identical under both rules, none
+> of the 458 gold ids is affected, and no gold id is `sol` — and that was *checked* rather
+> than assumed, because "it happens to agree today" is precisely what C-14 found to be false.
+> The guard's value is that it does not depend on the bug having bitten yet.
+
 ### The relevance filter, priced and closed — and the defect that is actually there. **[NR-42]**
 
 A $0 probe over artifacts already on disk: the three same-day source arms and the frozen pools
