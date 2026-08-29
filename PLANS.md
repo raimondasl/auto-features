@@ -22,6 +22,23 @@ by 0.28/case and corrects to **+1.84 / paired +3.88**, CI [+2.24, +5.60], p = 0.
 configuration land +5.7 to +6.2, one-flag control variants around +4.8–+5.2 (C-7: a
 single draw's level is not a property of the method). The keyword-only default remains **−8.12** — worse than emitting nothing.
 
+**The margin is comparator-sensitive, and there are now three comparators [P26].** Same 25
+repositories, same RepoRadar run:
+
+| comparator | its net@2 | /case | shipped arXiv arm | arXiv+EPMC arm |
+|---|---|---|---|---|
+| Opus 4.8, v1, 12 turns — **published** | +1.84 | 2.2 | **+3.88** *p*=0.0007 | +4.32 *p*<0.001 |
+| Opus 4.8, v2, 30 turns | +2.16 | 4.2 | +3.56 *p*=0.019 | +4.00 *p*=0.007 |
+| **Opus 5**, v2, 30 turns | **+4.20** | 9.1 | **+1.52** 12w/**13l** *p*=1.00 | +1.96 *p*=0.54 |
+
+Every cell against an Opus 4.8 comparator clears *p* < 0.05; **not one cell against Opus 5
+does.** The comparator's +2.36 of strengthening decomposes as **+0.32 harness, +2.04 model** —
+so the published figure is not an under-resourced baseline, it is Opus 4.8 being Opus 4.8.
+Over all 37 repositories the shipped arm is 18w/18l/1t against Opus 5. Both source arms are
+carried side by side because arXiv+EPMC scores higher everywhere and **is not shipped**;
+it flips no significance verdict. Derived by `evals/restate_comparator.py`, pinned by
+`tests/test_comparator_ladder.py`.
+
 ## The selection rule for new work
 
 Two facts, four measurements each, decide what is worth proposing:

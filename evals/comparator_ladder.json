@@ -1,0 +1,273 @@
+{
+ "_comment": "The headline restated against every comparator now available, and both source arms, on the benchmark25 cohort. Derived by evals/restate_comparator.py; pinned by tests/test_comparator_ladder.py. The published +3.88 is the published_headline/opus48_v1_12 cell and is unchanged -- the ladder ADDS rows, it does not replace one. CIs from bigram_report.paired_bootstrap and sign tests from band_testbeds.sign_test, the same helpers every published figure uses.",
+ "cohort": "benchmark25",
+ "n_cases": 25,
+ "comparators": {
+  "opus48_v1_12": {
+   "model": "claude-opus-4-8",
+   "prompt_version": "v1",
+   "max_turns": 12,
+   "source": "baseline column of judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json, C-25 restored",
+   "is_published_comparator": true,
+   "n_cases": 25,
+   "mean_net2": 1.84,
+   "papers_per_case": 2.3,
+   "shown": 58,
+   "actionable": 54,
+   "precision": 0.931,
+   "abstentions": 4
+  },
+  "opus48_v2_30": {
+   "model": "claude-opus-4-8",
+   "prompt_version": "v2",
+   "max_turns": 30,
+   "source": "gold_spread_v2.json draw 1",
+   "is_published_comparator": false,
+   "n_cases": 25,
+   "mean_net2": 2.16,
+   "papers_per_case": 4.2,
+   "shown": 105,
+   "actionable": 88,
+   "precision": 0.838,
+   "abstentions": 2
+  },
+  "opus5_v2_30": {
+   "model": "claude-opus-5",
+   "prompt_version": "v2",
+   "max_turns": 30,
+   "source": "gold_spread_v2_opus5.json draw 1",
+   "is_published_comparator": false,
+   "n_cases": 25,
+   "mean_net2": 4.2,
+   "papers_per_case": 9.1,
+   "shown": 228,
+   "actionable": 187,
+   "precision": 0.82,
+   "abstentions": 0
+  }
+ },
+ "reporadar_arms": {
+  "published_headline": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json",
+   "sources": [
+    "arxiv"
+   ],
+   "digest_window": 15,
+   "w_embedding": 1.5,
+   "is_shipped_configuration": true,
+   "n_cases": 25,
+   "mean_net2": 5.72,
+   "papers_per_case": 8.5,
+   "shown": 212,
+   "actionable": 189,
+   "precision": 0.892,
+   "abstentions": 4
+  },
+  "arxiv": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json",
+   "sources": [
+    "arxiv"
+   ],
+   "digest_window": 15,
+   "w_embedding": 1.5,
+   "is_shipped_configuration": true,
+   "n_cases": 25,
+   "mean_net2": 5.84,
+   "papers_per_case": 8.0,
+   "shown": 200,
+   "actionable": 182,
+   "precision": 0.91,
+   "abstentions": 5
+  },
+  "arxiv_epmc": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T234024Z.json",
+   "sources": [
+    "arxiv",
+    "europepmc"
+   ],
+   "digest_window": 15,
+   "w_embedding": 1.5,
+   "is_shipped_configuration": false,
+   "n_cases": 25,
+   "mean_net2": 6.16,
+   "papers_per_case": 8.2,
+   "shown": 205,
+   "actionable": 188,
+   "precision": 0.917,
+   "abstentions": 4
+  }
+ },
+ "paired": {
+  "published_headline": {
+   "opus48_v1_12": {
+    "n_cases": 25,
+    "paired_delta": 3.88,
+    "ci95": [
+     2.24,
+     5.6
+    ],
+    "wins": 17,
+    "losses": 2,
+    "ties": 6,
+    "sign_p": 0.000729,
+    "significant_at_05": true
+   },
+   "opus48_v2_30": {
+    "n_cases": 25,
+    "paired_delta": 3.56,
+    "ci95": [
+     1.64,
+     5.52
+    ],
+    "wins": 15,
+    "losses": 4,
+    "ties": 6,
+    "sign_p": 0.019211,
+    "significant_at_05": true
+   },
+   "opus5_v2_30": {
+    "n_cases": 25,
+    "paired_delta": 1.52,
+    "ci95": [
+     -1.04,
+     4.16
+    ],
+    "wins": 12,
+    "losses": 13,
+    "ties": 0,
+    "sign_p": 1.0,
+    "significant_at_05": false
+   }
+  },
+  "arxiv": {
+   "opus48_v1_12": {
+    "n_cases": 25,
+    "paired_delta": 4.0,
+    "ci95": [
+     2.64,
+     5.48
+    ],
+    "wins": 19,
+    "losses": 0,
+    "ties": 6,
+    "sign_p": 4e-06,
+    "significant_at_05": true
+   },
+   "opus48_v2_30": {
+    "n_cases": 25,
+    "paired_delta": 3.68,
+    "ci95": [
+     1.96,
+     5.44
+    ],
+    "wins": 16,
+    "losses": 5,
+    "ties": 4,
+    "sign_p": 0.026604,
+    "significant_at_05": true
+   },
+   "opus5_v2_30": {
+    "n_cases": 25,
+    "paired_delta": 1.64,
+    "ci95": [
+     -0.76,
+     4.16
+    ],
+    "wins": 14,
+    "losses": 11,
+    "ties": 0,
+    "sign_p": 0.690038,
+    "significant_at_05": false
+   }
+  },
+  "arxiv_epmc": {
+   "opus48_v1_12": {
+    "n_cases": 25,
+    "paired_delta": 4.32,
+    "ci95": [
+     2.76,
+     5.96
+    ],
+    "wins": 20,
+    "losses": 1,
+    "ties": 4,
+    "sign_p": 2.1e-05,
+    "significant_at_05": true
+   },
+   "opus48_v2_30": {
+    "n_cases": 25,
+    "paired_delta": 4.0,
+    "ci95": [
+     2.12,
+     5.96
+    ],
+    "wins": 17,
+    "losses": 4,
+    "ties": 4,
+    "sign_p": 0.007197,
+    "significant_at_05": true
+   },
+   "opus5_v2_30": {
+    "n_cases": 25,
+    "paired_delta": 1.96,
+    "ci95": [
+     -0.52,
+     4.52
+    ],
+    "wins": 14,
+    "losses": 10,
+    "ties": 1,
+    "sign_p": 0.541256,
+    "significant_at_05": false
+   }
+  }
+ },
+ "comparator_decomposition": {
+  "_comment": "Two steps between the published comparator and the current one. The harness step holds the model and changes the prompt and the turn cap; the model step holds the harness. Nearly all of the strengthening is the model, which is why the published figure is not a case of an under-resourced baseline.",
+  "published": 1.84,
+  "harness_v1_12_to_v2_30": 0.32,
+  "model_opus48_to_opus5": 2.04,
+  "total": 2.36
+ },
+ "reproduces_published": {
+  "expected_paired": 3.88,
+  "expected_reporadar": 5.72,
+  "expected_baseline": 1.84,
+  "got_paired": 3.88,
+  "got_reporadar": 5.72,
+  "got_baseline": 1.84,
+  "matches": true
+ },
+ "all37_opus5": {
+  "arxiv": {
+   "n_cases": 37,
+   "reporadar_mean": 5.73,
+   "opus5_mean": 5.19,
+   "paired_delta": 0.54,
+   "ci95": [
+    -1.54,
+    2.7
+   ],
+   "wins": 18,
+   "losses": 18,
+   "ties": 1,
+   "sign_p": 1.0,
+   "significant_at_05": false
+  },
+  "arxiv_epmc": {
+   "n_cases": 37,
+   "reporadar_mean": 6.27,
+   "opus5_mean": 5.19,
+   "paired_delta": 1.08,
+   "ci95": [
+    -0.97,
+    3.22
+   ],
+   "wins": 20,
+   "losses": 15,
+   "ties": 2,
+   "sign_p": 0.49956,
+   "significant_at_05": false
+  }
+ }
+}

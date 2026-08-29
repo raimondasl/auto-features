@@ -1193,6 +1193,42 @@ be allowed to imply that it is.
 > the four abstention cases, deleting the behaviour under examination. A number that answers
 > a different question is worse than no number, because it looks like a check.
 
+#### The published headline, restated against all three comparators
+
+The margin the paper reports names one rival. Three exist now, and a single number cannot
+show how much of the result is the rival's strength. Same 25 repositories, each system scored
+on its own returned papers, both source arms carried side by side because arXiv+EPMC scores
+higher everywhere and **is not what ships**:
+
+| comparator | net@2 | /case | prec | abst | vs published +5.72 | vs arXiv +5.84 | vs arXiv+EPMC +6.16 |
+|---|---|---|---|---|---|---|---|
+| Opus 4.8, v1, 12 turns — **published** | +1.84 | 2.2 | 0.931 | 6 | **+3.88** *p*=0.0007 | +4.00 *p*<0.001 | +4.32 *p*<0.001 |
+| Opus 4.8, v2, 30 turns | +2.16 | 4.2 | 0.838 | 3 | +3.56 *p*=0.019 | +3.68 *p*=0.027 | +4.00 *p*=0.007 |
+| **Opus 5**, v2, 30 turns | **+4.20** | 9.1 | 0.820 | 0 | **+1.52** 12w/**13l** *p*=1.00 | +1.64 *p*=0.69 | +1.96 *p*=0.54 |
+
+**The margin survives a harness upgrade and does not survive a model upgrade.** Every cell
+against an Opus 4.8 comparator clears *p* < 0.05; not one cell against Opus 5 does, on any
+arm. The published cell reproduces `restated_runs.json` to the digit — +3.88, CI [+2.24,
++5.60], 17w/2l/6t, *p* = 0.0007 — which is what licenses reading the rest of the table as
+comparable rather than as a second computation of the same thing.
+
+**The comparator was not under-resourced,** which is the obvious objection to a baseline
+recommending 2.2 papers where we show 8.5. Decomposed: the harness step (v1→v2, 12→30 turns,
+*same model*) is worth **+0.32**; the model step (Opus 4.8→Opus 5, *same harness*) is worth
+**+2.04**. Six-sevenths is the model. +1.84 is a fair instantiation of the system it names.
+
+The sign test against Opus 5 on the published arm is exactly **1.00** — 12 wins to 13 losses.
+The mean is ahead and the case count is not, which a mean alone conceals. Over all 37 cases
+the shipped arm is **18w/18l/1t**. Derived by `evals/restate_comparator.py` into
+`evals/comparator_ladder.json`, pinned by `tests/test_comparator_ladder.py`.
+
+> **One estimator, repo-wide.** `freeze_opus5_arm.py` had its own seeded bootstrap and
+> reported [−0.97, +3.16] where `bigram_report.paired_bootstrap` gives [−0.97, +3.22] for the
+> same deltas. A grid step apart, decision-irrelevant, and still two artifacts in one
+> repository disagreeing about one quantity — C-25 recorded the same surprise about the same
+> helper. The private bootstrap is gone; both artifacts now import the shared one and agree
+> exactly.
+
 #### Is Opus 5 winning on materials through non-arXiv sources? No — the opposite
 
 The v2 prompt lets the baseline cite anything, and Opus 5 uses that freely. Share of its
