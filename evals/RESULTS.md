@@ -1226,6 +1226,43 @@ benchmark even if built** — the selection rule refusing the work before a run 
 
 **Cost** $0. Pinned by `tests/test_nonarxiv_evidence.py`.
 
+#### The guard shipped, 2026-08-28
+
+`src/reporadar/evidence.py`: `has_abstract` and `partition_by_evidence`, used by **both** LLM
+stages. `triage_papers` and `finescale.score_papers` now skip a paper with no abstract instead
+of scoring it on its title, and both say how many they skipped.
+
+Four boundaries, each deliberate and each pinned by `tests/test_evidence_guard.py`:
+
+- **Absence, not brevity.** The non-actionable non-arXiv papers averaged 729 characters against
+  1393 for the actionable ones, and that is *not* turned into a threshold. A short abstract is
+  evidence, merely less of it; picking a cutoff would be tuning the gate against net@2 through a
+  back door, which is precisely what this entry declined to do one section above.
+- **No backfill.** `top_k` is applied before the guard, so a skip shortens the batch rather than
+  pulling the next-ranked paper into it. Backfilling would change *which* papers the gate sees —
+  a separate decision needing its own measurement — and keeping this a pure removal is what
+  makes its effect readable.
+- **A skip is not a failed call.** `enough_scored(scored, attempted)` exists to notice that a
+  whole stage broke and skip the fine-scale gate rather than abstain by accident. Its denominator
+  is what was *attempted*, so the pipeline partitions the band first and passes the readable
+  count. Passing `len(band)` would have let an abstract-poor band read as an outage and abandon
+  the rescore for the papers that *were* readable — the void-as-null error one line below the
+  guard against it, which is how this defect class keeps recurring.
+- **Not configurable.** Every other stage's failure policy is an invariant, and a flag whose
+  off-position restores "score papers you cannot read" is a footgun rather than a choice. A test
+  asserts no such knob appears in `config.py`.
+
+`triage_papers` had already promised this in prose — *"a paper whose scoring fails is omitted
+(never scored 0), so downstream tiering treats 'couldn't judge' as 'not a confident Top Pick',
+not as a confident rejection."* A missing abstract is the clearest case of not being able to
+judge there is; the guard makes the promise true **before** the call rather than only after one
+fails. It also saves the call.
+
+**No published number moves.** Every benchmark run to date is arXiv-only or arXiv+EPMC, and both
+are at ~100% abstract coverage — the guard is a no-op on all of them. That is the point: it was
+shipped as a correctness fix, on the argument rather than on a benchmark win, and NR-42 priced
+what it would buy as a source strategy at −0.76 → −0.57 on the one arm where it fires at all.
+
 ### The comparator arm, finished: the margin is shyness, and it crosses zero. **[P26, C-34]**
 
 Six materials-science runs at the settings every other Opus 5 row used (v2 prompt, 30-turn

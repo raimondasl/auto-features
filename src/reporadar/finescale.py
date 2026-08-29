@@ -35,6 +35,7 @@ import math
 import re
 from typing import Any
 
+from reporadar.evidence import partition_by_evidence
 from reporadar.llm_client import LLMError, top_logprobs
 from reporadar.profiler import RepoProfile
 from reporadar.triage import repo_context_block
@@ -136,7 +137,14 @@ def score_papers(
     :func:`enough_scored`.
     """
     out: dict[str, dict[str, float]] = {}
-    for paper in papers:
+    scoreable, skipped = partition_by_evidence(list(papers))
+    if skipped:
+        # Same guard as the gate's, and it should almost never fire here: the band this
+        # rescores has already been through triage, which now drops abstract-less papers
+        # first. It stays because `score_papers` is called directly by the eval harness and
+        # by tests, and a guard that only exists upstream is one refactor from being gone.
+        logger.info("Fine-scale skipped %d paper(s) with no abstract", len(skipped))
+    for paper in scoreable:
         arxiv_id = paper.get("arxiv_id")
         if not arxiv_id:
             continue
