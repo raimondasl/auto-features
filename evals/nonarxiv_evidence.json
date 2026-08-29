@@ -1,0 +1,282 @@
+{
+ "_comment": "NR-42: a $0 probe on whether a relevance filter for non-arXiv material is worth building. Derived by evals/probe_nonarxiv_evidence.py from the three same-day source arms under evals/results/ and the frozen pools under evals/.work/, both gitignored; pinned by tests/test_nonarxiv_evidence.py. No LLM or judge calls.",
+ "config": {
+  "digest_window": 15,
+  "gate_depth": 50,
+  "n_cases": 37,
+  "control_run": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json"
+ },
+ "window_is_not_binding": {
+  "control": {
+   "mean_digest": 8.4,
+   "max_digest": 15,
+   "cases_at_the_cap": 3,
+   "n_cases": 37
+  },
+  "epmc": {
+   "mean_digest": 8.8,
+   "max_digest": 15,
+   "cases_at_the_cap": 5,
+   "n_cases": 37
+  },
+  "openalex": {
+   "mean_digest": 9.1,
+   "max_digest": 15,
+   "cases_at_the_cap": 4,
+   "n_cases": 37
+  }
+ },
+ "abstract_coverage_in_pool": {
+  "control": {
+   "pool_dir": "pool-core25-arxiv",
+   "arxiv_candidates": 20622,
+   "arxiv_with_abstract": 1.0,
+   "arxiv_mean_chars": 1247,
+   "non_arxiv_candidates": 4,
+   "non_arxiv_with_abstract": 1.0,
+   "non_arxiv_mean_chars": 548
+  },
+  "epmc": {
+   "pool_dir": "pool-core25-epmc",
+   "arxiv_candidates": 21025,
+   "arxiv_with_abstract": 1.0,
+   "arxiv_mean_chars": 1245,
+   "non_arxiv_candidates": 17511,
+   "non_arxiv_with_abstract": 1.0,
+   "non_arxiv_mean_chars": 1976
+  },
+  "openalex": {
+   "pool_dir": "pool-core25-openalex",
+   "arxiv_candidates": 21435,
+   "arxiv_with_abstract": 0.995,
+   "arxiv_mean_chars": 1244,
+   "non_arxiv_candidates": 10501,
+   "non_arxiv_with_abstract": 0.735,
+   "non_arxiv_mean_chars": 915
+  }
+ },
+ "abstract_coverage_when_shown": {
+  "epmc": {
+   "actionable": {
+    "n": 29,
+    "no_abstract": 0,
+    "no_abstract_rate": 0.0,
+    "ci95": [
+     0.0,
+     0.117
+    ],
+    "mean_chars": 1478
+   },
+   "non_actionable": {
+    "n": 1,
+    "no_abstract": 0,
+    "no_abstract_rate": 0.0,
+    "ci95": [
+     0.0,
+     0.793
+    ],
+    "mean_chars": 730
+   }
+  },
+  "openalex": {
+   "actionable": {
+    "n": 51,
+    "no_abstract": 1,
+    "no_abstract_rate": 0.02,
+    "ci95": [
+     0.003,
+     0.103
+    ],
+    "mean_chars": 1393
+   },
+   "non_actionable": {
+    "n": 17,
+    "no_abstract": 4,
+    "no_abstract_rate": 0.235,
+    "ci95": [
+     0.096,
+     0.473
+    ],
+    "mean_chars": 729
+   }
+  }
+ },
+ "instruments": {
+  "epmc": {
+   "gate": {
+    "actionable_n": 29,
+    "actionable_gate3": 16,
+    "actionable_gate3_rate": 0.552,
+    "actionable_ci95": [
+     0.375,
+     0.716
+    ],
+    "non_actionable_n": 1,
+    "non_actionable_gate3": 1,
+    "non_actionable_gate3_rate": 1.0,
+    "non_actionable_ci95": [
+     0.207,
+     1.0
+    ]
+   },
+   "rescore": {
+    "non_arxiv_band": 13,
+    "non_arxiv_band_scored": 13,
+    "arxiv_band": 231,
+    "arxiv_band_scored": 231,
+    "mean_p_actionable": 0.881,
+    "mean_p_non_actionable": null,
+    "mean_p_arxiv": 0.836,
+    "_caveat": "These are papers the rescore ADMITTED, so the distribution is truncated at its own threshold. It bounds how well the rescore orders within the admitted set; it does not measure the signal it carries over the papers it rejected, which this artifact cannot see."
+   }
+  },
+  "openalex": {
+   "gate": {
+    "actionable_n": 51,
+    "actionable_gate3": 30,
+    "actionable_gate3_rate": 0.588,
+    "actionable_ci95": [
+     0.452,
+     0.712
+    ],
+    "non_actionable_n": 17,
+    "non_actionable_gate3": 10,
+    "non_actionable_gate3_rate": 0.588,
+    "non_actionable_ci95": [
+     0.36,
+     0.784
+    ]
+   },
+   "rescore": {
+    "non_arxiv_band": 28,
+    "non_arxiv_band_scored": 28,
+    "arxiv_band": 200,
+    "arxiv_band_scored": 200,
+    "mean_p_actionable": 0.842,
+    "mean_p_non_actionable": 0.85,
+    "mean_p_arxiv": 0.833,
+    "_caveat": "These are papers the rescore ADMITTED, so the distribution is truncated at its own threshold. It bounds how well the rescore orders within the admitted set; it does not measure the signal it carries over the papers it rejected, which this artifact cannot see."
+   }
+  }
+ },
+ "counterfactuals": {
+  "epmc": {
+   "arm_as_measured": 0.54,
+   "source_term": 0.73,
+   "gate3_only_filter": {
+    "kept": 17,
+    "kept_actionable": 16,
+    "dropped_actionable": 13,
+    "dropped_non_actionable": 0,
+    "source_term": 0.38
+   },
+   "evidence_threshold_sweep_chars": {
+    "1": {
+     "kept": 30,
+     "dropped_actionable": 0,
+     "dropped_non_actionable": 0,
+     "source_term": 0.73,
+     "arm_if_slots_unchanged": 0.54
+    },
+    "400": {
+     "kept": 30,
+     "dropped_actionable": 0,
+     "dropped_non_actionable": 0,
+     "source_term": 0.73,
+     "arm_if_slots_unchanged": 0.54
+    },
+    "800": {
+     "kept": 28,
+     "dropped_actionable": 1,
+     "dropped_non_actionable": 1,
+     "source_term": 0.76,
+     "arm_if_slots_unchanged": 0.57
+    },
+    "1000": {
+     "kept": 24,
+     "dropped_actionable": 5,
+     "dropped_non_actionable": 1,
+     "source_term": 0.65,
+     "arm_if_slots_unchanged": 0.46
+    }
+   }
+  },
+  "openalex": {
+   "arm_as_measured": -0.76,
+   "source_term": 0.46,
+   "gate3_only_filter": {
+    "kept": 40,
+    "kept_actionable": 30,
+    "dropped_actionable": 21,
+    "dropped_non_actionable": 7,
+    "source_term": 0.27
+   },
+   "evidence_threshold_sweep_chars": {
+    "1": {
+     "kept": 63,
+     "dropped_actionable": 1,
+     "dropped_non_actionable": 4,
+     "source_term": 0.65,
+     "arm_if_slots_unchanged": -0.57
+    },
+    "400": {
+     "kept": 62,
+     "dropped_actionable": 1,
+     "dropped_non_actionable": 5,
+     "source_term": 0.7,
+     "arm_if_slots_unchanged": -0.52
+    },
+    "800": {
+     "kept": 54,
+     "dropped_actionable": 4,
+     "dropped_non_actionable": 10,
+     "source_term": 0.89,
+     "arm_if_slots_unchanged": -0.33
+    },
+    "1000": {
+     "kept": 47,
+     "dropped_actionable": 8,
+     "dropped_non_actionable": 13,
+     "source_term": 0.95,
+     "arm_if_slots_unchanged": -0.27
+    }
+   }
+  }
+ },
+ "displacement_split": {
+  "epmc": {
+   "swap_total": -0.19,
+   "arxiv_dropped": 111,
+   "arxiv_added": 95,
+   "net_slots": -16,
+   "value_per_dropped_paper": 0.65,
+   "slots_term": -0.28,
+   "quality_term": 0.09
+  },
+  "openalex": {
+   "swap_total": -1.22,
+   "arxiv_dropped": 142,
+   "arxiv_added": 100,
+   "net_slots": -42,
+   "value_per_dropped_paper": 0.68,
+   "slots_term": -0.78,
+   "quality_term": -0.44
+  }
+ },
+ "oracle_ceiling": {
+  "epmc": {
+   "_comment": "A strict over-estimate: every actionable non-arXiv paper added to the control for free, with zero displacement. No real filter can beat this.",
+   "control_mean": 5.73,
+   "actionable_non_arxiv": 29,
+   "ceiling": 6.51,
+   "headroom_over_control": 0.78
+  },
+  "openalex": {
+   "_comment": "A strict over-estimate: every actionable non-arXiv paper added to the control for free, with zero displacement. No real filter can beat this.",
+   "control_mean": 5.73,
+   "actionable_non_arxiv": 51,
+   "ceiling": 7.11,
+   "headroom_over_control": 1.38
+  }
+ }
+}

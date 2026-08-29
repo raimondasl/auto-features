@@ -425,9 +425,40 @@ PMC contributes *zero* papers there and the arm still moves +0.50/case, 16 arXiv
 was a **relevance condition on non-arXiv results**. C-34 demotes it: that filter addresses the
 term which is already positive in both arms. **The term that costs is displacement**, it scales
 with how much a source is admitted, and both sources pay it — Europe PMC's own papers merely
-cover it. That is also the real argument against stacking a third source. A relevance condition
-may still be worth having for the near-domain admissions C-33 identified, but it is no longer
-the item with the best evidence behind it, and it would not have recovered the -0.76.
+cover it. That is also the real argument against stacking a third source.
+
+**CLOSED 2026-08-28 [NR-42].** The narrowed form C-33 left open — a filter for the *near-domain*
+admissions — was priced at $0 over artifacts already on disk, and it does not survive:
+
+- **Neither instrument can discriminate.** The gate and the fine-scale rescore are the system's
+  only pre-judge signals, and the two stages that solved this exact problem for arXiv. On
+  OpenAlex's non-arXiv papers the gate-3 rate is **0.588 among actionable and 0.588 among
+  non-actionable**; the rescore reaches **28 of 28** band papers and scores them **0.842 vs
+  0.850 — the wrong way round**.
+- **The best filter buildable today makes both sources worse:** restricting non-arXiv to gate-3
+  takes Europe PMC +0.73 → +0.38 and OpenAlex +0.46 → +0.27.
+- **The cost is upstream of the digest.** Only 3–5 of 37 cases reach the 15-paper window; the
+  slot loss happens in the gate's `gate_depth: 50` input, shared across sources.
+- **Nothing realistic clears the MRE of 1.04.** Fixing Europe PMC's slot term is worth +0.28;
+  its entire oracle ceiling is +0.78. Unmeasurable on this benchmark even if built.
+
+**What the probe found instead is a scoring defect, not a relevance one.** A quarter of OpenAlex
+candidates arrive with **no abstract** (Europe PMC: none of 17,511), and both the gate and
+`finescale.build_prompt` read `paper["abstract"]` with no guard — so they are scored on their
+titles. Among shown papers, 4 of 17 non-actionable have none against 1 of 51 actionable
+(intervals barely disjoint at n=17; recorded as a defect, not as an effect size). A paper with
+no abstract is not irrelevant, it is **unmeasured**, and the product already takes the opposite
+stance one stage over: *"a paper whose rescore call fails is omitted, never scored."*
+
+**Open, small, and not a source strategy:** an evidence-sufficiency guard so the gate declines
+what it cannot read. It is a **no-op on Europe PMC** (100% coverage — the only net-positive
+source) and moves the OpenAlex arm only −0.76 → −0.57, so it is worth doing as a correctness
+fix and not as a way to make a source pay. Needs a no-regression check, not a benchmark win.
+
+**What would reopen the filter item:** a genuinely better discriminator. The oracle ceiling —
+perfect discrimination, zero displacement — is **+1.38 over the control on OpenAlex**, which
+does clear the MRE. The item is closed on the absence of an instrument, not the absence of
+value.
 
 **If a source is switched on regardless, OpenAlex is the one:** a third less noise, real
 ACM/IEEE/VLDB coverage (599 CS works), and a field label already on every result that a filter
