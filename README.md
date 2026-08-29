@@ -63,6 +63,16 @@ the weak one.
 
 > **Restated 2026-08-25 [C-25].** The baseline's +1.56 is understated by **0.28/case**: three cases (`compiler`, `graph`, `storage`) whose cached transcripts were replaced by a restoration note in 2026-08-09 replayed as abstentions, forfeiting seven of the baseline's own picks — all judged actionable. Corrected, the comparator is **+1.84** (58 shown / 54 actionable, precision 0.931) and the paired margin **+3.88**, 95% CI [+2.24, +5.60], 17 w / 2 l / 6 t, sign *p* = 0.0007. RepoRadar's own +5.72 does not move: net@2 reads a system's own returned papers. The figures below are the run files as measured; `uv run python evals/restate_c25.py` prints both columns. See evals/RESULTS.md → **[P13, C-25]**.
 
+> **The margin depends on which model you compare against, and we now have three [P26].** The row above names Claude Opus 4.8 at the v1 prompt and a 12-turn cap. Against two stronger comparators on the same 25 repositories:
+>
+> | comparator | its net@2 | papers/case | RepoRadar's margin |
+> |---|---|---|---|
+> | Opus 4.8, v1 prompt, 12 turns — the row above | +1.84 | 2.2 | **+3.88**, CI [+2.24, +5.60], *p* = 0.0007 |
+> | Opus 4.8, v2 prompt, 30 turns | +2.16 | 4.2 | +3.56, CI [+1.64, +5.52], *p* = 0.019 |
+> | **Claude Opus 5**, v2 prompt, 30 turns | **+4.20** | 9.1 | **+1.52**, CI [−1.04, +4.16], 12 w / **13 l**, *p* = 1.00 |
+>
+> **The margin survives a harness upgrade and does not survive a model upgrade.** Giving the *same* model the better prompt and the longer budget is worth +0.32 to it; swapping Opus 4.8 for Opus 5 is worth +2.04 — so the published comparator was a fair instantiation of the model it names, not an under-resourced one. Against Opus 5 the mean is still ahead but the case count is not, and over all 37 repositories the shipped configuration is a dead heat: **18 w / 18 l / 1 t**. Most of what margin remains is abstention discipline — on the 32 of 37 repositories where Opus 5 does not over-answer, the two systems are level (−0.06). Run `uv run python evals/restate_comparator.py` for the full table; see evals/RESULTS.md → **[P26]**.
+
 **"0 of 25" is this draw's value, not a property of the method.** The same configuration has
 produced 1 and 2 net-negative repositories on other draws; a run that happens to have none
 is a favourable draw, and reporting it as "never scores negative" is a mistake this project

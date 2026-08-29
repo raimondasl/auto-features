@@ -460,8 +460,8 @@
    },
    "paired_delta_primary_minus_opus5": 1.96,
    "ci95": [
-    -0.56,
-    4.56
+    -0.52,
+    4.52
    ],
    "wins": 14,
    "losses": 10
@@ -514,7 +514,7 @@
    },
    "paired_delta_primary_minus_opus5": 1.67,
    "ci95": [
-    -0.33,
+    -0.5,
     4.5
    ],
    "wins": 4,
@@ -568,7 +568,7 @@
    },
    "paired_delta_primary_minus_opus5": -3.17,
    "ci95": [
-    -8.67,
+    -8.33,
     2.33
    ],
    "wins": 2,
@@ -622,8 +622,8 @@
    },
    "paired_delta_primary_minus_opus5": -0.75,
    "ci95": [
-    -4.25,
-    2.33
+    -4.08,
+    2.42
    ],
    "wins": 6,
    "losses": 5
@@ -677,7 +677,7 @@
    "paired_delta_primary_minus_opus5": 1.08,
    "ci95": [
     -0.97,
-    3.16
+    3.22
    ],
    "wins": 20,
    "losses": 15

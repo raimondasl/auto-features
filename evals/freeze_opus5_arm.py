@@ -12,11 +12,12 @@ a cohort where it loses, and a split -- over-answered vs not -- that accounts fo
 
 import json
 import pathlib
-import random
 import statistics as st
 import sys
 
 sys.path.insert(0, "evals")
+from bigram_report import paired_bootstrap
+
 from reporadar.paper_id import is_arxiv_id
 
 RES = pathlib.Path("evals/results")
@@ -27,8 +28,6 @@ ARMS = {
 }
 PRIMARY = "arxiv_epmc"  # the P24 arm; the one a shipped default would use
 OPUS5 = pathlib.Path("evals/gold_spread_v2_opus5.json")
-SEED = 20260828
-RESAMPLES = 4000
 
 COHORTS = {
     "core25": lambda c: not c.startswith(("bio-", "mat-")),
@@ -49,10 +48,16 @@ def net(scores) -> int:
 
 
 def ci(deltas):
-    """Paired bootstrap, seeded. Same estimator as every other arm in this project."""
-    rnd = random.Random(SEED)
-    b = sorted(st.mean(rnd.choices(deltas, k=len(deltas))) for _ in range(RESAMPLES))
-    return round(b[int(0.025 * RESAMPLES)], 2), round(b[int(0.975 * RESAMPLES) - 1], 2)
+    """The project's own estimator, imported rather than reimplemented.
+
+    This used a private seeded bootstrap and produced [-0.97, +3.16] where
+    `bigram_report.paired_bootstrap` gives [-0.97, +3.22] for the same deltas -- a grid step
+    apart, decision-irrelevant, and still two artifacts in one repository disagreeing about
+    one quantity. C-25 recorded the same surprise about the same helper; the fix is to have
+    one estimator, not two that agree closely.
+    """
+    lo, hi = paired_bootstrap([float(x) for x in deltas])
+    return round(lo, 2), round(hi, 2)
 
 
 # -- RepoRadar: three source arms, same day, same flags but `sources` --
