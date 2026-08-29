@@ -64,7 +64,16 @@ touches the pool. Pool-affecting changes cannot reuse frozen pools (`POOL_FLAGS`
 
 ---
 
-## Open items, ranked
+## Open items
+
+**Numbers are stable ids, not ranks.** They were ranks once, and stopped being so as items
+closed: 1-4 are answered, parked or built and are kept for their reasoning rather than deleted.
+The list is ordered by current priority, so a high id can sit above a low one. Referring to an
+item by number therefore stays valid across re-orderings, which is the point -- `litsearch_recall.py`
+and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
+when something overtakes it.
+
+**Currently first: item 9.**
 
 ### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
@@ -607,12 +616,59 @@ not ship. `tests/test_litsearch_recall.py` reads the frozen artifact, which is t
 afford. Explicitly **not** a net@2 claim — researcher questions are a different register from
 repo→paper, which is §5's own finding.
 
+### 9. The freshest slice is the worst slice — NEW, and the best-supported open lead [NR-43]
+
+Found by the probe aimed at the judge, which is the only reason it was found at all: nothing
+in the benchmark stratifies by paper date, so a defect that lives entirely in the newest month
+averages away into a headline that looks fine.
+
+**The measurement.** In the newest month with volume, **52% of judged papers score 0 — "no
+relation to this repository" — against 10% for 2024–2025**, at the *highest* judged volume of
+any month (159, against 100 in June, 80 in May). Scores 1, 2 and 3 all fall; only 0 grows.
+Confirmed by a second judge, within-case (10 of 11), and not explained by the dense index's
+coverage boundary.
+
+**Why it matters more than its size suggests.** RepoRadar exists to surface *new* papers. If
+the freshest slice is where off-topic material enters the pool, the product is weakest exactly
+where its value proposition lives — and the 25-repo headline cannot see it, because papers
+from the last month are a small share of any digest.
+
+**The leading hypothesis is ours to fix:** `recency` is one of the four ranker components (the
+digest prints it), and a paper from last month scores ~1.0 on it regardless of topical fit.
+Rising volume with collapsing precision is what that looks like from downstream. **Not yet
+measured** — the judge cache carries no per-paper provenance, so which channel admitted these
+papers is not attributable from this artifact.
+
+**The $0 next step, before any weight is touched:** the frozen pools *do* carry provenance.
+Recompute the score components for the newest-month papers in `pool-core25-arxiv` against
+older ones at the same rank, and check whether their non-recency scores are systematically
+lower. That is a direct test of the hypothesis and needs no new calls. **Kill condition:** if
+non-recency scores are comparable, recency weighting is not the mechanism and this reverts to
+"very new preprints are genuinely weaker", which is not a defect we can fix.
+
+**The competing explanation that survives** and would make this a validity threat rather than
+a defect: a training cutoff shared by *both* judges. Distinguishing them needs a judge whose
+cutoff is later than the papers, which we do not have. Stated so the item is not oversold.
+
 ### 5. $0 hygiene, run when convenient
 
-- **Judge-contamination re-analysis** (from LitLLMs): stratify the already-cached judge
-  verdicts by paper publication date vs judge-model cutoff; test whether actionability
-  rate or GPT-5.5/Sonnet agreement (P7 data) shifts post-cutoff. Re-analysis of stored
-  data, no new protocol.
+- **Judge-contamination re-analysis** — **DONE 2026-08-29 [NR-43], and it found something
+  else.** `evals/judge_date_stratify.py`, $0, 4,019 cached verdicts. The hypothesis is
+  **refuted**: the actionability trend rises 0.31 (2013) → 0.64 (2025) with no step, and where
+  it does collapse — **2026-07, 0.233 over 159 papers** — a *second* model with a different
+  cutoff collapses with it (Sonnet 0.105 vs GPT 0.237) and the two **agree more there than
+  anywhere else** (0.868). One model's training data cannot do that. Not case mix (10 of 11
+  cases fall within-case, mean −0.221); not the index boundary (the in-index half still falls
+  to 0.333 against June's 0.510).
+
+  **What it found instead is a retrieval defect on the product's core claim.** July papers
+  draw a *0* — "no relation to this repository" — **52% of the time against 10%, a 5.1× jump**,
+  at the highest judged volume of any month. Scores 1, 2 and 3 all fall; only 0 grows.
+  Unfamiliarity hedges, it does not flatly reject. Rising volume with collapsing precision in
+  the freshest slice is what a ranker paying for `recency` looks like from downstream — and
+  **RepoRadar is a freshness product whose freshest slice is its worst**. Residual recorded,
+  not buried: a cutoff shared by *both* judges would predict the same thing and is not
+  excluded (`shared_cutoff_excluded: false`).
 - **P6 adoption cross-check** — score repo-side channels against the 31 git-history-mined
   adoptions, the project's only model-free ground truth. Its consumer weakened when item
   16 closed; run it only if a new repo-side proposal appears, and run it *before* that
