@@ -1,0 +1,68 @@
+{
+ "_comment": "Item 9 / C-35: NR-43's retrieval claim, tested against what the product actually shows, and retracted. $0 -- stored pools, stored runs, stored verdicts. Derived by evals/fresh_slice_probe.py; pinned by tests/test_fresh_slice_probe.py. The judge cache is the union of every experiment ever run, including deliberately deep pool samples, so stratifying it by date measures the SAMPLING and not the system. NR-43's contamination result is untouched.",
+ "recency_weight_in_measured_config": 0.0,
+ "run_files_scanned": 117,
+ "distinct_shown_ever": 1441,
+ "promotion_by_age": {
+  "_comment": "If anything promoted fresh papers, they would be shown at a higher rate than their share of the pool. They are not. Flat is the answer.",
+  "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json",
+  "n_cases": 37,
+  "pool_candidates": 20626,
+  "pre_2026": {
+   "pooled": 17801,
+   "shown": 260,
+   "per_10k": 146.1
+  },
+  "2026_h1": {
+   "pooled": 2440,
+   "shown": 42,
+   "per_10k": 172.1
+  },
+  "newest_month": {
+   "pooled": 273,
+   "shown": 5,
+   "per_10k": 183.2
+  }
+ },
+ "judged_versus_shown": {
+  "_comment": "The measurement that retracts the claim. The newest month is the most-judged month in the cache and the least-shown, and everything shown from it is actionable. The collapse is in papers the gate declined.",
+  "newest_month": {
+   "judged": 159,
+   "ever_shown": 11,
+   "shown_share": 0.0692,
+   "actionable_shown": 1.0,
+   "actionable_never_shown": 0.1757
+  },
+  "2026_h1": {
+   "judged": 418,
+   "ever_shown": 162,
+   "shown_share": 0.3876,
+   "actionable_shown": 0.7901,
+   "actionable_never_shown": 0.3789
+  },
+  "2025": {
+   "judged": 619,
+   "ever_shown": 275,
+   "shown_share": 0.4443,
+   "actionable_shown": 0.8218,
+   "actionable_never_shown": 0.5
+  },
+  "2024_and_older": {
+   "judged": 2363,
+   "ever_shown": 862,
+   "shown_share": 0.3648,
+   "actionable_shown": 0.7552,
+   "actionable_never_shown": 0.4497
+  }
+ },
+ "verdict": {
+  "recency_over_promotion": false,
+  "recency_weight_is_zero": true,
+  "freshest_slice_defect_in_product": false,
+  "gate_declines_the_weak_fresh_papers": true,
+  "nr43_retrieval_claim_retracted": true,
+  "nr43_contamination_result_unaffected": true,
+  "newest_month_shown_share": 0.0692,
+  "newest_month_actionable_when_shown": 1.0
+ }
+}
