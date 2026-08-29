@@ -532,7 +532,7 @@ Paired over the 25 core cases, RepoRadar's headline run against Opus 5 draw 1:
 |---|---|
 | RepoRadar (shipped) | +5.72 |
 | Opus 5 (v2, 30 turns) | +4.20 |
-| **paired** | **+1.52**, 95% CI **[-1.08, +4.16]**, 12W/13L |
+| **paired** | **+1.52**, 95% CI **[-1.04, +4.16]**, 12W/13L, sign *p* = 1.00 |
 
 Against the published v1/12-turn comparator the same run is paired **+3.88**, CI [+2.24,
 +5.60], p = 0.0007. **So the margin falls to +1.52 and loses significance against a stronger
@@ -576,14 +576,36 @@ uses the shipped `w_embedding` 1.5, so neither is the shipped configuration; the
 statement is that RepoRadar has no bio measurement at the shipped settings.
 
 
-### 4. LitSearch as a recall regression gauge for the dense index — NEXT UP, one afternoon
+### 4. LitSearch as a recall regression gauge for the dense index — BUILT 2026-08-29
 
-597 gold-labelled queries (arXiv:2407.18940) over recent ML/NLP — squarely inside the
-index's coverage. The binary-quantized index has bit-identical encoder verification but
-**no recall-fidelity gauge**: nothing today would notice if binarisation, column pruning,
-or one bad yearly shard silently cost 15 points of recall. Embed the queries, freeze
-recall@5/@20, wire as an exit-nonzero gate after `rr sync-index`. Explicitly **not** a
-net@2 claim — researcher questions are a different register from repo→paper.
+597 gold-labelled queries (arXiv:2407.18940) over recent ML/NLP. The index had bit-identical
+encoder verification but **no recall-fidelity gauge**: verified for *identity*, unmeasured for
+*usefulness*. `evals/litsearch_recall.py` closes that, $0, no LLM or judge calls.
+
+| arm | R@5 | R@20 | R@100 | median rank when found |
+|---|---|---|---|---|
+| **bare** (the shipped form) | 0.247 | 0.376 | **0.560** | 8 |
+| prefixed | 0.259 | 0.396 | 0.530 | 5 |
+
+**The coverage number is what makes it a fidelity gauge:** 458 of 574 gold papers carry an
+arXiv id and **456 of 456 distinct ones are already in our shards**, so a query that fails
+fails at *retrieval*. The 99 queries with no gold paper in the index are excluded and counted,
+never scored — counting them would measure LitSearch's overlap with arXiv and drift every time
+arXiv grows.
+
+**The query prefix was decided by the paired test, and it reverses the aggregate reading.**
+`mxbai-embed-large-v1` is asymmetric, so the prefix belongs on the query side or nowhere. The
+aggregates say it wins at the top (+0.012 at k=5, +0.020 at k=20); McNemar over the same 498
+questions puts both at p = 0.34 and p = 0.12, and the **one resolved difference is at k=100,
+p = 0.020, favouring bare**. Two aggregate rates are not a comparison — which is why the arms
+run together and their per-query ranks are stored.
+
+**Where it sits:** a post-`rr sync-index` gate (`--check`, ~40 min of CPU), **not** one of the
+six per-commit gates and **not** in the product CLI. `rr sync-index --verify` already answers
+the identity question; this answers the usefulness one and needs a dataset the product does
+not ship. `tests/test_litsearch_recall.py` reads the frozen artifact, which is the part CI can
+afford. Explicitly **not** a net@2 claim — researcher questions are a different register from
+repo→paper, which is §5's own finding.
 
 ### 5. $0 hygiene, run when convenient
 
