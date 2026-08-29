@@ -1144,6 +1144,88 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The relevance filter, priced and closed — and the defect that is actually there. **[NR-42]**
+
+A $0 probe over artifacts already on disk: the three same-day source arms and the frozen pools
+they ranked. No LLM calls, no judge calls, nothing re-run. The item is the "relevance condition
+on non-arXiv results" that P22/P23 proposed, P24 retired, C-33 reopened in a narrower form and
+C-34 then aimed at the wrong term.
+
+**Verdict: do not build it.** Four independent reasons, any one sufficient.
+
+**1. It filters a term that is already positive.** C-34: Europe PMC's own papers are worth
+**+0.73/case**, OpenAlex's **+0.46**. A filter can only shrink a positive quantity unless it
+discriminates almost perfectly.
+
+**2. The only filter buildable today is net negative on both sources.**
+
+| source | source term | restricted to gate-3 | the trade |
+|---|---|---|---|
+| Europe PMC | +0.73 | **+0.38** | loses 13 actionable to remove **0** non-actionable |
+| OpenAlex | +0.46 | **+0.27** | loses 21 actionable to remove 7 |
+
+**3. Neither instrument separates — and they are the two that solved this for arXiv.** The gate
+and the fine-scale rescore are the system's only pre-judge signals. On OpenAlex's non-arXiv
+papers the gate-3 rate is **0.588 among actionable and 0.588 among non-actionable** — identical
+point estimates, heavily overlapping intervals. The rescore reaches **28 of 28** band papers
+(it keys on `arxiv_id`, which non-arXiv papers fill with their DOI, so nothing excludes them)
+and its mean P is **0.842 on actionable against 0.850 on non-actionable** — the wrong way
+round. Scoped honestly: those are papers the rescore *admitted*, so the distribution is
+truncated at its own threshold; this bounds its ordering within the admitted set and is not a
+measurement over the papers it rejected.
+
+**4. The cost is not in that term.** −1.22 for OpenAlex splits into **−0.78 slots and −0.44
+quality**, and the slot loss is not digest competition: only 3–5 of 37 cases reach the 15-paper
+window and the mean digest is 8.4. Papers lose their place upstream, in the gate's
+`gate_depth: 50` input, which is **shared across sources** — so enabling a source spends
+arXiv's gate slots. Europe PMC pays the same term (−0.28 slots, quality neutral at +0.09); the
+difference is that its own papers cover it.
+
+#### The defect that is actually there, and it is not relevance
+
+| pool | arXiv abstracts | non-arXiv abstracts |
+|---|---|---|
+| core25 + Europe PMC | 100%, mean 1245 ch | **100%** of 17,511, mean 1976 ch |
+| core25 + OpenAlex | 99.5%, mean 1244 ch | **73.5%** of 10,501, mean 915 ch |
+
+A quarter of OpenAlex candidates arrive with **no abstract**. `finescale.build_prompt` reads
+`paper.get("abstract", "")[:1500]` and the gate reads the same field, neither with a guard — so
+those papers are scored on their titles. Among papers actually shown:
+
+| OpenAlex shown | no abstract | mean length |
+|---|---|---|
+| actionable (51) | **1 (2.0%)** CI [0.003, 0.103] | 1393 ch |
+| non-actionable (17) | **4 (23.5%)** CI [0.096, 0.473] | 729 ch |
+
+The intervals separate, but barely, at n=17 — recorded as a defect in the scoring path, **not**
+as a calibrated effect size. C-33 and C-34 were both cases of reading more from a small margin
+than it held, and this margin is smaller than either.
+
+What is solid independent of the interval: **a paper with no abstract is not an irrelevant
+paper, it is an unmeasured one**, and scoring it anyway is void read as signal — this project's
+most repeated failure (C-4, C-30, the 21% that measured nothing, the pool scanner that read
+1,250 papers as 0). The product already takes the opposite stance one stage over: *"a paper
+whose rescore call fails is omitted, never scored."* The gate scoring an abstract-less paper 2
+or 3 is inconsistent with the system's own documented failure policy.
+
+**And the fix is deliberately not proposed as a source strategy.** An evidence threshold is a
+**complete no-op on Europe PMC** — 100% coverage, and it is the only currently net-positive
+source. On OpenAlex it moves the source term +0.46 → +0.65 but the arm only −0.76 → −0.57,
+because a display-time cut leaves displacement untouched. At 1000 characters, discarding 8
+actionable papers, the arm is still negative.
+
+#### What would reopen the item
+
+The prize is real; the instrument is not. A perfect discriminator with zero displacement takes
+OpenAlex to **+7.11 against the control's +5.73** — headroom **+1.38**, above the benchmark's
+MRE of **1.04**. So this closes on the absence of an instrument, not the absence of value.
+
+Everything realistic falls below the floor: Europe PMC's whole ceiling is +0.78; fixing its
+slot term is worth +0.28; no evidence threshold makes OpenAlex positive. **Unmeasurable on this
+benchmark even if built** — the selection rule refusing the work before a run is paid for.
+
+**Cost** $0. Pinned by `tests/test_nonarxiv_evidence.py`.
+
 ### The comparator arm, finished: the margin is shyness, and it crosses zero. **[P26, C-34]**
 
 Six materials-science runs at the settings every other Opus 5 row used (v2 prompt, 30-turn
