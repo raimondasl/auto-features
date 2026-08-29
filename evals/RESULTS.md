@@ -1144,7 +1144,55 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
-### The judge is not date-biased. The retrieval is. **[NR-43]**
+### The freshest slice is fine. The sample was not. **[C-35, closes item 9]**
+
+Item 9's $0 probe, run the day after NR-43 filed it — and it kills the item, the mechanism and
+half of NR-43's headline. `evals/fresh_slice_probe.py`, stored pools and stored runs only.
+
+**The mechanism does not exist.** NR-43 blamed `recency` weighting: *"a paper from last month
+scores ~1.0 on it regardless of topical fit"*. True of the component and irrelevant to the
+score — **`w_recency` is 0.0** in the shipped default, in `evals/harness.py`, and in every
+benchmark run since 2026-07-06, because `--rr-all-time` *is* `w_recency 0`. One minute in
+`config.py` would have caught that before the claim was written, and it was not spent.
+
+**The effect is not in the product either.**
+
+| period | judged | ever shown | % shown | actionable if shown | actionable if not |
+|---|---|---|---|---|---|
+| **2026-07** | 159 | **11** | **6.9%** | **1.000** | 0.176 |
+| 2026 H1 | 418 | 162 | 38.8% | 0.790 | 0.379 |
+| 2025 | 619 | 275 | 44.4% | 0.822 | 0.500 |
+| 2024 and older | 2,363 | 862 | 36.5% | 0.755 | 0.450 |
+
+Promotion is flat in age as well — 146.1 per 10,000 pooled for pre-2026 against 183.2 for the
+newest month, on 273 pooled and 5 shown, a difference of about one paper and in the harmless
+direction. **The collapse lives entirely in papers the gate declined.** What NR-43 found is
+the gate doing its job, visibly and well, exactly where the pool is hardest.
+
+#### The error, which is the part worth keeping
+
+**The judge cache is not a sample of what the product returns.** It is the union of every
+experiment run here — rank-stratified pool draws (`diagnose_ranker.py` judges ranks 151+ *by
+design*), off-domain source arms, ablations, second-judge draws. Across 117 run files, fewer
+than half the judged papers were ever shown by anything. Stratifying that by date measures
+**the sampling**, and NR-43 read it as measuring the system.
+
+**The tell was in NR-43's own tables.** July was simultaneously the *most-judged* month in the
+cache and the *least-shown* month in the digests. Over-judged and under-shown at once is the
+signature of a sampling artifact; it was on the page, and a retrieval claim was written on top
+of it instead.
+
+This is the C-33 family — generalising from a population that was never representative of the
+claim. C-33 was one source read as all sources; this is one convenience sample read as the
+product. The check that catches both is the same: *what is this a sample of?*
+
+**What survives from NR-43:** the contamination refutation entirely — it rests on two judges
+agreeing, not on which papers were sampled — and the pool-side observation that the freshest
+slice is the hardest (0.176 among never-shown, against 0.38–0.50 older).
+
+**Cost** $0. Pinned by `tests/test_fresh_slice_probe.py`.
+
+### The judge is not date-biased. The retrieval is. **[NR-43 — second half retracted, see C-35]**
 
 Stored data only — 4,019 cached GPT-5.5 verdicts and the 837 Claude Sonnet 5 verdicts P7 paid
 for. No LLM calls, no judge calls, no new protocol. `evals/judge_date_stratify.py`.
@@ -1208,6 +1256,16 @@ Rising volume with collapsing precision, concentrated in the freshest slice, is 
 that pays for recency looks like from downstream. **The freshest slice is where off-topic
 material enters the pool — and RepoRadar is a freshness product.** That is a retrieval defect
 sitting directly on the product's core claim, and it was found by a probe aimed at the judge.
+
+> **RETRACTED the same day by [C-35].** `w_recency` is **0.0** in every configuration this
+> project has measured, so the mechanism named above does not exist; and the effect is not in
+> the product at all. Of these 159 papers **only 11 were ever shown by any run — 6.9% against
+> 36–44% for every other period — and all 11 are actionable.** The collapse is in papers the
+> gate *declined*. The paragraph is kept because it is what the evidence looked like before
+> the check that should have preceded it, and because the second half of the sentence —
+> the freshest slice of the **pool** is the hardest — does survive: among never-shown papers
+> it scores 0.176 against 0.38–0.50. What does not survive is calling that a product defect.
+> Everything above this box, including the contamination refutation, is unaffected.
 
 #### The residual, recorded rather than buried
 
