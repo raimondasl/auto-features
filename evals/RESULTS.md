@@ -1144,6 +1144,65 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### A wider HyDE union doubles reach. Stage 1 of item 10 passes. **[NR-46]**
+
+$0 apart from one-time hypothesis generation (~$0.20). `evals/hyde_cut_reach.py`. NR-45 found
+164 of Opus 5's actionable picks in our own index at median rank 1,087 against a cut of 100.
+That says the union is too narrow. It does **not** say widening helps — **NR-11** recorded a
+wider pool meeting a near-binary gate and making the headline *worse* — so stage 1 asks the
+cheap question first, and asks it **without re-collecting a single pool**: a witness counts as
+reached at cut *K* if it is already pooled or its HyDE rank is below K.
+
+**Pre-registered before the run:** bar ≥ 0.25 at K = 1000, kill below 0.20.
+
+| | reach | vs baseline |
+|---|---|---|
+| pool as collected | 0.1654 | — |
+| **baseline: simulated at the shipped cut of 100** | **0.2231** | 0.0000 |
+| cut 400 | 0.3288 | +0.1057 |
+| **cut 1,000** | **0.4481** | **+0.2250** |
+| cut 5,000 | 0.6077 | +0.3846 |
+| cut 10,000 | 0.6712 | +0.4481 |
+
+**Passes at 0.4481 — nearly double the bar, +101% relative.** And it reaches the population the
+item exists for: `cli-v2-opus5@30`, the comparator source NR-45 traced, goes **0.202 → 0.424**.
+
+#### The baseline is the simulation at the shipped cut, and that correction is worth 0.058
+
+The first run compared cut 1,000 against the **collected pool** and reported +0.283. That is
+wrong: it bills a hypothesis redraw as if it were the widening. The tell was that the simulation
+at the *shipped* cut did not reproduce the shipped pool — 0.223 against 0.165.
+
+Two explanations were checked rather than one chosen. **Index drift is excluded**: the shards
+were last written 2026-08-06 and the pool collected 2026-08-20. **"Old versus new hypotheses" is
+excluded**: the excess is uniform at 6.0% in cases whose hypotheses were cached and 5.4% in the
+seventeen generated today — a draw effect, not a vintage effect. `rr_hyde_hypotheses` is a
+POOL_FLAG precisely because hypotheses are LLM output regenerated per collection.
+
+So the honest comparison holds hypotheses fixed and moves only the cut: **+0.225**.
+
+**A free result fell out of the correction.** Redrawing hypotheses at the same cut is worth
+**+0.058 reach** on its own — C-7's rule ("a single draw's level is not a property of the
+method") reaching HyDE's hypothesis generator, which this project had not measured. It is also
+an operational constraint on the paid run: both arms must share one pinned hypothesis set, or
+the draw swamps the effect.
+
+#### A ceiling of 0.7654 bounds everything above
+
+**121 of the 122 witnesses no cut reaches are non-arXiv ids.** A dense index of arXiv abstracts
+cannot return a Europe PMC or OpenAlex paper however wide the cut. So cut 10,000's 0.6712 is
+**87.7% of what this channel can ever reach**, not 67% of the witness set — and the remaining
+gap is the non-arXiv population that P24/P25 already closed on net@2 grounds.
+
+#### What it does not license
+
+Reach is a lower bound on retrieval and says nothing about net@2. The simulation adds papers
+HyDE would have returned; it cannot model the ranker renormalising over a 10× pool, or
+`gate_depth` still showing the gate only its top 50. That is exactly where NR-11's damage lived,
+and it is what the paid arm is for.
+
+**Cost** $0 + ~$0.20 of hypothesis generation. Pinned by `tests/test_hyde_cut_reach.py`.
+
 ### Opus 5's papers die in our queries, one rank tier below the cut. **[NR-45, opens item 10]**
 
 $0 — stored picks, stored index, stored pools, stored runs. `evals/opus5_funnel.py`. P26 left
