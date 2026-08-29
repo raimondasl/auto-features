@@ -450,10 +450,16 @@ titles. Among shown papers, 4 of 17 non-actionable have none against 1 of 51 act
 no abstract is not irrelevant, it is **unmeasured**, and the product already takes the opposite
 stance one stage over: *"a paper whose rescore call fails is omitted, never scored."*
 
-**Open, small, and not a source strategy:** an evidence-sufficiency guard so the gate declines
-what it cannot read. It is a **no-op on Europe PMC** (100% coverage — the only net-positive
-source) and moves the OpenAlex arm only −0.76 → −0.57, so it is worth doing as a correctness
-fix and not as a way to make a source pay. Needs a no-regression check, not a benchmark win.
+**SHIPPED 2026-08-28** — `src/reporadar/evidence.py`, used by both LLM stages. Neither the gate
+nor the fine-scale rescore will score a paper with no abstract; both report what they skipped.
+Four boundaries, each pinned: **absence not brevity** (no character threshold — that would be
+tuning against net@2 through a back door), **no backfill** (a skip shortens the batch rather
+than pulling the next paper up, keeping the change a pure removal), **a skip is not a failed
+call** (`enough_scored` counts attempts, so the pipeline partitions the band before passing a
+denominator — otherwise an abstract-poor band reads as an outage and abandons the rescore), and
+**not configurable** (a flag whose off-position restores "score what you cannot read" is a
+footgun). No published number moves: every run to date is at ~100% coverage, so the guard is a
+no-op on all of them. It shipped on the argument, not on a benchmark win.
 
 **What would reopen the filter item:** a genuinely better discriminator. The oracle ceiling —
 perfect discrimination, zero displacement — is **+1.38 over the control on OpenAlex**, which

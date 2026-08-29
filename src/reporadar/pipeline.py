@@ -766,6 +766,7 @@ def _triage(
     if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude"):
         report.info(f"Triaging top {cfg.triage.top_k} papers for actionable relevance...")
         try:
+            from reporadar.evidence import partition_by_evidence
             from reporadar.triage import triage_papers
 
             papers_by_id = {p["arxiv_id"]: p for p in papers}
@@ -774,8 +775,19 @@ def _triage(
                 for s in scores[: cfg.triage.top_k]
                 if s["arxiv_id"] in papers_by_id
             ]
+            # NR-42: papers with no abstract are dropped here rather than scored on their
+            # titles. Deliberately WITHOUT backfilling the freed budget from further down
+            # the ranking -- that would change which papers the gate sees, which is a
+            # separate decision with its own measurement, and this change is a pure
+            # removal so its effect is readable.
+            readable, unreadable = partition_by_evidence(top_papers)
+            if unreadable:
+                report.info(
+                    f"  {len(unreadable)} of {len(top_papers)} paper(s) have no abstract "
+                    f"and cannot be scored; skipping them."
+                )
             llm_scores = triage_papers(
-                top_papers, repo_profile, cfg.suggestions, top_k=cfg.triage.top_k
+                readable, repo_profile, cfg.suggestions, top_k=cfg.triage.top_k
             )
             if llm_scores:
                 store.save_llm_scores(run_id, llm_scores)
@@ -833,6 +845,17 @@ def _triage(
                     and pid in papers_by_id
                     and pid in showable
                 ]
+                # `enough_scored` asks what fraction of what we ATTEMPTED came back, and
+                # a paper with no abstract is never attempted [NR-42]. Passing `len(band)`
+                # would count deliberate skips as failures and could abandon the whole
+                # stage over papers it correctly declined -- the void-as-null error one
+                # line below the guard that exists to prevent it.
+                band, unreadable = partition_by_evidence(band)
+                if unreadable:
+                    report.info(
+                        f"  {len(unreadable)} band paper(s) have no abstract and are not "
+                        f"rescored; they stay out of Top Picks."
+                    )
                 if band:
                     report.info(f"  Rescoring {len(band)} band papers on the fine scale...")
                     fine = score_papers(band, repo_profile, cfg.triage.finescale)

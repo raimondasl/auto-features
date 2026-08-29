@@ -18,6 +18,7 @@ import logging
 import re
 from typing import Any
 
+from reporadar.evidence import partition_by_evidence
 from reporadar.llm_client import LLMError, complete
 from reporadar.profiler import RepoProfile
 
@@ -177,11 +178,30 @@ def triage_papers(
     tiering treats "couldn't judge" as "not a confident Top Pick", not as a
     confident rejection.
 
+    **A paper with no abstract is not scored either, for the same reason [NR-42].** The
+    prompt describes a candidate by its title and `abstract[:1500]`; with the abstract
+    missing the model is answering about a title, and it does answer — 26.5% of OpenAlex
+    candidates arrive this way against 0 of 17,511 from Europe PMC, and the ones that reached
+    digests were disproportionately the non-actionable ones. Skipping is the same policy as
+    for a failed call, applied one step earlier: the difference is only that this absence is
+    knowable before spending the call rather than after.
+
     *summary* is passed to every paper's prompt, so the one repo-summarisation call is
     amortised across the whole batch rather than repeated per paper.
     """
     out: dict[str, dict[str, Any]] = {}
-    for paper in papers[:top_k]:
+    scoreable, skipped = partition_by_evidence(list(papers[:top_k]))
+    if skipped:
+        # Loud, not silent. A guard that shortens a list without saying so is how a stage
+        # stops running and nobody notices (C-25's six weeks).
+        logger.info(
+            "Triage skipped %d of %d paper(s) with no abstract: %s",
+            len(skipped),
+            len(papers[:top_k]),
+            ", ".join(str(p.get("arxiv_id")) for p in skipped[:5])
+            + ("..." if len(skipped) > 5 else ""),
+        )
+    for paper in scoreable:
         arxiv_id = paper.get("arxiv_id")
         if not arxiv_id:
             continue
