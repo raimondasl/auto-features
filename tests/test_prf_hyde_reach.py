@@ -5,12 +5,18 @@ can: does a feedback-seeded second round of hypotheses **aim better at the same 
 budget**? Budget-matched by construction, because NR-47 and NR-48 had just spent both
 volume levers and an unmatched test would have re-run them under a new name.
 
-| arm | reach | |
-|---|---|---|
-| round 1 @ 50 | 0.1962 | |
-| **round 1 @ 100 — baseline** | **0.2231** | the pre-registered bar |
-| **round 1 @ 50 ∪ round 2 @ 50** | **0.2288** | **+0.0057 — clears it** |
-| round 1 @ 100 ∪ round 2 @ 100 | 0.2712 | reported, never the criterion |
+| arm | slots | reach | |
+|---|---|---|---|
+| round 1 @ 50 | 200 | 0.1962 | |
+| **round 1 @ 100 — baseline** | **400** | **0.2231** | the pre-registered bar |
+| **round 1 @ 50 ∪ round 2 @ 50** | **400** | **0.2288** | **+0.0057 — clears it** |
+| **round 1 @ 200** | **800** | **0.2692** | |
+| round 1 @ 100 ∪ round 2 @ 100 | 800 | 0.2712 | **+0.0019 over the line above** |
+
+**The null holds at two independent budget points.** At 400 slots the union beats round 1 by
+three witnesses (*p* = 0.68); at 800 slots it beats round 1 @ 200 by **one** (18 gained, 17
+lost, *p* = 1.0000). The unequal arm's 0.2712 was the one encouraging number in the original
+table and it was **entirely depth** — round 1 alone reaches 0.2692 for the same slots.
 
 **The pass is refused, and that is the finding.** +0.0057 is **three witnesses of 520**, at
 McNemar p = 0.68 on 13 gained against 10 lost. NR-46 measured a plain hypothesis *redraw* —
@@ -113,6 +119,32 @@ class TestThePassWasRefused:
         why = artifact["verdict"]["the_bar_was_underspecified"]
         assert "minimum effect size" in why
         assert "refused" in why
+
+
+class TestTheNullHoldsAtASecondBudgetPoint:
+    """The unequal arm was the one number in the first table that looked like something. Its
+    own budget match — round 1 alone at 200, same ~800 slots — reaches 0.2692 against 0.2712.
+    Whatever the second round was adding there, depth adds too, and adds it for free."""
+
+    def test_round1_at_200_matches_the_unequal_union(self, artifact):
+        b = artifact["second_budget_point"]
+        assert b["slots"] == 800
+        assert b["round1_at_200"] == 0.2692
+        assert b["delta"] <= 0.002
+
+    def test_and_this_one_does_not_resolve_at_all(self, artifact):
+        """18 gained against 17 lost. p = 1.0000 is as null as a sign test gets."""
+        b = artifact["second_budget_point"]
+        assert b["gained"] == 18
+        assert b["lost"] == 17
+        assert b["mcnemar_exact_p"] == 1.0
+
+    def test_both_budget_points_are_recorded_in_the_verdict(self, artifact):
+        """One null is a result; two at different budgets is the same result twice, which is
+        what makes refusing the pass straightforward rather than a judgement call."""
+        n = artifact["verdict"]["null_at_two_independent_budget_points"]
+        assert set(n) == {"400_slots", "800_slots"}
+        assert all(v["mcnemar_p"] > 0.05 for v in n.values())
 
 
 class TestWhatTheReachNumberHides:

@@ -286,6 +286,9 @@ def main() -> int:
     matched = reach(lambda a, b: under(a, SPLIT_CUT) or under(b, SPLIT_CUT))
     r1_only_50 = reach(lambda a, _b: under(a, SPLIT_CUT))
     unequal = reach(lambda a, b: under(a, BASELINE_CUT) or under(b, BASELINE_CUT))
+    # The unequal arm spends ~800 slots. So does round 1 at 200 -- which makes THAT its budget
+    # match, and the honest test of whether its larger number is round 2 or merely depth.
+    r1_only_200 = reach(lambda a, _b: under(a, 2 * BASELINE_CUT))
 
     # ── Is +0.0057 a result? The reach table alone cannot say, so these decide it. ──────
     fresh = [r for r in rows if not r[3]]  # not already in the frozen pool
@@ -336,6 +339,7 @@ def main() -> int:
             "round1_at_50": r1_only_50,
             "round1_at_100_BASELINE": baseline,
             "budget_matched_50_plus_50": matched,
+            "round1_at_200": r1_only_200,
             "unequal_100_plus_100_not_the_criterion": unequal,
         },
     }
@@ -356,6 +360,23 @@ def main() -> int:
             if gained
             else None
         ),
+    }
+    g2 = [r for r in fresh if (under(r[4], 100) or under(r[5], 100)) and not under(r[4], 200)]
+    l2 = [r for r in fresh if under(r[4], 200) and not (under(r[4], 100) or under(r[5], 100))]
+    out["second_budget_point"] = {
+        "_comment": (
+            "The unequal arm's 0.2712 looked like the one encouraging number in the table. It "
+            "is not: at its OWN budget match -- round 1 alone at 200, same ~800 slots -- round "
+            "1 reaches 0.2692. The whole apparent gain was depth. Two independent budget "
+            "points now say the same thing, and this one says it at p = 1.00."
+        ),
+        "slots": 800,
+        "round1_at_200": r1_only_200["p"],
+        "round1_100_union_round2_100": unequal["p"],
+        "delta": round(unequal["p"] - r1_only_200["p"], 4),
+        "gained": len(g2),
+        "lost": len(l2),
+        "mcnemar_exact_p": round(float(binomtest(len(g2), len(g2) + len(l2), 0.5).pvalue), 4),
     }
     out["reaches_what_width_cannot"] = {
         "_comment": (
@@ -385,6 +406,10 @@ def main() -> int:
         "redraw_noise_floor": 0.0577,
         "delta_vs_noise_floor": round((matched["p"] - baseline["p"]) / 0.0577, 2),
         "result_is_null": True,
+        "null_at_two_independent_budget_points": {
+            "400_slots": {"delta": 0.0057, "mcnemar_p": 0.678},
+            "800_slots": {"delta": 0.0019, "mcnemar_p": 1.0},
+        },
         "the_bar_was_underspecified": (
             "It named a threshold and no minimum effect size, so a null cleared it by three "
             "witnesses of 520. NR-46 measured a plain hypothesis REDRAW -- same cut, same "

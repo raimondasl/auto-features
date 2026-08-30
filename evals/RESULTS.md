@@ -1155,12 +1155,13 @@ so testing round-1@100 against round-1@100 + round-2@100 would have re-run them 
 The question a second round has to answer is whether it *aims* better, not whether it fetches
 more:
 
-| arm | reach | |
-|---|---|---|
-| round 1 @ 50 | 0.1962 | |
-| **round 1 @ 100 — the pre-registered baseline** | **0.2231** | ~400 candidate slots |
-| **round 1 @ 50 ∪ round 2 @ 50** | **0.2288** | ~400 candidate slots — **clears the bar** |
-| round 1 @ 100 ∪ round 2 @ 100 | 0.2712 | reported; never the criterion |
+| arm | slots | reach | |
+|---|---|---|---|
+| round 1 @ 50 | 200 | 0.1962 | |
+| **round 1 @ 100 — the pre-registered baseline** | **400** | **0.2231** | |
+| **round 1 @ 50 ∪ round 2 @ 50** | **400** | **0.2288** | **clears the bar** |
+| **round 1 @ 200** | **800** | **0.2692** | |
+| round 1 @ 100 ∪ round 2 @ 100 | 800 | 0.2712 | **+0.0019 over the line above** |
 
 **The pass is refused, and that refusal is the result.** +0.0057 is **three witnesses out of
 520**, at McNemar *p* = 0.68 on 13 gained against 10 lost. NR-46 measured a plain hypothesis
@@ -1170,6 +1171,22 @@ the noise floor of the procedure it modifies.
 **The bar named a threshold and no minimum effect size, so a null cleared it.** That is a defect
 in the pre-registration and it is recorded as one rather than quietly repaired. A stage-1 gate
 exists to license spending; this does not license any.
+
+#### The null repeats at a second budget point
+
+The unequal arm's 0.2712 was the one encouraging number in the first version of this table, and
+**it was entirely depth.** Its budget match is round 1 alone at 200 — the same ~800 slots — which
+reaches **0.2692**. The union beats it by **one witness**, 18 gained against 17 lost, **McNemar
+*p* = 1.0000.**
+
+So the second round adds nothing over simply looking deeper, at **400 slots** (+3 witnesses,
+*p* = 0.68) and again at **800 slots** (+1 witness, *p* = 1.00). One null is a result; the same
+null at two budgets is what makes refusing the pass a matter of arithmetic rather than judgement.
+
+**A caveat that keeps the next question open:** reach is measured over 520 witnesses, while the
+pools differ across their whole contents. At 800 slots the two arms reach near-identical totals
+through **different papers** — 18 in, 17 out. A reach null is not a pool-equivalence proof, and
+net@2 is the metric that would settle it.
 
 #### Two things the reach number hides
 
