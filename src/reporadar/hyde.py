@@ -418,6 +418,7 @@ def discover(
     verify: bool = True,
     on_progress: Any = None,
     goal: str | None = None,
+    hypotheses: list[str] | None = None,
 ) -> list[str]:
     """arXiv ids for this repository, discovered offline against the dense index.
 
@@ -425,14 +426,26 @@ def discover(
     that does not reproduce the index — rather than returning an empty list, because a
     caller cannot tell "found nothing" from "was never able to look" and would quietly
     degrade to the keyword-only path that reaches 0/24.
+
+    *hypotheses*, when supplied, are searched instead of generating fresh ones. The product
+    never passes it; it exists because the generation step is a **draw**, and NR-46 measured
+    what that draw is worth: two sets from the same generator over the same repositories
+    differ by **+0.058 witness reach at an identical cut**. Any experiment varying something
+    else about HyDE — the cut, the index, the number of hypotheses — has to hold the draw
+    fixed or the draw swamps the effect, the way C-7's single-draw warning applies everywhere
+    else in this project. Nothing about the shipped path changes: omit it and generation runs
+    exactly as before.
     """
     shards = index_shards(index_dir)
     if not shards:
         raise HydeError(f"no HyDE index in {index_dir} — run `rr sync-index` first")
 
-    if on_progress:
-        on_progress(f"writing {n_hypotheses} hypothesis abstracts...")
-    hypotheses = generate_hypotheses(profile, llm_cfg, n=n_hypotheses, goal=goal)
+    if hypotheses is None:
+        if on_progress:
+            on_progress(f"writing {n_hypotheses} hypothesis abstracts...")
+        hypotheses = generate_hypotheses(profile, llm_cfg, n=n_hypotheses, goal=goal)
+    elif on_progress:
+        on_progress(f"using {len(hypotheses)} pinned hypothesis abstracts...")
 
     if on_progress:
         on_progress(f"loading {model_name}...")

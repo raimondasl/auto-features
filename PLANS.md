@@ -73,10 +73,9 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 10** — the funnel [NR-45] reopened an evidence-led direction, with its
-cheap/expensive fork already resolved and a free stage-1 evaluator. Items 1-4 are answered or
-built, 6 and 9 closed negative, and item 5's remainder is conditional on a repo-side proposal
-that has not appeared.
+**Currently first: item 13** — NR-47 closed item 10 negative but its diagnostic left exactly one
+branch open, and the pools that arm needs are already collected. Items 1-4 are answered or built;
+6, 9 and 10 closed negative; item 5's remainder is conditional on a proposal that has not appeared.
 
 ### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
@@ -706,7 +705,7 @@ second is the project's oldest known obstacle. `evals/topic_community_probe.py`,
   labelled headers. Cosmetic, cannot touch net@2 by construction; if done, assert
   digest-set equality in tests.
 
-### 10. Widen the HyDE union — the first evidence-led item in a while [NR-45]
+### 10. Widen the HyDE union — CLOSED NEGATIVE 2026-08-30 [NR-47]
 
 **Measured, not guessed.** Of Opus 5's 302 judged-actionable picks, **164 (54.3%) sit in our
 own 3.1M dense index and never reach our candidate pool**, against **one** paper outside the
@@ -755,17 +754,53 @@ and that alone is worth **+0.058** — so **both arms of the paid run must share
 hypothesis set** (`rr_hyde_hypotheses`), or the draw swamps the effect. And the ceiling says
 the remaining gap is the non-arXiv population, which P24/P25 already closed.
 
-**STAGE 2 — the paid run, ~$25, not yet run.** Two same-day arms over 37 cases, everything
-fixed but `hyde.top_k`: **100 (control) against 1000 (treatment)**, one pinned hypothesis set
-shared by both, fresh pools (POOL_FLAGS forbids reuse), judged, reported at the shipped
-`digest_window` 15.
+**STAGE 2 RAN, AND THE KILL CONDITION FIRED [NR-47].** ~$25, two same-day arms over 37 cases,
+`hyde.top_k` 100 against 1000, one pinned hypothesis set shared by both.
 
-**Kill condition: net@2 must not fall.** Given NR-11 that is a live outcome, and the run carries
-a **$0 diagnostic that distinguishes the two ways it could fail**: for each newly-reached paper,
-its rank in the ranked pool. If the new papers land outside the gate's top-50 input, the gate
-never saw them and `gate_depth` is the follow-up arm; if they land inside it and are rejected,
-the papers are simply worse and the item closes. One variable moves per arm — `gate_depth` is
-not touched in the same run.
+| cohort | control | treatment | paired |
+|---|---|---|---|
+| **all 37** | +5.51 | +4.73 | **−0.78** CI [−1.59, −0.03], 13w/17l/7t |
+| core 25 | +5.92 | +5.40 | −0.52 |
+| bio 6 | +4.67 | +4.17 | −0.50 |
+| matsci 6 | +4.67 | +2.50 | −2.17 |
+
+Reach doubled exactly as stage 1 simulated, and bought nothing. **The direction is closed: do
+not widen the retrieval cut.**
+
+**But the diagnostic did its job, and it points somewhere specific.** The papers the wider cut
+adds are *as good as the ones already there* — precision **0.882 against 0.878**. What went
+wrong is that a **5.9× larger pool produced a SMALLER digest**, 8.3 → 7.4 papers per case.
+Splitting the −0.78 exactly: **−0.609 from showing 32 fewer papers (78%)**, −0.175 from the ones
+shown being slightly worse.
+
+A candidate set six times larger meets a gate that still reads `gate_depth` **50** of it. That is
+the *"the gate never saw them"* branch, and it opens **item 13** rather than closing the
+direction outright.
+
+### 13. Widen the gate's input, not the retrieval cut — NEW, and the only branch NR-47 left open
+
+**NR-47 is the whole argument.** Widening `hyde.top_k` 100 → 1000 cost −0.78 net@2, and the
+diagnostic says why: the added papers were **fine** (precision 0.882 against 0.878 already
+there), but the digest **shrank** 8.3 → 7.4 per case from a pool 5.9× larger. 78% of the loss is
+showing fewer papers, not worse ones. `gate_depth` stayed at 50 while the candidate set grew six
+times, so the extra reach arrived as dilution.
+
+**The arm:** hold `hyde.top_k` at 1000 and move `gate_depth` 50 → 150, against the *same*
+pinned hypotheses and the treatment pools **already collected** for NR-47. `gate_depth` is not a
+POOL_FLAG, so `pool-cut1000` is reusable — the collection is already paid for and this costs
+gate calls plus judging, not a fresh pool.
+
+**Pre-registered:** the digest should return to at least its control size (≥ 8.3/case) and net@2
+should recover to ≥ the control's +5.51. **Kill: if the digest recovers but net@2 does not, the
+newly-admitted papers are worse than the ones they displace and the whole direction closes** —
+that is the second branch of NR-47's fork, and it would generalise NR-11 from "wider pool" to
+"wider pool at any gate depth".
+
+**The honest prior is weak.** §6.1 records that gate-side levers were exhausted: raising the
+admission threshold, substituting a stronger gate model (metric-identical, twice), a rubric
+rewrite that was reverted the same day. Depth was not among those, and NR-47 is the first
+measurement pointing at it — but this is the fourth pool-expansion attempt in a project whose
+first three were washes, and it should be run in that spirit.
 
 ### 12. Iterative retrieval (PRF-HyDE) — the structural difference, sequenced behind item 10
 
