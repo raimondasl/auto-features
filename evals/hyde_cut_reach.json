@@ -1,0 +1,420 @@
+{
+ "_comment": "NR-46 / item 10 stage 1: witness reach simulated at wider HyDE cuts, without re-collecting any pool. A witness counts as reached at cut K if it is already in the frozen pool or its HyDE rank is below K. $0 apart from the one-time hypothesis generation. Derived by evals/hyde_cut_reach.py; pinned by tests/test_hyde_cut_reach.py. This bounds reach from BELOW and decides only whether a paid arm is worth buying -- it cannot model the ranker renormalising or gate_depth still showing the gate 50 of a larger pool, which is where NR-11's damage lived.",
+ "pre_registered": {
+  "bar_at_1000": 0.25,
+  "kill_at_1000": 0.2,
+  "baseline_reach": 0.2231,
+  "written_before_running": true
+ },
+ "pool": "pool-cohort3",
+ "shipped_cut": 100,
+ "cases_with_hypotheses": 37,
+ "cases_measured": 37,
+ "witnesses": {
+  "total_non_self": 520,
+  "reachable_by_hyde": 398,
+  "unreachable_by_hyde": 122,
+  "unreachable_non_arxiv": 121,
+  "unreachable_arxiv_not_indexed": 1,
+  "hyde_ceiling": 0.7654,
+  "_comment": "The ceiling is what widening cannot pass: a dense index of arXiv abstracts cannot return a non-arXiv paper at any cut, and 121 of the 122 unreachable witnesses are DOIs. Reach at cut 10,000 is 87.7% OF THIS CEILING, not of 1.0."
+ },
+ "pool_as_collected": {
+  "n": 520,
+  "reached": 86,
+  "p": 0.1654,
+  "by_source": {
+   "adoption": {
+    "n": 19,
+    "reached": 1,
+    "p": 0.0526
+   },
+   "api": {
+    "n": 50,
+    "reached": 15,
+    "p": 0.3
+   },
+   "cli": {
+    "n": 76,
+    "reached": 16,
+    "p": 0.2105
+   },
+   "cli-redraw": {
+    "n": 92,
+    "reached": 22,
+    "p": 0.2391
+   },
+   "cli-redraw@30": {
+    "n": 10,
+    "reached": 1,
+    "p": 0.1
+   },
+   "cli-v2-opus5@30": {
+    "n": 302,
+    "reached": 43,
+    "p": 0.1424
+   },
+   "cli-v2@30": {
+    "n": 155,
+    "reached": 16,
+    "p": 0.1032
+   }
+  }
+ },
+ "baseline_simulated_at_shipped_cut": {
+  "n": 520,
+  "reached": 116,
+  "p": 0.2231,
+  "by_source": {
+   "adoption": {
+    "n": 19,
+    "reached": 1,
+    "p": 0.0526
+   },
+   "api": {
+    "n": 50,
+    "reached": 19,
+    "p": 0.38
+   },
+   "cli": {
+    "n": 76,
+    "reached": 23,
+    "p": 0.3026
+   },
+   "cli-redraw": {
+    "n": 92,
+    "reached": 28,
+    "p": 0.3043
+   },
+   "cli-redraw@30": {
+    "n": 10,
+    "reached": 3,
+    "p": 0.3
+   },
+   "cli-v2-opus5@30": {
+    "n": 302,
+    "reached": 61,
+    "p": 0.202
+   },
+   "cli-v2@30": {
+    "n": 155,
+    "reached": 23,
+    "p": 0.1484
+   }
+  }
+ },
+ "hypothesis_draw_effect": {
+  "_comment": "Simulated reach at the shipped cut minus the pool's actual reach. Same cut, different hypothesis draw, so this is what redrawing hypotheses is worth -- measured by accident and worth its own line. C-7's rule applies: a single draw's level is not a property of the method.",
+  "actual": 0.1654,
+  "simulated_same_cut": 0.2231,
+  "delta": 0.0577
+ },
+ "curve": {
+  "100": {
+   "n": 520,
+   "reached": 116,
+   "p": 0.2231,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 1,
+     "p": 0.0526
+    },
+    "api": {
+     "n": 50,
+     "reached": 19,
+     "p": 0.38
+    },
+    "cli": {
+     "n": 76,
+     "reached": 23,
+     "p": 0.3026
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 28,
+     "p": 0.3043
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 3,
+     "p": 0.3
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 61,
+     "p": 0.202
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 23,
+     "p": 0.1484
+    }
+   }
+  },
+  "200": {
+   "n": 520,
+   "reached": 140,
+   "p": 0.2692,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 3,
+     "p": 0.1579
+    },
+    "api": {
+     "n": 50,
+     "reached": 23,
+     "p": 0.46
+    },
+    "cli": {
+     "n": 76,
+     "reached": 30,
+     "p": 0.3947
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 34,
+     "p": 0.3696
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 5,
+     "p": 0.5
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 75,
+     "p": 0.2483
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 31,
+     "p": 0.2
+    }
+   }
+  },
+  "400": {
+   "n": 520,
+   "reached": 171,
+   "p": 0.3288,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 4,
+     "p": 0.2105
+    },
+    "api": {
+     "n": 50,
+     "reached": 29,
+     "p": 0.58
+    },
+    "cli": {
+     "n": 76,
+     "reached": 35,
+     "p": 0.4605
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 43,
+     "p": 0.4674
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 8,
+     "p": 0.8
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 93,
+     "p": 0.3079
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 42,
+     "p": 0.271
+    }
+   }
+  },
+  "1000": {
+   "n": 520,
+   "reached": 233,
+   "p": 0.4481,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 5,
+     "p": 0.2632
+    },
+    "api": {
+     "n": 50,
+     "reached": 36,
+     "p": 0.72
+    },
+    "cli": {
+     "n": 76,
+     "reached": 55,
+     "p": 0.7237
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 55,
+     "p": 0.5978
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 9,
+     "p": 0.9
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 128,
+     "p": 0.4238
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 61,
+     "p": 0.3935
+    }
+   }
+  },
+  "2000": {
+   "n": 520,
+   "reached": 267,
+   "p": 0.5135,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 7,
+     "p": 0.3684
+    },
+    "api": {
+     "n": 50,
+     "reached": 39,
+     "p": 0.78
+    },
+    "cli": {
+     "n": 76,
+     "reached": 60,
+     "p": 0.7895
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 62,
+     "p": 0.6739
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 9,
+     "p": 0.9
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 150,
+     "p": 0.4967
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 73,
+     "p": 0.471
+    }
+   }
+  },
+  "5000": {
+   "n": 520,
+   "reached": 316,
+   "p": 0.6077,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 10,
+     "p": 0.5263
+    },
+    "api": {
+     "n": 50,
+     "reached": 46,
+     "p": 0.92
+    },
+    "cli": {
+     "n": 76,
+     "reached": 71,
+     "p": 0.9342
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 71,
+     "p": 0.7717
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 9,
+     "p": 0.9
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 171,
+     "p": 0.5662
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 90,
+     "p": 0.5806
+    }
+   }
+  },
+  "10000": {
+   "n": 520,
+   "reached": 349,
+   "p": 0.6712,
+   "by_source": {
+    "adoption": {
+     "n": 19,
+     "reached": 14,
+     "p": 0.7368
+    },
+    "api": {
+     "n": 50,
+     "reached": 48,
+     "p": 0.96
+    },
+    "cli": {
+     "n": 76,
+     "reached": 74,
+     "p": 0.9737
+    },
+    "cli-redraw": {
+     "n": 92,
+     "reached": 81,
+     "p": 0.8804
+    },
+    "cli-redraw@30": {
+     "n": 10,
+     "reached": 9,
+     "p": 0.9
+    },
+    "cli-v2-opus5@30": {
+     "n": 302,
+     "reached": 186,
+     "p": 0.6159
+    },
+    "cli-v2@30": {
+     "n": 155,
+     "reached": 96,
+     "p": 0.6194
+    }
+   }
+  }
+ },
+ "verdict": {
+  "reach_at_1000": 0.4481,
+  "passes_bar": true,
+  "killed": false,
+  "marginal": false,
+  "baseline": 0.2231,
+  "baseline_is": "simulated at the shipped cut, same hypotheses \u2014 not the collected pool",
+  "hyde_ceiling": 0.7654,
+  "share_of_ceiling_at_1000": 0.5855,
+  "absolute_gain": 0.225,
+  "relative_gain": 1.009
+ }
+}

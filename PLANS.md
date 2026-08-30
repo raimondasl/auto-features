@@ -734,22 +734,38 @@ gate admitted (§8.2's composition finding). Widening `top_k` puts 4,000 candida
 were, and `gate_depth` still shows the gate only 50 of them — so more reach can arrive as more
 dilution.
 
-**Stage 1 is free.** `w_embedding`/`rr_pool` are POOL_FLAGS, so a frozen pool cannot be reused —
-but **witness reach can be recomputed at $0** over the 520 non-self witnesses, where
-`cli-v2-opus5@30` currently sits at **0.142** and pooled non-self at 0.165. Widen the cut,
-re-derive the pools, read reach. **Pre-registered:** reach should rise materially at
-`top_k=1000`; if it does not, the rank probe's premise is wrong and the item dies there for
-nothing.
+**STAGE 1 PASSED 2026-08-29 [NR-46].** Simulated without re-collecting any pool — a witness is
+reached at cut *K* if already pooled or its HyDE rank is below K. Pre-registered bar was ≥ 0.25
+at K = 1000, kill below 0.20:
 
-**Stage 2 costs a Tier B run (~$25)** and only happens if stage 1 passes. **Kill condition:**
-net@2 must not fall. Given NR-11, falling is a live outcome, and `digest_window` interacts —
-report at the shipped 15.
+| | reach |
+|---|---|
+| baseline, simulated at the shipped cut of 100 | 0.2231 |
+| **cut 1,000** | **0.4481** (+0.225, **+101%**) |
+| cut 5,000 | 0.6077 |
+| ceiling (121 of 122 unreachable witnesses are non-arXiv) | 0.7654 |
 
-**Sequencing note.** Ranks were computed for 104 of the 164 — the cases whose hypotheses the
-replication froze. **None of the six materials cases is among them**, and matsci is the cohort
-we lose outright (−3.17) and where 61.8% of losses are this exact stage. Generating six
-hypothesis sets is one LLM call each; do that before stage 1 so the arm covers the cohort it
-most needs to.
+`cli-v2-opus5@30` — the comparator source NR-45 traced — goes **0.202 → 0.424**, so the widening
+reaches the population the item exists for. All 37 cases now have hypotheses, including the six
+materials ones generated for this.
+
+**Two things stage 1 changed about stage 2.** The baseline had to become the simulation at the
+shipped cut rather than the collected pool, because the pool used a different hypothesis draw
+and that alone is worth **+0.058** — so **both arms of the paid run must share one pinned
+hypothesis set** (`rr_hyde_hypotheses`), or the draw swamps the effect. And the ceiling says
+the remaining gap is the non-arXiv population, which P24/P25 already closed.
+
+**STAGE 2 — the paid run, ~$25, not yet run.** Two same-day arms over 37 cases, everything
+fixed but `hyde.top_k`: **100 (control) against 1000 (treatment)**, one pinned hypothesis set
+shared by both, fresh pools (POOL_FLAGS forbids reuse), judged, reported at the shipped
+`digest_window` 15.
+
+**Kill condition: net@2 must not fall.** Given NR-11 that is a live outcome, and the run carries
+a **$0 diagnostic that distinguishes the two ways it could fail**: for each newly-reached paper,
+its rank in the ranked pool. If the new papers land outside the gate's top-50 input, the gate
+never saw them and `gate_depth` is the follow-up arm; if they land inside it and are rejected,
+the papers are simply worse and the item closes. One variable moves per arm — `gate_depth` is
+not touched in the same run.
 
 ### 12. Iterative retrieval (PRF-HyDE) — the structural difference, sequenced behind item 10
 
