@@ -306,15 +306,33 @@ def _load_goals(path: str | None) -> dict[str, str] | None:
     return goals
 
 
-def _hyde_cfg(args: argparse.Namespace, goal: str | None = None) -> dict[str, Any] | None:
-    """The HyDE arm's settings, or None when the flag is off."""
+def _hyde_cfg(
+    args: argparse.Namespace, goal: str | None = None, case: str | None = None
+) -> dict[str, Any] | None:
+    """The HyDE arm's settings, or None when the flag is off.
+
+    *case* selects this repository's pinned hypotheses when `--rr-hyde-hypotheses-file` is
+    given. A case absent from that file falls back to generating, loudly: silently drawing
+    fresh ones for some cases and pinning others would produce an arm that is neither.
+    """
     if not args.rr_hyde:
         return None
+    pinned = None
+    if args.rr_hyde_hypotheses_file:
+        book = json.loads(Path(args.rr_hyde_hypotheses_file).read_text(encoding="utf-8"))
+        pinned = book.get(case) if case else None
+        if case and not pinned:
+            print(f"        !! no pinned hypotheses for {case!r}; generating fresh ones")
     return {
+        "pinned": pinned,
         "index_dir": Path(args.rr_hyde_index).expanduser(),
         "model": args.rr_triage_model,
         "n_hypotheses": args.rr_hyde_hypotheses,
         "top_k": args.rr_hyde_top_k,
+        # NR-46: hypothesis generation is a DRAW worth +0.058 witness reach at a fixed cut.
+        # An arm that varies `top_k` while each side draws its own hypotheses cannot tell the
+        # cut from the draw, so the two arms share one pinned set. Part of POOL_FLAGS.
+        "hypotheses_file": args.rr_hyde_hypotheses_file,
         "verify": not args.rr_hyde_skip_verify,
         "goal": goal,
     }
@@ -352,6 +370,7 @@ def _add_hyde_candidates(
             top_k=hyde_cfg["top_k"],
             verify=hyde_cfg["verify"],
             goal=hyde_cfg.get("goal"),
+            hypotheses=hyde_cfg.get("pinned"),
         )
     except Exception as exc:  # noqa: BLE001 — a degraded arm must be visible, not fatal
         print(f"        !! HyDE FAILED, continuing on the keyword pool alone: {exc}")
@@ -523,6 +542,7 @@ POOL_FLAGS = (
     "rr_hyde",
     "rr_hyde_index",
     "rr_hyde_hypotheses",
+    "rr_hyde_hypotheses_file",  # WHICH hypotheses, not just how many — NR-46
     "rr_hyde_top_k",
     "rr_triage_model",  # HyDE writes its hypotheses with this model
     "rr_bigrams",  # changes the query strings, therefore the pool
@@ -895,7 +915,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             args.sources,
             keys,
             all_time=args.rr_all_time,
-            hyde_cfg=_hyde_cfg(args, goal),
+            hyde_cfg=_hyde_cfg(args, goal, case=name),
             bigrams=args.rr_bigrams,
             scan_source=args.rr_scan_source,
             typed_anchors=args.rr_typed_anchors,
@@ -1301,6 +1321,14 @@ def main() -> int:
     )
     parser.add_argument("--rr-hyde-hypotheses", type=int, default=4)
     parser.add_argument("--rr-hyde-top-k", type=int, default=100)
+    parser.add_argument(
+        "--rr-hyde-hypotheses-file",
+        help=(
+            "JSON {case: [abstract, ...]}. Search these instead of generating fresh ones, so "
+            "two arms can differ in the cut alone. NR-46 measured a redraw at +0.058 witness "
+            "reach, which is a quarter of the effect a top_k arm is looking for."
+        ),
+    )
     parser.add_argument(
         "--rr-hyde-skip-verify",
         action="store_true",

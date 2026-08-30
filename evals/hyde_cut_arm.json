@@ -1,0 +1,313 @@
+{
+ "_comment": "NR-47 / item 10 stage 2: two same-day arms over 37 cases, everything fixed but hyde.top_k (100 against 1000), sharing ONE pinned hypothesis set because NR-46 measured a redraw at +0.058 reach. Derived by evals/freeze_hyde_cut_arm.py; pinned by tests/test_hyde_cut_arm.py. The pre-registered kill condition -- net@2 must not fall -- FIRES. The papers the wider cut adds are fine (precision 0.882 against 0.878 kept); the digest SHRANK from a pool 5.9x larger, which is NR-11's dilution mechanism observed rather than inferred.",
+ "arms": {
+  "control_top_k_100": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T034455Z.json",
+   "hyde_top_k": 100,
+   "hypotheses_file": "evals/.work/hyde_hypotheses_pinned.json",
+   "pinned_hypotheses": true
+  },
+  "treat_top_k_1000": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075259Z.json",
+   "hyde_top_k": 1000,
+   "hypotheses_file": "evals/.work/hyde_hypotheses_pinned.json",
+   "pinned_hypotheses": true
+  }
+ },
+ "repaired_case": {
+  "case": "bio-mdtraj",
+  "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075622Z.json",
+  "why": "Its control collection hit arXiv HTTP 429 after 10 attempts and 930s of throttle-waiting and fell back to a keyword-only pool with ZERO HyDE candidates. Paired against a treatment arm that had HyDE, its delta would have measured HyDE existing at all rather than the cut. Re-collected at identical flags once the throttle cleared, and spliced in rather than dropped."
+ },
+ "n_cases": 37,
+ "cohorts": {
+  "core25": {
+   "n_cases": 25,
+   "control_mean": 5.92,
+   "treatment_mean": 5.4,
+   "paired_delta": -0.52,
+   "ci95": [
+    -1.36,
+    0.28
+   ],
+   "wins": 10,
+   "losses": 9,
+   "ties": 6,
+   "sign_p": 1.0
+  },
+  "bio6": {
+   "n_cases": 6,
+   "control_mean": 4.67,
+   "treatment_mean": 4.17,
+   "paired_delta": -0.5,
+   "ci95": [
+    -1.33,
+    0.33
+   ],
+   "wins": 2,
+   "losses": 4,
+   "ties": 0,
+   "sign_p": 0.6875
+  },
+  "matsci6": {
+   "n_cases": 6,
+   "control_mean": 4.67,
+   "treatment_mean": 2.5,
+   "paired_delta": -2.17,
+   "ci95": [
+    -5.0,
+    0.67
+   ],
+   "wins": 1,
+   "losses": 4,
+   "ties": 1,
+   "sign_p": 0.375
+  },
+  "all37": {
+   "n_cases": 37,
+   "control_mean": 5.51,
+   "treatment_mean": 4.73,
+   "paired_delta": -0.78,
+   "ci95": [
+    -1.59,
+    -0.03
+   ],
+   "wins": 13,
+   "losses": 17,
+   "ties": 7,
+   "sign_p": 0.5847
+  }
+ },
+ "per_case": {
+  "ann": {
+   "control": 10,
+   "treatment": 7,
+   "delta": -3
+  },
+  "bio-align": {
+   "control": 2,
+   "treatment": 3,
+   "delta": 1
+  },
+  "bio-kmer": {
+   "control": 3,
+   "treatment": 1,
+   "delta": -2
+  },
+  "bio-mdsim": {
+   "control": 9,
+   "treatment": 8,
+   "delta": -1
+  },
+  "bio-mdtraj": {
+   "control": 3,
+   "treatment": 4,
+   "delta": 1
+  },
+  "bio-scvi": {
+   "control": 7,
+   "treatment": 6,
+   "delta": -1
+  },
+  "bio-singlecell": {
+   "control": 4,
+   "treatment": 3,
+   "delta": -1
+  },
+  "cli": {
+   "control": 0,
+   "treatment": 0,
+   "delta": 0
+  },
+  "columnar": {
+   "control": 7,
+   "treatment": 4,
+   "delta": -3
+  },
+  "compiler": {
+   "control": 1,
+   "treatment": 2,
+   "delta": 1
+  },
+  "crypto": {
+   "control": 3,
+   "treatment": 4,
+   "delta": 1
+  },
+  "cv": {
+   "control": 5,
+   "treatment": 6,
+   "delta": 1
+  },
+  "db": {
+   "control": 12,
+   "treatment": 13,
+   "delta": 1
+  },
+  "diffusion": {
+   "control": 15,
+   "treatment": 15,
+   "delta": 0
+  },
+  "encryption": {
+   "control": 1,
+   "treatment": 1,
+   "delta": 0
+  },
+  "graph": {
+   "control": 15,
+   "treatment": 11,
+   "delta": -4
+  },
+  "http": {
+   "control": 0,
+   "treatment": 0,
+   "delta": 0
+  },
+  "linter": {
+   "control": 0,
+   "treatment": 0,
+   "delta": 0
+  },
+  "llminfer": {
+   "control": 7,
+   "treatment": 3,
+   "delta": -4
+  },
+  "mat-chgpot": {
+   "control": 9,
+   "treatment": 3,
+   "delta": -6
+  },
+  "mat-descriptors": {
+   "control": 8,
+   "treatment": 6,
+   "delta": -2
+  },
+  "mat-featurize": {
+   "control": -1,
+   "treatment": -3,
+   "delta": -2
+  },
+  "mat-mlip": {
+   "control": 3,
+   "treatment": 7,
+   "delta": 4
+  },
+  "mat-phonon": {
+   "control": 6,
+   "treatment": -1,
+   "delta": -7
+  },
+  "mat-toolkit": {
+   "control": 3,
+   "treatment": 3,
+   "delta": 0
+  },
+  "numerics": {
+   "control": 6,
+   "treatment": 3,
+   "delta": -3
+  },
+  "peft": {
+   "control": 11,
+   "treatment": 12,
+   "delta": 1
+  },
+  "rag": {
+   "control": 7,
+   "treatment": 8,
+   "delta": 1
+  },
+  "rl": {
+   "control": 9,
+   "treatment": 12,
+   "delta": 3
+  },
+  "speech": {
+   "control": 6,
+   "treatment": 8,
+   "delta": 2
+  },
+  "storage": {
+   "control": 13,
+   "treatment": 12,
+   "delta": -1
+  },
+  "systems": {
+   "control": 2,
+   "treatment": 3,
+   "delta": 1
+  },
+  "thin-gnn": {
+   "control": 6,
+   "treatment": 5,
+   "delta": -1
+  },
+  "thin-kv": {
+   "control": 4,
+   "treatment": 0,
+   "delta": -4
+  },
+  "thin-lang": {
+   "control": -2,
+   "treatment": 0,
+   "delta": 2
+  },
+  "vectordb": {
+   "control": 10,
+   "treatment": 6,
+   "delta": -4
+  },
+  "webdev": {
+   "control": 0,
+   "treatment": 0,
+   "delta": 0
+  }
+ },
+ "diagnostic": {
+  "_comment": "The fork stage 1 pre-registered. Papers the wider cut ADDS are as good as the ones already there, so the loss is not bad material -- the digest simply got smaller from a pool 5.9x larger, which is the gate reading a fixed depth of a diluted ranking. That is the 'the gate never saw them' branch.",
+  "kept": {
+   "n": 164,
+   "precision": 0.878
+  },
+  "added": {
+   "n": 110,
+   "precision": 0.882,
+   "net2_per_case": 1.92
+  },
+  "dropped": {
+   "n": 142,
+   "precision": 0.901,
+   "net2_forgone_per_case": -2.7
+  },
+  "digest_size": {
+   "control": 8.3,
+   "treatment": 7.4
+  },
+  "loss_split": {
+   "_comment": "Exact: the two terms sum to the paired delta. Most of the loss is the digest shrinking, not the papers being worse -- which is what makes gate_depth the follow-up rather than closing the direction outright.",
+   "from_showing_fewer": -0.609,
+   "from_showing_worse": -0.175,
+   "sums_to_delta": -0.784,
+   "share_from_showing_fewer": 0.777,
+   "value_per_added_paper": 0.645,
+   "value_per_dropped_paper": 0.704
+  }
+ },
+ "pool_growth": {
+  "control_per_case": 572,
+  "treatment_per_case": 3358,
+  "factor": 5.9
+ },
+ "verdict": {
+  "pre_registered_kill": "net@2 must not fall",
+  "net2_fell": true,
+  "killed": true,
+  "ci_excludes_zero": true,
+  "sign_test_resolves": false,
+  "added_papers_are_good": true,
+  "digest_shrank": true,
+  "follow_up": "gate_depth \u2014 the added papers are good and the gate's window did not grow"
+ }
+}

@@ -1144,6 +1144,73 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The wider cut costs net@2 — and the reason is the gate, not the papers. **[NR-47, closes item 10]**
+
+The paid arm stage 1 licensed, ~$25. Two same-day arms over 37 cases, everything fixed but
+`hyde.top_k` — **100 against 1000** — sharing **one pinned hypothesis set**, because NR-46
+measured a hypothesis redraw at +0.058 reach and two arms drawing their own could not have told
+the cut from the draw. `hyde.discover` gained an optional `hypotheses=` for exactly that; the
+shipped path is untouched.
+
+**The pre-registered kill condition — "net@2 must not fall" — fires.**
+
+| cohort | control (100) | treatment (1000) | paired | |
+|---|---|---|---|---|
+| **all 37** | +5.51 | +4.73 | **−0.78** CI [−1.59, −0.03] | 13w/17l/7t, *p* = 0.58 |
+| core 25 | +5.92 | +5.40 | −0.52 | |
+| bio 6 | +4.67 | +4.17 | −0.50 | |
+| matsci 6 | +4.67 | +2.50 | **−2.17** | |
+
+Reported at its real strength: the bootstrap interval sits *just* below zero, the sign test does
+not resolve. A small consistent loss — and every cohort moves the same way, including matsci,
+the cohort NR-45 identified as losing 61.8% of its papers at precisely this stage.
+
+**Stage 1 was right about reach and it was not enough.** Reach doubled exactly as simulated
+(0.223 → 0.448) and bought nothing. That is the **fourth** pool expansion this project has
+measured as a wash or worse — NR-11, P4, and now this.
+
+#### The diagnostic is worth more than the headline, and it is not "the papers are bad"
+
+| | n | precision | net@2 |
+|---|---|---|---|
+| kept | 164 | 0.878 | |
+| **added** | 110 | **0.882** | **+1.92/case** |
+| **dropped** | 142 | 0.901 | **−2.70/case** |
+
+Digest **8.3 → 7.4 papers per case**, from a pool **5.9× larger** (572 → 3,358 candidates).
+
+**The papers the wider cut adds are indistinguishable in quality from the ones already there**
+— 0.882 against 0.878. Splitting the −0.78 exactly: **−0.609 from showing 32 fewer papers
+(78%)** and −0.175 from the ones it did show being slightly worse. The two terms sum to the
+delta by construction.
+
+A candidate set six times larger meets a gate that still reads `gate_depth` **50** of it, so the
+extra reach arrives as **dilution and fewer admissions**. That is NR-11's mechanism observed in
+the same run rather than inferred from a later one, and it is the *"the gate never saw them"*
+branch of the fork stage 1 pre-registered — which makes the follow-up specific rather than
+hopeful: **widen the gate's input, not the retrieval cut.**
+
+#### The case that had to be repaired first
+
+`bio-mdtraj`'s **control** collection hit arXiv HTTP 429 after 10 attempts and 930 s of
+throttle-waiting and fell back to a keyword-only pool — **zero HyDE candidates**. Paired against
+a treatment arm that had HyDE, its delta would have measured *HyDE existing at all* rather than
+the cut: the single largest confound available in a 37-case paired test.
+
+The harness caught it and said so — *"this arm is NOT a clean HyDE measurement"* — which is the
+degraded-arm design working. The case was re-collected at identical flags once the throttle
+cleared and spliced in. Dropping it was available and is worse: 36 of 37 with an unexplained gap
+invites the reader to wonder which one and why.
+
+> **A substring standing in for a fact the artifact already held.** The freeze script first
+> derived each arm's `top_k` as `100 if "100" in name else 1000` — and `"treat_top_k_1000"`
+> contains `"100"`, so the treatment arm was labelled 100. Caught by its own pinned test before
+> it reached a PR. The repair is not a better substring test: the frozen pool records
+> `rr_hyde_top_k` in its `pool_config`, so the script now asks the artifact instead of guessing
+> from a filename.
+
+**Cost** ~$25. Pinned by `tests/test_hyde_cut_arm.py`.
+
 ### A wider HyDE union doubles reach. Stage 1 of item 10 passes. **[NR-46]**
 
 $0 apart from one-time hypothesis generation (~$0.20). `evals/hyde_cut_reach.py`. NR-45 found
