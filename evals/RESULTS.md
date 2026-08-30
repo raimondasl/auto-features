@@ -1144,6 +1144,70 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### A second HyDE round clears the bar, and the bar was wrong. **[NR-49, closes item 12 stage 1]**
+
+Item 12 was the last open evidence-led lead: **the one thing Opus 5 does that our pipeline does
+not is iterate.** Pseudo-relevance feedback is that in its cheapest form — seed a *second* round
+of hypotheses from what the gate admitted on the first, search again, union.
+
+**The design decision is the budget match.** NR-47 and NR-48 had just spent both volume levers,
+so testing round-1@100 against round-1@100 + round-2@100 would have re-run them under a new name.
+The question a second round has to answer is whether it *aims* better, not whether it fetches
+more:
+
+| arm | reach | |
+|---|---|---|
+| round 1 @ 50 | 0.1962 | |
+| **round 1 @ 100 — the pre-registered baseline** | **0.2231** | ~400 candidate slots |
+| **round 1 @ 50 ∪ round 2 @ 50** | **0.2288** | ~400 candidate slots — **clears the bar** |
+| round 1 @ 100 ∪ round 2 @ 100 | 0.2712 | reported; never the criterion |
+
+**The pass is refused, and that refusal is the result.** +0.0057 is **three witnesses out of
+520**, at McNemar *p* = 0.68 on 13 gained against 10 lost. NR-46 measured a plain hypothesis
+**redraw** — same cut, same method, different draw — at **+0.0577**. The effect is one tenth of
+the noise floor of the procedure it modifies.
+
+**The bar named a threshold and no minimum effect size, so a null cleared it.** That is a defect
+in the pre-registration and it is recorded as one rather than quietly repaired. A stage-1 gate
+exists to license spending; this does not license any.
+
+#### Two things the reach number hides
+
+**The losses are mechanical.** All ten sit at round-1 ranks **51–95** — papers dropped by halving
+the cut, nothing to do with round 2's aim. So the null is not "the second round is bad".
+
+**The gains are not noise either.** Their median round-1 rank is **296**, and five sit *past rank
+1000* — up to **4187** — landing inside round 2's top 100:
+
+| case | paper | round 1 | round 2 |
+|---|---|---|---|
+| `mat-mlip` | [2605.03964](http://arxiv.org/abs/2605.03964) | 2361 | **9** |
+| `mat-chgpot` | [2412.16551](http://arxiv.org/abs/2412.16551) | 4187 | **12** |
+| `mat-mlip` | [2505.12447](http://arxiv.org/abs/2505.12447) | 3299 | **21** |
+| `thin-gnn` | [2009.00142](http://arxiv.org/abs/2009.00142) | 2748 | 70 |
+| `db` | [2606.22423](http://arxiv.org/abs/2606.22423) | 1986 | 95 |
+
+**NR-47's widest measured cut was 1000.** Width cannot buy these at any cut this project has run,
+which makes the mechanism genuinely different from the two that are spent — those added ranks
+100–1000 of the *same* query. Of the 13 gains, seven have ever been judged and **all seven are
+actionable**; the other six are **void, not null**.
+
+**This is post hoc and does not rescue the null.** It was found by looking at the result, so it
+earns its own pre-registered test, not a re-reading of this one.
+
+#### PRF is structurally blind, and in the worst place
+
+Four cases — `cli`, `http`, `linter`, `webdev` — produced **no round 2 at all**, because the
+shipped arm showed nothing to feed on. *The abstention discipline that makes RepoRadar
+competitive with Opus 5 is the same thing that starves feedback.* Those four hold **34 of the 520
+witnesses, none of them reached by any route** — PRF is blind exactly where retrieval most
+visibly failed, which caps what a pass could ever have meant here.
+
+They were skipped and **never imputed**: a fresh draw for them would have been a round-1 redraw
+wearing PRF's name, at ten times the effect under test.
+
+**Cost** 33 Haiku calls (~$0.05) and ~12 min of CPU. Pinned by `tests/test_prf_hyde_reach.py`.
+
 ### Both pool-volume levers are spent. **[NR-48, closes item 13]**
 
 NR-47's diagnostic pointed at the gate: the wider cut's papers were fine (0.882 against 0.878),
