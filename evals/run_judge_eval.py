@@ -185,6 +185,7 @@ def rank_candidates(
     scan_source: bool = False,
     typed_anchors: bool = False,
     w_embedding: float = 0.0,
+    paper_embeddings: dict[str, Any] | None = None,
 ) -> list[tuple[dict[str, Any], float]]:
     """RepoRadar's ranking over an already-collected pool: top-N (paper, score) best-first.
 
@@ -230,6 +231,11 @@ def rank_candidates(
         categories or ["cs.LG"],
         lookback_days=lookback,
         repo_embedding=repo_embedding,
+        # Optional and behaviour-preserving: `rank_papers` already takes precomputed vectors
+        # (that is what the product's persistent cache passes), the harness just never
+        # forwarded them. Without it a probe that re-ranks the same pool twice encodes every
+        # abstract twice, one at a time -- ~148k single-paper encodes for a 33-case arm.
+        paper_embeddings=paper_embeddings,
     )
     if hybrid:
         ranked = hybrid_reorder(ranked, papers, profile)
