@@ -1144,6 +1144,69 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Round 2's papers do reach the gate — a fifth of it. **[NR-50, reopens item 12]**
+
+NR-49 closed PRF-HyDE on reach and left exactly one thing open: reach is counted over 520
+witnesses while **the pools differ across their whole contents**. NR-47 and NR-48 had between
+them named what actually binds — the gate reads a fixed `gate_depth` of a **ranked** pool, so a
+candidate outside the top 50 cannot change the digest whatever its quality. This asks that
+question directly, and it is nearly free.
+
+**Configuration is deliberately generous:** round 2 at `top_k` 100 merged into the *whole*
+shipped pool, not NR-49's budget match. A kill here would have been decisive for the matched arm
+too.
+
+| | |
+|---|---|
+| round-2 slots in the top 50 | **340 / 1650 = 20.61%** |
+| per case | **10.3 of 50** |
+| shipped papers displaced | 349 |
+| spread | 2/50 (`bio-kmer`) → 21/50 (`thin-kv`), every cohort |
+
+**Pre-registered with an effect size this time** — the correction NR-49 earned. The chain: the
+top-50 window feeds the gate, whose admits are re-scored to a digest of 8.3/case (**16.6% of the
+window**), and a swap is worth **3Δp**, against a bootstrap that resolved **±0.78** at n = 37.
+
+| round-2 share | at Δp = 0.2 | at Δp = 0.092 | |
+|---|---|---|---|
+| < 5% | < 0.25 | < 0.11 | kill |
+| 5–16% | 0.25–0.78 | 0.11–0.36 | grey |
+| **≥ 16% ← 20.61%** | ≥ 0.78 | ≥ 0.36 | **paid arm licensed** |
+
+#### The share is a magnitude, not a direction
+
+If round 2's papers are *worse* than the ones they displace, the identical arithmetic gives a
+loss of the same size. What this establishes is that the effect would be **resolvable** — which
+is precisely what NR-49's reach null could not say, and the whole reason the item reopens.
+
+**And the free quality prior points the other way from the licence.** Where any judgement
+exists, entering papers score **0.714** against **0.660** for displaced — Δp = **+0.054**,
+favouring round 2 but implying only **+0.28 net@2/case**, *inside* the ±0.78 band.
+
+Both are recorded and neither is used to overrule the other. The pre-registration stands because
+moving a bar after seeing the data is the exact failure NR-49 documented. The prior is reported
+because it is what anyone deciding whether to spend needs. And the Δp is weak on its own terms:
+**207 of 340 entering and 255 of 349 displaced papers are void**, and the judged subset is
+selected by having been shown by some arm (C-35's caveat, respected).
+
+#### Why this is the interesting result
+
+Three facts that only fit together one way. Round 2's candidates are **72% new** to the pool
+(median overlap 28.4%); the ranker rates them highly enough to hand them **a fifth of the
+window**; and they are **not witness material** — NR-49 measured reach as flat at two budget
+points. So round 2 is retrieving papers that look strongly repo-relevant *and that no other
+system surfaced*. Whether that is discovery or drift is what net@2 would decide, and nothing
+cheaper than net@2 will decide it.
+
+Displacement slightly exceeds insertion (349 against 340) because the merged pool perturbs BM25
+and the RRF fusion, so shipped papers reorder among themselves. Recorded rather than rounded.
+
+**Cost** $0 plus ~35 min of CPU; the one-time search and metadata collection are already paid.
+Pinned by `tests/test_prf_rank_probe.py`. A harness note: `rank_candidates` gained an optional
+`paper_embeddings` passthrough — `rank_papers` always accepted precomputed vectors and the
+harness simply never forwarded them, which cost ~148k one-at-a-time encodes on an arm like this.
+Verified byte-identical windows and scores before use.
+
 ### A second HyDE round clears the bar, and the bar was wrong. **[NR-49, closes item 12 stage 1]**
 
 Item 12 was the last open evidence-led lead: **the one thing Opus 5 does that our pipeline does

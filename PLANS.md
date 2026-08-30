@@ -73,16 +73,19 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 11** (MCP), then item 7 (product work). Items 1-4 are answered or built;
-6, 9, 10, 12 and 13 closed negative; item 5's remainder is conditional on a proposal that has not
-appeared.
+**Currently first: item 12** (iterative retrieval, reopened by NR-50), then item 11 (MCP) and
+item 7 (product work). Items 1-4 are answered or built; 6, 9, 10 and 13 closed negative; item 5's
+remainder is conditional on a proposal that has not appeared.
 
-**There is no open evidence-led lead.** NR-48 closed the pool-volume direction and NR-49 closed
-iterative retrieval's cheap form, which was the last one on the list. What remains at the top is
-product work, waiting on a decision rather than on a measurement -- and that is now the honest
-state of the plan rather than a gap in it. NR-49 did leave one *post-hoc* observation worth a
-pre-registered test if anyone wants to reopen the area; it is written up under item 12 and is
-explicitly not a licence.
+**Item 12 was closed on 2026-08-30 and reopened the same day, by its own follow-up.** NR-49 shut
+it on reach, and named the one thing reach could not settle: the pools differ across their whole
+contents, not just over the 520 witnesses. NR-50 asked that -- do round 2's papers reach the
+**gate** -- and they do, taking **20.61% of the top-50 window**. That clears a licence bar set in
+advance with an effect size, so **a paid arm is licensed and not yet run**.
+
+Read the reversal for what it is. It does not say PRF works; the share is a magnitude and the
+sign is unmeasured, and the free quality prior implies an effect *inside* the noise band. It says
+the question is now answerable for ~$15, which is more than could be said of it this morning.
 
 ### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
@@ -814,31 +817,33 @@ one statement about a frontier rather than four separate attempts.
 **Do not reopen with a different depth or a different cut.** A proposal here needs to change what
 the gate *does* with a candidate, not how many it sees.
 
-### 11. MCP distribution — product work, and the self-run just supplied its reading list
+### 12. Iterative retrieval (PRF-HyDE) — closed on reach, REOPENED on rank [NR-49, NR-50]
 
-ROADMAP 2's remaining half: the server ships (`rr mcp` exposes `get_repo_profile`,
-`get_ranked_papers`, `explain_relevance`, `rate_paper`); what is missing is **registry publish
-plus a Claude Code plugin**. Unchanged in kind — a distribution bet, judged on demand rather
-than on evidence, and it cannot move net@2 by construction.
+**Reopened the same day by `evals/prf_rank_probe.py` [NR-50], and the paid arm is licensed.**
+NR-49's own caveat was that reach is counted over 520 witnesses while the pools differ across
+their whole contents. NR-47 and NR-48 had named the binding constraint -- the gate reads a fixed
+`gate_depth` of a *ranked* pool -- so the follow-up was: do round 2's papers rank into the top 50?
 
-**What is new is that RepoRadar's run on itself (2026-08-29, run #2) returned three MCP papers
-as its entire Top Picks tier**, all through the `all:mcp` query:
+**They take 20.61% of it. 340 of 1650 slots, 10.3 per case, displacing 349**, spread from 2/50 to
+21/50 across every cohort. The bar was pre-registered *with an effect size* (kill <5%, licence
+>=16%, both derived from the window-to-digest-to-3dp chain against NR-47's +-0.78 bootstrap), and
+20.61% clears the licence.
 
-| paper | gate | what it offers |
-|---|---|---|
-| [2608.23992](http://arxiv.org/abs/2608.23992) Hybrid Semantic Tool Discovery for Enterprise MCP Gateway | 3/3 | semantic ranking over large tool catalogues — the direct answer to the tool-count constraint below |
-| [2606.30317](http://arxiv.org/abs/2606.30317) MCP Server Architecture Patterns for LLM-Integrated Applications | 3/3 | a pattern survey; the first systematic one we have seen |
-| [2603.17339](http://arxiv.org/abs/2603.17339) citecheck: an MCP Server for Bibliographic Verification and Repair | 2/3 | adjacent to `verify.py`'s tier set, as a service rather than a library |
+**What that does and does not mean.** The share is a **magnitude, not a direction**: if round 2's
+papers are worse than the ones they displace, the same arithmetic gives an equal loss. It says
+the effect would be *resolvable*, which is exactly what the reach null could not say. And the
+free quality prior cuts against the licence -- entering papers judge at 0.714 against 0.660
+displaced, dp = +0.054, implying **+0.28 net@2/case, inside the noise**. Both stand; the
+pre-registration is not revoked after seeing the prior, because that is the failure NR-49 records.
 
-**The constraint that still governs the design:** keep the server under ~10 tools — Haiku-class
-tool-selection accuracy degrades at 10-15 — and prefer parameterized tools over more of them.
-2608.23992 is interesting precisely because it attacks that ceiling from the other side, with
-retrieval over the catalogue instead of a smaller catalogue.
+**The paid arm, when it runs:** treatment = shipped pool + round 2 at `top_k` 100, control =
+the shipped arm already collected, one pinned hypothesis set per round, 37 cases, ~$15. The
+pre-registered expectation is |net@2| >= 0.78 to resolve; anything smaller is a null and closes
+the item for good.
 
-**Sequencing:** unchanged. This waits for a decision that product work is on, not for another
-measurement. Nothing here is blocked.
+---
 
-### 12. Iterative retrieval (PRF-HyDE) — closed negative at stage 1 [NR-49]
+**The earlier close, kept because the reach result stands unchanged:**
 
 **Closed 2026-08-30, ~$0.05, `evals/prf_hyde_reach.py`.** Stage 1 ran budget-matched -- round 1
 at 100 against round 1 at 50 unioned with round 2 at 50 -- because NR-47 and NR-48 had just spent
@@ -906,6 +911,30 @@ already the papers we would have found anyway, PRF re-searches the neighbourhood
 adds nothing — and NR-11's warning applies here too, since a second round widens the pool
 against the same near-binary gate.
 
+### 11. MCP distribution — product work, and the self-run just supplied its reading list
+
+ROADMAP 2's remaining half: the server ships (`rr mcp` exposes `get_repo_profile`,
+`get_ranked_papers`, `explain_relevance`, `rate_paper`); what is missing is **registry publish
+plus a Claude Code plugin**. Unchanged in kind — a distribution bet, judged on demand rather
+than on evidence, and it cannot move net@2 by construction.
+
+**What is new is that RepoRadar's run on itself (2026-08-29, run #2) returned three MCP papers
+as its entire Top Picks tier**, all through the `all:mcp` query:
+
+| paper | gate | what it offers |
+|---|---|---|
+| [2608.23992](http://arxiv.org/abs/2608.23992) Hybrid Semantic Tool Discovery for Enterprise MCP Gateway | 3/3 | semantic ranking over large tool catalogues — the direct answer to the tool-count constraint below |
+| [2606.30317](http://arxiv.org/abs/2606.30317) MCP Server Architecture Patterns for LLM-Integrated Applications | 3/3 | a pattern survey; the first systematic one we have seen |
+| [2603.17339](http://arxiv.org/abs/2603.17339) citecheck: an MCP Server for Bibliographic Verification and Repair | 2/3 | adjacent to `verify.py`'s tier set, as a service rather than a library |
+
+**The constraint that still governs the design:** keep the server under ~10 tools — Haiku-class
+tool-selection accuracy degrades at 10-15 — and prefer parameterized tools over more of them.
+2608.23992 is interesting precisely because it attacks that ceiling from the other side, with
+retrieval over the catalogue instead of a smaller catalogue.
+
+**Sequencing:** unchanged. This waits for a decision that product work is on, not for another
+measurement. Nothing here is blocked.
+
 ### 8. Held — real gaps with no affordable next step
 
 - **Thin docs** — still the sharpest gap (RESEARCH.md §8.6; measured in paper/DRAFT.md
@@ -931,7 +960,7 @@ against the same near-binary gate.
 | NR-39's "only anchors discriminate" | case-mix artifact (−0.6pt per case) | C-21 |
 | NR-39's "keywords are noise at +0.2pt" | saturation artifact; size-matched they score +3.3pt | C-22 |
 | `w_embedding: 1.5` | resolved **positive**, +1.00/case, keep | NR-38 |
-| PRF-HyDE (iterative retrieval), budget-matched | cleared its bar by 3 witnesses of 520 at p = 0.68 — a tenth of NR-46's redraw noise; pass refused | NR-49 |
+| PRF-HyDE on **reach** | cleared its bar by 3 witnesses of 520 at p = 0.68 — a tenth of NR-46's redraw noise; pass refused. **Not the whole item:** NR-50 reopened it on rank | NR-49, NR-50 |
 | Research-gap radar, query rewriting, gap-phrase search | four independent negatives on the same mechanism | ROADMAP 14/19 |
 | Multi-source keyword adapters (S2/OpenAlex/IACR/bioRxiv) | built, wired, measured null-to-negative | NR-27..34, C-9 |
 | OpenScholar/peS2o as a second dense corpus | literature is there, snapshot frozen at Oct 2024; 38% of known off-arXiv value postdates it | P12 |
