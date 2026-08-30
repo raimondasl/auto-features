@@ -1,4 +1,36 @@
-"""Item 10 stage 2: the wider HyDE cut costs net@2, and the reason is not the papers. [NR-47]
+"""Items 10 and 13: both pool-volume levers are spent. [NR-47, NR-48]
+
+Three arms over the same 37 cases, one pinned hypothesis set throughout:
+
+    A  ships    hyde.top_k=100    gate_depth=50    net@2 +5.51   8.3 papers/case   prec 0.889
+    B  wide     hyde.top_k=1000   gate_depth=50    net@2 +4.73   7.4              prec 0.880
+    C  deep     hyde.top_k=1000   gate_depth=150   net@2 +5.32   9.0              prec 0.864
+
+**NR-48 / item 13 is the second half and it closes the direction.** NR-47 found that widening
+retrieval SHRANK the digest -- a 5.9x pool met a gate reading a fixed 50 of it -- and its
+diagnostic said the added papers were fine (0.882 against 0.878), so the fault looked like the
+window rather than the material. Item 13 tested that directly, reusing B's pools because
+`rr_pool` is not a POOL_FLAG.
+
+**Pre-registered: the digest must return to at least 8.3/case AND net@2 to at least +5.51.**
+The digest recovered -- 9.0, past the shipped size. **net@2 did not: +5.32.** That was written
+in advance as the kill: *if the digest recovers but net@2 does not, the papers a deeper window
+admits are worse than the ones they displace, and the whole direction closes.*
+
+It is exactly what the deeper window did: **99 papers admitted at precision 0.859, displacing
+41 at 0.951.** Ranks 50-150 of the ranked pool are genuinely thinner material. Those admissions
+are still above net@2's 2/3 break-even, so depth recovers +0.59 of NR-47's -0.78 -- but not all
+of it, and the end state is a **wash against what ships**: -0.19, CI [-1.14, +0.78], 14w/15l/8t,
+at 5.9x the pool and 3x the gate calls. No gain, real cost.
+
+**So the pipeline is at its efficient frontier for pool volume.** Retrieval width and gate depth
+were the two ways to feed it more, and neither pays. That is a stronger statement than either
+arm alone, and it is what NR-11's warning generalises to now: not "a wider pool met a near-binary
+gate", but "more candidates do not help this system at any depth we can afford to judge".
+
+---
+
+Item 10 stage 2 [NR-47]: the wider HyDE cut costs net@2, and the reason is not the papers.
 
 The paid arm NR-46's stage 1 licensed. Two same-day arms over 37 cases, everything fixed but
 `hyde.top_k` -- 100 against 1000 -- sharing **one pinned hypothesis set**, because NR-46
@@ -70,12 +102,20 @@ from reporadar.paper_id import dedup_id  # noqa: E402
 RES = EVALS / "results"
 FROZEN = EVALS / "hyde_cut_arm.json"
 ARMS = {
-    "control_top_k_100": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T034455Z.json",
-    "treat_top_k_1000": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075259Z.json",
+    "A_ships_k100_d50": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T034455Z.json",
+    "B_wide_k1000_d50": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075259Z.json",
+    # NR-48 / item 13: gate depth 50 -> 150 on the SAME pools B collected. `rr_pool` is not a
+    # POOL_FLAG, so the 5.9x collection is reused rather than re-bought.
+    "C_deep_k1000_d150": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T171257Z.json",
 }
+GATE_DEPTH = {"A_ships_k100_d50": 50, "B_wide_k1000_d50": 50, "C_deep_k1000_d150": 150}
 REPAIR = "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075622Z.json"
 REPAIRED_CASE = "bio-mdtraj"
-POOLS = {"control_top_k_100": "pool-cut100", "treat_top_k_1000": "pool-cut1000"}
+POOLS = {
+    "A_ships_k100_d50": "pool-cut100",
+    "B_wide_k1000_d50": "pool-cut1000",
+    "C_deep_k1000_d150": "pool-cut1000",
+}
 COHORTS = {
     "core25": lambda c: not c.startswith(("bio-", "mat-")),
     "bio6": lambda c: c.startswith("bio-"),
@@ -123,10 +163,11 @@ def pool_sizes(name: str) -> dict[str, int]:
 
 
 def main() -> int:
-    ctrl = load(ARMS["control_top_k_100"])
-    treat = load(ARMS["treat_top_k_1000"])
-    ctrl[REPAIRED_CASE] = load(REPAIR)[REPAIRED_CASE]
-    cases = sorted(set(ctrl) & set(treat))
+    picks = {name: load(f) for name, f in ARMS.items()}
+    picks["A_ships_k100_d50"][REPAIRED_CASE] = load(REPAIR)[REPAIRED_CASE]
+    ctrl, treat = picks["A_ships_k100_d50"], picks["B_wide_k1000_d50"]
+    deep = picks["C_deep_k1000_d150"]
+    cases = sorted(set.intersection(*(set(v) for v in picks.values())))
 
     out: dict[str, Any] = {
         "_comment": (
@@ -147,8 +188,16 @@ def main() -> int:
             name: {
                 "run_file": f,
                 "hyde_top_k": recorded_top_k(name),
+                "gate_depth": GATE_DEPTH[name],
                 "hypotheses_file": recorded_hyp_file(name),
                 "pinned_hypotheses": bool(recorded_hyp_file(name)),
+                "mean_net2": round(st.mean(net(picks[name][c]) for c in cases), 2),
+                "digest_per_case": round(sum(len(picks[name][c]) for c in cases) / len(cases), 1),
+                "precision": round(
+                    sum(1 for c in cases for _p, sc in picks[name][c] if sc >= 2)
+                    / sum(len(picks[name][c]) for c in cases),
+                    3,
+                ),
             }
             for name, f in ARMS.items()
         },
@@ -254,12 +303,59 @@ def main() -> int:
         },
     }
 
-    pc, ptr = pool_sizes("control_top_k_100"), pool_sizes("treat_top_k_1000")
+    pc, ptr = pool_sizes("A_ships_k100_d50"), pool_sizes("B_wide_k1000_d50")
     common = sorted(set(pc) & set(ptr))
     out["pool_growth"] = {
         "control_per_case": round(sum(pc[c] for c in common) / len(common)),
         "treatment_per_case": round(sum(ptr[c] for c in common) / len(common)),
         "factor": round(sum(ptr[c] for c in common) / sum(pc[c] for c in common), 1),
+    }
+
+    # -- NR-48 / item 13: did widening the gate's window recover what the cut lost? --
+    def paired(lo: str, hi: str, sel) -> dict[str, Any]:
+        d = [float(net(picks[hi][c]) - net(picks[lo][c])) for c in sel]
+        lo_ci, hi_ci = paired_bootstrap(d)
+        stt = sign_test(d)
+        return {
+            "paired_delta": round(st.mean(d), 2),
+            "ci95": [round(lo_ci, 2), round(hi_ci, 2)],
+            "wins": stt["pos"],
+            "losses": stt["neg"],
+            "ties": stt["ties"],
+            "sign_p": round(stt["p"], 4),
+        }
+
+    d_added, d_dropped = [], []
+    for c in cases:
+        bi, ci2 = dict(treat[c]), dict(deep[c])
+        d_added += [(p, s) for p, s in ci2.items() if p not in bi]
+        d_dropped += [(p, s) for p, s in bi.items() if p not in ci2]
+    out["depth_arm"] = {
+        "_comment": (
+            "Item 13: hold hyde.top_k at 1000 and move gate_depth 50 -> 150, on the pools B "
+            "already collected. Pre-registered: the digest must return to at least the "
+            "shipped 8.3/case AND net@2 to at least +5.51. The digest recovered; net@2 did "
+            "not. That is the pre-registered kill -- the papers a deeper window admits are "
+            "worse than the ones they displace -- and it closes the direction."
+        ),
+        "vs_ships": paired("A_ships_k100_d50", "C_deep_k1000_d150", cases),
+        "vs_wide": paired("B_wide_k1000_d50", "C_deep_k1000_d150", cases),
+        "cohorts_vs_ships": {
+            label: paired("A_ships_k100_d50", "C_deep_k1000_d150", [c for c in cases if pred(c)])
+            for label, pred in COHORTS.items()
+        },
+        "what_depth_changed": {
+            "added": {"n": len(d_added), "precision": prec(d_added)},
+            "dropped": {"n": len(d_dropped), "precision": prec(d_dropped)},
+        },
+        "pre_registered": {
+            "digest_bar_per_case": 8.3,
+            "net2_bar": 5.51,
+            "digest_recovered": bool(
+                round(sum(len(deep[c]) for c in cases) / len(cases), 1) >= 8.3
+            ),
+            "net2_recovered": bool(st.mean(net(deep[c]) for c in cases) >= 5.51),
+        },
     }
 
     all37 = out["cohorts"]["all37"]
@@ -276,7 +372,17 @@ def main() -> int:
             out["diagnostic"]["digest_size"]["treatment"]
             < out["diagnostic"]["digest_size"]["control"]
         ),
-        "follow_up": "gate_depth — the added papers are good and the gate's window did not grow",
+        "follow_up_tested": "gate_depth 50 -> 150 [NR-48, item 13]",
+        "depth_recovered_the_digest": out["depth_arm"]["pre_registered"]["digest_recovered"],
+        "depth_recovered_net2": out["depth_arm"]["pre_registered"]["net2_recovered"],
+        "direction_closed": not out["depth_arm"]["pre_registered"]["net2_recovered"],
+        "closing_note": (
+            "Both levers are spent. Widening retrieval shrank the digest; widening the gate's "
+            "window regrew it and net@2 still did not recover -- deeper admissions run at 0.859 "
+            "precision against the 0.951 they displace. The wide+deep combination is a WASH "
+            "against what ships (-0.19, CI spanning zero, 14w/15l) at 5.9x the pool and 3x the "
+            "gate calls: no gain, real cost."
+        ),
     }
 
     FROZEN.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")

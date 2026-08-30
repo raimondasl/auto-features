@@ -73,9 +73,10 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 13** — NR-47 closed item 10 negative but its diagnostic left exactly one
-branch open, and the pools that arm needs are already collected. Items 1-4 are answered or built;
-6, 9 and 10 closed negative; item 5's remainder is conditional on a proposal that has not appeared.
+**Currently first: item 12** (iterative retrieval), then item 11 (MCP) and item 7 (product work).
+Items 1-4 are answered or built; 6, 9, 10 and 13 closed negative; item 5's remainder is
+conditional on a proposal that has not appeared. NR-48 closed the pool-volume direction entirely,
+so item 12's value is now specifically that it changes what is *asked*, not how much is fetched.
 
 ### 1. A wider dense corpus — probed and parked; the requirement is freshness [P12]
 
@@ -777,32 +778,37 @@ A candidate set six times larger meets a gate that still reads `gate_depth` **50
 the *"the gate never saw them"* branch, and it opens **item 13** rather than closing the
 direction outright.
 
-### 13. Widen the gate's input, not the retrieval cut — NEW, and the only branch NR-47 left open
+### 13. Widen the gate's input — CLOSED NEGATIVE 2026-08-30, same day it opened [NR-48]
 
-**NR-47 is the whole argument.** Widening `hyde.top_k` 100 → 1000 cost −0.78 net@2, and the
-diagnostic says why: the added papers were **fine** (precision 0.882 against 0.878 already
-there), but the digest **shrank** 8.3 → 7.4 per case from a pool 5.9× larger. 78% of the loss is
-showing fewer papers, not worse ones. `gate_depth` stayed at 50 while the candidate set grew six
-times, so the extra reach arrived as dilution.
+NR-47 pointed here: the wider cut's papers were fine (0.882 against 0.878) and the digest shrank
+because a 5.9x pool met a window still reading `gate_depth` 50. Item 13 moved the window --
+50 -> 150, `hyde.top_k` held at 1000, same pinned hypotheses, **reusing NR-47's pools** because
+`rr_pool` is not a POOL_FLAG.
 
-**The arm:** hold `hyde.top_k` at 1000 and move `gate_depth` 50 → 150, against the *same*
-pinned hypotheses and the treatment pools **already collected** for NR-47. `gate_depth` is not a
-POOL_FLAG, so `pool-cut1000` is reusable — the collection is already paid for and this costs
-gate calls plus judging, not a fresh pool.
+| arm | `top_k` | `gate_depth` | net@2 | digest/case | precision |
+|---|---|---|---|---|---|
+| **A ships** | 100 | 50 | **+5.51** | 8.3 | 0.889 |
+| B wide | 1000 | 50 | +4.73 | 7.4 | 0.880 |
+| **C deep** | 1000 | **150** | +5.32 | **9.0** | 0.864 |
 
-**Pre-registered:** the digest should return to at least its control size (≥ 8.3/case) and net@2
-should recover to ≥ the control's +5.51. **Kill: if the digest recovers but net@2 does not, the
-newly-admitted papers are worse than the ones they displace and the whole direction closes** —
-that is the second branch of NR-47's fork, and it would generalise NR-11 from "wider pool" to
-"wider pool at any gate depth".
+**Pre-registered: digest ≥ 8.3/case AND net@2 ≥ +5.51.** The digest recovered (9.0). **net@2 did
+not (+5.32).** That was the stated kill, word for word — and the mechanism is visible: the deeper
+window admits **99 papers at 0.859 precision, displacing 41 at 0.951**. Ranks 50–150 are thinner
+material; above break-even, so depth recovers **+0.59** of NR-47's −0.78, but not all of it.
 
-**The honest prior is weak.** §6.1 records that gate-side levers were exhausted: raising the
-admission threshold, substituting a stronger gate model (metric-identical, twice), a rubric
-rewrite that was reverted the same day. Depth was not among those, and NR-47 is the first
-measurement pointing at it — but this is the fourth pool-expansion attempt in a project whose
-first three were washes, and it should be run in that spirit.
+**C vs what ships: −0.19, CI [−1.14, +0.78], 14w/15l/8t** — a wash, at 5.9x the pool and 3x the
+gate calls. **No gain, real cost.**
 
-### 12. Iterative retrieval (PRF-HyDE) — the structural difference, sequenced behind item 10
+**Both pool-volume levers are now spent**, which is the finding worth carrying: retrieval width
+and gate depth were the two ways to feed this pipeline more candidates, and neither pays. NR-11
+said a wider pool met a near-binary gate; the sharper version is that **more candidates do not
+help this system at any depth we can afford to judge**. Four nulls (NR-11, P4, NR-47, NR-48) are
+one statement about a frontier rather than four separate attempts.
+
+**Do not reopen with a different depth or a different cut.** A proposal here needs to change what
+the gate *does* with a candidate, not how many it sees.
+
+### 12. Iterative retrieval (PRF-HyDE) — the structural difference, and now the only open lead
 
 **The one thing Opus 5 does that our pipeline does not: it iterates.** Thirty turns of search,
 read, refine, search again. Our discovery is one-shot — four hypotheses generated from the repo
@@ -816,14 +822,19 @@ is 0-for-4 (NR-33 +0.00, NR-35 +0.00, NR-36 −0.52, P11 −0.32). This is paper
 new channel rather than a better variant of a measured one, which is what the selection rule
 asks for.
 
-**Why it is sequenced second.** NR-45 measured the missing papers at median rank 1,087 under the
-hypotheses we *already generate*. Item 10 reaches roughly half of them by changing an integer.
-Doing the expensive structural thing before the cheap parametric one would confound them: a
-PRF arm run against `top_k=100` cannot be told apart from simply widening the cut. **Run item 10
-first; item 12's question is what remains after it.**
+**Item 10 ran first and closed negative, which sharpens this rather than blocking it.** NR-47 and
+NR-48 spent both pool-volume levers: widening retrieval cost −0.78, widening the gate's window
+recovered the digest but not the score, and the pair is a wash against what ships. So **more
+candidates is a closed direction**, and item 12's value is now specifically that it does not ask
+for more — it asks a *different question* on the second round, seeded by what the gate admitted
+on the first. If PRF is worth anything it will be because round two's hypotheses are better
+aimed, not because they retrieve more.
 
-**Free stage 1, same as item 10:** witness reach over the 520 non-self witnesses. A second round
-that does not raise reach has no path to raising net@2.
+**Free stage 1, same as item 10 — but read NR-46's lesson before trusting it.** Witness reach over
+the 520 non-self witnesses costs nothing and is the right gate on spending. It is also exactly
+what stage 1 of item 10 passed, at +101%, before the paid arm lost 0.78 net@2. **Reach is
+necessary and demonstrably not sufficient**, so a reach win here buys a *cheaper* paid arm, not a
+likely one.
 
 **Prior art the self-run surfaced** (2026-08-29 digest, Maybe tier): *Novelty-Aware Agentic
 Retrieval* ([2606.22151](http://arxiv.org/abs/2606.22151)) — multi-step agentic retrieval for

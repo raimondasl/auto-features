@@ -1144,6 +1144,52 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Both pool-volume levers are spent. **[NR-48, closes item 13]**
+
+NR-47's diagnostic pointed at the gate: the wider cut's papers were fine (0.882 against 0.878),
+but a 5.9× pool met a window still reading `gate_depth` 50 and the digest *shrank*. Item 13
+tested that directly — `gate_depth` **50 → 150**, `hyde.top_k` held at 1000, same pinned
+hypotheses, **reusing the pools NR-47 already collected** (`rr_pool` is not a POOL_FLAG, so the
+expensive half was already paid for).
+
+| arm | `top_k` | `gate_depth` | net@2 | digest/case | precision |
+|---|---|---|---|---|---|
+| **A — ships** | 100 | 50 | **+5.51** | 8.3 | 0.889 |
+| B — wide | 1000 | 50 | +4.73 | 7.4 | 0.880 |
+| **C — deep** | 1000 | **150** | +5.32 | **9.0** | 0.864 |
+
+**Pre-registered: the digest must return to ≥ 8.3/case AND net@2 to ≥ +5.51.** The digest
+recovered — 9.0, past the shipped size. **net@2 did not: +5.32.** That was written in advance as
+the kill condition, in exactly those words: *if the digest recovers but net@2 does not, the
+papers a deeper window admits are worse than the ones they displace, and the whole direction
+closes.*
+
+**And that is precisely what the deeper window did:** 99 papers admitted at precision **0.859**,
+displacing 41 at **0.951**. Ranks 50–150 of the ranked pool are thinner material. They are not
+junk — 0.859 is comfortably above net@2's 2/3 break-even — so depth recovers **+0.59** of
+NR-47's −0.78. It does not recover all of it.
+
+| comparison | paired | | |
+|---|---|---|---|
+| C vs **A (what ships)** | **−0.19** | CI [−1.14, +0.78] | 14w/15l/8t, *p* = 1.00 |
+| C vs B (the wide arm) | +0.59 | CI [−0.16, +1.38] | 17w/8l/12t, *p* = 0.11 |
+
+**The end state is a wash against what ships** — statistically a tie — at **5.9× the pool and 3×
+the gate calls**. No gain, real cost.
+
+#### What this generalises to
+
+Retrieval width and gate depth were the two ways to feed this pipeline more candidates. **Neither
+pays.** That is a stronger statement than either arm alone, and it sharpens NR-11: not "a wider
+pool met a near-binary gate", but **more candidates do not help this system at any depth we can
+afford to judge**. The four-null record on pool expansion (NR-11, P4, NR-47, NR-48) is now a
+record about the *frontier*, not about four separate attempts.
+
+The one cohort that moved positively is bio at +2.00 — on six cases, which is not a finding.
+
+**Cost** gate calls at 3× depth plus judging; the 5.9× collection was NR-47's. Pinned by
+`tests/test_hyde_cut_arm.py`.
+
 ### The wider cut costs net@2 — and the reason is the gate, not the papers. **[NR-47, closes item 10]**
 
 The paid arm stage 1 licensed, ~$25. Two same-day arms over 37 cases, everything fixed but

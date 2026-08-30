@@ -1,17 +1,35 @@
 {
  "_comment": "NR-47 / item 10 stage 2: two same-day arms over 37 cases, everything fixed but hyde.top_k (100 against 1000), sharing ONE pinned hypothesis set because NR-46 measured a redraw at +0.058 reach. Derived by evals/freeze_hyde_cut_arm.py; pinned by tests/test_hyde_cut_arm.py. The pre-registered kill condition -- net@2 must not fall -- FIRES. The papers the wider cut adds are fine (precision 0.882 against 0.878 kept); the digest SHRANK from a pool 5.9x larger, which is NR-11's dilution mechanism observed rather than inferred.",
  "arms": {
-  "control_top_k_100": {
+  "A_ships_k100_d50": {
    "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T034455Z.json",
    "hyde_top_k": 100,
+   "gate_depth": 50,
    "hypotheses_file": "evals/.work/hyde_hypotheses_pinned.json",
-   "pinned_hypotheses": true
+   "pinned_hypotheses": true,
+   "mean_net2": 5.51,
+   "digest_per_case": 8.3,
+   "precision": 0.889
   },
-  "treat_top_k_1000": {
+  "B_wide_k1000_d50": {
    "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075259Z.json",
    "hyde_top_k": 1000,
+   "gate_depth": 50,
    "hypotheses_file": "evals/.work/hyde_hypotheses_pinned.json",
-   "pinned_hypotheses": true
+   "pinned_hypotheses": true,
+   "mean_net2": 4.73,
+   "digest_per_case": 7.4,
+   "precision": 0.88
+  },
+  "C_deep_k1000_d150": {
+   "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T171257Z.json",
+   "hyde_top_k": 1000,
+   "gate_depth": 150,
+   "hypotheses_file": "evals/.work/hyde_hypotheses_pinned.json",
+   "pinned_hypotheses": true,
+   "mean_net2": 5.32,
+   "digest_per_case": 9.0,
+   "precision": 0.864
   }
  },
  "repaired_case": {
@@ -300,6 +318,93 @@
   "treatment_per_case": 3358,
   "factor": 5.9
  },
+ "depth_arm": {
+  "_comment": "Item 13: hold hyde.top_k at 1000 and move gate_depth 50 -> 150, on the pools B already collected. Pre-registered: the digest must return to at least the shipped 8.3/case AND net@2 to at least +5.51. The digest recovered; net@2 did not. That is the pre-registered kill -- the papers a deeper window admits are worse than the ones they displace -- and it closes the direction.",
+  "vs_ships": {
+   "paired_delta": -0.19,
+   "ci95": [
+    -1.14,
+    0.78
+   ],
+   "wins": 14,
+   "losses": 15,
+   "ties": 8,
+   "sign_p": 1.0
+  },
+  "vs_wide": {
+   "paired_delta": 0.59,
+   "ci95": [
+    -0.16,
+    1.38
+   ],
+   "wins": 17,
+   "losses": 8,
+   "ties": 12,
+   "sign_p": 0.1078
+  },
+  "cohorts_vs_ships": {
+   "core25": {
+    "paired_delta": -0.52,
+    "ci95": [
+     -1.44,
+     0.4
+    ],
+    "wins": 8,
+    "losses": 9,
+    "ties": 8,
+    "sign_p": 1.0
+   },
+   "bio6": {
+    "paired_delta": 2.0,
+    "ci95": [
+     -0.83,
+     5.17
+    ],
+    "wins": 4,
+    "losses": 2,
+    "ties": 0,
+    "sign_p": 0.6875
+   },
+   "matsci6": {
+    "paired_delta": -1.0,
+    "ci95": [
+     -3.5,
+     2.0
+    ],
+    "wins": 2,
+    "losses": 4,
+    "ties": 0,
+    "sign_p": 0.6875
+   },
+   "all37": {
+    "paired_delta": -0.19,
+    "ci95": [
+     -1.14,
+     0.78
+    ],
+    "wins": 14,
+    "losses": 15,
+    "ties": 8,
+    "sign_p": 1.0
+   }
+  },
+  "what_depth_changed": {
+   "added": {
+    "n": 99,
+    "precision": 0.859
+   },
+   "dropped": {
+    "n": 41,
+    "precision": 0.951
+   }
+  },
+  "pre_registered": {
+   "digest_bar_per_case": 8.3,
+   "net2_bar": 5.51,
+   "digest_recovered": true,
+   "net2_recovered": false
+  }
+ },
  "verdict": {
   "pre_registered_kill": "net@2 must not fall",
   "net2_fell": true,
@@ -308,6 +413,10 @@
   "sign_test_resolves": false,
   "added_papers_are_good": true,
   "digest_shrank": true,
-  "follow_up": "gate_depth \u2014 the added papers are good and the gate's window did not grow"
+  "follow_up_tested": "gate_depth 50 -> 150 [NR-48, item 13]",
+  "depth_recovered_the_digest": true,
+  "depth_recovered_net2": false,
+  "direction_closed": true,
+  "closing_note": "Both levers are spent. Widening retrieval shrank the digest; widening the gate's window regrew it and net@2 still did not recover -- deeper admissions run at 0.859 precision against the 0.951 they displace. The wide+deep combination is a WASH against what ships (-0.19, CI spanning zero, 14w/15l) at 5.9x the pool and 3x the gate calls: no gain, real cost."
  }
 }

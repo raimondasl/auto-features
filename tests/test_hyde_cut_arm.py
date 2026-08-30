@@ -106,8 +106,11 @@ class TestTheReasonIsNotTheNewPapers:
             artifact["cohorts"]["all37"]["paired_delta"], abs=0.01
         )
 
-    def test_the_follow_up_names_the_gate_not_the_retrieval(self, artifact):
-        assert "gate_depth" in artifact["verdict"]["follow_up"]
+    def test_the_follow_up_named_the_gate_and_was_then_tested(self, artifact):
+        """NR-47 pointed at gate_depth; NR-48 ran it. The artifact records both so the
+        follow-up cannot be quoted as an open promise after it was answered."""
+        assert "gate_depth" in artifact["verdict"]["follow_up_tested"]
+        assert artifact["verdict"]["direction_closed"] is True
 
 
 class TestTheArmWasCleanEnoughToBelieve:
@@ -116,8 +119,8 @@ class TestTheArmWasCleanEnoughToBelieve:
         quarter of the effect size, so unpinned arms would confound the draw with the cut."""
         for name, arm in artifact["arms"].items():
             assert arm["pinned_hypotheses"] is True, name
-        assert artifact["arms"]["control_top_k_100"]["hyde_top_k"] == 100
-        assert artifact["arms"]["treat_top_k_1000"]["hyde_top_k"] == 1000
+        assert artifact["arms"]["A_ships_k100_d50"]["hyde_top_k"] == 100
+        assert artifact["arms"]["B_wide_k1000_d50"]["hyde_top_k"] == 1000
 
     def test_the_throttled_case_was_repaired_rather_than_dropped(self, artifact):
         """`bio-mdtraj`'s control pool fell back to keyword-only on an arXiv 429 — zero HyDE
@@ -136,3 +139,63 @@ class TestTheArmWasCleanEnoughToBelieve:
         reach story stage 1 told."""
         assert "FIRES" in artifact["_comment"]
         assert artifact["verdict"]["net2_fell"] is True
+
+
+class TestDepthRecoveredTheDigestAndNotTheScore:
+    """NR-48 / item 13, the second half. NR-47's diagnostic said the wider cut's papers were
+    fine and the gate's fixed window was starving them, so this widened the window: gate_depth
+    50 -> 150 on the pools the wide arm already collected (`rr_pool` is not a POOL_FLAG).
+
+    Pre-registered: the digest must return to at least 8.3/case **and** net@2 to at least
+    +5.51. The first happened, the second did not — which was written in advance as the kill.
+    """
+
+    def test_the_digest_recovered_past_the_shipped_size(self, artifact):
+        pre = artifact["depth_arm"]["pre_registered"]
+        assert pre["digest_recovered"] is True
+        assert (
+            artifact["arms"]["C_deep_k1000_d150"]["digest_per_case"] >= pre["digest_bar_per_case"]
+        )
+
+    def test_but_net2_did_not(self, artifact):
+        pre = artifact["depth_arm"]["pre_registered"]
+        assert pre["net2_recovered"] is False
+        assert artifact["arms"]["C_deep_k1000_d150"]["mean_net2"] < pre["net2_bar"]
+        assert artifact["verdict"]["direction_closed"] is True
+
+    def test_the_deeper_window_admits_thinner_material(self, artifact):
+        """The mechanism, and the reason the kill was written this way. Ranks 50-150 of the
+        ranked pool come in at 0.859 precision and displace papers at 0.951 — still above
+        net@2's 2/3 break-even, so they are not junk, just worse than what they replace."""
+        w = artifact["depth_arm"]["what_depth_changed"]
+        assert w["added"]["n"] == 99
+        assert w["dropped"]["n"] == 41
+        assert w["added"]["precision"] < w["dropped"]["precision"]
+        assert w["added"]["precision"] > 2 / 3, "positive-value papers, merely marginal ones"
+
+    def test_depth_recovers_most_of_what_width_lost_but_not_all(self, artifact):
+        """+0.59 of NR-47's −0.78. The direction is real and insufficient, which is a
+        different claim from 'the idea was wrong' and is recorded as such."""
+        d = artifact["depth_arm"]
+        assert d["vs_wide"]["paired_delta"] > 0
+        assert d["vs_wide"]["paired_delta"] < -artifact["cohorts"]["all37"]["paired_delta"]
+
+    def test_the_end_state_is_a_wash_against_what_ships(self, artifact):
+        """−0.19 with an interval spanning zero and 14w/15l — statistically a tie, at 5.9x the
+        pool and 3x the gate calls. No gain, real cost, and the artifact says so where a
+        reader will meet it."""
+        v = artifact["depth_arm"]["vs_ships"]
+        assert v["paired_delta"] == -0.19
+        assert v["ci95"][0] < 0 < v["ci95"][1]
+        assert v["sign_p"] > 0.05
+        assert "no gain, real cost" in artifact["verdict"]["closing_note"].lower()
+
+    def test_both_volume_levers_are_now_spent(self, artifact):
+        """The generalisation worth keeping. Retrieval width and gate depth were the two ways
+        to feed this pipeline more candidates; neither pays. NR-11 said a wider pool met a
+        near-binary gate — this says more candidates do not help at any depth we can afford."""
+        assert artifact["verdict"]["depth_recovered_the_digest"] is True
+        assert artifact["verdict"]["depth_recovered_net2"] is False
+        assert (
+            "efficient frontier" in artifact["_comment"] or artifact["verdict"]["direction_closed"]
+        )
