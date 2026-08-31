@@ -208,15 +208,23 @@ def safe_paper_id(paper_id: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "_", paper_id)
 
 
-def second_verdict(case: str, ctx: str, paper: dict[str, Any], model: str) -> int:
+def second_verdict(
+    case: str, ctx: str, paper: dict[str, Any], model: str, *, cache_as: str | None = None
+) -> int:
     """One Sonnet verdict, cached OUTSIDE the gold cache.
+
+    *cache_as* overrides only the cache directory, never the model called. It exists so a
+    REPLICATE draw of the same model can be stored beside the original instead of reading it
+    back: this path sends no temperature, so the Anthropic default (1.0) applies and a second
+    call is a genuinely independent sample. Without the override, measuring the judge's
+    agreement with itself is impossible — the cache would return the first draw.
 
     The rubric text is byte-identical to the first judge's. The framing cannot be: the first
     judge sends it as an OpenAI system message and this sends one prompt string. That is a
     real difference between the two conditions and it is not removable while the judges are
     different vendors — it is a limitation of the comparison, reported as one.
     """
-    path = second_cache_path(model, case, str(paper["arxiv_id"]))
+    path = second_cache_path(cache_as or model, case, str(paper["arxiv_id"]))
     if path.is_file():
         return int(json.loads(path.read_text(encoding="utf-8"))["score"])
     prompt = f"{judge_mod.RUBRIC}\n\n{judge_mod._build_user_prompt(ctx, paper)}"
