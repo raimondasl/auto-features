@@ -1189,6 +1189,46 @@ because it is what anyone deciding whether to spend needs. And the Δp is weak o
 **207 of 340 entering and 255 of 349 displaced papers are void**, and the judged subset is
 selected by having been shown by some arm (C-35's caveat, respected).
 
+#### The depth grid, and what it does to the reading
+
+`gate_depth` **100 had never been run at the shipped `top_k`.** NR-48 varied depth only at
+`top_k` 1000 (arms B and C), and the only other depth comparison on record is a 22-case
+pool-300-against-50 **wash** from 2026-08-07 (−0.18, 6 better/6 worse/10 tied) that predates
+HyDE, verified bigrams and `w_embedding`. So the ranking is taken once to depth 300 and every
+share derived from that single pass, filling the row for free:
+
+| depth | 25 | **50 — registered** | 100 | 150 | 300 |
+|---|---|---|---|---|---|
+| round-2 share | 17.58% | **20.61%** | **22.33%** | 24.14% | 26.62% |
+
+**The share rises with depth, and the probe committed in advance to what that means:** *"a share
+that rises means they are marginal and 20.61% flattered them."* That branch fired. Density by
+band:
+
+| rank band | 1–10 | 11–15 | 16–25 | 26–50 | 51–100 | 101–150 | 151–300 |
+|---|---|---|---|---|---|---|---|
+| round-2 density | **15.2%** | 20.0% | 18.8% | 23.6% | 24.1% | 27.8% | **29.1%** |
+
+**Round 2 is weakest exactly where the digest is drawn.** It holds 15.15% of ranks 1–10 —
+*below* the 16% licence threshold — against 26.62% by rank 300.
+
+Since the digest is the top-15 window, round 2's **16.77%** share there predicts its digest
+share better than the 20.61% the decision was made on. That cuts the implied effect to **1.39
+digest papers per case** instead of 1.71, and:
+
+| | at Δp = 0.2 | at Δp = 0.092 | at Δp = 0.054 (measured) |
+|---|---|---|---|
+| from the 20.61% window share | +1.03 | +0.47 | +0.28 |
+| **from the 16.77% top-15 share** | **+0.84** | **+0.38** | **+0.23** |
+
+Against a ±0.78 bootstrap, the licence survives only at a Δp more than three times the one
+actually observed.
+
+**The licence is not revoked.** It was registered at depth 50 and depth 50 is what it reads —
+choosing the depth that flatters a result after seeing five of them is the same error as moving
+a bar, wearing a grid instead. But every refinement since the bar was set has pointed the same
+way, and a reader deciding whether to spend should have all of them.
+
 #### Why this is the interesting result
 
 Three facts that only fit together one way. Round 2's candidates are **72% new** to the pool

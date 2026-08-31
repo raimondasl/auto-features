@@ -26,6 +26,26 @@ after seeing the data is the exact failure NR-49 documented; the prior is record
 is what a reader deciding whether to spend needs. The Δp is itself weak: **61% of entering and
 73% of displaced papers are void**, and the judged subset is selected by having been shown.
 
+**The depth grid says round 2 is marginal, and the probe committed to that reading first.**
+`gate_depth` 100 had never been run at the shipped `top_k` — NR-48 moved depth only at
+`top_k` 1000 — so the ranking is taken once to 300 and every share derived from it:
+
+| depth | 25 | **50** | 100 | 150 | 300 |
+|---|---|---|---|---|---|
+| round-2 share | 17.58% | **20.61%** | 22.33% | 24.14% | 26.62% |
+
+The share **rises**, which the docstring committed in advance to reading as *"round 2's papers
+are marginal and 20.61% flattered them"*. Density by band makes it plain: **15.2%** of ranks
+1–10, 23.6% of 26–50, 29.1% of 151–300. Round 2 is weakest exactly where the digest is drawn.
+
+Since the digest is the top-15 window, round 2's **16.77%** share there is the better predictor
+of its digest share than the 20.61% the decision was made on — cutting the implied effect from
++1.03 to **+0.84** at a generous Δp and to **+0.23** at the Δp actually measured.
+
+**The licence is not revoked.** It was registered at depth 50 and depth 50 is what it reads.
+Picking the depth that flatters a result after seeing five of them is the same error as moving
+a bar, wearing a grid instead.
+
 **Why this is the interesting result.** Round 2's candidates are **72% new** to the pool, the
 ranker rates them highly enough for a fifth of the window, and they are *not* witness material —
 NR-49 measured reach as flat. Those three only fit together one way: round 2 retrieves papers
@@ -100,6 +120,65 @@ class TestTheBarWasSetBeforeTheDataAndWithAnEffectSize:
         """Round 2 at top_k 100 merged into the WHOLE shipped pool, not NR-49's budget match.
         A kill here would have been decisive for the matched arm too."""
         assert "deliberately generous" in artifact["_comment"]
+
+
+class TestTheDepthGridFillsAnEmptyCell:
+    """`gate_depth` 100 had never been run at the shipped `top_k`. NR-48 varied depth only at
+    `top_k` 1000 (arms B and C), and the only other depth comparison on record is a 22-case
+    pool-300-against-50 wash from 2026-08-07 that predates HyDE, verified bigrams and
+    `w_embedding`. One deep ranking pass fills the row for free."""
+
+    def test_every_depth_is_derived_from_one_pass(self, artifact):
+        d = artifact["by_depth"]
+        assert set(d) == {"depth_25", "depth_50", "depth_100", "depth_150", "depth_300"}
+        assert d["depth_100"]["share"] == pytest.approx(0.2233, abs=0.001)
+
+    def test_only_depth_50_is_marked_as_the_decision(self, artifact):
+        """The guard against reading the grid as five chances to pass. Exactly one depth is
+        the registered one, and it is the one the bar was set at."""
+        marked = [
+            k for k, v in artifact["by_depth"].items() if v["is_the_registered_decision_depth"]
+        ]
+        assert marked == ["depth_50"]
+
+    def test_the_registered_depth_reproduces_the_headline(self, artifact):
+        """A self-check: the deep pass must give back exactly what the depth-50 pass gave."""
+        assert artifact["by_depth"]["depth_50"]["round2_slots"] == artifact["round2_window_slots"]
+        assert artifact["by_depth"]["depth_50"]["share"] == artifact["share_of_window"]
+
+
+class TestRoundTwoIsMarginalWithinTheWindow:
+    def test_the_share_rises_with_depth(self, artifact):
+        """Monotone across all five depths. The docstring pre-committed to reading a rising
+        share as 'marginal, and 20.61% flattered them' — this is that branch firing, not a
+        reading chosen after the fact."""
+        shares = [artifact["by_depth"][f"depth_{d}"]["share"] for d in (25, 50, 100, 150, 300)]
+        assert shares == sorted(shares)
+        assert artifact["top_of_window"]["density_rises_with_depth"] is True
+
+    def test_round_two_is_weakest_at_the_very_top(self, artifact):
+        """15.15% of ranks 1-10 — below the 16% licence threshold — against 20.61% of ranks
+        1-50. The digest is drawn from the top, so this is the part that matters most."""
+        t = artifact["top_of_window"]
+        assert t["share_in_ranks_1_10"] < artifact["pre_registered"]["license_at_or_above"]
+        assert t["share_in_ranks_1_10"] < t["share_in_ranks_1_50"]
+
+    def test_the_digest_estimate_falls_once_corrected(self, artifact):
+        """16.77% of the top-15 rather than 20.61% of the top-50: 1.39 digest papers per case
+        instead of 1.71, and +0.84 instead of +1.03 at a generous Δp — now close to the ±0.78
+        line rather than comfortably past it."""
+        t = artifact["top_of_window"]
+        assert t["implied_digest_papers_per_case"] == pytest.approx(1.39, abs=0.02)
+        gen = t["implied_net2_from_top15"]["at_generous_dp_0.20"]
+        assert gen < artifact["verdict"]["implied_net2_per_case"]["at_generous_dp_0.20"]
+        assert t["implied_net2_from_top15"]["at_dp_measured_here_0.054"] < 0.3
+
+    def test_the_licence_still_reads_depth_50(self, artifact):
+        """The discipline, again. Every refinement since the bar was set has pointed the same
+        way — toward an effect too small to resolve — and none of them revokes a bar that was
+        registered in advance. The reader gets both and decides."""
+        assert artifact["verdict"]["licenses_paid_arm"] is True
+        assert artifact["by_depth"]["depth_50"]["is_the_registered_decision_depth"] is True
 
 
 class TestTheDirectionIsNotEstablished:
