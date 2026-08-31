@@ -1144,6 +1144,64 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Sonnet agrees with itself at 0.80 and with GPT at 0.199. NR-52 stands. **[NR-53]**
+
+After NR-52 shipped, a code read found that **`_call_claude` sends no temperature**, so the
+Anthropic default (1.0) applies and every Sonnet verdict is a *sample*, while the GPT judge runs
+greedy at `temperature=0`. The concern was that NR-52's Sonnet-only sign flip might be one judge
+disagreeing with **itself** rather than with GPT. This asked the same judge the same questions
+twice, at the settings NR-52 used. ~$3, 191 replicated papers of a random 200.
+
+| statistic | value | |
+|---|---|---|
+| exact score agreement | 0.806 | |
+| **kappa, binary at ≥2** | **0.7979** | GPT-vs-Sonnet on the band: **0.199** |
+| kappa, quadratic 0–3 | 0.8197 | |
+| **sonnet-only label flips (≥2)** | **8.4%** | CI [4.5%, 12.3%] — bar was ≤10% |
+| consensus label flips (≥1) | 1.6% | CI [0.0%, 3.3%] |
+
+**Pre-registered PASS: kappa ≥ 0.6 AND flip ≤ 10%.** Both clear. The concern is answered and
+**the answer is that it was not the problem** — recorded plainly because the doubt was raised in
+public and this is what retiring it looks like.
+
+#### Self-agreement is 4× cross-judge agreement
+
+That gap is the whole result. Whatever separates GPT-5.5 from Sonnet is a property of the
+**judges**, not of the sampler, so NR-52's conclusion — the comparator margin is judge-dependent
+in *direction* — survives intact. The temperature omission is hygiene worth fixing, **not a
+correction owed**.
+
+#### The magnitude does carry label noise, and it is small
+
+An 8.4% flip rate over ~9 shown papers per case injects ~**2.49 net@2 per case**, an SE of 0.41
+at n = 37. Added in quadrature to the paired bootstrap's ~1.92, that widens the Sonnet-only
+interval by about **2%**. Between-case variation dominates, as it always has: the sign is robust
+to resampling the judge, and the width was never limited by it.
+
+#### Where the instability lives is not where it looks
+
+| original score | 0 | 1 | 2 | **3** |
+|---|---|---|---|---|
+| changed on redraw | 20.0% | 19.6% | 14.3% | **32.4%** |
+
+The most confident band is the least stable in raw score — and it costs nothing, because a 3→2
+move crosses no threshold. The 8.4% is driven by **1↔2 crossings**. Raw agreement (19.4% of
+scores moved) and decision agreement (8.4% of labels flipped) are different quantities, which is
+why the probe pre-registered the flip rate rather than kappa. Quoting raw agreement alone would
+have overstated the damage by more than double.
+
+It also explains an NR-52 finding from the other side: `Sonnet ≥ 1` flips only 1.6% of the time
+because it sits away from where the judge wavers — the same fact that made the consensus label
+barely bind.
+
+**Ordering was forced.** At temperature 0 self-agreement is trivially ~1.0, so this was the only
+window in which the question could be asked. `second_verdict` also had to gain an additive
+`cache_as` override: it caches by `(model, case, paper)`, so a second call would have returned
+the first draw and self-agreement would have been unmeasurable by construction.
+
+**Cost** ~$3, 191 of 200 sampled papers (9 void on unrecoverable abstracts). Pinned by
+`tests/test_sonnet_self_agreement.py`.
+
 ### The margin passes the second-judge gate, and the gate barely tested it. **[NR-52, rung 1]**
 
 The validity gate the ladder in `RESEARCH-net2-directions.md` put before every dollar: is the

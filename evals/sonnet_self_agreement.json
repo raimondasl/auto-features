@@ -1,0 +1,79 @@
+{
+ "_comment": "NR-53. How much of NR-52's cross-judge disagreement is Sonnet disagreeing with ITSELF? The Claude path sends no temperature, so the Anthropic default 1.0 applies and every Sonnet verdict is a sample, while the GPT judge runs greedy at temperature 0. Run BEFORE fixing that, because at temperature 0 self-agreement is trivially ~1.0 and the quantity is unrecoverable. Bars pre-registered in the module docstring before any replicate was drawn. Derived by evals/sonnet_self_agreement.py; pinned by tests/test_sonnet_self_agreement.py.",
+ "pre_registered": {
+  "pass": {
+   "kappa_at_least": 0.6,
+   "flip_rate_at_most": 0.1
+  },
+  "kill": {
+   "kappa_below": 0.4,
+   "flip_rate_at_least": 0.2
+  },
+  "written_before_any_replicate": true,
+  "statistic_is_flip_rate_not_kappa": "NR-52's labels are thresholds on the score, so a 2->3 redraw changes nothing while a 1->2 redraw flips sonnet-only and not consensus. Flip rate is what propagates into a margin; kappa is reported because it is what is quoted."
+ },
+ "model": "claude-sonnet-5",
+ "temperature": "unset -> Anthropic default 1.0 (the setting NR-52 used)",
+ "n_replicated": 191,
+ "exact_score_agreement": 0.8063,
+ "kappa_binary_at_2": 0.7979,
+ "kappa_quadratic_0_3": 0.8197,
+ "label_flips": {
+  "sonnet_only_ge2": {
+   "threshold": 2,
+   "flips": 16,
+   "n": 191,
+   "rate": 0.0838,
+   "ci95": [
+    0.0445,
+    0.1231
+   ],
+   "implied_margin_sd_per_case": 2.49
+  },
+  "consensus_ge1": {
+   "threshold": 1,
+   "flips": 3,
+   "n": 191,
+   "rate": 0.0157,
+   "ci95": [
+    0.0,
+    0.0333
+   ],
+   "implied_margin_sd_per_case": 1.12
+  }
+ },
+ "movement_by_original_score": {
+  "0": {
+   "n": 5,
+   "changed": 1,
+   "rate": 0.2
+  },
+  "1": {
+   "n": 51,
+   "changed": 10,
+   "rate": 0.196
+  },
+  "2": {
+   "n": 98,
+   "changed": 14,
+   "rate": 0.143
+  },
+  "3": {
+   "n": 37,
+   "changed": 12,
+   "rate": 0.324
+  }
+ },
+ "reference_points": {
+  "gpt_sonnet_kappa_on_band": 0.199,
+  "sonnet_only_margin_nr52": -3.41,
+  "_comment": "If self-agreement kappa is near the 0.199 measured BETWEEN judges, then what NR-52 called a judge difference is largely one judge's sampling noise."
+ },
+ "verdict": {
+  "kappa_binary_at_2": 0.7979,
+  "sonnet_only_flip_rate": 0.0838,
+  "passes": true,
+  "kills": false,
+  "grey": false
+ }
+}
