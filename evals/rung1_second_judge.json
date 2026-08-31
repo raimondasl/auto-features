@@ -1,0 +1,910 @@
+{
+ "_comment": "NR-52 / rung 1. Pre-registered in evals/PREREG-rung1.md and COMMITTED BEFORE any margin was computed under any label. Three labels registered together and all reported: gpt (the published margin), consensus (gpt>=2 AND sonnet>=1, the only one carrying a kill condition), sonnet_only (no bar -- a threshold on its level would measure the judge's severity rather than the system). Derived by evals/rung1_second_judge.py; pinned by tests/test_rung1_second_judge.py.",
+ "excluded_context_drift": [],
+ "n_cases": 37,
+ "labels": {
+  "gpt": {
+   "rr_mean_net2": 5.51,
+   "opus5_mean_net2": 5.19,
+   "margin": 0.32,
+   "ci95": [
+    -1.78,
+    2.51
+   ],
+   "wins": 17,
+   "losses": 17,
+   "ties": 3,
+   "sign_p": 1.0,
+   "rr_papers_scored": 306,
+   "opus5_papers_scored": 357,
+   "per_case": {
+    "ann": {
+     "rr": 10,
+     "opus5": 8,
+     "delta": 2,
+     "rr_n": 13,
+     "opus5_n": 8
+    },
+    "bio-align": {
+     "rr": 2,
+     "opus5": 7,
+     "delta": -5,
+     "rr_n": 11,
+     "opus5_n": 7
+    },
+    "bio-kmer": {
+     "rr": 3,
+     "opus5": 6,
+     "delta": -3,
+     "rr_n": 3,
+     "opus5_n": 12
+    },
+    "bio-mdsim": {
+     "rr": 9,
+     "opus5": 6,
+     "delta": 3,
+     "rr_n": 12,
+     "opus5_n": 6
+    },
+    "bio-mdtraj": {
+     "rr": 3,
+     "opus5": 0,
+     "delta": 3,
+     "rr_n": 3,
+     "opus5_n": 0
+    },
+    "bio-scvi": {
+     "rr": 7,
+     "opus5": 12,
+     "delta": -5,
+     "rr_n": 10,
+     "opus5_n": 18
+    },
+    "bio-singlecell": {
+     "rr": 4,
+     "opus5": 4,
+     "delta": 0,
+     "rr_n": 7,
+     "opus5_n": 10
+    },
+    "cli": {
+     "rr": 0,
+     "opus5": 3,
+     "delta": -3,
+     "rr_n": 0,
+     "opus5_n": 6
+    },
+    "columnar": {
+     "rr": 7,
+     "opus5": 4,
+     "delta": 3,
+     "rr_n": 7,
+     "opus5_n": 10
+    },
+    "compiler": {
+     "rr": 1,
+     "opus5": 4,
+     "delta": -3,
+     "rr_n": 1,
+     "opus5_n": 10
+    },
+    "crypto": {
+     "rr": 3,
+     "opus5": 5,
+     "delta": -2,
+     "rr_n": 3,
+     "opus5_n": 5
+    },
+    "cv": {
+     "rr": 5,
+     "opus5": 12,
+     "delta": -7,
+     "rr_n": 8,
+     "opus5_n": 12
+    },
+    "db": {
+     "rr": 12,
+     "opus5": 7,
+     "delta": 5,
+     "rr_n": 12,
+     "opus5_n": 7
+    },
+    "diffusion": {
+     "rr": 15,
+     "opus5": 5,
+     "delta": 10,
+     "rr_n": 15,
+     "opus5_n": 8
+    },
+    "encryption": {
+     "rr": 1,
+     "opus5": 2,
+     "delta": -1,
+     "rr_n": 1,
+     "opus5_n": 5
+    },
+    "graph": {
+     "rr": 15,
+     "opus5": 7,
+     "delta": 8,
+     "rr_n": 15,
+     "opus5_n": 7
+    },
+    "http": {
+     "rr": 0,
+     "opus5": -10,
+     "delta": 10,
+     "rr_n": 0,
+     "opus5_n": 20
+    },
+    "linter": {
+     "rr": 0,
+     "opus5": -17,
+     "delta": 17,
+     "rr_n": 0,
+     "opus5_n": 13
+    },
+    "llminfer": {
+     "rr": 7,
+     "opus5": 15,
+     "delta": -8,
+     "rr_n": 10,
+     "opus5_n": 15
+    },
+    "mat-chgpot": {
+     "rr": 9,
+     "opus5": 21,
+     "delta": -12,
+     "rr_n": 12,
+     "opus5_n": 24
+    },
+    "mat-descriptors": {
+     "rr": 8,
+     "opus5": 1,
+     "delta": 7,
+     "rr_n": 11,
+     "opus5_n": 7
+    },
+    "mat-featurize": {
+     "rr": -1,
+     "opus5": -2,
+     "delta": 1,
+     "rr_n": 11,
+     "opus5_n": 10
+    },
+    "mat-mlip": {
+     "rr": 3,
+     "opus5": 18,
+     "delta": -15,
+     "rr_n": 12,
+     "opus5_n": 18
+    },
+    "mat-phonon": {
+     "rr": 6,
+     "opus5": 6,
+     "delta": 0,
+     "rr_n": 12,
+     "opus5_n": 9
+    },
+    "mat-toolkit": {
+     "rr": 3,
+     "opus5": 8,
+     "delta": -5,
+     "rr_n": 3,
+     "opus5_n": 8
+    },
+    "numerics": {
+     "rr": 6,
+     "opus5": 13,
+     "delta": -7,
+     "rr_n": 6,
+     "opus5_n": 13
+    },
+    "peft": {
+     "rr": 11,
+     "opus5": 5,
+     "delta": 6,
+     "rr_n": 14,
+     "opus5_n": 5
+    },
+    "rag": {
+     "rr": 7,
+     "opus5": 12,
+     "delta": -5,
+     "rr_n": 10,
+     "opus5_n": 12
+    },
+    "rl": {
+     "rr": 9,
+     "opus5": 5,
+     "delta": 4,
+     "rr_n": 12,
+     "opus5_n": 8
+    },
+    "speech": {
+     "rr": 6,
+     "opus5": 9,
+     "delta": -3,
+     "rr_n": 15,
+     "opus5_n": 9
+    },
+    "storage": {
+     "rr": 13,
+     "opus5": 7,
+     "delta": 6,
+     "rr_n": 13,
+     "opus5_n": 7
+    },
+    "systems": {
+     "rr": 2,
+     "opus5": -10,
+     "delta": 12,
+     "rr_n": 5,
+     "opus5_n": 8
+    },
+    "thin-gnn": {
+     "rr": 6,
+     "opus5": 6,
+     "delta": 0,
+     "rr_n": 15,
+     "opus5_n": 6
+    },
+    "thin-kv": {
+     "rr": 4,
+     "opus5": 5,
+     "delta": -1,
+     "rr_n": 10,
+     "opus5_n": 8
+    },
+    "thin-lang": {
+     "rr": -2,
+     "opus5": 4,
+     "delta": -6,
+     "rr_n": 1,
+     "opus5_n": 10
+    },
+    "vectordb": {
+     "rr": 10,
+     "opus5": 8,
+     "delta": 2,
+     "rr_n": 13,
+     "opus5_n": 11
+    },
+    "webdev": {
+     "rr": 0,
+     "opus5": -4,
+     "delta": 4,
+     "rr_n": 0,
+     "opus5_n": 5
+    }
+   }
+  },
+  "consensus": {
+   "rr_mean_net2": 5.35,
+   "opus5_mean_net2": 4.78,
+   "margin": 0.57,
+   "ci95": [
+    -1.73,
+    2.92
+   ],
+   "wins": 18,
+   "losses": 16,
+   "ties": 3,
+   "sign_p": 0.8642,
+   "rr_papers_scored": 306,
+   "opus5_papers_scored": 357,
+   "per_case": {
+    "ann": {
+     "rr": 10,
+     "opus5": 8,
+     "delta": 2,
+     "rr_n": 13,
+     "opus5_n": 8
+    },
+    "bio-align": {
+     "rr": 2,
+     "opus5": 7,
+     "delta": -5,
+     "rr_n": 11,
+     "opus5_n": 7
+    },
+    "bio-kmer": {
+     "rr": 3,
+     "opus5": 6,
+     "delta": -3,
+     "rr_n": 3,
+     "opus5_n": 12
+    },
+    "bio-mdsim": {
+     "rr": 9,
+     "opus5": 6,
+     "delta": 3,
+     "rr_n": 12,
+     "opus5_n": 6
+    },
+    "bio-mdtraj": {
+     "rr": 3,
+     "opus5": 0,
+     "delta": 3,
+     "rr_n": 3,
+     "opus5_n": 0
+    },
+    "bio-scvi": {
+     "rr": 7,
+     "opus5": 12,
+     "delta": -5,
+     "rr_n": 10,
+     "opus5_n": 18
+    },
+    "bio-singlecell": {
+     "rr": 4,
+     "opus5": 4,
+     "delta": 0,
+     "rr_n": 7,
+     "opus5_n": 10
+    },
+    "cli": {
+     "rr": 0,
+     "opus5": -3,
+     "delta": 3,
+     "rr_n": 0,
+     "opus5_n": 6
+    },
+    "columnar": {
+     "rr": 7,
+     "opus5": 4,
+     "delta": 3,
+     "rr_n": 7,
+     "opus5_n": 10
+    },
+    "compiler": {
+     "rr": 1,
+     "opus5": 4,
+     "delta": -3,
+     "rr_n": 1,
+     "opus5_n": 10
+    },
+    "crypto": {
+     "rr": 3,
+     "opus5": 5,
+     "delta": -2,
+     "rr_n": 3,
+     "opus5_n": 5
+    },
+    "cv": {
+     "rr": 5,
+     "opus5": 12,
+     "delta": -7,
+     "rr_n": 8,
+     "opus5_n": 12
+    },
+    "db": {
+     "rr": 12,
+     "opus5": 7,
+     "delta": 5,
+     "rr_n": 12,
+     "opus5_n": 7
+    },
+    "diffusion": {
+     "rr": 15,
+     "opus5": 5,
+     "delta": 10,
+     "rr_n": 15,
+     "opus5_n": 8
+    },
+    "encryption": {
+     "rr": 1,
+     "opus5": 2,
+     "delta": -1,
+     "rr_n": 1,
+     "opus5_n": 5
+    },
+    "graph": {
+     "rr": 12,
+     "opus5": 7,
+     "delta": 5,
+     "rr_n": 15,
+     "opus5_n": 7
+    },
+    "http": {
+     "rr": 0,
+     "opus5": -16,
+     "delta": 16,
+     "rr_n": 0,
+     "opus5_n": 20
+    },
+    "linter": {
+     "rr": 0,
+     "opus5": -17,
+     "delta": 17,
+     "rr_n": 0,
+     "opus5_n": 13
+    },
+    "llminfer": {
+     "rr": 7,
+     "opus5": 15,
+     "delta": -8,
+     "rr_n": 10,
+     "opus5_n": 15
+    },
+    "mat-chgpot": {
+     "rr": 6,
+     "opus5": 21,
+     "delta": -15,
+     "rr_n": 12,
+     "opus5_n": 24
+    },
+    "mat-descriptors": {
+     "rr": 8,
+     "opus5": 1,
+     "delta": 7,
+     "rr_n": 11,
+     "opus5_n": 7
+    },
+    "mat-featurize": {
+     "rr": -1,
+     "opus5": -2,
+     "delta": 1,
+     "rr_n": 11,
+     "opus5_n": 10
+    },
+    "mat-mlip": {
+     "rr": 3,
+     "opus5": 18,
+     "delta": -15,
+     "rr_n": 12,
+     "opus5_n": 18
+    },
+    "mat-phonon": {
+     "rr": 6,
+     "opus5": 6,
+     "delta": 0,
+     "rr_n": 12,
+     "opus5_n": 9
+    },
+    "mat-toolkit": {
+     "rr": 3,
+     "opus5": 8,
+     "delta": -5,
+     "rr_n": 3,
+     "opus5_n": 8
+    },
+    "numerics": {
+     "rr": 6,
+     "opus5": 13,
+     "delta": -7,
+     "rr_n": 6,
+     "opus5_n": 13
+    },
+    "peft": {
+     "rr": 11,
+     "opus5": 5,
+     "delta": 6,
+     "rr_n": 14,
+     "opus5_n": 5
+    },
+    "rag": {
+     "rr": 7,
+     "opus5": 12,
+     "delta": -5,
+     "rr_n": 10,
+     "opus5_n": 12
+    },
+    "rl": {
+     "rr": 9,
+     "opus5": 5,
+     "delta": 4,
+     "rr_n": 12,
+     "opus5_n": 8
+    },
+    "speech": {
+     "rr": 6,
+     "opus5": 9,
+     "delta": -3,
+     "rr_n": 15,
+     "opus5_n": 9
+    },
+    "storage": {
+     "rr": 13,
+     "opus5": 7,
+     "delta": 6,
+     "rr_n": 13,
+     "opus5_n": 7
+    },
+    "systems": {
+     "rr": 2,
+     "opus5": -10,
+     "delta": 12,
+     "rr_n": 5,
+     "opus5_n": 8
+    },
+    "thin-gnn": {
+     "rr": 6,
+     "opus5": 6,
+     "delta": 0,
+     "rr_n": 15,
+     "opus5_n": 6
+    },
+    "thin-kv": {
+     "rr": 4,
+     "opus5": 5,
+     "delta": -1,
+     "rr_n": 10,
+     "opus5_n": 8
+    },
+    "thin-lang": {
+     "rr": -2,
+     "opus5": 4,
+     "delta": -6,
+     "rr_n": 1,
+     "opus5_n": 10
+    },
+    "vectordb": {
+     "rr": 10,
+     "opus5": 8,
+     "delta": 2,
+     "rr_n": 13,
+     "opus5_n": 11
+    },
+    "webdev": {
+     "rr": 0,
+     "opus5": -7,
+     "delta": 7,
+     "rr_n": 0,
+     "opus5_n": 5
+    }
+   }
+  },
+  "sonnet_only": {
+   "rr_mean_net2": -2.03,
+   "opus5_mean_net2": 1.38,
+   "margin": -3.41,
+   "ci95": [
+    -7.0,
+    0.54
+   ],
+   "wins": 13,
+   "losses": 23,
+   "ties": 1,
+   "sign_p": 0.1325,
+   "rr_papers_scored": 306,
+   "opus5_papers_scored": 357,
+   "per_case": {
+    "ann": {
+     "rr": -8,
+     "opus5": 8,
+     "delta": -16,
+     "rr_n": 13,
+     "opus5_n": 8
+    },
+    "bio-align": {
+     "rr": 5,
+     "opus5": 4,
+     "delta": 1,
+     "rr_n": 11,
+     "opus5_n": 7
+    },
+    "bio-kmer": {
+     "rr": -3,
+     "opus5": 3,
+     "delta": -6,
+     "rr_n": 3,
+     "opus5_n": 12
+    },
+    "bio-mdsim": {
+     "rr": -9,
+     "opus5": -3,
+     "delta": -6,
+     "rr_n": 12,
+     "opus5_n": 6
+    },
+    "bio-mdtraj": {
+     "rr": 3,
+     "opus5": 0,
+     "delta": 3,
+     "rr_n": 3,
+     "opus5_n": 0
+    },
+    "bio-scvi": {
+     "rr": 7,
+     "opus5": -3,
+     "delta": 10,
+     "rr_n": 10,
+     "opus5_n": 18
+    },
+    "bio-singlecell": {
+     "rr": -2,
+     "opus5": 1,
+     "delta": -3,
+     "rr_n": 7,
+     "opus5_n": 10
+    },
+    "cli": {
+     "rr": 0,
+     "opus5": -12,
+     "delta": 12,
+     "rr_n": 0,
+     "opus5_n": 6
+    },
+    "columnar": {
+     "rr": -11,
+     "opus5": 1,
+     "delta": -12,
+     "rr_n": 7,
+     "opus5_n": 10
+    },
+    "compiler": {
+     "rr": -2,
+     "opus5": -5,
+     "delta": 3,
+     "rr_n": 1,
+     "opus5_n": 10
+    },
+    "crypto": {
+     "rr": -3,
+     "opus5": 2,
+     "delta": -5,
+     "rr_n": 3,
+     "opus5_n": 5
+    },
+    "cv": {
+     "rr": -7,
+     "opus5": 9,
+     "delta": -16,
+     "rr_n": 8,
+     "opus5_n": 12
+    },
+    "db": {
+     "rr": 3,
+     "opus5": 7,
+     "delta": -4,
+     "rr_n": 12,
+     "opus5_n": 7
+    },
+    "diffusion": {
+     "rr": -6,
+     "opus5": 2,
+     "delta": -8,
+     "rr_n": 15,
+     "opus5_n": 8
+    },
+    "encryption": {
+     "rr": 1,
+     "opus5": -1,
+     "delta": 2,
+     "rr_n": 1,
+     "opus5_n": 5
+    },
+    "graph": {
+     "rr": -3,
+     "opus5": 7,
+     "delta": -10,
+     "rr_n": 15,
+     "opus5_n": 7
+    },
+    "http": {
+     "rr": 0,
+     "opus5": -37,
+     "delta": 37,
+     "rr_n": 0,
+     "opus5_n": 20
+    },
+    "linter": {
+     "rr": 0,
+     "opus5": -20,
+     "delta": 20,
+     "rr_n": 0,
+     "opus5_n": 13
+    },
+    "llminfer": {
+     "rr": -5,
+     "opus5": 15,
+     "delta": -20,
+     "rr_n": 10,
+     "opus5_n": 15
+    },
+    "mat-chgpot": {
+     "rr": -9,
+     "opus5": 6,
+     "delta": -15,
+     "rr_n": 12,
+     "opus5_n": 24
+    },
+    "mat-descriptors": {
+     "rr": -1,
+     "opus5": 4,
+     "delta": -5,
+     "rr_n": 11,
+     "opus5_n": 7
+    },
+    "mat-featurize": {
+     "rr": -4,
+     "opus5": -5,
+     "delta": 1,
+     "rr_n": 11,
+     "opus5_n": 10
+    },
+    "mat-mlip": {
+     "rr": -9,
+     "opus5": 18,
+     "delta": -27,
+     "rr_n": 12,
+     "opus5_n": 18
+    },
+    "mat-phonon": {
+     "rr": -6,
+     "opus5": 3,
+     "delta": -9,
+     "rr_n": 12,
+     "opus5_n": 9
+    },
+    "mat-toolkit": {
+     "rr": 0,
+     "opus5": -1,
+     "delta": 1,
+     "rr_n": 3,
+     "opus5_n": 8
+    },
+    "numerics": {
+     "rr": -3,
+     "opus5": 10,
+     "delta": -13,
+     "rr_n": 6,
+     "opus5_n": 13
+    },
+    "peft": {
+     "rr": 8,
+     "opus5": 5,
+     "delta": 3,
+     "rr_n": 14,
+     "opus5_n": 5
+    },
+    "rag": {
+     "rr": 10,
+     "opus5": 12,
+     "delta": -2,
+     "rr_n": 10,
+     "opus5_n": 12
+    },
+    "rl": {
+     "rr": -6,
+     "opus5": 2,
+     "delta": -8,
+     "rr_n": 12,
+     "opus5_n": 8
+    },
+    "speech": {
+     "rr": -6,
+     "opus5": 9,
+     "delta": -15,
+     "rr_n": 15,
+     "opus5_n": 9
+    },
+    "storage": {
+     "rr": 4,
+     "opus5": 4,
+     "delta": 0,
+     "rr_n": 13,
+     "opus5_n": 7
+    },
+    "systems": {
+     "rr": -4,
+     "opus5": -10,
+     "delta": 6,
+     "rr_n": 5,
+     "opus5_n": 8
+    },
+    "thin-gnn": {
+     "rr": -9,
+     "opus5": 0,
+     "delta": -9,
+     "rr_n": 15,
+     "opus5_n": 6
+    },
+    "thin-kv": {
+     "rr": -8,
+     "opus5": 8,
+     "delta": -16,
+     "rr_n": 10,
+     "opus5_n": 8
+    },
+    "thin-lang": {
+     "rr": -2,
+     "opus5": 4,
+     "delta": -6,
+     "rr_n": 1,
+     "opus5_n": 10
+    },
+    "vectordb": {
+     "rr": 10,
+     "opus5": 11,
+     "delta": -1,
+     "rr_n": 13,
+     "opus5_n": 11
+    },
+    "webdev": {
+     "rr": 0,
+     "opus5": -7,
+     "delta": 7,
+     "rr_n": 0,
+     "opus5_n": 5
+    }
+   }
+  }
+ },
+ "consensus_label_binding": {
+  "_comment": "The power check the pre-registration should have contained. `Sonnet >= 1` demotes under 2% of GPT-actionable papers in either arm, so the consensus label is very nearly GPT itself and the +-0.5 bar was close to unfalsifiable. Reported because a bar that passes almost regardless of the truth is a defect in the bar -- the same shape NR-49 recorded, where a null cleared one; here a pass is near-vacuous.",
+  "shipped": {
+   "gpt_actionable": 272,
+   "demoted_by_consensus": 2,
+   "demotion_rate": 0.0074,
+   "sonnet_score_hist": {
+    "3": 35,
+    "1": 120,
+    "2": 144,
+    "0": 7
+   },
+   "sonnet_precision": 0.585
+  },
+  "opus5": {
+   "gpt_actionable": 302,
+   "demoted_by_consensus": 5,
+   "demotion_rate": 0.0166,
+   "sonnet_score_hist": {
+    "2": 176,
+    "3": 79,
+    "1": 78,
+    "0": 24
+   },
+   "sonnet_precision": 0.7143
+  },
+  "break_even_precision": 0.6667
+ },
+ "pre_registered": {
+  "bar": 0.5,
+  "criterion": "consensus margin within +-0.5/case of gpt with sign preserved, AND >=4 of the 6 big science losses persisting at >=50% of their gpt magnitude",
+  "committed_before_any_margin": true,
+  "sonnet_only_has_no_bar": "Its level is dominated by one judge's severity -- both arms are expected to go negative -- so a bar there would measure the judge, not the system. Its SIGN is the informative part.",
+  "scope_limit": "The +-0.5 read is descriptive gating, not an equivalence test: the consensus margin's own SE is ~1.0/case at n=37. A pass means robust among the judges we have, never objective -- a cutoff both models share (NR-43) is undetectable by any two-judge construction."
+ },
+ "verdict": {
+  "gpt_margin": 0.32,
+  "consensus_margin": 0.57,
+  "sonnet_only_margin": -3.41,
+  "abs_shift": 0.25,
+  "sign_preserved": true,
+  "within_bar": true,
+  "big_losses_persisting": 6,
+  "big_losses": {
+   "mat-mlip": {
+    "gpt": -15,
+    "consensus": -15
+   },
+   "mat-chgpot": {
+    "gpt": -12,
+    "consensus": -15
+   },
+   "cv": {
+    "gpt": -7,
+    "consensus": -7
+   },
+   "llminfer": {
+    "gpt": -8,
+    "consensus": -8
+   },
+   "mat-toolkit": {
+    "gpt": -5,
+    "consensus": -5
+   },
+   "numerics": {
+    "gpt": -7,
+    "consensus": -7
+   }
+  },
+  "passes": true,
+  "but_the_bar_was_weak": "The consensus label demotes 0.7% of shipped and 1.7% of Opus 5 GPT-actionable papers, so it is nearly GPT by construction and this pass carries little information. Recorded rather than repaired: moving a bar after seeing the data is the failure NR-49 documented, so the pass stands as written and its weakness is measured beside it.",
+  "sonnet_only_sign_flips": true,
+  "sonnet_only_reading": "The pre-registration named the Sonnet-only SIGN as the informative part, and it flips. Under Sonnet, RepoRadar scores -2.03/case against Opus 5's +1.38: our shown papers run 58.5% actionable, BELOW net@2's 2/3 break-even, while Opus 5's run 71.4%, above it. The prediction written in advance -- that a harsher judge would push BOTH arms negative and penalise the arm showing more -- is wrong in both halves, and the direction is against us.",
+  "gpt_margin_is_draw_dependent": "This control (20260830T034455Z, RR mean +5.51) gives a GPT margin of +0.32; opus5_arm.json's control (20260827T213701Z, RR mean +5.73) gives +0.54 against an identical Opus 5 arm. Same config, different draw, 0.22/case apart -- C-7 applies to our own side too, and the headline number is not draw-stable."
+ }
+}

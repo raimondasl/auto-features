@@ -77,6 +77,21 @@ when something overtakes it.
 6, 9, 10, 12 and 13 closed negative; item 5's remainder is conditional on a proposal that has not
 appeared.
 
+**Read NR-52 before spending anything on the net@2 ladder.** `evals/RESEARCH-net2-directions.md`
+sequenced ten rungs behind a second-judge validity gate. That gate ran (rung 1) and returned a
+result the ladder's own framing does not handle cleanly: it **passes as written** -- consensus
+margin +0.57 against GPT's +0.32, inside the +-0.5 bar with the sign preserved -- and the bar was
+**near-unfalsifiable**, demoting 0.7% of shipped and 1.7% of Opus 5 GPT-actionable papers. The
+reading the pre-registration named as informative, the Sonnet-only sign, **flips**: our digest
+runs 0.585 precision under Sonnet, below net@2's 2/3 break-even, while Opus 5's runs 0.714 above
+it. And the GPT margin itself moves +0.54 -> +0.32 across two of our own draws.
+
+Nothing is auto-killed by that -- the registered bar passed and is not being rewritten after the
+fact. But the ladder's premise was "chase the margin to significance", and the margin is now
+measured as judge-dependent in direction, not just in size. **A decision to spend down rungs 2-8
+should be taken with that in hand, and the paper's comparator claim should be judge-relative
+either way.**
+
 **Item 12 is closed for good [NR-51].** It closed on reach (NR-49), reopened the same day on rank
 (NR-50), and its paid arm returned **-0.19, CI [-0.84, +0.43], 9w/8l/20t** against a bar of 0.78
 registered before the run. The whole cycle is worth reading as one thing: a licence bar set with
