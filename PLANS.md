@@ -836,10 +836,21 @@ free quality prior cuts against the licence -- entering papers judge at 0.714 ag
 displaced, dp = +0.054, implying **+0.28 net@2/case, inside the noise**. Both stand; the
 pre-registration is not revoked after seeing the prior, because that is the failure NR-49 records.
 
+**And the depth grid weakens it further, on a reading fixed in advance.** `gate_depth` 100 had
+never been run at the shipped `top_k`; taken to depth 300 in one pass, round 2's share **rises**
+-- 17.6% at 25, 20.6% at 50, 22.3% at 100, 26.6% at 300. The probe committed beforehand to
+reading a rising share as *marginal*, and it is: **15.2% of ranks 1-10** against 26.6% by 300.
+Round 2 is weakest exactly where the digest is drawn. Using its **16.77%** share of the top-15
+digest window rather than 20.61% of the top-50 cuts the implied effect to **+0.84** at a generous
+dp and **+0.23** at the dp measured. The licence stands because it was registered at depth 50 and
+is not re-decided; the estimate it licensed has shrunk toward the noise floor every time it has
+been refined.
+
 **The paid arm, when it runs:** treatment = shipped pool + round 2 at `top_k` 100, control =
 the shipped arm already collected, one pinned hypothesis set per round, 37 cases, ~$15. The
 pre-registered expectation is |net@2| >= 0.78 to resolve; anything smaller is a null and closes
-the item for good.
+the item for good. **On current evidence that is the likely outcome** -- which is a reason to
+decide deliberately, not a reason to skip a licensed arm.
 
 ---
 

@@ -42,6 +42,19 @@ in NR-47. That gives a ladder rather than a line, and all three rungs are regist
 Displacement is reported alongside, because NR-48's lesson was that what a change *removes*
 matters as much as what it adds: there, 99 admitted at 0.859 precision displaced 41 at 0.951.
 
+**The depth grid, and the rule it runs under.** `gate_depth` **100 had never been run at the
+shipped `top_k`** — NR-48 moved depth only at `top_k` 1000 (arms B and C), and the only other
+depth comparison on record is a 22-case pool-300-against-50 wash from 2026-08-07 that predates
+HyDE, verified bigrams and `w_embedding`. So the ranking is taken once to depth 300 and every
+share is derived from that single pass, filling the empty row for free.
+
+It is **descriptive**. The decision bar stays at depth 50 where it was registered, and a
+friendlier share at some other depth re-licenses nothing — choosing the depth that flatters the
+result after seeing all of them is the same error as moving a bar, wearing a grid instead.
+What the grid legitimately settles is *where round 2 sits*: a share that **falls** with depth
+means its papers are top-concentrated and 20.61% understated them; a share that **rises** means
+they are marginal and 20.61% flattered them.
+
     uv run python evals/prf_rank_probe.py --search    # ~12 min CPU, round-2 top-100 per case
     uv run python evals/prf_rank_probe.py --collect   # arXiv metadata for the new ids
     uv run python evals/prf_rank_probe.py             # $0, the probe itself
@@ -71,7 +84,9 @@ WINDOWS = WORK / "prf_rank_windows.json"  # the expensive half: per-case window 
 FROZEN = EVALS / "prf_rank_probe.json"
 
 TOP_K = 100  # round 2's cut, matching the shipped round-1 cut
-GATE_DEPTH = 50  # what the gate actually reads; the whole question
+GATE_DEPTH = 50  # what the gate actually reads today; the decision depth
+DEPTHS = (25, 50, 100, 150, 300)  # the empty cells in the depth grid, answered at once
+MAX_DEPTH = 300  # rank once this deep; every share above is derived from the same pass
 BAR_KILL = 0.05  # pre-registered floor: below this, net@2 cannot move at any Δp
 BAR_LICENSE = 0.16  # and below THIS it cannot move resolvably at a generous Δp = 0.2
 DIGEST_SHARE = 0.166  # 8.3 digest papers of a 50-deep window
@@ -205,7 +220,7 @@ def main() -> int:
             WORK / case,
             merged,
             cats,
-            top_n=GATE_DEPTH,
+            top_n=MAX_DEPTH,
             all_time=True,
             hybrid=True,
             w_embedding=1.5,
@@ -218,15 +233,15 @@ def main() -> int:
             WORK / case,
             base,
             cats,
-            top_n=GATE_DEPTH,
+            top_n=MAX_DEPTH,
             all_time=True,
             hybrid=True,
             w_embedding=1.5,
             paper_embeddings=vecs,
         )
         base_window = [dedup_id(str(p["arxiv_id"])) for p, _s in base_ranked]
-        entered = [i for i in window if i in r2]
-        displaced = [i for i in base_window if i not in window]
+        entered = [i for i in window[:GATE_DEPTH] if i in r2]
+        displaced = [i for i in base_window[:GATE_DEPTH] if i not in window[:GATE_DEPTH]]
         per_case[case] = {
             "pool_shipped": len(base),
             "round2_new": len(extra),
@@ -236,6 +251,13 @@ def main() -> int:
             # instead of re-ranking 33 cases to recover ids this pass already had.
             "entered_ids": entered,
             "displaced_ids": displaced,
+            # The full ranking to MAX_DEPTH, so a share at ANY depth is derived from this one
+            # pass rather than bought with another. `gate_depth` 100 had never been run at the
+            # shipped `top_k` -- NR-48 moved depth only at top_k 1000 -- so the grid had an
+            # empty cell where the obvious follow-up lives.
+            "merged_ranking": window,
+            "base_ranking": base_window,
+            "r2_positions": [n for n, i in enumerate(window) if i in r2],
         }
         print(
             f"  {case:<16} +{len(extra):>4} new  ->  "
@@ -247,6 +269,55 @@ def main() -> int:
         WINDOWS.write_text(json.dumps(per_case), encoding="utf-8")
     else:
         print(f"reusing cached windows for {len(per_case)} cases (--rerank to recompute)")
+
+    # ── The depth grid, derived from the one deep ranking pass ────────────────────────
+    # `gate_depth` 100 had NEVER been run at the shipped `top_k`: NR-48 varied depth only at
+    # top_k 1000 (arms B and C), and the only other depth comparison on record is the 22-case
+    # pool-300-vs-50 wash of 2026-08-07, which predates HyDE, verified bigrams and w_embedding.
+    # This fills the row for free, and it is DESCRIPTIVE -- the decision bar stays at depth 50,
+    # where it was registered. A friendlier number at another depth does not re-license
+    # anything; it says whether round 2's standing is top-heavy or marginal.
+    by_depth = {}
+    for d in DEPTHS:
+        slots = sum(min(d, len(c["merged_ranking"])) for c in per_case.values())
+        got = sum(sum(1 for pos in c["r2_positions"] if pos < d) for c in per_case.values())
+        disp = sum(
+            len(set(c["base_ranking"][:d]) - set(c["merged_ranking"][:d]))
+            for c in per_case.values()
+        )
+        by_depth[f"depth_{d}"] = {
+            "round2_slots": got,
+            "slots": slots,
+            "share": round(got / slots, 4) if slots else None,
+            "displaced": disp,
+            "is_the_registered_decision_depth": d == GATE_DEPTH,
+        }
+
+    # Where in the window round 2 actually sits. A share that is flat across depths means its
+    # papers are spread; a share that FALLS with depth means they are top-concentrated, which
+    # is the stronger reading; a share that RISES means they are marginal and 20.61% flattered
+    # them.
+    pos_all = sorted(pos for c in per_case.values() for pos in c["r2_positions"] if pos < 100)
+    quartiles = (
+        {
+            "in_ranks_1_10": sum(1 for x in pos_all if x < 10),
+            "in_ranks_11_25": sum(1 for x in pos_all if 10 <= x < 25),
+            "in_ranks_26_50": sum(1 for x in pos_all if 25 <= x < 50),
+            "in_ranks_51_100": sum(1 for x in pos_all if 50 <= x < 100),
+        }
+        if pos_all
+        else {}
+    )
+
+    # The digest is `--rr-window 15` papers, drawn from the TOP of the window, so round 2's
+    # share of the first fifteen ranks predicts its digest share far better than its share of
+    # all fifty does. This is the refinement the grid earns, and it cuts against the licence.
+    def cum(k: int) -> float:
+        got = sum(sum(1 for pos in c["r2_positions"] if pos < k) for c in per_case.values())
+        return round(got / (len(per_case) * k), 4)
+
+    top = {f"share_in_ranks_1_{k}": cum(k) for k in (10, 15, 20, 50)}
+    digest_papers = 8.3 * top["share_in_ranks_1_15"]
 
     n = len(per_case)
     in_win = sum(c["round2_in_window"] for c in per_case.values())
@@ -284,6 +355,33 @@ def main() -> int:
         "share_of_window": round(share, 4),
         "per_case_mean": round(in_win / n, 2) if n else 0.0,
         "displaced_total": sum(c["displaced"] for c in per_case.values()),
+        "by_depth": by_depth,
+        "where_in_the_window": {
+            "_comment": (
+                "Round-2 positions in the merged ranking, bucketed. A share that falls as the "
+                "window deepens means round 2's papers are top-concentrated; one that rises "
+                "means they are marginal and the depth-50 figure flattered them."
+            ),
+            **quartiles,
+        },
+        "top_of_window": {
+            "_comment": (
+                "The pre-registered interpretation rule fires here, on its unflattering "
+                "branch. The share RISES with depth -- 15.2% of ranks 1-10, 23.6% of 26-50, "
+                "29.1% of 151-300 -- which the docstring committed in advance to reading as "
+                "'round 2's papers are marginal and 20.61% flattered them'. Since the digest "
+                "is the top-15 window, round 2's share THERE is the better predictor of its "
+                "digest share, and it is 16.8% against the 20.61% the decision was made on."
+            ),
+            **top,
+            "density_rises_with_depth": True,
+            "implied_digest_papers_per_case": round(digest_papers, 2),
+            "implied_net2_from_top15": {
+                "at_generous_dp_0.20": round(digest_papers * 3 * 0.20, 3),
+                "at_observed_dp_0.092": round(digest_papers * 3 * 0.092, 3),
+                "at_dp_measured_here_0.054": round(digest_papers * 3 * 0.054, 3),
+            },
+        },
         "per_case": per_case,
     }
     # Direction, not just magnitude. The share says an effect would be RESOLVABLE; it says
@@ -361,6 +459,18 @@ def main() -> int:
         f"implied net@2/case: {v['implied_net2_per_case']['at_generous_dp_0.20']:+.3f} at a "
         f"generous dp, {v['implied_net2_per_case']['at_observed_dp_0.092']:+.3f} at NR-48's "
         f"observed dp (bootstrap resolves +-0.78)"
+    )
+    print("\ndepth grid (decision bar stays at 50, where it was registered):")
+    for k, v in by_depth.items():
+        mark = "  <- registered" if v["is_the_registered_decision_depth"] else ""
+        print(f"  {k:<10} {v['round2_slots']:>4}/{v['slots']:<5} {v['share']:>7.2%}{mark}")
+    if quartiles:
+        print("round-2 positions:", quartiles)
+    print(
+        f"top of window: {top['share_in_ranks_1_10']:.2%} of ranks 1-10, "
+        f"{top['share_in_ranks_1_15']:.2%} of ranks 1-15 (the digest window) "
+        f"vs {top['share_in_ranks_1_50']:.2%} of ranks 1-50 -- density RISES with depth, "
+        f"so round 2 is marginal and 20.61% flattered it"
     )
     print(f"wrote {FROZEN.name}")
     return 0
