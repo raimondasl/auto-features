@@ -1144,6 +1144,67 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### PRF-HyDE does not move net@2. Item 12 closes, and the last lead with it. **[NR-51, closes item 12]**
+
+The arm NR-50 licensed, ~$15. Control is the shipped arm already on disk; treatment is
+identical in every flag except a pinned hypothesis file carrying **round 1 ∪ round 2** — 8
+abstracts per case, searched through the shipped `hyde.discover` at `top_k` 100. The pool is
+collected by the product's own code rather than hand-merged, so the fingerprint is honest about
+being a different pool.
+
+| arm | net@2 | digest/case | precision |
+|---|---|---|---|
+| **control (ships)** | **+5.51** | 8.3 | 0.889 |
+| treatment (PRF) | +5.32 | 8.5 | 0.876 |
+
+| | paired | | |
+|---|---|---|---|
+| **primary, all 37** | **−0.19** | CI [−0.84, +0.43] | 9w/8l/20t, *p* = 1.0000 |
+| secondary, the 33 with a real round 2 | −0.21 | CI [−0.97, +0.52] | 9w/8l/16t, *p* = 1.0000 |
+
+**The pre-registered kill fires: |−0.19| < 0.78.** A wash against what ships, for roughly 250
+extra candidates per case. Cohorts: core25 **−0.48**, bio6 +0.67, matsci6 +0.17 — the last two
+on six cases each, which C-7 says is not a finding.
+
+#### The free prior had the sign wrong, and that is the useful half
+
+NR-50 read the judge cache over *window* papers, got **Δp = +0.054** favouring round 2, and
+flagged it as weak: 61% of entering and 73% of displaced papers were void, and the judged
+subset is selected by having been shown. Measured where it counts — the digest — the churn is
+**85 added at 0.882 precision displacing 77 at 0.935: Δp = −0.053.**
+
+Same magnitude, opposite sign. **Reporting it as a hint rather than a measurement was correct;
+the number itself carried no information about direction at all.** The lesson generalises past
+this arm: a precision computed over a judge cache that is two-thirds void and selected by prior
+exposure is not a weak estimate of the truth, it is a different quantity.
+
+The whole −0.19 is one line: the digest grows 8.3 → 8.5 while precision falls 0.889 → 0.876.
+PRF shows slightly more, slightly worse.
+
+#### What made the arm believable
+
+**The four no-round-2 cases came back as exact ties with byte-identical picks.** `cli`, `http`,
+`linter` and `webdev` had nothing for round 2 to feed on, so the treatment *is* the control
+there — and it is, byte for byte. They were never padded with a fresh draw, which would have
+fabricated a treatment (and NR-46 measured a fresh draw at +0.0577 reach, larger than anything
+under test). Had they differed, the two arms would have been differing in something other than
+the second round.
+
+**Two cases needed repair, for NR-47's reason.** `compiler` and `numerics` lost HyDE entirely
+to an arXiv **429** and **503** after 10 attempts and ~930 s each, collecting keyword-only pools
+(519 → 211, 589 → 202). Paired against a control that *has* HyDE they would have measured "HyDE
+existing at all" rather than "round 2 added" — the largest confound available in a 37-case
+paired test. Re-collected at identical flags and spliced in (519 → 843, 589 → 957).
+
+#### What closes
+
+Item 12 was the last open evidence-led lead. **Retrieval width (NR-47), gate depth (NR-48) and
+now iterative retrieval (NR-51) have each been measured end to end, and none pays.** The three
+together are one statement: this pipeline is at a frontier where feeding the gate more, deeper,
+or differently-aimed candidates does not convert into net@2.
+
+**Cost** ~$15 plus two repair runs. Pinned by `tests/test_prf_arm.py`.
+
 ### Round 2's papers do reach the gate — a fifth of it. **[NR-50, reopens item 12]**
 
 NR-49 closed PRF-HyDE on reach and left exactly one thing open: reach is counted over 520
