@@ -1144,6 +1144,74 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The margin passes the second-judge gate, and the gate barely tested it. **[NR-52, rung 1]**
+
+The validity gate the ladder in `RESEARCH-net2-directions.md` put before every dollar: is the
++0.5-ish margin over Opus 5 a property of RepoRadar or of GPT-5.5? Pre-registered in
+`evals/PREREG-rung1.md` and **committed before any margin was computed** (`7ce7a35`), three
+labels named in advance and all three reported. 460 fresh Sonnet verdicts, ~$8.
+
+| label | RepoRadar | Opus 5 | margin | CI95 | w/l/t |
+|---|---|---|---|---|---|
+| GPT | +5.51 | +5.19 | **+0.32** | [−1.78, +2.51] | 17/17/3 |
+| consensus (GPT ≥ 2 ∧ Sonnet ≥ 1) | +5.35 | +4.78 | **+0.57** | [−1.73, +2.92] | 18/16/3 |
+| **Sonnet-only (Sonnet ≥ 2)** | **−2.03** | **+1.38** | **−3.41** | [−7.00, +0.54] | 13/23/1 |
+
+Both arms fully covered — 306/306 and 357/357 — all 37 cases clearing the prompt-hash drift
+check, nothing void.
+
+**The bar passes.** |0.57 − 0.32| = 0.25 ≤ 0.5, sign preserved, 6/6 big science losses persist.
+
+#### And the bar was close to unfalsifiable
+
+`Sonnet ≥ 1` demotes **2 of 272** GPT-actionable shipped papers (**0.7%**) and **5 of 302**
+Opus 5 papers (**1.7%**) — Sonnet scores 0 on almost nothing (7 of 306 and 24 of 357). The
+consensus label is very nearly GPT itself, so the ±0.5 test would have passed whatever the truth
+was.
+
+That is NR-49's defect mirrored: there an under-specified bar was cleared by a **null**; here one
+is cleared by a **near-tautology**. It is recorded rather than repaired, because moving a bar
+after seeing the data is the failure this project keeps documenting. *The power check belonged in
+the pre-registration and was not there* — the next one states it.
+
+#### The informative reading flips, and against us
+
+The pre-registration named the Sonnet-only **sign** as the part carrying information, precisely
+because a bar on its *level* would measure the judge's severity. The sign reverses:
+
+| | Sonnet precision | vs 2/3 break-even |
+|---|---|---|
+| RepoRadar shown | **0.585** | **below** |
+| Opus 5 shown | **0.714** | **above** |
+
+A harsher judge lowers both arms; it does not have to move them across the break-even line in
+*opposite* directions. Under Sonnet, RepoRadar's digest destroys value and Opus 5's creates it.
+
+**The prediction written in advance was wrong in both halves.** It said a harsher judge would push
+*both* arms negative and penalise the arm showing more. Opus 5 shows more (9.7/case against 8.3)
+and stays positive. Recorded so the result cannot be re-read as having been anticipated.
+
+#### The GPT margin is not draw-stable either
+
+**+0.32** against this control (`20260830T034455Z`, RR mean +5.51); **+0.54** against
+`opus5_arm.json`'s control (`20260827T213701Z`, RR mean +5.73) — identical config, identical
+Opus 5 arm, **0.22/case apart**. C-7 was filed about the comparator's draws and applies
+identically to ours. The headline number moves with which of our own runs is picked.
+
+#### A bug worth recording, because it was invisible three ways
+
+The first two judging passes reported 246 then 229 papers "void". The resolver was fine:
+`verify.resolve_references` returns **versioned** arXiv ids (`2108.13264v4`) while an Opus 5
+pick is unversioned (`2108.13264`), and the match was keyed on `safe_paper_id` — the *filename*
+rule — so every arXiv paper missed. **C-14's family, tenth call site.** Fixed with `dedup_id`;
+the third pass bought 229 with **0 void**.
+
+It hid three ways: concurrent Semantic Scholar 429s made it look transient, voids are a
+*legitimate* outcome under the void-not-null rule so nothing raised, and **the exit code was 0
+every time**. Only the coverage number exposed it — the run status never would have.
+
+**Cost** ~$8 of Sonnet, 460 verdicts. Pinned by `tests/test_rung1_second_judge.py`.
+
 ### PRF-HyDE does not move net@2. Item 12 closes, and the last lead with it. **[NR-51, closes item 12]**
 
 The arm NR-50 licensed, ~$15. Control is the shipped arm already on disk; treatment is
