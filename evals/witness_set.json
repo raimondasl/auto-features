@@ -1,9 +1,9 @@
 {
  "_comment": "Pooled witness set (v2) with per-source provenance, reach probabilities (leave-one-source-out), digest regret, and a capture estimate. Derived by evals/witness_set.py; pinned by tests/test_witness_set.py. NOT a recall denominator: see the module docstring for what each number means.",
- "n_witnesses": 698,
+ "n_witnesses": 700,
  "n_cases": 37,
  "by_source": {
-  "adoption": 19,
+  "adoption": 22,
   "api": 50,
   "cli": 76,
   "cli-redraw": 92,
@@ -22,7 +22,7 @@
   "cli-v2@30",
   "reporadar"
  ],
- "n_non_self": 520,
+ "n_non_self": 522,
  "witnesses": {
   "ann": {
    "1603.08390": {
@@ -426,6 +426,12 @@
      "cli-v2-opus5@30"
     ]
    },
+   "1810.08278": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
    "1903.10145": {
     "judge": 2,
     "sources": [
@@ -506,6 +512,12 @@
    }
   },
   "bio-singlecell": {
+   "0909.4061": {
+    "judge": 2,
+    "sources": [
+     "adoption"
+    ]
+   },
    "2207.00554": {
     "judge": 3,
     "sources": [
@@ -2695,6 +2707,7 @@
     "sources": [
      "cli",
      "api",
+     "adoption",
      "cli-v2-opus5@30"
     ]
    }
@@ -4608,12 +4621,12 @@
     ]
    },
    "adoption": {
-    "n": 19,
+    "n": 22,
     "reached": 1,
-    "p": 0.053,
+    "p": 0.045,
     "ci": [
-     0.009,
-     0.246
+     0.008,
+     0.218
     ]
    },
    "cli-redraw@30": {
@@ -4644,12 +4657,12 @@
     ]
    },
    "pooled_non_self": {
-    "n": 520,
+    "n": 522,
     "reached": 86,
     "p": 0.165,
     "ci": [
-     0.136,
-     0.2
+     0.135,
+     0.199
     ]
    }
   }
@@ -4875,10 +4888,10 @@
    }
   },
   "source_overlap": {
-   "1": 582,
+   "1": 584,
    "2": 72,
-   "3": 22,
-   "4": 13,
+   "3": 21,
+   "4": 14,
    "5": 6,
    "6": 2,
    "7": 1

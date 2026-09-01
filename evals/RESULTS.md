@@ -1144,6 +1144,93 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The adoption channel is exhausted, and NR-56 replicates on an independent sample. **[NR-57]**
+
+NR-56 said n = 31 was what made the primary judge's interval span zero, and that enlarging the
+adoption set was the highest-value work available. `mine_adoptions.py` had only ever run on the
+22-case benchmark; re-mining all **37** was the obvious move. It was also worth less than
+claimed.
+
+| | cases mined | usable adoptions | contributing repos |
+|---|---|---|---|
+| NR-56 | 22 | 31 | 6 |
+| **NR-57** | **37** | **35** | **9** |
+
+**Fifteen new cases contributed four adoptions** — `bio-scvi` 2, `bio-singlecell` 1,
+`mat-phonon` 1. The rest yielded nothing for two structural reasons the mining log states
+plainly: several carry **no arXiv ids in their documentation at all** (`thin-kv`, `vectordb`,
+`webdev` report 0 ids at HEAD), and others have **no history before the 24-month T0 cutoff**
+(`thin-gnn`, `thin-lang`).
+
+#### It replicates, on a sample that is not a superset
+
+The control draw was also **re-seeded per case**. The first version drew every case from one
+shared RNG, so adding three repos re-shuffled the controls for all six existing ones — 139 fresh
+verdicts to answer a question about four new positives, and no stable sample to compare against.
+Fixing it redrew every control, which makes this an **independent sample rather than an
+extension**:
+
+| judge | adopted | control | gap | 95% CI | NR-56 gap |
+|---|---|---|---|---|---|
+| **gpt-5.5** | 23/35 = 0.657 | **72/140 = 0.514** | **0.143** | **[−0.043, +0.321]** | 0.153 |
+| claude-sonnet-5 | 17/35 = 0.486 | 34/140 = 0.243 | **0.243** | [+0.064, +0.421] | 0.282 |
+
+Every conclusion holds, slightly attenuated. GPT's interval still spans zero; Sonnet's still
+excludes it; the difference (0.100) still misses the registered 0.15 bar. **NR-56 was not an
+artifact of one control draw.**
+
+#### The channel cannot settle the question at this benchmark's scale
+
+Precision is governed almost entirely by the **positives** — the adopted variance term is 4–6×
+the control term, because `n_pos` is a quarter of `n_ctl`. At the measured gap of 0.143:
+
+| n adoptions | SE | gap / SE | |
+|---|---|---|---|
+| **35 (all we have)** | 0.0913 | **1.57** | |
+| 48 | 0.0779 | 1.84 | |
+| **55** | 0.0728 | **1.96** | significant |
+
+**55 adoptions would settle it. Mining every remaining case reached 35.** Adding controls would
+not help — the term is already small. Reaching 55 needs a longer T0 window or cases chosen for
+citation-rich documentation, which is **a differently-constructed benchmark, not more of this
+one**. Recorded so nobody re-runs the mining expecting a different answer.
+
+#### Two engineering corrections
+
+**The temperature retry now learns once per model per process.** NR-56 retried on *every* call,
+which pays a wasted request forever and spends request-rate budget this project has repeatedly
+hit. A hardcoded Claude-5 model list was the other option and goes stale on the next release;
+discovering the rejection from the API and remembering it costs one extra request per model.
+Pinned both ways: a rejecting model pays it once across three calls (4 requests, not 6), an
+accepting model never pays it.
+
+**Control sampling is stable under growth.** Per-case seeding means the set grows by exactly
+what was added, so the next expansion will be a true superset.
+
+#### A data-loss near-miss, caught by a gate
+
+`mine_adoptions.py --mine` **rewrites `adoptions.json` rather than merging**, so re-mining
+dropped all 31 stored T0 judge verdicts (and `hop_reached`) on the floor. Nothing warned; the
+run reported success. What caught it was `test_witness_set` failing, because the `adoption`
+source feeds the witness set and witnesses need `judge >= 2`.
+
+Recovered from a backup taken before the run, and merged back only after checking the condition
+that makes merging legitimate: **T0 commit and head_date are identical for all 44 shared rows**,
+so the stored verdicts answer the same question. A moved T0 would have made them verdicts about
+a different prompt, and they would have had to be re-bought.
+
+`judge_at_t0` now **skips rows that already carry a verdict**. With `use_cache=False` mandatory
+on that path, an expanded mining run otherwise re-buys every existing verdict to learn the new
+ones — 31 re-judged to add 4, the first time this ran on a grown benchmark.
+
+The witness set legitimately grew **698 → 700**: `bio-scvi/1810.08278` and
+`bio-singlecell/0909.4061`, two of the four new adoptions GPT judges actionable at T0. Nothing
+was removed, and **both regret figures are unchanged** — they are computed over the 25-case
+scoring cohort and the new witnesses fall outside it, which is the third time that invariant has
+paid off.
+
+**Cost** 256 verdicts, ~$5, plus $0 mining. Pinned by `tests/test_judge_validity_adoption.py`.
+
 ### The primary judge has not been shown to discriminate adoption. **[NR-56]**
 
 NR-52 and NR-53 established that the judges disagree and that the disagreement is a real

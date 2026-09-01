@@ -97,8 +97,17 @@ Read it precisely: **absence of evidence, not evidence of error.** n = 31 across
 `graph` contributing 13, noisy negatives biasing both gaps down, and adoption measuring what a
 repo did rather than what it should have done. What is established is that the judge every
 number in this project is scored against has **unestablished validity** on the one anchor
-available. That belongs in the paper's limitations regardless of what else happens, and it
-raises the value of enlarging the adoption set above anything on the net@2 ladder.
+available. That belongs in the paper's limitations regardless of what else happens.
+
+**NR-57 tried the obvious remedy and it does not work.** Enlarging the adoption set was called
+the highest-value work available; mining all 37 cases (from 22) moved usable adoptions **31 ->
+35**, because several cases carry no arXiv ids in their docs at all and others have no history
+before the 24-month T0 cutoff. The result **replicates on an independently drawn control
+sample** -- gaps 0.143 and 0.243, GPT still spanning zero, still not separated -- so NR-56 was
+not an artifact of one draw. But **55 adoptions would be needed to settle it and the channel
+tops out at 35**, so this benchmark cannot answer the question. Reaching 55 needs a longer T0
+window or cases chosen for citation-rich documentation: a differently-constructed case set, not
+more effort on this one. **Do not re-run the mining expecting a different answer.**
 
 **A regression NR-56 caught, shipped by NR-54/55:** `temperature=0` breaks the Claude 5 family
 (`sonnet-5`, `opus-5` answer 400 "deprecated for this model"); Claude 4.x accepts it. The gate
