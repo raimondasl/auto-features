@@ -37,6 +37,7 @@ EVALS = Path(__file__).resolve().parent
 if str(EVALS) not in sys.path:
     sys.path.insert(0, str(EVALS))
 
+from band_testbeds import sign_test  # noqa: E402
 from bigram_report import paired_bootstrap  # noqa: E402
 from harness import WORK_DIR  # noqa: E402
 from rr_mcp_arm import ARM_A  # noqa: E402
@@ -52,6 +53,9 @@ COHORTS = {
     "core25": lambda c: not c.startswith(("bio-", "mat-")),
     "bio6": lambda c: c.startswith("bio-"),
     "matsci6": lambda c: c.startswith("mat-"),
+    # The cohort the arm was actually run over first, and the one where its two halves
+    # disagree. Named rather than left to be inferred from `all37 PARTIAL`.
+    "scientific12": lambda c: c.startswith(("bio-", "mat-")),
     "all37": lambda _c: True,
 }
 
@@ -160,6 +164,11 @@ def paired(x: dict[str, list], y: dict[str, list], sel: list[str]) -> dict[str, 
         "wins": sum(1 for v in d if v > 0),
         "losses": sum(1 for v in d if v < 0),
         "ties": sum(1 for v in d if v == 0),
+        # Both estimators the pre-registration names, not one of them. They answer
+        # different questions -- the interval is about magnitude, the sign test about
+        # direction -- and at n = 6 the second is the one that can say almost nothing.
+        "sign_test_p": round(sign_test(d)["p"], 4),
+        "per_case": {c: v for c, v in zip(sel, d, strict=True)},
     }
 
 
@@ -206,7 +215,12 @@ def build() -> dict[str, Any]:
             ),
         }
 
-    shared = sorted(set(a) & set(b) & (set(c) if c is not None else set(a)))
+    # A n B, NOT A n B n C. Intersecting with a partially-run arm C would silently
+    # shrink every other column to whatever C happens to have finished -- so a 6-case
+    # matsci run relabels itself `all37` and reports matsci's levels under that name.
+    # The arm is meant to be run cohort by cohort as quota allows, which makes a
+    # partial C the default state rather than an edge case.
+    shared = sorted(set(a) & set(b))
     for name, pred in COHORTS.items():
         sel = [x for x in shared if pred(x)]
         if not sel:
@@ -222,39 +236,57 @@ def build() -> dict[str, Any]:
             # is the difference between the published comparison and the shipped one.
             "A_minus_A_prime": paired(a, a_prime, sel),
         }
-        if c is not None:
-            entry["C"] = block(c, sel)
-            entry["C_minus_B"] = paired(c, b, sel)  # the registered primary
-            entry["C_minus_A_prime"] = paired(c, a_prime, sel)
+        sel_c = [x for x in sel if c is not None and x in c]
+        if sel_c:
+            # C's own cohort, named. Every C figure is over `n_cases_c`, which is NOT
+            # `n_cases` until the sweep is complete -- and a partial cohort says so,
+            # rather than leaving a reader to compare a 6-case mean against a 37-case one.
+            entry["n_cases_c"] = len(sel_c)
+            entry["c_complete"] = len(sel_c) == len(sel)
+            entry["cases_c"] = sel_c
+            entry["C"] = block(c, sel_c)
+            entry["C_minus_B"] = paired(c, b, sel_c)  # the registered primary
+            entry["C_minus_A_prime"] = paired(c, a_prime, sel_c)
+            # A' and B restricted to exactly C's cases, so the three-way comparison is
+            # over ONE case set. Without them a reader compares C against a B computed
+            # on a different cohort, which is what the old intersection was doing.
+            entry["B_on_c_cases"] = block(b, sel_c)
+            entry["A_prime_on_c_cases"] = block(a_prime, sel_c)
         out["cohorts"][name] = entry
     return out
 
 
 def show(art: dict[str, Any]) -> None:
-    has_c = "C" in art["cohorts"].get("all37", {})
-    header = f"{'cohort':<10} {'n':>3}  {'A':>6} {chr(39) + 'A':>6} {'B':>6}" + (
-        f" {'C':>6}  {'C-B':>7}  {'95% CI':>16}" if has_c else "   (C not run)"
+    any_c = any("C" in e for e in art["cohorts"].values())
+    print(
+        f"{'cohort':<10} {'n':>3}  {'A':>6} {chr(39) + 'A':>6} {'B':>6}"
+        + (f"  {'nC':>3} {'C':>6} {'B|C':>6}  {'C-B':>7}  {'95% CI':>16}" if any_c else "")
     )
-    print(header)
     for name, e in art["cohorts"].items():
         line = (
             f"{name:<10} {e['n_cases']:>3}  {e['A']['mean_net2']:>+6.2f} "
             f"{e['A_prime']['mean_net2']:>+6.2f} {e['B']['mean_net2']:>+6.2f}"
         )
-        if has_c:
-            p = e["C_minus_B"]
+        if "C" in e:
+            d = e["C_minus_B"]
+            # `B|C` is B over exactly C's cases -- on a partial sweep, the only B a C
+            # figure may be compared against.
             line += (
-                f" {e['C']['mean_net2']:>+6.2f}  {p['mean']:>+7.2f}  "
-                f"[{p['ci95'][0]:>+6.2f},{p['ci95'][1]:>+6.2f}]"
+                f"  {e['n_cases_c']:>3} {e['C']['mean_net2']:>+6.2f} "
+                f"{e['B_on_c_cases']['mean_net2']:>+6.2f}  {d['mean']:>+7.2f}  "
+                f"[{d['ci95'][0]:>+6.2f},{d['ci95'][1]:>+6.2f}]"
+                + ("" if e["c_complete"] else "  PARTIAL")
             )
+        elif any_c:
+            line += f"  {'-':>3} {'-':>6} {'-':>6}  {'-':>7}  {'C not run':>16}"
         print(line)
     ap = art["arms"]["A_prime"]
     print(
         f"\nthe product mutes {ap['n_muted']} of {ap['n_picks']} arm-A picks "
         f"(already cited by the repository)"
     )
-    if not has_c:
-        print(f"C: {art['arms']['C']['status']} — {art['arms']['C']['artifact']}")
+    if not any_c:
+        print(f"C: {art['arms']['C']['status']} - {art['arms']['C']['artifact']}")
 
 
 def main() -> int:

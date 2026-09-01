@@ -31,9 +31,22 @@
    "cost_usd": 351.4
   },
   "C": {
-   "status": "not_run",
    "artifact": "gold_spread_v2_opus5_web_rr.json",
-   "how": "uv run python evals/rr_mcp_arm.py --seed  (free), then uv run python evals/gold_spread.py --tools web+rr --prompt-version v2 --max-turns 30 --baseline-model claude-opus-5 --cohort all --draws 1"
+   "draw": 1,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "tools": "web+rr",
+   "n_cases": 12,
+   "cost_usd": 85.88,
+   "mcp_calls": {
+    "explain_relevance": 1,
+    "get_ranked_papers": 21,
+    "get_repo_profile": 17,
+    "search_papers": 48
+   },
+   "mcp_calls_total": 87,
+   "rows_with_zero_mcp_calls": 0,
+   "treatment_present": true
   }
  },
  "cohorts": {
@@ -69,7 +82,35 @@
     "excludes_zero": false,
     "wins": 14,
     "losses": 10,
-    "ties": 1
+    "ties": 1,
+    "sign_test_p": 0.5413,
+    "per_case": {
+     "ann": 2.0,
+     "cli": -3.0,
+     "columnar": 1.0,
+     "compiler": -2.0,
+     "crypto": -1.0,
+     "cv": -6.0,
+     "db": 5.0,
+     "diffusion": 6.0,
+     "encryption": -1.0,
+     "graph": 8.0,
+     "http": 10.0,
+     "linter": 17.0,
+     "llminfer": -9.0,
+     "numerics": -9.0,
+     "peft": 7.0,
+     "rag": -4.0,
+     "rl": 10.0,
+     "speech": -3.0,
+     "storage": 6.0,
+     "systems": 12.0,
+     "thin-gnn": 0.0,
+     "thin-kv": 4.0,
+     "thin-lang": -6.0,
+     "vectordb": 1.0,
+     "webdev": 4.0
+    }
    },
    "A_prime_minus_B": {
     "mean": 1.84,
@@ -80,7 +121,35 @@
     "excludes_zero": false,
     "wins": 13,
     "losses": 10,
-    "ties": 2
+    "ties": 2,
+    "sign_test_p": 0.6776,
+    "per_case": {
+     "ann": 0.0,
+     "cli": -3.0,
+     "columnar": 1.0,
+     "compiler": -2.0,
+     "crypto": -1.0,
+     "cv": -6.0,
+     "db": 5.0,
+     "diffusion": 6.0,
+     "encryption": -1.0,
+     "graph": 7.0,
+     "http": 10.0,
+     "linter": 17.0,
+     "llminfer": -9.0,
+     "numerics": -9.0,
+     "peft": 8.0,
+     "rag": -5.0,
+     "rl": 10.0,
+     "speech": -3.0,
+     "storage": 6.0,
+     "systems": 12.0,
+     "thin-gnn": 0.0,
+     "thin-kv": 4.0,
+     "thin-lang": -6.0,
+     "vectordb": 1.0,
+     "webdev": 4.0
+    }
    },
    "A_minus_A_prime": {
     "mean": 0.12,
@@ -91,7 +160,35 @@
     "excludes_zero": false,
     "wins": 3,
     "losses": 1,
-    "ties": 21
+    "ties": 21,
+    "sign_test_p": 0.625,
+    "per_case": {
+     "ann": 2.0,
+     "cli": 0.0,
+     "columnar": 0.0,
+     "compiler": 0.0,
+     "crypto": 0.0,
+     "cv": 0.0,
+     "db": 0.0,
+     "diffusion": 0.0,
+     "encryption": 0.0,
+     "graph": 1.0,
+     "http": 0.0,
+     "linter": 0.0,
+     "llminfer": 0.0,
+     "numerics": 0.0,
+     "peft": -1.0,
+     "rag": 1.0,
+     "rl": 0.0,
+     "speech": 0.0,
+     "storage": 0.0,
+     "systems": 0.0,
+     "thin-gnn": 0.0,
+     "thin-kv": 0.0,
+     "thin-lang": 0.0,
+     "vectordb": 0.0,
+     "webdev": 0.0
+    }
    }
   },
   "bio6": {
@@ -126,7 +223,16 @@
     "excludes_zero": false,
     "wins": 4,
     "losses": 1,
-    "ties": 1
+    "ties": 1,
+    "sign_test_p": 0.375,
+    "per_case": {
+     "bio-align": -2.0,
+     "bio-kmer": 1.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 8.0,
+     "bio-scvi": 1.0,
+     "bio-singlecell": 2.0
+    }
    },
    "A_prime_minus_B": {
     "mean": 2.0,
@@ -137,7 +243,16 @@
     "excludes_zero": true,
     "wins": 4,
     "losses": 0,
-    "ties": 2
+    "ties": 2,
+    "sign_test_p": 0.125,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 1.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 8.0,
+     "bio-scvi": 1.0,
+     "bio-singlecell": 2.0
+    }
    },
    "A_minus_A_prime": {
     "mean": -0.33,
@@ -148,7 +263,87 @@
     "excludes_zero": false,
     "wins": 0,
     "losses": 1,
-    "ties": 5
+    "ties": 5,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": -2.0,
+     "bio-kmer": 0.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 0.0,
+     "bio-scvi": 0.0,
+     "bio-singlecell": 0.0
+    }
+   },
+   "n_cases_c": 6,
+   "c_complete": true,
+   "cases_c": [
+    "bio-align",
+    "bio-kmer",
+    "bio-mdsim",
+    "bio-mdtraj",
+    "bio-scvi",
+    "bio-singlecell"
+   ],
+   "C": {
+    "mean_net2": 7.17,
+    "shown": 55,
+    "shown_per_case": 9.2,
+    "precision": 0.927,
+    "abstained_on": 0
+   },
+   "C_minus_B": {
+    "mean": 1.33,
+    "ci95": [
+     -0.5,
+     3.0
+    ],
+    "excludes_zero": false,
+    "wins": 3,
+    "losses": 1,
+    "ties": 2,
+    "sign_test_p": 0.625,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 4.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 3.0,
+     "bio-scvi": -2.0,
+     "bio-singlecell": 3.0
+    }
+   },
+   "C_minus_A_prime": {
+    "mean": -0.67,
+    "ci95": [
+     -2.83,
+     1.33
+    ],
+    "excludes_zero": false,
+    "wins": 2,
+    "losses": 2,
+    "ties": 2,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 3.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": -5.0,
+     "bio-scvi": -3.0,
+     "bio-singlecell": 1.0
+    }
+   },
+   "B_on_c_cases": {
+    "mean_net2": 5.83,
+    "shown": 53,
+    "shown_per_case": 8.8,
+    "precision": 0.887,
+    "abstained_on": 1
+   },
+   "A_prime_on_c_cases": {
+    "mean_net2": 7.83,
+    "shown": 56,
+    "shown_per_case": 9.3,
+    "precision": 0.946,
+    "abstained_on": 0
    }
   },
   "matsci6": {
@@ -183,7 +378,16 @@
     "excludes_zero": false,
     "wins": 2,
     "losses": 4,
-    "ties": 0
+    "ties": 0,
+    "sign_test_p": 0.6875,
+    "per_case": {
+     "mat-chgpot": -12.0,
+     "mat-descriptors": 8.0,
+     "mat-featurize": -1.0,
+     "mat-mlip": -10.0,
+     "mat-phonon": 1.0,
+     "mat-toolkit": -5.0
+    }
    },
    "A_prime_minus_B": {
     "mean": -3.33,
@@ -194,7 +398,16 @@
     "excludes_zero": false,
     "wins": 1,
     "losses": 4,
-    "ties": 1
+    "ties": 1,
+    "sign_test_p": 0.375,
+    "per_case": {
+     "mat-chgpot": -13.0,
+     "mat-descriptors": 9.0,
+     "mat-featurize": -1.0,
+     "mat-mlip": -10.0,
+     "mat-phonon": 0.0,
+     "mat-toolkit": -5.0
+    }
    },
    "A_minus_A_prime": {
     "mean": 0.17,
@@ -205,7 +418,278 @@
     "excludes_zero": false,
     "wins": 2,
     "losses": 1,
-    "ties": 3
+    "ties": 3,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "mat-chgpot": 1.0,
+     "mat-descriptors": -1.0,
+     "mat-featurize": 0.0,
+     "mat-mlip": 0.0,
+     "mat-phonon": 1.0,
+     "mat-toolkit": 0.0
+    }
+   },
+   "n_cases_c": 6,
+   "c_complete": true,
+   "cases_c": [
+    "mat-chgpot",
+    "mat-descriptors",
+    "mat-featurize",
+    "mat-mlip",
+    "mat-phonon",
+    "mat-toolkit"
+   ],
+   "C": {
+    "mean_net2": 4.5,
+    "shown": 42,
+    "shown_per_case": 7.0,
+    "precision": 0.881,
+    "abstained_on": 0
+   },
+   "C_minus_B": {
+    "mean": -4.17,
+    "ci95": [
+     -9.17,
+     0.67
+    ],
+    "excludes_zero": false,
+    "wins": 2,
+    "losses": 4,
+    "ties": 0,
+    "sign_test_p": 0.6875,
+    "per_case": {
+     "mat-chgpot": -13.0,
+     "mat-descriptors": 2.0,
+     "mat-featurize": 3.0,
+     "mat-mlip": -12.0,
+     "mat-phonon": -2.0,
+     "mat-toolkit": -3.0
+    }
+   },
+   "C_minus_A_prime": {
+    "mean": -0.83,
+    "ci95": [
+     -3.83,
+     1.67
+    ],
+    "excludes_zero": false,
+    "wins": 2,
+    "losses": 3,
+    "ties": 1,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "mat-chgpot": 0.0,
+     "mat-descriptors": -7.0,
+     "mat-featurize": 4.0,
+     "mat-mlip": -2.0,
+     "mat-phonon": -2.0,
+     "mat-toolkit": 2.0
+    }
+   },
+   "B_on_c_cases": {
+    "mean_net2": 8.67,
+    "shown": 76,
+    "shown_per_case": 12.7,
+    "precision": 0.895,
+    "abstained_on": 0
+   },
+   "A_prime_on_c_cases": {
+    "mean_net2": 5.33,
+    "shown": 59,
+    "shown_per_case": 9.8,
+    "precision": 0.847,
+    "abstained_on": 0
+   }
+  },
+  "scientific12": {
+   "n_cases": 12,
+   "A": {
+    "mean_net2": 6.5,
+    "shown": 120,
+    "shown_per_case": 10.0,
+    "precision": 0.883,
+    "abstained_on": 0
+   },
+   "A_prime": {
+    "mean_net2": 6.58,
+    "shown": 115,
+    "shown_per_case": 9.6,
+    "precision": 0.896,
+    "abstained_on": 0
+   },
+   "B": {
+    "mean_net2": 7.25,
+    "shown": 129,
+    "shown_per_case": 10.8,
+    "precision": 0.891,
+    "abstained_on": 1
+   },
+   "A_minus_B": {
+    "mean": -0.75,
+    "ci95": [
+     -4.08,
+     2.42
+    ],
+    "excludes_zero": false,
+    "wins": 6,
+    "losses": 5,
+    "ties": 1,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": -2.0,
+     "bio-kmer": 1.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 8.0,
+     "bio-scvi": 1.0,
+     "bio-singlecell": 2.0,
+     "mat-chgpot": -12.0,
+     "mat-descriptors": 8.0,
+     "mat-featurize": -1.0,
+     "mat-mlip": -10.0,
+     "mat-phonon": 1.0,
+     "mat-toolkit": -5.0
+    }
+   },
+   "A_prime_minus_B": {
+    "mean": -0.67,
+    "ci95": [
+     -4.17,
+     2.67
+    ],
+    "excludes_zero": false,
+    "wins": 5,
+    "losses": 4,
+    "ties": 3,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 1.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 8.0,
+     "bio-scvi": 1.0,
+     "bio-singlecell": 2.0,
+     "mat-chgpot": -13.0,
+     "mat-descriptors": 9.0,
+     "mat-featurize": -1.0,
+     "mat-mlip": -10.0,
+     "mat-phonon": 0.0,
+     "mat-toolkit": -5.0
+    }
+   },
+   "A_minus_A_prime": {
+    "mean": -0.08,
+    "ci95": [
+     -0.5,
+     0.33
+    ],
+    "excludes_zero": false,
+    "wins": 2,
+    "losses": 2,
+    "ties": 8,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": -2.0,
+     "bio-kmer": 0.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 0.0,
+     "bio-scvi": 0.0,
+     "bio-singlecell": 0.0,
+     "mat-chgpot": 1.0,
+     "mat-descriptors": -1.0,
+     "mat-featurize": 0.0,
+     "mat-mlip": 0.0,
+     "mat-phonon": 1.0,
+     "mat-toolkit": 0.0
+    }
+   },
+   "n_cases_c": 12,
+   "c_complete": true,
+   "cases_c": [
+    "bio-align",
+    "bio-kmer",
+    "bio-mdsim",
+    "bio-mdtraj",
+    "bio-scvi",
+    "bio-singlecell",
+    "mat-chgpot",
+    "mat-descriptors",
+    "mat-featurize",
+    "mat-mlip",
+    "mat-phonon",
+    "mat-toolkit"
+   ],
+   "C": {
+    "mean_net2": 5.83,
+    "shown": 97,
+    "shown_per_case": 8.1,
+    "precision": 0.907,
+    "abstained_on": 0
+   },
+   "C_minus_B": {
+    "mean": -1.42,
+    "ci95": [
+     -4.75,
+     1.42
+    ],
+    "excludes_zero": false,
+    "wins": 5,
+    "losses": 5,
+    "ties": 2,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 4.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 3.0,
+     "bio-scvi": -2.0,
+     "bio-singlecell": 3.0,
+     "mat-chgpot": -13.0,
+     "mat-descriptors": 2.0,
+     "mat-featurize": 3.0,
+     "mat-mlip": -12.0,
+     "mat-phonon": -2.0,
+     "mat-toolkit": -3.0
+    }
+   },
+   "C_minus_A_prime": {
+    "mean": -0.75,
+    "ci95": [
+     -2.5,
+     0.92
+    ],
+    "excludes_zero": false,
+    "wins": 4,
+    "losses": 5,
+    "ties": 3,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 3.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": -5.0,
+     "bio-scvi": -3.0,
+     "bio-singlecell": 1.0,
+     "mat-chgpot": 0.0,
+     "mat-descriptors": -7.0,
+     "mat-featurize": 4.0,
+     "mat-mlip": -2.0,
+     "mat-phonon": -2.0,
+     "mat-toolkit": 2.0
+    }
+   },
+   "B_on_c_cases": {
+    "mean_net2": 7.25,
+    "shown": 129,
+    "shown_per_case": 10.8,
+    "precision": 0.891,
+    "abstained_on": 1
+   },
+   "A_prime_on_c_cases": {
+    "mean_net2": 6.58,
+    "shown": 115,
+    "shown_per_case": 9.6,
+    "precision": 0.896,
+    "abstained_on": 0
    }
   },
   "all37": {
@@ -240,7 +724,47 @@
     "excludes_zero": false,
     "wins": 20,
     "losses": 15,
-    "ties": 2
+    "ties": 2,
+    "sign_test_p": 0.4996,
+    "per_case": {
+     "ann": 2.0,
+     "bio-align": -2.0,
+     "bio-kmer": 1.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 8.0,
+     "bio-scvi": 1.0,
+     "bio-singlecell": 2.0,
+     "cli": -3.0,
+     "columnar": 1.0,
+     "compiler": -2.0,
+     "crypto": -1.0,
+     "cv": -6.0,
+     "db": 5.0,
+     "diffusion": 6.0,
+     "encryption": -1.0,
+     "graph": 8.0,
+     "http": 10.0,
+     "linter": 17.0,
+     "llminfer": -9.0,
+     "mat-chgpot": -12.0,
+     "mat-descriptors": 8.0,
+     "mat-featurize": -1.0,
+     "mat-mlip": -10.0,
+     "mat-phonon": 1.0,
+     "mat-toolkit": -5.0,
+     "numerics": -9.0,
+     "peft": 7.0,
+     "rag": -4.0,
+     "rl": 10.0,
+     "speech": -3.0,
+     "storage": 6.0,
+     "systems": 12.0,
+     "thin-gnn": 0.0,
+     "thin-kv": 4.0,
+     "thin-lang": -6.0,
+     "vectordb": 1.0,
+     "webdev": 4.0
+    }
    },
    "A_prime_minus_B": {
     "mean": 1.03,
@@ -251,7 +775,47 @@
     "excludes_zero": false,
     "wins": 18,
     "losses": 14,
-    "ties": 5
+    "ties": 5,
+    "sign_test_p": 0.5966,
+    "per_case": {
+     "ann": 0.0,
+     "bio-align": 0.0,
+     "bio-kmer": 1.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 8.0,
+     "bio-scvi": 1.0,
+     "bio-singlecell": 2.0,
+     "cli": -3.0,
+     "columnar": 1.0,
+     "compiler": -2.0,
+     "crypto": -1.0,
+     "cv": -6.0,
+     "db": 5.0,
+     "diffusion": 6.0,
+     "encryption": -1.0,
+     "graph": 7.0,
+     "http": 10.0,
+     "linter": 17.0,
+     "llminfer": -9.0,
+     "mat-chgpot": -13.0,
+     "mat-descriptors": 9.0,
+     "mat-featurize": -1.0,
+     "mat-mlip": -10.0,
+     "mat-phonon": 0.0,
+     "mat-toolkit": -5.0,
+     "numerics": -9.0,
+     "peft": 8.0,
+     "rag": -5.0,
+     "rl": 10.0,
+     "speech": -3.0,
+     "storage": 6.0,
+     "systems": 12.0,
+     "thin-gnn": 0.0,
+     "thin-kv": 4.0,
+     "thin-lang": -6.0,
+     "vectordb": 1.0,
+     "webdev": 4.0
+    }
    },
    "A_minus_A_prime": {
     "mean": 0.05,
@@ -262,7 +826,136 @@
     "excludes_zero": false,
     "wins": 5,
     "losses": 3,
-    "ties": 29
+    "ties": 29,
+    "sign_test_p": 0.7266,
+    "per_case": {
+     "ann": 2.0,
+     "bio-align": -2.0,
+     "bio-kmer": 0.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 0.0,
+     "bio-scvi": 0.0,
+     "bio-singlecell": 0.0,
+     "cli": 0.0,
+     "columnar": 0.0,
+     "compiler": 0.0,
+     "crypto": 0.0,
+     "cv": 0.0,
+     "db": 0.0,
+     "diffusion": 0.0,
+     "encryption": 0.0,
+     "graph": 1.0,
+     "http": 0.0,
+     "linter": 0.0,
+     "llminfer": 0.0,
+     "mat-chgpot": 1.0,
+     "mat-descriptors": -1.0,
+     "mat-featurize": 0.0,
+     "mat-mlip": 0.0,
+     "mat-phonon": 1.0,
+     "mat-toolkit": 0.0,
+     "numerics": 0.0,
+     "peft": -1.0,
+     "rag": 1.0,
+     "rl": 0.0,
+     "speech": 0.0,
+     "storage": 0.0,
+     "systems": 0.0,
+     "thin-gnn": 0.0,
+     "thin-kv": 0.0,
+     "thin-lang": 0.0,
+     "vectordb": 0.0,
+     "webdev": 0.0
+    }
+   },
+   "n_cases_c": 12,
+   "c_complete": false,
+   "cases_c": [
+    "bio-align",
+    "bio-kmer",
+    "bio-mdsim",
+    "bio-mdtraj",
+    "bio-scvi",
+    "bio-singlecell",
+    "mat-chgpot",
+    "mat-descriptors",
+    "mat-featurize",
+    "mat-mlip",
+    "mat-phonon",
+    "mat-toolkit"
+   ],
+   "C": {
+    "mean_net2": 5.83,
+    "shown": 97,
+    "shown_per_case": 8.1,
+    "precision": 0.907,
+    "abstained_on": 0
+   },
+   "C_minus_B": {
+    "mean": -1.42,
+    "ci95": [
+     -4.75,
+     1.42
+    ],
+    "excludes_zero": false,
+    "wins": 5,
+    "losses": 5,
+    "ties": 2,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 4.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": 3.0,
+     "bio-scvi": -2.0,
+     "bio-singlecell": 3.0,
+     "mat-chgpot": -13.0,
+     "mat-descriptors": 2.0,
+     "mat-featurize": 3.0,
+     "mat-mlip": -12.0,
+     "mat-phonon": -2.0,
+     "mat-toolkit": -3.0
+    }
+   },
+   "C_minus_A_prime": {
+    "mean": -0.75,
+    "ci95": [
+     -2.5,
+     0.92
+    ],
+    "excludes_zero": false,
+    "wins": 4,
+    "losses": 5,
+    "ties": 3,
+    "sign_test_p": 1.0,
+    "per_case": {
+     "bio-align": 0.0,
+     "bio-kmer": 3.0,
+     "bio-mdsim": 0.0,
+     "bio-mdtraj": -5.0,
+     "bio-scvi": -3.0,
+     "bio-singlecell": 1.0,
+     "mat-chgpot": 0.0,
+     "mat-descriptors": -7.0,
+     "mat-featurize": 4.0,
+     "mat-mlip": -2.0,
+     "mat-phonon": -2.0,
+     "mat-toolkit": 2.0
+    }
+   },
+   "B_on_c_cases": {
+    "mean_net2": 7.25,
+    "shown": 129,
+    "shown_per_case": 10.8,
+    "precision": 0.891,
+    "abstained_on": 1
+   },
+   "A_prime_on_c_cases": {
+    "mean_net2": 6.58,
+    "shown": 115,
+    "shown_per_case": 9.6,
+    "precision": 0.896,
+    "abstained_on": 0
    }
   }
  }

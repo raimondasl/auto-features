@@ -82,17 +82,75 @@ class TestTheProductArmIsSeparatedFromThePublishedOne:
         assert a["excludes_zero"] is False and ap["excludes_zero"] is False
 
 
-class TestTheUnrunArmIsVoidNotZero:
-    def test_c_says_not_run_rather_than_scoring_nothing(self, art) -> None:
-        c = art["arms"]["C"]
-        if c.get("status") == "not_run":
-            assert "mean_net2" not in c
-            assert "C" not in art["cohorts"]["all37"]
-            assert "C_minus_B" not in art["cohorts"]["all37"]
-            assert "gold_spread.py --tools web+rr" in c["how"]
-        else:
-            # Once it runs, the comparison the pre-registration names must be present.
-            assert "C_minus_B" in art["cohorts"]["all37"]
+class TestTheTwoScientificCohortsDisagree:
+    """The arm ran on the 12 scientific cases. **Neither cohort separates, and they point
+    in opposite directions** — which is the result, not a step toward one."""
+
+    def test_matsci_goes_against_the_augmented_arm(self, art) -> None:
+        e = art["cohorts"]["matsci6"]
+        assert e["C"]["mean_net2"] == pytest.approx(4.50, abs=0.01)
+        assert e["B_on_c_cases"]["mean_net2"] == pytest.approx(8.67, abs=0.01)
+        d = e["C_minus_B"]
+        assert d["mean"] == pytest.approx(-4.17, abs=0.01)
+        assert d["ci95"][0] < 0 < d["ci95"][1]  # past the -1.50 bar, interval still crosses
+        assert d["excludes_zero"] is False
+
+    def test_bio_goes_the_other_way(self, art) -> None:
+        e = art["cohorts"]["bio6"]
+        assert e["C"]["mean_net2"] == pytest.approx(7.17, abs=0.01)
+        assert e["C_minus_B"]["mean"] == pytest.approx(1.33, abs=0.01)
+        assert e["C_minus_B"]["excludes_zero"] is False
+
+    def test_pooled_they_cancel_and_nothing_is_established(self, art) -> None:
+        """5W/5L/2T, sign p = 1.00. The registered rule's answer is `not separated`."""
+        d = art["cohorts"]["scientific12"]["C_minus_B"]
+        assert d["mean"] == pytest.approx(-1.42, abs=0.01)
+        assert d["ci95"][0] < 0 < d["ci95"][1]
+        assert (d["wins"], d["losses"], d["ties"]) == (5, 5, 2)
+        assert d["sign_test_p"] == pytest.approx(1.0, abs=0.001)
+
+    def test_the_difference_is_volume_at_equal_or_better_precision(self, art) -> None:
+        """C is MORE precise and returns a QUARTER fewer papers. net@2 sums over what is
+        returned, so at p ~ 0.9 each paper forgone costs ~0.7 -- 2.7 fewer papers per case
+        is about -1.9, and the precision gain buys back ~0.4. That is the -1.42."""
+        e = art["cohorts"]["scientific12"]
+        assert e["C"]["shown_per_case"] == pytest.approx(8.1, abs=0.1)
+        assert e["B_on_c_cases"]["shown_per_case"] == pytest.approx(10.8, abs=0.1)
+        assert e["C"]["precision"] > e["B_on_c_cases"]["precision"]
+
+    def test_the_arm_never_abstains_and_the_agent_alone_did(self, art) -> None:
+        """`bio-mdtraj` is the mechanism in one case: Opus 5 alone returned NOTHING and
+        scored 0; with the shortlist it returned 6 papers at 0.83 and scored +3. The
+        shortlist rescues an abstention -- and caps a wide answer, which is the same
+        behaviour costing 13 points on `mat-chgpot`."""
+        e = art["cohorts"]["scientific12"]
+        assert e["C"]["abstained_on"] == 0
+        assert e["B_on_c_cases"]["abstained_on"] == 1
+        assert e["C_minus_B"]["per_case"]["bio-mdtraj"] == 3.0
+        assert e["C_minus_B"]["per_case"]["mat-chgpot"] == -13.0
+
+
+class TestTheUnrunPartIsVoidNotZero:
+    def test_the_unrun_cohort_carries_no_c_column_at_all(self, art) -> None:
+        """core25 has not been run. It must have no C figures rather than zeros — an arm
+        scored 0 reads as "the agent recommended nothing"."""
+        assert "C" not in art["cohorts"]["core25"]
+        assert "C_minus_B" not in art["cohorts"]["core25"]
+
+    def test_a_partial_sweep_does_not_relabel_the_other_columns(self, art) -> None:
+        """The bug this caught: intersecting the case set with a partially-run C shrank
+        A, A' and B to C's 6 matsci cases and printed matsci's levels under `all37`."""
+        assert art["cohorts"]["all37"]["n_cases"] == 37
+        assert art["cohorts"]["all37"]["n_cases_c"] == 12
+        assert art["cohorts"]["all37"]["c_complete"] is False
+        assert art["cohorts"]["all37"]["A"]["mean_net2"] == pytest.approx(6.27, abs=0.01)
+
+    def test_c_figures_are_compared_against_b_on_the_same_cases(self, art) -> None:
+        """`B_on_c_cases`, not `B`. Comparing a 12-case C against a 37-case B is the same
+        mistake wearing different clothes."""
+        e = art["cohorts"]["all37"]
+        assert e["B"]["mean_net2"] != e["B_on_c_cases"]["mean_net2"]
+        assert len(e["cases_c"]) == e["n_cases_c"]
 
     def test_the_prereg_is_cited_from_the_artifact(self, art) -> None:
         """A decision rule a reader has to go looking for is one that can be quietly
@@ -101,13 +159,23 @@ class TestTheUnrunArmIsVoidNotZero:
         assert (ROOT / "evals" / "PREREG-mcp-arm.md").is_file()
 
 
-class TestTheKillConditionCanBeCheckedFromTheArtifact:
-    def test_tool_use_is_recorded_when_the_augmented_arm_has_run(self, art) -> None:
+class TestTheKillConditionDidNotFire:
+    def test_every_row_used_the_server(self, art) -> None:
         """ "The tool did not help" and "the agent never found the tool" are opposite
-        findings, and only the call log separates them."""
+        findings, and only the call log separates them. **Zero rows of 12 made no call**,
+        on a prompt that never mentions the server — so the −1.42 is a statement about
+        RepoRadar's shortlist, not about whether an agent can find it."""
         c = art["arms"]["C"]
-        if c.get("status") == "not_run":
-            pytest.skip("arm C has not been run")
-        assert "mcp_calls_total" in c
-        assert "rows_with_zero_mcp_calls" in c
-        assert c["treatment_present"] == (c["rows_with_zero_mcp_calls"] <= 3)
+        assert c["rows_with_zero_mcp_calls"] == 0
+        assert c["treatment_present"] is True
+        assert c["mcp_calls_total"] == 87
+
+    def test_the_agent_reached_past_the_shortlist_more_than_at_it(self, art) -> None:
+        """48 of 87 calls are `search_papers` against a store holding only that case's
+        digest picks (3–19 papers), where the product's store holds everything RepoRadar
+        ever fetched. **Arm C's search tool is materially narrower than the product's** —
+        the price of seeding exactly arm A's output, and the reason C is a floor on what a
+        fully-populated store would give. Recorded so the next arm is obvious."""
+        calls = art["arms"]["C"]["mcp_calls"]
+        assert calls["search_papers"] == 48
+        assert calls["get_ranked_papers"] == 21

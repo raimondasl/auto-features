@@ -1144,6 +1144,69 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### An agent given RepoRadar's shortlist returns a quarter fewer papers, more precisely. **[P27]**
+
+The first measurement of RepoRadar **and** the agent rather than RepoRadar **or** the agent.
+12 of 37 cases (the scientific cohort), $85.88 notional, pre-registered in
+`evals/PREREG-mcp-arm.md` before the arm existed.
+
+| cohort | n | A RepoRadar | A' as shipped | B Opus 5 | C both | C - B | 95% CI | sign p |
+|---|---|---|---|---|---|---|---|---|
+| bio 6 | 6 | +7.50 | +7.83 | +5.83 | **+7.17** | **+1.33** | [-0.50, +3.00] | 0.625 |
+| matsci 6 | 6 | +5.50 | +5.33 | +8.67 | **+4.50** | **-4.17** | [-9.17, +0.67] | 0.688 |
+| **scientific 12** | 12 | +6.50 | +6.58 | +7.25 | **+5.83** | **-1.42** | [-4.75, +1.42] | 1.00 |
+
+**Not separated, and the halves point opposite ways** -- 5W/5L/2T, no interval excluding zero.
+The registered rule is over 37 cases and cannot be called from 12.
+
+## The mechanism is volume, at better precision
+
+C is **more precise** than B (0.907 vs 0.891) and returns a **quarter fewer papers** (8.1 vs
+10.8 per case). net@2 sums over what is returned, so at p ~ 0.9 each paper forgone costs ~0.7:
+2.7 fewer papers is about -1.9, the precision gain buys back ~0.4, and that is the -1.42. This
+is arithmetic, not interpretation.
+
+**Attaching RepoRadar anchors the agent to a digest-sized answer.** Three cases carry it:
+
+| case | B n | C n | B net | C net | C - B |
+|---|---|---|---|---|---|
+| `mat-chgpot` | **24** @ 0.96 | 8 @ 1.00 | +21 | +8 | **-13** |
+| `mat-mlip` | **18** @ 1.00 | 6 @ 1.00 | +18 | +6 | **-12** |
+| `bio-mdtraj` | **0** -- abstained | 6 @ 0.83 | +0 | +3 | **+3** |
+
+C never abstained; B abstained once. **It is the same behaviour paying and costing.** P26
+identified abstention discipline as RepoRadar's edge over Opus 5; handed to the agent, that
+discipline rescues an abstention on `bio-mdtraj` and caps a 24-paper answer at 96% precision
+on `mat-chgpot`. The metric's shape does the rest: above the 2/3 break-even, volume is worth
+points, and DRAFT.md's own limitation ("the metric rewards shyness") runs backwards here.
+
+**The kill condition did not fire.** 0 of 12 rows made zero MCP calls; 87 calls total, on a
+prompt that never mentions the server. The result is about the shortlist, not about whether an
+agent can find the tool.
+
+## A false positive the repair pass caught
+
+`bio-scvi` came back `partial` -- 20 picks, 18 scored, one lookup failure and one unjudgeable.
+`agent_arm` drops non-`ok` rows, so bio6 first read **+2.00, CI [+0.60, +3.40], excluding
+zero**: a significant-looking win produced entirely by dropping C's highest-volume case.
+`gold_spread`'s repair phase resolved it (19 of 20 scored, 1 unjudgeable, void not null) and
+bio6 moved to +1.33, CI [-0.50, +3.00]. **Read no cohort before the repair pass has run.**
+
+A second artifact of the same shape was caught in the reader: `mcp_arm_report` intersected the
+case set with arm C, so a 6-case matsci run shrank A, A' and B to those 6 and printed matsci's
+levels under the label `all37`. Every C figure is now over `n_cases_c` and compared against
+`B_on_c_cases` -- B restricted to exactly C's cases -- with `c_complete` saying whether the
+cohort is finished.
+
+## The limitation that names the next arm
+
+**48 of the 87 calls were `search_papers`**, against a store holding only that case's digest
+picks (3-19 papers) where the product's holds everything RepoRadar ever fetched. Arm C's search
+tool is materially narrower than the product's -- the price of seeding exactly arm A's output
+-- so **C is a floor**. A `C-wide` arm seeding the full frozen pool would leave
+`get_ranked_papers` byte-identical (ungated papers reach Maybe at best) while giving
+`search_papers` a real corpus.
+
 ### Wiring the agent to RepoRadar found two defects before it cost anything. **[P27]**
 
 Every comparator figure in this project is **either/or**: RepoRadar's +6.27 against Opus 5's

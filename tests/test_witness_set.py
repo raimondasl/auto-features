@@ -48,11 +48,18 @@ KNOWN_SOURCES = {
     "cli-redraw@30",
     "cli-v2@30",  # the v2-prompt sweep, 2026-08-26: grading, not self
     "cli-v2-opus5@30",  # Opus 5, 25 core + 6 bio: grading, not self
+    # Opus 5 WITH RepoRadar's MCP server attached [P27]. SELF, and it is the case the
+    # inversion in `witness_set.SELF_SOURCES` was written for: that agent was handed
+    # RepoRadar's Top Picks, so a witness it names may be one RepoRadar found and it
+    # repeated. Grading RepoRadar's reach against it would be the system grading itself
+    # through a proxy -- the pooled-evaluation flattery the rule exists to prevent, arriving
+    # by a route that did not exist when the rule was written.
+    "cli-v2-opus5-rr@30",
     "api",
     "reporadar",
     "adoption",
 }
-SELF = {"reporadar"}
+SELF = {"reporadar", "cli-v2-opus5-rr@30"}
 NON_SELF = KNOWN_SOURCES - SELF
 
 
@@ -196,11 +203,22 @@ class TestTheCommittedArtifact:
         The last step is worth separating from the others: it added no new *search*. Those
         papers had already been found and named by a searcher already in the pool — the set
         grew because the instrument could finally read them.
+
+        **700 -> 756 (2026-09-01), and the fourth payoff is the largest.** The P27 augmented
+        arm — Opus 5 with RepoRadar's MCP server attached — contributed 88 witnesses over the
+        12 scientific cases, 56 of them new. **Both regret figures did not move.** That is the
+        prediction paid off at the biggest step yet, and by a source that did not exist when
+        the prediction was written.
+
+        It is also the step where the *reach* denominator mattered rather than the count:
+        `cli-v2-opus5-rr@30` is a SELF source, because that agent was handed RepoRadar's Top
+        Picks and any witness it names may be one RepoRadar found and it repeated. Pooling it
+        into the non-self set would have let the system grade itself through a proxy.
         """
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
         assert reg["mean_regret"] == 7.52
-        assert artifact["n_witnesses"] == 700
+        assert artifact["n_witnesses"] == 756
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not
