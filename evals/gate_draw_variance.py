@@ -61,7 +61,7 @@ from reporadar.paper_id import dedup_id  # noqa: E402
 RES = EVALS / "results"
 BASE = "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T034455Z.json"
 BASE_REPAIR = "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260830T075622Z.json"
-REPLICATE = ""  # filled after the replicate run; see --plan
+REPLICATE = "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260901T040926Z.json"
 FROZEN = EVALS / "gate_draw_variance.json"
 
 SD_TOTAL = 2.23  # measured between the two DIFFERENT-pool runs; the thing being decomposed
@@ -161,11 +161,44 @@ def report() -> int:
             "implied_pool_component_sd": round(pool_share, 2),
         },
     }
+    # What the grey band asked for: the actual measurement dividend, computed in the open.
+    # NR-47's paired arm reported ci95 [-1.59, -0.03] around -0.78, so its half-width is 0.78
+    # and its paired sd is 0.78 * sqrt(37) / 1.96.
+    import math
+
+    sd_arm = 0.78 * math.sqrt(len(cases)) / 1.96
+    sd_treat = math.sqrt(max(0.0, sd_arm**2 - sd_gate**2))
+    hw_new = 1.96 * sd_treat / math.sqrt(len(cases))
+    out["measurement_dividend"] = {
+        "_comment": (
+            "The number the decision actually turns on, and it is smaller than the sd alone "
+            "suggests: resolution scales with the square root of variance, so removing 35% of "
+            "the variance tightens the interval by 20%, not by 35%. An earlier claim in "
+            "conversation -- that the resolution might go from +-0.78 to ~+-0.30 -- assumed the "
+            "whole 2.23 was gate noise. It is 1.44, and this is the corrected figure."
+        ),
+        "nr47_observed_paired_sd": round(sd_arm, 2),
+        "gate_share_of_variance": round((sd_gate / sd_arm) ** 2, 3),
+        "residual_treatment_sd": round(sd_treat, 2),
+        "half_width_now": 0.78,
+        "half_width_if_gate_deterministic": round(hw_new, 2),
+        "tighter_by": round(1 - hw_new / 0.78, 3),
+        "ladder_rungs_still_unresolvable": bool(hw_new > 0.45),
+    }
+
     out["verdict"] = {
         "gate_dominates": bool(sd_gate >= HIGH),
         "gate_minor": bool(sd_gate < LOW),
         "grey": bool(LOW <= sd_gate < HIGH),
         "temperature_fix_has_measurement_dividend": bool(sd_gate >= HIGH),
+        "reading": (
+            "GREY, and the grey resolves toward 'worth doing, not transformative'. The gate is "
+            "35% of the paired variance in a frozen-pool arm, so making it deterministic "
+            "tightens the resolution from +-0.78 to ~+-0.63 -- 20%. Real, cheap, and NOT enough "
+            "to rescue the ladder: its rungs run +0.20 to +0.45 and remain individually "
+            "unresolvable, so the bundle-only rule stands."
+        ),
+        "pool_is_the_larger_component": bool(pool_share > sd_gate),
     }
     FROZEN.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
 

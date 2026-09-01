@@ -86,6 +86,16 @@ reading the pre-registration named as informative, the Sonnet-only sign, **flips
 runs 0.585 precision under Sonnet, below net@2's 2/3 break-even, while Opus 5's runs 0.714 above
 it. And the GPT margin itself moves +0.54 -> +0.32 across two of our own draws.
 
+**NR-54 sized the measurement question and it is smaller than it looked.** Holding the pool
+byte-identical and re-running, the gate/downstream sd is **1.44** per case against an implied
+pool-collection component of **1.71** -- so retrieval drift, not the gate, is the larger source,
+and the 2.23 quoted after NR-52 confounded the two (those runs used pools sharing a median
+Jaccard of 0.365). The gate is 35% of paired variance in a frozen-pool arm, so making it
+deterministic would tighten +-0.78 to **+-0.63**, a fifth. **Worth doing and not transformative:
+ladder rungs run +0.20 to +0.45 and stay unresolvable, so the bundle-only rule stands.** The
+open action is one line -- send `temperature=0` on the Claude path, which covers the gate and
+the judge together -- filed as hygiene rather than as a lead.
+
 **NR-53 retired the one live objection to NR-52.** The Claude path sends no temperature, so
 Sonnet's verdicts are sampled while GPT's are greedy, and the sign flip might have been one judge
 disagreeing with itself. Measured: self-agreement kappa **0.798** against a cross-judge **0.199**,
