@@ -32,12 +32,48 @@ import rr_mcp_arm  # noqa: E402
 ARM_A = rr_mcp_arm.ARM_A
 
 
+# The frozen run files under `evals/results/` are gitignored -- the same asymmetry
+# `freeze_opus5_arm.py` exists to close, and why derived facts live in tracked artifacts.
+# So the tests that need the raw arm skip on a fresh clone, and every invariant that
+# actually guards the experiment is ALSO exercised against a synthetic row, which runs
+# everywhere. A leak guard that only fires on the maintainer's laptop is not a guard.
+needs_arm_a = pytest.mark.skipif(
+    not ARM_A.exists(), reason=f"{ARM_A.name} is gitignored; the synthetic cases still run"
+)
+
+
 @pytest.fixture(scope="module")
 def arm_a_rows() -> list[dict]:
     return json.loads(ARM_A.read_text(encoding="utf-8"))
 
 
+def _synthetic_arm(tmp_path: Path, **extra: object) -> Path:
+    """One frozen-results row carrying the judge's verdict, written to a temp file."""
+    row = {
+        "case": "synthetic",
+        "pool_provenance": {"pool_dir": None, "fingerprint": "x"},
+        "ranking_config": {},
+        "pool_config": {"rr_all_time": True},
+        "returned": {
+            "reporadar_toppicks": [
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "title": "T",
+                    "llm_score": 3,
+                    "judge_score": 3,
+                    "judge_justification": "the answer",
+                    **extra,
+                }
+            ]
+        },
+    }
+    path = tmp_path / "arm.json"
+    path.write_text(json.dumps([row]), encoding="utf-8")
+    return path
+
+
 class TestTheJudgeNeverReachesTheAgent:
+    @needs_arm_a
     def test_arm_picks_drops_the_verdict_fields(self, arm_a_rows) -> None:
         for row in arm_a_rows:
             raw = row["returned"]["reporadar_toppicks"]
@@ -59,38 +95,21 @@ class TestTheJudgeNeverReachesTheAgent:
 
     def test_an_unknown_field_is_dropped_rather_than_copied(self, tmp_path: Path) -> None:
         """The behaviour the allow-list buys, exercised rather than asserted about the
-        source: a field nobody anticipated does not reach the agent."""
-        row = {
-            "case": "synthetic",
-            "pool_provenance": {"pool_dir": None, "fingerprint": "x"},
-            "ranking_config": {},
-            "pool_config": {"rr_all_time": True},
-            "returned": {
-                "reporadar_toppicks": [
-                    {
-                        "arxiv_id": "2401.00001v1",
-                        "title": "T",
-                        "llm_score": 3,
-                        "judge_score": 3,
-                        "judge_justification": "the answer",
-                        "some_future_verdict_field": "also the answer",
-                    }
-                ]
-            },
-        }
-        path = tmp_path / "arm.json"
-        path.write_text(json.dumps([row]), encoding="utf-8")
+        source: a field nobody anticipated does not reach the agent. Synthetic on purpose
+        — this is the version of the guard that runs on a fresh clone."""
+        path = _synthetic_arm(tmp_path, some_future_verdict_field="also the answer")
         picks = rr_mcp_arm.arm_picks(path, "synthetic")
         assert picks == [{"arxiv_id": "2401.00001v1", "title": "T", "llm_score": 3}]
 
 
 class TestTheStoreServesArmAsOutput:
-    def test_a_missing_case_raises_rather_than_seeding_nothing(self) -> None:
+    def test_a_missing_case_raises_rather_than_seeding_nothing(self, tmp_path: Path) -> None:
         """An empty store would give arm C an unattached MCP server and call the result a
         measurement — void, not null, in its most expensive form."""
         with pytest.raises(KeyError):
-            rr_mcp_arm.arm_picks(ARM_A, "no-such-case")
+            rr_mcp_arm.arm_picks(_synthetic_arm(tmp_path), "no-such-case")
 
+    @needs_arm_a
     def test_every_arm_a_case_has_picks_to_serve(self, arm_a_rows) -> None:
         for row in arm_a_rows:
             picks = rr_mcp_arm.arm_picks(ARM_A, row["case"])
