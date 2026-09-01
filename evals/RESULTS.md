@@ -1144,6 +1144,49 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### `temperature=0` lands the dividend, and the 37/37 prediction was wrong. **[NR-55]**
+
+Verification of the one-line change NR-54 licensed, run in NR-54's design so the numbers are
+directly comparable: two fresh runs of the shipped config against the **same frozen pool**.
+
+| | pre-fix (NR-54) | post-fix |
+|---|---|---|
+| byte-identical cases | 10 / 37 | **31 / 37** |
+| per-case net@2 sd | **1.44** | **0.37** |
+| median digest Jaccard | 0.857 | **1.000** |
+| mean net@2 | — | +5.49 / +5.51 |
+
+**The prediction, stated before the runs finished, was 37/37 byte-identical. It was 31/37.**
+Kept on the record rather than dropped — a probe whose predictions vanish when they miss teaches
+nothing about how good the predictions are.
+
+Two of the six remaining differences are **ordering only** (`columnar`, `rag` — same papers,
+same scores), which net@2 cannot see. Four differ in composition: `db` and `numerics` swap one
+paper at identical net@2, `thin-kv` and `thin-lang` each drop one. So **33 of 37 are
+deterministic in everything net@2 reads**, at a **3.9× reduction** in per-case sd.
+
+#### The residual is most likely below the API
+
+Greedy decoding fixes the sampling *rule*; it does not make a served model bit-reproducible,
+because batching and floating-point non-associativity can move logits between requests. That is
+offered as the likeliest reading of a four-case residual, **not as a finding this probe tests**.
+The alternative worth checking, if anyone cares, is a second stochastic element downstream of
+the gate.
+
+#### The projected dividend is essentially fully realised
+
+NR-54 computed that a *perfectly* deterministic gate would take the paired half-width from 0.78
+to **0.63**. Folding the measured 0.37 residual back in gives **0.64** — a gap to ideal of
+**0.01 net@2**. Nothing is left on the table by not chasing the residual.
+
+And it changes nothing about the plan, exactly as NR-54 said it would not: ladder rungs run
++0.20 to +0.45 and stay under 0.64, so the bundle-only rule stands. **This is the last of the
+measurement thread: the instrument is now as sharp as this change can make it, and the ladder is
+no more affordable than before.**
+
+**Cost** two runs against a frozen pool, judge verdicts cached. Pinned by
+`tests/test_temperature_zero_check.py`.
+
 ### The gate is a third of the paired variance. Worth fixing, not transformative. **[NR-54]**
 
 NR-52 recorded that the shipped arm's mean net@2 moves between two of our own runs (+5.73 on
