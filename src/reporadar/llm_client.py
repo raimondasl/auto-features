@@ -35,11 +35,39 @@ def _call_ollama(prompt: str, model: str, url: str, timeout: int) -> str:
 
 
 def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens: int) -> str:
-    """Call the Anthropic Messages API and return the concatenated text blocks."""
+    """Call the Anthropic Messages API and return the concatenated text blocks.
+
+    **`temperature=0`, and it was missing until 2026-09-01.** Without it the Anthropic default
+    of 1.0 applied, so every call on this path was a *sample*: the actionability gate, HyDE's
+    hypotheses, the repo summary, typed anchors, and the second judge. Two consequences were
+    measured before the fix:
+
+    * **NR-53** — the second judge disagreed with *itself* on 8.4% of label decisions across a
+      redraw of 200 papers (score-level agreement 0.806).
+    * **NR-54** — re-running the shipped config against a byte-identical frozen pool moved
+      net@2 by **sd 1.44 per case**, with only 10 of 37 cases reproducing exactly. That is 35%
+      of the paired variance in a frozen-pool arm, so removing it tightens the benchmark's
+      resolution from ±0.78 to about ±0.63.
+
+    Every caller here wants one determinate answer about a fixed input, so none of them loses
+    anything. HyDE is the only arguable case and it is not one: the four hypotheses are made
+    diverse by the *prompt* asking for four different abstracts in a single response, not by
+    sampling across calls.
+
+    **`_call_ollama` is deliberately left alone.** It exposes temperature through a different
+    field (`options`), no measured arm has ever used it, and widening this change to a path
+    nothing measures would be scope the evidence does not cover. Noted here rather than left
+    for someone to discover as an inconsistency.
+
+    Runs before and after this differ by construction. Frozen pools and cached judge verdicts
+    are unaffected — the pool fingerprint does not cover temperature, and the judge cache is
+    keyed by prompt and model — but a *gate* comparison spanning the change is confounded.
+    """
     payload = json.dumps(
         {
             "model": model,
             "max_tokens": max_tokens,
+            "temperature": 0,
             "messages": [{"role": "user", "content": prompt}],
         }
     ).encode("utf-8")

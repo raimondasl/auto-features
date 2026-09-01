@@ -92,9 +92,15 @@ pool-collection component of **1.71** -- so retrieval drift, not the gate, is th
 and the 2.23 quoted after NR-52 confounded the two (those runs used pools sharing a median
 Jaccard of 0.365). The gate is 35% of paired variance in a frozen-pool arm, so making it
 deterministic would tighten +-0.78 to **+-0.63**, a fifth. **Worth doing and not transformative:
-ladder rungs run +0.20 to +0.45 and stay unresolvable, so the bundle-only rule stands.** The
-open action is one line -- send `temperature=0` on the Claude path, which covers the gate and
-the judge together -- filed as hygiene rather than as a lead.
+ladder rungs run +0.20 to +0.45 and stay unresolvable, so the bundle-only rule stands.** **Done 2026-09-01**: `_call_claude` now sends
+`temperature=0`, which covers the gate, HyDE's hypotheses, the repo summary, typed anchors and
+the second judge in one place, guarded by a wire-level test in `tests/test_llm_client.py`.
+`_call_ollama` is deliberately untouched -- different field, no measured arm uses it.
+
+**One consequence to carry forward:** runs before and after differ by construction. Frozen pools
+and cached judge verdicts are unaffected (the fingerprint does not cover temperature, and the
+judge cache is keyed by prompt and model), but any *gate* comparison spanning 2026-09-01 is
+confounded, and the shipped arm's +5.51 was measured pre-fix.
 
 **NR-53 retired the one live objection to NR-52.** The Claude path sends no temperature, so
 Sonnet's verdicts are sampled while GPT's are greedy, and the sign flip might have been one judge
