@@ -1,0 +1,96 @@
+{
+ "_comment": "NR-56. Adoption is the only label in this benchmark no model produced: ids(HEAD) - ids(T0) over a repo's own docs. Recall on it cannot rank judges because it supplies POSITIVES only and a lenient judge scores 100%, so each adopted paper is paired with matched controls -- same repo, published before the same T0, never adopted, not a T0 seed -- and the statistic is the GAP. Derived by evals/judge_validity_adoption.py; pinned by tests/test_judge_validity_adoption.py.",
+ "pre_registered": {
+  "primary": "discrimination gap = P(actionable|adopted) - P(actionable|control)",
+  "judges_ranked_by_gap_not_recall": true,
+  "flat_if_both_below": 0.2,
+  "separated_if_difference_at_least": 0.15,
+  "written_before_any_control_or_sonnet_verdict": true
+ },
+ "n_positives": 31,
+ "n_controls": 124,
+ "positives_by_case": {
+  "diffusion": 7,
+  "graph": 13,
+  "llminfer": 2,
+  "peft": 5,
+  "rag": 2,
+  "rl": 2
+ },
+ "judges": {
+  "gpt-5.5": {
+   "adopted": {
+    "n": 31,
+    "actionable": 20,
+    "rate": 0.6452,
+    "wilson95": [
+     0.4695,
+     0.7888
+    ]
+   },
+   "control": {
+    "n": 124,
+    "actionable": 61,
+    "rate": 0.4919,
+    "wilson95": [
+     0.4055,
+     0.5788
+    ]
+   },
+   "gap": 0.1533,
+   "gap_ci95": [
+    -0.0403,
+    0.3387
+   ],
+   "gap_excludes_zero": false
+  },
+  "claude-sonnet-5": {
+   "adopted": {
+    "n": 31,
+    "actionable": 15,
+    "rate": 0.4839,
+    "wilson95": [
+     0.3197,
+     0.6516
+    ]
+   },
+   "control": {
+    "n": 124,
+    "actionable": 25,
+    "rate": 0.2016,
+    "wilson95": [
+     0.1405,
+     0.2807
+    ]
+   },
+   "gap": 0.2823,
+   "gap_ci95": [
+    0.0968,
+    0.4758
+   ],
+   "gap_excludes_zero": true
+  }
+ },
+ "gap_difference_bootstrap": {
+  "_comment": "Sonnet gap minus GPT gap, bootstrapped over the same papers both judges scored. Positive favours Sonnet. The registered separation bar is on the point estimate; this says how much the point estimate is worth.",
+  "point": 0.1291,
+  "ci95": [
+   -0.0242,
+   0.2742
+  ],
+  "excludes_zero": false
+ },
+ "verdict": {
+  "gaps": {
+   "gpt-5.5": 0.1533,
+   "claude-sonnet-5": 0.2823
+  },
+  "difference": 0.129,
+  "both_flat": false,
+  "separated": false,
+  "better_instrument": null,
+  "primary_judge_gap_spans_zero": true,
+  "headline": "The primary judge -- gpt-5.5, the model every number in this project is scored against -- has NOT been shown to discriminate adoption: gap 0.153, CI [-0.040, +0.339], spanning zero. It calls 49.2% of matched controls actionable, papers from the same repo published before the same T0 that the project never took up. claude-sonnet-5's gap does exclude zero (0.282, CI [+0.097, +0.476]), but the DIFFERENCE between them (0.129, CI [-0.024, +0.274]) does not clear the registered 0.15 bar, so this does not name a better instrument. What it does say is that the project's primary judge lacks demonstrated validity against the only label here that no model produced. Absence of evidence, not evidence of error.",
+  "caveats": "n=31 positives across 6 cases with graph contributing 13 (C-7); 'not adopted' is a noisy negative that biases both gaps downward; adoption measures what a repository did, not what it should have done."
+ }
+}

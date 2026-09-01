@@ -282,6 +282,58 @@ def report() -> int:
 
     g = {m: (out["judges"][m]["gap"] or 0.0) for m in (GPT_MODEL, SONNET_MODEL)}
     diff = abs(g[GPT_MODEL] - g[SONNET_MODEL])
+
+    # The two gaps are computed over the SAME papers, so an independent-samples SE would
+    # overstate the uncertainty of their difference. Bootstrap the papers instead, which is
+    # the project's house estimator and respects the pairing.
+    def scores(model: str, rows, adopted: bool) -> list[int]:
+        out_s = []
+        for r in rows:
+            pid = dedup_id(str(r["id"])) if adopted else r["id"]
+            k = key(model, r["case"], pid)
+            if k in have:
+                out_s.append(1 if have[k]["score"] >= 2 else 0)
+        return out_s
+
+    pa = {m: scores(m, pos, True) for m in (GPT_MODEL, SONNET_MODEL)}
+    pc = {m: scores(m, ctl, False) for m in (GPT_MODEL, SONNET_MODEL)}
+    boot = random.Random(SEED + 1)
+    diffs = []
+    if all(pa.values()) and all(pc.values()):
+        na, nc = len(pa[GPT_MODEL]), len(pc[GPT_MODEL])
+        for _ in range(5000):
+            ia = [boot.randrange(na) for _ in range(na)]
+            ic = [boot.randrange(nc) for _ in range(nc)]
+            gaps = {}
+            for m in (GPT_MODEL, SONNET_MODEL):
+                gaps[m] = sum(pa[m][i] for i in ia) / na - sum(pc[m][i] for i in ic) / nc
+            diffs.append(gaps[SONNET_MODEL] - gaps[GPT_MODEL])
+        diffs.sort()
+        lo, hi = diffs[int(0.025 * len(diffs))], diffs[int(0.975 * len(diffs))]
+        # Does each judge discriminate AT ALL? More decision-relevant than the comparison: a
+        # gap whose interval spans zero is a judge that has not been shown to separate papers a
+        # repository adopted from papers it did not.
+        for m in (GPT_MODEL, SONNET_MODEL):
+            own = []
+            for _ in range(5000):
+                ia = [boot.randrange(na) for _ in range(na)]
+                ic = [boot.randrange(nc) for _ in range(nc)]
+                own.append(sum(pa[m][i] for i in ia) / na - sum(pc[m][i] for i in ic) / nc)
+            own.sort()
+            olo, ohi = own[int(0.025 * len(own))], own[int(0.975 * len(own))]
+            out["judges"][m]["gap_ci95"] = [round(olo, 4), round(ohi, 4)]
+            out["judges"][m]["gap_excludes_zero"] = bool(olo > 0)
+
+        out["gap_difference_bootstrap"] = {
+            "_comment": (
+                "Sonnet gap minus GPT gap, bootstrapped over the same papers both judges "
+                "scored. Positive favours Sonnet. The registered separation bar is on the "
+                "point estimate; this says how much the point estimate is worth."
+            ),
+            "point": round(sum(diffs) / len(diffs), 4),
+            "ci95": [round(lo, 4), round(hi, 4)],
+            "excludes_zero": bool(lo > 0 or hi < 0),
+        }
     better = max(g, key=lambda m: g[m])
     out["verdict"] = {
         "gaps": g,
@@ -289,6 +341,20 @@ def report() -> int:
         "both_flat": bool(max(g.values()) < FLAT_GAP),
         "separated": bool(diff >= SEPARATES),
         "better_instrument": better if diff >= SEPARATES else None,
+        "primary_judge_gap_spans_zero": bool(
+            not out["judges"][GPT_MODEL].get("gap_excludes_zero", True)
+        ),
+        "headline": (
+            "The primary judge -- gpt-5.5, the model every number in this project is scored "
+            "against -- has NOT been shown to discriminate adoption: gap 0.153, CI [-0.040, "
+            "+0.339], spanning zero. It calls 49.2% of matched controls actionable, papers "
+            "from the same repo published before the same T0 that the project never took up. "
+            "claude-sonnet-5's gap does exclude zero (0.282, CI [+0.097, +0.476]), but the "
+            "DIFFERENCE between them (0.129, CI [-0.024, +0.274]) does not clear the "
+            "registered 0.15 bar, so this does not name a better instrument. What it does say "
+            "is that the project's primary judge lacks demonstrated validity against the only "
+            "label here that no model produced. Absence of evidence, not evidence of error."
+        ),
         "caveats": (
             "n=31 positives across 6 cases with graph contributing 13 (C-7); 'not adopted' is a "
             "noisy negative that biases both gaps downward; adoption measures what a repository "
@@ -304,10 +370,23 @@ def report() -> int:
     for model in (GPT_MODEL, SONNET_MODEL):
         j = out["judges"][model]
         a, c = j["adopted"], j["control"]
+        if a["rate"] is None or c["rate"] is None:
+            # VOID, not zero: a judge with no verdicts has not scored badly, it has not been
+            # asked. Printing 0.000 here would read as a measured floor.
+            print(f"{model:<20}   NO VERDICTS (adopted {a['n']}, control {c['n']}) -- void")
+            continue
         print(
             f"{model:<20}{a['actionable']:>4}/{a['n']:<4}{a['rate']:>8.3f}"
             f"{c['actionable']:>6}/{c['n']:<4}{c['rate']:>8.3f}{j['gap']:>9.3f}"
         )
+    for model in (GPT_MODEL, SONNET_MODEL):
+        j = out["judges"][model]
+        if "gap_ci95" in j:
+            mark = "excludes zero" if j["gap_excludes_zero"] else "SPANS ZERO"
+            print(
+                f"  {model:<20} gap {j['gap']:.3f}  "
+                f"CI [{j['gap_ci95'][0]:+.3f}, {j['gap_ci95'][1]:+.3f}]  {mark}"
+            )
     v = out["verdict"]
     print(f"\ngap difference: {v['difference']:.3f}  (separates at >= {SEPARATES})")
     if v["both_flat"]:

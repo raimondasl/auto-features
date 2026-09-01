@@ -86,6 +86,27 @@ reading the pre-registration named as informative, the Sonnet-only sign, **flips
 runs 0.585 precision under Sonnet, below net@2's 2/3 break-even, while Opus 5's runs 0.714 above
 it. And the GPT margin itself moves +0.54 -> +0.32 across two of our own draws.
 
+**NR-56 is the first VALIDITY result, and it is the uncomfortable one.** Against adoption --
+`ids(HEAD) - ids(T0)` over a repo's own docs, the only label here no model produced -- the
+primary judge's discrimination gap is **0.153, CI [-0.040, +0.339], spanning zero**, and it
+calls **49.2% of matched controls actionable**. `claude-sonnet-5`'s gap (0.282) excludes zero,
+but the difference between them (0.129) misses the registered 0.15 bar, so **no better
+instrument is named**.
+
+Read it precisely: **absence of evidence, not evidence of error.** n = 31 across 6 cases with
+`graph` contributing 13, noisy negatives biasing both gaps down, and adoption measuring what a
+repo did rather than what it should have done. What is established is that the judge every
+number in this project is scored against has **unestablished validity** on the one anchor
+available. That belongs in the paper's limitations regardless of what else happens, and it
+raises the value of enlarging the adoption set above anything on the net@2 ladder.
+
+**A regression NR-56 caught, shipped by NR-54/55:** `temperature=0` breaks the Claude 5 family
+(`sonnet-5`, `opus-5` answer 400 "deprecated for this model"); Claude 4.x accepts it. The gate
+runs `haiku-4-5` so it was fine, which is exactly why the change looked verified. Fixed with a
+narrow retry. **Consequence: the judge cannot be made deterministic this way**, so NR-53's 8.4%
+self-disagreement is a standing property of the instrument and NR-55's gain applies to the gate
+alone.
+
 **NR-54 sized the measurement question and it is smaller than it looked.** Holding the pool
 byte-identical and re-running, the gate/downstream sd is **1.44** per case against an implied
 pool-collection component of **1.71** -- so retrieval drift, not the gate, is the larger source,

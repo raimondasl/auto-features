@@ -62,15 +62,48 @@ def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens
     Runs before and after this differ by construction. Frozen pools and cached judge verdicts
     are unaffected — the pool fingerprint does not cover temperature, and the judge cache is
     keyed by prompt and model — but a *gate* comparison spanning the change is confounded.
+
+    **It does not cover every model, and the first version of this claimed it did.** The
+    **Claude 5 family rejects the parameter outright** — `claude-sonnet-5` and `claude-opus-5`
+    answer `400 "temperature is deprecated for this model"` — while Claude 4.x accepts it. The
+    shipped gate runs `claude-haiku-4-5` and was fine, which is exactly why the change looked
+    verified: NR-55's two runs exercised the gate and never touched the Sonnet judge, and the
+    judge path broke silently until NR-56 tried to use it and got 155 straight 400s.
+
+    So a rejected `temperature` is retried without it, the way `evals/judge.py` already handles
+    the same situation on the OpenAI side. The retry is **narrow on purpose** — only a 400 whose
+    body names `temperature` — because a blanket retry would swallow rate limits and quota
+    errors as if they were parameter problems.
+
+    **A consequence worth stating: the judge cannot be made deterministic this way.** NR-53
+    measured `claude-sonnet-5` disagreeing with itself on 8.4% of label decisions, and since
+    that model refuses the parameter, that figure is a standing property of the instrument
+    rather than something a setting can remove.
     """
-    payload = json.dumps(
-        {
-            "model": model,
-            "max_tokens": max_tokens,
-            "temperature": 0,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-    ).encode("utf-8")
+    body: dict[str, Any] = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "temperature": 0,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    try:
+        return _post_claude(body, api_key, timeout)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 400:
+            raise
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001 -- an unreadable body is just an unknown 400
+            raise exc from None
+        if "temperature" not in detail:
+            raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
+        body.pop("temperature")
+        return _post_claude(body, api_key, timeout)
+
+
+def _post_claude(body: dict[str, Any], api_key: str, timeout: int) -> str:
+    payload = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
         data=payload,
