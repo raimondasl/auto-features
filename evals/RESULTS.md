@@ -1144,6 +1144,64 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Wiring the agent to RepoRadar found two defects before it cost anything. **[P27]**
+
+Every comparator figure in this project is **either/or**: RepoRadar's +6.27 against Opus 5's
++5.19, paired +1.08. The configuration a user would actually run -- an agent with RepoRadar's
+MCP server attached, keeping its own web search -- has never been measured. Building the arm
+(`evals/rr_mcp_arm.py`, `gold_spread.py --tools web+rr`, pre-registered in
+`evals/PREREG-mcp-arm.md`) cost $0 and turned up two things before a single augmented row was
+billed.
+
+**1. `get_ranked_papers` was not returning RepoRadar's recommendations.** It read
+`get_scores_for_run(run_id)[:limit]` -- the raw heuristic/RRF order: no actionability gate, no
+fine-scale bar, no rerank, withdrawn and already-cited papers still occupying slots. So an
+agent and a human reading the same repository at the same run got different answers, **and the
+agent got the weaker one** -- by the widest margin available, since the gate is where the
+precision comes from and the 0.5 threshold it replaced measured net@2 -11.
+
+Found by pointing Opus 5 at the arm's own server and reading what came back. It is now routed
+through `categorize_papers`, which `digest`, `rr explain`, `notify`, `archive` and `watch`
+already shared; this was the one consumer with its own rule. C-9, C-12 and C-14 again.
+
+Two smaller things fell out of the same call. The payload now carries `maybe_relevant` and
+`muted` beside the recommendations rather than dropping them -- an agent that never hears
+about a retraction it might otherwise have found is worse off than one told not to use it --
+and each muted paper says **why**. Opus 5, handed a muted paper with no stated reason,
+excluded it and flagged that it was guessing; that is the right call made blind.
+
+**2. The benchmark credits RepoRadar for papers the product would mute.** The product mutes
+papers the repository's own README, CITATION file or bibliography already cites; the harness
+has no such rule. That is **11 of 325 picks (3.4%) across 8 cases**.
+
+Worth **+0.05 net@2/case, CI [-0.14, +0.24]** -- and the number matters less than how it was
+got. Estimated at +0.22 first, by counting the 8 muted picks the judge scored actionable and
+dividing by 37. That ignores the 3 it scored non-actionable at -2 each, so the `+1`s and the
+`-2`s very nearly cancel: 8 - 6 = +2 over 37 cases. **Wrong by a factor of four, and only
+computing it caught that.** `evals/mcp_arm_report.py` now carries both arms side by side (A
+published, A' as displayed) rather than restating one as the other (C-17). It reproduces
+P26's A - B as +1.08, CI [-0.97, +3.22] from an independent code path, and the correction
+flips nothing: A' - B is +1.03, CI [-1.05, +3.19].
+
+**3. A harness bug that would have failed every row, found by running one.** `--mcp-config`
+is **variadic** (`<configs...>`), and `_run_cli` appends the prompt after the flag list -- so
+a list ending on the config path hands the CLI the PROMPT as a second config file. The first
+smoke run died with `MCP config file not found: <cwd>\Please fetch and summarize...`. The
+symptom is every row failing, which reads as an auth or quota problem, and no amount of
+reading the flag list would have shown it. Fixed by putting the boolean flag last, pinned by
+`tests/test_rr_mcp_arm.py`.
+
+**The smoke run also answered the kill condition's question early, at n = 1.** Opus 5, on a
+prompt that never mentions the server, called `get_ranked_papers(limit=30)` on its **first**
+turn and then two `search_papers` queries against RepoRadar's corpus. One case is not the
+measurement -- the registered condition is over 37 -- but the discoverability failure mode the
+condition exists to catch did not appear in the one place it has been looked for.
+
+**What the arm still cannot say.** It is built, verified end to end and unrun: arm C is
+recorded as `status: "not_run"`, never as 0 net@2, because an unrun arm scored as zero reads
+as "the agent recommended nothing". The blocker is subscription budget -- B's 37-case draw
+recorded $351.40 notional and the 2026-08-27 sweep exhausted the quota 21 runs in.
+
 ### The adoption channel is exhausted, and NR-56 replicates on an independent sample. **[NR-57]**
 
 NR-56 said n = 31 was what made the primary judge's interval span zero, and that enlarging the

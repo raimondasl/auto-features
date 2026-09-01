@@ -181,6 +181,40 @@ DEFAULT_MODEL = BASELINE_MODEL
 # discriminator still matches.
 DEFAULT_EFFORT = None
 
+# Which tools the agent is allowed. `"web"` is every run published so far: WebSearch and
+# WebFetch, nothing else. `"web+rr"` adds RepoRadar's own MCP server on top of them, which
+# is the P27 arm -- the agent keeps everything it had and gains the ranked list.
+#
+# A toolset is a configuration axis exactly like the model and the prompt, so it gets the
+# same treatment: its own cache directory, and a contribution to `_discriminator` only when
+# it is not the default. `"web"` therefore keeps every existing path and hash byte-for-byte.
+#
+# **`rate_paper` is deliberately absent.** It is the one MCP tool that WRITES, and an agent
+# rating papers would mutate the store its own run is being served from -- a treatment that
+# edits its own input partway through. The other four are read-only.
+RR_MCP_TOOLS = (
+    "mcp__reporadar__get_repo_profile",
+    "mcp__reporadar__get_ranked_papers",
+    "mcp__reporadar__explain_relevance",
+    "mcp__reporadar__search_papers",
+)
+TOOLSETS: dict[str, tuple[str, ...]] = {"web": (), "web+rr": RR_MCP_TOOLS}
+DEFAULT_TOOLS = "web"
+
+
+def tools_for(version: str) -> tuple[str, ...]:
+    """The extra tools *version* adds, or a loud failure. Never falls back to the default.
+
+    Same rule as `prompt_for`: a typo'd `--tools` that quietly ran the plain web arm would
+    produce a `web+rr`-labelled artifact in which RepoRadar was never available, and every
+    row would look well-formed. That is the void-not-null shape, and it is worse here than
+    for the prompt -- the treatment would simply be absent.
+    """
+    try:
+        return TOOLSETS[version]
+    except KeyError:
+        raise ValueError(f"unknown toolset {version!r}; known: {sorted(TOOLSETS)}") from None
+
 
 def model_tag(model: str) -> str:
     """A short, filesystem- and label-safe name for a model id.
@@ -228,6 +262,8 @@ def flags_for(
     max_turns: int | None = None,
     model: str | None = None,
     effort: str | None = None,
+    tools: str = DEFAULT_TOOLS,
+    mcp_config: Path | str | None = None,
 ) -> list[str]:
     """`CLAUDE_FLAGS` with the turn cap and/or model substituted. Built, never retyped.
 
@@ -250,6 +286,27 @@ def flags_for(
             flags[flags.index(name) + 1] = str(value)
         else:
             flags += [name, str(value)]
+    extra = tools_for(tools)
+    if extra:
+        if mcp_config is None:
+            # Refuse rather than run. `--allowedTools mcp__reporadar__*` with no server to
+            # provide them is not an error the CLI reports: the agent simply never sees the
+            # tools, finishes normally, and the row lands in a `web+rr` artifact having had
+            # no treatment at all. That is the most expensive failure available here.
+            raise ValueError(f"tools={tools!r} needs an mcp_config naming the server")
+        i = flags.index("--allowedTools")
+        flags[i + 1] = ",".join([flags[i + 1], *extra])
+        # `--strict-mcp-config` so the arm cannot silently inherit whatever MCP servers the
+        # developer's own Claude Code happens to have configured -- the treatment has to be
+        # the server this file names and nothing else.
+        #
+        # **Order matters, and not for style.** `--mcp-config` is VARIADIC (`<configs...>`),
+        # so it consumes every following argument until the next flag -- and `_run_cli`
+        # appends the prompt after this list. Ending on the config path therefore feeds the
+        # PROMPT to the CLI as a second config file and the run dies with "MCP config file
+        # not found: <cwd>\Please fetch and summarize...". Measured on the first smoke run,
+        # 2026-09-01; the boolean flag going last is what terminates the variadic list.
+        flags += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
     return flags
 
 
@@ -313,6 +370,7 @@ def _cache_path(
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
     effort: str | None = DEFAULT_EFFORT,
+    tools: str = DEFAULT_TOOLS,
 ) -> Path:
     """Where a run's answer is stored. **The prompt version is part of the location.**
 
@@ -338,6 +396,8 @@ def _cache_path(
         # moves; a pinned one gets its own, so a `--effort max` sweep cannot overwrite the
         # answers a default-effort sweep produced. Same rule as the model and the prompt.
         parts.append(f"effort{effort}")
+    if tools != DEFAULT_TOOLS:
+        parts.append(tools.replace("+", "-"))
     return CACHE_DIR / "-".join(parts) / f"{safe}.json"
 
 
@@ -348,6 +408,7 @@ def _discriminator(
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
     effort: str | None = DEFAULT_EFFORT,
+    tools: str = DEFAULT_TOOLS,
 ) -> str:
     """Hash the inputs that change the baseline's answer, so a model/prompt/flag
     (or, for api mode, repo-context) change invalidates a stale cached run.
@@ -364,12 +425,40 @@ def _discriminator(
     # `da766b38114e` byte-for-byte, and a pinned run gets a hash that genuinely tracks it.
     if effort != DEFAULT_EFFORT:
         parts.append(f"effort={effort}")
+    if tools != DEFAULT_TOOLS:
+        # The tool NAMES, not the mcp-config path. The path carries a case name and an
+        # absolute prefix that differ per machine, so hashing it would make two runs of the
+        # same arm on two checkouts look like different configurations while changing
+        # nothing about what the agent could do.
+        parts.append("tools=" + ",".join(tools_for(tools)))
     if mode == "api":
         parts.append(repo_context)
     elif mode == "cli":
-        parts.append(" ".join(flags or CLAUDE_FLAGS))
+        parts.append(" ".join(_hashable_flags(flags or CLAUDE_FLAGS)))
         parts.append(os.environ.get("RR_EVAL_CLAUDE_FLAGS", ""))
     return hashlib.sha256("\0".join(parts).encode()).hexdigest()[:12]
+
+
+def _hashable_flags(flags: list[str]) -> list[str]:
+    """The flag list with `--mcp-config <path>` removed, for the discriminator only.
+
+    The path is a machine-local absolute name carrying a per-run token, so hashing it would
+    give every single run a unique discriminator -- a cache key that can never hit, which
+    is the opposite of what a staleness check is for. What the agent can actually DO is
+    already covered: the tool names go into `parts` under `tools=`, and `--strict-mcp-config`
+    stays in the list, so a run that stopped locking out other servers still invalidates.
+    """
+    out: list[str] = []
+    skip = False
+    for flag in flags:
+        if skip:
+            skip = False
+            continue
+        if flag == "--mcp-config":
+            skip = True
+            continue
+        out.append(flag)
+    return out
 
 
 def _empty(status: str, raw: str) -> dict[str, Any]:
@@ -495,6 +584,8 @@ def _run_cli(
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
     effort: str | None = DEFAULT_EFFORT,
+    tools: str = DEFAULT_TOOLS,
+    mcp_config: Path | str | None = None,
 ) -> dict[str, Any]:
     claude_bin = os.environ.get("RR_EVAL_CLAUDE_BIN", "claude")
     env_flags = os.environ.get("RR_EVAL_CLAUDE_FLAGS")
@@ -502,7 +593,7 @@ def _run_cli(
     # The model wins over whatever the flag list carried. `run_baseline` hashes and paths on
     # `model`, so the subprocess has to be running that model or the cache entry is a label
     # attached to the wrong answer.
-    flag_list = flags_for(base, model=model, effort=effort)
+    flag_list = flags_for(base, model=model, effort=effort, tools=tools, mcp_config=mcp_config)
     cmd = [claude_bin, "-p", *flag_list, prompt_for(prompt_version)]
 
     auth = cli_auth_mode(claude_bin)
@@ -679,6 +770,8 @@ def run_baseline(
     prompt_version: str = DEFAULT_PROMPT_VERSION,
     model: str = DEFAULT_MODEL,
     effort: str | None = DEFAULT_EFFORT,
+    tools: str = DEFAULT_TOOLS,
+    mcp_config: Path | str | None = None,
 ) -> dict[str, Any]:
     """Run the baseline for one repo. Returns {ids, titles, raw, cost_usd, status}.
 
@@ -688,8 +781,9 @@ def run_baseline(
     """
     effective_mode = "mock" if mock else mode
     prompt_for(prompt_version)  # fail here, not after paying for a run under a typo'd version
-    cache_file = _cache_path(effective_mode, repo_name, prompt_version, model, effort)
-    disc = _discriminator(effective_mode, repo_context, flags, prompt_version, model, effort)
+    tools_for(tools)  # and the same for a typo'd toolset, before anything is billed
+    cache_file = _cache_path(effective_mode, repo_name, prompt_version, model, effort, tools)
+    disc = _discriminator(effective_mode, repo_context, flags, prompt_version, model, effort, tools)
 
     if use_cache and cache_file.exists():
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -731,6 +825,8 @@ def run_baseline(
             prompt_version=prompt_version,
             model=model,
             effort=effort,
+            tools=tools,
+            mcp_config=mcp_config,
         )
 
     out["_disc"] = disc
@@ -742,6 +838,11 @@ def run_baseline(
     # `None` means "the CLI default, whatever that was on this date and version" -- an honest
     # record of an unpinned run, and distinguishable from a run that pinned a level.
     out["effort"] = effort
+    out["tools"] = tools
+    # Recorded, not hashed (see `_discriminator`), so a reader can still ask which server
+    # file a row was run against without the answer invalidating anything.
+    if mcp_config is not None:
+        out["mcp_config"] = str(mcp_config)
     if mode == "cli" and not mock:
         # Recorded, not hashed. A present ANTHROPIC_API_KEY changes which tools the CLI
         # offers the agent, so two `cli` runs under different auth are not self-evidently

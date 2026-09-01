@@ -1,0 +1,273 @@
+"""Score the augmented arm against RepoRadar alone and against Opus 5 alone. [P27]
+
+Four columns over one cohort, one judge, one metric:
+
+| | what it is |
+|---|---|
+| **A** | RepoRadar's frozen arXiv+EPMC arm — the published number |
+| **A′** | the same run as the **product** would display it: minus papers the repo already cites |
+| **B** | Opus 5, v2 prompt, 30 turns, WebSearch+WebFetch — `gold_spread_v2_opus5.json` draw 1 |
+| **C** | B with RepoRadar's MCP server attached — `gold_spread_v2_opus5_web_rr.json` |
+
+**A′ exists because C's tool serves A′, not A.** The product mutes papers the repository's
+own README, CITATION file or bibliography already cites; the benchmark harness has no such
+rule, so arm A is scored on picks a user would never be shown. Comparing C against A would
+charge the augmented arm for papers it was never given. A is reported beside A′ because A
+is what every published figure quotes — this does not restate it away (C-17), it says what
+each number is.
+
+**C is void until it is run**, never zero. An unrun arm scored as 0 net@2 would read as
+"the agent recommended nothing", which is the failure this project keeps paying for; the
+artifact records `status: "not_run"` and the comparison sections are absent.
+
+    uv run python evals/mcp_arm_report.py            # $0, rewrite evals/mcp_arm.json
+    uv run python evals/mcp_arm_report.py --print    # $0, and show the table
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import statistics as st
+import sys
+from pathlib import Path
+from typing import Any
+
+EVALS = Path(__file__).resolve().parent
+if str(EVALS) not in sys.path:
+    sys.path.insert(0, str(EVALS))
+
+from bigram_report import paired_bootstrap  # noqa: E402
+from harness import WORK_DIR  # noqa: E402
+from rr_mcp_arm import ARM_A  # noqa: E402
+
+from reporadar.paper_id import dedup_id  # noqa: E402
+from reporadar.profiler import cited_arxiv_ids_of  # noqa: E402
+
+ARM_B = EVALS / "gold_spread_v2_opus5.json"
+ARM_C = EVALS / "gold_spread_v2_opus5_web_rr.json"
+OUT = EVALS / "mcp_arm.json"
+
+COHORTS = {
+    "core25": lambda c: not c.startswith(("bio-", "mat-")),
+    "bio6": lambda c: c.startswith("bio-"),
+    "matsci6": lambda c: c.startswith("mat-"),
+    "all37": lambda _c: True,
+}
+
+
+def pt(score: int) -> int:
+    """net@2: +1 for an actionable paper, −2 for a non-actionable one."""
+    return 1 if int(score) >= 2 else -2
+
+
+def net(scores) -> int:
+    return sum(pt(s) for s in scores)
+
+
+def ci(deltas: list[float]) -> tuple[float, float]:
+    lo, hi = paired_bootstrap([float(x) for x in deltas])
+    return round(lo, 2), round(hi, 2)
+
+
+def reporadar_arms() -> tuple[dict[str, list], dict[str, list], dict[str, int]]:
+    """(A, A′, muted counts) per case, from the frozen run and the repositories themselves.
+
+    The already-cited set is read from the clone with `cited_arxiv_ids_of` — the same
+    function `notify` uses, rather than a second implementation of the rule.
+    """
+    rows = json.loads(ARM_A.read_text(encoding="utf-8"))
+    a: dict[str, list] = {}
+    a_prime: dict[str, list] = {}
+    muted: dict[str, int] = {}
+    for row in rows:
+        case = row["case"]
+        picks = [
+            (str(p["arxiv_id"]), int(p["judge_score"]))
+            for p in row["returned"]["reporadar_toppicks"]
+            if p.get("judge_score") is not None
+        ]
+        repo = WORK_DIR / case
+        cited = {dedup_id(c) for c in (cited_arxiv_ids_of(repo) if repo.exists() else ())}
+        kept = [(pid, s) for pid, s in picks if dedup_id(pid) not in cited]
+        a[case], a_prime[case] = picks, kept
+        muted[case] = len(picks) - len(kept)
+    return a, a_prime, muted
+
+
+def agent_arm(path: Path) -> tuple[dict[str, list], dict[str, Any]]:
+    """(picks per case, meta) for one `gold_spread` artifact's draw 1.
+
+    Hallucinated and unjudgeable picks are ABSENT from net@2 rather than scored negative —
+    void, not null, the same rule `freeze_opus5_arm` applies.
+    """
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    picks: dict[str, list] = {}
+    cost = 0.0
+    calls: dict[str, int] = {}
+    n_zero_call_rows = 0
+    for key, row in stored["results"].items():
+        draw, case = key.split("/", 1)
+        if draw != "1" or row.get("status") != "ok":
+            continue
+        scores = row.get("scores") or {}
+        picks[case] = [(p, scores[p]) for p in (row.get("picks") or []) if p in scores]
+        cost += row.get("cost_usd") or 0.0
+        mcp = row.get("mcp")
+        if mcp is not None:
+            for tool, n in mcp["by_tool"].items():
+                calls[tool] = calls.get(tool, 0) + n
+            n_zero_call_rows += int(mcp["n"] == 0)
+    meta: dict[str, Any] = {
+        "artifact": path.name,
+        "draw": 1,
+        "prompt_version": stored.get("prompt_version"),
+        "model": stored.get("model"),
+        "tools": stored.get("tools", "web"),
+        "n_cases": len(picks),
+        "cost_usd": round(cost, 2),
+    }
+    if stored.get("tools", "web") != "web":
+        # The kill condition's own evidence, on the artifact rather than in a log a reader
+        # would have to go and find. More than 3 zero-call rows and the sweep is a
+        # discoverability result, not a measurement of RepoRadar-plus-agent.
+        meta["mcp_calls"] = dict(sorted(calls.items()))
+        meta["mcp_calls_total"] = sum(calls.values())
+        meta["rows_with_zero_mcp_calls"] = n_zero_call_rows
+        meta["treatment_present"] = n_zero_call_rows <= 3
+    return picks, meta
+
+
+def block(picks_by_case: dict[str, list], sel: list[str]) -> dict[str, Any]:
+    ps = [p for c in sel for p in picks_by_case[c]]
+    return {
+        "mean_net2": round(st.mean(net(s for _, s in picks_by_case[c]) for c in sel), 2),
+        "shown": len(ps),
+        "shown_per_case": round(len(ps) / len(sel), 1),
+        "precision": round(sum(1 for _, s in ps if s >= 2) / len(ps), 3) if ps else None,
+        "abstained_on": sum(1 for c in sel if not picks_by_case[c]),
+    }
+
+
+def paired(x: dict[str, list], y: dict[str, list], sel: list[str]) -> dict[str, Any]:
+    """x − y, per case, with the project's own estimators rather than new ones (C-25)."""
+    d = [float(net(s for _, s in x[c]) - net(s for _, s in y[c])) for c in sel]
+    lo, hi = ci(d)
+    return {
+        "mean": round(st.mean(d), 2),
+        "ci95": [lo, hi],
+        "excludes_zero": lo > 0 or hi < 0,
+        "wins": sum(1 for v in d if v > 0),
+        "losses": sum(1 for v in d if v < 0),
+        "ties": sum(1 for v in d if v == 0),
+    }
+
+
+def build() -> dict[str, Any]:
+    a, a_prime, muted = reporadar_arms()
+    b, b_meta = agent_arm(ARM_B)
+
+    out: dict[str, Any] = {
+        "_comment": (
+            "P27: RepoRadar alone (A), RepoRadar as the product displays it (A'), Opus 5 "
+            "alone (B), and Opus 5 with RepoRadar's MCP server attached (C). Derived by "
+            "evals/mcp_arm_report.py; pinned by tests/test_mcp_arm_report.py. net@2 = "
+            "#actionable - 2 x #non-actionable over what each system RETURNED; abstaining "
+            "scores 0. Pre-registration: evals/PREREG-mcp-arm.md."
+        ),
+        "arms": {
+            "A": {"source": ARM_A.name, "what": "RepoRadar, frozen arXiv+EPMC arm"},
+            "A_prime": {
+                "source": ARM_A.name,
+                "what": "A minus picks the repository already cites — what the product shows",
+                "n_muted": sum(muted.values()),
+                "n_picks": sum(len(v) for v in a.values()),
+                "muted_by_case": {c: n for c, n in sorted(muted.items()) if n},
+            },
+            "B": b_meta,
+        },
+        "cohorts": {},
+    }
+
+    c: dict[str, list] | None = None
+    if ARM_C.exists():
+        c, c_meta = agent_arm(ARM_C)
+        out["arms"]["C"] = c_meta
+    else:
+        # Void, not zero. An unrun arm reported as 0 net@2 reads as "the agent recommended
+        # nothing", which is a measurement, and this is the absence of one.
+        out["arms"]["C"] = {
+            "status": "not_run",
+            "artifact": ARM_C.name,
+            "how": (
+                "uv run python evals/rr_mcp_arm.py --seed  (free), then "
+                "uv run python evals/gold_spread.py --tools web+rr --prompt-version v2 "
+                "--max-turns 30 --baseline-model claude-opus-5 --cohort all --draws 1"
+            ),
+        }
+
+    shared = sorted(set(a) & set(b) & (set(c) if c is not None else set(a)))
+    for name, pred in COHORTS.items():
+        sel = [x for x in shared if pred(x)]
+        if not sel:
+            continue
+        entry: dict[str, Any] = {
+            "n_cases": len(sel),
+            "A": block(a, sel),
+            "A_prime": block(a_prime, sel),
+            "B": block(b, sel),
+            "A_minus_B": paired(a, b, sel),
+            "A_prime_minus_B": paired(a_prime, b, sel),
+            # What the already-cited mute costs arm A. Reported as its own line because it
+            # is the difference between the published comparison and the shipped one.
+            "A_minus_A_prime": paired(a, a_prime, sel),
+        }
+        if c is not None:
+            entry["C"] = block(c, sel)
+            entry["C_minus_B"] = paired(c, b, sel)  # the registered primary
+            entry["C_minus_A_prime"] = paired(c, a_prime, sel)
+        out["cohorts"][name] = entry
+    return out
+
+
+def show(art: dict[str, Any]) -> None:
+    has_c = "C" in art["cohorts"].get("all37", {})
+    header = f"{'cohort':<10} {'n':>3}  {'A':>6} {chr(39) + 'A':>6} {'B':>6}" + (
+        f" {'C':>6}  {'C-B':>7}  {'95% CI':>16}" if has_c else "   (C not run)"
+    )
+    print(header)
+    for name, e in art["cohorts"].items():
+        line = (
+            f"{name:<10} {e['n_cases']:>3}  {e['A']['mean_net2']:>+6.2f} "
+            f"{e['A_prime']['mean_net2']:>+6.2f} {e['B']['mean_net2']:>+6.2f}"
+        )
+        if has_c:
+            p = e["C_minus_B"]
+            line += (
+                f" {e['C']['mean_net2']:>+6.2f}  {p['mean']:>+7.2f}  "
+                f"[{p['ci95'][0]:>+6.2f},{p['ci95'][1]:>+6.2f}]"
+            )
+        print(line)
+    ap = art["arms"]["A_prime"]
+    print(
+        f"\nthe product mutes {ap['n_muted']} of {ap['n_picks']} arm-A picks "
+        f"(already cited by the repository)"
+    )
+    if not has_c:
+        print(f"C: {art['arms']['C']['status']} — {art['arms']['C']['artifact']}")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Score the three arms. $0.")
+    ap.add_argument("--print", action="store_true", help="also print the table")
+    args = ap.parse_args()
+    art = build()
+    OUT.write_text(json.dumps(art, indent=1) + "\n", encoding="utf-8")
+    print(f"wrote {OUT.name}")
+    if args.print:
+        show(art)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

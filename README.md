@@ -441,7 +441,7 @@ The audit view is the honest layer; the filter is a convenience on top of it.
 Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cursor, VS Code, Windsurf — can query your repo-aware paper store conversationally. Unlike generic arXiv MCP servers, its tools are grounded in *this repository's* profile and ranking. Tools exposed:
 
 - `get_repo_profile` — the repo's keywords / libraries / domains
-- `get_ranked_papers(limit)` — top papers from the latest `rr update`, best-first
+- `get_ranked_papers(limit)` — **what `rr digest` recommends** from the latest `rr update`, best-first: the same window, actionability gate, fine-scale bar and rerank the digest applies, with the second tier under `maybe_relevant` and withdrawn or already-cited papers under `muted`, each carrying the reason it was set aside
 - `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
 - `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
@@ -451,6 +451,8 @@ Requires the optional extra: `uv pip install -e ".[mcp]"`. Register it with your
 ```bash
 claude mcp add reporadar -- rr mcp --config /abs/path/.reporadar.yml
 ```
+
+Set `RR_MCP_CALL_LOG=/path/to/calls.jsonl` to append one JSON line per tool call — off unless the variable is set, and the only way to answer whether an agent actually reaches for these tools rather than around them.
 
 ### Other commands
 

@@ -73,9 +73,10 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 11** (MCP), then item 7 (product work). Items 1-4 are answered or built;
-6, 9, 10, 12 and 13 closed negative; item 5's remainder is conditional on a proposal that has not
-appeared.
+**Currently first: item 14** (RepoRadar *and* the agent — built, pre-registered, unrun and
+waiting on subscription budget), then item 11 (MCP distribution, which item 14 is the evidence
+for), then item 7 (product work). Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
+negative; item 5's remainder is conditional on a proposal that has not appeared.
 
 **Read NR-52 before spending anything on the net@2 ladder.** `evals/RESEARCH-net2-directions.md`
 sequenced ten rungs behind a second-judge validity gate. That gate ran (rung 1) and returned a
@@ -1042,6 +1043,57 @@ cheaper variant of the same idea. Read before designing the arm.
 already the papers we would have found anyway, PRF re-searches the neighbourhood we have and
 adds nothing — and NR-11's warning applies here too, since a second round widens the pool
 against the same near-binary gate.
+
+### 14. RepoRadar *and* the agent, not RepoRadar *or* the agent — BUILT, unrun [P27]
+
+Every comparator figure this project has is **either/or**: RepoRadar's +6.27 against Opus
+5's +5.19, paired +1.08, CI [-0.97, +3.22]. The configuration a user would actually run --
+a coding agent with RepoRadar's MCP server attached, keeping its own web search -- has
+never been measured, and item 11's distribution bet is a bet on exactly that configuration
+being worth having.
+
+**Why it is not obviously redundant.** P26 already localised where the two differ: on the
+32 cases where Opus 5 does not over-answer the two are level (-0.06); the whole of
+RepoRadar's margin comes from 5 cases where Opus 5 answers into a repository it should have
+abstained on. **RepoRadar's edge is abstention discipline, not discovery.** So the
+augmented arm has a mechanism neither arm has alone -- a gate-passed shortlist to check its
+own picks against -- and it has it exactly where the agent's picks are what hurt it.
+
+**Built and verifiable at $0.** `evals/rr_mcp_arm.py --seed` builds a per-case store from
+the frozen arm (frozen pool, frozen gate verdicts, ranker re-run for the one number the
+arm never recorded), so `rr mcp` serves the agent **exactly what arm A returned**. The
+judge's verdicts are stripped by allow-list and `--verify` reads the store back through the
+shipped tool body to prove it. `gold_spread.py --tools web+rr` runs the arm; the toolset is
+a configuration axis with its own artifact, cache path and discriminator, so a `web+rr`
+sweep cannot collide with the `web` one.
+
+    uv run python evals/rr_mcp_arm.py --seed && uv run python evals/rr_mcp_arm.py --verify
+    uv run python evals/gold_spread.py --tools web+rr --prompt-version v2 --max-turns 30         --baseline-model claude-opus-5 --cohort all --draws 1
+
+**Pre-registered before any spend** in `evals/PREREG-mcp-arm.md`: C - B >= +1.50 with an
+interval excluding zero is the win, <= -1.50 is the loss reported as loudly, anything else
+is *not separated*. Kill condition: more than 3 of 37 rows recording **zero** MCP calls
+makes it a discoverability result rather than a measurement -- tool use is read off the
+server's own call log per run, never inferred from the answer.
+
+**Cost, and it is the reason this is unrun.** B's 37-case draw recorded **$351.40**
+notional on the subscription, and the 2026-08-27 sweep exhausted the quota 21 runs in. C
+should land in the same range. `gold_spread.py` is resumable and records `throttled` as
+unasked, so this is several sittings rather than one.
+
+**Two things it already produced, at $0:**
+
+- **`get_ranked_papers` was not returning RepoRadar's recommendations.** It read
+  `get_scores_for_run(run_id)[:limit]` -- the raw heuristic/RRF order, ungated, unreranked,
+  withdrawn papers still occupying slots -- so an agent and a human reading the same
+  repository at the same run got different answers, and the agent got the weaker one. Now
+  routed through `categorize_papers`, which the digest, `rr explain`, `notify`, `archive`
+  and `watch` already share. Same shape as C-9, C-12 and C-14.
+- **The benchmark credits RepoRadar for papers the product would mute.** 11 of 325 picks
+  are already cited by their own repository. Worth **+0.05/case, CI [-0.14, +0.24]** --
+  small, and it flips nothing (A' - B is +1.03 against A - B's +1.08), but it was estimated
+  at +0.22 first by counting only the actionable side, and only computing it caught that.
+  Both arms are now carried side by side in `evals/mcp_arm.json`.
 
 ### 8. Held — real gaps with no affordable next step
 

@@ -80,6 +80,7 @@ import os
 import sys
 import threading
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -92,6 +93,7 @@ import baseline as baseline_mod  # noqa: E402
 import judge as judge_mod  # noqa: E402
 from diagnose_pool import ACTIONABLE, JUDGE, _judge_stem  # noqa: E402
 from harness import WORK_DIR, assemble_repo_context, clone_repo  # noqa: E402
+from rr_mcp_arm import read_call_log  # noqa: E402
 from run_judge_eval import load_dotenv  # noqa: E402
 from verify import TIER_SET, resolve_references, tiers_grew  # noqa: E402
 
@@ -102,7 +104,11 @@ OUT = EVALS / "gold_spread.json"
 GOLD = EVALS / "gold_targets.json"
 
 
-def out_path(prompt_version: str, model: str = baseline_mod.DEFAULT_MODEL) -> Path:
+def out_path(
+    prompt_version: str,
+    model: str = baseline_mod.DEFAULT_MODEL,
+    tools: str = baseline_mod.DEFAULT_TOOLS,
+) -> Path:
     """One artifact per prompt version, rather than one artifact with a version column.
 
     Rows are keyed `{draw}/{case}`, and every analysis in `report` splits that key. A v2 draw
@@ -116,6 +122,12 @@ def out_path(prompt_version: str, model: str = baseline_mod.DEFAULT_MODEL) -> Pa
         parts.append(prompt_version)
     if model != baseline_mod.DEFAULT_MODEL:
         parts.append(baseline_mod.model_tag(model))
+    if tools != baseline_mod.DEFAULT_TOOLS:
+        # The same collision this function exists to prevent, one axis further: a `web+rr`
+        # draw 1 and a `web` draw 1 share the key `1/rag`, so sharing the file would make
+        # `todo_baseline` find the augmented arm's work already done and run nothing —
+        # silently, and with the plain arm's numbers labelled as the treatment.
+        parts.append(tools.replace("+", "_"))
     return OUT if not parts else EVALS / f"gold_spread_{'_'.join(parts)}.json"
 
 
@@ -173,6 +185,28 @@ def _judge_cached(case: str, paper_id: str) -> int | None:
     return None
 
 
+def mcp_config_for(case_name: str) -> tuple[Path, Path]:
+    """The seeded RepoRadar server config for *case_name*, or a loud failure.
+
+    Refuses a missing store rather than running without one. `--allowedTools` naming tools
+    no server provides is not an error Claude Code reports: the agent simply never sees
+    them, answers normally, and the row lands in the `web+rr` artifact having had no
+    treatment. A degraded arm that looks healthy is the most expensive failure available
+    here, and this is the cheapest place to catch it.
+    """
+    from rr_mcp_arm import case_db, write_config
+
+    db = case_db(case_name)
+    if not db.exists():
+        raise SystemExit(
+            f"{case_name}: no seeded RepoRadar store at {db}.\n"
+            "Run `uv run python evals/rr_mcp_arm.py --seed` first ($0)."
+        )
+    # A token per run, so two draws of one case cannot write into the same call log and
+    # attribute one run's tool use to the other. Wrong data is worse than none.
+    return write_config(case_name, token=uuid.uuid4().hex[:8])
+
+
 def _turn_flags(
     max_turns: int,
     model: str = baseline_mod.DEFAULT_MODEL,
@@ -191,6 +225,9 @@ def _turn_flags(
         and effort == baseline_mod.DEFAULT_EFFORT
     ):
         return None
+    # Tools are NOT applied here. `run_baseline` owns that axis, because it also owns the
+    # cache path and the discriminator that have to move with it -- handing it a flag list
+    # that already carried the MCP flags would let the two disagree.
     return baseline_mod.flags_for(max_turns=max_turns, model=model, effort=effort)
 
 
@@ -202,6 +239,7 @@ def run_baseline_only(
     model: str = baseline_mod.DEFAULT_MODEL,
     effort: str | None = baseline_mod.DEFAULT_EFFORT,
     cohort: str = COHORT,
+    tools: str = baseline_mod.DEFAULT_TOOLS,
 ) -> dict[str, Any]:
     """Phase A: the agentic run alone. **Touches no network service we rate-limit.**
 
@@ -213,6 +251,11 @@ def run_baseline_only(
     dest = clone_repo(case["live_repo"], WORK_DIR / name, reuse=True)
     if dest is None:
         return {"status": "clone_failed", "phase": "judged"}
+    # Resolved BEFORE the clock starts and before anything is billed: a missing store is a
+    # setup mistake, and finding it out after paying for the run is finding it out late.
+    mcp_config, call_log = (
+        mcp_config_for(name) if tools != baseline_mod.DEFAULT_TOOLS else (None, None)
+    )
     started = time.monotonic()
     result = baseline_mod.run_baseline(
         dest,
@@ -224,6 +267,8 @@ def run_baseline_only(
         prompt_version=prompt_version,
         model=model,
         effort=effort,
+        tools=tools,
+        mcp_config=mcp_config,
     )
     elapsed = round(time.monotonic() - started, 1)
     if result.get("status") != "ok":
@@ -236,6 +281,8 @@ def run_baseline_only(
             "prompt_version": prompt_version,
             "model": model,
             "effort": effort,
+            "tools": tools,
+            **({"mcp": read_call_log(call_log)} if call_log is not None else {}),
             "cohort": cohort,
             "duration_s": elapsed,
         }
@@ -250,11 +297,16 @@ def run_baseline_only(
         "raw_ids": list(result.get("ids") or []),
         "raw_titles": list(result.get("titles") or []),
         "num_turns": result.get("num_turns"),
+        # What the agent did with RepoRadar, read off the server's own log rather than
+        # inferred from the answer. Without it a null result is unreadable: "the tool did
+        # not help" and "the agent never found the tool" are opposite findings.
+        **({"mcp": read_call_log(call_log)} if call_log is not None else {}),
         "cost_usd": result.get("cost_usd", 0.0),
         "max_turns": max_turns,
         "prompt_version": prompt_version,
         "model": model,
         "effort": effort,
+        "tools": tools,
         "cohort": cohort,
         "duration_s": elapsed,
     }
@@ -393,8 +445,9 @@ def repair_row(case_name: str, row: dict[str, Any], *, model: str) -> dict[str, 
 def load_artifact(
     prompt_version: str = baseline_mod.DEFAULT_PROMPT_VERSION,
     model: str = baseline_mod.DEFAULT_MODEL,
+    tools: str = baseline_mod.DEFAULT_TOOLS,
 ) -> dict[str, Any]:
-    path = out_path(prompt_version, model)
+    path = out_path(prompt_version, model, tools)
     if path.is_file():
         stored = json.loads(path.read_text(encoding="utf-8"))
         found_model = stored.get("model", baseline_mod.DEFAULT_MODEL)
@@ -408,6 +461,15 @@ def load_artifact(
             raise SystemExit(
                 f"! {path.name} was written under prompt {found!r}, not {prompt_version!r}."
             )
+        # Same rule for the toolset, and it matters more: an artifact opened under the wrong
+        # prompt would at least show unfamiliar picks, while one opened under the wrong
+        # toolset looks completely ordinary -- the treatment's absence is invisible in the
+        # rows. An artifact that does not say is `web`, because it predates the axis.
+        found_tools = stored.get("tools", baseline_mod.DEFAULT_TOOLS)
+        if found_tools != tools:
+            raise SystemExit(
+                f"! {path.name} was written with tools {found_tools!r}, not {tools!r}."
+            )
         return stored
     return {
         "_comment": (
@@ -420,6 +482,7 @@ def load_artifact(
         "draws": DRAWS,
         "prompt_version": prompt_version,
         "model": model,
+        "tools": tools,
         "results": {},
     }
 
@@ -428,6 +491,7 @@ def save(artifact: dict[str, Any]) -> None:
     path = out_path(
         artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION),
         artifact.get("model", baseline_mod.DEFAULT_MODEL),
+        artifact.get("tools", baseline_mod.DEFAULT_TOOLS),
     )
     path.write_text(json.dumps(artifact, indent=1) + "\n", encoding="utf-8")
 
@@ -679,6 +743,16 @@ def main() -> int:
         ),
     )
     ap.add_argument(
+        "--tools",
+        default=baseline_mod.DEFAULT_TOOLS,
+        choices=sorted(baseline_mod.TOOLSETS),
+        help=(
+            "Which tools the agent gets. web = WebSearch+WebFetch, every published run. "
+            "web+rr adds RepoRadar's MCP server on top (P27) and needs the per-case stores "
+            "from `evals/rr_mcp_arm.py --seed` first. Each toolset writes its OWN artifact."
+        ),
+    )
+    ap.add_argument(
         "--concurrency",
         type=int,
         default=1,
@@ -686,7 +760,7 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    artifact = load_artifact(args.prompt_version, args.baseline_model)
+    artifact = load_artifact(args.prompt_version, args.baseline_model, args.tools)
     if args.report:
         return report(artifact)
 
@@ -725,9 +799,10 @@ def main() -> int:
         f"turn cap: {args.max_turns}   prompt: {args.prompt_version}"
         f"   baseline model: {args.baseline_model}"
         f"   effort: {args.effort or 'cli-default'}"
+        f"   tools: {args.tools}"
         f"   phase-A concurrency: {args.concurrency}"
     )
-    print(f"artifact: {out_path(args.prompt_version, args.baseline_model).name}")
+    print(f"artifact: {out_path(args.prompt_version, args.baseline_model, args.tools).name}")
     if args.dry_run:
         print("\n(dry run)")
         return 0
@@ -766,6 +841,7 @@ def main() -> int:
                     model=args.baseline_model,
                     effort=args.effort,
                     cohort=args.cohort,
+                    tools=args.tools,
                 ): (draw, case)
                 for draw, case in todo_baseline
             }

@@ -41,6 +41,7 @@ NOT_A_PAPER_SCRIPT: dict[str, str] = {
     "diagnose_ranker.py": "diagnostic behind 6.5, listed there",
     "make_goals.py": "generates inputs for the stated-intent arm, listed there",
     "fetch_wants.py": "generates inputs for the gate-context arm, listed there",
+    "rr_mcp_arm.py": "seeds and verifies the P27 MCP store; its result is mcp_arm_report.py",
 }
 
 
