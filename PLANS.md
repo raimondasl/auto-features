@@ -86,6 +86,12 @@ reading the pre-registration named as informative, the Sonnet-only sign, **flips
 runs 0.585 precision under Sonnet, below net@2's 2/3 break-even, while Opus 5's runs 0.714 above
 it. And the GPT margin itself moves +0.54 -> +0.32 across two of our own draws.
 
+**NR-53 retired the one live objection to NR-52.** The Claude path sends no temperature, so
+Sonnet's verdicts are sampled while GPT's are greedy, and the sign flip might have been one judge
+disagreeing with itself. Measured: self-agreement kappa **0.798** against a cross-judge **0.199**,
+label flip rate 8.4%. The gap is a property of the judges, not the sampler. NR-52 stands, and
+fixing the temperature is hygiene rather than a correction.
+
 Nothing is auto-killed by that -- the registered bar passed and is not being rewritten after the
 fact. But the ladder's premise was "chase the margin to significance", and the margin is now
 measured as judge-dependent in direction, not just in size. **A decision to spend down rungs 2-8
