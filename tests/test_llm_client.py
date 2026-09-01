@@ -34,6 +34,29 @@ class TestComplete:
         with patch("urllib.request.urlopen", return_value=_resp(payload)):
             assert complete("prompt", cfg, max_tokens=50) == "a\nb"
 
+    def test_claude_sends_temperature_zero(self) -> None:
+        """A regression guard on an omission that cost two probes to find.
+
+        Until 2026-09-01 this path sent no temperature, so the Anthropic default of 1.0 applied
+        and every call was a sample — the gate, HyDE's hypotheses, the repo summary, typed
+        anchors, the second judge. NR-53 measured the judge disagreeing with itself on 8.4% of
+        label decisions; NR-54 measured net@2 moving sd 1.44 per case across a re-run on a
+        byte-identical pool. The failure was invisible in every exit code, so it gets a test
+        that reads the wire payload rather than a comment asking for care.
+        """
+        cfg = SimpleNamespace(
+            provider="claude", claude_api_key="k", claude_model="claude-haiku-4-5"
+        )
+        seen: dict = {}
+
+        def _capture(req, *a, **kw):
+            seen["payload"] = json.loads(req.data.decode())
+            return _resp({"content": [{"type": "text", "text": "x"}]})
+
+        with patch("urllib.request.urlopen", side_effect=_capture):
+            complete("prompt", cfg, max_tokens=50)
+        assert seen["payload"]["temperature"] == 0
+
     def test_claude_no_key_raises_llmerror(self) -> None:
         cfg = SimpleNamespace(provider="claude", claude_api_key="")
         with (

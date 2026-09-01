@@ -1,0 +1,57 @@
+{
+ "_comment": "NR-55. Verification of the temperature=0 change, using NR-54's design so the two are directly comparable: two fresh runs of the shipped config against the SAME frozen pool. The prediction stated before the runs finished was 37/37 byte-identical and it was WRONG -- 31/37, with 2 more differing only in ordering. Derived by evals/temperature_zero_check.py; pinned by tests/test_temperature_zero_check.py.",
+ "prediction_was": {
+  "byte_identical": 37,
+  "of": 37,
+  "held": false
+ },
+ "n_cases": 37,
+ "byte_identical": 31,
+ "order_only": [
+  "columnar",
+  "rag"
+ ],
+ "composition_differs": [
+  "db",
+  "numerics",
+  "thin-kv",
+  "thin-lang"
+ ],
+ "net2_relevant_determinism": 33,
+ "per_case_sd": 0.37,
+ "mean_delta": 0.03,
+ "median_digest_jaccard": 1.0,
+ "mean_net2": [
+  5.49,
+  5.51
+ ],
+ "vs_pre_fix": {
+  "pre_sd": 1.44,
+  "post_sd": 0.37,
+  "reduction_factor": 3.9,
+  "pre_byte_identical": 10
+ },
+ "residual": {
+  "_comment": "Offered as the likeliest reading of a 4-case residual, NOT as a finding this probe tests. Greedy decoding fixes the sampling rule; it does not make a served model bit-reproducible, because batching and floating-point non-associativity can move logits between requests. The alternative worth checking is a second stochastic element downstream of the gate.",
+  "likely_cause": "API-level nondeterminism below temperature",
+  "cases": [
+   "db",
+   "numerics",
+   "thin-kv",
+   "thin-lang"
+  ]
+ },
+ "dividend": {
+  "half_width_before": 0.78,
+  "nr54_projected_ideal": 0.63,
+  "half_width_achieved": 0.64,
+  "gap_to_ideal": 0.01,
+  "ladder_rungs_still_unresolvable": true
+ },
+ "verdict": {
+  "gate_is_near_deterministic": true,
+  "prediction_held": false,
+  "dividend_essentially_realised": true,
+  "changes_the_plan": false
+ }
+}
