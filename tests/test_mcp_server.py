@@ -49,12 +49,15 @@ def _seed(store: PaperStore) -> int:
 
 class TestRankedPapers:
     def test_returns_best_first(self, tmp_path: Path) -> None:
+        """`papers` is the Top Picks tier, not everything scored. The 0.4 paper is below
+        the heuristic threshold and reaches `maybe_relevant` — where the digest puts it —
+        rather than being handed to an agent as a recommendation."""
         with PaperStore(tmp_path / "papers.db") as store:
             _seed(store)
             out = ranked_papers_payload(store, limit=10)
             assert out["run_id"] is not None
-            ids = [p["arxiv_id"] for p in out["papers"]]
-            assert ids == ["2401.00001v1", "2401.00002v1"]  # by score_total desc
+            assert [p["arxiv_id"] for p in out["papers"]] == ["2401.00001v1"]
+            assert [p["arxiv_id"] for p in out["maybe_relevant"]] == ["2401.00002v1"]
             assert out["papers"][0]["title"] == "A Paper"
 
     def test_respects_limit(self, tmp_path: Path) -> None:
@@ -78,11 +81,17 @@ class TestRankedPapers:
             _seed(store)
             store.save_signals([("2401.00001v1", "withdrawn", "comment", None)])
             out = ranked_papers_payload(store, limit=10)
-        by_id = {p["arxiv_id"]: p for p in out["papers"]}
-        assert by_id["2401.00001v1"]["withdrawn"] is True
-        assert "retracted" in by_id["2401.00001v1"]["warning"]
+        # Beside the recommendations, not among them. `digest_window` takes retracted
+        # papers out before the window's cut -- so the slot they would have wasted goes
+        # to the next paper -- and this payload carries them in their own list for the
+        # same reason the digest keeps a muted section: the agent still has to HEAR about
+        # a retraction it might otherwise have found on its own.
+        assert all(p["arxiv_id"] != "2401.00001v1" for p in out["papers"])
+        flagged = {p["arxiv_id"]: p for p in out["muted"]}
+        assert flagged["2401.00001v1"]["withdrawn"] is True
+        assert "retracted" in flagged["2401.00001v1"]["warning"]
         # A clean paper must not gain the key at all — absent, not False-y noise.
-        assert "withdrawn" not in by_id["2401.00002v1"]
+        assert all("withdrawn" not in p for p in out.get("maybe_relevant", []))
 
     def test_checked_clean_paper_carries_no_warning(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
@@ -90,6 +99,67 @@ class TestRankedPapers:
             store.save_signals([("2401.00001v1", "withdrawn", None, None)])
             out = ranked_papers_payload(store, limit=10)
         assert all("withdrawn" not in p for p in out["papers"])
+        # A *checked and clean* paper is not a retraction, so nothing is muted at all
+        # and the key must be absent entirely rather than present and empty.
+        assert "muted" not in out
+
+
+class TestRankedPapersIsTheDigestsAnswer:
+    """`get_ranked_papers` used to be `get_scores_for_run(run_id)[:limit]` — the raw
+    heuristic/RRF order, ungated. So an agent and a human reading the same repository at
+    the same run got materially different recommendations, and the agent got the weaker
+    set: on the benchmark the gate is where the precision comes from (0.892 with it).
+
+    Routing it through `digest_window` makes three consumers share one rule — the digest,
+    `rr explain`, and this."""
+
+    def test_the_gate_filters_when_triage_is_enabled(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed(store)
+            store.save_llm_scores(
+                run_id,
+                {
+                    "2401.00001v1": {"llm_score": 1, "llm_reason": "background only"},
+                    "2401.00002v1": {"llm_score": 3, "llm_reason": "directly applicable"},
+                },
+            )
+            out = ranked_papers_payload(store, limit=10, triage_threshold=2)
+        assert [p["arxiv_id"] for p in out["papers"]] == ["2401.00002v1"]
+
+    def test_the_rerank_floats_a_buried_actionable_paper(self, tmp_path: Path) -> None:
+        """The lower-ranked paper is the actionable one. Without the rerank the agent
+        sees it second, or — at a limit of 1 — not at all."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            run_id = _seed(store)  # 00001 scores 0.9, 00002 scores 0.4
+            store.save_llm_scores(
+                run_id,
+                {
+                    "2401.00001v1": {"llm_score": 1, "llm_reason": ""},
+                    "2401.00002v1": {"llm_score": 3, "llm_reason": ""},
+                },
+            )
+            out = ranked_papers_payload(store, limit=1, triage_threshold=2, rerank=True)
+        assert [p["arxiv_id"] for p in out["papers"]] == ["2401.00002v1"]
+
+    def test_an_ungated_repo_falls_back_to_the_heuristic_tiers(self, tmp_path: Path) -> None:
+        """`triage_threshold=None` is what a repo that never ran the gate passes, and it
+        must mean "the heuristic thresholds are the only rule there is" rather than "gate
+        on a column that is null everywhere" — which would hand back an empty list
+        instead of the ranking the repo does have."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            out = ranked_papers_payload(store, limit=10, triage_threshold=None)
+        assert [p["arxiv_id"] for p in out["papers"]] == ["2401.00001v1"]
+        assert [p["arxiv_id"] for p in out["maybe_relevant"]] == ["2401.00002v1"]
+
+    def test_limit_cannot_reach_past_the_window(self, tmp_path: Path) -> None:
+        """`top_n` is what RepoRadar was willing to display; `limit` only trims it. A
+        paper outside the window is one the product declined to show, and a caller
+        asking for more must not be able to promote it."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            out = ranked_papers_payload(store, limit=50, top_n=1)
+        assert [p["arxiv_id"] for p in out["papers"]] == ["2401.00001v1"]
 
 
 class TestExplainRelevance:

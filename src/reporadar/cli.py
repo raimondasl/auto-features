@@ -1399,7 +1399,17 @@ def mcp(config_path: str | None) -> None:
     from reporadar.mcp_server import run_stdio
 
     try:
-        run_stdio(repo_path, db_path, profiler_cfg=cfg.profiler, ranking_cfg=cfg.ranking)
+        run_stdio(
+            repo_path,
+            db_path,
+            profiler_cfg=cfg.profiler,
+            ranking_cfg=cfg.ranking,
+            # So `get_ranked_papers` answers with the digest's window and gate rather
+            # than a default guess at them -- an agent and a human reading the same
+            # repository should not get different recommendations from one run.
+            output_cfg=cfg.output,
+            triage_cfg=cfg.triage,
+        )
     except ImportError:
         error('MCP support not installed. Run: uv pip install -e ".[mcp]"')
         raise SystemExit(1) from None
