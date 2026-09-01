@@ -34,6 +34,19 @@ def _call_ollama(prompt: str, model: str, url: str, timeout: int) -> str:
     return str(data.get("response", ""))
 
 
+# Models that answered 400 "temperature is deprecated for this model", learned at runtime.
+#
+# The alternative designs are both worse. A hardcoded list of Claude 5 model ids goes stale the
+# moment a model ships and encodes a guess about models nobody here has called. Retrying on
+# every call pays a wasted request forever -- and 400s still consume request-rate budget, which
+# this project has repeatedly hit. Discovering it from the API and remembering costs exactly
+# one extra request per model per process.
+#
+# Process-local on purpose: it is a cache of an API fact, not configuration, so it must not
+# outlive a process that might be talking to a different endpoint or a changed API.
+_REJECTS_TEMPERATURE: set[str] = set()
+
+
 def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens: int) -> str:
     """Call the Anthropic Messages API and return the concatenated text blocks.
 
@@ -70,10 +83,10 @@ def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens
     verified: NR-55's two runs exercised the gate and never touched the Sonnet judge, and the
     judge path broke silently until NR-56 tried to use it and got 155 straight 400s.
 
-    So a rejected `temperature` is retried without it, the way `evals/judge.py` already handles
-    the same situation on the OpenAI side. The retry is **narrow on purpose** — only a 400 whose
-    body names `temperature` — because a blanket retry would swallow rate limits and quota
-    errors as if they were parameter problems.
+    So a rejected `temperature` is retried without it — narrowly, only on a 400 whose body names
+    `temperature`, because a blanket retry would swallow rate limits and quota errors as if they
+    were parameter problems — and **the rejection is remembered in `_REJECTS_TEMPERATURE`**, so
+    a model pays that extra request once per process rather than on every call.
 
     **A consequence worth stating: the judge cannot be made deterministic this way.** NR-53
     measured `claude-sonnet-5` disagreeing with itself on 8.4% of label decisions, and since
@@ -83,13 +96,14 @@ def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens
     body: dict[str, Any] = {
         "model": model,
         "max_tokens": max_tokens,
-        "temperature": 0,
         "messages": [{"role": "user", "content": prompt}],
     }
+    if model not in _REJECTS_TEMPERATURE:
+        body["temperature"] = 0
     try:
         return _post_claude(body, api_key, timeout)
     except urllib.error.HTTPError as exc:
-        if exc.code != 400:
+        if exc.code != 400 or "temperature" not in body:
             raise
         detail = ""
         try:
@@ -98,6 +112,7 @@ def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens
             raise exc from None
         if "temperature" not in detail:
             raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
+        _REJECTS_TEMPERATURE.add(model)
         body.pop("temperature")
         return _post_claude(body, api_key, timeout)
 

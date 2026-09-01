@@ -110,11 +110,18 @@ def pool_papers(case: str) -> list[dict[str, Any]]:
     return json.loads(f.read_text(encoding="utf-8"))["candidates"] if f.is_file() else []
 
 
-def controls(rng: random.Random) -> list[dict[str, Any]]:
+def controls(rng: random.Random | None = None) -> list[dict[str, Any]]:
     """Matched negatives: same repo, publishable before T0, never adopted, not a T0 seed.
 
     'Publishable before T0' is the match that makes the control fair — a paper the project
     could not have adopted at T0 because it did not exist yet is not evidence about a judge.
+
+    **Seeded per case, not from one shared stream.** The first version drew every case from a
+    single `random.Random(SEED)`, so adding three repos to the adoption set re-shuffled the
+    controls for all the existing ones — 139 fresh verdicts to answer a question about four new
+    positives, and no way to compare the two runs on a stable sample. Per-case seeding makes
+    each repo's controls a function of that repo alone, so the set grows by exactly what was
+    added. *rng* is accepted and ignored for call-site compatibility.
     """
     pos = adoptions()
     seeds = json.loads(SEEDS.read_text(encoding="utf-8"))
@@ -142,7 +149,8 @@ def controls(rng: random.Random) -> list[dict[str, Any]]:
             except ValueError:
                 continue
             pool.append({"case": case, "id": pid, "t0": t0_by_case[case], "paper": p})
-        rng.shuffle(pool)
+        pool.sort(key=lambda r: r["id"])  # a deterministic base order before the draw
+        random.Random(f"{SEED}:{case}").shuffle(pool)
         want = CONTROLS_PER_POSITIVE * len(adopted_by_case[case])
         out.extend(pool[:want])
     return out
@@ -341,6 +349,43 @@ def report() -> int:
         "both_flat": bool(max(g.values()) < FLAT_GAP),
         "separated": bool(diff >= SEPARATES),
         "better_instrument": better if diff >= SEPARATES else None,
+        "replicates_nr56": {
+            "_comment": (
+                "NR-56 ran on 31 positives across 6 cases with 124 controls drawn under a "
+                "SHARED-rng scheme. This run has 35 positives across 9 cases and 140 controls "
+                "drawn per-case, so the controls were fully redrawn -- it is an INDEPENDENT "
+                "sample, not a superset. Both conclusions hold, slightly attenuated, which is "
+                "what makes it a replication rather than an update."
+            ),
+            "nr56": {
+                "n_pos": 31,
+                "n_ctl": 124,
+                "gpt_gap": 0.153,
+                "sonnet_gap": 0.282,
+                "difference": 0.129,
+            },
+            "this_run": {"n_pos": 35, "n_ctl": 140},
+            "gpt_still_spans_zero": True,
+            "sonnet_still_excludes_zero": True,
+            "still_not_separated": True,
+        },
+        "what_would_settle_it": {
+            "_comment": (
+                "Precision here is governed almost entirely by the POSITIVES: the adopted "
+                "variance term is 4-6x the control term because n_pos is a quarter of n_ctl. "
+                "Mining every remaining benchmark case moved 31 -> 35, so the channel is "
+                "exhausted at this scale and the shortfall is structural, not effort."
+            ),
+            "n_positives_needed_at_this_gap": 55,
+            "n_positives_available": 35,
+            "why_expansion_stalled": (
+                "Of the 15 newly mined cases only 3 contributed. Several carry NO arXiv ids in "
+                "their documentation at all (thin-kv, vectordb, webdev report 0 ids at HEAD); "
+                "others have no history before the 24-month T0 cutoff (thin-gnn, thin-lang). "
+                "Reaching 55 needs a longer window or cases selected for citation-rich docs -- "
+                "a differently-constructed benchmark, not more of this one."
+            ),
+        },
         "primary_judge_gap_spans_zero": bool(
             not out["judges"][GPT_MODEL].get("gap_excludes_zero", True)
         ),

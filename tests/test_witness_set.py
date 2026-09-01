@@ -187,6 +187,12 @@ class TestTheCommittedArtifact:
         worth more than the figure: a quantity that stays fixed under a change it should be
         blind to is evidence the scoring cohort is actually held.
 
+        698 -> 700 (2026-09-01) is the cleanest instance yet. Re-mining adoptions across all 37
+        benchmark cases added two witnesses, `bio-scvi/1810.08278` and
+        `bio-singlecell/0909.4061`, and **both regret figures did not move at all** -- they are
+        computed over the 25-case scoring cohort and the new witnesses are outside it. The
+        prediction in the paragraph above is now paid off three times.
+
         The last step is worth separating from the others: it added no new *search*. Those
         papers had already been found and named by a searcher already in the pool — the set
         grew because the instrument could finally read them.
@@ -194,7 +200,7 @@ class TestTheCommittedArtifact:
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
         assert reg["mean_regret"] == 7.52
-        assert artifact["n_witnesses"] == 698
+        assert artifact["n_witnesses"] == 700
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not

@@ -338,7 +338,16 @@ def judge_at_t0(rows: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
     HEAD verdict for the same paper in the shared gold cache. That exact write took `rag`
     from 5 targets to 0 once already.
     """
-    usable = [r for r in rows if r["usable"]]
+    # Rows that already carry a T0 verdict are skipped. `use_cache=False` is mandatory here
+    # (see below), so without this an expanded mining run re-buys every existing verdict to
+    # learn the new ones -- 31 re-judged to add 4 the first time this ran on a grown benchmark.
+    # Safe only because a row's verdict is a function of (case, paper, t0 COMMIT), and a
+    # re-mine that moved t0 would produce different rows rather than matching ones.
+    usable = [r for r in rows if r["usable"] and r.get("judge") is None]
+    if not usable:
+        print("  every usable adoption already has a T0 verdict")
+        return rows
+    print(f"  judging {len(usable)} adoption(s) without a T0 verdict")
     papers = fetch_papers(sorted({r["id"] for r in usable}))
     contexts: dict[str, str] = {}
     for row in usable:

@@ -87,6 +87,56 @@ class TestComplete:
         assert len(sent) == 2
         assert "temperature" in sent[0] and "temperature" not in sent[1]
 
+    def test_the_rejection_is_learned_once_not_retried_forever(self) -> None:
+        """Blind retry would pay a wasted request on every call, and 400s still consume
+        request-rate budget. Discovering it from the API and remembering costs one extra
+        request per model per process; a hardcoded model list would go stale instead."""
+        from reporadar import llm_client
+
+        cfg = SimpleNamespace(provider="claude", claude_api_key="k", claude_model="claude-sonnet-5")
+        sent: list[dict] = []
+
+        def _capture(req, *a, **kw):
+            body = json.loads(req.data.decode())
+            sent.append(body)
+            if "temperature" in body:
+                raise urllib.error.HTTPError(
+                    "u",
+                    400,
+                    "Bad Request",
+                    {},
+                    io.BytesIO(b'{"error":{"message":"`temperature` is deprecated"}}'),
+                )
+            return _resp({"content": [{"type": "text", "text": "ok"}]})
+
+        llm_client._REJECTS_TEMPERATURE.discard("claude-sonnet-5")
+        try:
+            with patch("urllib.request.urlopen", side_effect=_capture):
+                complete("a", cfg, max_tokens=10)
+                complete("b", cfg, max_tokens=10)
+                complete("c", cfg, max_tokens=10)
+        finally:
+            llm_client._REJECTS_TEMPERATURE.discard("claude-sonnet-5")
+        # 2 for the first call (reject + retry), then 1 each: 4, not 6.
+        assert len(sent) == 4
+        assert sum(1 for b in sent if "temperature" in b) == 1
+
+    def test_a_model_that_accepts_temperature_never_pays_the_retry(self) -> None:
+        cfg = SimpleNamespace(
+            provider="claude", claude_api_key="k", claude_model="claude-haiku-4-5"
+        )
+        sent: list[dict] = []
+
+        def _ok(req, *a, **kw):
+            sent.append(json.loads(req.data.decode()))
+            return _resp({"content": [{"type": "text", "text": "ok"}]})
+
+        with patch("urllib.request.urlopen", side_effect=_ok):
+            complete("a", cfg, max_tokens=10)
+            complete("b", cfg, max_tokens=10)
+        assert len(sent) == 2
+        assert all("temperature" in b and b["temperature"] == 0 for b in sent)
+
     def test_claude_other_400s_are_not_retried_away(self) -> None:
         """The retry is narrow on purpose. A blanket one would swallow quota and rate-limit
         errors as if they were parameter problems, which is how a broken run looks healthy."""

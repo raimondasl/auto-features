@@ -7,12 +7,15 @@
   "separated_if_difference_at_least": 0.15,
   "written_before_any_control_or_sonnet_verdict": true
  },
- "n_positives": 31,
- "n_controls": 124,
+ "n_positives": 35,
+ "n_controls": 140,
  "positives_by_case": {
+  "bio-scvi": 2,
+  "bio-singlecell": 1,
   "diffusion": 7,
   "graph": 13,
   "llminfer": 2,
+  "mat-phonon": 1,
   "peft": 5,
   "rag": 2,
   "rl": 2
@@ -20,75 +23,98 @@
  "judges": {
   "gpt-5.5": {
    "adopted": {
-    "n": 31,
-    "actionable": 20,
-    "rate": 0.6452,
+    "n": 35,
+    "actionable": 23,
+    "rate": 0.6571,
     "wilson95": [
-     0.4695,
-     0.7888
+     0.4915,
+     0.7917
     ]
    },
    "control": {
-    "n": 124,
-    "actionable": 61,
-    "rate": 0.4919,
+    "n": 140,
+    "actionable": 72,
+    "rate": 0.5143,
     "wilson95": [
-     0.4055,
-     0.5788
+     0.4322,
+     0.5956
     ]
    },
-   "gap": 0.1533,
+   "gap": 0.1428,
    "gap_ci95": [
-    -0.0403,
-    0.3387
+    -0.0429,
+    0.3214
    ],
    "gap_excludes_zero": false
   },
   "claude-sonnet-5": {
    "adopted": {
-    "n": 31,
-    "actionable": 15,
-    "rate": 0.4839,
+    "n": 35,
+    "actionable": 17,
+    "rate": 0.4857,
     "wilson95": [
-     0.3197,
-     0.6516
+     0.3299,
+     0.6443
     ]
    },
    "control": {
-    "n": 124,
-    "actionable": 25,
-    "rate": 0.2016,
+    "n": 140,
+    "actionable": 34,
+    "rate": 0.2429,
     "wilson95": [
-     0.1405,
-     0.2807
+     0.1793,
+     0.3201
     ]
    },
-   "gap": 0.2823,
+   "gap": 0.2428,
    "gap_ci95": [
-    0.0968,
-    0.4758
+    0.0643,
+    0.4214
    ],
    "gap_excludes_zero": true
   }
  },
  "gap_difference_bootstrap": {
   "_comment": "Sonnet gap minus GPT gap, bootstrapped over the same papers both judges scored. Positive favours Sonnet. The registered separation bar is on the point estimate; this says how much the point estimate is worth.",
-  "point": 0.1291,
+  "point": 0.0991,
   "ci95": [
-   -0.0242,
-   0.2742
+   -0.05,
+   0.2429
   ],
   "excludes_zero": false
  },
  "verdict": {
   "gaps": {
-   "gpt-5.5": 0.1533,
-   "claude-sonnet-5": 0.2823
+   "gpt-5.5": 0.1428,
+   "claude-sonnet-5": 0.2428
   },
-  "difference": 0.129,
+  "difference": 0.1,
   "both_flat": false,
   "separated": false,
   "better_instrument": null,
+  "replicates_nr56": {
+   "_comment": "NR-56 ran on 31 positives across 6 cases with 124 controls drawn under a SHARED-rng scheme. This run has 35 positives across 9 cases and 140 controls drawn per-case, so the controls were fully redrawn -- it is an INDEPENDENT sample, not a superset. Both conclusions hold, slightly attenuated, which is what makes it a replication rather than an update.",
+   "nr56": {
+    "n_pos": 31,
+    "n_ctl": 124,
+    "gpt_gap": 0.153,
+    "sonnet_gap": 0.282,
+    "difference": 0.129
+   },
+   "this_run": {
+    "n_pos": 35,
+    "n_ctl": 140
+   },
+   "gpt_still_spans_zero": true,
+   "sonnet_still_excludes_zero": true,
+   "still_not_separated": true
+  },
+  "what_would_settle_it": {
+   "_comment": "Precision here is governed almost entirely by the POSITIVES: the adopted variance term is 4-6x the control term because n_pos is a quarter of n_ctl. Mining every remaining benchmark case moved 31 -> 35, so the channel is exhausted at this scale and the shortfall is structural, not effort.",
+   "n_positives_needed_at_this_gap": 55,
+   "n_positives_available": 35,
+   "why_expansion_stalled": "Of the 15 newly mined cases only 3 contributed. Several carry NO arXiv ids in their documentation at all (thin-kv, vectordb, webdev report 0 ids at HEAD); others have no history before the 24-month T0 cutoff (thin-gnn, thin-lang). Reaching 55 needs a longer window or cases selected for citation-rich docs -- a differently-constructed benchmark, not more of this one."
+  },
   "primary_judge_gap_spans_zero": true,
   "headline": "The primary judge -- gpt-5.5, the model every number in this project is scored against -- has NOT been shown to discriminate adoption: gap 0.153, CI [-0.040, +0.339], spanning zero. It calls 49.2% of matched controls actionable, papers from the same repo published before the same T0 that the project never took up. claude-sonnet-5's gap does exclude zero (0.282, CI [+0.097, +0.476]), but the DIFFERENCE between them (0.129, CI [-0.024, +0.274]) does not clear the registered 0.15 bar, so this does not name a better instrument. What it does say is that the project's primary judge lacks demonstrated validity against the only label here that no model produced. Absence of evidence, not evidence of error.",
   "caveats": "n=31 positives across 6 cases with graph contributing 13 (C-7); 'not adopted' is a noisy negative that biases both gaps downward; adoption measures what a repository did, not what it should have done."
