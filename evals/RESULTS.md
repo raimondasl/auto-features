@@ -1144,6 +1144,65 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The gate is a third of the paired variance. Worth fixing, not transformative. **[NR-54]**
+
+NR-52 recorded that the shipped arm's mean net@2 moves between two of our own runs (+5.73 on
+2026-08-27, +5.51 on 2026-08-30). The follow-up quoted a per-case **sd of 2.23** and suggested
+the benchmark's ±0.78 resolution might be gate-limited.
+
+**That framing was wrong, and the correction is the first result here.** Those two runs used
+*different pool directories* — `pool-core25-arxiv` and `pool-cut100` — whose candidate sets share
+a **median Jaccard of 0.365**. The 2.23 confounds pool-collection drift with everything
+downstream and could never have isolated the gate. What made them look comparable was identical
+`pool_size` on all 37 cases, which is an artifact of the flags: the same `#queries ×
+max_results` produces the same size from different contents.
+
+#### The measurement that can answer it
+
+Same frozen pool (`pool-cut100`), same flags, same fingerprint, re-run. Retrieval contributes
+exactly nothing; what remains is the gate (Haiku, uncached, **no temperature sent** → Anthropic
+default 1.0), the fine-scale rescore, and any newly-shown papers.
+
+| | |
+|---|---|
+| per-case net@2 delta | mean −0.14, **sd 1.44** |
+| cases byte-identical | **10 / 37** |
+| median digest Jaccard | 0.857 |
+
+**Pre-registered reading: < 1.0 minor, ≥ 1.5 dominates → GREY.** Held to, and resolved in the
+open as the grey band required.
+
+| component | sd |
+|---|---|
+| total, across different pools | 2.23 |
+| **gate / downstream** | **1.44** |
+| implied pool collection | **1.71** |
+
+Retrieval drift is still the larger component — the opposite of what the 2.23 was being read to
+imply. But with the pool held fixed, **14% of the digest still moves between runs**, and only 10
+of 37 cases reproduce exactly. The gate is genuinely stochastic.
+
+#### The dividend, and why it is smaller than the sd suggests
+
+The gate is **35% of the paired variance** in a frozen-pool arm. Resolution scales with the
+**square root** of variance, so removing it tightens the interval by **20%**, not 35%:
+
+| | |
+|---|---|
+| NR-47's observed paired sd | 2.42 → half-width **0.78** |
+| residual treatment sd if the gate were deterministic | 1.95 → half-width **0.63** |
+
+**The earlier conversational estimate of ±0.30 assumed the whole 2.23 was gate noise. It is
+1.44.** Recorded with its cause rather than quietly replaced.
+
+**And it does not rescue the ladder.** The rungs in `RESEARCH-net2-directions.md` run +0.20 to
++0.45 and stay below 0.63, so the bundle-only rule survives untouched. Setting `temperature=0`
+on the Claude path is worth doing — it is one line, it makes runs reproducible, and it buys a
+fifth off every future interval — but it changes the project's hygiene, not its plan.
+
+**Cost** one replicate run against a frozen pool; judge verdicts cached per `(model, repo,
+paper)` so only newly-shown papers were re-judged. Pinned by `tests/test_gate_draw_variance.py`.
+
 ### Sonnet agrees with itself at 0.80 and with GPT at 0.199. NR-52 stands. **[NR-53]**
 
 After NR-52 shipped, a code read found that **`_call_claude` sends no temperature**, so the

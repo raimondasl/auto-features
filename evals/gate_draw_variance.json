@@ -1,0 +1,45 @@
+{
+ "_comment": "NR-54. Holds the pool BYTE-IDENTICAL (same frozen pool, same flags, same fingerprint) and re-runs the shipped config, so retrieval contributes nothing and what varies is the gate (Haiku, uncached, no temperature sent -> default 1.0), the fine-scale rescore, and newly-judged papers. Corrects NR-52's follow-up framing: the 2.23 sd quoted there was measured between runs on DIFFERENT pools sharing a median Jaccard of 0.365, so it could never have isolated the gate. Derived by evals/gate_draw_variance.py; pinned by tests/test_gate_draw_variance.py.",
+ "pre_registered": {
+  "descriptive_not_a_kill": true,
+  "reading_below": {
+   "sd_under": 1.0,
+   "means": "gate stochasticity minor; the 2.23 is mostly pool collection; temperature 0 is hygiene with no measurement dividend"
+  },
+  "reading_above": {
+   "sd_at_least": 1.5,
+   "means": "gate stochasticity dominates paired noise in every frozen-pool arm; temperature 0 would sharpen future arms"
+  },
+  "decomposition": "sd_total^2 = sd_pool^2 + sd_gate^2, sd_total = 2.23 measured",
+  "written_before_the_replicate": true
+ },
+ "pool_held_identical": true,
+ "n_cases": 37,
+ "gate_sd_per_case": 1.44,
+ "mean_delta": -0.14,
+ "cases_byte_identical": 10,
+ "median_digest_jaccard": 0.857,
+ "context": {
+  "sd_total_across_different_pools": 2.23,
+  "pool_median_jaccard": 0.365,
+  "implied_pool_component_sd": 1.71
+ },
+ "measurement_dividend": {
+  "_comment": "The number the decision actually turns on, and it is smaller than the sd alone suggests: resolution scales with the square root of variance, so removing 35% of the variance tightens the interval by 20%, not by 35%. An earlier claim in conversation -- that the resolution might go from +-0.78 to ~+-0.30 -- assumed the whole 2.23 was gate noise. It is 1.44, and this is the corrected figure.",
+  "nr47_observed_paired_sd": 2.42,
+  "gate_share_of_variance": 0.352,
+  "residual_treatment_sd": 1.95,
+  "half_width_now": 0.78,
+  "half_width_if_gate_deterministic": 0.63,
+  "tighter_by": 0.195,
+  "ladder_rungs_still_unresolvable": true
+ },
+ "verdict": {
+  "gate_dominates": false,
+  "gate_minor": false,
+  "grey": true,
+  "temperature_fix_has_measurement_dividend": false,
+  "reading": "GREY, and the grey resolves toward 'worth doing, not transformative'. The gate is 35% of the paired variance in a frozen-pool arm, so making it deterministic tightens the resolution from +-0.78 to ~+-0.63 -- 20%. Real, cheap, and NOT enough to rescue the ladder: its rungs run +0.20 to +0.45 and remain individually unresolvable, so the bundle-only rule stands.",
+  "pool_is_the_larger_component": true
+ }
+}
