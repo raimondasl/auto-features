@@ -1144,6 +1144,63 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The primary judge has not been shown to discriminate adoption. **[NR-56]**
+
+NR-52 and NR-53 established that the judges disagree and that the disagreement is a real
+property of the judges. Both are **reliability** results, and no number of judges can settle
+**validity** — that needs a label from outside the models.
+
+P6 built one: `ids(HEAD) − ids(T0)` over a repo's own documentation is a set of papers the
+project verifiably took up, mined from git history with no model in the loop. 31 usable
+adoptions across 6 cases.
+
+**Recall on that cannot rank judges, and that is the design problem.** Adoption supplies
+positives only, so a judge that says yes to everything scores 100%. Each adopted paper is
+therefore paired with **matched controls** — same repo, published *before* the same T0 so it
+could have been adopted, never adopted, not a T0 seed — both judges score everything against
+the identical T0 context, and the statistic is the **gap**.
+
+| judge | adopted | control | gap | 95% CI |
+|---|---|---|---|---|
+| **gpt-5.5** (primary) | 20/31 = 0.645 | **61/124 = 0.492** | **0.153** | **[−0.040, +0.339]** |
+| claude-sonnet-5 | 15/31 = 0.484 | 25/124 = 0.202 | **0.282** | [+0.097, +0.476] |
+
+**The judge every number in this project rests on calls 49.2% of matched controls actionable**
+— papers from the same repository, publishable before the same cutoff, that the project never
+took up. **Its discrimination interval includes zero.** Sonnet's does not.
+
+**And this does not name a better instrument.** The gap difference is 0.129, CI [−0.024,
++0.274], short of the pre-registered 0.15 bar. Reported as not separated rather than resolved
+toward whichever judge looks better — the registered "both flat" branch also did not fire, since
+Sonnet clears 0.20.
+
+**Absence of evidence, not evidence of error.** n = 31 across 6 cases with `graph` contributing
+13 (C-7's shape); "not adopted" is a noisy negative that biases both gaps downward; adoption
+measures what a repository *did*, not what it *should* have done. The claim is precise and
+narrow: **the primary judge's validity against the only model-free label available here is
+unestablished.**
+
+#### A regression this probe found, which I had shipped
+
+`_call_claude`'s `temperature=0` (NR-54/55) **breaks the Claude 5 family** — `claude-sonnet-5`
+and `claude-opus-5` answer `400 "temperature is deprecated for this model"`, while Claude 4.x
+accepts it. NR-56 hit **155 consecutive 400s**; every Sonnet verdict came back void.
+
+It looked verified because it *was* verified on the wrong thing: NR-55's two runs exercised the
+**gate**, which runs `claude-haiku-4-5`, and never touched the Sonnet judge. The claim in NR-55
+that the fix "covers the gate and the judge together" was wrong — it covers the gate.
+
+Fixed by retrying without the parameter on a 400 whose body names `temperature`, mirroring the
+OpenAI-side retry already in `evals/judge.py`. **Narrow on purpose**: a blanket retry would
+swallow quota and rate-limit errors as parameter problems, which is how a broken run looks
+healthy. Both behaviours are tested.
+
+**A standing consequence:** since Claude 5 refuses the parameter, **the judge cannot be made
+deterministic this way**. NR-53's 8.4% self-disagreement is a property of the instrument, not
+something a setting removes. NR-55's determinism gain applies to the gate alone.
+
+**Cost** 310 verdicts, ~$5. Pinned by `tests/test_judge_validity_adoption.py`.
+
 ### `temperature=0` lands the dividend, and the 37/37 prediction was wrong. **[NR-55]**
 
 Verification of the one-line change NR-54 licensed, run in NR-54's design so the numbers are

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import urllib.error
 from types import SimpleNamespace
@@ -56,6 +57,48 @@ class TestComplete:
         with patch("urllib.request.urlopen", side_effect=_capture):
             complete("prompt", cfg, max_tokens=50)
         assert seen["payload"]["temperature"] == 0
+
+    def test_claude_retries_without_temperature_when_the_model_rejects_it(self) -> None:
+        """The Claude 5 family answers 400 "temperature is deprecated for this model".
+
+        The temperature=0 change shipped without this and broke every claude-sonnet-5 call —
+        155 straight 400s in NR-56 — while looking verified, because NR-55's runs exercised the
+        gate on claude-haiku-4-5, which accepts the parameter. Same shape as the OpenAI-side
+        retry in evals/judge.py.
+        """
+        cfg = SimpleNamespace(provider="claude", claude_api_key="k", claude_model="claude-sonnet-5")
+        sent: list[dict] = []
+
+        def _capture(req, *a, **kw):
+            body = json.loads(req.data.decode())
+            sent.append(body)
+            if "temperature" in body:
+                raise urllib.error.HTTPError(
+                    "u",
+                    400,
+                    "Bad Request",
+                    {},
+                    io.BytesIO(b'{"error":{"message":"`temperature` is deprecated"}}'),
+                )
+            return _resp({"content": [{"type": "text", "text": "ok"}]})
+
+        with patch("urllib.request.urlopen", side_effect=_capture):
+            assert complete("prompt", cfg, max_tokens=50) == "ok"
+        assert len(sent) == 2
+        assert "temperature" in sent[0] and "temperature" not in sent[1]
+
+    def test_claude_other_400s_are_not_retried_away(self) -> None:
+        """The retry is narrow on purpose. A blanket one would swallow quota and rate-limit
+        errors as if they were parameter problems, which is how a broken run looks healthy."""
+        cfg = SimpleNamespace(provider="claude", claude_api_key="k", claude_model="claude-sonnet-5")
+
+        def _bad(req, *a, **kw):
+            raise urllib.error.HTTPError(
+                "u", 400, "Bad Request", {}, io.BytesIO(b'{"error":{"message":"credit balance"}}')
+            )
+
+        with patch("urllib.request.urlopen", side_effect=_bad), pytest.raises(LLMError):
+            complete("prompt", cfg, max_tokens=50)
 
     def test_claude_no_key_raises_llmerror(self) -> None:
         cfg = SimpleNamespace(provider="claude", claude_api_key="")
