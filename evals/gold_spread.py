@@ -185,7 +185,7 @@ def _judge_cached(case: str, paper_id: str) -> int | None:
     return None
 
 
-def mcp_config_for(case_name: str) -> tuple[Path, Path]:
+def mcp_config_for(case_name: str, tools: str) -> tuple[Path, Path]:
     """The seeded RepoRadar server config for *case_name*, or a loud failure.
 
     Refuses a missing store rather than running without one. `--allowedTools` naming tools
@@ -196,15 +196,21 @@ def mcp_config_for(case_name: str) -> tuple[Path, Path]:
     """
     from rr_mcp_arm import case_db, write_config
 
-    db = case_db(case_name)
+    # Read off the TOOLSET, through the mapping `baseline` owns. Deriving it here from
+    # a string comparison is how the driver came to accept `--tools web+rrwide` and
+    # serve the narrow store anyway: the sweep would have run, every row would have
+    # looked normal, and the artifact would have answered a different question.
+    wide = baseline_mod.wide_corpus(tools)
+    db = case_db(case_name, wide=wide)
     if not db.exists():
         raise SystemExit(
             f"{case_name}: no seeded RepoRadar store at {db}.\n"
-            "Run `uv run python evals/rr_mcp_arm.py --seed` first ($0)."
+            f"Run `uv run python evals/rr_mcp_arm.py --seed"
+            f"{' --wide' if wide else ''}` first ($0)."
         )
     # A token per run, so two draws of one case cannot write into the same call log and
     # attribute one run's tool use to the other. Wrong data is worse than none.
-    return write_config(case_name, token=uuid.uuid4().hex[:8])
+    return write_config(case_name, token=uuid.uuid4().hex[:8], wide=wide)
 
 
 def _turn_flags(
@@ -254,7 +260,7 @@ def run_baseline_only(
     # Resolved BEFORE the clock starts and before anything is billed: a missing store is a
     # setup mistake, and finding it out after paying for the run is finding it out late.
     mcp_config, call_log = (
-        mcp_config_for(name) if tools != baseline_mod.DEFAULT_TOOLS else (None, None)
+        mcp_config_for(name, tools) if tools != baseline_mod.DEFAULT_TOOLS else (None, None)
     )
     started = time.monotonic()
     result = baseline_mod.run_baseline(
@@ -908,7 +914,12 @@ def main() -> int:
     # from `out_path` rather than assembling it: the function that owns the answer is the one
     # that should be asked, and a status line that has to be updated per axis will be wrong
     # once per axis. C-29 was this omission one path over.
-    print(f"\nwrote {out_path(args.prompt_version, args.baseline_model).name}\n")
+    # ALL THREE axes. This line has been the last one patched for each new axis in
+    # turn, and it is the only end-of-run filename a reader sees -- `report()` prints
+    # none, and the correct name at the START of the run is ~$86 of scrollback
+    # earlier. An announcement naming `gold_spread_v2_opus5.json` after writing
+    # `gold_spread_v2_opus5_web_rrwide.json` sends the reader to the control arm.
+    print(f"\nwrote {out_path(args.prompt_version, args.baseline_model, args.tools).name}\n")
     return report(artifact)
 
 

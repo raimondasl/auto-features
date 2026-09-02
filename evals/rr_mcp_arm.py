@@ -167,9 +167,16 @@ def _pool_path(results_path: Path, case: str) -> Path:
     return path
 
 
-def case_db(case: str) -> Path:
-    """Where a case's seeded store lives. Under the repo clone, exactly where `rr` looks."""
-    return WORK_DIR / case / ".reporadar" / "papers.db"
+def case_db(case: str, *, wide: bool = False) -> Path:
+    """Where a case's seeded store lives. Under the repo clone, where `rr mcp` looks.
+
+    The two arms get **separate files** rather than one rebuilt in place. Rebuilding would
+    make "which corpus is installed right now" invisible state that no artifact records and
+    no test can check, and it would mean verifying either arm destroys the other. `rr mcp
+    --db` is what makes two stores for one repository possible at all.
+    """
+    name = "papers-wide.db" if wide else "papers.db"
+    return WORK_DIR / case / ".reporadar" / name
 
 
 def _ranking_flags(results_path: Path, case: str) -> dict[str, Any]:
@@ -183,17 +190,53 @@ def seed_case(
     results_path: Path = ARM_A,
     repo_dir: Path | None = None,
     db_path: Path | None = None,
+    wide: bool = False,
 ) -> dict[str, Any]:
     """Build the store `rr mcp` will serve for *case*. Returns a provenance record.
 
     Every number in it is real: the papers and their metadata come from the frozen pool,
     the gate scores from the frozen arm, and `score_total` from re-ranking that pool under
     the arm's own flags. Nothing is synthesised to make an ordering come out.
+
+    ## `wide=True`, and why it is one variable rather than two [P27]
+
+    The narrow store holds **only the digest picks** — 3 to 15 papers. That is what makes
+    arm C serve exactly arm A's output, and it is also why 48 of the augmented arm's 87 MCP
+    calls were `search_papers` against a corpus of about a dozen papers the agent had
+    already been handed, where the product's `search_papers` covers everything RepoRadar
+    ever fetched (725–1252 candidates on these cases). Arm C was therefore a **floor**.
+
+    `wide=True` seeds the whole frozen pool into the `papers` table and leaves
+    `paper_scores` and `paper_llm_scores` **exactly as the narrow store has them: the picks
+    and nothing else.** The two tools read different things and that is the whole trick:
+
+    * `get_ranked_papers` → `get_scores_for_run(run_id)`, so it sees only scored papers →
+      **byte-identical between the two stores**, verified by :func:`compare_stores` rather
+      than argued for here;
+    * `search_papers` → `get_all_papers()`, the whole corpus → the variable under test.
+
+    This is also a *real* product state, not a contrivance: in a live install
+    `get_all_papers` spans every run ever made while `get_scores_for_run` covers only the
+    latest, so a paper fetched last month and not ranked today is in the corpus and not in
+    the run. Seeding the pool without scoring it reproduces exactly that.
+
+    **Why the corpus is invisible to `get_ranked_papers`, precisely.** Not because the
+    tiering rule demotes unscored papers — that is true and is a second line of defence
+    this design never reaches. It is because `get_scores_for_run` JOINs `paper_scores`, and
+    a corpus paper has no row there, so it never enters the payload in ANY tier. Stated
+    exactly because the weaker version was written first and `tests/test_rr_mcp_arm.py`
+    is what corrected it.
+
+    **The one honest gap.** Papers the gate scored 0 or 1 are not recorded in the frozen
+    arm (only picks are), so the wide corpus does not distinguish them from papers the gate
+    never saw. Both are simply unscored. That is invisible to `get_ranked_papers` for the
+    reason above, and it is stated here rather than left for a reader to derive from the
+    absence of a column.
     """
     bench = load_benchmark()
     spec = next(c for c in bench["cases"] if c["name"] == case)
     repo_dir = repo_dir or (WORK_DIR / case)
-    db_path = db_path or case_db(case)
+    db_path = db_path or case_db(case, wide=wide)
 
     picks = arm_picks(results_path, case)
     pool_path = _pool_path(results_path, case)
@@ -229,7 +272,10 @@ def seed_case(
     if db_path.exists():
         db_path.unlink()  # a seed is a rebuild, never a merge into a store of unknown age
     with PaperStore(db_path) as store:
-        store.upsert_papers([by_id[p["arxiv_id"]] for p in picks])
+        # The corpus. Wide seeds the whole frozen pool; narrow seeds only what the run
+        # scored. NOTHING below this line differs between the two arms.
+        corpus = candidates if wide else [by_id[p["arxiv_id"]] for p in picks]
+        store.upsert_papers(corpus)
         run_id = store.record_run([f"frozen arm {results_path.name}"], len(picks), 0)
         store.save_scores(
             run_id,
@@ -259,21 +305,26 @@ def seed_case(
     return {
         "case": case,
         "db": str(db_path),
+        "wide": wide,
         "arm_a": results_path.name,
         "pool": pool_path.name,
+        "n_corpus": len(corpus),
         "n_picks": len(picks),
         "picks": [p["arxiv_id"] for p in picks],
         "ranking_config": flags,
     }
 
 
-def write_config(case: str, *, repo_dir: Path | None = None, token: str = "") -> tuple[Path, Path]:
+def write_config(
+    case: str, *, repo_dir: Path | None = None, token: str = "", wide: bool = False
+) -> tuple[Path, Path]:
     """The `rr mcp` config and the MCP config `claude -p` reads. Returns (mcp_json, call_log).
 
     Written under `.work/mcp-arm/` rather than into the cloned repository: the agent can
     read its working tree, and a config file naming the arm would be a hint no user of the
-    product would have. The store itself has to live at `<repo>/.reporadar/papers.db`
-    because that is where `rr mcp` looks, and that one IS a thing a real user has.
+    product would have. The store lives under `<repo>/.reporadar/`, which IS a thing a real
+    user has; `--db` names which of the two stores this run serves, so the narrow and wide
+    arms coexist instead of one being rebuilt over the other between runs.
 
     *token* makes the pair unique per run. The call log is how "did the agent use RepoRadar
     at all?" gets answered from the artifact instead of assumed, and a log shared between
@@ -282,13 +333,16 @@ def write_config(case: str, *, repo_dir: Path | None = None, token: str = "") ->
     """
     repo_dir = (repo_dir or (WORK_DIR / case)).resolve()
     MCP_DIR.mkdir(parents=True, exist_ok=True)
-    stem = f"{case}-{token}" if token else case
+    stem = f"{case}-wide" if wide else case
+    if token:
+        stem = f"{stem}-{token}"
     rr_yml = MCP_DIR / f"{stem}.reporadar.yml"
     rr_yml.write_text(
-        # `triage.enabled` is what puts the gate in the payload's tiering rule. The store
-        # holds only gate-passing papers, so it changes no set here -- it is set because
-        # the arm must describe the configuration that produced those papers, and a reader
-        # comparing this file to the frozen arm's `ranking_config` should find them agree.
+        # `triage.enabled` is what puts the gate in the payload's tiering rule. Only the
+        # picks carry a gate score in EITHER store, so it changes no set in either -- it is
+        # set because the arm must describe the configuration that produced those papers,
+        # and a reader comparing this file to the frozen `ranking_config` should find them
+        # agree. It is also what keeps the wide store's ungated pool out of Top Picks.
         f"repo_path: {json.dumps(str(repo_dir))}\n"
         "triage:\n"
         "  enabled: true\n"
@@ -307,7 +361,13 @@ def write_config(case: str, *, repo_dir: Path | None = None, token: str = "") ->
                 "mcpServers": {
                     "reporadar": {
                         "command": str(rr_bin),
-                        "args": ["mcp", "--config", str(rr_yml)],
+                        "args": [
+                            "mcp",
+                            "--config",
+                            str(rr_yml),
+                            "--db",
+                            str(case_db(case, wide=wide)),
+                        ],
                         "env": {"RR_MCP_CALL_LOG": str(call_log)},
                     }
                 }
@@ -328,15 +388,39 @@ def read_call_log(path: Path) -> dict[str, Any]:
     run never happened", and the caller knows which of those it has from `status`.
     """
     if not path.exists():
-        return {"n": 0, "by_tool": {}}
+        return {"n": 0, "by_tool": {}, "n_sessions": 0}
     calls = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
-    by_tool: dict[str, int] = {}
-    for c in calls:
-        by_tool[c["tool"]] = by_tool.get(c["tool"], 0) + 1
-    return {"n": len(calls), "by_tool": dict(sorted(by_tool.items()))}
+
+    def tally(rows: list[dict[str, Any]]) -> dict[str, int]:
+        out: dict[str, int] = {}
+        for c in rows:
+            out[c["tool"]] = out.get(c["tool"], 0) + 1
+        return dict(sorted(out.items()))
+
+    # `_run_cli` retries a failed `claude` up to twice against the SAME log path, and each
+    # attempt spawns its own server, so the raw total can pool a dead attempt's calls with
+    # the surviving one's. The pid partitions them; `_run_cli` returns on the first
+    # success, so the LAST session is the one that produced the answer.
+    pids = [c["pid"] for c in calls if "pid" in c]
+    result: dict[str, Any] = {"n": len(calls), "by_tool": tally(calls)}
+    if len(pids) != len(calls):
+        # Void, not null. Logs written before the pid existed cannot be partitioned, and
+        # saying "1 session" about them would assert something never measured.
+        result["n_sessions"] = None
+        return result
+    ordered: list[int] = []
+    for pid in pids:
+        if pid not in ordered:
+            ordered.append(pid)
+    result["n_sessions"] = len(ordered)
+    if len(ordered) > 1:
+        last = [c for c in calls if c["pid"] == ordered[-1]]
+        result["n_last_session"] = len(last)
+        result["by_tool_last_session"] = tally(last)
+    return result
 
 
-def verify_case(case: str, *, results_path: Path = ARM_A) -> dict[str, Any]:
+def verify_case(case: str, *, results_path: Path = ARM_A, wide: bool = False) -> dict[str, Any]:
     """Read a seeded store back through the SHIPPED MCP tool body and check three things.
 
     Read back rather than trusted: this is the only check that exercises what the agent
@@ -344,7 +428,7 @@ def verify_case(case: str, *, results_path: Path = ARM_A) -> dict[str, Any]:
     """
     from reporadar.mcp_server import ranked_papers_payload
 
-    db = case_db(case)
+    db = case_db(case, wide=wide)
     if not db.exists():
         return {"case": case, "status": "missing"}
     expected = arm_picks(results_path, case)
@@ -377,26 +461,103 @@ def verify_case(case: str, *, results_path: Path = ARM_A) -> dict[str, Any]:
     }
 
 
+def _ranked_payload(case: str, *, wide: bool) -> dict[str, Any] | None:
+    from reporadar.mcp_server import ranked_papers_payload
+
+    db = case_db(case, wide=wide)
+    if not db.exists():
+        return None
+    with PaperStore(db) as store:
+        return ranked_papers_payload(
+            store, limit=50, repo_path=WORK_DIR / case, top_n=15, triage_threshold=2, rerank=True
+        )
+
+
+def compare_stores(case: str) -> dict[str, Any]:
+    """Is `get_ranked_papers` **byte-identical** across the narrow and wide stores? [P27]
+
+    The entire one-variable claim of the wide arm rests on this and nothing else, so it is
+    checked by serialising both payloads and comparing the bytes rather than by comparing
+    the fields somebody thought to look at. `run_id` is normalised away — it is a rowid
+    from a separate SQLite file and says nothing about what the agent sees.
+
+    If this ever returns ``identical: False``, the wide arm is measuring two changes at
+    once and its number means nothing. That is worth a hard check rather than a docstring.
+    """
+    narrow, wide = _ranked_payload(case, wide=False), _ranked_payload(case, wide=True)
+    if narrow is None or wide is None:
+        return {"case": case, "status": "missing", "narrow": narrow is not None}
+    for payload in (narrow, wide):
+        payload.pop("run_id", None)
+    n_blob = json.dumps(narrow, sort_keys=True)
+    w_blob = json.dumps(wide, sort_keys=True)
+    with PaperStore(case_db(case)) as s_n, PaperStore(case_db(case, wide=True)) as s_w:
+        corpus = (s_n.paper_count(), s_w.paper_count())
+    return {
+        "case": case,
+        "status": "ok",
+        "identical": n_blob == w_blob,
+        "n_recommended": len(narrow["papers"]),
+        "corpus_narrow": corpus[0],
+        "corpus_wide": corpus[1],
+        # The variable under test, as a ratio rather than a claim. Under 2x the wide arm is
+        # not testing much and should be said so out loud.
+        "corpus_ratio": round(corpus[1] / corpus[0], 1) if corpus[0] else None,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--seed", action="store_true", help="build the per-case MCP stores ($0)")
     ap.add_argument("--verify", action="store_true", help="read the stores back ($0)")
     ap.add_argument("--case", help="comma-separated case names (default: every case arm A ran)")
     ap.add_argument("--arm-a", type=Path, default=ARM_A)
+    ap.add_argument(
+        "--wide",
+        action="store_true",
+        help="seed/verify the WIDE store (whole frozen pool as corpus, same scored run)",
+    )
+    ap.add_argument(
+        "--compare",
+        action="store_true",
+        help="$0: prove get_ranked_papers is byte-identical across the two stores",
+    )
     args = ap.parse_args()
 
     rows = json.loads(args.arm_a.read_text(encoding="utf-8"))
     cases = args.case.split(",") if args.case else [r["case"] for r in rows]
 
+    if args.compare:
+        bad = 0
+        print(f"  {'case':<18}{'recommended':>12}{'narrow':>8}{'wide':>7}{'ratio':>7}  identical")
+        for name in cases:
+            v = compare_stores(name)
+            if v["status"] != "ok":
+                print(f"  {name:<18}  MISSING a store")
+                bad += 1
+                continue
+            bad += not v["identical"]
+            print(
+                f"  {name:<18}{v['n_recommended']:>12}{v['corpus_narrow']:>8}"
+                f"{v['corpus_wide']:>7}{v['corpus_ratio']:>7}  {v['identical']}"
+            )
+        if bad:
+            print("\n" + f"{bad} case(s) NOT identical - the wide arm would measure two changes.")
+        return 1 if bad else 0
+
     if args.seed:
         for name in cases:
-            rec = seed_case(name, results_path=args.arm_a)
-            write_config(name)  # the tokenless pair, for a manual run against one case
-            print(f"  {name:<18} {rec['n_picks']:>2} picks -> {rec['db']}")
+            rec = seed_case(name, results_path=args.arm_a, wide=args.wide)
+            # The tokenless pair, for a manual run against one case.
+            write_config(name, wide=args.wide)
+            print(
+                f"  {name:<18} {rec['n_picks']:>2} picks, corpus {rec['n_corpus']:>5} "
+                f"-> {rec['db']}"
+            )
     if args.verify or not args.seed:
         bad = 0
         for name in cases:
-            v = verify_case(name, results_path=args.arm_a)
+            v = verify_case(name, results_path=args.arm_a, wide=args.wide)
             flag = ""
             if v["status"] != "ok":
                 flag = "  MISSING"

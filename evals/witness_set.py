@@ -106,7 +106,7 @@ POOLS = ("pool-wemb", "pool-cohort3")
 # Counting those toward RepoRadar's reach denominator would let the system grade itself
 # through a proxy -- the pooled-evaluation flattery this rule exists to prevent, arriving by
 # a route that did not exist when the rule was written. [P27]
-SELF_SOURCES = ("reporadar", "cli-v2-opus5-rr@30")
+SELF_SOURCES = ("reporadar", "cli-v2-opus5-rr@30", "cli-v2-opus5-rrwide@30")
 # Display order for `report`; labels outside it are printed after, discovered from the data.
 KNOWN_ORDER = ("cli", "cli-redraw", "cli-v2", "cli-v2-opus5", "api", "adoption")
 

@@ -239,7 +239,21 @@ def _log_call(tool: str, **params: Any) -> None:
     try:
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(
-                json.dumps({"t": datetime.now(UTC).isoformat(), "tool": tool, **params}) + "\n"
+                json.dumps(
+                    {
+                        "t": datetime.now(UTC).isoformat(),
+                        # The server process's identity. A client that retries spawns a
+                        # FRESH server against the same log path, so without this a
+                        # retried run's calls are silently pooled with the failed
+                        # attempt's -- and a tool-use count is the covariate that decides
+                        # whether a null result means "did not help" or "never found".
+                        # Wrong data wearing the shape of right data.
+                        "pid": os.getpid(),
+                        "tool": tool,
+                        **params,
+                    }
+                )
+                + "\n"
             )
     except OSError:
         pass
