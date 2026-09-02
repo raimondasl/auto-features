@@ -164,10 +164,17 @@ def walk_row(
     *,
     clones: Path,
     contexts: Path,
+    head_ids: Path | None = None,
     timeout: float = ROW_TIMEOUT_S,
     url_for: Any = github_url,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """One candidate: clone, screen, mine if it qualifies, delete. Never raises."""
+    """One candidate: clone, screen, mine if it qualifies, delete. Never raises.
+
+    *head_ids* receives the repository's full identifier set at HEAD. §4 draws controls that
+    are "not cited anywhere in the repository at HEAD", and the clone is gone by then — so
+    the set has to be persisted here or the control rule cannot be applied at all. Counts
+    alone are not enough.
+    """
     started = time.monotonic()
     full = candidate["full_name"]
     created = (candidate.get("created_at") or "")[:10]
@@ -270,6 +277,11 @@ def walk_row(
             digest = context_hash("t0", context)
             (contexts / f"{key}.{digest}.txt").write_text(context, encoding="utf-8")
             row["note"] = f"context {digest}"
+            if head_ids is not None:
+                head_ids.mkdir(parents=True, exist_ok=True)
+                (head_ids / f"{key}.json").write_text(
+                    json.dumps(sorted(head_paths), indent=0), encoding="utf-8"
+                )
         row["seconds"] = round(time.monotonic() - started, 1)
         return row, rows
     except Exception as exc:  # noqa: BLE001 - a bad row must not end an hours-long walk
@@ -335,6 +347,7 @@ def walk(
     walk_csv = out_dir / "validity_walk.csv"
     adoptions = out_dir / "adoptions-pool-v2.json"
     contexts = out_dir / "contexts"
+    head_ids = out_dir / "head_ids"
     clones = clone_dir if clone_dir is not None else EVALS / ".work" / "fullclone"
     done = already_walked(walk_csv)
 
@@ -381,7 +394,12 @@ def walk(
             results = list(
                 pool.map(
                     lambda item: walk_row(
-                        item[0], item[1], clones=clones, contexts=contexts, url_for=url_for
+                        item[0],
+                        item[1],
+                        clones=clones,
+                        contexts=contexts,
+                        head_ids=head_ids,
+                        url_for=url_for,
                     ),
                     prepared,
                 )

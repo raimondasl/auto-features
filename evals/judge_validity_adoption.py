@@ -59,6 +59,7 @@ repository will take up separates them.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import random
@@ -192,6 +193,175 @@ def cluster_bootstrap_auc(
     return out
 
 
+# ---------------------------------------------------------------------------------------
+# Cache isolation (PREREG-judge-validity-pool section 4 and 7)
+# ---------------------------------------------------------------------------------------
+JUDGE_CACHE = EVALS / "cache" / "judge"
+SECOND_JUDGE_CACHE = WORK / "second_judge"
+
+
+def cache_fingerprint(*roots: Path) -> str:
+    """A hash of every cached verdict's path, size and mtime under *roots*.
+
+    This is a **blocking gate**, not hygiene. `judge_paper` keys its cache on
+    (model, repo, paper_id) and NOT on the context it was given, so a T0 verdict written
+    into the shared gold cache silently overwrites the HEAD verdict for the same paper. That
+    exact write once took `rag` from 5 gold targets to 0 -- and it is invisible afterwards,
+    because the file is still there and still parses.
+
+    Path, size and mtime rather than content: the cache holds thousands of small files and
+    this runs twice per judging session, while any write at all moves an mtime.
+    """
+    lines: list[str] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*")):
+            if path.is_file():
+                stat = path.stat()
+                lines.append(
+                    f"{path.relative_to(root).as_posix()}|{stat.st_size}|{stat.st_mtime_ns}"
+                )
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def assert_caches_untouched(before: str, roots: tuple[Path, ...]) -> None:
+    """Raise if anything under *roots* changed. Called after every judging run."""
+    after = cache_fingerprint(*roots)
+    if after != before:
+        raise SystemExit(
+            "THE JUDGE CACHE MOVED during a T0 judging run.\n"
+            "  T0 verdicts must never enter the shared gold cache: judge_paper keys on\n"
+            "  (model, repo, paper_id) and not on the context, so a write here overwrites\n"
+            "  the HEAD verdict for the same paper, and every downstream number changes\n"
+            "  silently. Check use_cache=False at every call site, and that the second\n"
+            "  judge writes under its own cache_as namespace.\n"
+            f"  roots: {[str(r) for r in roots]}"
+        )
+
+
+# ---------------------------------------------------------------------------------------
+# Arm-neutral controls (PREREG-judge-validity-pool section 4)
+# ---------------------------------------------------------------------------------------
+CONTROL_SCHEMES = ("pool", "arxiv-window")
+CONTROL_SCHEME = "pool"
+LISTING_PER_WINDOW = 200
+
+
+def half_year_bounds(published: str) -> tuple[str, str]:
+    """The half-year containing *published*, as arXiv `submittedDate` bounds.
+
+    Matching on a half-year rather than on an exact date is what makes a control a paper the
+    project *could* have adopted at the same moment: same field, same window, same state of
+    the literature. A tighter window would run the listing dry in small categories.
+    """
+    day = datetime.fromisoformat(published[:10]).date()
+    if day.month <= 6:
+        lo, hi = day.replace(month=1, day=1), day.replace(month=6, day=30)
+    else:
+        lo, hi = day.replace(month=7, day=1), day.replace(month=12, day=31)
+    return lo.strftime("%Y%m%d0000"), hi.strftime("%Y%m%d2359")
+
+
+def arxiv_window_listing(
+    category: str,
+    lo: str,
+    hi: str,
+    *,
+    want: int = LISTING_PER_WINDOW,
+    archive: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Every arXiv paper in *category* submitted in the window, through the shared gate.
+
+    Archived per (category, window) because this is the **negative class of the primary
+    endpoint**. An AUC is a statement about positives against these papers; if the listing
+    cannot be reproduced, neither can the number.
+    """
+    import arxiv
+
+    from reporadar import collector as collector_mod
+
+    query = f"cat:{category} AND submittedDate:[{lo} TO {hi}]"
+    search = arxiv.Search(query=query, max_results=want, sort_by=arxiv.SortCriterion.SubmittedDate)
+    results = collector_mod._query_with_retry(collector_mod._shared_client(100), search)
+    papers = [collector_mod._result_to_paper(r) for r in results]
+    if archive is not None:
+        archive.mkdir(parents=True, exist_ok=True)
+        (archive / f"{category.replace('.', '_')}-{lo[:6]}.json").write_text(
+            json.dumps({"query": query, "n": len(papers), "papers": papers}, indent=2),
+            encoding="utf-8",
+        )
+    return papers
+
+
+def arxiv_window_controls(
+    positives: list[dict[str, Any]],
+    head_ids: dict[str, set[str]],
+    seed: str,
+    *,
+    per_positive: int = CONTROLS_PER_POSITIVE,
+    listing: Any = arxiv_window_listing,
+    archive: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Four controls per positive: same primary category, same half-year, never cited.
+
+    **Why not the shipped candidate pool.** A pool built by RepoRadar is RepoRadar's own
+    HEAD-seeded output, so a judge that is harsher on RepoRadar-shaped papers -- Sonnet, by
+    a factor of 2.3 -- would be credited with "validity" for a property of the control set.
+    Both adoption refutations landed on this point. An arXiv category listing is produced by
+    arXiv, not by the system under test.
+
+    *head_ids* is the repository's whole identifier set at HEAD, so a "control" the project
+    actually went on to cite is excluded. Without it the negative class silently contains
+    positives, which biases the AUC toward 0.5 -- i.e. toward the null this pool is
+    pre-committed to reporting.
+    """
+    cache: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    by_case: dict[str, set[str]] = {}
+    for row in positives:
+        by_case.setdefault(row["case"], set()).add(dedup_id(str(row["id"])))
+
+    out: list[dict[str, Any]] = []
+    taken: dict[str, set[str]] = {}
+    for row in sorted(positives, key=lambda r: (r["case"], str(r["id"]))):
+        case = row["case"]
+        category = row.get("primary_category") or ""
+        published = row.get("published") or ""
+        if not category or not published:
+            continue
+        lo, hi = half_year_bounds(published)
+        key = (category, lo, hi)
+        if key not in cache:
+            cache[key] = listing(category, lo, hi, archive=archive)
+        cited = head_ids.get(case, set())
+        chosen = taken.setdefault(case, set())
+        pool = [
+            paper
+            for paper in cache[key]
+            if dedup_id(str(paper.get("arxiv_id", ""))) not in cited
+            and dedup_id(str(paper.get("arxiv_id", ""))) not in by_case[case]
+            and dedup_id(str(paper.get("arxiv_id", ""))) not in chosen
+            and str(paper.get("abstract") or "").strip()
+        ]
+        pool.sort(key=lambda paper: dedup_id(str(paper.get("arxiv_id", ""))))
+        random.Random(f"{seed}:{case}:{dedup_id(str(row['id']))}").shuffle(pool)
+        for paper in pool[:per_positive]:
+            pid = dedup_id(str(paper.get("arxiv_id", "")))
+            chosen.add(pid)
+            out.append(
+                {
+                    "case": case,
+                    "id": pid,
+                    "t0": row.get("t0_commit_date") or row.get("t0_date", ""),
+                    "for_positive": dedup_id(str(row["id"])),
+                    "window": f"{lo}..{hi}",
+                    "category": category,
+                    "paper": paper,
+                }
+            )
+    return out
+
+
 def adoptions() -> list[dict[str, Any]]:
     rows = json.loads(ADOPTIONS.read_text(encoding="utf-8"))
     return [r for r in rows if r.get("usable")]
@@ -280,6 +450,15 @@ def judge() -> int:
     from second_judge import second_verdict
 
     load_dotenv(EVALS / ".env")
+    # Two independent guards, both blocking, both checked after the run rather than trusted.
+    # `mine_adoptions.main` already carries the gold-set check; this function bought hundreds
+    # of T0 verdicts without either of them.
+    from build_hop_pool import resolve_targets
+
+    cache_roots = (JUDGE_CACHE, SECOND_JUDGE_CACHE)
+    cache_before = cache_fingerprint(*cache_roots)
+    targets_before = resolve_targets()
+
     rng = random.Random(SEED)
     pos, ctl = adoptions(), controls(rng)
     have = load_verdicts()
@@ -329,6 +508,16 @@ def judge() -> int:
             print(f"  [{n}/{len(items)}] bought {bought}, void {void}", flush=True)
     VERDICTS.write_text(json.dumps(have, indent=0), encoding="utf-8")
     print(f"\nbought {bought} verdicts; {void} void")
+
+    # Both guards fire AFTER the verdicts are safely written, so a violation is reported
+    # without also losing the run that revealed it.
+    assert_caches_untouched(cache_before, cache_roots)
+    if resolve_targets() != targets_before:
+        raise SystemExit(
+            "THE GOLD SET MOVED — T0 verdicts leaked into the shared cache and changed which "
+            "papers count as gold targets. Every recall number downstream is now different."
+        )
+    print("cache isolation: both roots and the gold set unchanged")
     return 0
 
 
@@ -540,7 +729,22 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--plan", action="store_true")
     ap.add_argument("--judge", action="store_true")
+    ap.add_argument(
+        "--controls",
+        choices=CONTROL_SCHEMES,
+        default="pool",
+        help=(
+            "'pool' reproduces NR-56/57 (RepoRadar's own candidate pool). 'arxiv-window' is "
+            "the arm-neutral scheme the validity pool registers (§4): same primary category, "
+            "same half-year, never cited by the repository at HEAD."
+        ),
+    )
     args = ap.parse_args()
+    # A module-level switch rather than a threaded parameter: `controls()` is called from
+    # plan(), judge() and report(), and a scheme that differed between planning and judging
+    # would draw one control set and score another.
+    global CONTROL_SCHEME
+    CONTROL_SCHEME = args.controls
     if args.plan:
         return plan()
     if args.judge:
