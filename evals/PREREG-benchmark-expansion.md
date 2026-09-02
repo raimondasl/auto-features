@@ -28,6 +28,11 @@ Two decisions by the maintainer on 2026-09-02, before registration, both recorde
 Conflicts table:
   * Primary arm = arXiv+EPMC; the shipped arXiv arm is co-registered (P0.3).
   * The validity pool (§6) runs to completion before the benchmark draw (§10 step 5).
+
+ON HOLD, maintainer's directive of 2026-09-02: the 37 -> 60 expansion runs only on an
+explicit instruction. The judge-validity pool has moved to its own pre-registration
+(evals/PREREG-judge-validity-pool.md) and proceeds independently; see the note at section 6.
+Nothing in this file is enumerated, cloned, tagged or run until that instruction arrives.
 -->
 
 # Pre-registration — benchmark expansion 37 → 60 under a frozen sampling frame [rung 10]
@@ -204,7 +209,17 @@ All held-out arm runs, module R, module J (§7.3), and all judging occur inside 
 
 ---
 
-## 6. Judge-validity pool (decoupled from the benchmark)
+## 6. Judge-validity pool (moved to its own pre-registration)
+
+> **This section has been superseded by [`evals/PREREG-judge-validity-pool.md`](PREREG-judge-validity-pool.md), 2026-09-02.** The pool was always decoupled — it runs no arm, mines with git and a regular expression, and judges against a T0 context — and on the maintainer's directive of 2026-09-02 the 37 → 60 expansion **runs only on an explicit instruction**. A pool registered inside a document that may never be registered would have no registration at all, so it now draws its own candidate list and fixes its own beacon seed (`SEED_POOL`), independent of `universe-D.csv` and of `SEED`.
+>
+> What changed in the move, all decided before the pool runs: the screen is `ids_v2(T0) ≥ 3` rather than `ids_v2(HEAD) ≥ 10` (screening on HEAD conditions eligibility on the outcome; the constant is re-derived from a published measurement over the legacy 37); the judging target is **100** new positives with 60 as the reporting minimum; and the life-science blind spot — **0 of 6 `bio-*` and 0 of 6 `mat-*` legacy repositories clear `ids_v2(HEAD) ≥ 10`** — is sized with DOI/PMID covariates rather than closed.
+>
+> The one obligation this document inherits: if the expansion later proceeds, its selection inputs will have been fixed *after* the pool's results were visible, and that ordering must be disclosed here. §11 of the pool file states the reciprocal duty, and the pool's artefacts carry no `github.com/…` URLs so they cannot contaminate X2's prior-exposure grep.
+
+The text below is kept for the record of what was merged, and is no longer operative.
+
+### 6.0 (superseded) Judge-validity pool (decoupled from the benchmark)
 
 ### 6.1 Label
 Adoption = `ids_v2(HEAD) − ids_v2(T0)`, **T0 = (the pinned HEAD commit's date) − 24 months**, mined by `evals/mine_adoptions.py` with **extractor v2** = the existing arXiv regex ∪ `huggingface.co/papers/<id>` ∪ `hf.co/papers/<id>` (diffusers' docs fell from 99 to 11 arXiv-regex ids through link migration; v2 is applied to **both** ends so a migrated id cannot become a false adoption), plus the existing self-citation (`CITE_HEADING`) and 182-day too-new filters, a **reverse-citation path filter** (ids whose only occurrences are under paths matching `/(projects|showcase|used[-_ ]by|gallery|community|awesome)/i` are dropped), and a **doc-genesis guard** (`ids_v2(T0) ≥ 1`; positives from repos with an empty T0 bibliography are flagged `genesis` and excluded from the primary). Label v1 numbers (NR-56/57: 35 usable over 9 repos — graph 13, diffusion 7, peft 5, rag/rl/llminfer/bio-scvi 2, bio-singlecell/mat-phonon 1) are reported unchanged as v1 — `mine_adoptions.py` writes v2 to `adoptions-v2.json` so a v2 run cannot overwrite the record it is compared against; v2 is recomputed over the legacy 37 (P14a/P14b).

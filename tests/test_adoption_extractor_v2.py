@@ -402,3 +402,42 @@ class TestTheQualifyingScreen:
         )
         with pytest.raises(SystemExit):
             ma.read_candidates(path)
+
+
+class TestThePoolArtefactsCarryNoUrls:
+    """§2.1 of `PREREG-judge-validity-pool.md`: candidate rows are `full_name` only.
+
+    The benchmark expansion's X2 rule excludes repositories "previously exposed", defined as
+    every `github.com/<owner>/<repo>` string in the tree. The pool walks up to 1,200
+    candidates and writes each one down. If those rows carried URLs, a later prior-exposure
+    grep would sweep the pool's own output into the benchmark's exclusion list and strip
+    citation-rich research repositories out of the very population the expansion wants — the
+    coupling the separation exists to remove, arriving through a shell command.
+
+    A bare `owner/repo` does not match that grep; a `url` column would.
+    """
+
+    def test_no_url_column_is_written(self) -> None:
+        assert not any("url" in column for column in ma.SCREEN_COLUMNS)
+
+    def test_a_written_screen_contains_no_github_urls(self, tmp_path: Path) -> None:
+        """Checked on the bytes rather than on the column list, because the URL is
+        synthesised inside `screen()` and could leak through `note` or a future column."""
+        out = tmp_path / "validity_screen.csv"
+        ma.write_screen(
+            [
+                {
+                    "full_name": "acme/rich",
+                    "created_at": "2020-01-01",
+                    "clone_ok": True,
+                    "ids_v1_head": 3,
+                    "ids_v2_head": 12,
+                    "qualifies": True,
+                    "note": "",
+                }
+            ],
+            out,
+        )
+        text = out.read_text(encoding="utf-8")
+        assert "acme/rich" in text
+        assert "github.com" not in text
