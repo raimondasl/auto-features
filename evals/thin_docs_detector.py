@@ -58,7 +58,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from harness import EVALS_DIR, WORK_DIR, load_benchmark  # noqa: E402
-from metrics import net_actionable_value  # noqa: E402
+from metrics import average_ranks, net_actionable_value  # noqa: E402
 from run_judge_eval import ablate_docs  # noqa: E402
 
 from reporadar.profiler import _collect_text_corpus  # noqa: E402
@@ -90,23 +90,6 @@ def corpus_chars(repo_dir: Path) -> int:
     return sum(len(doc) for doc in _collect_text_corpus(repo_dir))
 
 
-def _ranks(values: list[float]) -> list[float]:
-    """Average ranks. net@2 is heavily tied (many cases sit at exactly 0.0), and breaking
-    those ties by position would manufacture an ordering the data does not contain."""
-    order = sorted(range(len(values)), key=lambda i: values[i])
-    ranks = [0.0] * len(values)
-    i = 0
-    while i < len(order):
-        j = i
-        while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
-            j += 1
-        shared = (i + j) / 2 + 1
-        for k in range(i, j + 1):
-            ranks[order[k]] = shared
-        i = j + 1
-    return ranks
-
-
 def _pearson(xs: list[float], ys: list[float]) -> float:
     if len(xs) < 3:
         return float("nan")
@@ -118,7 +101,11 @@ def _pearson(xs: list[float], ys: list[float]) -> float:
 
 
 def _spearman(xs: list[float], ys: list[float]) -> float:
-    return _pearson(_ranks(xs), _ranks(ys))
+    # `average_ranks` lives in `metrics` because the adoption AUC needs the identical tie
+    # rule. Two implementations of one invariant is this project's most repeated defect
+    # (C-9, C-12, C-14), and a rank function that disagreed between two analyses would be
+    # invisible in both.
+    return _pearson(average_ranks(xs), average_ranks(ys))
 
 
 def net_by_case(path: Path) -> dict[str, float]:

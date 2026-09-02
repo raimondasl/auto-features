@@ -82,6 +82,9 @@ WORK = EVALS / ".work"
 CLONES = WORK / "fullclone"
 OUT = WORK / "adoptions.json"
 SEEDS = WORK / "adoption_seeds.json"
+# The pool is a published artefact. `.work/` is gitignored, so nothing there can be what the
+# runbook means by "committed".
+POOL_DIR = EVALS / "frame" / "pool"
 SCREEN_COLUMNS = (
     "full_name",
     "created_at",
@@ -257,7 +260,12 @@ def reverse_cited_only(paths_by_id: dict[str, set[str]]) -> set[str]:
     }
 
 
-def self_cited(repo: Path, rev: str, extractor: str = "v1") -> set[str]:
+def self_cited(
+    repo: Path,
+    rev: str,
+    extractor: str = "v1",
+    paths_with_ids: set[str] | None = None,
+) -> set[str]:
     """Ids the project cites as ITS OWN work — a CITATION file, or a "Citation" heading.
 
     A repo that is the reference implementation of a paper always cites that paper, and it
@@ -266,10 +274,22 @@ def self_cited(repo: Path, rev: str, extractor: str = "v1") -> set[str]:
 
     Conservative: it catches the conventional places and will miss an unconventional one, so
     the reported self-citation fraction is a lower bound.
+
+    *paths_with_ids* is the set of doc paths already known to contain an extracted id. It is
+    a pure speed-up and changes no result: a `.md`/`.rst` file with no id in it cannot put an
+    id inside a citation heading's window either, and every such file is already covered by
+    `DOC_GLOBS`. It matters because the loop below runs one `git show` — and, in a blobless
+    clone, one lazy blob fetch — per file. On a repository the size of `transformers` that is
+    thousands of network round trips for a repository that will usually contribute nothing,
+    and the pool walks hundreds of repositories. CITATION files are always read: they need
+    not match `DOC_GLOBS`, so they may hold an id nothing else saw.
     """
     # v2 without this would read a project's own paper, linked as huggingface.co/papers/,
     # as an adoption -- and self-citations are the strongest-looking adoptions there are.
     pats = (ID,) if extractor == "v1" else (ID, HF_ID)
+    if paths_with_ids is None:
+        found_paths = ids_with_paths(repo, rev, extractor).values()
+        paths_with_ids = {p for paths in found_paths for p in paths}
     found: set[str] = set()
     listing = subprocess.run(
         ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", rev],
@@ -281,7 +301,7 @@ def self_cited(repo: Path, rev: str, extractor: str = "v1") -> set[str]:
     for path in listing:
         name = path.rsplit("/", 1)[-1].lower()
         is_citation_file = name.startswith("citation")
-        if not (is_citation_file or name.endswith((".md", ".rst"))):
+        if not (is_citation_file or (name.endswith((".md", ".rst")) and path in paths_with_ids)):
             continue
         blob = subprocess.run(
             ["git", "-C", str(repo), "show", f"{rev}:{path}"],
@@ -381,7 +401,10 @@ def mine(
         at_head = set(head_paths)
         at_t0 = ids_at(repo, t0, extractor)
         seeds[case] = sorted(at_t0)
-        selfcites = self_cited(repo, head, extractor)
+        # The path map is already in hand; passing it saves one `git show` per doc file.
+        selfcites = self_cited(
+            repo, head, extractor, {p for paths in head_paths.values() for p in paths}
+        )
         showcase = reverse_cited_only(head_paths)
         # Doc-genesis guard (section 6.1): a repo with no bibliography at T0 has no "before",
         # so every id at HEAD reads as an adoption. Such rows are kept and flagged, never
@@ -697,7 +720,10 @@ def main() -> int:
             keep_clones=args.keep_clones,
             created_before=args.created_before,
         )
-        out = args.out or (WORK / "validity_screen.csv")
+        # NOT `.work/` — that is gitignored (`.gitignore:196`), which makes the runbook's
+        # "validity_screen.csv committed" impossible to follow. The pool's artefacts are
+        # published with the paper, so they default somewhere that can actually be committed.
+        out = args.out or POOL_DIR / "validity_screen.csv"
         write_screen(screened, out)
         qualify = sum(1 for r in screened if r["qualifies"])
         print(

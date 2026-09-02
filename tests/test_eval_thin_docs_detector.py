@@ -137,8 +137,8 @@ class TestTheCorrelationTheScriptNeverComputed:
         toward whatever order the cases happen to be in."""
         import thin_docs_detector as det
 
-        assert det._ranks([5.0, 1.0, 1.0, 1.0, 9.0]) == [4.0, 2.0, 2.0, 2.0, 5.0]
-        assert det._ranks([2.0, 2.0]) == [1.5, 1.5]
+        assert det.average_ranks([5.0, 1.0, 1.0, 1.0, 9.0]) == [4.0, 2.0, 2.0, 2.0, 5.0]
+        assert det.average_ranks([2.0, 2.0]) == [1.5, 1.5]
 
     def test_a_monotone_relationship_is_plus_one_either_way_round(self) -> None:
         import thin_docs_detector as det
