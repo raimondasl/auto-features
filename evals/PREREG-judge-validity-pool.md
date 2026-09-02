@@ -1,29 +1,53 @@
 <!--
-DRAFT — NOT YET REGISTERED.
+REGISTERED 2026-09-02. This file binds from the commit that removed the word DRAFT.
 
-This becomes a pre-registration when (a) every `____` blank is filled at the step that
-produces it, (b) the candidate list `pool-universe-Dp.csv` is committed, and (c) it is
-committed with the word DRAFT removed from this banner. Until then nothing in it binds.
+A correction made in the act of registering: the DRAFT banner said registration required the
+candidate list `pool-universe-Dp.csv` to be committed. That was backwards and contradicted
+this file's own runbook, where enumeration is step 3 and registration is step 1. Registration
+comes FIRST -- it is what makes the enumeration a procedure carried out under a fixed design
+rather than a search. The candidate list is an OUTPUT of the registered procedure.
 
-Measured BEFORE registration, and labelled as such wherever it is used:
+WHAT IS FROZEN FROM NOW ON
+  * the population rule (section 2), the label and every filter (section 1), the control
+    scheme (section 4), the endpoints and their pre-committed consequences (section 5), the
+    budgets and stop rule (section 3), and predictions P1-P9 (section 8);
+  * the code that implements them, committed alongside: mine_adoptions.py (extractor v2),
+    frame/enumerate_pool.py, frame/walk_pool.py, judge_validity_adoption.py
+    (arxiv-window controls, cluster_bootstrap_auc, the cache gate) and their tests.
+
+WHAT IS NOT YET WRITTEN, and the one honest gap at registration: the analysis wrapper that
+assembles pool verdicts into section 5's tables does not exist. cluster_bootstrap_auc and
+roc_auc do, and are tested; the glue does not. It must be written BEFORE any verdict is
+bought, and it must implement section 5 as registered here rather than as convenient later.
+
+BLANKS still to fill, each at the step that produces it and never earlier: Dp (section 2.1),
+SEED_POOL and its pulse timestamp (section 2.4), the two judge training cutoffs (section 5).
+
+MEASURED BEFORE REGISTRATION, and labelled as such wherever it is used:
   * the `diffusion` link-migration premise (section 1);
   * `ids_v2(T0)` and `ids_v2(HEAD)` counts across the 37 legacy benchmark repositories,
     which derive the PP2 threshold (section 2.3) and size the life-science blind spot
-    (section 6.2).
-Neither computes an adoption set: no HEAD-minus-T0 difference over the legacy 37 has been
-taken, so P1 and P2 below are unanswered. No candidate repository outside the legacy 37 has
-been enumerated, cloned or looked at.
+    (section 6, item 2).
 
-Maintainer decisions of 2026-09-02, recorded before registration:
-  * the life-science blind spot is SIZED, not closed (section 6.2);
+NOT MEASURED, so the predictions that depend on them are genuinely open: no HEAD-minus-T0
+adoption set has been taken over the legacy 37 (P1, P2 unanswered); no AUC has been computed
+on any real verdicts, legacy or otherwise (P6, P8 unanswered -- the cluster bootstrap is
+tested only against synthetic fixtures, deliberately); no candidate repository outside the
+legacy 37 has been enumerated, cloned or looked at (P3, P4, P5, P9 unanswered).
+
+MAINTAINER DECISIONS of 2026-09-02, all recorded before registration:
+  * the life-science blind spot is SIZED, not closed (section 6, item 2);
   * the judging target is 100 new positives, with 60 as the reporting minimum (section 3.3);
+  * the primary endpoint measures ADOPTION DISCRIMINATION, not matching, and a null is
+    three-ways ambiguous (section 4, section 5) -- raised by the maintainer before
+    registration and written into the pre-committed consequences rather than the limitations;
   * the 37 -> 60 benchmark expansion is on hold and runs only on an explicit directive, which
     is why this file exists separately (section 11).
 -->
 
 # Pre-registration — judge-validity pool from repository adoption
 
-**File:** `evals/PREREG-judge-validity-pool.md`. **Status:** DRAFT. Written before any candidate outside the legacy 37 was enumerated, cloned, profiled or looked at. Every blank (`____`) is filled at the step that produces it and never earlier; the git history of this file is the audit trail.
+**File:** `evals/PREREG-judge-validity-pool.md`. **Status: REGISTERED 2026-09-02.** Written and registered before any candidate outside the legacy 37 was enumerated, cloned, profiled or looked at, and before any adoption set or AUC was computed on any data. Every remaining blank (`____`) is filled at the step that produces it and never earlier; the git history of this file is the audit trail.
 
 ---
 
@@ -67,7 +91,7 @@ NR-56 and NR-57 built that label and could not settle the question: 35 usable po
 ## 2. Population
 
 ### 2.1 Enumeration
-`pool-universe-Dp.csv`, produced on day **Dp = `____`** by `evals/frame/enumerate.py` against a committed topic list and rule set, from the GitHub search API with every query sliced below the 1,000-result cap. The raw query URLs, raw JSON responses, response `Date` headers and per-query `total_count` are archived alongside, because the snapshot can never be re-queried.
+`pool-universe-Dp.csv`, produced on day **Dp = `____`** by `evals/frame/enumerate_pool.py` against the committed topic list (`evals/frame/pool/topics.json`, 32 topics) and rule set, from the GitHub search API with every query sliced below the 1,000-result cap. The raw query URLs, raw JSON responses, response `Date` headers and per-query `total_count` are archived alongside, because the snapshot can never be re-queried.
 
 **The enumeration artefact carries no `html_url` and no `url` column** — repositories are identified by `full_name` only. This is a rule, not an implementation detail: any artefact containing `github.com/<owner>/<repo>` strings inside this repository would be swept up by a later prior-exposure grep, and `mine_adoptions.SCREEN_COLUMNS` is already URL-free. `tests/` pins it.
 
@@ -140,6 +164,12 @@ Four controls per positive, **arm-neutral**: arXiv listings in the positive's pr
 
 **Why not the shipped candidate pool.** A pool built by RepoRadar is RepoRadar's own HEAD-seeded output, so a judge harsher on RepoRadar-shaped papers — Sonnet, by a factor of 2.3 — would be credited with "validity". Both adoption refutations agree on this. The legacy 35 are re-run under this control scheme; the pool-control result stays reported as NR-57.
 
+**What "matched" does not mean, and it is the largest limitation in this file.** A control is a paper from the same field and the same half-year that the repository did not cite. **Nothing about that makes it a worse paper for the repository than the one it did adopt.** Quite possibly it is better: the maintainers may never have seen it, may have had nobody free to do the work, may have been locked into an existing dependency, or may have chosen on grounds that have nothing to do with technical merit. Adoption records what a project *did*, not what would have helped it most, and no procedure available here can tell those apart — asking a model which paper would have helped more is precisely the circularity this pool exists to escape.
+
+So the primary endpoint is **adoption discrimination**, not matching, and this file uses that name. It answers "does this judge rank papers a project went on to take up above comparable papers it did not?" It does **not** answer "does this judge identify the most useful paper available?" The two coincide only insofar as projects adopt what helps them most, which is an assumption, is certainly false in individual cases, and is not tested anywhere here.
+
+**The direction of the resulting bias is knowable, and it is the reason this is still worth running.** Genuinely useful papers sitting in the control set can only pull a judge's positives and controls closer together, never further apart — so the measured AUC is a **lower bound** on discrimination. That makes the two outcomes asymmetric, and §5's pre-committed consequences are written to respect it: an interval that **excludes 0.5 is conservative evidence** that the judge tracks something real, while an interval that **includes 0.5 cannot separate** "this judge does not discriminate" from "the controls were genuinely good papers this project never got to". A null here is therefore weaker than it looks, and the paper must say so rather than reporting it as a clean negative.
+
 Both judges, byte-identical rubric, a T0 context (README excerpt, manifests, file listing at T0 — no arm), `use_cache=False`, and T0 verdicts never entering the shared judge cache. That last one is mandatory rather than an optimisation: `judge_paper` keys its cache on `(model, repo, paper_id)` and **not** on the context, so a T0 verdict written into the gold cache overwrites the HEAD verdict for the same paper. That exact write once took `rag` from 5 targets to 0. Cache roots are hashed before and after; a change is a blocking failure.
 
 ---
@@ -153,7 +183,11 @@ Both judges, byte-identical rubric, a T0 context (README excerpt, manifests, fil
 * **Transportability:** heterogeneity of AUC between the legacy cluster and the seeded pool, and between star bands.
 * **Contamination sensitivity:** positives split by adoption commit date relative to each judge's published training cutoff (recorded at registration: GPT-5.5 `____`, Sonnet 5 `____`); AUC on the post-cutoff subset.
 
-**Pre-committed consequences.** If the primary judge's AUC interval includes 0.5, the project states that its primary label shows no demonstrated discrimination against the only model-free label available, and every headline figure downstream is reported with that stated beside it. If both judges' intervals exclude 0.5, both order papers meaningfully and the base-rate disagreement remains unresolved.
+**Pre-committed consequences, and they are deliberately asymmetric.** §4 establishes that the measured AUC is a *lower bound*: a control may be a better paper than the positive it is matched against, which can only compress the two classes together. So:
+
+* **Interval excludes 0.5** — conservative evidence that the judge tracks something real. Reported as demonstrated adoption discrimination, with the lower-bound argument stated so the number is not read as an upper limit on the judge's quality either.
+* **Interval includes 0.5** — the project states that its primary label shows **no demonstrated discrimination** against the only model-free label available, and every headline figure downstream carries that beside it. It must **also** state that this outcome cannot separate "the judge does not discriminate" from "the controls were genuinely good papers this project never got to" from "too few repositories" (the minimum detectable AUC, above). A null here is three-ways ambiguous and is not to be reported as a clean negative.
+* **Both judges exclude 0.5** — both order papers meaningfully and the base-rate disagreement remains unresolved.
 
 **No outcome switches the primary label.** The gap at a judge's own threshold is Youden's J at that operating point: a judge at an 87 % positive rate sits in the top-right of its ROC and is bounded low by geometry, so "Sonnet's larger gap" restates the base rates and identifies neither as correct. Adoption is a **lower bound** on actionability and cannot calibrate a level. Any decision rule reading the gap difference against PREREG-rung1's 0.15 bar is **retired here, before the data**.
 
@@ -163,10 +197,11 @@ Both judges, byte-identical rubric, a T0 context (README excerpt, manifests, fil
 
 1. **Which judge's level is right.** Section 5, by geometry. Pre-committed.
 2. **Validity on the life-science channel.** Measured, not conjectured: of the 37 legacy repositories, **0 of 6 `bio-*` and 0 of 6 `mat-*` clear `ids_v2(HEAD) ≥ 10`** (bio: 2, 0, 0, 0, 5, 3; materials: 1, 2, 0, 4, 2, 1), against 5 that do (`cv`, `diffusion`, `graph`, `peft`, `rl`). Life-science and materials documentation cites DOIs and journal references; this label reads arXiv and Hugging Face links only. **On the maintainer's decision of 2026-09-02 the blind spot is sized, not closed**: DOI and PMID counts are recorded at both ends as covariates, the pool licenses the judge on arXiv-citing research repositories, and validity on Europe PMC is an explicit **assumption**. Widening the extractor to DOIs is deliberately *not* done here — Zenodo software DOIs would be a large self-citation false-positive class, the filters and tests would have to be rebuilt, and the change would land after the premise was measured.
-3. **Ordering among topically close papers.** Category-window controls are a broad negative. An AUC excluding 0.5 against them is not evidence about the discrimination the product actually performs, which is among retrieved, on-topic candidates.
-4. **Anything about repositories with no literature to track.** Excluded by construction. Bibliography-maintaining repositories also skew popular, so the small-star band will be thin.
-5. **Freedom from recognition.** Both judges have almost certainly seen these repositories and the papers they adopted. The T0 screen removes the *outcome* from eligibility; it does not remove *fame*. Recognition inflates both judges' rates and compresses their difference toward zero, so a null on the difference is partly a property of the frame. The contamination split is the only instrument against it and will be underpowered.
-6. **That the runner's knowledge did not reach the walk.** The frozen list, the unchoosable seed and the mechanical rules make it inert, not absent.
+3. **Whether the adopted paper was the *best* paper.** §4 in full: a matched control may well have served the repository better than the paper it actually took up, and adoption cannot distinguish "not useful" from "never seen", "nobody free to do the work", or "chose otherwise for non-technical reasons". The endpoint is adoption discrimination; a judge could be right about value and wrong about adoption, and would score badly here for being right. This is the largest limitation in the design and it has no fix available — the alternative label would have to come from a model, which is the circularity being escaped.
+4. **Ordering among topically close papers.** Category-window controls are a broad negative. An AUC excluding 0.5 against them is not evidence about the discrimination the product actually performs, which is among retrieved, on-topic candidates.
+5. **Anything about repositories with no literature to track.** Excluded by construction. Bibliography-maintaining repositories also skew popular, so the small-star band will be thin.
+6. **Freedom from recognition.** Both judges have almost certainly seen these repositories and the papers they adopted. The T0 screen removes the *outcome* from eligibility; it does not remove *fame*. Recognition inflates both judges' rates and compresses their difference toward zero, so a null on the difference is partly a property of the frame. The contamination split is the only instrument against it and will be underpowered.
+7. **That the runner's knowledge did not reach the walk.** The frozen list, the unchoosable seed and the mechanical rules make it inert, not absent.
 
 ---
 
@@ -222,7 +257,7 @@ The pool runs no arm, so there is no held-out set to protect and no configuratio
 
 ## 10. Runbook
 
-1. **Registration first.** Commit this file with DRAFT removed, together with `enumerate.py`, the topic list, the rule set, and the label and endpoint code as it will run. Changing the instrument mid-pool is an instrument change.
+1. ~~**Registration first.**~~ **Done 2026-09-02**: this file was committed with DRAFT removed, together with the topic list, the enumerator, the walk, the control scheme, the endpoint and the cache gate. Changing the instrument mid-pool is an instrument change. The one piece still to write is the analysis wrapper (banner), and it must exist before any verdict is bought.
 2. **`--extractor v2` over the legacy 37** (`$0`): scores P1 and P2, and measures the filter survival rate the yield arithmetic assumes — the reverse-citation and doc-genesis filters have fired **zero** times so far, and both will fire on an enumerated population (P9). A prerequisite, not hygiene.
    *This step is deliberately numbered after registration.* An earlier draft put it first, which would have scored P1 and P2 out of the very file that registers them — the defect this project has corrected repeatedly, and the one the §6.1 premise measurement already forced P1 to be demoted for.
 3. Day Dp: enumerate; commit `pool-universe-Dp.csv`, the raw response archive, and **the absolute UTC timestamp of the pulse that will seed it**.
