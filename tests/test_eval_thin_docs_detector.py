@@ -122,3 +122,62 @@ class TestTheBudgetIsRecordedGoingForward:
         import run_judge_eval
 
         assert "rr_ablate_docs" in run_judge_eval.POOL_FLAGS
+
+
+class TestTheCorrelationTheScriptNeverComputed:
+    """NR-37's substantive finding is the correlation, and until now the script did not
+    compute it — the r = +0.14 / rho = +0.20 in RESULTS.md were derived by hand from the
+    per-case table. The frame's P0.4 asks for the same statistic over 37 cases, so it is
+    code now, and these pin the two properties a hand-rolled rank correlation gets wrong.
+    """
+
+    def test_ties_get_the_average_rank(self) -> None:
+        """net@2 is heavily tied — many cases sit at exactly 0.0. Breaking those ties by
+        list position would invent an ordering the data does not contain and bias rho
+        toward whatever order the cases happen to be in."""
+        import thin_docs_detector as det
+
+        assert det._ranks([5.0, 1.0, 1.0, 1.0, 9.0]) == [4.0, 2.0, 2.0, 2.0, 5.0]
+        assert det._ranks([2.0, 2.0]) == [1.5, 1.5]
+
+    def test_a_monotone_relationship_is_plus_one_either_way_round(self) -> None:
+        import thin_docs_detector as det
+
+        xs = [1.0, 2.0, 3.0, 4.0, 5.0]
+        assert det._spearman(xs, [10.0, 20.0, 30.0, 40.0, 50.0]) == pytest.approx(1.0)
+        assert det._spearman(xs, [50.0, 40.0, 30.0, 20.0, 10.0]) == pytest.approx(-1.0)
+
+    def test_spearman_survives_a_monotone_transform_and_pearson_does_not(self) -> None:
+        """The reason the frame asks for rho rather than r: corpus size spans four orders
+        of magnitude, so a single large repository can carry a Pearson coefficient."""
+        import thin_docs_detector as det
+
+        xs = [1.0, 2.0, 3.0, 4.0, 100.0]
+        ys = [1.0, 2.0, 3.0, 4.0, 5.0]
+        assert det._spearman(xs, ys) == pytest.approx(1.0)
+        assert det._pearson(xs, ys) < 0.95
+
+    def test_too_few_points_is_not_a_number_rather_than_a_confident_zero(self) -> None:
+        import math
+
+        import thin_docs_detector as det
+
+        assert math.isnan(det._pearson([1.0, 2.0], [1.0, 2.0]))
+
+    def test_a_flat_series_has_no_correlation_rather_than_a_crash(self) -> None:
+        import math
+
+        import thin_docs_detector as det
+
+        assert math.isnan(det._pearson([1.0, 1.0, 1.0], [1.0, 2.0, 3.0]))
+
+    def test_the_run_file_is_selectable_so_p04_can_ask_for_37(self) -> None:
+        """P0.4 re-runs NR-37 over all 37 cases. The script was pinned to a 25-case file,
+        which is why the frame's blank could not be filled by running it."""
+        import inspect
+
+        import thin_docs_detector as det
+
+        src = inspect.getsource(det.main)
+        assert '"--run"' in src
+        assert "default=SHIPPED_RUN" in src

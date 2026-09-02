@@ -44,7 +44,18 @@ Conflicts table:
 
 **P0.3 The arm.** Two RepoRadar configurations exist at n = 37: the shipped arXiv arm (+0.32/+0.54 vs Opus 5 draw 1 depending on which of two identical-config runs is used, 0.22/case apart — C-7) and the unshipped arXiv+EPMC arm (+1.08, CI [−0.97, +3.16], sd 6.41). **Primary arm = arXiv+EPMC (`sources: arxiv,europepmc`) at tag `rr-frame60-freeze` (§7.1).** Fixed by the maintainer on 2026-09-02, before this file is registered and before any candidate is enumerated; it is the arm every P26/P27 comparison already uses (`opus5_arm.json` PRIMARY, `mcp_arm.json` arm A). Said plainly: choosing it *is* arm selection on the development set — it is the better of two arms measured on the 37 — and the held-out property of §7.1 attaches to whichever arm is named here before enumeration, not to the choice. The shipped arXiv arm at the same tag is **co-registered** and run on every held-out case (incremental cost ~$25 + judging), reported beside it, so a reader can see what the product as configured by `rr init --measured` does on the same cases. All power arithmetic below leads with m37 = +1.08 (primary) and gives m37 = +0.54 (co-registered) beside it, sd 6.41–6.56.
 
-**P0.4 NR-37 re-run.** NR-37 (2026-08-16) was n = 25 (thin-gnn corpus 1,073 chars, not 107,895), before any materials case existed. Before this file is committed: `uv run python evals/thin_docs_detector.py` over all 37, result recorded here: Spearman ρ(log corpus, net@2) = `____`. Documentation volume stays a **covariate**, never a stratum or exclusion (§2.3).
+**P0.4 NR-37 re-run — done 2026-09-02, and the finding strengthens.** NR-37 (2026-08-16) was n = 25 (thin-gnn corpus 1,073 chars, not 107,895), before any materials case existed. Re-run over all 37 under the primary arm: **Spearman ρ(log₁₀ corpus, net@2) = −0.00** (Pearson r = +0.08, n = 37); the co-registered arXiv arm gives ρ = +0.05, r = +0.07. Documentation volume stays a **covariate**, never a stratum or exclusion (§2.3), and it is now supported by a correlation of essentially exactly zero rather than by a small positive one.
+
+The two changes are separated so neither hides the other:
+
+| what | n | Pearson r | Spearman ρ |
+|---|---|---|---|
+| NR-37 as recorded (old corpus rule, live run) | 25 | +0.14 | +0.20 |
+| same run, today's corpus rule | 25 | +0.11 | +0.10 |
+| **primary arm arXiv+EPMC, all 37** | 37 | **+0.08** | **−0.00** |
+| co-registered arXiv arm, all 37 | 37 | +0.07 | +0.05 |
+
+Half of NR-37's already-small ρ was the corpus rule: widening it moved thin-gnn from the second-thinnest repository to twelfth, and thin-gnn's +9.0 was doing much of the work in "the thinnest score slightly better". Two caveats recorded rather than buried. **(a)** No 37-case *live* run with judged picks exists, so the 37-case rows are frozen-pool ranking runs (`pool-core25-epmc` / `pool-core25-arxiv`) while NR-37's 25-case row is a live end-to-end run; holding the pool fixed is arguably the cleaner test of this particular question, but it is not the same quantity. **(b)** `thin_docs_detector.py` never computed a correlation at all — NR-37's r and ρ were derived by hand from its per-case table, so P0.4 could not have been filled by running the script as it stood. It computes and records both now, with a `--run` flag to choose the results file, and `tests/test_eval_thin_docs_detector.py` pins the tie handling.
 
 **P0.5 The adoption channel is decoupled** (§6). No benchmark case is selected for adoption yield. Why: adoption mining is git + regex and judging adopted/control papers needs only the judge on a T0 context — neither arm runs — so the ~40 extra adoptions never had to enter the headline (all four refutations of the coupled designs agree on this point).
 
