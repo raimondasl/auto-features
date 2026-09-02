@@ -229,6 +229,14 @@ The pool runs no arm, so there is no held-out set to protect and no configuratio
 | **P8** | The realised design effect is ≥ 1.5, i.e. the paper-level interval the previous estimator would have reported is materially too narrow | yes |
 | **P9** | The reverse-citation and doc-genesis filters, which fired **zero** times across the legacy 37, together remove ≥ 5 % of gross adoptions on the enumerated population | yes |
 
+**Scored so far** (predictions above are left exactly as registered; outcomes are recorded here and in `RESULTS.md`):
+
+* **P1 — met, 2026-09-02, runbook step 2 [NR-60].** Legacy usable count 35 → 94 (+59); `diffusion` +39 and `peft` +22 carry all of it, and 61 of the 94 are reachable only through a Hugging Face link. A check rather than a prediction, as registered.
+* **P2 — met, 2026-09-02 [NR-60]. 0 of v1's 35 positives are migration artefacts**, scored at each case's own recorded T0 commit. NR-56/57's gaps stand as measured and the >3 consequence does not fire.
+* **Recorded alongside, which P2 was not testing:** v2 rejects 2 of v1's 35, both in `rl`, both papers that appear only on that project's "Projects using…" page — papers citing the repository rather than adopted by it. NR-56/57's 35 were 33 adoptions and 2 reverse citations.
+* **P9's premise corrected before the fact.** "Fired zero times across the legacy 37" was true only because v1 had no such fields. Under v2 the two filters fire 10 times in 120 gross adoptions (8.3 %) on the legacy set. P9 concerns the *enumerated* population and stays open, but it is no longer predicting an unobserved event.
+* **P3–P8 remain open.** No candidate has been enumerated and no verdict bought; no AUC has been computed on real data, deliberately (P6 registers an AUC over a set that includes these repositories).
+
 ---
 
 ## 9. Cost and yield

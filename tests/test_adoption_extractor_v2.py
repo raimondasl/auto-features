@@ -472,3 +472,63 @@ class TestAnUndateableIdDoesNotDiscardTheRepository:
         assert ma._too_new(None, head) is True
         assert ma._too_new(ma._posted("2106.09685"), head) is False
         assert ma._too_new(ma._posted("2608.00001"), head) is True
+
+
+class TestTheLegacyRemineIsWindowMatched:
+    """§7: the legacy re-mine pins each case's HEAD to the last commit on or before the
+    `head_date` recorded by the v1 run.
+
+    Without it the v1-versus-v2 comparison is confounded. Measured on the real cache before
+    this ran: 7 of the 9 recorded clones still sat at their v1 HEAD, but `diffusion` had
+    moved forward and `graph` had moved **backward** — its upstream default branch now points
+    at an earlier commit date than when v1 mined it. A re-mine against a moved HEAD resolves a
+    different T0, so v1 and v2 would be measuring different windows and the difference between
+    them would not be the extractor.
+    """
+
+    def test_pins_are_read_per_case_from_the_v1_record(self, tmp_path: Path) -> None:
+        record = tmp_path / "adoptions.json"
+        record.write_text(
+            json.dumps(
+                [
+                    {"case": "graph", "id": "1", "head_date": "2026-07-31"},
+                    {"case": "graph", "id": "2", "head_date": "2026-07-31"},
+                    {"case": "rag", "id": "3", "head_date": "2025-10-14"},
+                    {"case": "broken", "id": "4"},
+                ]
+            ),
+            encoding="utf-8",
+        )
+        assert ma.head_pins(record) == {"graph": "2026-07-31", "rag": "2025-10-14"}
+
+    def test_a_pinned_case_is_mined_at_the_older_head(
+        self, migrated_repo: tuple[Path, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The fixture's second commit is 'now'; pinning to the T0 commit's date must make
+        that older commit the effective HEAD, which leaves nothing to adopt."""
+        repo, t0, _head = migrated_repo
+        monkeypatch.setattr(ma, "CLONES", tmp_path / "clones")
+        monkeypatch.setattr(ma, "SEEDS", tmp_path / "seeds.json")
+        rows = ma.mine({"proj": repo.as_uri()}, extractor="v2", pins={"proj": "2022-01-01"})
+        assert rows == [], "pinning to the T0 date should leave no later commit to mine"
+
+    def test_an_unpinned_case_still_mines_at_head(
+        self, migrated_repo: tuple[Path, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        repo, _t0, head = migrated_repo
+        monkeypatch.setattr(ma, "CLONES", tmp_path / "clones")
+        monkeypatch.setattr(ma, "SEEDS", tmp_path / "seeds.json")
+        rows = ma.mine({"proj": repo.as_uri()}, extractor="v2", pins={"other": "2022-01-01"})
+        assert {r["head"] for r in rows} == {head}
+        assert all(r["head_pinned"] is False for r in rows)
+
+    def test_each_row_records_whether_it_was_pinned(
+        self, migrated_repo: tuple[Path, str, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """So the artefact says which cases were window-matched and which were not, rather
+        than leaving a reader to infer it."""
+        repo, _t0, _head = migrated_repo
+        monkeypatch.setattr(ma, "CLONES", tmp_path / "clones")
+        monkeypatch.setattr(ma, "SEEDS", tmp_path / "seeds.json")
+        rows = ma.mine({"proj": repo.as_uri()}, extractor="v2")
+        assert rows and all("head_pinned" in r for r in rows)
