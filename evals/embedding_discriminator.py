@@ -106,6 +106,13 @@ NR42_ARMS = (
     "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T234024Z.json",
     "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260828T052915Z.json",
 )
+# The same three same-day arms NR-42 read, control included. Used to split the labelled set
+# by whether the PIPELINE selected a paper -- the diagnostic that decides whether an inverted
+# AUC on a shown-only panel is a property of the instrument or of the conditioning.
+SHOWN_RUNS = (
+    "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json",
+    *NR42_ARMS,
+)
 
 
 def _verdicts() -> dict[str, dict[str, int]]:
@@ -209,7 +216,9 @@ def score_papers(cases: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[
         scored = []
         for p in papers:
             emb = compute_paper_embedding(p)
-            scored.append({**p, "embedding_score": max(0.0, cosine_similarity(repo_emb, emb))})
+            scored.append(
+                {**p, "_case": case, "embedding_score": max(0.0, cosine_similarity(repo_emb, emb))}
+            )
         out[case] = scored
     return out
 
@@ -273,6 +282,18 @@ def bootstrap_auc(cases: dict[str, list[dict[str, Any]]], key: str) -> list[floa
     return [round(draws[int(0.025 * len(draws))], 4), round(draws[int(0.975 * len(draws))], 4)]
 
 
+def _shown_ids(runs: tuple[str, ...]) -> set[tuple[str, str]]:
+    shown: set[tuple[str, str]] = set()
+    for name in runs:
+        path = EVALS / "results" / name
+        if not path.is_file():
+            continue
+        for row in json.loads(path.read_text(encoding="utf-8")):
+            for p in row["returned"]["reporadar_toppicks"]:
+                shown.add((row["case"], str(p["arxiv_id"])))
+    return shown
+
+
 def _nr42_panel(scored: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
     """NR-42's own set: the non-arXiv papers the two source arms SHOWED.
 
@@ -280,14 +301,7 @@ def _nr42_panel(scored: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[
     number computed the same way — the point of the panel is a like-for-like comparison
     against a gate figure, and re-deriving either side would defeat it.
     """
-    shown: set[tuple[str, str]] = set()
-    for name in NR42_ARMS:
-        path = EVALS / "results" / name
-        if not path.is_file():
-            continue
-        for row in json.loads(path.read_text(encoding="utf-8")):
-            for p in row["returned"]["reporadar_toppicks"]:
-                shown.add((row["case"], str(p["arxiv_id"])))
+    shown = _shown_ids(NR42_ARMS)
     out: dict[str, list[dict[str, Any]]] = {}
     for case, papers in scored.items():
         keep = [p for p in papers if not p["is_arxiv"] and (case, p["arxiv_id"]) in shown]
@@ -312,6 +326,19 @@ def build() -> dict[str, Any]:
         # NR-42's own 68, for the like-for-like read against its gate figure.
         "non_arxiv_nr42_shown": _nr42_panel(scored),
     }
+    # The diagnostic. If an instrument's AUC inverts on the papers the PIPELINE selected but
+    # not on the ones it passed over, the inversion is the conditioning and not the signal --
+    # a paper admitted DESPITE a low embedding score got in on something else, and that
+    # something else correlates with being actionable. Run on the arXiv panel because it has
+    # the counts to answer with (thousands of pairs against NR-42's 83).
+    shown = _shown_ids(SHOWN_RUNS)
+    panels["arxiv_shown"] = split(lambda p: p["is_arxiv"] and (p["_case"], p["arxiv_id"]) in shown)
+    panels["arxiv_not_shown"] = split(
+        lambda p: p["is_arxiv"] and (p["_case"], p["arxiv_id"]) not in shown
+    )
+    panels["non_arxiv_not_shown"] = split(
+        lambda p: not p["is_arxiv"] and (p["_case"], p["arxiv_id"]) not in shown
+    )
     results = {}
     for name, panel in panels.items():
         res = auc_within_case(panel, "embedding_score")
@@ -355,6 +382,35 @@ def build() -> dict[str, Any]:
         "panels": results,
         "verdict": {
             "reopens_filter_item": reopens,
+            # The diagnostic, stated as a contrast rather than left for a reader to compute.
+            # An instrument evaluated on the set it helped select looks WORSE than it is: a
+            # paper admitted despite a low score on that instrument got in on something else,
+            # and that something else correlates with being actionable. Collider conditioning,
+            # and NR-42's panel is entirely inside it.
+            "conditioning": {
+                "non_arxiv_shown_auc": results["non_arxiv_nr42_shown"]["auc"],
+                "non_arxiv_not_shown_auc": results["non_arxiv_not_shown"]["auc"],
+                "arxiv_shown_auc": results["arxiv_shown"]["auc"],
+                "arxiv_not_shown_auc": results["arxiv_not_shown"]["auc"],
+                # Non-arXiv: the two intervals do not overlap, so the gap is established.
+                # arXiv: they do overlap, so the same direction at higher n is DIRECTIONAL
+                # only, and saying otherwise would be the overreach this probe exists to fix.
+                "non_arxiv_intervals_disjoint": (
+                    results["non_arxiv_nr42_shown"]["ci95"][1]
+                    < results["non_arxiv_not_shown"]["ci95"][0]
+                ),
+                "arxiv_intervals_disjoint": (
+                    results["arxiv_shown"]["ci95"][1] < results["arxiv_not_shown"]["ci95"][0]
+                ),
+                "_comment": (
+                    "Both panels move the same way and only the non-arXiv one is "
+                    "established. What it means for NR-42 is that its 'the rescore scores "
+                    "them the wrong way round' was read off a shown-only panel, where a "
+                    "genuinely discriminating instrument would also read low. NR-42's "
+                    "CONCLUSION survives on this probe's wider evidence; its ARGUMENT does "
+                    "not, and its own artifact flagged the truncation it then read past."
+                ),
+            },
             "headline": (
                 f"non-arXiv AUC {primary['auc']} over {primary['n_pairs']} within-case pairs "
                 f"({primary['n_actionable']} actionable vs {primary['n_non_actionable']} not), "

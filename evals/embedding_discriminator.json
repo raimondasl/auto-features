@@ -1,0 +1,769 @@
+{
+ "_comment": "NR-58: does the ranker's dense embedding discriminate actionable non-arXiv papers, where NR-42's two LLM instruments could not? Derived by evals/embedding_discriminator.py at $0 from the judge verdict cache and the frozen pools (both gitignored); pinned by tests/test_embedding_discriminator.py. No LLM or judge calls. AUC is concordance over WITHIN-CASE pairs; the interval is a cluster bootstrap over cases.",
+ "pre_registered": {
+  "written_before_any_auc_was_computed": true,
+  "reopens_filter_item_if_auc_at_least": 0.65,
+  "and_ci_excludes": 0.5,
+  "statistic": "within-case concordance, ties 0.5",
+  "interval": "cluster bootstrap over cases",
+  "prediction": "wide panel near 0.5-0.6 covering 0.5, arXiv control above it: the embedding is a topical-similarity signal and actionability is a property of what a paper PROPOSES, which the gate reads and a bag-of-abstract vector does not",
+  "nr42_gate_on_its_own_panel": {
+   "actionable": 0.588,
+   "non_actionable": 0.588
+  },
+  "nr42_oracle_ceiling_openalex": 1.38,
+  "benchmark_mre": 1.04
+ },
+ "provenance": {
+  "n_verdicts_cached": 4391,
+  "n_located_with_text": 2466,
+  "n_cases": 37,
+  "located_from": {
+   "pool-cohort3": 109,
+   "pool-core25-arxiv": 146,
+   "pool-core25-epmc": 1653,
+   "pool-core25-openalex": 370,
+   "pool-epmc-treat": 21,
+   "pool-oa-treat": 11,
+   "pool-wemb": 156
+  },
+  "n_unlocatable": 1925
+ },
+ "panels": {
+  "non_arxiv_wide": {
+   "auc": 0.5777,
+   "n_pairs": 779,
+   "n_cases_with_both_classes": 13,
+   "n_actionable": 117,
+   "n_non_actionable": 100,
+   "per_case": {
+    "ann": {
+     "n_actionable": 1,
+     "n_non_actionable": 1,
+     "auc": 1.0
+    },
+    "bio-align": {
+     "n_actionable": 17,
+     "n_non_actionable": 11,
+     "auc": 0.61
+    },
+    "bio-kmer": {
+     "n_actionable": 9,
+     "n_non_actionable": 15,
+     "auc": 0.741
+    },
+    "bio-mdsim": {
+     "n_actionable": 11,
+     "n_non_actionable": 7,
+     "auc": 0.481
+    },
+    "bio-mdtraj": {
+     "n_actionable": 13,
+     "n_non_actionable": 15,
+     "auc": 0.682
+    },
+    "bio-scvi": {
+     "n_actionable": 24,
+     "n_non_actionable": 2,
+     "auc": 0.583
+    },
+    "bio-singlecell": {
+     "n_actionable": 14,
+     "n_non_actionable": 7,
+     "auc": 0.224
+    },
+    "cv": {
+     "n_actionable": 1,
+     "n_non_actionable": 3,
+     "auc": 0.333
+    },
+    "mat-featurize": {
+     "n_actionable": 2,
+     "n_non_actionable": 2,
+     "auc": 0.25
+    },
+    "mat-phonon": {
+     "n_actionable": 1,
+     "n_non_actionable": 1,
+     "auc": 0.0
+    },
+    "mat-toolkit": {
+     "n_actionable": 6,
+     "n_non_actionable": 1,
+     "auc": 0.167
+    },
+    "storage": {
+     "n_actionable": 6,
+     "n_non_actionable": 2,
+     "auc": 0.333
+    },
+    "systems": {
+     "n_actionable": 3,
+     "n_non_actionable": 4,
+     "auc": 0.667
+    }
+   },
+   "ci95": [
+    0.4148,
+    0.6731
+   ],
+   "excludes_half": false,
+   "mean_similarity": 0.3046,
+   "mean_actionable": 0.2771,
+   "mean_non_actionable": 0.3368
+  },
+  "arxiv_control": {
+   "auc": 0.5863,
+   "n_pairs": 29494,
+   "n_cases_with_both_classes": 37,
+   "n_actionable": 1330,
+   "n_non_actionable": 919,
+   "per_case": {
+    "ann": {
+     "n_actionable": 41,
+     "n_non_actionable": 11,
+     "auc": 0.639
+    },
+    "bio-align": {
+     "n_actionable": 17,
+     "n_non_actionable": 12,
+     "auc": 0.637
+    },
+    "bio-kmer": {
+     "n_actionable": 16,
+     "n_non_actionable": 25,
+     "auc": 0.205
+    },
+    "bio-mdsim": {
+     "n_actionable": 30,
+     "n_non_actionable": 12,
+     "auc": 0.408
+    },
+    "bio-mdtraj": {
+     "n_actionable": 30,
+     "n_non_actionable": 24,
+     "auc": 0.549
+    },
+    "bio-scvi": {
+     "n_actionable": 32,
+     "n_non_actionable": 5,
+     "auc": 0.644
+    },
+    "bio-singlecell": {
+     "n_actionable": 39,
+     "n_non_actionable": 8,
+     "auc": 0.516
+    },
+    "cli": {
+     "n_actionable": 4,
+     "n_non_actionable": 44,
+     "auc": 0.847
+    },
+    "columnar": {
+     "n_actionable": 19,
+     "n_non_actionable": 27,
+     "auc": 0.571
+    },
+    "compiler": {
+     "n_actionable": 17,
+     "n_non_actionable": 25,
+     "auc": 0.362
+    },
+    "crypto": {
+     "n_actionable": 19,
+     "n_non_actionable": 58,
+     "auc": 0.601
+    },
+    "cv": {
+     "n_actionable": 47,
+     "n_non_actionable": 29,
+     "auc": 0.654
+    },
+    "db": {
+     "n_actionable": 46,
+     "n_non_actionable": 6,
+     "auc": 0.435
+    },
+    "diffusion": {
+     "n_actionable": 70,
+     "n_non_actionable": 17,
+     "auc": 0.631
+    },
+    "encryption": {
+     "n_actionable": 5,
+     "n_non_actionable": 63,
+     "auc": 0.759
+    },
+    "graph": {
+     "n_actionable": 54,
+     "n_non_actionable": 32,
+     "auc": 0.523
+    },
+    "http": {
+     "n_actionable": 7,
+     "n_non_actionable": 52,
+     "auc": 0.519
+    },
+    "linter": {
+     "n_actionable": 25,
+     "n_non_actionable": 32,
+     "auc": 0.68
+    },
+    "llminfer": {
+     "n_actionable": 35,
+     "n_non_actionable": 14,
+     "auc": 0.422
+    },
+    "mat-chgpot": {
+     "n_actionable": 41,
+     "n_non_actionable": 5,
+     "auc": 0.5
+    },
+    "mat-descriptors": {
+     "n_actionable": 34,
+     "n_non_actionable": 8,
+     "auc": 0.522
+    },
+    "mat-featurize": {
+     "n_actionable": 23,
+     "n_non_actionable": 13,
+     "auc": 0.425
+    },
+    "mat-mlip": {
+     "n_actionable": 39,
+     "n_non_actionable": 6,
+     "auc": 0.389
+    },
+    "mat-phonon": {
+     "n_actionable": 23,
+     "n_non_actionable": 8,
+     "auc": 0.152
+    },
+    "mat-toolkit": {
+     "n_actionable": 32,
+     "n_non_actionable": 8,
+     "auc": 0.477
+    },
+    "numerics": {
+     "n_actionable": 44,
+     "n_non_actionable": 26,
+     "auc": 0.461
+    },
+    "peft": {
+     "n_actionable": 95,
+     "n_non_actionable": 9,
+     "auc": 0.492
+    },
+    "rag": {
+     "n_actionable": 55,
+     "n_non_actionable": 47,
+     "auc": 0.85
+    },
+    "rl": {
+     "n_actionable": 88,
+     "n_non_actionable": 31,
+     "auc": 0.547
+    },
+    "speech": {
+     "n_actionable": 59,
+     "n_non_actionable": 48,
+     "auc": 0.671
+    },
+    "storage": {
+     "n_actionable": 41,
+     "n_non_actionable": 7,
+     "auc": 0.638
+    },
+    "systems": {
+     "n_actionable": 15,
+     "n_non_actionable": 28,
+     "auc": 0.619
+    },
+    "thin-gnn": {
+     "n_actionable": 55,
+     "n_non_actionable": 17,
+     "auc": 0.579
+    },
+    "thin-kv": {
+     "n_actionable": 64,
+     "n_non_actionable": 44,
+     "auc": 0.613
+    },
+    "thin-lang": {
+     "n_actionable": 18,
+     "n_non_actionable": 62,
+     "auc": 0.443
+    },
+    "vectordb": {
+     "n_actionable": 46,
+     "n_non_actionable": 17,
+     "auc": 0.51
+    },
+    "webdev": {
+     "n_actionable": 5,
+     "n_non_actionable": 39,
+     "auc": 0.667
+    }
+   },
+   "ci95": [
+    0.5307,
+    0.6431
+   ],
+   "excludes_half": true,
+   "mean_similarity": 0.2434,
+   "mean_actionable": 0.2465,
+   "mean_non_actionable": 0.2389
+  },
+  "non_arxiv_nr42_shown": {
+   "auc": 0.0964,
+   "n_pairs": 83,
+   "n_cases_with_both_classes": 7,
+   "n_actionable": 68,
+   "n_non_actionable": 17,
+   "per_case": {
+    "ann": {
+     "n_actionable": 1,
+     "n_non_actionable": 1,
+     "auc": 1.0
+    },
+    "bio-align": {
+     "n_actionable": 9,
+     "n_non_actionable": 3,
+     "auc": 0.111
+    },
+    "bio-mdsim": {
+     "n_actionable": 8,
+     "n_non_actionable": 3,
+     "auc": 0.0
+    },
+    "bio-mdtraj": {
+     "n_actionable": 5,
+     "n_non_actionable": 4,
+     "auc": 0.05
+    },
+    "cv": {
+     "n_actionable": 1,
+     "n_non_actionable": 1,
+     "auc": 0.0
+    },
+    "mat-toolkit": {
+     "n_actionable": 2,
+     "n_non_actionable": 1,
+     "auc": 0.0
+    },
+    "storage": {
+     "n_actionable": 4,
+     "n_non_actionable": 2,
+     "auc": 0.375
+    }
+   },
+   "ci95": [
+    0.0278,
+    0.25
+   ],
+   "excludes_half": true,
+   "mean_similarity": 0.3408,
+   "mean_actionable": 0.3024,
+   "mean_non_actionable": 0.4942
+  },
+  "arxiv_shown": {
+   "auc": 0.4846,
+   "n_pairs": 843,
+   "n_cases_with_both_classes": 22,
+   "n_actionable": 425,
+   "n_non_actionable": 55,
+   "per_case": {
+    "ann": {
+     "n_actionable": 19,
+     "n_non_actionable": 2,
+     "auc": 0.553
+    },
+    "bio-align": {
+     "n_actionable": 9,
+     "n_non_actionable": 3,
+     "auc": 0.037
+    },
+    "bio-mdsim": {
+     "n_actionable": 11,
+     "n_non_actionable": 1,
+     "auc": 0.364
+    },
+    "bio-singlecell": {
+     "n_actionable": 12,
+     "n_non_actionable": 1,
+     "auc": 0.333
+    },
+    "columnar": {
+     "n_actionable": 7,
+     "n_non_actionable": 2,
+     "auc": 0.857
+    },
+    "cv": {
+     "n_actionable": 13,
+     "n_non_actionable": 2,
+     "auc": 0.615
+    },
+    "db": {
+     "n_actionable": 14,
+     "n_non_actionable": 1,
+     "auc": 0.536
+    },
+    "diffusion": {
+     "n_actionable": 25,
+     "n_non_actionable": 3,
+     "auc": 0.68
+    },
+    "llminfer": {
+     "n_actionable": 9,
+     "n_non_actionable": 2,
+     "auc": 0.278
+    },
+    "mat-chgpot": {
+     "n_actionable": 13,
+     "n_non_actionable": 1,
+     "auc": 0.846
+    },
+    "mat-descriptors": {
+     "n_actionable": 17,
+     "n_non_actionable": 2,
+     "auc": 0.0
+    },
+    "mat-featurize": {
+     "n_actionable": 10,
+     "n_non_actionable": 6,
+     "auc": 0.433
+    },
+    "mat-mlip": {
+     "n_actionable": 16,
+     "n_non_actionable": 4,
+     "auc": 0.578
+    },
+    "mat-phonon": {
+     "n_actionable": 14,
+     "n_non_actionable": 4,
+     "auc": 0.143
+    },
+    "peft": {
+     "n_actionable": 26,
+     "n_non_actionable": 1,
+     "auc": 0.731
+    },
+    "rag": {
+     "n_actionable": 19,
+     "n_non_actionable": 2,
+     "auc": 0.5
+    },
+    "rl": {
+     "n_actionable": 30,
+     "n_non_actionable": 1,
+     "auc": 0.167
+    },
+    "speech": {
+     "n_actionable": 27,
+     "n_non_actionable": 4,
+     "auc": 0.481
+    },
+    "systems": {
+     "n_actionable": 4,
+     "n_non_actionable": 1,
+     "auc": 1.0
+    },
+    "thin-gnn": {
+     "n_actionable": 20,
+     "n_non_actionable": 5,
+     "auc": 0.76
+    },
+    "thin-kv": {
+     "n_actionable": 15,
+     "n_non_actionable": 2,
+     "auc": 0.567
+    },
+    "vectordb": {
+     "n_actionable": 15,
+     "n_non_actionable": 3,
+     "auc": 0.289
+    }
+   },
+   "ci95": [
+    0.3726,
+    0.5852
+   ],
+   "excludes_half": false,
+   "mean_similarity": 0.2767,
+   "mean_actionable": 0.273,
+   "mean_non_actionable": 0.3052
+  },
+  "arxiv_not_shown": {
+   "auc": 0.5544,
+   "n_pairs": 19288,
+   "n_cases_with_both_classes": 37,
+   "n_actionable": 905,
+   "n_non_actionable": 864,
+   "per_case": {
+    "ann": {
+     "n_actionable": 22,
+     "n_non_actionable": 9,
+     "auc": 0.641
+    },
+    "bio-align": {
+     "n_actionable": 8,
+     "n_non_actionable": 9,
+     "auc": 0.806
+    },
+    "bio-kmer": {
+     "n_actionable": 14,
+     "n_non_actionable": 25,
+     "auc": 0.177
+    },
+    "bio-mdsim": {
+     "n_actionable": 19,
+     "n_non_actionable": 11,
+     "auc": 0.354
+    },
+    "bio-mdtraj": {
+     "n_actionable": 23,
+     "n_non_actionable": 24,
+     "auc": 0.5
+    },
+    "bio-scvi": {
+     "n_actionable": 20,
+     "n_non_actionable": 5,
+     "auc": 0.64
+    },
+    "bio-singlecell": {
+     "n_actionable": 27,
+     "n_non_actionable": 7,
+     "auc": 0.529
+    },
+    "cli": {
+     "n_actionable": 4,
+     "n_non_actionable": 44,
+     "auc": 0.847
+    },
+    "columnar": {
+     "n_actionable": 12,
+     "n_non_actionable": 25,
+     "auc": 0.478
+    },
+    "compiler": {
+     "n_actionable": 15,
+     "n_non_actionable": 25,
+     "auc": 0.317
+    },
+    "crypto": {
+     "n_actionable": 15,
+     "n_non_actionable": 58,
+     "auc": 0.532
+    },
+    "cv": {
+     "n_actionable": 34,
+     "n_non_actionable": 27,
+     "auc": 0.629
+    },
+    "db": {
+     "n_actionable": 32,
+     "n_non_actionable": 5,
+     "auc": 0.412
+    },
+    "diffusion": {
+     "n_actionable": 45,
+     "n_non_actionable": 14,
+     "auc": 0.587
+    },
+    "encryption": {
+     "n_actionable": 4,
+     "n_non_actionable": 63,
+     "auc": 0.746
+    },
+    "graph": {
+     "n_actionable": 29,
+     "n_non_actionable": 32,
+     "auc": 0.502
+    },
+    "http": {
+     "n_actionable": 7,
+     "n_non_actionable": 52,
+     "auc": 0.519
+    },
+    "linter": {
+     "n_actionable": 25,
+     "n_non_actionable": 32,
+     "auc": 0.68
+    },
+    "llminfer": {
+     "n_actionable": 26,
+     "n_non_actionable": 12,
+     "auc": 0.439
+    },
+    "mat-chgpot": {
+     "n_actionable": 28,
+     "n_non_actionable": 4,
+     "auc": 0.397
+    },
+    "mat-descriptors": {
+     "n_actionable": 17,
+     "n_non_actionable": 6,
+     "auc": 0.608
+    },
+    "mat-featurize": {
+     "n_actionable": 13,
+     "n_non_actionable": 7,
+     "auc": 0.451
+    },
+    "mat-mlip": {
+     "n_actionable": 23,
+     "n_non_actionable": 2,
+     "auc": 0.13
+    },
+    "mat-phonon": {
+     "n_actionable": 9,
+     "n_non_actionable": 4,
+     "auc": 0.111
+    },
+    "mat-toolkit": {
+     "n_actionable": 28,
+     "n_non_actionable": 8,
+     "auc": 0.433
+    },
+    "numerics": {
+     "n_actionable": 36,
+     "n_non_actionable": 26,
+     "auc": 0.423
+    },
+    "peft": {
+     "n_actionable": 69,
+     "n_non_actionable": 8,
+     "auc": 0.42
+    },
+    "rag": {
+     "n_actionable": 36,
+     "n_non_actionable": 45,
+     "auc": 0.836
+    },
+    "rl": {
+     "n_actionable": 58,
+     "n_non_actionable": 30,
+     "auc": 0.516
+    },
+    "speech": {
+     "n_actionable": 32,
+     "n_non_actionable": 44,
+     "auc": 0.604
+    },
+    "storage": {
+     "n_actionable": 26,
+     "n_non_actionable": 7,
+     "auc": 0.549
+    },
+    "systems": {
+     "n_actionable": 11,
+     "n_non_actionable": 27,
+     "auc": 0.593
+    },
+    "thin-gnn": {
+     "n_actionable": 35,
+     "n_non_actionable": 12,
+     "auc": 0.507
+    },
+    "thin-kv": {
+     "n_actionable": 49,
+     "n_non_actionable": 42,
+     "auc": 0.582
+    },
+    "thin-lang": {
+     "n_actionable": 18,
+     "n_non_actionable": 60,
+     "auc": 0.45
+    },
+    "vectordb": {
+     "n_actionable": 31,
+     "n_non_actionable": 14,
+     "auc": 0.539
+    },
+    "webdev": {
+     "n_actionable": 5,
+     "n_non_actionable": 39,
+     "auc": 0.667
+    }
+   },
+   "ci95": [
+    0.4986,
+    0.6161
+   ],
+   "excludes_half": false,
+   "mean_similarity": 0.2344,
+   "mean_actionable": 0.234,
+   "mean_non_actionable": 0.2347
+  },
+  "non_arxiv_not_shown": {
+   "auc": 0.6115,
+   "n_pairs": 260,
+   "n_cases_with_both_classes": 8,
+   "n_actionable": 49,
+   "n_non_actionable": 83,
+   "per_case": {
+    "bio-align": {
+     "n_actionable": 8,
+     "n_non_actionable": 8,
+     "auc": 0.625
+    },
+    "bio-kmer": {
+     "n_actionable": 1,
+     "n_non_actionable": 15,
+     "auc": 0.867
+    },
+    "bio-mdsim": {
+     "n_actionable": 3,
+     "n_non_actionable": 4,
+     "auc": 0.917
+    },
+    "bio-mdtraj": {
+     "n_actionable": 8,
+     "n_non_actionable": 11,
+     "auc": 0.875
+    },
+    "bio-scvi": {
+     "n_actionable": 10,
+     "n_non_actionable": 2,
+     "auc": 0.3
+    },
+    "bio-singlecell": {
+     "n_actionable": 8,
+     "n_non_actionable": 7,
+     "auc": 0.196
+    },
+    "mat-featurize": {
+     "n_actionable": 2,
+     "n_non_actionable": 2,
+     "auc": 0.25
+    },
+    "mat-phonon": {
+     "n_actionable": 1,
+     "n_non_actionable": 1,
+     "auc": 0.0
+    }
+   },
+   "ci95": [
+    0.3058,
+    0.8358
+   ],
+   "excludes_half": false,
+   "mean_similarity": 0.2813,
+   "mean_actionable": 0.2418,
+   "mean_non_actionable": 0.3046
+  }
+ },
+ "verdict": {
+  "reopens_filter_item": false,
+  "conditioning": {
+   "non_arxiv_shown_auc": 0.0964,
+   "non_arxiv_not_shown_auc": 0.6115,
+   "arxiv_shown_auc": 0.4846,
+   "arxiv_not_shown_auc": 0.5544,
+   "non_arxiv_intervals_disjoint": true,
+   "arxiv_intervals_disjoint": false,
+   "_comment": "Both panels move the same way and only the non-arXiv one is established. What it means for NR-42 is that its 'the rescore scores them the wrong way round' was read off a shown-only panel, where a genuinely discriminating instrument would also read low. NR-42's CONCLUSION survives on this probe's wider evidence; its ARGUMENT does not, and its own artifact flagged the truncation it then read past."
+  },
+  "headline": "non-arXiv AUC 0.5777 over 779 within-case pairs (117 actionable vs 100 not), CI [0.4148, 0.6731]"
+ }
+}
