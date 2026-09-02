@@ -222,13 +222,14 @@ The pool runs no arm, so there is no held-out set to protect and no configuratio
 
 ## 10. Runbook
 
-0. **`--extractor v2` over the legacy 37** (`$0`): scores P1 and P2, and measures the filter survival rate the yield arithmetic assumes. A prerequisite, not hygiene — the reverse-citation and doc-genesis filters have never fired.
-1. Commit this file with DRAFT removed, together with `enumerate.py`, the topic list, the rule set, and the label and endpoint code as it will run. Changing the instrument mid-pool is an instrument change.
-2. Day Dp: enumerate; commit `pool-universe-Dp.csv`, the raw response archive, and **the absolute UTC timestamp of the pulse that will seed it**.
-3. After that pulse: write `SEED_POOL`; commit.
-4. Walk B₀ = 300 unconditionally; commit the yield curve and the measured `q` and `y`. Continue to B = 1,200 or 100 positives.
-5. Draw controls; judge both judges in seeded order to 100 new positives.
-6. Analysis: section 5's endpoints, P1–P9 scored, and the datasheet — candidate list, seed and pulse timestamp, walk ledger, positives and controls, both judges' raw ordinal scores, DOI/PMID covariates, void and timeout lists — published with it.
+1. **Registration first.** Commit this file with DRAFT removed, together with `enumerate.py`, the topic list, the rule set, and the label and endpoint code as it will run. Changing the instrument mid-pool is an instrument change.
+2. **`--extractor v2` over the legacy 37** (`$0`): scores P1 and P2, and measures the filter survival rate the yield arithmetic assumes — the reverse-citation and doc-genesis filters have fired **zero** times so far, and both will fire on an enumerated population (P9). A prerequisite, not hygiene.
+   *This step is deliberately numbered after registration.* An earlier draft put it first, which would have scored P1 and P2 out of the very file that registers them — the defect this project has corrected repeatedly, and the one the §6.1 premise measurement already forced P1 to be demoted for.
+3. Day Dp: enumerate; commit `pool-universe-Dp.csv`, the raw response archive, and **the absolute UTC timestamp of the pulse that will seed it**.
+4. After that pulse: write `SEED_POOL`; commit.
+5. Walk B₀ = 300 unconditionally; commit the yield curve and the measured `q` and `y`. Continue to B = 1,200 or 100 positives.
+6. Draw controls; judge both judges in seeded order to 100 new positives.
+7. Analysis: section 5's endpoints, P1–P9 scored, and the datasheet — candidate list, seed and pulse timestamp, walk ledger, positives and controls, both judges' raw ordinal scores, DOI/PMID covariates, void and timeout lists — published with it.
 
 ---
 
