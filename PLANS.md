@@ -145,6 +145,37 @@ measured as judge-dependent in direction, not just in size. **A decision to spen
 should be taken with that in hand, and the paper's comparator claim should be judge-relative
 either way.**
 
+**And the disagreement is about the LEVEL, not the ranking [NR-59, 2026-09-02].** On the 324
+band papers the two judges' AUCs against the fine-scale score differ by **0.027** (0.729 vs
+0.702) while their base rates differ by **0.380** (0.874 vs 0.494). They agree about which
+papers are better and disagree about **how many are good**, by nearly a factor of two.
+
+That reframes the judge question. A probability map is a *calibration*, so it inherits the base
+rate whole, and `P >= 2/3` is a *level* threshold -- so the show/withhold decision is largely an
+answer to "what fraction of these are actionable" rather than a judgement about the paper. The
+consequence is already in the NR-52 artifact: **what the fine-scale stage is worth per case has
+the opposite sign under each judge** -- -1.25 (sci) and -0.08 (legacy) under GPT, **+3.75 and
++2.08 under Sonnet**. The stage's job is abstention, and abstention's value is a function of the
+base rate.
+
+**So a third judge does not fix it.** Consensus, majority-of-three and a Gemini tiebreaker are
+the same operation in different clothes -- with a binary label, majority-of-three *is* the
+tiebreaker -- and none of them measures a base rate. They **pick** one by construction, and
+every threshold then inherits it. **The only channel here that estimates an actionable rate with
+no model in the loop is adoption**, and it is short: 35 positives against the **~75** needed for
+the two judges' discrimination gaps to separate (computed from `judge_validity_adoption.json`;
+GPT 0.143 spanning zero, Sonnet 0.243 excluding it, difference 0.100, SE 0.075). The 40-odd
+extra adoptions cannot come from this benchmark -- NR-57 exhausted it -- so they need
+repositories chosen for citation-rich documentation and long pre-T0 history, **which is rung
+10's curation doing double duty.** That is the argument for taking rung 10 first rather than
+last.
+
+**What NR-59 does NOT establish:** that the shipped map is a GPT artifact. Its blocking
+reproduction check failed (0.799 vs 0.90) because the map was fitted on a wider population than
+the band it is applied to, so the 92.9% flip rate between a GPT-fit and a Sonnet-fit map is
+recorded and not read. Testing that claim needs Sonnet verdicts on the *fitting* population,
+which do not exist -- the other second-judge artifacts carry no `finescale` expectation.
+
 **Item 12 is closed for good [NR-51].** It closed on reach (NR-49), reopened the same day on rank
 (NR-50), and its paid arm returned **-0.19, CI [-0.84, +0.43], 9w/8l/20t** against a bar of 0.78
 registered before the run. The whole cycle is worth reading as one thing: a licence bar set with

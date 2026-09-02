@@ -67,6 +67,51 @@ than GPT — NR-56/57 could not separate them against adoption, the only model-f
 the difference missed its bar at n = 35. This measures **how much of the digest is a property
 of the labelling judge**, which is a prior question and a cheaper one.
 
+## What happened — the registered test did not run, and the diagnosis is the result
+
+**The blocking reproduction check failed: 0.799 against a 0.90 bar.** So the 92.9% flip rate
+is recorded and *not read*; the registration said no comparison below it is worth reading and
+that stands. Moving the bar after seeing a 92.9% is exactly the failure NR-49 documented.
+
+The diagnosis is worth more than the test was. The shipped map was fitted on a **wider**
+population — 219 papers across all gate scores — while this band is the map's **application**
+population, where GPT's base rate is **0.874**. A logistic fitted to a 0.874 slice is nearly a
+constant (slope 0.503 against the shipped 0.967), so the refit is not the product's operation
+and the two cannot be compared. **The claim "the shipped map is a GPT artifact" is therefore
+not established here**, and establishing it needs Sonnet verdicts on the *fitting* population.
+The two other second-judge artifacts on disk carry no `finescale` expectation, so those
+verdicts do not exist yet.
+
+## What IS established, and it needs no fitting at all
+
+| | GPT-5.5 | Sonnet | difference |
+|---|---|---|---|
+| **AUC** of `finescale` against the judge | 0.729 | 0.702 | **0.027** |
+| **base rate** actionable on the band | 0.874 | 0.494 | **0.380** |
+
+**The two judges order this band alike and level it completely differently.** They do not
+disagree about which papers are better; they disagree about **how many are good** — by a
+factor of nearly two.
+
+That is what makes every threshold in the system a bet on a number nobody has measured. A
+probability map is a *calibration*, so it inherits the base rate whole; `P >= 2/3` is a
+*level* threshold; so the show/withhold decision is mostly an answer to "what fraction of
+these are actionable", not "is this paper any good".
+
+The product consequence is in the NR-52 artifact and only needs reading: **what the
+fine-scale stage is worth per case has the opposite sign under each judge** — −1.25 (sci) and
+−0.08 (legacy) under GPT, **+3.75 and +2.08 under Sonnet**. The stage's job is abstention, and
+how much abstention is worth is a function of the base rate. Same stage, same papers, opposite
+verdicts, because the two judges answer the one question the stage is tuned against
+differently.
+
+**Why this settles the "add a third judge" question.** Combining judges — consensus,
+majority-of-three, a tiebreaker — does not measure a base rate. It *picks* one, by
+construction, and then every threshold inherits it. The only channel in this project that
+estimates an actionable rate without a model in the loop is adoption (NR-56/57), and it is
+short: 35 positives against the ~75 needed for the two judges' discrimination gaps to
+separate. That is the load-bearing measurement, and it is why it outranks a third judge.
+
     uv run python evals/judge_refit.py            # $0, no LLM calls
     uv run python evals/judge_refit.py --report   # $0, re-read the artifact
 """
@@ -200,6 +245,36 @@ def build() -> dict[str, Any]:
                 by_case[r["case"]] += 1 if int(r[label]) >= ACTIONABLE else -2
         return round(sum(by_case.values()) / len(by_case), 2)
 
+    # ── the part that needs no fitting, and therefore no reproduction check ──────────
+    def auc(label: str) -> float:
+        pos = [float(r["finescale"]) for r in rows if int(r[label]) >= ACTIONABLE]
+        neg = [float(r["finescale"]) for r in rows if int(r[label]) < ACTIONABLE]
+        if not pos or not neg:
+            return float("nan")
+        c = sum(1.0 if a > b else 0.5 if a == b else 0.0 for a in pos for b in neg)
+        return round(c / (len(pos) * len(neg)), 4)
+
+    gpt_rate = sum(int(r["gpt_score"]) >= ACTIONABLE for r in rows) / len(rows)
+    son_rate = sum(int(r["sonnet_score"]) >= ACTIONABLE for r in rows) / len(rows)
+    ordering = {
+        "auc_finescale_vs_gpt": auc("gpt_score"),
+        "auc_finescale_vs_sonnet": auc("sonnet_score"),
+        "base_rate_gpt": round(gpt_rate, 4),
+        "base_rate_sonnet": round(son_rate, 4),
+        "auc_difference": round(abs(auc("gpt_score") - auc("sonnet_score")), 4),
+        "base_rate_difference": round(abs(gpt_rate - son_rate), 4),
+        "_comment": (
+            "THE DECOMPOSITION. The fine-scale score ORDERS these papers about equally well "
+            "under either judge -- the AUCs differ by 0.03 -- while the two judges' base "
+            "rates differ by 0.38. The judges do not disagree about which papers are better; "
+            "they disagree about HOW MANY are good. A probability map is a calibration, so it "
+            "inherits the base rate entirely, and `P >= 2/3` is a LEVEL threshold. The "
+            "show/withhold decision is therefore mostly a bet on the base rate, not a "
+            "judgement about the paper -- and needs no model fitting to see, which is why "
+            "this block is readable when the refit below is not."
+        ),
+    }
+
     rate = len(flips) / len(rows)
     return {
         "_comment": (
@@ -291,10 +366,41 @@ def build() -> dict[str, Any]:
                 "flatter; the OFF-diagonal cells are what a reader should weigh."
             ),
         },
+        "ordering_vs_level": ordering,
+        "stage_value_by_judge": {
+            **band.get("stage_value", {}),
+            "_comment": (
+                "From the NR-52 band artifact, not recomputed. What the fine-scale stage is "
+                "WORTH per case, with and without it, under each judge. Its sign depends on "
+                "the judge -- and that is the ordering/level decomposition arriving as a "
+                "product consequence: the stage's job is abstention, and how much abstention "
+                "is worth is a function of the base rate, the one thing the judges disagree "
+                "about."
+            ),
+        },
         "verdict": {
             "flip_rate": round(rate, 4),
-            "judge_dependent": rate >= 0.10,
-            "substantially_an_artifact": rate >= 0.25,
+            "flip_rate_is_licensed": reproduction >= REPRODUCTION_BAR,
+            "_flip_rate_scope": (
+                "NOT licensed. The registration made the reproduction check blocking and it "
+                "FAILED at 0.799 against 0.90, so the 92.9% flip rate is reported and not "
+                "read. The diagnosis: the shipped map was fitted on a WIDER population (219 "
+                "papers across all gate scores) while this band is the map's APPLICATION "
+                "population, where GPT's base rate is 0.874. A logistic fitted to a 0.874 "
+                "slice is nearly a constant, so the refit is not the product's operation and "
+                "the two are not comparable. The claim 'the shipped map is a GPT artifact' is "
+                "therefore NOT established here. Establishing it needs Sonnet verdicts on the "
+                "FITTING population, and the two other second-judge artifacts on disk "
+                "(second_judge.json, second_judge_arm.json) carry no finescale expectation."
+            ),
+            "what_is_established": (
+                "The judges ORDER this band alike (AUC 0.729 vs 0.702) and LEVEL it very "
+                "differently (base rate 0.874 vs 0.494). Every threshold in the system is a "
+                "bet on that level, and no combination of judges measures it -- combining "
+                "them picks a level by construction. Adoption is the only channel here that "
+                "estimates a base rate without a model, which is what makes expanding it the "
+                "load-bearing move rather than adding a third judge."
+            ),
         },
     }
 
@@ -327,6 +433,13 @@ def show(art: dict[str, Any]) -> None:
         f"FLIPS: {f['n']}/{p['n']} = {f['rate']:.1%}   "
         f"show->withhold {f['show_to_withhold']}, withhold->show {f['withhold_to_show']}"
     )
+    o = art["ordering_vs_level"]
+    print(
+        f"ORDERING vs LEVEL: AUC {o['auc_finescale_vs_gpt']} (GPT) vs "
+        f"{o['auc_finescale_vs_sonnet']} (Sonnet), difference {o['auc_difference']}  |  "
+        f"base rate {o['base_rate_gpt']} vs {o['base_rate_sonnet']}, "
+        f"difference {o['base_rate_difference']}"
+    )
     n = art["band_net2_per_case"]
     print(f"{'band net@2/case':<22}{'by GPT':>9}{'by Sonnet':>11}")
     print(f"{'GPT-fit map':<22}{n['gpt_map_scored_by_gpt']:>9}{n['gpt_map_scored_by_sonnet']:>11}")
@@ -335,8 +448,16 @@ def show(art: dict[str, Any]) -> None:
         f"{n['sonnet_map_scored_by_sonnet']:>11}"
     )
     print()
-    print("judge-dependent:", art["verdict"]["judge_dependent"])
-    print("substantially an artifact:", art["verdict"]["substantially_an_artifact"])
+    v = art["verdict"]
+    print("flip rate licensed by the registration:", v["flip_rate_is_licensed"])
+    if not v["flip_rate_is_licensed"]:
+        print("  -> the reproduction check was blocking and it failed; the flip rate is")
+        print("     reported and NOT read. See verdict._flip_rate_scope.")
+    sv = art["stage_value_by_judge"]
+    for pop in ("sci", "legacy"):
+        if pop in sv:
+            cells = ", ".join(f"{j} {d['per_case']:+.2f}/case" for j, d in sv[pop].items())
+            print(f"  finescale stage value, {pop:<7}: {cells}")
 
 
 def main() -> int:

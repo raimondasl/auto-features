@@ -1144,6 +1144,71 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The judges order alike and level differently, so no combination of them helps. **[NR-59]**
+
+`finescale.SLOPE`/`INTERCEPT` were fitted on **GPT-labelled** papers, so `finescale_p` is a
+calibrated estimate of *P(GPT calls this actionable)*, not P(actionable). The threshold it is
+compared against is not fitted -- 2/3 falls out of `3p - 2 > 0` -- so the whole exposure is in
+the map. `calibrate_finescale.py` already names the honest counterfactual for the *repo*
+dimension (*"a leave-one-repo-out refit, which never sees the repo it is scored on"*); this ran
+it on the **judge** dimension, over the 324 band papers with both judges' verdicts, 244 shown
+and 80 withheld.
+
+## The registered test did not run, and honouring that is the first result
+
+**The blocking reproduction check failed: 0.799 against 0.90.** The GPT refit lands nowhere near
+the shipped map (slope 0.503 against 0.967) for a diagnosable reason: **the shipped map was
+fitted on a wider population -- 219 papers across all gate scores -- while the band is its
+APPLICATION population**, where GPT's base rate is 0.874. A logistic fitted to an 0.874 slice is
+nearly a constant.
+
+So the 92.9% flip rate between a GPT-fit and a Sonnet-fit map is **recorded and not read**. It
+would have cleared the registered "substantially an artifact" bar of 25% by a mile, which is
+exactly why moving the blocking check now would be the NR-49 failure. **The claim "the shipped
+map is a GPT artifact" is not established here**, and establishing it needs Sonnet verdicts on
+the *fitting* population -- which do not exist; the other second-judge artifacts carry no
+`finescale` expectation.
+
+## What is established needs no fitting at all
+
+| | GPT-5.5 | Sonnet | difference |
+|---|---|---|---|
+| **AUC** of `finescale` against the judge | 0.729 | 0.702 | **0.027** |
+| **base rate** actionable on the band | 0.874 | 0.494 | **0.380** |
+
+**They order the band alike and level it completely differently.** The judges do not disagree
+about which papers are better; they disagree about **how many are good**, by nearly a factor of
+two -- and the level difference is fourteen times the ordering difference.
+
+Every threshold in the system is therefore a bet on a number nobody has measured. A probability
+map is a calibration and inherits the base rate whole; `P >= 2/3` is a level threshold; so the
+show/withhold decision is mostly an answer to "what fraction of these are actionable".
+
+**The product consequence was already in the NR-52 artifact and only needed reading.** What the
+fine-scale stage is worth per case:
+
+| population | under GPT-5.5 | under Sonnet |
+|---|---|---|
+| sci | **-1.25** | **+3.75** |
+| legacy | **-0.08** | **+2.08** |
+
+Same stage, same papers, opposite sign. The stage's job is abstention, and abstention's value is
+a function of the base rate -- the one thing the two judges answer differently.
+
+## Why this settles "add a third judge"
+
+Consensus, majority-of-three and a Gemini tiebreaker are the same operation in different clothes
+-- with a binary label, majority-of-three **is** the tiebreaker -- and **none of them measures a
+base rate.** They pick one by construction, and every threshold inherits it. Adding models to an
+unvalidated ensemble does not produce validity.
+
+The only channel in this project that estimates an actionable rate with no model in the loop is
+**adoption**, and it is short: **35 positives against the ~75** needed for the two judges'
+discrimination gaps to separate (GPT 0.143 spanning zero, Sonnet 0.243 excluding it, difference
+0.100 with SE 0.075). NR-57 exhausted this benchmark, so the extra ~40 need repositories chosen
+for citation-rich documentation and long pre-T0 history -- **rung 10's curation, doing double
+duty for power and for judge validity at once.**
+
 ### The embedding does not discriminate either — and NR-42's evidence was conditioned. **[NR-58, C-36]**
 
 NR-42 closed the non-arXiv relevance filter on **"no instrument discriminates"** and named the

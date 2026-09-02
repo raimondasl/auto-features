@@ -1,0 +1,174 @@
+{
+ "_comment": "NR-59: the fine-scale probability map refitted on Sonnet labels instead of GPT labels, leave-one-repo-out, at a FIXED 2/3 threshold. Derived by evals/judge_refit.py from evals/.work/second_judge_band.json (gitignored); pinned by tests/test_judge_refit.py. No LLM or judge calls. Measures how much of the digest is a property of the labelling judge -- not which judge is right, which NR-56/57 could not settle against adoption.",
+ "pre_registered": {
+  "committed_before_any_coefficient_was_fitted": true,
+  "primary": "fraction of band papers whose P>=2/3 decision differs between maps",
+  "not_judge_dependent_below": 0.1,
+  "substantially_an_artifact_at_or_above": 0.25,
+  "reproduction_bar": 0.9,
+  "direction": "Sonnet is harsher, so flips should be overwhelmingly show->withhold",
+  "prediction": "15-30% flip, overwhelmingly show->withhold",
+  "cannot_show": "which map is right. Sonnet has no better claim to ground truth than GPT: NR-56/57 could not separate them against adoption and the difference missed its bar at n=35."
+ },
+ "population": {
+  "n": 324,
+  "n_cases": 34,
+  "n_shown_recorded": 244,
+  "n_withheld_recorded": 80,
+  "gpt_actionable_rate": 0.8735,
+  "sonnet_actionable_rate": 0.4938,
+  "_comment": "Both sides of the threshold are present -- 244 shown and 80 withheld -- so the range restriction that spoils shown-only panels (NR-58, C-36) is absent."
+ },
+ "reproduction": {
+  "shipped_map_replays_recorded_decisions": 1.0,
+  "gpt_refit_agrees_with_shipped": 0.7994,
+  "passes": false,
+  "_comment": "The GPT refit must land near the product or the comparison below is between two things that are not the same operation. The shipped map is NOT the control -- it was fitted on a different population, so shipped-vs-Sonnet would confound the label with the refit."
+ },
+ "coefficients": {
+  "shipped": {
+   "slope": 0.9674915191842209,
+   "intercept": -5.809648743203093
+  },
+  "gpt_refit_all": {
+   "slope": 0.5034,
+   "intercept": -1.5137
+  },
+  "sonnet_refit_all": {
+   "slope": 0.6187,
+   "intercept": -4.4843
+  },
+  "_comment": "Reported for readability; every decision above is leave-one-repo-out."
+ },
+ "flips": {
+  "n": 301,
+  "rate": 0.929,
+  "show_to_withhold": 301,
+  "withhold_to_show": 0,
+  "n_shown_gpt_refit": 309,
+  "n_shown_sonnet_refit": 8,
+  "examples": [
+   {
+    "case": "bio-align",
+    "arxiv_id": "2301.03834v1",
+    "finescale": 8.0,
+    "p_gpt_map": 0.928,
+    "p_sonnet_map": 0.605,
+    "gpt_score": 3,
+    "sonnet_score": 2
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "2606.15357v1",
+    "finescale": 5.82,
+    "p_gpt_map": 0.81,
+    "p_sonnet_map": 0.291,
+    "gpt_score": 2,
+    "sonnet_score": 2
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "1910.09020v3",
+    "finescale": 8.04,
+    "p_gpt_map": 0.93,
+    "p_sonnet_map": 0.612,
+    "gpt_score": 3,
+    "sonnet_score": 2
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "2002.05200v1",
+    "finescale": 8.22,
+    "p_gpt_map": 0.935,
+    "p_sonnet_map": 0.637,
+    "gpt_score": 3,
+    "sonnet_score": 2
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "2112.08687v7",
+    "finescale": 7.93,
+    "p_gpt_map": 0.926,
+    "p_sonnet_map": 0.596,
+    "gpt_score": 3,
+    "sonnet_score": 3
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "2601.17184v1",
+    "finescale": 7.99,
+    "p_gpt_map": 0.928,
+    "p_sonnet_map": 0.604,
+    "gpt_score": 3,
+    "sonnet_score": 2
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "2310.15634v1",
+    "finescale": 6.77,
+    "p_gpt_map": 0.873,
+    "p_sonnet_map": 0.421,
+    "gpt_score": 1,
+    "sonnet_score": 1
+   },
+   {
+    "case": "bio-align",
+    "arxiv_id": "1406.0426v1",
+    "finescale": 7.53,
+    "p_gpt_map": 0.911,
+    "p_sonnet_map": 0.536,
+    "gpt_score": 1,
+    "sonnet_score": 1
+   }
+  ]
+ },
+ "band_net2_per_case": {
+  "gpt_map_scored_by_gpt": 5.91,
+  "gpt_map_scored_by_sonnet": -4.41,
+  "sonnet_map_scored_by_gpt": 0.24,
+  "sonnet_map_scored_by_sonnet": 0.24,
+  "_comment": "The band's CONTRIBUTION, not a headline -- it is one slice of the digest. The diagonal cells fit and score under the same label and are expected to flatter; the OFF-diagonal cells are what a reader should weigh."
+ },
+ "ordering_vs_level": {
+  "auc_finescale_vs_gpt": 0.7287,
+  "auc_finescale_vs_sonnet": 0.7017,
+  "base_rate_gpt": 0.8735,
+  "base_rate_sonnet": 0.4938,
+  "auc_difference": 0.027,
+  "base_rate_difference": 0.3796,
+  "_comment": "THE DECOMPOSITION. The fine-scale score ORDERS these papers about equally well under either judge -- the AUCs differ by 0.03 -- while the two judges' base rates differ by 0.38. The judges do not disagree about which papers are better; they disagree about HOW MANY are good. A probability map is a calibration, so it inherits the base rate entirely, and `P >= 2/3` is a LEVEL threshold. The show/withhold decision is therefore mostly a bet on the base rate, not a judgement about the paper -- and needs no model fitting to see, which is why this block is readable when the refit below is not."
+ },
+ "stage_value_by_judge": {
+  "sci": {
+   "GPT-5.5": {
+    "with": 61,
+    "without": 76,
+    "per_case": -1.25
+   },
+   "Sonnet": {
+    "with": -14,
+    "without": -59,
+    "per_case": 3.75
+   }
+  },
+  "legacy": {
+   "GPT-5.5": {
+    "with": 123,
+    "without": 125,
+    "per_case": -0.08
+   },
+   "Sonnet": {
+    "with": -57,
+    "without": -109,
+    "per_case": 2.08
+   }
+  },
+  "_comment": "From the NR-52 band artifact, not recomputed. What the fine-scale stage is WORTH per case, with and without it, under each judge. Its sign depends on the judge -- and that is the ordering/level decomposition arriving as a product consequence: the stage's job is abstention, and how much abstention is worth is a function of the base rate, the one thing the judges disagree about."
+ },
+ "verdict": {
+  "flip_rate": 0.929,
+  "flip_rate_is_licensed": false,
+  "_flip_rate_scope": "NOT licensed. The registration made the reproduction check blocking and it FAILED at 0.799 against 0.90, so the 92.9% flip rate is reported and not read. The diagnosis: the shipped map was fitted on a WIDER population (219 papers across all gate scores) while this band is the map's APPLICATION population, where GPT's base rate is 0.874. A logistic fitted to a 0.874 slice is nearly a constant, so the refit is not the product's operation and the two are not comparable. The claim 'the shipped map is a GPT artifact' is therefore NOT established here. Establishing it needs Sonnet verdicts on the FITTING population, and the two other second-judge artifacts on disk (second_judge.json, second_judge_arm.json) carry no finescale expectation.",
+  "what_is_established": "The judges ORDER this band alike (AUC 0.729 vs 0.702) and LEVEL it very differently (base rate 0.874 vs 0.494). Every threshold in the system is a bet on that level, and no combination of judges measures it -- combining them picks a level by construction. Adoption is the only channel here that estimates a base rate without a model, which is what makes expanding it the load-bearing move rather than adding a third judge."
+ }
+}
