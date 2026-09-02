@@ -43,13 +43,27 @@ everything through `git show` / `git grep`, so nothing is ever checked out at al
     uv run python evals/mine_adoptions.py --mine          # $0, the adoption set
     uv run python evals/mine_adoptions.py --judge         # ~$3, judge validity at T0
     uv run python evals/mine_adoptions.py --report        # re-derive, $0
+
+**Extractor v2 and the judge-validity pool** (`PREREG-benchmark-expansion.md` §6, rung 10).
+The pool needs ~60 new positives and this benchmark cannot supply them (NR-57 exhausted it),
+so the label is widened and applied to a screened population instead of to the 37:
+
+    uv run python evals/mine_adoptions.py --screen --candidates universe-D.csv   # $0, §6.2
+    uv run python evals/mine_adoptions.py --mine --extractor v2                  # $0, §6.1
+
+v2 writes `adoptions-v2.json`, never `adoptions.json`: §6.1 reports the v1 numbers unchanged
+as v1, so a v2 run must not be able to overwrite the record it is compared against.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import json
+import os
 import re
+import shutil
+import stat
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
@@ -68,6 +82,15 @@ WORK = EVALS / ".work"
 CLONES = WORK / "fullclone"
 OUT = WORK / "adoptions.json"
 SEEDS = WORK / "adoption_seeds.json"
+SCREEN_COLUMNS = (
+    "full_name",
+    "created_at",
+    "clone_ok",
+    "ids_v1_head",
+    "ids_v2_head",
+    "qualifies",
+    "note",
+)
 BENCH = EVALS / "benchmark.yaml"
 
 ID = re.compile(r"(?:arxiv\.org/abs/|arXiv[:/])(\d{4}\.\d{4,5})", re.I)
@@ -76,6 +99,20 @@ ID = re.compile(r"(?:arxiv\.org/abs/|arXiv[:/])(\d{4}\.\d{4,5})", re.I)
 # no adoptions — so the two patterns are written out separately and pinned to each other by
 # a test rather than shared by a clever substitution.
 GREP_PATTERN = r"(arxiv\.org/abs/|arXiv[:/])[0-9]{4}\.[0-9]{4,5}"
+# Extractor v2 (frame section 6.1). Hugging Face mirrors every arXiv paper at
+# huggingface.co/papers/<arxiv id>, and projects migrate their links there wholesale:
+# diffusers' docs hold 99 arXiv-regex ids at T0=2024-08-16 and 11 at HEAD, while the HF
+# form goes 66 -> 163. Under v1 that reads as a repo that stopped citing papers. The union
+# is applied at BOTH ends, because widening only HEAD would turn every migrated link into
+# a fresh "adoption" -- the same id, relabelled by a docs refactor.
+HF_ID = re.compile(r"(?:huggingface\.co|hf\.co)/papers/(\d{4}\.\d{4,5})", re.I)
+HF_GREP_PATTERN = r"(huggingface\.co|hf\.co)/papers/[0-9]{4}\.[0-9]{4,5}"
+EXTRACTORS = ("v1", "v2")
+# A paper listed only under a showcase directory is citing the repo, not cited by it.
+# Applied to the HEAD side only: dropping an id from the T0 bibliography would MANUFACTURE
+# an adoption, which is the one direction this whole label cannot afford to be wrong in.
+REVERSE_CITED_PATH = re.compile(r"(projects|showcase|used[-_ ]by|gallery|community|awesome)", re.I)
+SCREEN_MIN_IDS = 10  # section 6.2: a row qualifies for the pool at ids_v2(HEAD) >= 10
 DOC_GLOBS = ("*.md", "*.rst", "*.cff", "*.bib", "*.txt")
 WINDOW_MONTHS = 24
 # The two S2 endpoints `hop` dispatches on, spelled the way it expects them.
@@ -93,6 +130,45 @@ KILL_SELF_CITE_FRACTION = 0.80
 CITE_HEADING = re.compile(
     r"^#{1,4}\s*.{0,40}\b(citation|cite|bibtex|reference this)\b", re.I | re.M
 )
+
+
+def _force_writable(func: Any, target: Any, _exc: Any) -> None:
+    os.chmod(target, stat.S_IWRITE)
+    func(target)
+
+
+def _remove_clone(path: Path) -> bool:
+    """Delete a clone, and say whether it actually went.
+
+    Git marks objects and pack files read-only, and on Windows that makes `os.unlink` raise
+    `PermissionError`. `shutil.rmtree(..., ignore_errors=True)` swallows it and leaves the
+    entire clone on disk while returning cleanly — so the screen would report "clone removed"
+    for several hundred candidates and quietly fill the drive. The retry clears the read-only
+    bit; the return value is what the caller records, rather than an assumption.
+    """
+    kwargs: dict[str, Any] = (
+        {"onexc": _force_writable} if sys.version_info >= (3, 12) else {"onerror": _force_writable}
+    )
+    try:
+        shutil.rmtree(path, **kwargs)
+    except OSError:
+        return False
+    return not path.exists()
+
+
+def _suffixed(base: Path, extractor: str) -> Path:
+    """Derived from *base* rather than hard-coded, so a monkeypatched path stays honoured."""
+    return base if extractor == "v1" else base.with_name(f"{base.stem}-{extractor}{base.suffix}")
+
+
+def out_path(extractor: str = "v1") -> Path:
+    """v1 keeps `adoptions.json`. Section 6.1 reports the v1 numbers unchanged, so a v2
+    run must not be able to overwrite the record it is compared against."""
+    return _suffixed(OUT, extractor)
+
+
+def seeds_path(extractor: str = "v1") -> Path:
+    return _suffixed(SEEDS, extractor)
 
 
 def git(repo: Path, *args: str, check: bool = True) -> str:
@@ -128,21 +204,60 @@ def clone(case: str, url: str) -> Path | None:
     return path
 
 
-def ids_at(repo: Path, rev: str) -> set[str]:
-    """Every arXiv id in the docs at *rev*, without checking anything out."""
-    args = ["grep", "-h", "-I", "-i", "-o", "-E", GREP_PATTERN, rev, "--", *DOC_GLOBS]
+def _matches_with_paths(
+    repo: Path, rev: str, grep_pattern: str, pattern: re.Pattern[str]
+) -> dict[str, set[str]]:
+    """Ids matching *pattern* at *rev*, each with the doc paths it occurs in.
+
+    Dropping `-h` is what makes the reverse-citation filter possible: `git grep -o` prints
+    `<rev>:<path>:<match>`, and the first colon after the rev prefix ends the path. The match
+    itself may contain a colon (`arXiv:2401.00001`), which is why this partitions once rather
+    than splitting.
+    """
     out = subprocess.run(
-        ["git", "-C", str(repo), *args],
+        ["git", "-C", str(repo), "grep", "-I", "-i", "-o", "-E", grep_pattern, rev, "--"]
+        + list(DOC_GLOBS),
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
     )
     # git grep exits 1 when nothing matches, which is not an error here.
-    return {m.group(1) for m in ID.finditer(out.stdout)}
+    found: dict[str, set[str]] = {}
+    prefix = f"{rev}:"
+    for line in out.stdout.splitlines():
+        if not line.startswith(prefix):
+            continue
+        path, _, text = line[len(prefix) :].partition(":")
+        match = pattern.search(text)
+        if match:
+            found.setdefault(match.group(1), set()).add(path)
+    return found
 
 
-def self_cited(repo: Path, rev: str) -> set[str]:
+def ids_with_paths(repo: Path, rev: str, extractor: str = "v1") -> dict[str, set[str]]:
+    """Every id in the docs at *rev* with its paths, without checking anything out."""
+    found = _matches_with_paths(repo, rev, GREP_PATTERN, ID)
+    if extractor == "v2":
+        for pid, paths in _matches_with_paths(repo, rev, HF_GREP_PATTERN, HF_ID).items():
+            found.setdefault(pid, set()).update(paths)
+    return found
+
+
+def ids_at(repo: Path, rev: str, extractor: str = "v1") -> set[str]:
+    return set(ids_with_paths(repo, rev, extractor))
+
+
+def reverse_cited_only(paths_by_id: dict[str, set[str]]) -> set[str]:
+    """Ids whose every occurrence is under a showcase-shaped path (section 6.1)."""
+    return {
+        pid
+        for pid, paths in paths_by_id.items()
+        if paths and all(REVERSE_CITED_PATH.search(path) for path in paths)
+    }
+
+
+def self_cited(repo: Path, rev: str, extractor: str = "v1") -> set[str]:
     """Ids the project cites as ITS OWN work — a CITATION file, or a "Citation" heading.
 
     A repo that is the reference implementation of a paper always cites that paper, and it
@@ -152,6 +267,9 @@ def self_cited(repo: Path, rev: str) -> set[str]:
     Conservative: it catches the conventional places and will miss an unconventional one, so
     the reported self-citation fraction is a lower bound.
     """
+    # v2 without this would read a project's own paper, linked as huggingface.co/papers/,
+    # as an adoption -- and self-citations are the strongest-looking adoptions there are.
+    pats = (ID,) if extractor == "v1" else (ID, HF_ID)
     found: set[str] = set()
     listing = subprocess.run(
         ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", rev],
@@ -175,10 +293,13 @@ def self_cited(repo: Path, rev: str) -> set[str]:
         if not blob:
             continue
         if is_citation_file:
-            found |= {m.group(1) for m in ID.finditer(blob)}
+            for pat in pats:
+                found |= {m.group(1) for m in pat.finditer(blob)}
             continue
         for heading in CITE_HEADING.finditer(blob):
-            found |= {m.group(1) for m in ID.finditer(blob[heading.end() : heading.end() + 800])}
+            window = blob[heading.end() : heading.end() + 800]
+            for pat in pats:
+                found |= {m.group(1) for m in pat.finditer(window)}
     return found
 
 
@@ -227,7 +348,9 @@ def _posted(arxiv_id: str) -> datetime:
     return datetime(2000 + int(head[:2]), int(head[2:4]), 1, tzinfo=UTC)
 
 
-def mine(cases: dict[str, str]) -> list[dict[str, Any]]:
+def mine(
+    cases: dict[str, str], *, extractor: str = "v1", at: str | None = None
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     # The T0 bibliography, kept because it is the seed set for the retro-recall question:
     # was an adopted paper reachable from what the repo already cited, BEFORE it adopted it?
@@ -236,51 +359,145 @@ def mine(cases: dict[str, str]) -> list[dict[str, Any]]:
         repo = clone(case, url)
         if repo is None:
             continue
-        head_ts = git(repo, "log", "-1", "--format=%ct", "HEAD").strip()
+        # Pinned to a SHA, not left as the moving ref. A re-mine a week later would otherwise
+        # produce a different positive set under the same name, and the pool has to be a
+        # reproducible artefact -- the paper publishes it.
+        head = git(repo, "rev-parse", at or "HEAD", check=False).strip()
+        if not head:
+            print(f"[{case:10}] cannot resolve {at or 'HEAD'} - skipping")
+            continue
+        head_ts = git(repo, "log", "-1", "--format=%ct", head).strip()
         if not head_ts:
             continue
         head_date = datetime.fromtimestamp(int(head_ts), tz=UTC)
         cutoff = head_date - timedelta(days=WINDOW_MONTHS * 30)
         t0 = git(
-            repo, "rev-list", "-1", f"--before={cutoff.date().isoformat()}", "HEAD", check=False
+            repo, "rev-list", "-1", f"--before={cutoff.date().isoformat()}", head, check=False
         ).strip()
         if not t0:
-            print(f"[{case:10}] no history before {cutoff.date()} — skipping")
+            print(f"[{case:10}] no history before {cutoff.date()} - skipping")
             continue
-        at_head, at_t0 = ids_at(repo, "HEAD"), ids_at(repo, t0)
+        head_paths = ids_with_paths(repo, head, extractor)
+        at_head = set(head_paths)
+        at_t0 = ids_at(repo, t0, extractor)
         seeds[case] = sorted(at_t0)
-        selfcites = self_cited(repo, "HEAD")
+        selfcites = self_cited(repo, head, extractor)
+        showcase = reverse_cited_only(head_paths)
+        # Doc-genesis guard (section 6.1): a repo with no bibliography at T0 has no "before",
+        # so every id at HEAD reads as an adoption. Such rows are kept and flagged, never
+        # silently dropped -- how many there are is itself a property of the population.
+        genesis = len(at_t0) < 1
+        arxiv_form = set(_matches_with_paths(repo, head, GREP_PATTERN, ID))
         adopted = sorted(at_head - at_t0)
-        usable = [
-            a
-            for a in adopted
-            if a not in selfcites and (head_date - _posted(a)).days >= MIN_PAPER_AGE_DAYS
-        ]
+        case_rows: list[dict[str, Any]] = []
         for a in adopted:
-            rows.append(
-                {
-                    "case": case,
-                    "id": a,
-                    "t0": t0,
-                    "t0_date": cutoff.date().isoformat(),
-                    "head_date": head_date.date().isoformat(),
-                    "self_cited": a in selfcites,
-                    "too_new": (head_date - _posted(a)).days < MIN_PAPER_AGE_DAYS,
-                    "usable": a in usable,
-                    "seeds_at_t0": len(at_t0),
-                }
+            row = {
+                "case": case,
+                "id": a,
+                "extractor": extractor,
+                "head": head,
+                "t0": t0,
+                "t0_date": cutoff.date().isoformat(),
+                "head_date": head_date.date().isoformat(),
+                "self_cited": a in selfcites,
+                "too_new": (head_date - _posted(a)).days < MIN_PAPER_AGE_DAYS,
+                "reverse_cited": a in showcase,
+                "genesis": genesis,
+                "via": "arxiv" if a in arxiv_form else "hf",
+                "paths": sorted(head_paths[a])[:5],
+                "seeds_at_t0": len(at_t0),
+            }
+            row["usable"] = not (
+                row["self_cited"] or row["too_new"] or row["reverse_cited"] or genesis
             )
+            case_rows.append(row)
+        rows.extend(case_rows)
+        usable = [r for r in case_rows if r["usable"]]
         print(
             f"[{case:10}] HEAD {len(at_head):3} ids, T0 {len(at_t0):3} ({cutoff.date()})  "
             f"adopted {len(adopted):3}  usable {len(usable):3}  "
-            f"self-cited {len(adopted) - len([a for a in adopted if a not in selfcites]):2}",
+            f"self-cited {sum(1 for r in case_rows if r['self_cited']):2}  "
+            f"showcase {sum(1 for r in case_rows if r['reverse_cited']):2}"
+            + ("  GENESIS (no T0 bibliography)" if genesis else ""),
             flush=True,
         )
-    SEEDS.write_text(json.dumps(seeds, indent=2), encoding="utf-8")
+    seeds_path(extractor).write_text(json.dumps(seeds, indent=2), encoding="utf-8")
     return rows
 
 
-def retro_hop(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def read_candidates(path: Path) -> list[dict[str, str]]:
+    with path.open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    blank = [r for r in rows if not (r.get("full_name") or "").strip()]
+    if blank:
+        raise SystemExit(f"{path}: {len(blank)} row(s) have no full_name")
+    return rows
+
+
+def write_screen(rows: list[dict[str, Any]], out: Path) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(SCREEN_COLUMNS))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: row.get(k, "") for k in SCREEN_COLUMNS})
+
+
+def screen(
+    candidates: list[dict[str, str]],
+    *,
+    keep_clones: bool = False,
+    created_before: str | None = None,
+) -> list[dict[str, Any]]:
+    """Section 6.2's qualifying screen: ids_v2(HEAD) >= 10, one blobless clone per row, $0.
+
+    Non-qualifying clones are deleted as soon as they are counted. Several hundred candidates
+    at ~20 MB of trees each is gigabytes of cache to answer a question that fits in one
+    integer, and this runs on a laptop. A clone that was already on disk before this ran is
+    never deleted -- it belongs to the legacy 37 or to an earlier screen, not to this one.
+    """
+    rows: list[dict[str, Any]] = []
+    for cand in candidates:
+        full = (cand["full_name"] or "").strip()
+        created = (cand.get("created_at") or "").strip()
+        row: dict[str, Any] = {
+            "full_name": full,
+            "created_at": created,
+            "clone_ok": False,
+            "ids_v1_head": "",
+            "ids_v2_head": "",
+            "qualifies": False,
+            "note": "",
+        }
+        if created_before and created and created[:10] >= created_before:
+            row["note"] = f"created {created[:10]} >= {created_before}"
+            rows.append(row)
+            print(f"[{full[:38]:38}] {row['note']}", flush=True)
+            continue
+        key = full.replace("/", "__")
+        existed = (CLONES / key).exists()
+        repo = clone(key, (cand.get("url") or "").strip() or f"https://github.com/{full}")
+        if repo is None:
+            row["note"] = "clone failed"
+            rows.append(row)
+            continue
+        row["clone_ok"] = True
+        head_paths = ids_with_paths(repo, "HEAD", "v2")
+        row["ids_v1_head"] = len(_matches_with_paths(repo, "HEAD", GREP_PATTERN, ID))
+        row["ids_v2_head"] = len(head_paths)
+        row["qualifies"] = len(head_paths) >= SCREEN_MIN_IDS
+        if not row["qualifies"] and not keep_clones and not existed:
+            row["note"] = "clone removed" if _remove_clone(repo) else "clone left on disk"
+        rows.append(row)
+        print(
+            f"[{full[:38]:38}] v1 {row['ids_v1_head']:4}  v2 {row['ids_v2_head']:4}  "
+            f"{'QUALIFIES' if row['qualifies'] else '-'}",
+            flush=True,
+        )
+    return rows
+
+
+def retro_hop(rows: list[dict[str, Any]], extractor: str = "v1") -> list[dict[str, Any]]:
     """Could the citation hop have found these papers from the T0 bibliography alone?
 
     This is retro-recall, and it is the only recall measurement in the project whose targets
@@ -289,7 +506,8 @@ def retro_hop(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     from diagnose_citation_hop import hop
 
-    seeds = json.loads(SEEDS.read_text(encoding="utf-8")) if SEEDS.is_file() else {}
+    path = seeds_path(extractor)
+    seeds = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     by_case: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         if row["usable"]:
@@ -374,20 +592,32 @@ def judge_at_t0(rows: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
     return rows
 
 
-def report(rows: list[dict[str, Any]]) -> None:
+def report(rows: list[dict[str, Any]], out: Path | None = None) -> None:
     usable = [r for r in rows if r["usable"]]
     repos = {r["case"] for r in usable}
     selfcited = [r for r in rows if r["self_cited"]]
-    print(f"\n=== P6 — adoptions mined from git history ({len(rows)} raw) ===")
-    print(f"{'case':12} {'adopted':>8} {'self-cite':>10} {'too new':>8} {'usable':>7}")
+    extractor = rows[0].get("extractor", "v1") if rows else "v1"
+    print(f"\n=== P6 — adoptions mined from git history ({len(rows)} raw, {extractor}) ===")
+    print(
+        f"{'case':12} {'adopted':>8} {'self-cite':>10} {'too new':>8} {'showcase':>9} {'usable':>7}"
+    )
     for case in sorted({r["case"] for r in rows}):
         sel = [r for r in rows if r["case"] == case]
         print(
             f"{case:12} {len(sel):>8} {sum(1 for r in sel if r['self_cited']):>10} "
-            f"{sum(1 for r in sel if r['too_new']):>8} {sum(1 for r in sel if r['usable']):>7}"
+            f"{sum(1 for r in sel if r['too_new']):>8} "
+            f"{sum(1 for r in sel if r.get('reverse_cited')):>9} "
+            f"{sum(1 for r in sel if r['usable']):>7}"
+            + ("   GENESIS" if any(r.get("genesis") for r in sel) else "")
         )
     frac = len(selfcited) / max(len(rows), 1)
     print(f"\nusable adoptions: {len(usable)} across {len(repos)} repos")
+    if extractor != "v1":
+        hf_only = sorted(r["case"] for r in usable if r.get("via") == "hf")
+        print(
+            f"reached only through a Hugging Face paper link: {len(hf_only)} "
+            f"({', '.join(sorted(set(hf_only))) or 'none'})"
+        )
     print(f"self-citation fraction: {frac:.0%} ({len(selfcited)}/{len(rows)}) — a lower bound")
 
     hopped = [r for r in usable if r.get("hop_reached") is not None]
@@ -433,7 +663,7 @@ def report(rows: list[dict[str, Any]]) -> None:
             )
         else:
             print(f"judge validity: BELOW PREDICTION at {rate:.0%}, above the invalidation bar")
-    print(f"\nwritten to {OUT}")
+    print(f"\nwritten to {out or OUT}")
 
 
 def main() -> int:
@@ -443,8 +673,38 @@ def main() -> int:
     ap.add_argument("--hop", action="store_true", help="retro-recall from the T0 bibliography")
     ap.add_argument("--report", action="store_true", help="re-derive from saved rows ($0)")
     ap.add_argument("--model", default=judge_mod.DEFAULT_JUDGE_MODEL)
+    ap.add_argument(
+        "--extractor",
+        choices=EXTRACTORS,
+        default="v1",
+        help="v2 adds Hugging Face paper links at both ends (frame §6.1)",
+    )
+    ap.add_argument("--at", help="pin HEAD to this revision instead of the moving ref")
+    ap.add_argument("--screen", action="store_true", help="§6.2 qualifying screen ($0)")
+    ap.add_argument("--candidates", type=Path, help="CSV with a full_name column")
+    ap.add_argument("--out", type=Path, help="where --screen writes its CSV")
+    ap.add_argument("--created-before", help="ISO date; drop candidates created on/after it")
+    ap.add_argument("--keep-clones", action="store_true", help="keep non-qualifying clones")
     args = ap.parse_args()
     _load_env()
+
+    if args.screen:
+        if not args.candidates:
+            print("--screen needs --candidates <csv>")
+            return 1
+        screened = screen(
+            read_candidates(args.candidates),
+            keep_clones=args.keep_clones,
+            created_before=args.created_before,
+        )
+        out = args.out or (WORK / "validity_screen.csv")
+        write_screen(screened, out)
+        qualify = sum(1 for r in screened if r["qualifies"])
+        print(
+            f"\n{qualify}/{len(screened)} rows qualify at "
+            f"ids_v2(HEAD) >= {SCREEN_MIN_IDS} — written to {out}"
+        )
+        return 0
 
     bench = yaml.safe_load(BENCH.read_text(encoding="utf-8"))
     entries = bench["cases"] if isinstance(bench, dict) else bench
@@ -454,14 +714,15 @@ def main() -> int:
         if isinstance(c, dict) and c.get("live_repo") and c.get("name")
     }
 
+    out_file = out_path(args.extractor)
     if args.mine:
-        rows = mine(cases)
-        OUT.write_text(json.dumps(rows, indent=2), encoding="utf-8")
-        report(rows)
+        rows = mine(cases, extractor=args.extractor, at=args.at)
+        out_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+        report(rows, out_file)
         return 0
-    rows = json.loads(OUT.read_text(encoding="utf-8")) if OUT.is_file() else []
+    rows = json.loads(out_file.read_text(encoding="utf-8")) if out_file.is_file() else []
     if not rows:
-        print("no mined rows — run with --mine first")
+        print(f"no mined rows in {out_file} — run with --mine first")
         return 1
     if args.judge:
         # The gold set must not move. `use_cache=False` is what prevents T0 verdicts from
@@ -475,11 +736,11 @@ def main() -> int:
         if resolve_targets() != before:
             print("\n!! THE GOLD SET MOVED — T0 verdicts leaked into the shared cache.")
             return 1
-        OUT.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+        out_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
     if args.hop:
-        rows = retro_hop(rows)
-        OUT.write_text(json.dumps(rows, indent=2), encoding="utf-8")
-    report(rows)
+        rows = retro_hop(rows, args.extractor)
+        out_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    report(rows, out_file)
     return 0
 
 

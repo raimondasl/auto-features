@@ -8,7 +8,7 @@ pre-registration only when (a) every `____` blank is filled at the step that pro
 removed from this banner. Until then nothing in it binds, and no candidate repository has
 been enumerated, cloned, profiled, or looked at.
 
-Two corrections applied by hand to the synthesizer's inputs, both verified against the tree:
+Three corrections applied by hand to the synthesizer's inputs, all verified against the tree:
   * NR-37 (documentation volume predicts nothing) was measured 2026-08-16 under a corpus rule
     the profiler widened on 2026-08-19 (commit e0cb9b5, "The profiler reads the wrong files").
     thin-gnn's corpus read 1,073 chars then and reads 107,895 now. P0.4's re-run is therefore
@@ -18,6 +18,11 @@ Two corrections applied by hand to the synthesizer's inputs, both verified again
     `ok` on all 37 legacy cases (one genuine abstention, bio-mdtraj, no cutoffs), so the
     VOID-OPUS rule in §5.6 is a precaution for the held-out science cases, not an
     observed failure mode of this comparator.
+  * §6.1's diffusers premise was asserted, not measured. It is now measured and correct
+    (99 -> 11 arXiv-regex ids, 66 -> 163 in the HF form), on the LEGACY case `diffusion`
+    only -- no candidate was touched. Because the number is now known before registration,
+    P14's yield clause is demoted to a check (P14a) and the prediction is restated as P14b:
+    at most 3 of v1's 35 legacy positives are false adoptions caused by link migration.
 
 Two decisions by the maintainer on 2026-09-02, before registration, both recorded in the
 Conflicts table:
@@ -191,7 +196,11 @@ All held-out arm runs, module R, module J (§7.3), and all judging occur inside 
 ## 6. Judge-validity pool (decoupled from the benchmark)
 
 ### 6.1 Label
-Adoption = `ids_v2(HEAD) − ids_v2(T0)`, T0 = D − 24 months, mined by `evals/mine_adoptions.py` with **extractor v2** = the existing arXiv regex ∪ `huggingface.co/papers/<id>` ∪ `hf.co/papers/<id>` (diffusers' docs fell from 99 to 11 arXiv-regex ids through link migration; v2 is applied to **both** ends so a migrated id cannot become a false adoption), plus the existing self-citation (`CITE_HEADING`) and 182-day too-new filters, a **reverse-citation path filter** (ids whose only occurrences are under paths matching `/(projects|showcase|used[-_ ]by|gallery|community|awesome)/i` are dropped), and a **doc-genesis guard** (`ids_v2(T0) ≥ 1`; positives from repos with an empty T0 bibliography are flagged `genesis` and excluded from the primary). Label v1 numbers (NR-56/57: 35 usable over 9 repos — graph 13, diffusion 7, peft 5, rag/rl/llminfer/bio-scvi 2, bio-singlecell/mat-phonon 1) are reported unchanged as v1; v2 is recomputed over the legacy 37 (P14).
+Adoption = `ids_v2(HEAD) − ids_v2(T0)`, T0 = D − 24 months, mined by `evals/mine_adoptions.py` with **extractor v2** = the existing arXiv regex ∪ `huggingface.co/papers/<id>` ∪ `hf.co/papers/<id>` (diffusers' docs fell from 99 to 11 arXiv-regex ids through link migration; v2 is applied to **both** ends so a migrated id cannot become a false adoption), plus the existing self-citation (`CITE_HEADING`) and 182-day too-new filters, a **reverse-citation path filter** (ids whose only occurrences are under paths matching `/(projects|showcase|used[-_ ]by|gallery|community|awesome)/i` are dropped), and a **doc-genesis guard** (`ids_v2(T0) ≥ 1`; positives from repos with an empty T0 bibliography are flagged `genesis` and excluded from the primary). Label v1 numbers (NR-56/57: 35 usable over 9 repos — graph 13, diffusion 7, peft 5, rag/rl/llminfer/bio-scvi 2, bio-singlecell/mat-phonon 1) are reported unchanged as v1 — `mine_adoptions.py` writes v2 to `adoptions-v2.json` so a v2 run cannot overwrite the record it is compared against; v2 is recomputed over the legacy 37 (P14a/P14b).
+
+**The premise, measured rather than asserted (2026-09-02, before registration).** The parenthetical above arrived from the synthesizer's inputs; two of that set have already turned out to be wrong (NR-37's date, the turn-budget caveat), so it was checked against the tree. `diffusion` holds **99** arXiv-regex ids at T0 = 2024-08-16 and **11** at HEAD, while the HF form goes **66 → 163**; the union goes 127 → 172.  Re-measured hours later against a fresh clone, T0 reproduced to the id (its SHA is pinned) and HEAD had moved: 162 in the HF form, union 171. The assertion is correct, and it carries two things the assertion alone did not. First, **the T0 side is where the widening earns its keep**: 28 of T0's 127 ids are reachable *only* through an HF link, so under v1 any of them re-linked to arXiv by HEAD scores as a fresh adoption — a fabricated positive in the one label here that no model produced. That failure is what P14b measures and what `tests/test_adoption_extractor_v2.py` pins. Second, because the measurement was taken before registration, P14's yield clause is demoted to a check (P14a).
+
+**Three specifications this run fixed, recorded because the text above is ambiguous about all three.** (a) The reverse-citation path filter is applied to the **HEAD side only**: dropping an id from the T0 bibliography would *manufacture* an adoption, and the sentence above reads as a filter on ids wherever they are extracted. (b) The self-citation filter is widened to v2 as well — a project's own paper linked in HF form under its `Citation` heading would otherwise be the strongest-looking adoption in the pool. (c) `HEAD` is resolved to a SHA and recorded on every row (`--at` pins it explicitly). This is not hypothetical: the two `diffusion` measurements above were taken hours apart and differ by one paper, while T0 — which *is* pinned to a SHA — reproduced exactly. The pool is published with the paper as a datasheet, and a row that says "HEAD" is a different positive set a week later.
 
 ### 6.2 Universe, order, stop rule
 Rows of `universe-D.csv` in L1 ∪ L2a ∪ L2b with `created_at ≤ D − 30 months` and `ids_v2(HEAD) ≥ 10` (a blobless clone and a doc-glob grep, $0). **Mine every qualifying row** (the yield distribution over the qualifying population is itself a reported result and dissolves the yield-prediction problem); X2 and X4 apply; the 9 legacy adoption repos form a separate `legacy` cluster. Judge positives in `sha256(SEED||full_name)` order until **≥ 60 new usable positives** (after per-repo cap and cross-repo dedup) or the list is exhausted — exhaustion below 60 is a recorded negative result, not a reason to widen the rule. Per-repo cap **8** in the primary (seeded subset; surplus kept for sensitivity; graph 13 → 8, so the legacy base is 30). Positives sharing an arXiv id across sibling repos are assigned to one repo by seed and counted once.
@@ -237,7 +246,8 @@ Four controls per positive, **arm-neutral**: arXiv listings (API) in the positiv
 | P11 | Coverage check: ≥ 28 of the 37 legacy repos appear in `universe-D.csv`; the three thin repos do not | yes |
 | P12 | Validity pool: 150–400 qualifying rows; usable v2 adoptions per qualifying repo median 0–1, mean 0.8–1.8; ≥ 60 new usable positives reached within the first 80 repos in seeded order | yes |
 | P13 | Validity endpoints at ≥ 90 capped positives: AUC(GPT) 0.60–0.70, AUC(Sonnet) 0.62–0.72, both CIs exclude 0.5, their difference does not exclude 0; P(actionable\|control): GPT ≥ 0.70, Sonnet ≤ 0.55 | yes |
-| P14 | Extractor v2 raises the legacy usable count by ≥ 5 (diffusers alone) and creates no adoption absent under v1 for a repo whose links did not migrate | yes |
+| P14a | *Check, not prediction:* v2 raises the legacy usable count by ≥ 5, driven by `diffusion`. This follows from the premise **measured before registration** (§6.1), so it is recorded rather than forecast — the treatment P0.1 gives rung 1's near-tautological bar | no (already implied) |
+| P14b | **≤ 3 of v1's 35 legacy positives are false adoptions** revealed by the widened T0 bibliography — an id cited at T0 only in HF form and at HEAD in arXiv form. Above 3, NR-56/57's gaps are re-reported under v2 as primary and the v1 numbers are labelled as containing migration artifacts | yes |
 | P15 | Module R: Opus 5 draw+drift sd 3–5 (point 4.0 — the 25 % bar fires); RepoRadar sd at the tag ≤ 2.5; module J flip rate ≤ 15 % | yes |
 | P16 | Recall probe: ≥ 34/37 legacy recognised by all three models; held-out popular ≥ 80 %, small ≤ 50 % | yes |
 
@@ -277,7 +287,7 @@ The validity pool runs **before** the benchmark draw. It is decoupled from the b
 7. `uv run python evals/frame/walk.py` (X2–X8, ledger, reserves, pinned SHAs); commit `ledger.csv`, `selected.json`, `run_order.json`.
 8. Build the 23 cases (§4.3); `verify_contexts` hashes committed for all 23. **From here no case may be excluded or replaced except X9 before its first arm run.**
 9. Window W opens: stage 1 (first 11 in `run_order.json`), both arms, both judges; modules R and J; RepoRadar-at-tag on 37 if F applies. Interim (§5.3) computed by `analyze.py --interim`; decision committed. Stage 2. Second draw if R's bar fired.
-10. `analyze.py --final`: every table in §5.2, predictions P1–P16 scored, datasheet (`universe-D.csv`, `draw_order.json`, `ledger.csv`, `selected.json`, per-run model strings and timestamps, both judges' raw scores, adoption sets and controls, void lists) published with the paper.
+10. `analyze.py --final`: every table in §5.2, predictions P1–P16 scored (P14 as P14a/P14b), datasheet (`universe-D.csv`, `draw_order.json`, `ledger.csv`, `selected.json`, per-run model strings and timestamps, both judges' raw scores, adoption sets and controls, void lists) published with the paper.
 
 ---
 
