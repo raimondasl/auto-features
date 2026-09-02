@@ -130,6 +130,64 @@ class TestTheTwoScientificCohortsDisagree:
         assert e["C_minus_B"]["per_case"]["mat-chgpot"] == -13.0
 
 
+class TestTheWiderCorpusWorkedAndThatIsWhyItLost:
+    """C-wide is C with the MCP store's corpus widened from the digest picks to the whole
+    frozen pool and NOTHING else — `get_ranked_papers` byte-identical, proved per case.
+
+    Registered question: was C's narrowing caused by an impoverished `search_papers`
+    (starvation) or by the shortlist itself (anchoring)? Registered rule: C-wide − C ≥
+    +1.42 with an interval excluding zero = starvation; interval crossing zero = anchoring.
+
+    **Measured −1.08, CI [−2.67, +0.50]. Anchoring.** But the secondary makes the mechanism
+    sharper than that word: the treatment was consumed enthusiastically and still lost.
+    """
+
+    def test_the_registered_primary_crosses_zero(self, art) -> None:
+        d = art["cohorts"]["scientific12"]["C_wide_minus_C"]
+        assert d["mean"] == pytest.approx(-1.08, abs=0.01)
+        assert d["ci95"][0] < 0 < d["ci95"][1]
+        assert d["excludes_zero"] is False
+        assert (d["wins"], d["losses"], d["ties"]) == (3, 6, 3)
+
+    def test_starvation_is_falsified_by_the_secondary_not_by_the_headline(self, art) -> None:
+        """The registered secondary: how many picks came from the pool but NOT the digest —
+        papers reachable in C-wide's corpus and unreachable in C's. **13 -> 37, 13% -> 49%.**
+        The wider corpus fed the agent a great deal it could not have had before. It was
+        not starved; a null result here is not "the tool was never exercised"."""
+        e = art["cohorts"]["scientific12"]
+        assert e["C_provenance"]["pool_only"] == 13
+        assert e["C_wide_provenance"]["pool_only"] == 37
+        assert e["C_wide_provenance"]["pool_only_share"] == pytest.approx(0.493, abs=0.005)
+
+    def test_more_reporadar_means_less_of_the_agents_own_search(self, art) -> None:
+        """The finding, in one column. Picks the agent found for itself, off RepoRadar's
+        pool entirely: **104 -> 65 -> 23** as it is given none, then the shortlist, then
+        the corpus. Monotone, and net@2 falls monotonically with it."""
+        e = art["cohorts"]["scientific12"]
+        assert e["B_provenance"]["off_pool"] == 104
+        assert e["C_provenance"]["off_pool"] == 65
+        assert e["C_wide_provenance"]["off_pool"] == 23
+
+    def test_precision_rises_while_volume_and_score_fall(self, art) -> None:
+        """Every step toward more RepoRadar makes the agent's picks better and fewer, and
+        under net@2 above the 2/3 break-even, fewer loses. 0.891 -> 0.907 -> 0.920 against
+        10.8 -> 8.1 -> 6.2 papers per case and +7.25 -> +5.83 -> +4.75."""
+        e = art["cohorts"]["scientific12"]
+        prec = [e[k]["precision"] for k in ("B_on_c_cases", "C", "C_wide")]
+        shown = [e[k]["shown_per_case"] for k in ("B_on_c_cases", "C", "C_wide")]
+        net = [e[k]["mean_net2"] for k in ("B_on_c_cases", "C", "C_wide")]
+        assert prec == sorted(prec), prec
+        assert shown == sorted(shown, reverse=True), shown
+        assert net == sorted(net, reverse=True), net
+
+    def test_the_treatment_was_exercised_harder_than_in_the_narrow_arm(self, art) -> None:
+        """`search_papers` 48 -> 109 calls. If this had FALLEN, a null result would say
+        nothing about corpora — it is the kill condition the addendum registered."""
+        assert art["arms"]["C"]["mcp_calls"]["search_papers"] == 48
+        assert art["arms"]["C_wide"]["mcp_calls"]["search_papers"] == 109
+        assert art["arms"]["C_wide"]["rows_with_zero_mcp_calls"] == 0
+
+
 class TestTheUnrunPartIsVoidNotZero:
     def test_the_unrun_cohort_carries_no_c_column_at_all(self, art) -> None:
         """core25 has not been run. It must have no C figures rather than zeros — an arm

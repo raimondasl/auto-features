@@ -307,6 +307,11 @@ def run_baseline_only(
         # inferred from the answer. Without it a null result is unreadable: "the tool did
         # not help" and "the agent never found the tool" are opposite findings.
         **({"mcp": read_call_log(call_log)} if call_log is not None else {}),
+        # WHICH server this row was served by. `run_baseline` records it and this function
+        # was dropping it, so an artifact could carry `tools: "web+rrwide"` on every row
+        # with no way to check that the wide store was ever opened -- which is exactly the
+        # failure an audit found in the driver a few hours earlier, in its other half.
+        **({"mcp_config": str(mcp_config)} if mcp_config is not None else {}),
         "cost_usd": result.get("cost_usd", 0.0),
         "max_turns": max_turns,
         "prompt_version": prompt_version,

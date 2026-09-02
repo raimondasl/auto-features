@@ -55,11 +55,14 @@ KNOWN_SOURCES = {
     # through a proxy -- the pooled-evaluation flattery the rule exists to prevent, arriving
     # by a route that did not exist when the rule was written.
     "cli-v2-opus5-rr@30",
+    # Same agent again with RepoRadar's WHOLE frozen pool as its search corpus [P27].
+    # SELF for the same reason and more so: 49% of its picks came from that pool.
+    "cli-v2-opus5-rrwide@30",
     "api",
     "reporadar",
     "adoption",
 }
-SELF = {"reporadar", "cli-v2-opus5-rr@30"}
+SELF = {"reporadar", "cli-v2-opus5-rr@30", "cli-v2-opus5-rrwide@30"}
 NON_SELF = KNOWN_SOURCES - SELF
 
 
@@ -214,11 +217,18 @@ class TestTheCommittedArtifact:
         `cli-v2-opus5-rr@30` is a SELF source, because that agent was handed RepoRadar's Top
         Picks and any witness it names may be one RepoRadar found and it repeated. Pooling it
         into the non-self set would have let the system grade itself through a proxy.
+
+        **756 -> 785 (2026-09-01), and the fifth payoff.** The wide-corpus arm added 69
+        witnesses, 29 of them new; **both regret figures did not move.** Also SELF, and less
+        arguably than its predecessor: 49% of that arm's picks came from RepoRadar's own
+        candidate pool. `n_non_self` is unchanged at 522, which is the check that matters —
+        the pooled reach denominator did not absorb a single one of them.
         """
         reg = artifact["regret"]
         assert reg["mean_actual_net2"] == 5.72, "net@2 reads the system's own returns; fixed"
         assert reg["mean_regret"] == 7.52
-        assert artifact["n_witnesses"] == 756
+        assert artifact["n_witnesses"] == 785
+        assert artifact["n_non_self"] == 522
 
     def test_the_headline_reach_figures(self, artifact):
         """`cli` at 8/56 is the load-bearing line: pooling 237 further witnesses in must not

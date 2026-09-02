@@ -198,10 +198,14 @@ def rate_paper_action(store: PaperStore, arxiv_id: str, rating: int) -> dict[str
 
 def search_corpus_payload(store: PaperStore, query: str, limit: int = 10) -> dict[str, Any]:
     """Free-text BM25 search over every paper ever fetched (not just the latest run)."""
-    results = search_corpus(store.get_all_papers(), query, limit=max(0, limit))
+    corpus = store.get_all_papers()
+    results = search_corpus(corpus, query, limit=max(0, limit))
     return {
         "query": query,
         "count": len(results),
+        # How much there was to search. A caller that gets three hits cannot otherwise tell
+        # a narrow corpus from a narrow query, and those call for opposite next moves.
+        "corpus_size": len(corpus),
         "papers": [
             {
                 "arxiv_id": p["arxiv_id"],
@@ -330,9 +334,20 @@ def build_server(
     def search_papers(query: str, limit: int = 10) -> dict[str, Any]:
         """Free-text search across EVERY paper RepoRadar has fetched for this repo
         (the whole local corpus, not just the latest run), ranked by BM25."""
-        _log_call("search_papers", query=query, limit=limit)
         with PaperStore(db_path) as store:
-            return search_corpus_payload(store, query, limit)
+            payload = search_corpus_payload(store, query, limit)
+        # The result count and the corpus size travel with the call. "How wide was this
+        # server's corpus" is otherwise only answerable by finding the store on disk and
+        # hoping it has not been rebuilt since -- and it is the whole variable in the P27
+        # wide-corpus arm.
+        _log_call(
+            "search_papers",
+            query=query,
+            limit=limit,
+            n_results=payload["count"],
+            corpus=payload["corpus_size"],
+        )
+        return payload
 
     return server
 

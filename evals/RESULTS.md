@@ -1144,6 +1144,92 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Widening RepoRadar's corpus made the agent search less, not more. **[P27]**
+
+C returned a quarter fewer papers than Opus 5 alone. **48 of its 87 MCP calls were
+`search_papers` against a store holding only that case's digest picks** (9-14 papers) where
+the product's holds everything ever fetched (712-1252). Two readings fit: *anchoring* (the
+shortlist made it answer at digest size, and -1.42 is a real measurement) or *starvation*
+(the search tool kept coming up empty, so -1.42 is an artifact of how I seeded the store).
+
+C-wide separates them by seeding the whole frozen pool into `papers` while `paper_scores`
+keeps exactly the picks. `get_ranked_papers` reads the scored run and is **byte-identical**
+across the two stores -- proved per case by serialising both payloads, all 12 identical,
+corpus 59x-369x wider -- so only `search_papers` changes.
+
+| arm | RepoRadar it got | net@2 | shown/case | precision |
+|---|---|---|---|---|
+| **B** Opus 5 alone | none | **+7.25** | 10.8 | 0.891 |
+| **C** picks only | ~12 papers | **+5.83** | 8.1 | 0.907 |
+| **C-wide** whole pool | 712-1252 | **+4.75** | 6.2 | 0.920 |
+
+**C-wide - C = -1.08, CI [-2.67, +0.50], 3W/6L/3T, sign p = 0.51.** Not separated: under
+the registered rule, *anchoring*.
+
+## The secondary is what makes the mechanism legible
+
+Where each arm's picks came from -- RepoRadar's digest, its wider pool, or the agent's own
+search. Registered before the run, computed at $0:
+
+| arm | digest | pool only | **off-pool** | `search_papers` calls |
+|---|---|---|---|---|
+| B | 4 | 21 | **104** | -- |
+| C | 19 | 13 | **65** | 48 |
+| C-wide | 15 | **37** | **23** | **109** |
+
+**The treatment was consumed enthusiastically and that is why it lost.** Widening the
+corpus more than doubled `search_papers` use and took pool-only picks from 13 to 37 (13% ->
+49%) -- papers reachable only through the wide store. The agent was never starved. What it
+did was **substitute**: its own off-pool finds collapsed **104 -> 65 -> 23**, monotonically,
+as it was given more RepoRadar. Precision rose at every step and volume fell at every step,
+and under net@2 above the 2/3 break-even, fewer loses.
+
+Served-store proof rather than inference: all 17 configs the driver wrote name
+`papers-wide.db`, and 74 of the 109 `search_papers` calls recorded their corpus size --
+every one between 712 and 1252. (The other 35 predate the telemetry, which was added
+mid-sweep.)
+
+**A prediction right for the wrong reason.** The addendum registered "C-wide ~ C" and argued
+starvation would require the agent to substitute RepoRadar's index for web search, "a strong
+assumption about a tool it had just met". The interval came out as predicted; **the argument
+was wrong.** It substituted heavily. It just did not help.
+
+## What the benchmark cannot say
+
+RepoRadar makes an agent's recommendations **better and fewer**. On a metric that sums over
+what is returned, that is a loss. For a maintainer with limited attention it may be the
+trade they want. net@2 cannot distinguish those, and that is the honest end of this arm
+rather than a number.
+
+## An adversarial audit paid for itself before the sweep
+
+Five independent lenses over the design, each finding verified by refutation-first agents.
+Three defects survived, none reachable by `--dry-run` because a dry run returns before the
+code that differs:
+
+1. **`gold_spread` accepted `--tools web+rrwide` and served the NARROW store.** My plumbing
+   patch had silently not landed -- a heredoc collapsed a `
+` and the assertion that would
+   have caught it never ran -- and I "verified" it with a dry run, which never calls
+   `mcp_config_for`. The sweep would have completed, every row would have looked normal,
+   and `C_wide - C` would have been one arm's draw noise against itself, whose interval
+   crosses zero, which the decision table reads as *anchoring*: the comfortable conclusion,
+   manufactured by a bug, corroborated by a secondary the same bug also determines. The
+   label -> corpus mapping now lives beside `TOOLSETS` as `baseline.wide_corpus`, and the
+   test checks it **through the driver** -- the helper was always right.
+2. **The end-of-run message announced the control arm's filename** after writing the
+   treatment's; it is the only end-of-run name a reader sees.
+3. **The call log pooled a retried run's calls with the dead attempt's** -- `_run_cli`
+   retries against the same path and each attempt spawns its own server. Real, and it did
+   not fire: the largest inter-call gap on any of arm C's 12 logs is 172 s against the
+   minutes a failed attempt costs. Now partitioned by pid, with a legacy log reporting
+   `n_sessions: None` rather than 1.
+
+The mechanism was also stronger than I first wrote it down. I argued the wide corpus was
+safe because the tiering rule demotes unscored papers to Maybe at best; writing the test
+showed the real reason is one layer earlier and absolute -- `get_scores_for_run` JOINs
+`paper_scores`, so a corpus paper never enters the payload in **any** tier.
+
 ### An agent given RepoRadar's shortlist returns a quarter fewer papers, more precisely. **[P27]**
 
 The first measurement of RepoRadar **and** the agent rather than RepoRadar **or** the agent.

@@ -162,6 +162,30 @@ class TestRankedPapersIsTheDigestsAnswer:
         assert [p["arxiv_id"] for p in out["papers"]] == ["2401.00001v1"]
 
 
+class TestSearchSaysHowMuchThereWasToSearch:
+    def test_the_corpus_size_travels_with_the_results(self, tmp_path: Path) -> None:
+        """A caller that gets three hits cannot otherwise tell a narrow CORPUS from a
+        narrow QUERY, and those call for opposite next moves — search again, or stop
+        expecting this store to know. It is also the whole variable in P27's wide arm,
+        where 48 of one agent's 87 tool calls searched a corpus of about a dozen papers
+        while the product's holds everything ever fetched."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)
+            out = search_corpus_payload(store, "concrete method", limit=10)
+        assert out["corpus_size"] == 2
+        assert out["count"] <= out["corpus_size"]
+
+    def test_it_counts_the_whole_corpus_not_the_latest_run(self, tmp_path: Path) -> None:
+        """`search_papers` reads `get_all_papers`, which spans every run ever made — that
+        is what makes it a different tool from `get_ranked_papers`, and what the wide arm
+        widens."""
+        with PaperStore(tmp_path / "papers.db") as store:
+            _seed(store)  # 2 papers, both scored in the run
+            store.upsert_paper(_paper("2401.00003v1", "Never ranked"))
+            out = search_corpus_payload(store, "paper", limit=10)
+        assert out["corpus_size"] == 3
+
+
 class TestExplainRelevance:
     def test_found(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
