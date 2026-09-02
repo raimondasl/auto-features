@@ -46,7 +46,9 @@ from the profiler would be measuring a repository nobody profiles.
 
 from __future__ import annotations
 
+import argparse
 import json
+import math
 import statistics as st
 import sys
 from pathlib import Path
@@ -56,7 +58,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from harness import EVALS_DIR, WORK_DIR, load_benchmark  # noqa: E402
-from metrics import net_actionable_value  # noqa: E402
+from metrics import average_ranks, net_actionable_value  # noqa: E402
 from run_judge_eval import ablate_docs  # noqa: E402
 
 from reporadar.profiler import _collect_text_corpus  # noqa: E402
@@ -88,6 +90,24 @@ def corpus_chars(repo_dir: Path) -> int:
     return sum(len(doc) for doc in _collect_text_corpus(repo_dir))
 
 
+def _pearson(xs: list[float], ys: list[float]) -> float:
+    if len(xs) < 3:
+        return float("nan")
+    mx, my = st.mean(xs), st.mean(ys)
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
+    dx = math.sqrt(sum((x - mx) ** 2 for x in xs))
+    dy = math.sqrt(sum((y - my) ** 2 for y in ys))
+    return num / (dx * dy) if dx and dy else float("nan")
+
+
+def _spearman(xs: list[float], ys: list[float]) -> float:
+    # `average_ranks` lives in `metrics` because the adoption AUC needs the identical tie
+    # rule. Two implementations of one invariant is this project's most repeated defect
+    # (C-9, C-12, C-14), and a rank function that disagreed between two analyses would be
+    # invisible in both.
+    return _pearson(average_ranks(xs), average_ranks(ys))
+
+
 def net_by_case(path: Path) -> dict[str, float]:
     d = json.loads(path.read_text(encoding="utf-8"))
     out = {}
@@ -101,7 +121,19 @@ def net_by_case(path: Path) -> dict[str, float]:
 
 
 def main() -> int:
-    missing = [f for f in [*ABLATION_ARMS.values(), SHIPPED_RUN] if not (RESULTS / f).exists()]
+    ap = argparse.ArgumentParser(description="Documentation volume as a free failure detector.")
+    ap.add_argument(
+        "--run",
+        default=SHIPPED_RUN,
+        help=(
+            "results file for the real-repository half. Defaults to the 25-case run NR-37 "
+            "used; the frame's P0.4 re-run passes a 37-case one."
+        ),
+    )
+    args = ap.parse_args()
+    shipped_run = args.run
+
+    missing = [f for f in [*ABLATION_ARMS.values(), shipped_run] if not (RESULTS / f).exists()]
     if missing:
         print(f"missing run files: {missing}\nnothing measured — a refusal, not a clean result")
         return 1
@@ -139,7 +171,7 @@ def main() -> int:
     print("\n" + "=" * 78)
     print("2. THE FALSE-POSITIVE HALF — what would a threshold flag on real repositories?")
     print("=" * 78)
-    shipped = net_by_case(RESULTS / SHIPPED_RUN)
+    shipped = net_by_case(RESULTS / shipped_run)
     cases = load_benchmark()["cases"]
     real: list[dict[str, Any]] = []
     for case in cases:
@@ -152,6 +184,25 @@ def main() -> int:
     print(f"\n{'case':<12} {'corpus':>10} {'net@2':>7}")
     for r in real:
         print(f"{r['case']:<12} {r['chars']:>10,} {r['net']:>+7.1f}")
+
+    # NR-37's substantive finding was the correlation, and the script never computed it —
+    # the numbers in RESULTS.md were derived by hand. P0.4 asks for it over 37 cases, so it
+    # is emitted here and written to the artifact rather than re-derived a second time.
+    usable = [r for r in real if r["chars"] > 0]
+    logs = [math.log10(r["chars"]) for r in usable]
+    nets = [r["net"] for r in usable]
+    pearson, spearman = _pearson(logs, nets), _spearman(logs, nets)
+    corr = {
+        "run": shipped_run,
+        "n": len(usable),
+        "pearson_log_corpus_net2": round(pearson, 4),
+        "spearman_log_corpus_net2": round(spearman, 4),
+        "n_zero_corpus_excluded": len(real) - len(usable),
+    }
+    print(f"\n  Pearson r(log10 corpus, net@2), n = {corr['n']}: {pearson:+.2f}")
+    print(f"  Spearman rho:                          {spearman:+.2f}")
+    if corr["n_zero_corpus_excluded"]:
+        print(f"  ({corr['n_zero_corpus_excluded']} case(s) with an empty corpus excluded)")
 
     print("\n" + "=" * 78)
     print("3. THE THRESHOLD SWEEP — what does abstaining below T actually buy?")
@@ -168,7 +219,9 @@ def main() -> int:
         print(f"  {t:>10,} {len(flagged):>8} {base:>+12.2f} {after:>+13.2f} {after - base:>+8.2f}")
 
     out = WORK_DIR / "thin_docs_detector.json"
-    out.write_text(json.dumps({"grid": grid, "real": real}, indent=2), encoding="utf-8")
+    out.write_text(
+        json.dumps({"grid": grid, "real": real, "correlation": corr}, indent=2), encoding="utf-8"
+    )
     print(f"\nWrote {out.relative_to(EVALS_DIR.parent)}")
     return 0
 

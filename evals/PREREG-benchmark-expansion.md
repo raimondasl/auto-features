@@ -8,7 +8,7 @@ pre-registration only when (a) every `____` blank is filled at the step that pro
 removed from this banner. Until then nothing in it binds, and no candidate repository has
 been enumerated, cloned, profiled, or looked at.
 
-Two corrections applied by hand to the synthesizer's inputs, both verified against the tree:
+Three corrections applied by hand to the synthesizer's inputs, all verified against the tree:
   * NR-37 (documentation volume predicts nothing) was measured 2026-08-16 under a corpus rule
     the profiler widened on 2026-08-19 (commit e0cb9b5, "The profiler reads the wrong files").
     thin-gnn's corpus read 1,073 chars then and reads 107,895 now. P0.4's re-run is therefore
@@ -18,11 +18,21 @@ Two corrections applied by hand to the synthesizer's inputs, both verified again
     `ok` on all 37 legacy cases (one genuine abstention, bio-mdtraj, no cutoffs), so the
     VOID-OPUS rule in §5.6 is a precaution for the held-out science cases, not an
     observed failure mode of this comparator.
+  * §6.1's diffusers premise was asserted, not measured. It is now measured and correct
+    (99 -> 11 arXiv-regex ids, 66 -> 163 in the HF form), on the LEGACY case `diffusion`
+    only -- no candidate was touched. Because the number is now known before registration,
+    P14's yield clause is demoted to a check (P14a) and the prediction is restated as P14b:
+    at most 3 of v1's 35 legacy positives are false adoptions caused by link migration.
 
 Two decisions by the maintainer on 2026-09-02, before registration, both recorded in the
 Conflicts table:
   * Primary arm = arXiv+EPMC; the shipped arXiv arm is co-registered (P0.3).
   * The validity pool (§6) runs to completion before the benchmark draw (§10 step 5).
+
+ON HOLD, maintainer's directive of 2026-09-02: the 37 -> 60 expansion runs only on an
+explicit instruction. The judge-validity pool has moved to its own pre-registration
+(evals/PREREG-judge-validity-pool.md) and proceeds independently; see the note at section 6.
+Nothing in this file is enumerated, cloned, tagged or run until that instruction arrives.
 -->
 
 # Pre-registration — benchmark expansion 37 → 60 under a frozen sampling frame [rung 10]
@@ -39,7 +49,18 @@ Conflicts table:
 
 **P0.3 The arm.** Two RepoRadar configurations exist at n = 37: the shipped arXiv arm (+0.32/+0.54 vs Opus 5 draw 1 depending on which of two identical-config runs is used, 0.22/case apart — C-7) and the unshipped arXiv+EPMC arm (+1.08, CI [−0.97, +3.16], sd 6.41). **Primary arm = arXiv+EPMC (`sources: arxiv,europepmc`) at tag `rr-frame60-freeze` (§7.1).** Fixed by the maintainer on 2026-09-02, before this file is registered and before any candidate is enumerated; it is the arm every P26/P27 comparison already uses (`opus5_arm.json` PRIMARY, `mcp_arm.json` arm A). Said plainly: choosing it *is* arm selection on the development set — it is the better of two arms measured on the 37 — and the held-out property of §7.1 attaches to whichever arm is named here before enumeration, not to the choice. The shipped arXiv arm at the same tag is **co-registered** and run on every held-out case (incremental cost ~$25 + judging), reported beside it, so a reader can see what the product as configured by `rr init --measured` does on the same cases. All power arithmetic below leads with m37 = +1.08 (primary) and gives m37 = +0.54 (co-registered) beside it, sd 6.41–6.56.
 
-**P0.4 NR-37 re-run.** NR-37 (2026-08-16) was n = 25 (thin-gnn corpus 1,073 chars, not 107,895), before any materials case existed. Before this file is committed: `uv run python evals/thin_docs_detector.py` over all 37, result recorded here: Spearman ρ(log corpus, net@2) = `____`. Documentation volume stays a **covariate**, never a stratum or exclusion (§2.3).
+**P0.4 NR-37 re-run — done 2026-09-02, and the finding strengthens.** NR-37 (2026-08-16) was n = 25 (thin-gnn corpus 1,073 chars, not 107,895), before any materials case existed. Re-run over all 37 under the primary arm: **Spearman ρ(log₁₀ corpus, net@2) = −0.00** (Pearson r = +0.08, n = 37); the co-registered arXiv arm gives ρ = +0.05, r = +0.07. Documentation volume stays a **covariate**, never a stratum or exclusion (§2.3), and it is now supported by a correlation of essentially exactly zero rather than by a small positive one.
+
+The two changes are separated so neither hides the other:
+
+| what | n | Pearson r | Spearman ρ |
+|---|---|---|---|
+| NR-37 as recorded (old corpus rule, live run) | 25 | +0.14 | +0.20 |
+| same run, today's corpus rule | 25 | +0.11 | +0.10 |
+| **primary arm arXiv+EPMC, all 37** | 37 | **+0.08** | **−0.00** |
+| co-registered arXiv arm, all 37 | 37 | +0.07 | +0.05 |
+
+Half of NR-37's already-small ρ was the corpus rule: widening it moved thin-gnn from the second-thinnest repository to twelfth, and thin-gnn's +9.0 was doing much of the work in "the thinnest score slightly better". Two caveats recorded rather than buried. **(a)** No 37-case *live* run with judged picks exists, so the 37-case rows are frozen-pool ranking runs (`pool-core25-epmc` / `pool-core25-arxiv`) while NR-37's 25-case row is a live end-to-end run; holding the pool fixed is arguably the cleaner test of this particular question, but it is not the same quantity. **(b)** `thin_docs_detector.py` never computed a correlation at all — NR-37's r and ρ were derived by hand from its per-case table, so P0.4 could not have been filled by running the script as it stood. It computes and records both now, with a `--run` flag to choose the results file, and `tests/test_eval_thin_docs_detector.py` pins the tie handling.
 
 **P0.5 The adoption channel is decoupled** (§6). No benchmark case is selected for adoption yield. Why: adoption mining is git + regex and judging adopted/control papers needs only the judge on a T0 context — neither arm runs — so the ~40 extra adoptions never had to enter the headline (all four refutations of the coupled designs agree on this point).
 
@@ -188,10 +209,26 @@ All held-out arm runs, module R, module J (§7.3), and all judging occur inside 
 
 ---
 
-## 6. Judge-validity pool (decoupled from the benchmark)
+## 6. Judge-validity pool (moved to its own pre-registration)
+
+> **This section has been superseded by [`evals/PREREG-judge-validity-pool.md`](PREREG-judge-validity-pool.md), 2026-09-02.** The pool was always decoupled — it runs no arm, mines with git and a regular expression, and judges against a T0 context — and on the maintainer's directive of 2026-09-02 the 37 → 60 expansion **runs only on an explicit instruction**. A pool registered inside a document that may never be registered would have no registration at all, so it now draws its own candidate list and fixes its own beacon seed (`SEED_POOL`), independent of `universe-D.csv` and of `SEED`.
+>
+> What changed in the move, all decided before the pool runs: the screen is `ids_v2(T0) ≥ 3` rather than `ids_v2(HEAD) ≥ 10` (screening on HEAD conditions eligibility on the outcome; the constant is re-derived from a published measurement over the legacy 37); the judging target is **100** new positives with 60 as the reporting minimum; and the life-science blind spot — **0 of 6 `bio-*` and 0 of 6 `mat-*` legacy repositories clear `ids_v2(HEAD) ≥ 10`** — is sized with DOI/PMID covariates rather than closed.
+>
+> The one obligation this document inherits: if the expansion later proceeds, its selection inputs will have been fixed *after* the pool's results were visible, and that ordering must be disclosed here. §11 of the pool file states the reciprocal duty, and the pool's artefacts carry no `github.com/…` URLs so they cannot contaminate X2's prior-exposure grep.
+
+The text below is kept for the record of what was merged, and is no longer operative.
+
+### 6.0 (superseded) Judge-validity pool (decoupled from the benchmark)
 
 ### 6.1 Label
-Adoption = `ids_v2(HEAD) − ids_v2(T0)`, T0 = D − 24 months, mined by `evals/mine_adoptions.py` with **extractor v2** = the existing arXiv regex ∪ `huggingface.co/papers/<id>` ∪ `hf.co/papers/<id>` (diffusers' docs fell from 99 to 11 arXiv-regex ids through link migration; v2 is applied to **both** ends so a migrated id cannot become a false adoption), plus the existing self-citation (`CITE_HEADING`) and 182-day too-new filters, a **reverse-citation path filter** (ids whose only occurrences are under paths matching `/(projects|showcase|used[-_ ]by|gallery|community|awesome)/i` are dropped), and a **doc-genesis guard** (`ids_v2(T0) ≥ 1`; positives from repos with an empty T0 bibliography are flagged `genesis` and excluded from the primary). Label v1 numbers (NR-56/57: 35 usable over 9 repos — graph 13, diffusion 7, peft 5, rag/rl/llminfer/bio-scvi 2, bio-singlecell/mat-phonon 1) are reported unchanged as v1; v2 is recomputed over the legacy 37 (P14).
+Adoption = `ids_v2(HEAD) − ids_v2(T0)`, **T0 = (the pinned HEAD commit's date) − 24 months**, mined by `evals/mine_adoptions.py` with **extractor v2** = the existing arXiv regex ∪ `huggingface.co/papers/<id>` ∪ `hf.co/papers/<id>` (diffusers' docs fell from 99 to 11 arXiv-regex ids through link migration; v2 is applied to **both** ends so a migrated id cannot become a false adoption), plus the existing self-citation (`CITE_HEADING`) and 182-day too-new filters, a **reverse-citation path filter** (ids whose only occurrences are under paths matching `/(projects|showcase|used[-_ ]by|gallery|community|awesome)/i` are dropped), and a **doc-genesis guard** (`ids_v2(T0) ≥ 1`; positives from repos with an empty T0 bibliography are flagged `genesis` and excluded from the primary). Label v1 numbers (NR-56/57: 35 usable over 9 repos — graph 13, diffusion 7, peft 5, rag/rl/llminfer/bio-scvi 2, bio-singlecell/mat-phonon 1) are reported unchanged as v1 — `mine_adoptions.py` writes v2 to `adoptions-v2.json` so a v2 run cannot overwrite the record it is compared against; v2 is recomputed over the legacy 37 (P14a/P14b).
+
+**The premise, measured rather than asserted (2026-09-02, before registration).** The parenthetical above arrived from the synthesizer's inputs; two of that set have already turned out to be wrong (NR-37's date, the turn-budget caveat), so it was checked against the tree. `diffusion` holds **99** arXiv-regex ids at T0 = 2024-08-16 and **11** at HEAD, while the HF form goes **66 → 163**; the union goes 127 → 172.  Re-measured hours later against a fresh clone, T0 reproduced to the id (its SHA is pinned) and HEAD had moved: 162 in the HF form, union 171. The assertion is correct, and it carries two things the assertion alone did not. First, **the T0 side is where the widening earns its keep**: 28 of T0's 127 ids are reachable *only* through an HF link, so under v1 any of them re-linked to arXiv by HEAD scores as a fresh adoption — a fabricated positive in the one label here that no model produced. That failure is what P14b measures and what `tests/test_adoption_extractor_v2.py` pins. Second, because the measurement was taken before registration, P14's yield clause is demoted to a check (P14a).
+
+**A fourth correction: T0 is anchored to the repository, not to D.** This paragraph said "T0 = D − 24 months"; `mine()` computes `cutoff = head_date − 720 days` from the **pinned HEAD commit's** date, and the text is now corrected to match the code rather than the reverse. The code is right: the label asks what a repository took up in its own last two years, and §1(iv) admits a repository last pushed 365 days before D, for which "D − 24 months" would reach back through a year of silence and mine a 12-month window. The consequence is an eligibility rule, not a wording fix — a candidate must satisfy `head_date − created_at ≥ 30 months`, checked after the clone, because an API filter on `created_at` alone does not guarantee any history before T0.
+
+**Three specifications this run fixed, recorded because the text above is ambiguous about all three.** (a) The reverse-citation path filter is applied to the **HEAD side only**: dropping an id from the T0 bibliography would *manufacture* an adoption, and the sentence above reads as a filter on ids wherever they are extracted. (b) The self-citation filter is widened to v2 as well — a project's own paper linked in HF form under its `Citation` heading would otherwise be the strongest-looking adoption in the pool. (c) `HEAD` is resolved to a SHA and recorded on every row (`--at` pins it explicitly). This is not hypothetical: the two `diffusion` measurements above were taken hours apart and differ by one paper, while T0 — which *is* pinned to a SHA — reproduced exactly. The pool is published with the paper as a datasheet, and a row that says "HEAD" is a different positive set a week later.
 
 ### 6.2 Universe, order, stop rule
 Rows of `universe-D.csv` in L1 ∪ L2a ∪ L2b with `created_at ≤ D − 30 months` and `ids_v2(HEAD) ≥ 10` (a blobless clone and a doc-glob grep, $0). **Mine every qualifying row** (the yield distribution over the qualifying population is itself a reported result and dissolves the yield-prediction problem); X2 and X4 apply; the 9 legacy adoption repos form a separate `legacy` cluster. Judge positives in `sha256(SEED||full_name)` order until **≥ 60 new usable positives** (after per-repo cap and cross-repo dedup) or the list is exhausted — exhaustion below 60 is a recorded negative result, not a reason to widen the rule. Per-repo cap **8** in the primary (seeded subset; surplus kept for sensitivity; graph 13 → 8, so the legacy base is 30). Positives sharing an arXiv id across sibling repos are assigned to one repo by seed and counted once.
@@ -237,7 +274,8 @@ Four controls per positive, **arm-neutral**: arXiv listings (API) in the positiv
 | P11 | Coverage check: ≥ 28 of the 37 legacy repos appear in `universe-D.csv`; the three thin repos do not | yes |
 | P12 | Validity pool: 150–400 qualifying rows; usable v2 adoptions per qualifying repo median 0–1, mean 0.8–1.8; ≥ 60 new usable positives reached within the first 80 repos in seeded order | yes |
 | P13 | Validity endpoints at ≥ 90 capped positives: AUC(GPT) 0.60–0.70, AUC(Sonnet) 0.62–0.72, both CIs exclude 0.5, their difference does not exclude 0; P(actionable\|control): GPT ≥ 0.70, Sonnet ≤ 0.55 | yes |
-| P14 | Extractor v2 raises the legacy usable count by ≥ 5 (diffusers alone) and creates no adoption absent under v1 for a repo whose links did not migrate | yes |
+| P14a | *Check, not prediction:* v2 raises the legacy usable count by ≥ 5, driven by `diffusion`. This follows from the premise **measured before registration** (§6.1), so it is recorded rather than forecast — the treatment P0.1 gives rung 1's near-tautological bar | no (already implied) |
+| P14b | **≤ 3 of v1's 35 legacy positives are false adoptions** revealed by the widened T0 bibliography — an id cited at T0 only in HF form and at HEAD in arXiv form. Above 3, NR-56/57's gaps are re-reported under v2 as primary and the v1 numbers are labelled as containing migration artifacts | yes |
 | P15 | Module R: Opus 5 draw+drift sd 3–5 (point 4.0 — the 25 % bar fires); RepoRadar sd at the tag ≤ 2.5; module J flip rate ≤ 15 % | yes |
 | P16 | Recall probe: ≥ 34/37 legacy recognised by all three models; held-out popular ≥ 80 %, small ≤ 50 % | yes |
 
@@ -277,7 +315,7 @@ The validity pool runs **before** the benchmark draw. It is decoupled from the b
 7. `uv run python evals/frame/walk.py` (X2–X8, ledger, reserves, pinned SHAs); commit `ledger.csv`, `selected.json`, `run_order.json`.
 8. Build the 23 cases (§4.3); `verify_contexts` hashes committed for all 23. **From here no case may be excluded or replaced except X9 before its first arm run.**
 9. Window W opens: stage 1 (first 11 in `run_order.json`), both arms, both judges; modules R and J; RepoRadar-at-tag on 37 if F applies. Interim (§5.3) computed by `analyze.py --interim`; decision committed. Stage 2. Second draw if R's bar fired.
-10. `analyze.py --final`: every table in §5.2, predictions P1–P16 scored, datasheet (`universe-D.csv`, `draw_order.json`, `ledger.csv`, `selected.json`, per-run model strings and timestamps, both judges' raw scores, adoption sets and controls, void lists) published with the paper.
+10. `analyze.py --final`: every table in §5.2, predictions P1–P16 scored (P14 as P14a/P14b), datasheet (`universe-D.csv`, `draw_order.json`, `ledger.csv`, `selected.json`, per-run model strings and timestamps, both judges' raw scores, adoption sets and controls, void lists) published with the paper.
 
 ---
 

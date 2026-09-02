@@ -62,6 +62,7 @@ import argparse
 import json
 import math
 import random
+import statistics
 import sys
 from collections import Counter
 from datetime import datetime
@@ -71,6 +72,8 @@ from typing import Any
 EVALS = Path(__file__).resolve().parent
 sys.path.insert(0, str(EVALS))
 sys.path.insert(0, str(EVALS.parent / "src"))
+
+from metrics import roc_auc  # noqa: E402
 
 from reporadar.paper_id import dedup_id  # noqa: E402
 
@@ -98,6 +101,95 @@ def wilson(k: int, n: int) -> tuple[float, float]:
     c = (p + z * z / (2 * n)) / d
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
     return (round(max(0.0, c - h), 4), round(min(1.0, c + h), 4))
+
+
+def cluster_bootstrap_auc(
+    positives: list[tuple[str, float]],
+    controls: list[tuple[str, float]],
+    *,
+    iters: int = 5000,
+    seed: int = SEED,
+) -> dict[str, Any]:
+    """§6.4's primary endpoint: AUC with the **repository** as the resampling unit.
+
+    The estimator already in this file resamples positives and controls independently, one
+    paper at a time. NR-56 drew 31 positives from 6 repositories with `graph` supplying 13,
+    and NR-57's 35 came from 9 with the same shape — so a paper-level interval treats 13
+    papers out of one project's bibliography as 13 independent draws and reports a precision
+    the design never had. Resampling repositories makes the interval answer "if we had drawn
+    different REPOSITORIES", which is the question the pool is built to ask.
+
+    The design effect is the **realised** ratio of the two bootstrap variances, not a figure
+    derived from an assumed ICC — the ICC is precisely the quantity nobody knows here, and
+    an assumed one would put the answer into the uncertainty estimate by hand.
+
+    Inputs are `(repository, score)` pairs carrying the judge's **ordinal** rubric score, not
+    a thresholded one: a threshold would reintroduce the level the endpoint exists to avoid.
+    """
+    by_cluster: dict[str, tuple[list[float], list[float]]] = {}
+    for repo, score in positives:
+        by_cluster.setdefault(repo, ([], []))[0].append(score)
+    for repo, score in controls:
+        by_cluster.setdefault(repo, ([], []))[1].append(score)
+    clusters = sorted(by_cluster)
+    pos_scores = [s for _, s in positives]
+    ctl_scores = [s for _, s in controls]
+    point = roc_auc(pos_scores, ctl_scores)
+    biggest = max((len(v[0]) for v in by_cluster.values()), default=0)
+    out: dict[str, Any] = {
+        "auc": round(point, 4) if point == point else None,
+        "n_positives": len(positives),
+        "n_controls": len(controls),
+        "n_clusters": len(clusters),
+        "largest_cluster_share": (round(biggest / len(positives), 4) if positives else None),
+    }
+    if len(clusters) < 2 or not positives or not controls:
+        out["_refused"] = "fewer than two clusters — a cluster bootstrap has nothing to resample"
+        return out
+
+    rng = random.Random(seed)
+    clustered: list[float] = []
+    for _ in range(iters):
+        pos_draw: list[float] = []
+        ctl_draw: list[float] = []
+        for _ in clusters:
+            pick = clusters[rng.randrange(len(clusters))]
+            pos_draw.extend(by_cluster[pick][0])
+            ctl_draw.extend(by_cluster[pick][1])
+        value = roc_auc(pos_draw, ctl_draw)
+        if value == value:
+            clustered.append(value)
+
+    # The paper-level interval is computed only so the design effect is a measured ratio.
+    # It is NOT reported as an interval: reporting both invites quoting the narrower one.
+    papers: list[float] = []
+    n1, n2 = len(pos_scores), len(ctl_scores)
+    for _ in range(iters):
+        p = [pos_scores[rng.randrange(n1)] for _ in range(n1)]
+        c = [ctl_scores[rng.randrange(n2)] for _ in range(n2)]
+        value = roc_auc(p, c)
+        if value == value:
+            papers.append(value)
+
+    if len(clustered) < 100:
+        out["_refused"] = "too few usable bootstrap draws"
+        return out
+    clustered.sort()
+    lo = clustered[int(0.025 * len(clustered))]
+    hi = clustered[int(0.975 * len(clustered))]
+    se = statistics.pstdev(clustered) if len(clustered) > 1 else float("nan")
+    se_paper = statistics.pstdev(papers) if len(papers) > 1 else float("nan")
+    out["ci95"] = [round(lo, 4), round(hi, 4)]
+    out["excludes_half"] = bool(lo > 0.5 or hi < 0.5)
+    out["se"] = round(se, 4)
+    out["design_effect"] = (
+        round((se / se_paper) ** 2, 3) if se_paper and se_paper == se_paper else None
+    )
+    # 0.5 + (z_{.975} + z_{.80}) * SE — what this n could have detected at 80 % power, so a
+    # CI spanning 0.5 can be read as "no discrimination" or "not enough repositories" rather
+    # than collapsing the two.
+    out["min_detectable_auc_80pct"] = round(0.5 + 2.80 * se, 4) if se == se else None
+    return out
 
 
 def adoptions() -> list[dict[str, Any]]:

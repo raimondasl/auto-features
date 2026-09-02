@@ -129,3 +129,41 @@ def summarize_system(
     if not pool_has_relevant:
         result["abstention_correct"] = 1.0 if n_returned == 0 else 0.0
     return result
+
+
+def average_ranks(values: list[float]) -> list[float]:
+    """Ranks with ties sharing their average rank.
+
+    Both consumers are tie-heavy and would be biased by position-breaking: net@2 puts many
+    cases at exactly 0.0 (the thin-docs correlation), and a judge's ordinal rubric score has
+    four levels for hundreds of papers (the adoption AUC).
+    """
+    order = sorted(range(len(values)), key=lambda i: values[i])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+            j += 1
+        shared = (i + j) / 2 + 1
+        for k in range(i, j + 1):
+            ranks[order[k]] = shared
+        i = j + 1
+    return ranks
+
+
+def roc_auc(positives: list[float], controls: list[float]) -> float:
+    """P(a random positive outranks a random control), ties counted as half.
+
+    The Mann-Whitney form, so ties are handled by the shared ranks rather than by a
+    threshold. **Level-free by construction**: adding a constant to every score, or moving a
+    judge's bar, leaves it unchanged. That is exactly why the frame makes it primary --
+    NR-59 measured the two judges ordering alike (AUCs 0.027 apart) while disagreeing about
+    level by 0.380, so any statistic evaluated at each judge's own threshold restates the
+    level disagreement instead of measuring discrimination.
+    """
+    n1, n2 = len(positives), len(controls)
+    if not n1 or not n2:
+        return float("nan")
+    ranks = average_ranks(list(positives) + list(controls))
+    return (sum(ranks[:n1]) - n1 * (n1 + 1) / 2) / (n1 * n2)
