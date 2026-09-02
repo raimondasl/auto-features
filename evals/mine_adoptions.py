@@ -363,9 +363,25 @@ def t0_context(repo: Path, case: str, rev: str, max_readme: int = 3500) -> str:
     return "\n".join(parts)
 
 
-def _posted(arxiv_id: str) -> datetime:
+def _posted(arxiv_id: str) -> datetime | None:
+    """The YYMM in an arXiv id, or None if it does not name a real month.
+
+    Returns None rather than raising. The regex matches `[0-9]{4}\\.[0-9]{4,5}` anywhere in a
+    document, so a version string, a date range or a plain number in a table can produce a
+    syntactically valid id whose "month" is `00` or `19`. Raising here aborted the whole
+    repository — one malformed string in one file discarded every genuine positive that
+    repository had. Callers treat an undateable id as unusable, which is the conservative
+    direction: it drops a candidate positive rather than inventing one.
+    """
     head = arxiv_id.split(".")[0]
-    return datetime(2000 + int(head[:2]), int(head[2:4]), 1, tzinfo=UTC)
+    try:
+        return datetime(2000 + int(head[:2]), int(head[2:4]), 1, tzinfo=UTC)
+    except ValueError:
+        return None
+
+
+def _too_new(posted: datetime | None, head_date: datetime) -> bool:
+    return posted is None or (head_date - posted).days < MIN_PAPER_AGE_DAYS
 
 
 def mine(
@@ -423,7 +439,7 @@ def mine(
                 "t0_date": cutoff.date().isoformat(),
                 "head_date": head_date.date().isoformat(),
                 "self_cited": a in selfcites,
-                "too_new": (head_date - _posted(a)).days < MIN_PAPER_AGE_DAYS,
+                "too_new": _too_new(_posted(a), head_date),
                 "reverse_cited": a in showcase,
                 "genesis": genesis,
                 "via": "arxiv" if a in arxiv_form else "hf",

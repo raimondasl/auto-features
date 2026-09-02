@@ -114,7 +114,13 @@ def github_token() -> str:
         return token
     try:
         out = subprocess.run(
-            ["gh", "auth", "token"], capture_output=True, text=True, timeout=30, check=False
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover - environment
         raise SystemExit(f"no GITHUB_TOKEN and `gh auth token` failed: {exc}") from exc

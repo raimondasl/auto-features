@@ -441,3 +441,34 @@ class TestThePoolArtefactsCarryNoUrls:
         text = out.read_text(encoding="utf-8")
         assert "acme/rich" in text
         assert "github.com" not in text
+
+
+class TestAnUndateableIdDoesNotDiscardTheRepository:
+    """`_posted` reads the YYMM out of an arXiv id, and the regex matches
+    `[0-9]{4}.[0-9]{4,5}` anywhere in a document — so a version string, a numeric table cell
+    or a date range can produce a syntactically valid id whose month is `00` or `19`.
+
+    It used to raise `ValueError`. Inside the pool walk that aborted the whole row, so one
+    malformed string in one file discarded every genuine positive that repository had. It now
+    returns None and the caller treats the paper as unusable, which is the conservative
+    direction: a candidate positive is dropped rather than invented.
+    """
+
+    def test_a_month_of_zero_is_none_rather_than_an_exception(self) -> None:
+        assert ma._posted("1900.00000") is None
+        assert ma._posted("2113.00001") is None
+
+    def test_a_real_id_still_parses(self) -> None:
+        posted = ma._posted("2106.09685")
+        assert posted is not None
+        assert (posted.year, posted.month) == (2021, 6)
+
+    def test_an_undateable_paper_counts_as_too_new_and_so_is_not_usable(self) -> None:
+        """Conservative on purpose: `too_new` is an exclusion, so an id we cannot date is
+        dropped from the positives rather than trusted into them."""
+        from datetime import UTC, datetime
+
+        head = datetime(2026, 9, 1, tzinfo=UTC)
+        assert ma._too_new(None, head) is True
+        assert ma._too_new(ma._posted("2106.09685"), head) is False
+        assert ma._too_new(ma._posted("2608.00001"), head) is True
