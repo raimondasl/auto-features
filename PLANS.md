@@ -428,7 +428,7 @@ notional API dollars, which is exactly this question. Opus 5 ran $163.91 for 21 
 (~$7.81/run) against Opus 4.8's $103.86 for 75 (~$1.38) — **5.6x per run**, decomposing into
 ~4.8x per turn and ~30% more turns. One full draw over 25 cases is ~$195; over all 37, ~$290.
 
-### 3c. The non-arXiv sources are testable again — OpenAlex is the next probe
+### 3c. Non-arXiv sources — CLOSED 2026-08-28 [NR-42], and re-closed on a second instrument [NR-58]
 
 C-9 recorded that every non-arXiv source had been sent arXiv boolean syntax as a keyword query
 for the product's whole history, and C-9b that the repair was published as routing "all three
@@ -493,8 +493,12 @@ non-actionable papers where Europe PMC admitted 1. Reach was never the constrain
 **C-33: "the gate handles the collision" was generalised from one source and is false.** P24
 retired the relevance-filter item on Europe PMC evidence alone. Corrected: the gate rejects
 *obviously* off-domain material and admits *near-domain* material — biology beside a linter is
-easy, Engineering beside a compiler is not. **The item is reopened in that narrower form**, and
-it is now the best-supported open item on this list.
+easy, Engineering beside a compiler is not. **The item was reopened in that narrower form**,
+and was **closed again eight paragraphs below by NR-42** — see "CLOSED 2026-08-28". The
+sentence that stood here said it was "the best-supported open item on this list", which was
+true when written and false three days later; on 2026-09-02 it sent a reader at a closed item.
+**A restatement that outlives its measurement is the C-17 shape**, and the fix is to say so
+here rather than to delete it.
 
 **Stacking is measured, not cautioned against:** +0.54 and -0.76 on the same 37 cases. A
 three-source arm would most likely net negative. **No further source arms without a mechanism
@@ -556,6 +560,34 @@ no-op on all of them. It shipped on the argument, not on a benchmark win.
 perfect discrimination, zero displacement — is **+1.38 over the control on OpenAlex**, which
 does clear the MRE. The item is closed on the absence of an instrument, not the absence of
 value.
+
+**The third instrument is measured and it does not reopen it [NR-58, 2026-09-02].** NR-42
+tested the gate and the fine-scale rescore, both LLM stages. The **dense embedding** — the one
+scoring component non-arXiv papers do *not* escape, and the reason the filter was proposed in
+the first place was that they escape the **category** component — was never asked. Registered
+at 0.65 with an interval excluding 0.5, measured **AUC 0.578, CI [0.415, 0.673]** over 779
+within-case pairs, 100 non-actionable papers against NR-42's 17 and not conditioned on having
+been shown. **The item stays closed, now on two instruments.**
+
+The arXiv control is **0.586, CI [0.531, 0.643]** — the same magnitude. So this is not "the
+embedding covers arXiv and fails off it": it is a *weak actionability signal wherever it is
+pointed*, which is not a defect, because it is weighted 1.5 in the shipped ranker for
+**relevance** and relevance is not what a filter would be asking of it.
+
+**NR-42's evidence was selection-conditioned, and that is the finding [C-36].** The same
+signal reads **0.096** on NR-42's shown-only panel and **0.612** on the papers the pipeline
+passed over, **intervals disjoint**. An instrument evaluated on the set it helped select looks
+*worse than it is*: a paper admitted despite a low score on that instrument got in on
+something else, and that something else correlates with being actionable. The arXiv panel
+moves the same way at far higher n (0.485 shown vs 0.554 not-shown) with **overlapping**
+intervals, so that half is directional only and is recorded as such.
+
+What it overturns is narrow and worth stating exactly: **NR-42's conclusion survives** — the
+wider panel independently says no filter is buildable — **but the argument it published does
+not.** "The rescore scores them the wrong way round" was read off a panel where a genuinely
+discriminating instrument would also read low, and NR-42's own artifact carried the truncation
+caveat it then read past. `evals/embedding_discriminator.py`, pinned by
+`tests/test_embedding_discriminator.py`.
 
 **If a source is switched on regardless, OpenAlex is the one:** a third less noise, real
 ACM/IEEE/VLDB coverage (599 CS works), and a field label already on every result that a filter

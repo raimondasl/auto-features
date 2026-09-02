@@ -1144,6 +1144,81 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The embedding does not discriminate either — and NR-42's evidence was conditioned. **[NR-58, C-36]**
+
+NR-42 closed the non-arXiv relevance filter on **"no instrument discriminates"** and named the
+reopening condition: *"a genuinely better discriminator ... the item is closed on the absence
+of an instrument, not the absence of value."* Its oracle ceiling is **+1.38** on OpenAlex,
+against an MRE of 1.04, so the value was never in doubt.
+
+It tested **two** instruments and both are LLM stages: the gate (0.588 among actionable, 0.588
+among non-actionable) and the fine-scale rescore (0.842 vs 0.850, "the wrong way round"). The
+**dense embedding** was never asked -- and it is the one scoring component non-arXiv papers do
+*not* escape. The whole original argument for a filter was that they escape the **category**
+component.
+
+$0, no LLM calls: 2,466 of 4,391 cached verdicts located with text across seven frozen pools,
+scored with the shipped `compute_repo_embedding` / `compute_paper_embedding` /
+`cosine_similarity` composed exactly as `rank_papers` composes them.
+
+| panel | AUC | 95% CI | pairs | actionable | not |
+|---|---|---|---|---|---|
+| **non-arXiv, wide** | **0.578** | [0.415, 0.673] | 779 | 117 | 100 |
+| arXiv control | 0.586 | [0.531, 0.643] | 29,494 | 1,330 | 919 |
+| non-arXiv, NR-42's shown-only panel | **0.096** | [0.028, 0.250] | 83 | 68 | 17 |
+| arXiv, shown | 0.485 | [0.373, 0.585] | 843 | 425 | 55 |
+| arXiv, not shown | 0.554 | [0.499, 0.616] | 19,288 | 905 | 864 |
+| non-arXiv, not shown | 0.612 | [0.306, 0.836] | 260 | 49 | 83 |
+
+**Registered answer: no.** 0.578 against a bar of 0.65 with an interval excluding 0.5; the
+interval covers 0.5. The item stays closed, now on two instruments, and the second is better
+powered -- **100 non-actionable papers against NR-42's 17**, drawn from the verdict cache
+rather than from what the pipeline chose to show. The registered prediction ("near 0.5-0.6
+covering 0.5, arXiv control above it") is what happened.
+
+**The control is what makes the null readable.** At 0.586 the arXiv panel is the same
+magnitude, so this is not "the embedding covers arXiv and fails off it" -- it is a *weak
+actionability signal wherever it is pointed*. That is not a defect: it carries weight 1.5 in
+the shipped ranker for **relevance**, and relevance is not what a filter would be asking of
+it. It is also not *nothing*: 0.586 excludes 0.5 on 29k pairs, and reporting that as "no
+signal" would be void-read-as-null pointed the other way.
+
+## C-36: an instrument evaluated on the set it helped select looks worse than it is
+
+The same signal reads **0.096** on NR-42's shown-only panel and **0.612** on the papers the
+pipeline passed over, and **the intervals are disjoint**. The mechanism is collider
+conditioning: a paper admitted *despite* a low score on that instrument got in on something
+else -- keyword score, the gate -- and that something else correlates with being actionable.
+Conditioning on selection therefore drags the instrument's apparent AUC down, and it drags
+hardest where the alternative routes in are fewest, which for non-arXiv papers they are: they
+escape the category component entirely.
+
+The arXiv panel moves the same way at far higher n -- **0.485 shown against 0.554 not-shown**
+over 20k pairs -- but those intervals **overlap**, so that half is directional and is recorded
+as directional. Claiming it as established would be the same overreach this probe found.
+
+**What it overturns is narrow, and the narrowness is the point. NR-42's conclusion survives:**
+the wide panel independently says no filter is buildable, so the item is closed twice over.
+**Its argument does not.** "The rescore scores them the wrong way round" was read off a panel
+where a genuinely discriminating instrument would also read low -- and NR-42's own artifact
+carried the truncation caveat (*"it does not measure the signal it carries over the papers it
+rejected"*) that its headline then read past.
+
+## Two process notes
+
+**PLANS sent a reader at a closed item.** C-33's line -- "the item is reopened in that narrower
+form, and it is now the best-supported open item on this list" -- was true when written and
+false three days later when NR-42 closed it eight paragraphs below, in the same section. On
+2026-09-02 it was read as current. A restatement that outlives its measurement is the C-17
+shape; the heading now says CLOSED and the sentence says what happened to it.
+
+**The id rule nearly broke the labelled set before it was built.** Verdicts are stored under
+`judge._cache_path`'s filename stem, so `cs/0412098v3` is written `cs_0412098v3` -- and
+`is_arxiv_id("cs_0412098v3")` is **False**. Classifying the cache by filename counts old-style
+arXiv ids as non-arXiv, and inflated the first count from 380 to 471. The module never
+classifies a stem: it runs the *pool's* `arxiv_id` through `_judge_stem` and classifies the
+id. One rule, one direction. C-14, C-31.
+
 ### Widening RepoRadar's corpus made the agent search less, not more. **[P27]**
 
 C returned a quarter fewer papers than Opus 5 alone. **48 of its 87 MCP calls were
