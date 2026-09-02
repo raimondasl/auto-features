@@ -125,6 +125,130 @@ class TestTheStoreServesArmAsOutput:
         assert 'stored["fingerprint"] != row["pool_provenance"]["fingerprint"]' in source
 
 
+class TestTheWideCorpusChangesExactlyOneTool:
+    """C-wide seeds the whole frozen pool into `papers` while leaving `paper_scores` and
+    `paper_llm_scores` holding only the picks. The two MCP tools then read different
+    things, which is the whole trick:
+
+    * `get_ranked_papers` -> `get_scores_for_run` -> only scored papers -> **unchanged**;
+    * `search_papers` -> `get_all_papers` -> the whole corpus -> the variable under test.
+
+    The claim is proved by serialising both payloads and comparing bytes, not by comparing
+    the fields somebody thought to look at. On the 12 measured cases the corpus grows
+    59x-369x and every payload is identical.
+    """
+
+    def _store(self, path: Path, extra_corpus: int):
+        """A store with one scored+gated pick and *extra_corpus* unscored papers."""
+        from reporadar.store import PaperStore
+
+        with PaperStore(path) as store:
+            store.upsert_paper(
+                {
+                    "arxiv_id": "2401.00001v1",
+                    "title": "The pick",
+                    "authors": ["A"],
+                    "abstract": "A concrete method.",
+                    "categories": ["cs.LG"],
+                    "published": "2024-01-01T00:00:00+00:00",
+                    "updated": "2024-01-01T00:00:00+00:00",
+                    "url": "http://arxiv.org/abs/2401.00001v1",
+                    "pdf_url": "http://arxiv.org/pdf/2401.00001v1",
+                }
+            )
+            for i in range(extra_corpus):
+                store.upsert_paper(
+                    {
+                        "arxiv_id": f"2402.{i:05d}v1",
+                        "title": f"Corpus paper {i}",
+                        "authors": ["B"],
+                        "abstract": "Unranked this run.",
+                        "categories": ["cs.LG"],
+                        "published": "2024-02-01T00:00:00+00:00",
+                        "updated": "2024-02-01T00:00:00+00:00",
+                        "url": f"http://arxiv.org/abs/2402.{i:05d}v1",
+                        "pdf_url": f"http://arxiv.org/pdf/2402.{i:05d}v1",
+                    }
+                )
+            run_id = store.record_run(["frozen"], 1, 0)
+            store.save_scores(run_id, [{"arxiv_id": "2401.00001v1", "score_total": 0.7}])
+            store.save_llm_scores(run_id, {"2401.00001v1": {"llm_score": 3, "llm_reason": None}})
+
+    def test_widening_the_corpus_leaves_the_recommendations_byte_identical(self, tmp_path):
+        """The synthetic version of `compare_stores`, so the invariant is checked on a
+        fresh clone rather than only where the seeded stores happen to exist."""
+        from reporadar.mcp_server import ranked_papers_payload
+        from reporadar.store import PaperStore
+
+        self._store(tmp_path / "narrow.db", 0)
+        self._store(tmp_path / "wide.db", 300)
+        out = []
+        for name in ("narrow.db", "wide.db"):
+            with PaperStore(tmp_path / name) as store:
+                payload = ranked_papers_payload(
+                    store, limit=50, top_n=15, triage_threshold=2, rerank=True
+                )
+            payload.pop("run_id", None)
+            out.append(json.dumps(payload, sort_keys=True))
+        assert out[0] == out[1]
+
+    def test_the_wider_corpus_does_reach_the_search_tool(self, tmp_path):
+        """The other half: if `search_papers` did NOT widen, the arm would change nothing
+        at all and a null result would be unreadable."""
+        from reporadar.mcp_server import search_corpus_payload
+        from reporadar.store import PaperStore
+
+        self._store(tmp_path / "narrow.db", 0)
+        self._store(tmp_path / "wide.db", 300)
+        counts = []
+        for name in ("narrow.db", "wide.db"):
+            with PaperStore(tmp_path / name) as store:
+                counts.append(store.paper_count())
+                assert search_corpus_payload(store, "corpus paper", limit=50)["count"] == (
+                    0 if name == "narrow.db" else 50
+                )
+        assert counts == [1, 301]
+
+    def test_a_corpus_paper_is_invisible_to_the_recommendation_tool(self, tmp_path):
+        """The load-bearing rule, and it is **stronger than I first wrote it down**.
+
+        I argued that widening the corpus was safe because `categorize_papers` puts an
+        unscored paper in Maybe at best, so it could never reach Top Picks. Writing this
+        test showed the real reason is one layer earlier and absolute: `get_scores_for_run`
+        JOINs `paper_scores`, and a corpus paper has no row there — so it is not merely
+        tiered low, it **never enters the payload at all**, in any tier. The tiering rule
+        is a second line of defence that this design never reaches.
+
+        Which is why the assertion is that the wide payload has no `maybe_relevant` key
+        rather than that its contents are harmless."""
+        from reporadar.mcp_server import ranked_papers_payload
+        from reporadar.store import PaperStore
+
+        self._store(tmp_path / "wide.db", 40)
+        with PaperStore(tmp_path / "wide.db") as store:
+            payload = ranked_papers_payload(
+                store, limit=50, top_n=15, triage_threshold=2, rerank=True
+            )
+        assert [p["arxiv_id"] for p in payload["papers"]] == ["2401.00001v1"]
+        assert "maybe_relevant" not in payload and "muted" not in payload
+        assert "2402." not in json.dumps(payload)
+
+    def test_the_two_stores_are_separate_files(self) -> None:
+        """Rebuilding one over the other would make "which corpus is installed" invisible
+        state, and verifying either arm would destroy the other."""
+        assert rr_mcp_arm.case_db("rag") != rr_mcp_arm.case_db("rag", wide=True)
+        assert rr_mcp_arm.case_db("rag", wide=True).name == "papers-wide.db"
+
+    def test_the_server_is_pointed_at_the_right_store(self, tmp_path: Path) -> None:
+        cfg, _ = rr_mcp_arm.write_config("rag", repo_dir=tmp_path, wide=True)
+        args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+        assert args[args.index("--db") + 1] == str(rr_mcp_arm.case_db("rag", wide=True))
+        narrow, _ = rr_mcp_arm.write_config("rag", repo_dir=tmp_path)
+        n_args = json.loads(narrow.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+        assert n_args[n_args.index("--db") + 1] == str(rr_mcp_arm.case_db("rag"))
+        assert cfg != narrow  # and the two configs cannot overwrite each other
+
+
 class TestTheToolsetIsAConfigurationAxis:
     def test_the_default_toolset_moves_no_existing_path_or_hash(self) -> None:
         """`web` is every published run. Adding the axis must leave their cache paths and
@@ -206,15 +330,20 @@ class TestTheTreatmentCannotBeSilentlyAbsent:
             + "\n",
             encoding="utf-8",
         )
-        assert rr_mcp_arm.read_call_log(log) == {
-            "n": 3,
-            "by_tool": {"explain_relevance": 1, "get_ranked_papers": 2},
-        }
+        out = rr_mcp_arm.read_call_log(log)
+        assert out["n"] == 3
+        assert out["by_tool"] == {"explain_relevance": 1, "get_ranked_papers": 2}
+        # No pid on these lines, so the session count is UNKNOWN rather than 1.
+        assert out["n_sessions"] is None
 
     def test_no_log_means_zero_calls_which_is_a_real_answer(self, tmp_path: Path) -> None:
         """Zero is a finding about discoverability, not a missing measurement — the run's
         own `status` is what says whether it happened at all."""
-        assert rr_mcp_arm.read_call_log(tmp_path / "absent.jsonl") == {"n": 0, "by_tool": {}}
+        assert rr_mcp_arm.read_call_log(tmp_path / "absent.jsonl") == {
+            "n": 0,
+            "by_tool": {},
+            "n_sessions": 0,
+        }
 
     def test_each_run_gets_its_own_log(self, tmp_path: Path) -> None:
         """Two draws of one case sharing a log would attribute one run's calls to the
@@ -225,6 +354,119 @@ class TestTheTreatmentCannotBeSilentlyAbsent:
         cfg = json.loads(one.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]
         assert cfg["env"]["RR_MCP_CALL_LOG"] == str(log_one)
         assert cfg["args"][0] == "mcp"
+
+
+class TestTheDriverActuallyServesTheArmItWasAskedFor:
+    """Every one of these pins a defect an adversarial audit found in this change set
+    **before the $86 sweep ran**, and that a `--dry-run` could not have found — a dry run
+    returns before any of this code executes."""
+
+    def test_the_corpus_is_read_off_the_toolset_not_guessed(self) -> None:
+        """`gold_spread` accepted `--tools web+rrwide` and served the NARROW store: the
+        plumbing never landed, the sweep would have run, every row would have looked
+        normal, and the artifact would have answered a different question. The mapping now
+        lives beside TOOLSETS so there is one source of truth for it."""
+        assert baseline_mod.wide_corpus("web+rrwide") is True
+        assert baseline_mod.wide_corpus("web+rr") is False
+        assert baseline_mod.wide_corpus("web") is False
+        with pytest.raises(ValueError):
+            baseline_mod.wide_corpus("web+rrwyde")
+
+    def test_each_toolset_points_the_server_at_its_own_store(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Checked through the DRIVER rather than the helper, because the helper was always
+        correct — it was the driver that never passed the bit, and only a test that goes in
+        the front door would have caught that.
+
+        Both stores are faked into a tmp tree rather than read from `evals/.work/`, which is
+        gitignored: a guard against a $86 mistake that only fires on the maintainer's laptop
+        is not a guard. The first version of this test did exactly that and CI caught it.
+        """
+        import gold_spread
+
+        monkeypatch.setattr(rr_mcp_arm, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(rr_mcp_arm, "MCP_DIR", tmp_path / "mcp-arm")
+        for wide in (False, True):
+            db = rr_mcp_arm.case_db("acase", wide=wide)
+            db.parent.mkdir(parents=True, exist_ok=True)
+            db.write_bytes(b"")
+        for tools, wide in (("web+rrwide", True), ("web+rr", False)):
+            cfg, _log = gold_spread.mcp_config_for("acase", tools)
+            args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+            assert args[args.index("--db") + 1] == str(rr_mcp_arm.case_db("acase", wide=wide))
+
+    def test_the_guard_checks_the_store_the_toolset_asked_for(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """The audit's secondary: the missing-store guard read the NARROW path whatever the
+        toolset, so a wide sweep launched without `--seed --wide` would have sailed past it
+        and served the narrow corpus."""
+        import gold_spread
+
+        monkeypatch.setattr(rr_mcp_arm, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(rr_mcp_arm, "MCP_DIR", tmp_path / "mcp-arm")
+        narrow = rr_mcp_arm.case_db("acase")
+        narrow.parent.mkdir(parents=True, exist_ok=True)
+        narrow.write_bytes(b"")  # only the NARROW store exists
+        with pytest.raises(SystemExit, match="papers-wide.db"):
+            gold_spread.mcp_config_for("acase", "web+rrwide")
+
+    def test_the_end_of_run_message_names_the_file_it_wrote(self) -> None:
+        """`report()` prints no filename and the correct one is printed at the START of the
+        sweep, so this is the only end-of-run name a reader sees — and it was announcing
+        the CONTROL arm's file after writing the treatment's."""
+        source = (EVALS / "gold_spread.py").read_text(encoding="utf-8")
+        assert (
+            "wrote {out_path(args.prompt_version, args.baseline_model, args.tools).name}" in source
+        )
+
+
+class TestTheCallLogSurvivesARetry:
+    def test_sessions_are_partitioned_by_the_server_process(self, tmp_path: Path) -> None:
+        """`_run_cli` retries a failed `claude` against the SAME log path and each attempt
+        spawns its own server, so the raw total pools a dead attempt's calls with the
+        surviving one's. `_run_cli` returns on the first success, so the LAST session is
+        the one that produced the answer."""
+        log = tmp_path / "calls.jsonl"
+        log.write_text(
+            "\n".join(
+                json.dumps({"t": f"2026-09-01T00:00:0{i}+00:00", "pid": pid, "tool": tool})
+                for i, (pid, tool) in enumerate(
+                    [(100, "get_ranked_papers"), (100, "search_papers"), (200, "search_papers")]
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        out = rr_mcp_arm.read_call_log(log)
+        assert out["n"] == 3 and out["n_sessions"] == 2
+        assert out["n_last_session"] == 1
+        assert out["by_tool_last_session"] == {"search_papers": 1}
+
+    def test_a_single_session_carries_no_partition_keys(self, tmp_path: Path) -> None:
+        """Absent, not present-and-equal. A row that says `n_last_session` is a row where
+        something went wrong, and it should be greppable."""
+        log = tmp_path / "calls.jsonl"
+        log.write_text(
+            json.dumps({"t": "2026-09-01T00:00:00+00:00", "pid": 7, "tool": "search_papers"})
+            + "\n",
+            encoding="utf-8",
+        )
+        out = rr_mcp_arm.read_call_log(log)
+        assert out["n_sessions"] == 1 and "n_last_session" not in out
+
+    def test_a_legacy_log_reports_unknown_rather_than_one(self, tmp_path: Path) -> None:
+        """Void, not null. Arm C's logs predate the pid; calling them "one session" would
+        assert something never measured. (They show no restart signature either — the
+        largest inter-call gap on any of the 12 is 172 s, against the minutes a failed
+        attempt costs — so the published counts stand, but on evidence, not assumption.)"""
+        log = tmp_path / "calls.jsonl"
+        log.write_text(
+            json.dumps({"t": "2026-09-01T00:00:00+00:00", "tool": "search_papers"}) + "\n",
+            encoding="utf-8",
+        )
+        assert rr_mcp_arm.read_call_log(log)["n_sessions"] is None
 
 
 class TestTheArtifactsCannotCollide:

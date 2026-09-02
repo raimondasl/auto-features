@@ -1,0 +1,696 @@
+{
+ "_comment": "k independent redraws of the cli baseline over the benchmark25 cohort, judged, to price how much of the gold set is a property of the draw. Derived by evals/gold_spread.py; pinned by tests/test_gold_spread.py. Written incrementally -- a partial artifact is expected and resumable.",
+ "cohort": "benchmark25",
+ "draws": 3,
+ "prompt_version": "v2",
+ "model": "claude-opus-5",
+ "tools": "web+rrwide",
+ "results": {
+  "1/bio-singlecell": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1038/s41467-019-13056-x",
+    "doi:10.1038/s41587-020-00809-z",
+    "2207.00554",
+    "2307.12985",
+    "doi:10.1016/j.csbj.2021.06.043",
+    "doi:10.1186/s13059-019-1861-6"
+   ],
+   "num_turns": 34,
+   "mcp": {
+    "n": 2,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 1.96578,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 290.1,
+   "targets": [
+    "2207.00554",
+    "2307.12985",
+    "doi:10.1016/j.csbj.2021.06.043",
+    "doi:10.1038/s41467-019-13056-x",
+    "doi:10.1186/s13059-019-1861-6"
+   ],
+   "scores": {
+    "2207.00554": 3,
+    "2307.12985": 2,
+    "doi:10.1016/j.csbj.2021.06.043": 2,
+    "doi:10.1038/s41467-019-13056-x": 3,
+    "doi:10.1186/s13059-019-1861-6": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 1,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/bio-scvi": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "1507.02646",
+    "1802.02538",
+    "doi:10.1101/2024.08.01.606200",
+    "2211.03793"
+   ],
+   "num_turns": 38,
+   "mcp": {
+    "n": 11,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 9
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 5.186356,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 336.0,
+   "targets": [
+    "1507.02646",
+    "1802.02538",
+    "2211.03793",
+    "doi:10.1101/2024.08.01.606200"
+   ],
+   "scores": {
+    "1507.02646": 2,
+    "1802.02538": 3,
+    "2211.03793": 2,
+    "doi:10.1101/2024.08.01.606200": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/bio-align": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1093/bioinformatics/btag083",
+    "2606.03929",
+    "doi:10.1101/2025.10.31.685625",
+    "doi:10.1038/s43588-022-00201-8",
+    "doi:10.64898/2026.05.26.726289",
+    "doi:10.1186/s13015-025-00270-0",
+    "2606.15357"
+   ],
+   "num_turns": 37,
+   "mcp": {
+    "n": 3,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "search_papers": 2
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 4.909378500000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 588.4,
+   "targets": [
+    "2606.03929",
+    "2606.15357",
+    "doi:10.1038/s43588-022-00201-8",
+    "doi:10.1093/bioinformatics/btag083",
+    "doi:10.1101/2025.10.31.685625",
+    "doi:10.1186/s13015-025-00270-0",
+    "doi:10.64898/2026.05.26.726289"
+   ],
+   "scores": {
+    "2606.03929": 3,
+    "2606.15357": 2,
+    "doi:10.1038/s43588-022-00201-8": 3,
+    "doi:10.1093/bioinformatics/btag083": 3,
+    "doi:10.1101/2025.10.31.685625": 3,
+    "doi:10.1186/s13015-025-00270-0": 3,
+    "doi:10.64898/2026.05.26.726289": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/bio-mdsim": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2503.13075",
+    "2006.09167",
+    "cond-mat/9807100",
+    "2505.09727",
+    "1708.01539"
+   ],
+   "num_turns": 1,
+   "mcp": {
+    "n": 19,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 17
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 5.400612499999999,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 447.5,
+   "targets": [
+    "1708.01539",
+    "2006.09167",
+    "2503.13075",
+    "2505.09727"
+   ],
+   "scores": {
+    "1708.01539": 2,
+    "2006.09167": 2,
+    "2503.13075": 3,
+    "2505.09727": 3,
+    "cond-mat/9807100": 1
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/bio-mdtraj": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1063/1.3569857",
+    "doi:10.1021/jp0477147",
+    "doi:10.1063/5.0008316",
+    "1907.00097",
+    "1801.07630",
+    "2006.09167",
+    "2605.24271",
+    "doi:10.25080/majora-1b6fd038-005",
+    "doi:10.1101/2025.08.06.668936"
+   ],
+   "num_turns": 7,
+   "mcp": {
+    "n": 5,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 3
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 12.543815250000003,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 593.9,
+   "targets": [
+    "1801.07630",
+    "1907.00097",
+    "2605.24271",
+    "doi:10.1021/jp0477147",
+    "doi:10.1063/1.3569857",
+    "doi:10.1063/5.0008316",
+    "doi:10.1101/2025.08.06.668936",
+    "doi:10.25080/majora-1b6fd038-005"
+   ],
+   "scores": {
+    "1801.07630": 2,
+    "1907.00097": 3,
+    "2006.09167": 1,
+    "2605.24271": 3,
+    "doi:10.1021/jp0477147": 2,
+    "doi:10.1063/1.3569857": 3,
+    "doi:10.1063/5.0008316": 2,
+    "doi:10.1101/2025.08.06.668936": 2,
+    "doi:10.25080/majora-1b6fd038-005": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/mat-mlip": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2510.25380",
+    "2607.14486",
+    "2605.03964",
+    "2602.15747",
+    "2510.23621",
+    "2508.16067",
+    "2605.08885",
+    "2505.05652"
+   ],
+   "num_turns": 49,
+   "mcp": {
+    "n": 12,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 10
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 7.272297750000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 307.6,
+   "targets": [
+    "2505.05652",
+    "2508.16067",
+    "2510.23621",
+    "2510.25380",
+    "2602.15747",
+    "2605.03964",
+    "2605.08885",
+    "2607.14486"
+   ],
+   "scores": {
+    "2505.05652": 3,
+    "2508.16067": 2,
+    "2510.23621": 3,
+    "2510.25380": 3,
+    "2602.15747": 2,
+    "2605.03964": 3,
+    "2605.08885": 3,
+    "2607.14486": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/mat-chgpot": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2405.07105",
+    "2507.14302",
+    "2412.20796",
+    "2506.02023",
+    "2504.12627",
+    "2305.01401",
+    "2502.15582",
+    "2603.26471"
+   ],
+   "num_turns": 42,
+   "mcp": {
+    "n": 14,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 12
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 4.742512,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 302.3,
+   "targets": [
+    "2305.01401",
+    "2405.07105",
+    "2412.20796",
+    "2502.15582",
+    "2504.12627",
+    "2506.02023",
+    "2507.14302",
+    "2603.26471"
+   ],
+   "scores": {
+    "2305.01401": 2,
+    "2405.07105": 3,
+    "2412.20796": 3,
+    "2502.15582": 3,
+    "2504.12627": 2,
+    "2506.02023": 3,
+    "2507.14302": 3,
+    "2603.26471": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/bio-kmer": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "doi:10.1038/s41587-024-02412-y",
+    "doi:10.1093/bioinformatics/btae047",
+    "doi:10.4230/lipics.wabi.2024.6",
+    "doi:10.64898/2026.04.01.715966",
+    "doi:10.1101/2025.11.11.687920",
+    "doi:10.1089/cmb.2024.0714",
+    "doi:10.1186/s13015-024-00268-0",
+    "doi:10.1101/gr.277655.123"
+   ],
+   "num_turns": 28,
+   "mcp": {
+    "n": 6,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 4
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 5.9274665,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 659.3,
+   "targets": [
+    "doi:10.1038/s41587-024-02412-y",
+    "doi:10.1089/cmb.2024.0714",
+    "doi:10.1093/bioinformatics/btae047",
+    "doi:10.1101/2025.11.11.687920",
+    "doi:10.1101/gr.277655.123",
+    "doi:10.1186/s13015-024-00268-0",
+    "doi:10.4230/lipics.wabi.2024.6",
+    "doi:10.64898/2026.04.01.715966"
+   ],
+   "scores": {
+    "doi:10.1038/s41587-024-02412-y": 3,
+    "doi:10.1089/cmb.2024.0714": 2,
+    "doi:10.1093/bioinformatics/btae047": 3,
+    "doi:10.1101/2025.11.11.687920": 3,
+    "doi:10.1101/gr.277655.123": 3,
+    "doi:10.1186/s13015-024-00268-0": 3,
+    "doi:10.4230/lipics.wabi.2024.6": 3,
+    "doi:10.64898/2026.04.01.715966": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/mat-descriptors": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2101.08814",
+    "1905.02142",
+    "2210.01705",
+    "2001.11696",
+    "2007.03407",
+    "2006.01915"
+   ],
+   "num_turns": 1,
+   "mcp": {
+    "n": 13,
+    "by_tool": {
+     "explain_relevance": 1,
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 10
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 5.0862585000000005,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 319.1,
+   "targets": [
+    "1905.02142",
+    "2007.03407",
+    "2101.08814",
+    "2210.01705"
+   ],
+   "scores": {
+    "1905.02142": 3,
+    "2001.11696": 1,
+    "2006.01915": 1,
+    "2007.03407": 2,
+    "2101.08814": 3,
+    "2210.01705": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/mat-featurize": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2404.02849",
+    "2004.14766",
+    "2509.03547",
+    "2408.02292",
+    "2606.10195",
+    "1710.03319",
+    "2005.00707"
+   ],
+   "num_turns": 1,
+   "mcp": {
+    "n": 13,
+    "by_tool": {
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 11
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 5.168097500000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 402.7,
+   "targets": [
+    "1710.03319",
+    "2404.02849",
+    "2408.02292",
+    "2509.03547",
+    "2606.10195"
+   ],
+   "scores": {
+    "1710.03319": 2,
+    "2004.14766": 1,
+    "2005.00707": 1,
+    "2404.02849": 2,
+    "2408.02292": 2,
+    "2509.03547": 2,
+    "2606.10195": 3
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/mat-toolkit": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [
+    "2602.11709",
+    "2010.04222",
+    "2604.17994",
+    "1603.05143",
+    "2111.00939",
+    "2001.07565",
+    "2402.00572",
+    "doi:10.21105/joss.00773"
+   ],
+   "num_turns": 12,
+   "mcp": {
+    "n": 27,
+    "by_tool": {
+     "explain_relevance": 1,
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 24
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 7.115505750000002,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 463.1,
+   "targets": [
+    "1603.05143",
+    "2001.07565",
+    "2010.04222",
+    "2111.00939",
+    "2402.00572",
+    "2602.11709",
+    "2604.17994",
+    "doi:10.21105/joss.00773"
+   ],
+   "scores": {
+    "1603.05143": 2,
+    "2001.07565": 2,
+    "2010.04222": 2,
+    "2111.00939": 2,
+    "2402.00572": 2,
+    "2602.11709": 3,
+    "2604.17994": 2,
+    "doi:10.21105/joss.00773": 2
+   },
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  },
+  "1/mat-phonon": {
+   "status": "ok",
+   "phase": "judged",
+   "picks": [],
+   "num_turns": 1,
+   "mcp": {
+    "n": 10,
+    "by_tool": {
+     "explain_relevance": 1,
+     "get_ranked_papers": 1,
+     "get_repo_profile": 1,
+     "search_papers": 7
+    },
+    "n_sessions": 1
+   },
+   "cost_usd": 8.333295749999998,
+   "max_turns": 30,
+   "prompt_version": "v2",
+   "model": "claude-opus-5",
+   "effort": null,
+   "tools": "web+rrwide",
+   "cohort": "all",
+   "duration_s": 437.0,
+   "targets": [],
+   "scores": {},
+   "n_hallucinated": 0,
+   "n_lookup_failed": 0,
+   "n_unjudgeable": 0,
+   "n_judge_failed": 0,
+   "tier_set": [
+    "arxiv",
+    "doi.org",
+    "s2",
+    "europepmc",
+    "openalex"
+   ]
+  }
+ }
+}

@@ -1384,17 +1384,30 @@ def rate(arxiv_id: str, rating: int, config_path: str | None) -> None:
     type=click.Path(exists=True, dir_okay=False),
     help="Path to .reporadar.yml.",
 )
-def mcp(config_path: str | None) -> None:
+@click.option(
+    "--db",
+    "db_override",
+    default=None,
+    type=click.Path(dir_okay=False),
+    help="Serve this store instead of <repo>/.reporadar/papers.db.",
+)
+def mcp(config_path: str | None, db_override: str | None) -> None:
     """Run RepoRadar as an MCP server (stdio) for coding agents.
 
     Exposes repo-aware tools — get_repo_profile, get_ranked_papers,
     explain_relevance, rate_paper, search_papers — to Claude Code / Cursor / VS Code
     / Windsurf.
     Requires the optional MCP extra:  uv pip install -e ".[mcp]"
+
+    ``--db`` points the server at a different store while keeping the profile, the
+    ranking config and the already-cited exclusion tied to ``repo_path`` — which is what
+    lets one repository be served under two different corpora without either of them
+    being destroyed to make room for the other. The eval that needed it is P27's
+    narrow-vs-wide pair; the general case is an agent pointed at a snapshot.
     """
     cfg = _load_and_validate(config_path)
     repo_path = Path(cfg.repo_path).resolve()
-    db_path = repo_path / ".reporadar" / "papers.db"
+    db_path = Path(db_override).resolve() if db_override else repo_path / ".reporadar" / "papers.db"
 
     from reporadar.mcp_server import run_stdio
 

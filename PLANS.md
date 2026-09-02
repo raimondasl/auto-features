@@ -73,8 +73,8 @@ item by number therefore stays valid across re-orderings, which is the point -- 
 and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not have to be edited
 when something overtakes it.
 
-**Currently first: item 14** (RepoRadar *and* the agent — 12 of 37 cases run, not separated,
-core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for), then
+**Currently first: item 14** (RepoRadar *and* the agent — two arms over 12 of 37 cases,
+neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for), then
 item 7 (product work). Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
 negative; item 5's remainder is conditional on a proposal that has not appeared.
 
@@ -1044,71 +1044,63 @@ already the papers we would have found anyway, PRF re-searches the neighbourhood
 adds nothing — and NR-11's warning applies here too, since a second round widens the pool
 against the same near-binary gate.
 
-### 14. RepoRadar *and* the agent — 12 of 37 cases run, and the two halves disagree [P27]
+### 14. The more RepoRadar you give an agent, the less it looks elsewhere [P27]
 
-Every comparator figure this project had was **either/or**. This is the first measurement of
-**both**: Opus 5 in agentic mode with RepoRadar's MCP server attached, keeping its own web
-search. Pre-registered in `evals/PREREG-mcp-arm.md` before the arm existed; scored by
+Every comparator figure this project had was **either/or**. Two arms now measure **both**:
+Opus 5 in agentic mode with RepoRadar's MCP server attached, over the 12 scientific cases,
+pre-registered in `evals/PREREG-mcp-arm.md` before each arm existed. Scored by
 `evals/mcp_arm_report.py` into `evals/mcp_arm.json`.
 
-**The 12 scientific cases, $85.88 notional:**
+| arm | what RepoRadar it got | net@2 | shown/case | precision |
+|---|---|---|---|---|
+| **B** Opus 5 alone | none | **+7.25** | 10.8 | 0.891 |
+| **C** + MCP, digest picks only | ~12 papers | **+5.83** | 8.1 | 0.907 |
+| **C-wide** + MCP, whole pool | 712-1252 papers | **+4.75** | 6.2 | 0.920 |
 
-| cohort | n | A RepoRadar | A' as shipped | B Opus 5 | C both | C − B | 95% CI | sign p |
-|---|---|---|---|---|---|---|---|---|
-| bio 6 | 6 | +7.50 | +7.83 | +5.83 | **+7.17** | **+1.33** | [-0.50, +3.00] | 0.625 |
-| matsci 6 | 6 | +5.50 | +5.33 | +8.67 | **+4.50** | **-4.17** | [-9.17, +0.67] | 0.688 |
-| **scientific 12** | 12 | +6.50 | +6.58 | +7.25 | **+5.83** | **-1.42** | [-4.75, +1.42] | 1.00 |
+C - B = **-1.42**, CI [-4.75, +1.42]. C-wide - C = **-1.08**, CI [-2.67, +0.50], 3W/6L/3T,
+sign *p* = 0.51. **Neither separates.** Under the registered rule the wide arm reads
+*anchoring*: the corpus was not what made the agent narrow.
 
-**Not separated, and the two cohorts point opposite ways.** 5W/5L/2T. Neither interval
-excludes zero, so the registered rule's answer is *not separated* on both halves and pooled.
+**But the secondary makes the mechanism much sharper than that word.** Where each arm's
+picks came from -- RepoRadar's digest, its wider pool, or the agent's own search:
 
-**The mechanism is volume, and it is legible.** C is MORE precise than B (0.907 vs 0.891) and
-returns a QUARTER fewer papers (8.1 vs 10.8 per case). net@2 sums over what is returned, so at
-p ~ 0.9 each paper forgone costs ~0.7: 2.7 fewer papers is about -1.9, the precision gain buys
-back ~0.4, and that is the -1.42. **Attaching RepoRadar anchors the agent to a digest-sized
-answer** -- which rescues it where it would have said nothing and caps it where its own search
-was already working:
+| arm | digest | pool only | **off-pool (its own finds)** | search_papers calls |
+|---|---|---|---|---|
+| B | 4 | 21 | **104** | -- |
+| C | 19 | 13 | **65** | 48 |
+| C-wide | 15 | **37** | **23** | **109** |
 
-| case | B n | C n | B net | C net | C - B |
-|---|---|---|---|---|---|
-| `mat-chgpot` | **24** @ 0.96 | 8 | +21 | +8 | **-13** |
-| `mat-mlip` | **18** @ 1.00 | 6 | +18 | +6 | **-12** |
-| `bio-mdtraj` | **0** (abstained) | 6 @ 0.83 | +0 | +3 | **+3** |
+**The treatment was consumed enthusiastically and that is why it lost.** Widening the
+corpus more than doubled `search_papers` use and took pool-only picks from 13 to 37 (13% ->
+49%) -- so the agent was never starved, and a null result here is not "the tool went
+unexercised". What it did instead was **substitute**: its own off-pool finds collapsed 104
+-> 65 -> 23, monotonically, as it was given more of RepoRadar. Precision rose at every step
+(0.891 -> 0.907 -> 0.920) and volume fell (10.8 -> 8.1 -> 6.2), and under net@2 above the
+2/3 break-even, fewer loses.
 
-C never abstained; B abstained once. This is the *same behaviour* paying and costing --
-exactly the abstention discipline P26 identified as RepoRadar's edge, applied where the agent
-did not need it.
+**The product reading:** RepoRadar makes an agent's recommendations better and fewer. On a
+metric that rewards volume that is a loss; for a maintainer with limited attention it may be
+exactly the trade they want. The benchmark cannot distinguish those, and saying so is the
+honest end of this item rather than a number.
 
-**The kill condition did not fire: 0 of 12 rows made zero MCP calls**, 87 calls total, on a
-prompt that never mentions the server. So the result is about the shortlist, not about whether
-an agent can find the tool.
+**A prediction that was right for the wrong reason.** I registered "C-wide ~ C" and argued
+that starvation would require the agent to substitute RepoRadar's index for web search,
+"a strong assumption about a tool it had just met". The interval came out as predicted and
+**the argument was wrong**: it substituted heavily. It just did not help.
 
-**The limitation that names the next arm.** 48 of the 87 calls were `search_papers` against a
-store holding only that case's digest picks (3-19 papers), where the product's store holds
-everything RepoRadar ever fetched. **Arm C's search tool is materially narrower than the
-product's** -- the price of seeding exactly arm A's output. C is therefore a *floor*. The
-obvious follow-up is a `C-wide` arm seeding the full frozen pool, which leaves
-`get_ranked_papers` byte-identical (ungated papers reach Maybe at best) while giving
-`search_papers` a real corpus.
+**Two defects an adversarial audit found before the $86 ran**, neither reachable by
+`--dry-run`, which returns before the code that differs: `gold_spread` accepted `--tools
+web+rrwide` and served the **narrow** store (my plumbing patch had silently not landed and
+I had "verified" it with a dry run); and the end-of-run message announced the control arm's
+filename after writing the treatment's. A third -- the call log pooling a retried run's
+calls with the dead attempt's -- was real and did not fire. All three are now pinned, and
+the toolset -> corpus mapping lives beside `TOOLSETS` as `baseline.wide_corpus`.
 
-**A false positive the repair pass caught.** `bio-scvi` came back `partial` (20 picks, 18
-scored). `agent_arm` drops non-`ok` rows, so bio6 read **+2.00, CI [+0.60, +3.40] -- excluding
-zero**, a significant-looking win driven by dropping C's highest-volume case. `gold_spread`'s
-repair phase resolved it (19 of 20 scored, 1 unjudgeable, void not null) and bio6 moved to
-+1.33, CI [-0.50, +3.00]. **Run the repair pass before reading any cohort.**
-
-**Remaining: core 25** (~$180 notional, ~2.5 h). The registered decision rule is over 37 cases
-and cannot be called from 12 -- and core 25 is where the two arms are furthest apart on their
-own (A +6.16 vs B +4.20), so it is the half that decides.
-
-    uv run python evals/gold_spread.py --tools web+rr --prompt-version v2 --max-turns 30         --baseline-model claude-opus-5 --cohort benchmark25 --draws 1 --concurrency 3
-
-**Two defects it found at $0, before any of the above:** `get_ranked_papers` was returning the
-raw ranker order rather than RepoRadar's recommendations (no gate, no rerank, withdrawn and
-already-cited papers still in slots), now routed through `categorize_papers` like every other
-consumer; and the benchmark credits RepoRadar for 11 of 325 picks the product mutes as already
-cited, worth +0.05/case CI [-0.14, +0.24] -- estimated at +0.22 first by counting only the
-actionable side, wrong by a factor of four.
+**Remaining: core 25**, ~$180 notional per arm. The registered rule is over 37 cases and
+cannot be called from 12; core 25 is where A and B are furthest apart on their own
+(+6.16 vs +4.20), so it is the half that decides. Whether it is worth two more arms is a
+budget question, not an evidence one -- the mechanism above is already legible and
+monotone.
 
 ### 8. Held — real gaps with no affordable next step
 

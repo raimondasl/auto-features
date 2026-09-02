@@ -198,8 +198,32 @@ RR_MCP_TOOLS = (
     "mcp__reporadar__explain_relevance",
     "mcp__reporadar__search_papers",
 )
-TOOLSETS: dict[str, tuple[str, ...]] = {"web": (), "web+rr": RR_MCP_TOOLS}
+# `web+rrwide` is the SAME four tools serving a WIDER corpus [P27]. The label is the whole
+# server configuration, not just the tool list -- which is the honest reading of "what tools
+# did the agent have", because a `search_papers` over 12 papers and one over 724 are not the
+# same affordance. `web+rr` seeds the store with the digest picks only, so 48 of that arm's
+# 87 calls searched a corpus of about a dozen papers the agent had already been handed;
+# `web+rrwide` seeds the whole frozen pool while leaving the SCORED run untouched, so
+# `get_ranked_papers` is byte-identical (proved per case by `rr_mcp_arm.compare_stores`) and
+# only `search_papers` changes.
+TOOLSETS: dict[str, tuple[str, ...]] = {
+    "web": (),
+    "web+rr": RR_MCP_TOOLS,
+    "web+rrwide": RR_MCP_TOOLS,
+}
 DEFAULT_TOOLS = "web"
+# Which toolsets serve the WIDE store. Owned here, beside `TOOLSETS`, because this is the
+# label -> configuration mapping and a second copy of it in the driver is how the driver
+# came to accept `--tools web+rrwide` and serve the NARROW store anyway -- a run that would
+# have looked entirely normal and answered a different question, caught by an adversarial
+# audit rather than by the dry run, which never calls the code that would have differed.
+WIDE_TOOLSETS = frozenset({"web+rrwide"})
+
+
+def wide_corpus(tools: str) -> bool:
+    """Does *tools* name the wide-corpus store? Loud on a typo, like `tools_for`."""
+    tools_for(tools)
+    return tools in WIDE_TOOLSETS
 
 
 def tools_for(version: str) -> tuple[str, ...]:
@@ -426,11 +450,17 @@ def _discriminator(
     if effort != DEFAULT_EFFORT:
         parts.append(f"effort={effort}")
     if tools != DEFAULT_TOOLS:
-        # The tool NAMES, not the mcp-config path. The path carries a case name and an
-        # absolute prefix that differ per machine, so hashing it would make two runs of the
-        # same arm on two checkouts look like different configurations while changing
-        # nothing about what the agent could do.
-        parts.append("tools=" + ",".join(tools_for(tools)))
+        # The toolset LABEL and the tool names, not the mcp-config path. The path carries a
+        # case name and an absolute prefix that differ per machine, so hashing it would make
+        # two runs of the same arm on two checkouts look like different configurations while
+        # changing nothing about what the agent could do.
+        #
+        # The label has to be in here as well as the names, because `web+rr` and `web+rrwide`
+        # expose the IDENTICAL four tools and differ only in what those tools serve. Hashing
+        # names alone would give two genuinely different arms one discriminator -- they would
+        # still land in separate cache directories, so nothing would be overwritten, but a
+        # staleness check that cannot tell two arms apart is not a staleness check.
+        parts.append(f"tools={tools}:" + ",".join(tools_for(tools)))
     if mode == "api":
         parts.append(repo_context)
     elif mode == "cli":

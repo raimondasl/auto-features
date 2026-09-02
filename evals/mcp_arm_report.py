@@ -47,6 +47,11 @@ from reporadar.profiler import cited_arxiv_ids_of  # noqa: E402
 
 ARM_B = EVALS / "gold_spread_v2_opus5.json"
 ARM_C = EVALS / "gold_spread_v2_opus5_web_rr.json"
+# C-wide: the SAME arm with the MCP store's corpus widened from the digest picks to the
+# whole frozen pool, and nothing else changed. `get_ranked_papers` is byte-identical
+# between the two stores (proved per case by `rr_mcp_arm.compare_stores`), so a C-wide
+# minus C difference can only be `search_papers`. Registered in the PREREG addendum.
+ARM_C_WIDE = EVALS / "gold_spread_v2_opus5_web_rrwide.json"
 OUT = EVALS / "mcp_arm.json"
 
 COHORTS = {
@@ -142,6 +147,51 @@ def agent_arm(path: Path) -> tuple[dict[str, list], dict[str, Any]]:
     return picks, meta
 
 
+def provenance(picks_by_case: dict[str, list], sel: list[str]) -> dict[str, Any]:
+    """Where an agent arm's picks came from: the digest, the wider pool, or off-pool.
+
+    The registered secondary for the wide arm, and the only direct evidence of whether a
+    wider `search_papers` corpus fed the agent anything it could not have had in C. A
+    headline difference is an inference; this is a count.
+
+    Three buckets, and the middle one is the whole question:
+
+    * **digest** — the paper was in RepoRadar's Top Picks, so the agent could have got it
+      from `get_ranked_papers` in EITHER arm;
+    * **pool_only** — in the frozen candidate pool but not the digest, so in the wide arm it
+      was reachable through `search_papers` and in the narrow arm it was not;
+    * **off_pool** — the agent found it somewhere else entirely (its own web search).
+
+    Ids are compared with `dedup_id`, the project's one normaliser (C-14). A non-arXiv pick
+    cannot match an arXiv pool id and lands in `off_pool`, which is correct: the pool's
+    Europe PMC entries are stored under their own ids and a DOI-shaped pick is by
+    construction something the arXiv-shaped pool did not offer under that name.
+    """
+    from rr_mcp_arm import _pool_path, arm_picks
+
+    counts = {"digest": 0, "pool_only": 0, "off_pool": 0}
+    by_case: dict[str, dict[str, int]] = {}
+    for case in sel:
+        digest = {dedup_id(p["arxiv_id"]) for p in arm_picks(ARM_A, case)}
+        pool_json = json.loads(_pool_path(ARM_A, case).read_text(encoding="utf-8"))
+        pool = {dedup_id(c["arxiv_id"]) for c in pool_json["candidates"]}
+        here = {"digest": 0, "pool_only": 0, "off_pool": 0}
+        for pid, _score in picks_by_case[case]:
+            norm = dedup_id(pid)
+            bucket = "digest" if norm in digest else ("pool_only" if norm in pool else "off_pool")
+            here[bucket] += 1
+            counts[bucket] += 1
+        by_case[case] = here
+    total = sum(counts.values())
+    return {
+        **counts,
+        "n_picks": total,
+        "digest_share": round(counts["digest"] / total, 3) if total else None,
+        "pool_only_share": round(counts["pool_only"] / total, 3) if total else None,
+        "by_case": by_case,
+    }
+
+
 def block(picks_by_case: dict[str, list], sel: list[str]) -> dict[str, Any]:
     ps = [p for c in sel for p in picks_by_case[c]]
     return {
@@ -198,22 +248,33 @@ def build() -> dict[str, Any]:
         "cohorts": {},
     }
 
-    c: dict[str, list] | None = None
-    if ARM_C.exists():
-        c, c_meta = agent_arm(ARM_C)
-        out["arms"]["C"] = c_meta
-    else:
-        # Void, not zero. An unrun arm reported as 0 net@2 reads as "the agent recommended
-        # nothing", which is a measurement, and this is the absence of one.
-        out["arms"]["C"] = {
-            "status": "not_run",
-            "artifact": ARM_C.name,
-            "how": (
-                "uv run python evals/rr_mcp_arm.py --seed  (free), then "
-                "uv run python evals/gold_spread.py --tools web+rr --prompt-version v2 "
-                "--max-turns 30 --baseline-model claude-opus-5 --cohort all --draws 1"
-            ),
-        }
+    # The augmented arms, keyed by column name. A list rather than two special cases,
+    # because a third one is exactly how the second would have been bolted on wrongly:
+    # `agent_arm` is shared, the partial-cohort discipline below is shared, and an arm
+    # that has not run must produce `not_run` rather than a column of zeros in both.
+    agent_arms: dict[str, dict[str, list]] = {}
+    for label, path, seed_flags, tools in (
+        ("C", ARM_C, "--seed", "web+rr"),
+        ("C_wide", ARM_C_WIDE, "--seed --wide", "web+rrwide"),
+    ):
+        if path.exists():
+            picks, meta = agent_arm(path)
+            agent_arms[label] = picks
+            out["arms"][label] = meta
+        else:
+            # Void, not zero. An unrun arm reported as 0 net@2 reads as "the agent
+            # recommended nothing", which is a measurement, and this is its absence.
+            out["arms"][label] = {
+                "status": "not_run",
+                "artifact": path.name,
+                "how": (
+                    f"uv run python evals/rr_mcp_arm.py {seed_flags}  (free), then "
+                    f"uv run python evals/gold_spread.py --tools {tools} --prompt-version "
+                    "v2 --max-turns 30 --baseline-model claude-opus-5 --cohort all --draws 1"
+                ),
+            }
+    c = agent_arms.get("C")
+    c_wide = agent_arms.get("C_wide")
 
     # A n B, NOT A n B n C. Intersecting with a partially-run arm C would silently
     # shrink every other column to whatever C happens to have finished -- so a 6-case
@@ -252,19 +313,41 @@ def build() -> dict[str, Any]:
             # on a different cohort, which is what the old intersection was doing.
             entry["B_on_c_cases"] = block(b, sel_c)
             entry["A_prime_on_c_cases"] = block(a_prime, sel_c)
+            entry["C_provenance"] = provenance(c, sel_c)
+            entry["B_provenance"] = provenance(b, sel_c)
+        sel_w = [x for x in sel if c_wide is not None and x in c_wide]
+        if sel_w:
+            entry["n_cases_c_wide"] = len(sel_w)
+            entry["c_wide_complete"] = len(sel_w) == len(sel)
+            entry["C_wide"] = block(c_wide, sel_w)
+            entry["C_wide_minus_B"] = paired(c_wide, b, sel_w)
+            entry["C_wide_provenance"] = provenance(c_wide, sel_w)
+            # THE registered primary for the wide arm, and the only one that isolates the
+            # corpus: everything else about C and C_wide is identical, `get_ranked_papers`
+            # included. Restricted to the cases BOTH arms ran, because a paired statistic
+            # over a case only one of them covered is not paired.
+            both = [x for x in sel_w if c is not None and x in c]
+            if both:
+                entry["n_cases_both"] = len(both)
+                entry["C_wide_minus_C"] = paired(c_wide, c, both)
+                entry["C_on_both"] = block(c, both)
+                entry["C_wide_on_both"] = block(c_wide, both)
         out["cohorts"][name] = entry
     return out
 
 
 def show(art: dict[str, Any]) -> None:
     any_c = any("C" in e for e in art["cohorts"].values())
-    print(
-        f"{'cohort':<10} {'n':>3}  {'A':>6} {chr(39) + 'A':>6} {'B':>6}"
-        + (f"  {'nC':>3} {'C':>6} {'B|C':>6}  {'C-B':>7}  {'95% CI':>16}" if any_c else "")
-    )
+    any_w = any("C_wide" in e for e in art["cohorts"].values())
+    head = f"{'cohort':<12} {'n':>3}  {'A':>6} {chr(39) + 'A':>6} {'B':>6}"
+    if any_c:
+        head += f"  {'nC':>3} {'C':>6} {'B|C':>6}  {'C-B':>7}  {'95% CI':>16}"
+    if any_w:
+        head += f"  {'Cwide':>6}  {'Cw-C':>6}  {'95% CI':>16}"
+    print(head)
     for name, e in art["cohorts"].items():
         line = (
-            f"{name:<10} {e['n_cases']:>3}  {e['A']['mean_net2']:>+6.2f} "
+            f"{name:<12} {e['n_cases']:>3}  {e['A']['mean_net2']:>+6.2f} "
             f"{e['A_prime']['mean_net2']:>+6.2f} {e['B']['mean_net2']:>+6.2f}"
         )
         if "C" in e:
@@ -279,14 +362,24 @@ def show(art: dict[str, Any]) -> None:
             )
         elif any_c:
             line += f"  {'-':>3} {'-':>6} {'-':>6}  {'-':>7}  {'C not run':>16}"
+        if "C_wide" in e and "C_wide_minus_C" in e:
+            w = e["C_wide_minus_C"]
+            line += (
+                f"  {e['C_wide']['mean_net2']:>+6.2f}  {w['mean']:>+6.2f}  "
+                f"[{w['ci95'][0]:>+6.2f},{w['ci95'][1]:>+6.2f}]"
+            )
+        elif any_w:
+            line += f"  {'-':>6}  {'-':>6}  {'C-wide not run':>16}"
         print(line)
     ap = art["arms"]["A_prime"]
     print(
         f"\nthe product mutes {ap['n_muted']} of {ap['n_picks']} arm-A picks "
         f"(already cited by the repository)"
     )
-    if not any_c:
-        print(f"C: {art['arms']['C']['status']} - {art['arms']['C']['artifact']}")
+    for label in ("C", "C_wide"):
+        arm = art["arms"].get(label, {})
+        if arm.get("status") == "not_run":
+            print(f"{label}: not_run - {arm['artifact']}")
 
 
 def main() -> int:
