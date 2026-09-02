@@ -93,3 +93,92 @@ under subscription auth is what the tokens would have cost on the API, not money
 C should land in the same range plus the tool calls. The 2026-08-27 sweep exhausted the
 subscription 21 runs in, so this is expected to need more than one sitting;
 `gold_spread.py` is resumable and records `throttled` as unasked.
+
+---
+
+# Addendum, 2026-09-01 — the wide-corpus arm (C-wide)
+
+Written and committed **after C ran on the 12 scientific cases and before any C-wide row is
+billed.** Nothing above this line is edited; that is the rule the original section set for
+itself, and this is the "change of mind gets a new section with a date" branch.
+
+## What C measured, and the reason to doubt it
+
+C − B = **−1.42** over the scientific 12, CI [−4.75, +1.42], 5W/5L/2T. C was **more
+precise** (0.907 vs 0.891) and returned **a quarter fewer papers** (8.1 vs 10.8 per case).
+
+The doubt is in the call log. **48 of C's 87 MCP calls were `search_papers`** — more than
+any other tool — against a store holding only that case's digest picks: 9 papers on
+`mat-featurize`, 12 on `mat-chgpot`, 14 on `mat-mlip`. The product's `search_papers` covers
+everything RepoRadar ever fetched, which on these cases is **724, 718 and 1252**. So the
+agent reached for breadth 48 times and got back, each time, a handful of papers it had
+already been handed.
+
+Two readings fit that equally well and they call for opposite conclusions:
+
+- **anchoring** — the shortlist made the agent answer at digest size, and the search tool is
+  incidental. Then C's −1.42 is a real measurement of what attaching RepoRadar does.
+- **starvation** — the search tool kept coming up empty, RepoRadar looked exhausted, and the
+  agent stopped. Then C's −1.42 is an artifact of how I seeded the store, and the arm is a
+  floor rather than a measurement.
+
+## The arm
+
+**C-wide is C with one thing changed: the corpus.** The whole frozen pool goes into the
+`papers` table; `paper_scores` and `paper_llm_scores` keep **exactly the picks they had in
+C**. `get_ranked_papers` reads the scored run and `search_papers` reads the corpus, so:
+
+- `get_ranked_papers` is **byte-identical** between the two stores — not argued, *proved*
+  per case by `rr_mcp_arm.compare_stores`, which serialises both payloads and compares
+  bytes. If it ever returns `identical: False` the arm is measuring two changes and its
+  number means nothing.
+- `search_papers` goes from ~12 papers to ~700–1250. Measured ratio on `mat-featurize`:
+  **80×**.
+
+Same 12 cases, same model, prompt, turn cap, auth and judge. It also stays a real product
+state rather than a contrivance: in a live install `get_all_papers` spans every run ever
+made while `get_scores_for_run` covers only the latest.
+
+## Prediction, before the first row
+
+**I expect C-wide ≈ C** — that the narrowing is anchoring, not starvation. The reason is
+that the agent never lost WebSearch or WebFetch: an empty RepoRadar search costs it nothing
+it could not get from the open web three seconds later, so starvation would require it to
+have been *substituting* RepoRadar's index for web search. That is a strong assumption
+about a tool it had just met.
+
+I would rather be wrong here, because the other branch is the one where C's number was my
+own artifact.
+
+## Decision rule — registered before the first row
+
+Paired over the same 12 cases, **C-wide − C**, with `bigram_report.paired_bootstrap` and
+`band_testbeds.sign_test`.
+
+| outcome | reading |
+|---|---|
+| C-wide − C ≥ **+1.42** and the CI excludes zero | **starvation.** The corpus explains the narrowing; C was handicapped by my seeding and C-wide supersedes it as the measurement of the product. |
+| CI includes zero | **anchoring.** C's −1.42 stands as a measurement of the shortlist, and the corpus was not what made the agent narrow. |
+| C-wide − C ≤ **−1.42** and the CI excludes zero | **a wider corpus makes it worse.** Reported as prominently, and the transcripts go in the artifact. |
+
+**+1.42 is not arbitrary:** it is exactly the gap C-wide would have to close to make C − B
+vanish. A bar below it would let "the corpus mattered" be declared on a difference too
+small to explain the thing it was invoked for.
+
+## Secondary, computed at $0 from the rows
+
+**How many of C-wide's picks are in the frozen pool but outside the digest picks?** That is
+the direct evidence of whether the wider corpus fed the agent anything it could not have
+had in C — a number, not an inference from the headline. If it is ~0, "anchoring" is not
+just the surviving hypothesis but the demonstrated one.
+
+## Kill conditions
+
+- **`compare_stores` reports any case not identical** — the arm is void, no row is usable.
+- **More than 3 of 12 `ok` rows record zero MCP calls** — as before.
+- **`search_papers` call count collapses to near zero** — then the treatment was never
+  exercised, and the comparison says nothing about corpora. Recorded per run either way.
+
+## Cost
+
+12 cases at C's measured rate (~$7.2/case) ≈ **$86 notional**, one sitting.
