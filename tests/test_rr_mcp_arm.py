@@ -372,17 +372,45 @@ class TestTheDriverActuallyServesTheArmItWasAskedFor:
         with pytest.raises(ValueError):
             baseline_mod.wide_corpus("web+rrwyde")
 
-    def test_each_toolset_points_the_server_at_its_own_store(self, tmp_path: Path) -> None:
-        """Checked through the driver rather than the helper, because the helper was
-        already correct — it was the driver that never passed the bit."""
+    def test_each_toolset_points_the_server_at_its_own_store(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Checked through the DRIVER rather than the helper, because the helper was always
+        correct — it was the driver that never passed the bit, and only a test that goes in
+        the front door would have caught that.
+
+        Both stores are faked into a tmp tree rather than read from `evals/.work/`, which is
+        gitignored: a guard against a $86 mistake that only fires on the maintainer's laptop
+        is not a guard. The first version of this test did exactly that and CI caught it.
+        """
         import gold_spread
 
+        monkeypatch.setattr(rr_mcp_arm, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(rr_mcp_arm, "MCP_DIR", tmp_path / "mcp-arm")
+        for wide in (False, True):
+            db = rr_mcp_arm.case_db("acase", wide=wide)
+            db.parent.mkdir(parents=True, exist_ok=True)
+            db.write_bytes(b"")
         for tools, wide in (("web+rrwide", True), ("web+rr", False)):
-            cfg, _log = gold_spread.mcp_config_for("mat-featurize", tools)
+            cfg, _log = gold_spread.mcp_config_for("acase", tools)
             args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
-            assert args[args.index("--db") + 1] == str(
-                rr_mcp_arm.case_db("mat-featurize", wide=wide)
-            )
+            assert args[args.index("--db") + 1] == str(rr_mcp_arm.case_db("acase", wide=wide))
+
+    def test_the_guard_checks_the_store_the_toolset_asked_for(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """The audit's secondary: the missing-store guard read the NARROW path whatever the
+        toolset, so a wide sweep launched without `--seed --wide` would have sailed past it
+        and served the narrow corpus."""
+        import gold_spread
+
+        monkeypatch.setattr(rr_mcp_arm, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(rr_mcp_arm, "MCP_DIR", tmp_path / "mcp-arm")
+        narrow = rr_mcp_arm.case_db("acase")
+        narrow.parent.mkdir(parents=True, exist_ok=True)
+        narrow.write_bytes(b"")  # only the NARROW store exists
+        with pytest.raises(SystemExit, match="papers-wide.db"):
+            gold_spread.mcp_config_for("acase", "web+rrwide")
 
     def test_the_end_of_run_message_names_the_file_it_wrote(self) -> None:
         """`report()` prints no filename and the correct one is printed at the START of the
