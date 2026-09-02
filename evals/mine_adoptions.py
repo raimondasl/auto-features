@@ -384,8 +384,27 @@ def _too_new(posted: datetime | None, head_date: datetime) -> bool:
     return posted is None or (head_date - posted).days < MIN_PAPER_AGE_DAYS
 
 
+def head_pins(path: Path) -> dict[str, str]:
+    """Per-case HEAD dates from a v1 record — §7 of `PREREG-judge-validity-pool.md`.
+
+    The registered rule: the legacy re-mine pins each case's HEAD to the last commit on or
+    before the `head_date` already recorded in `adoptions.json`, so T0 resolves to the same
+    SHA and the two label versions are measured over the same window. Without it the
+    v1-versus-v2 comparison is confounded by however far each repository's HEAD has moved.
+
+    It is date-based rather than SHA-based only because the v1 rows never recorded a head
+    SHA — that omission is itself one of the defects extractor v2 fixed.
+    """
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    return {r["case"]: r["head_date"] for r in rows if r.get("case") and r.get("head_date")}
+
+
 def mine(
-    cases: dict[str, str], *, extractor: str = "v1", at: str | None = None
+    cases: dict[str, str],
+    *,
+    extractor: str = "v1",
+    at: str | None = None,
+    pins: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     # The T0 bibliography, kept because it is the seed set for the retro-recall question:
@@ -398,9 +417,15 @@ def mine(
         # Pinned to a SHA, not left as the moving ref. A re-mine a week later would otherwise
         # produce a different positive set under the same name, and the pool has to be a
         # reproducible artefact -- the paper publishes it.
-        head = git(repo, "rev-parse", at or "HEAD", check=False).strip()
+        pinned_to = (pins or {}).get(case)
+        if pinned_to:
+            head = git(
+                repo, "rev-list", "-1", f"--before={pinned_to}T23:59:59", "HEAD", check=False
+            ).strip()
+        else:
+            head = git(repo, "rev-parse", at or "HEAD", check=False).strip()
         if not head:
-            print(f"[{case:10}] cannot resolve {at or 'HEAD'} - skipping")
+            print(f"[{case:10}] cannot resolve {pinned_to or at or 'HEAD'} - skipping")
             continue
         head_ts = git(repo, "log", "-1", "--format=%ct", head).strip()
         if not head_ts:
@@ -445,6 +470,9 @@ def mine(
                 "via": "arxiv" if a in arxiv_form else "hf",
                 "paths": sorted(head_paths[a])[:5],
                 "seeds_at_t0": len(at_t0),
+                # Recorded per row so the artefact says which cases were window-matched to
+                # the v1 record and which were mined at whatever HEAD happened to be.
+                "head_pinned": bool(pinned_to),
             }
             row["usable"] = not (
                 row["self_cited"] or row["too_new"] or row["reverse_cited"] or genesis
@@ -719,6 +747,16 @@ def main() -> int:
         help="v2 adds Hugging Face paper links at both ends (frame §6.1)",
     )
     ap.add_argument("--at", help="pin HEAD to this revision instead of the moving ref")
+    ap.add_argument(
+        "--pin-from",
+        type=Path,
+        help=(
+            "a v1 adoptions.json; pin each case's HEAD to the last commit on or before its "
+            "recorded head_date (PREREG-judge-validity-pool §7). Required for the legacy "
+            "re-mine: without it a moved HEAD resolves a different T0 and the v1/v2 "
+            "comparison is confounded by however far each repository has advanced."
+        ),
+    )
     ap.add_argument("--screen", action="store_true", help="§6.2 qualifying screen ($0)")
     ap.add_argument("--candidates", type=Path, help="CSV with a full_name column")
     ap.add_argument("--out", type=Path, help="where --screen writes its CSV")
@@ -758,7 +796,10 @@ def main() -> int:
 
     out_file = out_path(args.extractor)
     if args.mine:
-        rows = mine(cases, extractor=args.extractor, at=args.at)
+        pins = head_pins(args.pin_from) if args.pin_from else None
+        if pins:
+            print(f"pinning {len(pins)} case(s) to their v1 head_date (§7)")
+        rows = mine(cases, extractor=args.extractor, at=args.at, pins=pins)
         out_file.write_text(json.dumps(rows, indent=2), encoding="utf-8")
         report(rows, out_file)
         return 0

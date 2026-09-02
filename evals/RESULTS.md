@@ -1144,6 +1144,70 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Extractor v2 nearly triples the adoption label, and NR-56/57 held up. **[NR-60]**
+
+```bash
+uv run python evals/mine_adoptions.py --mine --extractor v2 --pin-from evals/.work/adoptions.json
+```
+
+Runbook step 2 of `PREREG-judge-validity-pool.md`, run the day after that file was registered
+and scoring its P1 and P2. $0 — git and a regular expression over the 37 cached clones.
+
+**The window is matched, and that took a fix.** §7 pins each legacy case's HEAD to the last
+commit on or before the `head_date` the v1 run recorded, so T0 resolves to the same commit and
+the two label versions are measured over the same window. The code had only a single global
+`--at`, so `--pin-from` was added first. It mattered: of the 9 recorded clones, `diffusion` had
+moved **forward** (a re-clone) and `graph` **backward** — its upstream default branch now points
+at an earlier commit date than when v1 mined it. Unpinned, both would have been compared across
+different windows and the difference blamed on the extractor.
+
+Pinning reproduced the T0 **date** for all 9 and the T0 **commit** for 7. `peft` and `llminfer`
+resolved a different commit on the same day, because several commits share a date and the v1
+rows never recorded a head SHA to pin to — an omission v2 fixes going forward. P2 below is
+therefore scored against v1's *own recorded T0 commits* rather than against the re-mine's, which
+removes the imprecision instead of reasoning around it.
+
+**P1 — a check, not a prediction (the premise was measured before registration).** Bar: v2 raises
+the legacy usable count by ≥ 5, driven by `diffusion`. **Met, by a wide margin: 35 → 94 (+59).**
+
+| case | v1 | v2 | Δ |
+|---|---|---|---|
+| `diffusion` | 7 | 46 | **+39** |
+| `peft` | 5 | 27 | **+22** |
+| `rl` | 2 | 0 | **−2** |
+| the other 6 | 21 | 21 | 0 |
+
+The rise is entirely `diffusion` and `peft` — the two Hugging Face projects, which is exactly
+where link migration was measured. **61 of the 94 usable positives are reachable only through a
+`huggingface.co/papers/` link**, and every one of them is in those two repositories. Six of the
+nine contributing repositories are unchanged, which is the shape the mechanism predicts: v2 is
+not a looser filter, it reads a second link format that two projects adopted wholesale.
+
+**P2 — the real prediction. Bar: ≤ 3 of v1's 35 positives are migration artefacts. Met at 0.**
+A v1 positive would be an artefact if the *widened* T0 bibliography contained it — cited at T0 all
+along, in a form v1 could not see, and therefore scored as newly adopted. Checked at each case's
+recorded T0 commit: **none of the 35**. NR-56/57's positives are not contaminated by link
+migration, and their published gaps stand as measured. The registered consequence for > 3 (re-report
+NR-56/57 under v2 as primary, label the v1 numbers as containing artefacts) does not fire.
+
+**An error of a different kind, which P2 was not looking for.** v2 rejects **2 of v1's 35**, both
+in `rl` (stable-baselines3), both for the reverse-citation filter — and both appear *only* in
+`docs/misc/projects.md`, that project's "Projects using Stable-Baselines3" page. They are papers
+that **cite** SB3, not papers SB3 adopted: the relation backwards. So NR-56/57's 35 positives were
+33 genuine adoptions and 2 reverse citations. Small, but it is a label defect the v1 extractor had
+no way to see, and it is the first evidence that the reverse-citation filter earns its place.
+
+**A prior for P9, and it corrects the one the design pass assumed.** The reverse-citation and
+doc-genesis filters were described as having "fired zero times across the legacy 37" — true only
+because v1 had no such fields. Under v2 they fire **10 times in 120 gross adoptions (8.3 %)**: 8 in
+`diffusion`, 2 in `rl`, plus 12 self-citations and 5 too-new. P9 predicts ≥ 5 % on the *enumerated*
+population and remains open, but it is no longer predicting something never before observed.
+
+**What this does not establish.** Nothing about judges. These are label counts; no verdict was
+bought and no AUC was computed. P6 and P8 stay open, and the cluster bootstrap is still tested only
+against synthetic fixtures — deliberately, since P6 registers an AUC over a set that includes these
+same repositories.
+
 ### The judges order alike and level differently, so no combination of them helps. **[NR-59]**
 
 `finescale.SLOPE`/`INTERCEPT` were fitted on **GPT-labelled** papers, so `finescale_p` is a
