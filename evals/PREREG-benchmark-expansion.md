@@ -18,6 +18,11 @@ Two corrections applied by hand to the synthesizer's inputs, both verified again
     `ok` on all 37 legacy cases (one genuine abstention, bio-mdtraj, no cutoffs), so the
     VOID-OPUS rule in §5.6 is a precaution for the held-out science cases, not an
     observed failure mode of this comparator.
+
+Two decisions by the maintainer on 2026-09-02, before registration, both recorded in the
+Conflicts table:
+  * Primary arm = arXiv+EPMC; the shipped arXiv arm is co-registered (P0.3).
+  * The validity pool (§6) runs to completion before the benchmark draw (§10 step 5).
 -->
 
 # Pre-registration — benchmark expansion 37 → 60 under a frozen sampling frame [rung 10]
@@ -32,7 +37,7 @@ Two corrections applied by hand to the synthesizer's inputs, both verified again
 
 **P0.2 What this buys, said in advance.** The ladder (`RESEARCH-net2-directions.md` §7) placed the n = 60 expansion as step (6), after product gates raise the mean, to "make the final claim at ≥ +1.2/case". This frame executes it **now and for a different purpose**: (a) the benchmark's first held-out set under a frozen system, (b) a stated population and sampling procedure for the 60, and (c) a datasheet. Its own prediction (§8, P1–P2) is that **the 95 % CI still spans zero**. It is a validity purchase, not a margin purchase, and the paper must say so.
 
-**P0.3 The arm.** Two RepoRadar configurations exist at n = 37: the shipped arXiv arm (+0.32/+0.54 vs Opus 5 draw 1 depending on which of two identical-config runs is used, 0.22/case apart — C-7) and the unshipped arXiv+EPMC arm (+1.08, CI [−0.97, +3.16], sd 6.41). Naming the better arm here would be arm selection on the development set. **Primary arm = the configuration shipped at tag `rr-frame60-freeze` (§7.1).** The arXiv+EPMC arm at the same tag is **co-registered** and run on every held-out case (incremental cost ~$25 + judging), reported beside it, labelled unshipped unless its own gate has passed before the freeze. All power arithmetic below is given for both m37 = +0.54 (shipped) and m37 = +1.08 (arXiv+EPMC) with sd 6.41–6.56.
+**P0.3 The arm.** Two RepoRadar configurations exist at n = 37: the shipped arXiv arm (+0.32/+0.54 vs Opus 5 draw 1 depending on which of two identical-config runs is used, 0.22/case apart — C-7) and the unshipped arXiv+EPMC arm (+1.08, CI [−0.97, +3.16], sd 6.41). **Primary arm = arXiv+EPMC (`sources: arxiv,europepmc`) at tag `rr-frame60-freeze` (§7.1).** Fixed by the maintainer on 2026-09-02, before this file is registered and before any candidate is enumerated; it is the arm every P26/P27 comparison already uses (`opus5_arm.json` PRIMARY, `mcp_arm.json` arm A). Said plainly: choosing it *is* arm selection on the development set — it is the better of two arms measured on the 37 — and the held-out property of §7.1 attaches to whichever arm is named here before enumeration, not to the choice. The shipped arXiv arm at the same tag is **co-registered** and run on every held-out case (incremental cost ~$25 + judging), reported beside it, so a reader can see what the product as configured by `rr init --measured` does on the same cases. All power arithmetic below leads with m37 = +1.08 (primary) and gives m37 = +0.54 (co-registered) beside it, sd 6.41–6.56.
 
 **P0.4 NR-37 re-run.** NR-37 (2026-08-16) was n = 25 (thin-gnn corpus 1,073 chars, not 107,895), before any materials case existed. Before this file is committed: `uv run python evals/thin_docs_detector.py` over all 37, result recorded here: Spearman ρ(log corpus, net@2) = `____`. Documentation volume stays a **covariate**, never a stratum or exclusion (§2.3).
 
@@ -124,7 +129,7 @@ Applied in this order to every walked candidate; the **first failing rule is log
 ## 4. Selection procedure
 
 ### 4.1 Freeze, commit, snapshot (order is mandatory)
-1. Tag the system: `git tag -a rr-frame60-freeze` on the shipped configuration; record here the tag SHA `____`, the config hash asserted by `evals/audit_product_divergence.py` `____`, the HyDE index directory hash `____`, the enabled source set `____`, the judge model strings (GPT-5.5 `____`, claude-sonnet-5 `____`), the comparator settings (`claude-opus-5`, v2 prompt hash `____`, `max_turns` 30, effort `____` — pinned this time), and the legacy RepoRadar run whose 37 scores enter the pooled analysis `____` (the rung-1 control `20260830T034455Z` unless §7.3's re-run replaces it).
+1. Tag the system: `git tag -a rr-frame60-freeze` on the tree that runs the primary arm (arXiv+EPMC; the co-registered shipped arm differs only in `sources`); record here the tag SHA `____`, the config hash asserted by `evals/audit_product_divergence.py` `____`, the HyDE index directory hash `____`, the enabled source set `____`, the judge model strings (GPT-5.5 `____`, claude-sonnet-5 `____`), the comparator settings (`claude-opus-5`, v2 prompt hash `____`, `max_turns` 30, effort `____` — pinned this time), and the legacy RepoRadar run whose 37 scores enter the pooled analysis `____` (the rung-1 control `20260830T034455Z` unless §7.3's re-run replaces it).
 2. Commit this file, `topics.json`, `prior_exposure.txt`, the category→stratum map, and the scripts `evals/frame/{enumerate,classify,draw,walk,analyze}.py`. Frame commit **H = `____`**.
 3. **D** = the calendar day after H. Enumerate: for each stratum, each topic, each band, query `topic:T stars:100..999|>=1000 archived:false fork:false pushed:>=D−365 created:<=D−180` (sort `stars`, any order — the seed re-randomises), bisecting the `created` range until every query's `total_count` < 1,000 (the API cap); union, dedupe by `full_name`, filter language and mirror; write **`universe-D.csv`** with every API field and the query id, plus per-query `total_count`. Commit it **before any exclusion runs**.
 
@@ -150,7 +155,7 @@ Applied in this order to every walked candidate; the **first failing rule is log
 | pooled | 60 | 1.66 | +1.66 |
 
 - Power of the pooled-60 two-sided test at the observed effect: **~25 %** at +1.08, **~10 %** at +0.54. MDE at 80 % power: +2.35. n for 80 % power: ~280 at +1.08, ~1,100 at +0.54. **n = 60 is a budget number, not a power number.**
-- Held-out 23 at its expected effect (+0.78 arXiv+EPMC / +0.43 shipped, §8): power ~8 % / ~6 %.
+- Held-out 23 at its expected effect (+0.78 arXiv+EPMC primary / +0.43 shipped co-registered, §8): power ~8 % / ~6 %.
 - Stratification buys ≤ 1.5 % on the standard error (between-stratum share of the paired sum of squares 8.5–13 %; within-stratum sd 6.40–6.43). Its value is fixing the composition so the estimand cannot drift, not precision.
 - The matsci sign flip (−3.17, sd 7.4 on n = 6) needs ~43 physical-science cases to resolve at 80 % power; 5 held-out L2a cases (SE 2.9) **cannot** confirm or refute it. Stratum predictions in §8 are directional and labelled so.
 - Expected pooled sd rises slightly (science share 35 % → 38 %); the half-width figures above are therefore optimistic by ≤ 0.03.
@@ -166,7 +171,7 @@ Applied in this order to every walked candidate; the **first failing rule is log
 ### 5.3 Futility interim
 One look, after stage 1 (11 held-out cases; pooled n = 48), **non-binding futility only, no efficacy stop, no alpha spent**; the final tests keep two-sided 0.05 unadjusted.
 - **Statistic:** m11 = mean paired delta over the 11 held-out cases, primary label. Why not the ladder's pooled ≥ +0.8 bar: 37 × 1.08 = 40.0 already exceeds 48 × 0.8 = 38.4, so that bar fires only if the 11 new cases average below −0.15 — it cannot fail on new evidence; applied to the 11 alone it would false-stop ~45 % of the time under this frame's own prediction.
-- **Boundary:** stop enrolment if **m11 ≤ −2.0**. Operating characteristics (SE 6.41/√11 = 1.93): P(stop) = 7.5 % at true +0.78, 10 % at +0.43, 15 % at 0, 50 % at −2.0, 78 % at −3.5. Meaning: stop only when the held-out data already refute the development-set advantage by ≥ 1.4 SE and the remaining 12 cases would only size the failure.
+- **Boundary:** stop enrolment if **m11 ≤ −2.0**. Operating characteristics (SE 6.41/√11 = 1.93): P(stop) = 7.5 % at true +0.78 (primary's expected effect), 10 % at +0.43 (co-registered arm's), 15 % at 0, 50 % at −2.0, 78 % at −3.5. Meaning: stop only when the held-out data already refute the development-set advantage by ≥ 1.4 SE and the remaining 12 cases would only size the failure.
 - **Conditional bias if enrolment continues** (true +0.78): +0.30 on m11, ≤ 0.15 on the 23-case mean, ≤ 0.06 on the pooled mean; the unconditional 11-case estimate is reported beside the final one.
 - **On stop:** the 11 cases are fully reported; the 12 unrun cases are listed with their pinned SHAs as *not run* (never zero); the quota table shows the unmet cells; the benchmark is frozen at 48 as a descriptive set.
 
@@ -205,7 +210,7 @@ Four controls per positive, **arm-neutral**: arXiv listings (API) in the positiv
 
 ## 7. Contamination and leakage statement
 
-7.1 **Development vs held-out.** Every configuration decision in the system (w_embedding 1.5, digest window 15, gate calibration, finescale map, source set) was made with the 37 legacy cases' outputs and judge caches visible; the 12 science cases were pre-registered additions on which those decisions were confirmed, not fitted. The 23 are the first cases whose scores no configuration decision has seen, under tag `rr-frame60-freeze`. **This licenses** the held-out estimate as a generalisation check of the tagged system at half-width 2.8. **It does not license** a population claim beyond §1, a significance claim (§5.1), or any per-stratum inference at n = 5–6. **The held-out property is consumed once:** the first configuration decision made with any held-out score visible converts the 23 into development data, and the paper must then say so; a later "final claim" at n = 60 with a changed configuration is a new held-out problem.
+7.1 **Development vs held-out.** Every configuration decision in the system (w_embedding 1.5, digest window 15, gate calibration, finescale map, source set) was made with the 37 legacy cases' outputs and judge caches visible; the 12 science cases were pre-registered additions on which those decisions were confirmed, not fitted. The 23 are the first cases whose scores no configuration decision has seen, under tag `rr-frame60-freeze`. That includes the choice of primary arm (P0.3), which was made on the 37 and is fixed here before enumeration. **This licenses** the held-out estimate as a generalisation check of the tagged system at half-width 2.8. **It does not license** a population claim beyond §1, a significance claim (§5.1), or any per-stratum inference at n = 5–6. **The held-out property is consumed once:** the first configuration decision made with any held-out score visible converts the 23 into development data, and the paper must then say so; a later "final claim" at n = 60 with a changed configuration is a new held-out problem.
 
 7.2 **Training-data exposure.** Both arms and both judges are frontier models trained on public GitHub; popular-band repositories and their citing papers are almost certainly in their pretraining, and adopted papers appear in HEAD docs that the judges may have memorised (§6.4 sensitivity). The small band is a partial control; the recall probe (7.4) quantifies exposure per repo. Unquantifiable residual exposure is stated, not estimated.
 
@@ -219,8 +224,8 @@ Four controls per positive, **arm-neutral**: arXiv listings (API) in the positiv
 
 | id | prediction | falsifiable at this n? |
 |---|---|---|
-| P1 | Held-out mean, GPT label: **+0.8** (arXiv+EPMC arm) / **+0.4** (shipped), band [−0.6, +1.9] / [−1.0, +1.5]; **CI spans zero** | yes (point and band) |
-| P2 | Pooled-60 mean, GPT label: +1.0 / +0.5, band [+0.6, +1.4] / [+0.1, +0.9]; CI spans zero | yes |
+| P1 | Held-out mean, GPT label: **+0.8** (arXiv+EPMC, primary) / **+0.4** (shipped, co-registered), band [−0.6, +1.9] / [−1.0, +1.5]; **CI spans zero** | yes (point and band) |
+| P2 | Pooled-60 mean, GPT label: +1.0 (primary) / +0.5 (co-registered), band [+0.6, +1.4] / [+0.1, +0.9]; CI spans zero | yes |
 | P3 | Under Sonnet ≥ 2: held-out mean ≤ 0 (point −2.5, band [−5, +0.5]); consensus within ±0.6 of GPT | yes |
 | P4 | Directional, held-out only (n = 5–6, SE ≈ 2.7–2.9; **no confirmatory claim**): L3 ≥ 0; L4 ≥ 0; L2a ≤ 0 (the flip observed in new fields, not only materials); L1 and L2b within ±2 | direction only |
 | P5 | Over-answer mechanism: 2–4 of 23 held-out cases have comparator net@2 ≤ −2 with RepoRadar ≥ 0, and they carry ≥ 60 % of any positive held-out sum; on the other cases the arms are level within ±1 | yes |
@@ -244,7 +249,7 @@ Per-case rates: Opus 5 ~$9.50 notional (~$19 science), RepoRadar ~$1, judging $5
 
 | item | compute | conditional? |
 |---|---|---|
-| A. Held-out 23: Opus 5 (13 × $9.50 + 10 × $19 = $314) + RepoRadar shipped + arXiv+EPMC ($46) + judging 2 judges × 3 arms (EPMC arm shares most of the pool; count 2.3 arm-equivalents) $530–1,060 | **$890–1,420** | no |
+| A. Held-out 23: Opus 5 (13 × $9.50 + 10 × $19 = $314) + RepoRadar arXiv+EPMC (primary) + shipped (co-registered) ($46) + judging 2 judges × 3 arms (EPMC arm shares most of the pool; count 2.3 arm-equivalents) $530–1,060 | **$890–1,420** | no |
 | B. Module R (12 legacy cases, both arms, both judges): $140 + $12 + $240–480 | **$390–630** | no |
 | C. Second Opus 5 draw on the 23 + judging 2 × 1 arm | $540–770 | if R's bar fires (predicted yes) |
 | C′. Second draw on the other 25 legacy cases | $300 + $250–500 | optional |
@@ -261,14 +266,16 @@ Per-case rates: Opus 5 ~$9.50 notional (~$19 science), RepoRadar ~$1, judging $5
 
 ## 10. Runbook (executable order; nothing out of sequence)
 
+The validity pool runs **before** the benchmark draw. It is decoupled from the benchmark (§2.3), needs no arm, and depends only on the enumerated universe (§6.2 draws from `universe-D.csv`) and on SEED (§6.2 judges in seeded order), so it can be finished — and its analysis committed — before a single held-out case exists. Ordered this way on the maintainer's instruction of 2026-09-02, and it is the safer order regardless: SEED is a beacon pulse fixed at ≥ 24 h after the frame commit (§4.1 step 4), *before* the pool is read, so the draw order is already determined by something nobody can choose when the pool's results arrive. Nothing the pool teaches can reach the benchmark draw — and step 5 forbids editing anything it could reach.
+
 1. Verify P0.1 (grep NR-52 verdict), run P0.4, fill §0 blanks. Tag the system; fill §4.1 step 1.
 2. Commit this file + `evals/frame/` scripts and lists → H. Do not clone anything.
 3. Day D: `uv run python evals/frame/enumerate.py --date D --topics evals/frame/topics.json --out evals/frame/universe-D.csv`; commit CSV + `coverage.json`.
-4. After the beacon pulse: write `evals/frame/SEED`; commit.
-5. `uv run python evals/frame/draw.py --universe ... --seed $(cat evals/frame/SEED) --quotas evals/frame/quotas.json --out draw_order.json`; commit.
-6. `uv run python evals/frame/walk.py` (X2–X8, ledger, reserves, pinned SHAs); commit `ledger.csv`, `selected.json`, `run_order.json`.
-7. Build the 23 cases (§4.3); `verify_contexts` hashes committed for all 23. **From here no case may be excluded or replaced except X9 before its first arm run.**
-8. Validity pool: `mine_adoptions.py --mine --extractor v2` over qualifying rows → `validity_screen.csv` committed; `judge_validity_adoption.py --controls arxiv-window --judge` in seeded order to ≥ 60; analysis committed as NR-`__` **before step 9**.
+4. After the beacon pulse (§4.1 step 4): write `evals/frame/SEED`; commit. The seed now exists before anything below has been looked at.
+5. **Validity pool (§6), to completion:** `mine_adoptions.py --mine --extractor v2` over qualifying rows → `validity_screen.csv` committed; `judge_validity_adoption.py --controls arxiv-window --judge` in seeded order to ≥ 60; analysis committed as NR-`__`. **No step below starts until this analysis is committed**, and no benchmark quota, exclusion rule, stratum definition, or the SEED may be edited after it is read (§6.4 pre-commits every consequence, so there is nothing legitimate to edit).
+6. `uv run python evals/frame/draw.py --universe ... --seed $(cat evals/frame/SEED) --quotas evals/frame/quotas.json --out draw_order.json`; commit.
+7. `uv run python evals/frame/walk.py` (X2–X8, ledger, reserves, pinned SHAs); commit `ledger.csv`, `selected.json`, `run_order.json`.
+8. Build the 23 cases (§4.3); `verify_contexts` hashes committed for all 23. **From here no case may be excluded or replaced except X9 before its first arm run.**
 9. Window W opens: stage 1 (first 11 in `run_order.json`), both arms, both judges; modules R and J; RepoRadar-at-tag on 37 if F applies. Interim (§5.3) computed by `analyze.py --interim`; decision committed. Stage 2. Second draw if R's bar fired.
 10. `analyze.py --final`: every table in §5.2, predictions P1–P16 scored, datasheet (`universe-D.csv`, `draw_order.json`, `ledger.csv`, `selected.json`, per-run model strings and timestamps, both judges' raw scores, adoption sets and controls, void lists) published with the paper.
 
@@ -279,6 +286,8 @@ Per-case rates: Opus 5 ~$9.50 notional (~$19 science), RepoRadar ~$1, judging $5
 | conflict | decision | why (one sentence) |
 |---|---|---|
 | Adoption repos inside vs outside the benchmark | outside (§6) | Judge validity needs no arm run, so putting citation-rich repos in the headline buys bias for nothing. |
+| Primary arm: shipped-at-tag vs arXiv+EPMC | arXiv+EPMC, shipped co-registered | Maintainer's decision before registration; it is the arm every published comparison uses, and P0.3 states plainly that it is dev-set selection — the held-out property attaches to the arm named before enumeration, not to the choice. |
+| Validity pool after the draw vs before it | before (§10 step 5) | It is decoupled, needs no arm, depends only on the enumerated universe and the SEED, and the SEED is a beacon pulse fixed before the pool is read — so nothing it teaches can reach the draw, and step 5 forbids editing anything it could. |
 | Primary = precision (pooled) vs held-out generalisation | held-out primary, pooled always-reported secondary | Half-width ≤ 1.7 is reachable only by pooling the development set, which is the named reviewer penalty. |
 | Gate the pooled number on the held-out result vs always report | always report + heterogeneity test + reading rule | A publication gate keyed to an observed mean is winner's-curse selection. |
 | Interim on pooled ≥ +0.8 vs CP < 0.20 vs held-out boundary | held-out m11 ≤ −2.0, OCs stated | The pooled bar cannot fail; a CP rule is incoherent when the pre-registered aim is not significance. |
