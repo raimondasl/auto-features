@@ -100,7 +100,13 @@ POOLS = ("pool-wemb", "pool-cohort3")
 # which is the void-not-null failure this project keeps paying for. The cost of the inversion
 # is that a future *self* source has to be added here; `tests/test_witness_set.py` pins the
 # full label set so that addition cannot be forgotten quietly.
-SELF_SOURCES = ("reporadar",)
+# `cli-v2-opus5-rr@30` is a SELF source, and this is the whole reason the inversion above
+# was worth its cost. That draw is an agent that was HANDED RepoRadar's Top Picks through the
+# MCP server, so any witness it contributes may be one RepoRadar found and it simply repeated.
+# Counting those toward RepoRadar's reach denominator would let the system grade itself
+# through a proxy -- the pooled-evaluation flattery this rule exists to prevent, arriving by
+# a route that did not exist when the rule was written. [P27]
+SELF_SOURCES = ("reporadar", "cli-v2-opus5-rr@30")
 # Display order for `report`; labels outside it are printed after, discovered from the data.
 KNOWN_ORDER = ("cli", "cli-redraw", "cli-v2", "cli-v2-opus5", "api", "adoption")
 
@@ -143,9 +149,15 @@ def draw_source_label(row: dict[str, Any]) -> str:
     version = row.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
     cap = row.get("max_turns", baseline_mod.DEFAULT_MAX_TURNS)
     model = row.get("model", baseline_mod.DEFAULT_MODEL)
+    tools = row.get("tools", baseline_mod.DEFAULT_TOOLS)
     stem = "cli-redraw" if version == baseline_mod.DEFAULT_PROMPT_VERSION else f"cli-{version}"
     if model != baseline_mod.DEFAULT_MODEL:
         stem = f"{stem}-{baseline_mod.model_tag(model)}"
+    if tools != baseline_mod.DEFAULT_TOOLS:
+        # The fourth axis, and by this function's own argument the least deniable one: an
+        # agent handed RepoRadar's ranked list is not the same searcher as one without it,
+        # and pooling the two would hide the entire quantity P27 exists to measure.
+        stem = f"{stem}-{tools.removeprefix('web+')}"
     return stem if cap == baseline_mod.DEFAULT_MAX_TURNS else f"{stem}@{cap}"
 
 
@@ -177,12 +189,17 @@ def _draw_rows() -> list[tuple[str, str, dict[str, Any]]]:
         artifact = json.loads(path.read_text(encoding="utf-8"))
         version = artifact.get("prompt_version", baseline_mod.DEFAULT_PROMPT_VERSION)
         model = artifact.get("model", baseline_mod.DEFAULT_MODEL)
+        tools = artifact.get("tools", baseline_mod.DEFAULT_TOOLS)
         # The file has to be where its own contents say it belongs. A renamed or hand-copied
         # artifact would otherwise file one searcher's draws under another's label.
-        if out_path(version, model) != path:
+        #
+        # The glob is what made this survive the toolset axis: the P27 sweep showed up on its
+        # own, and this check then failed LOUDLY because it was still asking `out_path` with
+        # two of the three axes. Enumerating would have skipped the file in silence instead.
+        if out_path(version, model, tools) != path:
             raise SystemExit(
-                f"! {path.name} declares prompt {version!r} / model {model!r}, which belongs "
-                f"at {out_path(version, model).name}"
+                f"! {path.name} declares prompt {version!r} / model {model!r} / tools "
+                f"{tools!r}, which belongs at {out_path(version, model, tools).name}"
             )
         for key, row in artifact.get("results", {}).items():
             if row.get("status") not in ("ok", "partial"):
