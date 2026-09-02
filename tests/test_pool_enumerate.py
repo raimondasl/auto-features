@@ -21,6 +21,8 @@ import csv
 import importlib.util
 import json
 import sys
+import urllib.error
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -168,7 +170,7 @@ class TestTheCoverageArtefactIsFalsifiable:
         def boom(url: str, token: str) -> tuple[dict, str]:
             raise TimeoutError("upstream said no")
 
-        items, record = ep.run_query("topic:x", "tok", fetch=boom, pause=0)
+        items, record = ep.run_query("topic:x", "tok", fetch=boom, pause=0, backoff=0)
         assert items == []
         assert "upstream said no" in record.error
 
@@ -191,6 +193,43 @@ class TestTheQueryItself:
         assert "archived:false" in q
         assert "created:<=2024-03-01" in q
         assert "stars:100..149" in q
+
+    def test_there_is_never_more_than_one_created_qualifier(self) -> None:
+        """The defect that voided the first snapshot. GitHub honours only one `created:`
+        clause, so emitting two meant the year subdivision narrowed nothing — every slice
+        returned the same total_count — and the surviving clause replaced the cutoff."""
+        plain = ep._query("machine-learning", 100, 149, "2024-03-02", None)
+        sliced = ep._query("machine-learning", 100, 149, "2024-03-02", ("2023-01-01", "2030-12-31"))
+        assert plain.count("created:") == 1
+        assert sliced.count("created:") == 1
+
+    def test_a_year_slice_can_never_reach_past_the_cutoff(self) -> None:
+        """The measured harm: the 2023..2030 slice admitted 192 repositories created after
+        the cutoff, the latest in August 2026, into a universe capped at March 2024."""
+        q = ep._query("machine-learning", 100, 149, "2024-03-02", ("2023-01-01", "2030-12-31"))
+        assert "created:2023-01-01..2024-03-02" in q
+
+    def test_a_year_slice_wholly_before_the_cutoff_keeps_its_own_bound(self) -> None:
+        q = ep._query("genomics", 100, 149, "2024-03-02", ("2016-01-01", "2018-12-31"))
+        assert "created:2016-01-01..2018-12-31" in q
+
+    def test_every_generated_query_respects_the_cutoff(self) -> None:
+        """Swept over the real slice and year grids rather than asserted on one example."""
+        cutoff = "2024-03-02"
+        years = (
+            ("2008-01-01", "2015-12-31"),
+            ("2016-01-01", "2018-12-31"),
+            ("2019-01-01", "2020-12-31"),
+            ("2021-01-01", "2022-12-31"),
+            ("2023-01-01", "2030-12-31"),
+        )
+        for lo, hi in ep.STAR_SLICES:
+            for window in (None, *years):
+                q = ep._query("x", lo, hi, cutoff, window)
+                assert q.count("created:") == 1
+                clause = q.split("created:")[1].split(" ")[0]
+                upper = clause[2:] if clause.startswith("<=") else clause.split("..")[1]
+                assert upper <= cutoff, f"{q} reaches past the cutoff"
 
     def test_the_top_slice_is_open_ended(self) -> None:
         assert ep._query("x", 10000, None, "2024-03-01", None).count("stars:>=10000") == 1
@@ -272,3 +311,168 @@ class TestAnIncompleteSliceIsVisibleInTheCsvItself:
         out = ep.enumerate_universe(["machine-learning"], "2024-03-01", "tok", fetch=api, pause=0)
         assert ep.TRUNCATED_MARK in out.rows["partial/repo"]["slice"]
         assert ep.TRUNCATED_MARK not in out.rows["complete/repo"]["slice"]
+
+
+class TestDpCannotBeBackdated:
+    """Dp is the day the snapshot is taken. GitHub search has no historical index — every
+    field but `created_at` is a *current* value, so a backdated Dp yields today's data
+    wearing an old date and the pre-registration would describe a frame that never existed."""
+
+    def test_a_past_date_is_refused_with_the_reason(self) -> None:
+        with pytest.raises(SystemExit) as exc:
+            ep.refuse_a_backdated_snapshot("2025-06-01", today=date(2026, 9, 2))
+        assert "no historical index" in str(exc.value)
+
+    def test_today_is_allowed(self) -> None:
+        ep.refuse_a_backdated_snapshot("2026-09-02", today=date(2026, 9, 2))
+
+    def test_a_future_date_is_allowed(self) -> None:
+        ep.refuse_a_backdated_snapshot("2026-09-09", today=date(2026, 9, 2))
+
+    def test_it_runs_before_any_request_is_made(self) -> None:
+        import inspect
+
+        src = inspect.getsource(ep.main)
+        assert src.index("refuse_a_backdated_snapshot") < src.index("enumerate_universe(")
+
+
+class TestRequestsAreSpacedAndRetried:
+    """A snapshot that cannot be re-taken must not lose a slice to a throttle, and must not
+    provoke one either."""
+
+    def test_the_pause_is_taken_before_every_request_not_only_between_pages(self) -> None:
+        """The original bug: the short-page `break` came before the sleep, so a slice that
+        fitted in one page — most of them — issued its request and moved straight to the next
+        query. Several hundred queries would have gone out back to back against a
+        30-per-minute limit."""
+        waits: list[float] = []
+        query = ep._query("compiler", 100, 149, "2024-03-01", None)
+        api = _Api({query: [_item("a/one")]})  # one short page
+        # "a request just went out", so the next one must wait its turn.
+        ep._last_request_at = ep.time.monotonic()
+        real_sleep = ep.time.sleep
+        try:
+            ep.time.sleep = lambda s: waits.append(s)  # type: ignore[assignment]
+            ep.run_query(query, "tok", fetch=api, pause=2.2)
+        finally:
+            ep.time.sleep = real_sleep  # type: ignore[assignment]
+        assert waits, "a single-page query took no pause at all"
+
+    def test_a_throttle_is_retried_rather_than_recorded_as_a_lost_slice(self) -> None:
+        calls = {"n": 0}
+
+        def flaky(url: str, token: str) -> tuple[dict, str]:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                err = urllib.error.HTTPError(url, 403, "rate limited", None, None)  # type: ignore[arg-type]
+                raise err
+            return {"total_count": 1, "items": [_item("a/one")]}, "Wed, 02 Sep 2026 12:00:00 GMT"
+
+        real_sleep = ep.time.sleep
+        try:
+            ep.time.sleep = lambda s: None  # type: ignore[assignment]
+            items, record = ep.run_query("topic:x", "tok", fetch=flaky, pause=0, backoff=0)
+        finally:
+            ep.time.sleep = real_sleep  # type: ignore[assignment]
+        assert record.error == ""
+        assert len(items) == 1
+        assert calls["n"] == 2
+
+    def test_a_permanent_failure_still_becomes_an_error_row(self) -> None:
+        def gone(url: str, token: str) -> tuple[dict, str]:
+            raise urllib.error.HTTPError(url, 404, "nope", None, None)  # type: ignore[arg-type]
+
+        items, record = ep.run_query("topic:x", "tok", fetch=gone, pause=0, backoff=0)
+        assert items == []
+        assert "404" in record.error
+
+    def test_archive_names_are_stable_across_processes(self) -> None:
+        """`hash()` on a str is salted per process, so the same query produced a different
+        filename on every run — unhelpful in an artefact meant to be cited."""
+        import inspect
+
+        src = inspect.getsource(ep.run_query)
+        assert "hashlib.sha256(query.encode())" in src
+        assert "abs(hash(query))" not in src
+
+
+class TestTheCommittableArchive:
+    """§2.1 asks for the raw responses to be archived, and separately forbids
+    `github.com/<owner>/<repo>` strings from entering this tree. At one snapshot's scale those
+    two requirements collide: the raw payloads carry `html_url` for every repository, tens of
+    thousands of exactly the pattern the prior-exposure grep looks for. The trimmed archive
+    keeps what makes the enumeration falsifiable and drops what would break the rule."""
+
+    @staticmethod
+    def _raw(tmp_path: Path) -> Path:
+        raw = tmp_path / "raw"
+        raw.mkdir()
+        (raw / "aaa-p1.json").write_text(
+            json.dumps(
+                {
+                    "query": "topic:genomics stars:100..149",
+                    "url": "https://api.github.com/search/repositories?q=x",
+                    "date": "Wed, 02 Sep 2026 12:00:00 GMT",
+                    "payload": {"total_count": 7, "items": [_item("acme/one"), _item("b/two")]},
+                }
+            ),
+            encoding="utf-8",
+        )
+        return raw
+
+    def test_it_keeps_what_makes_the_snapshot_checkable(self, tmp_path: Path) -> None:
+        out = tmp_path / "archive.json"
+        summary = ep.trim_archive(self._raw(tmp_path), out)
+        entry = summary["responses"][0]
+        assert entry["query"] == "topic:genomics stars:100..149"
+        assert entry["date"].startswith("Wed, 02 Sep 2026")
+        assert entry["total_count"] == 7
+        assert entry["returned"] == 2
+        assert entry["names"] == ["acme/one", "b/two"]
+
+    def test_no_repository_url_survives_the_trim(self, tmp_path: Path) -> None:
+        """Checked on the written bytes, since the leak would be inside a nested payload
+        rather than in a column heading."""
+        out = tmp_path / "archive.json"
+        ep.trim_archive(self._raw(tmp_path), out)
+        text = out.read_text(encoding="utf-8")
+        assert "acme/one" in text
+        assert "github.com/acme/one" not in text
+        assert "for details" not in text  # the description, which also carries the URL
+
+    def test_the_only_endpoint_string_names_no_repository(self, tmp_path: Path) -> None:
+        """The API endpoint unavoidably contains `github.com/search/repositories`, which the
+        prior-exposure grep matches as owner `search`, repo `repositories`. No such repository
+        exists, so the one match excludes nothing — recorded here so it is a known constant
+        rather than a surprise in a later audit."""
+        out = tmp_path / "archive.json"
+        ep.trim_archive(self._raw(tmp_path), out)
+        import re as _re
+
+        hits = _re.findall(
+            r"github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", out.read_text(encoding="utf-8")
+        )
+        assert hits == ["github.com/search/repositories"]
+
+    def test_it_is_far_smaller_than_the_raw_it_replaces(self, tmp_path: Path) -> None:
+        """Measured on a realistically sized page. A two-row fixture would be dominated by
+        the archive's own fixed header and would assert nothing about the real ratio."""
+        raw = tmp_path / "bigraw"
+        raw.mkdir()
+        (raw / "aaa-p1.json").write_text(
+            json.dumps(
+                {
+                    "query": "topic:machine-learning stars:100..149",
+                    "date": "Wed, 02 Sep 2026 12:00:00 GMT",
+                    "payload": {
+                        "total_count": 900,
+                        "items": [_item(f"owner{i}/repo{i}") for i in range(100)],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        out = tmp_path / "archive.json"
+        ep.trim_archive(raw, out)
+        raw_bytes = sum(f.stat().st_size for f in raw.glob("*.json"))
+        assert out.stat().st_size < raw_bytes * 0.2
