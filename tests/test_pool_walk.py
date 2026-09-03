@@ -641,3 +641,122 @@ class TestAFatalGitFailureIsNotAnEmptyBibliography:
         _git(repo, "add", "-A")
         _git(repo, "commit", "-qm", "only")
         assert ma.ids_at(repo, "HEAD", "v2") == set()
+
+
+class TestTheWalkLedgerCarriesNoRepositoryUrls:
+    """§2.1's no-URL rule, now guarded on the artefact that actually gets written.
+
+    It used to be pinned on `mine_adoptions.SCREEN_COLUMNS`, and that screen is retired — it
+    implemented `ids_v2(HEAD) ≥ 10`, the rule §2.3 replaced with `ids_v2(T0) ≥ 3` because
+    screening on HEAD conditions eligibility on the outcome being counted. The walk's ledger
+    is the artefact now, and it is the one that gets committed.
+    """
+
+    def test_no_column_can_hold_a_url(self) -> None:
+        assert not any("url" in column for column in wp.WALK_COLUMNS)
+
+    def test_a_written_ledger_contains_no_github_urls(self, world) -> None:  # type: ignore[no-untyped-def]
+        """Checked on the bytes: a leak would arrive through `note` or a future column, not
+        through a column heading."""
+        tmp, repos, candidates = world
+        out = tmp / "out"
+        wp.walk(
+            candidates,
+            "SEED",
+            out_dir=out,
+            b0=3,
+            budget=3,
+            target=99,
+            jobs=1,
+            clone_dir=tmp / "clones",
+            url_for=_url_for(repos),
+        )
+        text = (out / "validity_walk.csv").read_text(encoding="utf-8")
+        assert "acme/rich" in text
+        assert "github.com" not in text
+
+    def test_the_t0_prompts_are_not_committed(self) -> None:
+        """They are README excerpts, so they carry OTHER repositories' URLs — measured, 2 in
+        `graph` and 3 in `rag`, including huggingface/transformers. Across ~300 qualifying
+        repositories that is hundreds of them. They are working files: §10 step 7's datasheet
+        publishes the ledger, positives, controls and verdicts, and each row already carries
+        the context HASH, which verifies the prompt without publishing it."""
+        ignored = (Path(__file__).resolve().parents[1] / ".gitignore").read_text(encoding="utf-8")
+        assert "evals/frame/pool/contexts/" in ignored
+
+
+class TestTheSeedMustBeTheNamedPulse:
+    """§2.4's entire anti-discretion argument is that the order comes from a value nobody
+    could choose, published at a timestamp fixed in the commit that froze the candidate list.
+    Reading whatever happens to be in a file checks none of that — a typo, a truncated copy
+    or a hand-edited value all walk a different order, and every row afterwards is ordered by
+    something the pre-registration does not name."""
+
+    def test_a_matching_seed_passes(self) -> None:
+        wp.verify_seed("ABC123", "2026-09-04T00:00:00Z", fetch=lambda _p: "ABC123")
+
+    def test_case_is_not_a_difference(self) -> None:
+        """The beacon serves uppercase hex and shells lowercase it freely. That is a
+        transcription difference, not a different value."""
+        wp.verify_seed("abc123", "2026-09-04T00:00:00Z", fetch=lambda _p: "ABC123")
+
+    def test_a_mismatched_seed_refuses_to_walk(self) -> None:
+        with pytest.raises(SystemExit) as exc:
+            wp.verify_seed("WRONG", "2026-09-04T00:00:00Z", fetch=lambda _p: "ABC123")
+        assert "does not match the pulse" in str(exc.value)
+
+    def test_the_registered_pulse_is_the_one_in_the_file(self) -> None:
+        text = (
+            Path(__file__).resolve().parents[1] / "evals" / "PREREG-judge-validity-pool.md"
+        ).read_text(encoding="utf-8")
+        assert wp.REGISTERED_PULSE in text
+
+    def test_the_check_runs_before_any_row_is_walked(self) -> None:
+        import inspect
+
+        src = inspect.getsource(wp.main)
+        assert src.index("verify_seed(") < src.index("walk(")
+
+
+class TestTheOwnerCapIsEvaluatedInRankOrder:
+    """PP3 caps owners "along the frozen seeded order". `owners` is read for a whole chunk
+    before any row in it runs and incremented only afterwards, so four same-owner candidates
+    inside one parallel chunk would each see a count of 3 and each pass a cap of 3."""
+
+    def test_a_chunk_never_holds_two_candidates_from_one_owner(self) -> None:
+        import inspect
+
+        src = inspect.getsource(wp.walk)
+        assert "chunk_owners" in src
+        assert "if owner in chunk_owners:" in src
+
+    def test_same_owner_candidates_are_capped_exactly(self, tmp_path: Path) -> None:
+        """Four repositories from one owner, a cap of 3, and four workers: without the
+        chunking fix all four qualify."""
+        src = tmp_path / "src"
+        repos = {f"acme/r{i}": _make_repo(src, f"r{i}", t0_ids=5, new_ids=2) for i in range(4)}
+        candidates = [
+            {
+                "full_name": name,
+                "created_at": "2019-01-01",
+                "language": "Python",
+                "topics": "machine-learning",
+            }
+            for name in sorted(repos)
+        ]
+        out = tmp_path / "out"
+        wp.walk(
+            candidates,
+            "SEED",
+            out_dir=out,
+            b0=4,
+            budget=4,
+            target=99,
+            jobs=4,
+            clone_dir=tmp_path / "clones",
+            url_for=_url_for(repos),
+        )
+        rows = _rows(out / "validity_walk.csv")
+        qualifying = [r for r in rows if r["qualifies"] == "True"]
+        assert len(qualifying) <= wp.OWNER_CAP, "the owner cap was exceeded under parallelism"
+        assert any(r["outcome"] == "owner_cap" for r in rows)
