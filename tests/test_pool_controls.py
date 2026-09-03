@@ -23,6 +23,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -271,21 +272,132 @@ class TestTheCacheIsolationGate:
 
     def test_both_roots_are_watched(self) -> None:
         """The second judge writes under `.work/second_judge/` with a `cache_as` namespace.
-        Watching only the gold cache would miss a namespace collision there."""
+        Watching only the gold cache would miss a namespace collision there.
+
+        This asserted the source literal `cache_roots = (JUDGE_CACHE, SECOND_JUDGE_CACHE)`,
+        which **was the defect**: watching that root whole also watched the namespace
+        `second_verdict(cache_as=...)` writes T0 verdicts into, so the gate fired on every run
+        that bought anything. The requirement is that both roots are watched; the spelling is
+        not the requirement, and pinning the spelling is what made the bug look tested.
+        """
+        assert set(jva.protected_partition()) == {jva.JUDGE_CACHE, jva.SECOND_JUDGE_CACHE}
+        assert jva.protected_partition()[jva.JUDGE_CACHE] == frozenset()
+
+    def test_a_write_into_the_permitted_t0_namespace_passes(self, tmp_path: Path) -> None:
+        """The #11 regression. `second_verdict(cache_as=f"{model}#t0")` writes T0 verdicts under
+        `.work/second_judge/<model>#t0/`, inside a fingerprinted root — so the gate fired on
+        exactly the runs that bought something, and a gate whose true-negative rate is zero gets
+        switched off. §7 registers that separate namespace as legitimate, so the hash cannot
+        also forbid it."""
+        second = tmp_path / "second_judge"
+        (second / jva.t0_namespace(jva.SONNET_MODEL) / "graph").mkdir(parents=True)
+        gold = tmp_path / "judge"
+        gold.mkdir()
+        partition = {gold: frozenset(), second: jva.permitted_namespaces()}
+        with mock.patch.object(jva, "protected_partition", lambda: partition):
+            before = jva.cache_manifest(gold, second)
+            written = second / jva.t0_namespace(jva.SONNET_MODEL) / "graph" / "2401.00001.json"
+            written.write_text('{"score": 2}', encoding="utf-8")
+            jva.assert_caches_untouched(before, (gold, second))
+
+    def test_a_write_into_the_second_judges_own_model_directory_raises(self, tmp_path) -> None:
+        """The permitted namespace is one directory, not the root. `.work/second_judge` holds
+        1,504 verdicts eight other modules read back by name."""
+        second = tmp_path / "second_judge"
+        (second / jva.SONNET_MODEL / "graph").mkdir(parents=True)
+        with mock.patch.object(
+            jva, "protected_partition", lambda: {second: jva.permitted_namespaces()}
+        ):
+            before = jva.cache_manifest(second)
+            (second / jva.SONNET_MODEL / "graph" / "2401.00001.json").write_text("{}", "utf-8")
+            with pytest.raises(SystemExit) as exc:
+                jva.assert_caches_untouched(before, (second,))
+        assert "2401.00001.json" in str(exc.value)
+
+    def test_the_gold_cache_has_no_exclusion_ever(self, tmp_path: Path) -> None:
+        gold = tmp_path / "judge"
+        (gold / jva.t0_namespace(jva.SONNET_MODEL)).mkdir(parents=True)
+        with mock.patch.object(jva, "protected_partition", lambda: {gold: frozenset()}):
+            before = jva.cache_manifest(gold)
+            (gold / jva.t0_namespace(jva.SONNET_MODEL) / "leak.json").write_text("{}", "utf-8")
+            with pytest.raises(SystemExit):
+                jva.assert_caches_untouched(before, (gold,))
+
+    def test_the_gpt_t0_namespace_is_protected_not_permitted(self) -> None:
+        """GPT is called with `use_cache=False` and writes nothing anywhere, so a file appearing
+        under `gpt-5.5#t0` is a leak like any other rather than this study's own output."""
+        permitted = jva.permitted_namespaces()
+        assert jva.t0_namespace(jva.SONNET_MODEL) in permitted
+        assert jva.t0_namespace(jva.GPT_MODEL) not in permitted
+
+    def test_the_call_site_and_the_exclusion_share_one_declaration(self) -> None:
+        """Two independent spellings of the same string is how the gate became self-tripping."""
         import inspect
 
-        src = inspect.getsource(jva.judge)
-        assert "cache_roots = (JUDGE_CACHE, SECOND_JUDGE_CACHE)" in src
-        assert "assert_caches_untouched(cache_before, cache_roots)" in src
+        assert "cache_as=t0_namespace(model)" in inspect.getsource(jva.judge)
+
+    def test_an_existing_namespace_without_the_ownership_marker_refuses(self, tmp_path) -> None:
+        """An exclusion is justified by ownership, not by spelling: a directory whose name
+        happens to match may be somebody else's data, and excluding it would make overwriting
+        that data the one thing the gate cannot see."""
+        second = tmp_path / "second_judge"
+        (second / jva.t0_namespace(jva.SONNET_MODEL)).mkdir(parents=True)
+        with pytest.raises(SystemExit) as exc:
+            jva.assert_namespace_ownership({second: jva.permitted_namespaces()})
+        assert "_NAMESPACE.json" in str(exc.value)
+
+    def test_a_namespace_this_study_claimed_is_accepted(self, tmp_path: Path) -> None:
+        second = tmp_path / "second_judge"
+        partition = {second: jva.permitted_namespaces()}
+        jva.claim_namespaces(partition)
+        jva.assert_namespace_ownership(partition)
+
+    def test_an_absent_namespace_is_fine(self, tmp_path: Path) -> None:
+        """It does not exist until the second judge has written something."""
+        jva.assert_namespace_ownership({tmp_path / "never": jva.permitted_namespaces()})
+
+    def test_the_failure_message_carries_the_manifest_diff(self, tmp_path: Path) -> None:
+        """A hash says only that something moved. Triage needs to know which root and what."""
+        root = tmp_path / "judge"
+        root.mkdir()
+        (root / "kept.json").write_text("{}", encoding="utf-8")
+        with mock.patch.object(jva, "protected_partition", lambda: {root: frozenset()}):
+            before = jva.cache_manifest(root)
+            (root / "added.json").write_text("{}", encoding="utf-8")
+            with pytest.raises(SystemExit) as exc:
+                jva.assert_caches_untouched(before, (root,))
+        assert "added (1)" in str(exc.value)
+        assert "/judge/added.json" in str(exc.value)
+
+    def test_the_exclusion_is_applied_while_walking(self, tmp_path: Path) -> None:
+        """Not by pre-enumerating directories: a list computed before the run cannot contain a
+        directory the run is about to create, which is the case the exclusion exists for."""
+        second = tmp_path / "second_judge"
+        second.mkdir()
+        with mock.patch.object(
+            jva, "protected_partition", lambda: {second: jva.permitted_namespaces()}
+        ):
+            before = jva.cache_manifest(second)
+            fresh = second / jva.t0_namespace(jva.SONNET_MODEL) / "graph"
+            fresh.mkdir(parents=True)
+            (fresh / "2401.00001.json").write_text("{}", encoding="utf-8")
+            jva.assert_caches_untouched(before, (second,))
 
     def test_the_gold_set_is_checked_too(self) -> None:
         """Two independent guards: the fingerprint catches a write, `resolve_targets` catches
-        the consequence. Either alone can pass while the other fails."""
+        the consequence. Either alone can pass while the other fails.
+
+        The comparison itself moved into `isolation_failures`, so that the pair could be
+        exercised without buying a verdict; `test_either_guard_can_fire_alone` is what now
+        holds this requirement. What stays here is that `judge()` still SAMPLES the gold set
+        before buying anything — a snapshot taken afterwards would compare the leak to itself.
+        """
         import inspect
 
         src = inspect.getsource(jva.judge)
         assert "targets_before = resolve_targets()" in src
-        assert "resolve_targets() != targets_before" in src
+        assert src.index("targets_before = resolve_targets()") < src.index("for n, (case")
+        assert "isolation_failures(cache_before, cache_roots, targets_before" in src
 
     def test_the_guards_run_after_the_verdicts_are_written(self) -> None:
         """A violation must be reported without also losing the expensive run that revealed
@@ -293,8 +405,84 @@ class TestTheCacheIsolationGate:
         import inspect
 
         src = inspect.getsource(jva.judge)
-        last_write = src.rindex("VERDICTS.write_text")
-        assert src.index("assert_caches_untouched(cache_before") > last_write
+        last_write = src.rindex("save_verdicts(have)")
+        assert src.index("isolation_failures(cache_before") > last_write
+
+    def test_both_guards_are_evaluated_not_short_circuited(self, tmp_path: Path) -> None:
+        """The cache guard raised first, so on any run that tripped it the gold-set check never
+        executed. The two do not imply one another: `resolve_targets` sees only ids the baseline
+        picked whose gold verdict scores >= 2, so a write for an unpicked paper moves the
+        fingerprint and leaves the gold set alone, and a score crossing 2 does the opposite.
+
+        Behavioural, over the extracted helper: the previous version read the substring
+        "failures" out of `judge()`'s source, which would pass on a body that still raised at
+        the first guard.
+        """
+        root = tmp_path / "judge"
+        root.mkdir()
+        with mock.patch.object(jva, "protected_partition", lambda: {root: frozenset()}):
+            before = jva.cache_manifest(root)
+            (root / "leaked.json").write_text("{}", encoding="utf-8")
+            failures = jva.isolation_failures(before, (root,), ["a"], ["b"])
+        assert len(failures) == 2, "the cache guard must not hide the gold-set result"
+        assert "THE JUDGE CACHE MOVED" in failures[0]
+        assert "THE GOLD SET MOVED" in failures[1]
+
+    def test_either_guard_can_fire_alone(self, tmp_path: Path) -> None:
+        root = tmp_path / "judge"
+        root.mkdir()
+        with mock.patch.object(jva, "protected_partition", lambda: {root: frozenset()}):
+            clean = jva.cache_manifest(root)
+            gold_only = jva.isolation_failures(clean, (root,), ["a"], ["b"])
+            (root / "leaked.json").write_text("{}", encoding="utf-8")
+            cache_only = jva.isolation_failures(clean, (root,), ["a"], ["a"])
+        assert [f[:20] for f in gold_only] == ["THE GOLD SET MOVED —"]
+        assert [f[:21] for f in cache_only] == ["THE JUDGE CACHE MOVED"]
+
+    def test_a_clean_run_reports_nothing(self, tmp_path: Path) -> None:
+        root = tmp_path / "judge"
+        root.mkdir()
+        with mock.patch.object(jva, "protected_partition", lambda: {root: frozenset()}):
+            assert jva.isolation_failures(jva.cache_manifest(root), (root,), ["a"], ["a"]) == []
+
+    def test_ownership_is_established_before_the_before_manifest(self, tmp_path) -> None:
+        """`claim_namespaces` stamps the marker, so the ownership check must precede it —
+        reversing the two would make the run claim whatever it found. And both must precede the
+        first purchase: checking at the end means discovering somebody else's data after
+        writing into it."""
+        second = tmp_path / "second_judge"
+        (second / jva.t0_namespace(jva.SONNET_MODEL)).mkdir(parents=True)
+        partition = {second: jva.permitted_namespaces()}
+        with (
+            mock.patch.object(jva, "protected_partition", lambda: partition),
+            pytest.raises(SystemExit) as exc,
+        ):
+            jva.prepare_isolation()
+        assert "_NAMESPACE.json" in str(exc.value)
+
+    def test_prepare_isolation_claims_and_returns_the_watched_roots(self, tmp_path) -> None:
+        second = tmp_path / "second_judge"
+        with mock.patch.object(
+            jva, "protected_partition", lambda: {second: jva.permitted_namespaces()}
+        ):
+            roots, before = jva.prepare_isolation()
+        assert roots == (second,)
+        marker = second / jva.t0_namespace(jva.SONNET_MODEL) / "_NAMESPACE.json"
+        assert marker.is_file()
+        # The marker lives inside the excluded namespace, so it is not in the manifest itself.
+        assert before == {}
+
+    def test_two_roots_sharing_an_id_are_refused_rather_than_merged(self, tmp_path) -> None:
+        """A collision would let a file added under one root and removed from the other cancel
+        out — the exact silent failure the gate exists to catch."""
+        a = tmp_path / "x" / "judge"
+        b = tmp_path / "x" / "judge2"
+        for root in (a, b):
+            root.mkdir(parents=True)
+        with pytest.raises(SystemExit) as exc:
+            jva.cache_manifest(a, a)
+        assert "share an id" in str(exc.value)
+        jva.cache_manifest(a, b)  # distinct ids are fine
 
 
 class TestPositivesMustBeEnrichedBeforeControlsCanBeDrawn:

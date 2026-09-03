@@ -54,6 +54,14 @@ repository will take up separates them.
     uv run python evals/judge_validity_adoption.py --plan     # $0: the sample and the cost
     uv run python evals/judge_validity_adoption.py --judge    # ~$5, resumable
     uv run python evals/judge_validity_adoption.py            # $0: the gaps
+
+**The last of those writes a reproduction, not the published record.** `report()` is the
+default action, and it used to overwrite `evals/judge_validity_adoption.json` — the file whose
+numbers `RESULTS.md`, `evals/README.md` and `PLANS.md` quote — on every bare invocation. It now
+writes through `judge_validity_pool.artifact_path(source, scheme)`, which resolves the
+NR-56/57 reproduction to `.work/repro/` and refuses the published path outright. A reproduction
+that overwrites what it reproduces cannot disagree with it, and disagreeing is the only reason
+to run one.
 """
 
 from __future__ import annotations
@@ -62,6 +70,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import random
 import statistics
 import sys
@@ -83,6 +92,8 @@ ADOPTIONS = WORK / "adoptions.json"
 SEEDS = WORK / "adoption_seeds.json"
 POOL = WORK / "pool-cut100"
 VERDICTS = WORK / "judge_validity_verdicts.json"
+# The PUBLISHED record of NR-56/57, kept as a name so the code that must not write it can say
+# so. `judge_validity_pool.FROZEN_RECORDS` is what enforces it; this is where it is read.
 FROZEN = EVALS / "judge_validity_adoption.json"
 
 GPT_MODEL = "gpt-5.5"
@@ -94,14 +105,38 @@ FLAT_GAP = 0.20  # below this for BOTH judges: neither tracks the product's goal
 SEPARATES = 0.15  # gap difference at or above which one judge is the better instrument
 
 
-def wilson(k: int, n: int) -> tuple[float, float]:
+def wilson(k: int, n: int) -> tuple[float, float] | None:
+    """A Wilson interval, or None when there is nothing to compute one from.
+
+    None rather than `(nan, nan)`: `json.dumps` writes a bare `NaN`, which is not JSON and is
+    rejected by every parser outside Python. §10 step 7 publishes this artefact as a datasheet,
+    so a judge with no verdicts used to produce an unparseable file that looked complete.
+    `judge_date_stratify.wilson` already returns None at n = 0; this matches it.
+    """
     if n == 0:
-        return (float("nan"), float("nan"))
+        return None
     p, z = k / n, 1.96
     d = 1 + z * z / n
     c = (p + z * z / (2 * n)) / d
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
     return (round(max(0.0, c - h), 4), round(min(1.0, c + h), 4))
+
+
+def excludes(interval: tuple[float, float] | list[float] | None, value: float) -> bool | None:
+    """Does a bootstrap interval exclude *value*? Both sides, always.
+
+    One implementation because there were three, and one of them tested a single side:
+    `gap_excludes_zero` read `lo > 0`, so a judge whose whole interval sat BELOW zero — one
+    that ranks matched controls above the papers a project adopted, the most interesting
+    possible result here — was reported as "not shown to discriminate", the same words used
+    for a judge that separates nothing. C-9/C-12/C-14's rule: one invariant, one implementation.
+    """
+    if interval is None:
+        return None
+    lo, hi = interval
+    if lo != lo or hi != hi:  # NaN in, no answer out
+        return None
+    return bool(lo > value or hi < value)
 
 
 def cluster_bootstrap_auc(
@@ -181,7 +216,7 @@ def cluster_bootstrap_auc(
     se = statistics.pstdev(clustered) if len(clustered) > 1 else float("nan")
     se_paper = statistics.pstdev(papers) if len(papers) > 1 else float("nan")
     out["ci95"] = [round(lo, 4), round(hi, 4)]
-    out["excludes_half"] = bool(lo > 0.5 or hi < 0.5)
+    out["excludes_half"] = excludes((lo, hi), 0.5)
     out["se"] = round(se, 4)
     out["design_effect"] = (
         round((se / se_paper) ** 2, 3) if se_paper and se_paper == se_paper else None
@@ -200,6 +235,169 @@ JUDGE_CACHE = EVALS / "cache" / "judge"
 SECOND_JUDGE_CACHE = WORK / "second_judge"
 
 
+def t0_namespace(model: str) -> str:
+    """The `cache_as` directory a T0 verdict for *model* is written under.
+
+    One declaration, used both by the call site in `judge()` and by the exclusion in
+    `protected_partition()`. They were two independent spellings of the same string; a change
+    to either alone turns the gate back into the self-tripping version below, or — worse —
+    silently permits writes to a directory nothing is writing to.
+    """
+    return f"{model}#t0"
+
+
+def permitted_namespaces() -> frozenset[str]:
+    """Directories under the second judge's cache this study is allowed to create.
+
+    **Sonnet only.** GPT is called through `judge_paper(..., use_cache=False)` and writes
+    nothing anywhere, so `.work/second_judge/gpt-5.5#t0` is not a namespace this study owns —
+    it is PROTECTED, and a file appearing there is a leak like any other.
+    """
+    return frozenset({t0_namespace(SONNET_MODEL)})
+
+
+def protected_partition() -> dict[Path, frozenset[str]]:
+    """Which cache roots are watched, and which top-level names inside them are not.
+
+    §7 requires both of two things that read as contradictory if a root is treated as
+    indivisible: *"a separate namespace for the second judge"* — which the study must be able
+    to write — and *"before/after hashes of both cache roots as a blocking gate"*. Watching
+    `.work/second_judge` whole made the second requirement forbid the first: `second_verdict`
+    writes T0 verdicts into `.work/second_judge/<model>#t0/`, inside the fingerprinted root, so
+    the gate fired on exactly the runs that bought something — and because it raised first, the
+    gold-set guard after it never ran at all. A gate whose true-negative rate is zero gets
+    switched off, and then the write that once took `rag` from 5 gold targets to 0 is silent.
+
+    So the unit is a partition, not a root. `evals/cache/judge` is protected in full and has no
+    exclusion, ever.
+    """
+    return {JUDGE_CACHE: frozenset(), SECOND_JUDGE_CACHE: permitted_namespaces()}
+
+
+def assert_namespace_ownership(roots: dict[Path, frozenset[str]] | None = None) -> None:
+    """Refuse to write into a permitted namespace this study does not own.
+
+    An exclusion has to be justified by ownership rather than by spelling. `.work/second_judge`
+    holds 1,504 verdicts that eight other modules read back by name, so a directory whose name
+    happens to match `<model>#t0` may be somebody else's data — and excluding it from the gate
+    would make overwriting that data the one thing the gate cannot see.
+    """
+    for root, permitted in (roots or protected_partition()).items():
+        for name in sorted(permitted):
+            ns = root / name
+            if not ns.exists():
+                continue
+            marker = ns / "_NAMESPACE.json"
+            if not marker.is_file():
+                raise SystemExit(
+                    f"{ns} exists but carries no _NAMESPACE.json.\n"
+                    "  This directory is excluded from the cache gate, so anything written\n"
+                    "  into it is invisible to the guard. That is only safe if this study owns\n"
+                    "  it. Move it aside, or write the marker if it really is this study's."
+                )
+
+
+def claim_namespaces(roots: dict[Path, frozenset[str]] | None = None) -> None:
+    """Create each permitted namespace with its ownership marker, before anything is bought."""
+    for root, permitted in (roots or protected_partition()).items():
+        for name in sorted(permitted):
+            ns = root / name
+            ns.mkdir(parents=True, exist_ok=True)
+            marker = ns / "_NAMESPACE.json"
+            if not marker.is_file():
+                marker.write_text(
+                    json.dumps(
+                        {
+                            "study": "judge-validity-pool",
+                            "why": (
+                                "T0 verdicts. Excluded from the cache-isolation gate because "
+                                "PREREG §7 registers a separate namespace for the second judge "
+                                "as legitimate; everything else under this root is protected."
+                            ),
+                        },
+                        indent=1,
+                    ),
+                    encoding="utf-8",
+                )
+
+
+def prepare_isolation() -> tuple[tuple[Path, ...], dict[str, str]]:
+    """Establish ownership and take the "before" manifest, BEFORE the first purchase.
+
+    Ownership first, and never after the last verdict: the exclusion that lets this run write
+    T0 verdicts is only safe if the directory it excludes belongs to this study, and checking
+    that at the end means discovering somebody else's data after writing into it.
+    `claim_namespaces` stamps the marker, so the ownership check must precede it — reversing
+    the two would make the run claim whatever it found.
+    """
+    roots = tuple(protected_partition())
+    assert_namespace_ownership()
+    claim_namespaces()
+    return roots, cache_manifest(*roots)
+
+
+def isolation_failures(
+    cache_before: str | dict[str, str],
+    cache_roots: tuple[Path, ...],
+    targets_before: Any,
+    targets_after: Any,
+) -> list[str]:
+    """Evaluate BOTH guards and return every failure, rather than raising at the first.
+
+    The cache guard used to raise directly, so on any run that tripped it the gold-set check
+    never executed at all — and the two do not imply one another in either direction.
+    `resolve_targets` sees only ids the baseline picked whose gold verdict scores >= 2, so a
+    write for an unpicked paper moves the cache and leaves the gold set alone, while a score
+    crossing 2 for a picked paper does the opposite. Reporting only the first means triaging
+    the wrong one.
+
+    Split out of `judge()` so it is testable without buying a verdict.
+    """
+    failures: list[str] = []
+    try:
+        assert_caches_untouched(cache_before, cache_roots)
+    except SystemExit as exc:
+        failures.append(str(exc))
+    if targets_after != targets_before:
+        failures.append(
+            "THE GOLD SET MOVED — T0 verdicts leaked into the shared cache and changed which "
+            "papers count as gold targets. Every recall number downstream is now different."
+        )
+    return failures
+
+
+def cache_manifest(*roots: Path) -> dict[str, str]:
+    """`{root/relpath: 'size|mtime_ns'}` for every watched file, exclusions applied WHILE walking.
+
+    Applied while walking rather than by pre-enumerating the permitted directories: a list
+    computed before the run cannot contain a directory the run is about to create, which is
+    precisely the case the exclusion exists for.
+
+    The key carries the root as well as the relative path, so the same relative name under two
+    roots cannot collide into one entry — a collision would let a file added under one root and
+    removed from the other cancel out, which is the shape of silent failure this gate exists to
+    catch. `<parent>/<name>` rather than `<name>` alone, and the ids are asserted distinct.
+    """
+    partition = protected_partition()
+    ids = [f"{r.parent.name}/{r.name}" for r in roots]
+    if len(set(ids)) != len(ids):
+        raise SystemExit(f"two watched cache roots share an id and would collide: {ids}")
+    out: dict[str, str] = {}
+    for root, root_id in zip(roots, ids, strict=True):
+        if not root.exists():
+            continue
+        permitted = partition.get(root, frozenset())
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root)
+            if rel.parts and rel.parts[0] in permitted:
+                continue
+            stat = path.stat()
+            out[f"{root_id}/{rel.as_posix()}"] = f"{stat.st_size}|{stat.st_mtime_ns}"
+    return out
+
+
 def cache_fingerprint(*roots: Path) -> str:
     """A hash of every cached verdict's path, size and mtime under *roots*.
 
@@ -212,32 +410,51 @@ def cache_fingerprint(*roots: Path) -> str:
     Path, size and mtime rather than content: the cache holds thousands of small files and
     this runs twice per judging session, while any write at all moves an mtime.
     """
-    lines: list[str] = []
-    for root in roots:
-        if not root.exists():
-            continue
-        for path in sorted(root.rglob("*")):
-            if path.is_file():
-                stat = path.stat()
-                lines.append(
-                    f"{path.relative_to(root).as_posix()}|{stat.st_size}|{stat.st_mtime_ns}"
-                )
-    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+    manifest = cache_manifest(*roots)
+    body = "\n".join(f"{k}|{v}" for k, v in sorted(manifest.items()))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
-def assert_caches_untouched(before: str, roots: tuple[Path, ...]) -> None:
-    """Raise if anything under *roots* changed. Called after every judging run."""
-    after = cache_fingerprint(*roots)
-    if after != before:
-        raise SystemExit(
-            "THE JUDGE CACHE MOVED during a T0 judging run.\n"
-            "  T0 verdicts must never enter the shared gold cache: judge_paper keys on\n"
-            "  (model, repo, paper_id) and not on the context, so a write here overwrites\n"
-            "  the HEAD verdict for the same paper, and every downstream number changes\n"
-            "  silently. Check use_cache=False at every call site, and that the second\n"
-            "  judge writes under its own cache_as namespace.\n"
-            f"  roots: {[str(r) for r in roots]}"
-        )
+def _manifest_diff(before: dict[str, str], after: dict[str, str]) -> dict[str, list[str]]:
+    return {
+        "added": sorted(set(after) - set(before)),
+        "removed": sorted(set(before) - set(after)),
+        "modified": sorted(k for k in set(before) & set(after) if before[k] != after[k]),
+    }
+
+
+def assert_caches_untouched(before: str | dict[str, str], roots: tuple[Path, ...]) -> None:
+    """Raise if anything WATCHED under *roots* changed. Called after every judging run.
+
+    *before* may be a fingerprint (the cheap compare) or a manifest from `cache_manifest`. Pass
+    the manifest where you can: a hash says only that something moved, and the triage that
+    follows a failure needs to know *which* root — the two guards in `judge()` do not imply one
+    another. `resolve_targets` sees only ids the baseline picked whose gold verdict scores >= 2,
+    so a gold-cache write for an unpicked paper, or a score change on the same side of 2, moves
+    this fingerprint while leaving the gold set identical. Read the diff, do not infer the cause
+    from which guard fired.
+    """
+    detail = ""
+    if isinstance(before, dict):
+        diff = _manifest_diff(before, cache_manifest(*roots))
+        if not any(diff.values()):
+            return
+        for label, paths in diff.items():
+            if paths:
+                shown = ", ".join(paths[:20])
+                more = f" (+{len(paths) - 20} more)" if len(paths) > 20 else ""
+                detail += f"\n  {label} ({len(paths)}): {shown}{more}"
+    elif cache_fingerprint(*roots) == before:
+        return
+    raise SystemExit(
+        "THE JUDGE CACHE MOVED during a T0 judging run.\n"
+        "  T0 verdicts must never enter the shared gold cache: judge_paper keys on\n"
+        "  (model, repo, paper_id) and not on the context, so a write here overwrites\n"
+        "  the HEAD verdict for the same paper, and every downstream number changes\n"
+        "  silently. Check use_cache=False at every call site, and that the second\n"
+        "  judge writes under its own cache_as namespace.\n"
+        f"  roots: {[str(r) for r in roots]}" + detail
+    )
 
 
 # ---------------------------------------------------------------------------------------
@@ -478,12 +695,41 @@ def controls(rng: random.Random | None = None) -> list[dict[str, Any]]:
     return out
 
 
+def save_verdicts(have: dict[str, Any]) -> None:
+    """Write the paid-verdict store through a temp file, never in place.
+
+    These are **purchases**. The store holds 566 of them and is written every 20 items inside
+    an hours-long loop; a truncating write interrupted at the wrong moment loses money that has
+    already been spent and cannot be recovered from anywhere, because `use_cache=False` means
+    the judge cache does not hold a copy.
+    """
+    VERDICTS.parent.mkdir(parents=True, exist_ok=True)
+    tmp = VERDICTS.with_suffix(VERDICTS.suffix + ".tmp")
+    tmp.write_text(json.dumps(have, indent=0), encoding="utf-8")
+    os.replace(tmp, VERDICTS)
+
+
 def load_verdicts() -> dict[str, dict[str, int]]:
     return json.loads(VERDICTS.read_text(encoding="utf-8")) if VERDICTS.is_file() else {}
 
 
 def key(model: str, case: str, pid: str) -> str:
-    return f"{model}|{case}|{pid}"
+    """The verdict store's key. The paper id is normalised HERE and nowhere else.
+
+    Every call site used to decide for itself: `dedup_id(str(r["id"])) if adopted else r["id"]`,
+    repeated in plan(), rate() and scores(). It happened to be consistent, because the control
+    drawers already store normalised ids — but `paper_id.dedup_id`'s own docstring records
+    C-12, C-12b and C-14: three separate payments for one identity rule living in more than one
+    place, the last of them for "a bare `split("v")[0]` doing the same job at eight further
+    call sites". A versioned id reaching one of those branches resolves to no verdict, and a
+    paper with no verdict is silently dropped from the numerator and the denominator both.
+
+    *case* is passed through RAW — a legacy slug (`diffusion`) or a pool `full_name`
+    (`huggingface/diffusers`). It is never lowercased and never replaced by a cluster label:
+    the store was written under the raw string, so normalising it here would make every
+    existing verdict unreachable and the whole stratum read as unjudged.
+    """
+    return f"{model}|{case}|{dedup_id(str(pid))}"
 
 
 def plan() -> int:
@@ -515,8 +761,7 @@ def judge() -> int:
     # of T0 verdicts without either of them.
     from build_hop_pool import resolve_targets
 
-    cache_roots = (JUDGE_CACHE, SECOND_JUDGE_CACHE)
-    cache_before = cache_fingerprint(*cache_roots)
+    cache_roots, cache_before = prepare_isolation()
     targets_before = resolve_targets()
 
     rng = random.Random(SEED)
@@ -557,31 +802,43 @@ def judge() -> int:
                         ]
                     )
                 else:
-                    v = int(second_verdict(case, ctx, paper, model, cache_as=f"{model}#t0"))
+                    v = int(second_verdict(case, ctx, paper, model, cache_as=t0_namespace(model)))
                 have[k] = {"score": v, "arm": arm}
                 bought += 1
             except Exception as exc:  # noqa: BLE001 -- one bad paper must not lose the rest
                 void += 1
                 print(f"  ! {model} {case}/{pid}: {type(exc).__name__}: {str(exc)[:60]}")
         if n % 20 == 0 or n == len(items):
-            VERDICTS.write_text(json.dumps(have, indent=0), encoding="utf-8")
+            save_verdicts(have)
             print(f"  [{n}/{len(items)}] bought {bought}, void {void}", flush=True)
-    VERDICTS.write_text(json.dumps(have, indent=0), encoding="utf-8")
+    save_verdicts(have)
     print(f"\nbought {bought} verdicts; {void} void")
 
     # Both guards fire AFTER the verdicts are safely written, so a violation is reported
     # without also losing the run that revealed it.
-    assert_caches_untouched(cache_before, cache_roots)
-    if resolve_targets() != targets_before:
-        raise SystemExit(
-            "THE GOLD SET MOVED — T0 verdicts leaked into the shared cache and changed which "
-            "papers count as gold targets. Every recall number downstream is now different."
-        )
+    failures = isolation_failures(cache_before, cache_roots, targets_before, resolve_targets())
+    if failures:
+        raise SystemExit("\n\n".join(failures))
     print("cache isolation: both roots and the gold set unchanged")
     return 0
 
 
 def report() -> int:
+    if CONTROL_SCHEME != "pool":
+        # `--controls` is accepted by the parser and assigned to CONTROL_SCHEME, but `controls()`
+        # does not read it yet: it always draws from `.work/pool-cut100/`, RepoRadar's own
+        # HEAD-seeded candidate pool. Left unguarded, `--controls arxiv-window` would write
+        # POOL-drawn numbers into a file named `-arxiv-window` and stamped `controls:
+        # arxiv-window` — an artefact asserting it used the arm-neutral negative class when it
+        # used the one §4 exists to reject. A flag that is read only by the label is worse than
+        # a flag nobody reads.
+        raise SystemExit(
+            f"--controls {CONTROL_SCHEME} is not implemented in controls() yet.\n"
+            "  §4's arm-neutral draw (arxiv_window_controls) has no production caller: the\n"
+            "  scheme selects the OUTPUT PATH and the provenance label, and nothing else, so\n"
+            "  this run would publish pool-scheme numbers under an arm-neutral name.\n"
+            "  Run without --controls for the NR-56/57 reproduction."
+        )
     rng = random.Random(SEED)
     pos, ctl = adoptions(), controls(rng)
     have = load_verdicts()
@@ -611,8 +868,7 @@ def report() -> int:
     def rate(model: str, rows: list[dict[str, Any]], adopted: bool) -> dict[str, Any]:
         got = []
         for r in rows:
-            pid = dedup_id(str(r["id"])) if adopted else r["id"]
-            k = key(model, r["case"], pid)
+            k = key(model, r["case"], r["id"])
             if k in have:
                 got.append(have[k]["score"])
         n_act = sum(1 for s in got if s >= 2)
@@ -627,29 +883,62 @@ def report() -> int:
         a = rate(model, pos, adopted=True)
         c = rate(model, ctl, adopted=False)
         gap = (a["rate"] - c["rate"]) if a["rate"] is not None and c["rate"] is not None else None
-        out["judges"][model] = {"adopted": a, "control": c, "gap": round(gap, 4) if gap else None}
+        # `if gap is not None`, not `if gap`: a gap of exactly 0.0 is falsy, and it is the most
+        # consequential value this study can produce — a judge that separates adopted papers
+        # from matched controls not at all. Recording it as null made "measured, and zero"
+        # indistinguishable from "never asked", the distinction the printout below is written
+        # to preserve ("VOID, not zero").
+        out["judges"][model] = {
+            "adopted": a,
+            "control": c,
+            "gap": round(gap, 4) if gap is not None else None,
+        }
 
-    g = {m: (out["judges"][m]["gap"] or 0.0) for m in (GPT_MODEL, SONNET_MODEL)}
-    diff = abs(g[GPT_MODEL] - g[SONNET_MODEL])
+    # A judge with no verdicts is not a judge with a gap of zero. NR-56 hit 155 consecutive
+    # 400s and every Sonnet verdict came back void; `or 0.0` would have scored that run as a
+    # measured null result for Sonnet and compared it against GPT.
+    g = {m: out["judges"][m]["gap"] for m in (GPT_MODEL, SONNET_MODEL)}
+    both_measured = all(v is not None for v in g.values())
+    diff = abs(g[GPT_MODEL] - g[SONNET_MODEL]) if both_measured else None
 
     # The two gaps are computed over the SAME papers, so an independent-samples SE would
     # overstate the uncertainty of their difference. Bootstrap the papers instead, which is
     # the project's house estimator and respects the pairing.
-    def scores(model: str, rows, adopted: bool) -> list[int]:
-        out_s = []
+    def scored(model: str, rows: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
+        """The judge's thresholded verdicts, keyed by the PAPER rather than by position."""
+        out_s: dict[tuple[str, str], int] = {}
         for r in rows:
-            pid = dedup_id(str(r["id"])) if adopted else r["id"]
-            k = key(model, r["case"], pid)
+            k = key(model, r["case"], r["id"])
             if k in have:
-                out_s.append(1 if have[k]["score"] >= 2 else 0)
+                out_s[(r["case"], dedup_id(str(r["id"])))] = 1 if have[k]["score"] >= 2 else 0
         return out_s
 
-    pa = {m: scores(m, pos, True) for m in (GPT_MODEL, SONNET_MODEL)}
-    pc = {m: scores(m, ctl, False) for m in (GPT_MODEL, SONNET_MODEL)}
+    scored_pos = {m: scored(m, pos) for m in (GPT_MODEL, SONNET_MODEL)}
+    scored_ctl = {m: scored(m, ctl) for m in (GPT_MODEL, SONNET_MODEL)}
+
+    # Paired on the papers BOTH judges scored, in row order. It used to be paired on the list
+    # POSITION, with both judges' array lengths taken from GPT's: `scores()` skipped a paper
+    # with no verdict, so index i meant a different paper for each judge as soon as one verdict
+    # was missing, and the comment above claiming the estimator "respects the pairing" was
+    # false in exactly the case that matters. Unequal coverage then either raised IndexError
+    # (Sonnet short) or silently truncated Sonnet to GPT's length and reported the rate over a
+    # prefix — measured on the frozen data as 1.0 where the true value was 0.333. NR-56's 155
+    # consecutive void Sonnet verdicts are what that scenario looks like in this project.
+    paired_pos = [k for k in scored_pos[GPT_MODEL] if k in scored_pos[SONNET_MODEL]]
+    paired_ctl = [k for k in scored_ctl[GPT_MODEL] if k in scored_ctl[SONNET_MODEL]]
+    for m in (GPT_MODEL, SONNET_MODEL):
+        out["judges"][m]["n_scored"] = {
+            "adopted": len(scored_pos[m]),
+            "control": len(scored_ctl[m]),
+        }
+    out["n_paired"] = {"adopted": len(paired_pos), "control": len(paired_ctl)}
+
+    pa = {m: [scored_pos[m][k] for k in paired_pos] for m in (GPT_MODEL, SONNET_MODEL)}
+    pc = {m: [scored_ctl[m][k] for k in paired_ctl] for m in (GPT_MODEL, SONNET_MODEL)}
     boot = random.Random(SEED + 1)
     diffs = []
-    if all(pa.values()) and all(pc.values()):
-        na, nc = len(pa[GPT_MODEL]), len(pc[GPT_MODEL])
+    if paired_pos and paired_ctl:
+        na, nc = len(paired_pos), len(paired_ctl)
         for _ in range(5000):
             ia = [boot.randrange(na) for _ in range(na)]
             ic = [boot.randrange(nc) for _ in range(nc)]
@@ -659,20 +948,45 @@ def report() -> int:
             diffs.append(gaps[SONNET_MODEL] - gaps[GPT_MODEL])
         diffs.sort()
         lo, hi = diffs[int(0.025 * len(diffs))], diffs[int(0.975 * len(diffs))]
-        # Does each judge discriminate AT ALL? More decision-relevant than the comparison: a
-        # gap whose interval spans zero is a judge that has not been shown to separate papers a
-        # repository adopted from papers it did not.
-        for m in (GPT_MODEL, SONNET_MODEL):
-            own = []
-            for _ in range(5000):
-                ia = [boot.randrange(na) for _ in range(na)]
-                ic = [boot.randrange(nc) for _ in range(nc)]
-                own.append(sum(pa[m][i] for i in ia) / na - sum(pc[m][i] for i in ic) / nc)
-            own.sort()
-            olo, ohi = own[int(0.025 * len(own))], own[int(0.975 * len(own))]
-            out["judges"][m]["gap_ci95"] = [round(olo, 4), round(ohi, 4)]
-            out["judges"][m]["gap_excludes_zero"] = bool(olo > 0)
+    # Does each judge discriminate AT ALL? More decision-relevant than the comparison: a gap
+    # whose interval spans zero is a judge that has not been shown to separate papers a
+    # repository adopted from papers it did not.
+    #
+    # **Over that judge's OWN scored set, not the two-judge intersection.** The intersection is
+    # the right unit for the DIFFERENCE above, which needs the pairing; it is the wrong unit
+    # for a per-judge interval, which is a statement about that judge's own sample — and the
+    # point estimate `gap` beside it comes from `rate()`, over that judge's own rows. Pairing
+    # them mismatched published an interval for a sample the number next to it did not
+    # describe: with half of Sonnet's verdicts missing, GPT's gap stays 0.1428 while GPT's
+    # interval is recomputed over Sonnet's survivors, and it can cross zero — inverting this
+    # study's headline finding about the primary judge without one GPT verdict changing.
+    for m in (GPT_MODEL, SONNET_MODEL):
+        own_pos = list(scored_pos[m].values())
+        own_ctl = list(scored_ctl[m].values())
+        if not own_pos or not own_ctl:
+            continue
+        mp, mc = len(own_pos), len(own_ctl)
+        own = []
+        for _ in range(5000):
+            ia = [boot.randrange(mp) for _ in range(mp)]
+            ic = [boot.randrange(mc) for _ in range(mc)]
+            own.append(sum(own_pos[i] for i in ia) / mp - sum(own_ctl[i] for i in ic) / mc)
+        own.sort()
+        olo, ohi = own[int(0.025 * len(own))], own[int(0.975 * len(own))]
+        out["judges"][m]["gap_ci95"] = [round(olo, 4), round(ohi, 4)]
+        out["judges"][m]["gap_excludes_zero"] = excludes((olo, ohi), 0.0)
+        # Two-sided `excludes` answers "is this judge distinguishable from no discrimination",
+        # which is what the name says — but on its own it maps an interval entirely BELOW zero
+        # onto the same `true` as a validated judge. A judge ranking matched controls above the
+        # papers a project adopted is the most interesting outcome this design can produce, so
+        # the direction is recorded beside the flag rather than left to be inferred from the
+        # bounds. The old one-sided test collapsed the other pair instead, reporting an
+        # anti-discriminating judge with the same words as one that separates nothing.
+        out["judges"][m]["gap_direction"] = (
+            "above zero" if olo > 0 else "BELOW ZERO" if ohi < 0 else "spans zero"
+        )
 
+    if diffs:
         out["gap_difference_bootstrap"] = {
             "_comment": (
                 "Sonnet gap minus GPT gap, bootstrapped over the same papers both judges "
@@ -681,15 +995,16 @@ def report() -> int:
             ),
             "point": round(sum(diffs) / len(diffs), 4),
             "ci95": [round(lo, 4), round(hi, 4)],
-            "excludes_zero": bool(lo > 0 or hi < 0),
+            "excludes_zero": excludes((lo, hi), 0.0),
         }
-    better = max(g, key=lambda m: g[m])
+    better = max(g, key=lambda m: g[m]) if both_measured else None
+    separated = bool(diff >= SEPARATES) if diff is not None else None
     out["verdict"] = {
         "gaps": g,
-        "difference": round(diff, 4),
-        "both_flat": bool(max(g.values()) < FLAT_GAP),
-        "separated": bool(diff >= SEPARATES),
-        "better_instrument": better if diff >= SEPARATES else None,
+        "difference": round(diff, 4) if diff is not None else None,
+        "both_flat": bool(max(g.values()) < FLAT_GAP) if both_measured else None,
+        "separated": separated,
+        "better_instrument": better if separated else None,
         "replicates_nr56": {
             "_comment": (
                 "NR-56 ran on 31 positives across 6 cases with 124 controls drawn under a "
@@ -727,8 +1042,16 @@ def report() -> int:
                 "a differently-constructed benchmark, not more of this one."
             ),
         },
-        "primary_judge_gap_spans_zero": bool(
-            not out["judges"][GPT_MODEL].get("gap_excludes_zero", True)
+        # None when the bootstrap never ran, not False. `.get(..., True)` defaulted a MISSING
+        # interval to "excludes zero", so this — the single most consequential field in the
+        # artefact, and the one `tests/test_judge_validity_adoption.py` pins as the study's
+        # headline — published a positive discrimination claim computed from no data. It is the
+        # one place absence still rendered as a conclusion after every neighbouring field was
+        # made void-safe.
+        "primary_judge_gap_spans_zero": (
+            None
+            if out["judges"][GPT_MODEL].get("gap_excludes_zero") is None
+            else not out["judges"][GPT_MODEL]["gap_excludes_zero"]
         ),
         "headline": (
             "The primary judge -- gpt-5.5, the model every number in this project is scored "
@@ -741,13 +1064,37 @@ def report() -> int:
             "is that the project's primary judge lacks demonstrated validity against the only "
             "label here that no model produced. Absence of evidence, not evidence of error."
         ),
+        "_prose_describes_nr56_not_this_run": (
+            "`headline` and `caveats` are string literals NR-56 wrote and NR-57's re-run did "
+            "not update, because they are hard-coded rather than derived. They quote gap "
+            "0.153, CI [-0.040, +0.339], 49.2% of controls and n = 31 across 6 cases; the "
+            "computed block in this same artefact says 0.1428, [-0.0429, 0.3214], 0.5143 and "
+            "n = 35 across 9. The CONCLUSION is unchanged — the primary judge's interval still "
+            "spans zero, and `caveats`' qualitative claims still hold — but the FIGURES inside "
+            "the prose are from the earlier sample. Read the computed fields, not the "
+            "sentences. The published record carries the same defect and is deliberately NOT "
+            "edited here: it is cited by RESULTS.md, evals/README.md and PLANS.md, and "
+            "silently correcting a published artefact is worse than labelling it. This is the "
+            "incident that requires the pool wrapper to DERIVE its prose from computed values "
+            "rather than hard-code it; that wrapper writes no prose yet."
+        ),
         "caveats": (
             "n=31 positives across 6 cases with graph contributing 13 (C-7); 'not adopted' is a "
             "noisy negative that biases both gaps downward; adoption measures what a repository "
             "did, not what it should have done."
         ),
     }
-    FROZEN.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    # NOT `FROZEN`. This function is the DEFAULT action of the script — no `--plan`, no
+    # `--judge` falls through to here — and it used to overwrite the published NR-56/57 record
+    # unconditionally. `judge_validity_adoption.json` is what RESULTS.md's two tables,
+    # evals/README.md and PLANS.md quote; a run against a different positive set would have
+    # replaced those numbers in place, silently, and the citations would still read as if
+    # nothing had happened. §1: "the v1 record is immutable ... because it is the record v2 is
+    # compared against."
+    from judge_validity_pool import artifact_path, write_artifact
+
+    out["_run"] = {"source": "legacy", "controls": CONTROL_SCHEME}
+    written = write_artifact(artifact_path("legacy", CONTROL_SCHEME), out)
 
     print(
         f"positives {len(pos)} across {len(out['positives_by_case'])} cases, controls {len(ctl)}\n"
@@ -774,14 +1121,19 @@ def report() -> int:
                 f"CI [{j['gap_ci95'][0]:+.3f}, {j['gap_ci95'][1]:+.3f}]  {mark}"
             )
     v = out["verdict"]
-    print(f"\ngap difference: {v['difference']:.3f}  (separates at >= {SEPARATES})")
-    if v["both_flat"]:
-        print(f"BOTH GAPS < {FLAT_GAP}: neither judge separates adoption from matched controls.")
-    elif v["separated"]:
-        print(f"SEPARATED: {v['better_instrument']} is the better instrument for this benchmark.")
+    if v["difference"] is None:
+        # The same "VOID, not zero" rule one screen up: with a judge unscored there is no
+        # difference to compare against the bar, and printing one would invent it.
+        print("\ngap difference: VOID -- a judge has no verdicts, so there is nothing to compare.")
     else:
-        print("NOT SEPARATED at this n -- reported as such, not resolved by preference.")
-    print(f"wrote {FROZEN.name}")
+        print(f"\ngap difference: {v['difference']:.3f}  (separates at >= {SEPARATES})")
+        if v["both_flat"]:
+            print(f"BOTH GAPS < {FLAT_GAP}: neither judge separates adoption from controls.")
+        elif v["separated"]:
+            print(f"SEPARATED: {v['better_instrument']} is the better instrument here.")
+        else:
+            print("NOT SEPARATED at this n -- reported as such, not resolved by preference.")
+    print(f"wrote {written}")
     return 0
 
 
