@@ -174,13 +174,14 @@ def seeds_path(extractor: str = "v1") -> Path:
     return _suffixed(SEEDS, extractor)
 
 
-def git(repo: Path, *args: str, check: bool = True) -> str:
+def git(repo: Path, *args: str, check: bool = True, timeout: float | None = None) -> str:
     out = subprocess.run(
         ["git", "-C", str(repo), *args],
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=timeout,
     )
     if check and out.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {out.stderr.strip()[:200]}")
@@ -208,7 +209,11 @@ def clone(case: str, url: str) -> Path | None:
 
 
 def _matches_with_paths(
-    repo: Path, rev: str, grep_pattern: str, pattern: re.Pattern[str]
+    repo: Path,
+    rev: str,
+    grep_pattern: str,
+    pattern: re.Pattern[str],
+    timeout: float | None = None,
 ) -> dict[str, set[str]]:
     """Ids matching *pattern* at *rev*, each with the doc paths it occurs in.
 
@@ -224,6 +229,7 @@ def _matches_with_paths(
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=timeout,
     )
     # git grep exits 1 when nothing matches, which is not an error here.
     found: dict[str, set[str]] = {}
@@ -238,17 +244,25 @@ def _matches_with_paths(
     return found
 
 
-def ids_with_paths(repo: Path, rev: str, extractor: str = "v1") -> dict[str, set[str]]:
-    """Every id in the docs at *rev* with its paths, without checking anything out."""
-    found = _matches_with_paths(repo, rev, GREP_PATTERN, ID)
+def ids_with_paths(
+    repo: Path, rev: str, extractor: str = "v1", timeout: float | None = None
+) -> dict[str, set[str]]:
+    """Every id in the docs at *rev* with its paths, without checking anything out.
+
+    *timeout* bounds each `git grep`. In a blobless clone the grep lazily fetches every
+    documentation blob at that revision over the network, and that -- not the clone -- is
+    where a row's time goes: `huggingface/diffusers` measured **1,092 s cold**, against a
+    per-row bound of 300 s that only ever covered the clone. Unbounded, one pathological
+    repository hangs a walk measured in hours."""
+    found = _matches_with_paths(repo, rev, GREP_PATTERN, ID, timeout)
     if extractor == "v2":
-        for pid, paths in _matches_with_paths(repo, rev, HF_GREP_PATTERN, HF_ID).items():
+        for pid, paths in _matches_with_paths(repo, rev, HF_GREP_PATTERN, HF_ID, timeout).items():
             found.setdefault(pid, set()).update(paths)
     return found
 
 
-def ids_at(repo: Path, rev: str, extractor: str = "v1") -> set[str]:
-    return set(ids_with_paths(repo, rev, extractor))
+def ids_at(repo: Path, rev: str, extractor: str = "v1", timeout: float | None = None) -> set[str]:
+    return set(ids_with_paths(repo, rev, extractor, timeout))
 
 
 def reverse_cited_only(paths_by_id: dict[str, set[str]]) -> set[str]:
@@ -265,6 +279,7 @@ def self_cited(
     rev: str,
     extractor: str = "v1",
     paths_with_ids: set[str] | None = None,
+    timeout: float | None = None,
 ) -> set[str]:
     """Ids the project cites as ITS OWN work — a CITATION file, or a "Citation" heading.
 
@@ -288,7 +303,7 @@ def self_cited(
     # as an adoption -- and self-citations are the strongest-looking adoptions there are.
     pats = (ID,) if extractor == "v1" else (ID, HF_ID)
     if paths_with_ids is None:
-        found_paths = ids_with_paths(repo, rev, extractor).values()
+        found_paths = ids_with_paths(repo, rev, extractor, timeout).values()
         paths_with_ids = {p for paths in found_paths for p in paths}
     found: set[str] = set()
     listing = subprocess.run(
@@ -297,6 +312,7 @@ def self_cited(
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=timeout,
     ).stdout.splitlines()
     for path in listing:
         name = path.rsplit("/", 1)[-1].lower()
@@ -309,6 +325,7 @@ def self_cited(
             text=True,
             encoding="utf-8",
             errors="replace",
+            timeout=timeout,
         ).stdout
         if not blob:
             continue

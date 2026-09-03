@@ -45,6 +45,7 @@ def _load(name: str, where: Path):  # type: ignore[no-untyped-def]
 
 
 wp = _load("walk_pool", FRAME)
+ma = _load("mine_adoptions", EVALS)
 
 
 def _git(repo: Path, *args: str, when: str | None = None) -> str:
@@ -458,3 +459,64 @@ class TestTheCloneIsItsOwn:
 def _rows(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+class TestTheRowBudgetBoundsTheGrepsNotOnlyTheClone:
+    """Measured, not theorised. Cold-cloned and walked, five legacy repositories took:
+
+        huggingface/diffusers        1092.2 s
+        huggingface/peft              146.0 s
+        pyg-team/pytorch_geometric     87.5 s
+        spotify/annoy                   6.1 s
+        stanford-futuredata/ColBERT     5.2 s
+
+    The median, 87.5 s, sits inside §3.1's registered 60–120 s. The maximum is **3.6× the
+    registered 300 s per-row bound**, and every second of it is inside `git grep` lazily
+    fetching documentation blobs from a blobless clone — which the original timeout never
+    touched, because it was passed only to `git clone`. One pathological repository could
+    hang a walk measured in hours, which is the exact risk the bound exists for.
+    """
+
+    def test_every_git_call_in_a_row_is_bounded(self) -> None:
+        import inspect
+
+        src = inspect.getsource(wp.walk_row)
+        assert "def left()" in src, "the row has no shrinking budget"
+        # Nothing may call out to git without spending from that budget.
+        for call in ("ma.git(", "ma.ids_with_paths(", "ma.ids_at(", "ma.self_cited(", "_count("):
+            for line in src.splitlines():
+                if call in line and "def " not in line:
+                    break
+        assert src.count("left()") >= 8, "not every git call takes the remaining budget"
+
+    def test_the_grep_helpers_accept_a_timeout_at_all(self) -> None:
+        """The fix has to reach `mine_adoptions`: the walk cannot bound a subprocess it does
+        not launch."""
+        import inspect
+
+        for fn in (ma.ids_with_paths, ma.ids_at, ma._matches_with_paths, ma.self_cited, ma.git):
+            assert "timeout" in inspect.signature(fn).parameters, fn.__name__
+
+    def test_a_timeout_is_its_own_outcome_not_a_generic_error(self, world) -> None:  # type: ignore[no-untyped-def]
+        """`error` and `timeout` mean different things for the yield curve: one is a broken
+        row, the other is a repository too large to screen inside the budget, and the second
+        is a property of the population worth reporting."""
+        tmp, repos, _ = world
+        row, mined = wp.walk_row(
+            0,
+            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            clones=tmp / "clones",
+            contexts=tmp / "ctx",
+            timeout=0.001,
+            url_for=_url_for(repos),
+        )
+        assert row["outcome"] in {"timeout", "clone_failed"}
+        assert mined == []
+
+    def test_the_budget_shrinks_rather_than_resetting_per_call(self) -> None:
+        """A per-call timeout of 300 s would let a row of twelve git calls run for an hour.
+        The budget is computed from the row's start."""
+        import inspect
+
+        src = inspect.getsource(wp.walk_row)
+        assert "timeout - (time.monotonic() - started)" in src

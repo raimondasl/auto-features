@@ -248,6 +248,66 @@ CONTROL_SCHEME = "pool"
 LISTING_PER_WINDOW = 200
 
 
+def enrich_positives(
+    rows: list[dict[str, Any]], *, fetch: Any = None
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Attach the primary arXiv category and submission date every positive needs.
+
+    `arxiv_window_controls` matches a control to its positive on (primary category, half-year
+    of submission). **Neither field exists on a mined adoption row** -- mining reads git, not
+    arXiv -- and nothing else in the codebase produced them. Without this the control drawer
+    skipped every positive and returned an EMPTY control set: not an error, just no negatives,
+    and an AUC computed against nothing.
+
+    That is the silent zero this project keeps being bitten by, so the *missing* ids are
+    returned rather than dropped. A caller that ignores them is choosing to, in writing.
+    """
+    from reporadar import collector as collector_mod
+
+    wanted = sorted({dedup_id(str(r["id"])) for r in rows})
+    getter = fetch or collector_mod.collect_by_ids
+    fetched = {dedup_id(str(p.get("arxiv_id", ""))): p for p in getter(wanted)}
+
+    enriched: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for row in rows:
+        pid = dedup_id(str(row["id"]))
+        paper = fetched.get(pid)
+        if paper is None:
+            missing.append(pid)
+            continue
+        categories = paper.get("categories") or []
+        if not categories or not paper.get("published"):
+            missing.append(pid)
+            continue
+        enriched.append(
+            {
+                **row,
+                "primary_category": categories[0],
+                "published": str(paper["published"])[:10],
+                "paper": paper,
+            }
+        )
+    return enriched, missing
+
+
+def refuse_an_empty_control_set(positives: list[Any], controls: list[Any]) -> None:
+    """A control set of zero is never a result. Raise instead of reporting one.
+
+    Section 5's primary is an AUC of positives against controls; with no controls it is
+    undefined, and every downstream figure would be computed from nothing while looking
+    exactly like a completed run.
+    """
+    if positives and not controls:
+        raise SystemExit(
+            f"{len(positives)} positives drew ZERO controls.\n"
+            "  An AUC against an empty negative class is not a null result, it is no\n"
+            "  result. Check that the positives were enriched (primary_category and\n"
+            "  published) and that the arXiv listing returned anything for their category\n"
+            "  and half-year."
+        )
+
+
 def half_year_bounds(published: str) -> tuple[str, str]:
     """The half-year containing *published*, as arXiv `submittedDate` bounds.
 

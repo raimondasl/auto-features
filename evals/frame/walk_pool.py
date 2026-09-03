@@ -100,8 +100,10 @@ def seeded_order(candidates: list[dict[str, str]], seed: str) -> list[dict[str, 
     return sorted(candidates, key=lambda row: order_key(seed, row["full_name"]))
 
 
-def _count(repo: Path, rev: str, grep: str, pattern: re.Pattern[str]) -> int:
-    return len(ma._matches_with_paths(repo, rev, grep, pattern))
+def _count(
+    repo: Path, rev: str, grep: str, pattern: re.Pattern[str], timeout: float | None = None
+) -> int:
+    return len(ma._matches_with_paths(repo, rev, grep, pattern, timeout))
 
 
 def context_hash(rubric_marker: str, context: str) -> str:
@@ -185,24 +187,37 @@ def walk_row(
         if repo is None:
             return _blank_row(rank, full, created, "clone_failed", "clone failed or timed out"), []
 
-        head = ma.git(repo, "rev-parse", "HEAD", check=False).strip()
-        head_ts = ma.git(repo, "log", "-1", "--format=%ct", "HEAD", check=False).strip()
+        def left() -> float:
+            """What remains of this row's budget. Each git call is bounded by it, so the
+            row as a whole cannot exceed the timeout however many calls it makes."""
+            return max(1.0, timeout - (time.monotonic() - started))
+
+        head = ma.git(repo, "rev-parse", "HEAD", check=False, timeout=left()).strip()
+        head_ts = ma.git(
+            repo, "log", "-1", "--format=%ct", "HEAD", check=False, timeout=left()
+        ).strip()
         if not head or not head_ts:
             return _blank_row(rank, full, created, "no_head", "cannot resolve HEAD"), []
         head_date = datetime.fromtimestamp(int(head_ts), tz=UTC)
         cutoff = head_date - timedelta(days=ma.WINDOW_MONTHS * 30)
         t0 = ma.git(
-            repo, "rev-list", "-1", f"--before={cutoff.date().isoformat()}", head, check=False
+            repo,
+            "rev-list",
+            "-1",
+            f"--before={cutoff.date().isoformat()}",
+            head,
+            check=False,
+            timeout=left(),
         ).strip()
         if not t0:
             row = _blank_row(rank, full, created, "no_history", f"no commit before {cutoff.date()}")
             row.update(head=head, head_date=head_date.date().isoformat(), pp1_history=False)
             return row, []
-        t0_ts = ma.git(repo, "log", "-1", "--format=%ct", t0, check=False).strip()
+        t0_ts = ma.git(repo, "log", "-1", "--format=%ct", t0, check=False, timeout=left()).strip()
         t0_date = datetime.fromtimestamp(int(t0_ts), tz=UTC) if t0_ts else cutoff
 
-        head_paths = ma.ids_with_paths(repo, head, "v2")
-        t0_ids = ma.ids_at(repo, t0, "v2")
+        head_paths = ma.ids_with_paths(repo, head, "v2", left())
+        t0_ids = ma.ids_at(repo, t0, "v2", left())
         row = _blank_row(rank, full, created, "ok", "")
         # PP1 is checked against the CLONE, not the API: T0 is anchored to head_date, so a
         # repository quiet for a year can pass a `created_at` pre-filter and still have no
@@ -217,14 +232,14 @@ def walk_row(
             t0=t0,
             t0_commit_date=t0_date.date().isoformat(),
             window_days=(head_date - t0_date).days,
-            ids_v1_head=_count(repo, head, ma.GREP_PATTERN, ma.ID),
+            ids_v1_head=_count(repo, head, ma.GREP_PATTERN, ma.ID, left()),
             ids_v2_head=len(head_paths),
-            ids_v1_t0=_count(repo, t0, ma.GREP_PATTERN, ma.ID),
+            ids_v1_t0=_count(repo, t0, ma.GREP_PATTERN, ma.ID, left()),
             ids_v2_t0=len(t0_ids),
-            dois_head=_count(repo, head, DOI_GREP, DOI),
-            dois_t0=_count(repo, t0, DOI_GREP, DOI),
-            pmids_head=_count(repo, head, PMID_GREP, PMID),
-            pmids_t0=_count(repo, t0, PMID_GREP, PMID),
+            dois_head=_count(repo, head, DOI_GREP, DOI, left()),
+            dois_t0=_count(repo, t0, DOI_GREP, DOI, left()),
+            pmids_head=_count(repo, head, PMID_GREP, PMID, left()),
+            pmids_t0=_count(repo, t0, PMID_GREP, PMID, left()),
             pp1_history=bool(history_days is not None and history_days >= MIN_HISTORY_MONTHS * 30),
             pp2_ids_t0=len(t0_ids) >= MIN_IDS_T0,
             seconds=round(time.monotonic() - started, 1),
@@ -234,10 +249,10 @@ def walk_row(
             return row, []
 
         selfcites = ma.self_cited(
-            repo, head, "v2", {p for paths in head_paths.values() for p in paths}
+            repo, head, "v2", {p for paths in head_paths.values() for p in paths}, left()
         )
         showcase = ma.reverse_cited_only(head_paths)
-        arxiv_form = set(ma._matches_with_paths(repo, head, ma.GREP_PATTERN, ma.ID))
+        arxiv_form = set(ma._matches_with_paths(repo, head, ma.GREP_PATTERN, ma.ID, left()))
         adopted = sorted(set(head_paths) - t0_ids)
         rows: list[dict[str, Any]] = []
         for paper in adopted:
@@ -284,6 +299,11 @@ def walk_row(
                 )
         row["seconds"] = round(time.monotonic() - started, 1)
         return row, rows
+    except subprocess.TimeoutExpired:
+        # Its own outcome, not lumped under `error`. Measured cold, `huggingface/diffusers`
+        # takes 1,092 s -- 3.6x this bound -- and every second of it is inside `git grep`
+        # lazily fetching doc blobs, which the clone-only timeout never covered.
+        return _blank_row(rank, full, created, "timeout", f"exceeded {timeout:.0f}s"), []
     except Exception as exc:  # noqa: BLE001 - a bad row must not end an hours-long walk
         return _blank_row(rank, full, created, "error", str(exc)[:160]), []
     finally:

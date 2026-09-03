@@ -295,3 +295,87 @@ class TestTheCacheIsolationGate:
         src = inspect.getsource(jva.judge)
         last_write = src.rindex("VERDICTS.write_text")
         assert src.index("assert_caches_untouched(cache_before") > last_write
+
+
+class TestPositivesMustBeEnrichedBeforeControlsCanBeDrawn:
+    """The gap that would have produced no controls at all.
+
+    `arxiv_window_controls` matches a control to its positive on (primary category, half-year
+    of submission). Neither field exists on a mined adoption row — mining reads git, not arXiv
+    — and nothing in the codebase produced them. So on real data every positive was skipped
+    and the control set came back EMPTY: not an error, just no negatives, and a primary
+    endpoint computed against nothing.
+    """
+
+    ROWS = [{"case": "acme/rich", "id": "2103.00001"}, {"case": "acme/rich", "id": "2104.00002"}]
+
+    def test_it_attaches_the_category_and_date_the_controls_match_on(self) -> None:
+        def fetch(ids: list[str]) -> list[dict]:
+            return [
+                {
+                    "arxiv_id": "2103.00001",
+                    "categories": ["cs.LG", "stat.ML"],
+                    "published": "2021-03-14T00:00:00+00:00",
+                },
+                {
+                    "arxiv_id": "2104.00002",
+                    "categories": ["cs.CV"],
+                    "published": "2021-04-02T00:00:00+00:00",
+                },
+            ]
+
+        enriched, missing = jva.enrich_positives(self.ROWS, fetch=fetch)
+        assert missing == []
+        assert [r["primary_category"] for r in enriched] == ["cs.LG", "cs.CV"]
+        assert [r["published"] for r in enriched] == ["2021-03-14", "2021-04-02"]
+
+    def test_an_unfetchable_positive_is_returned_as_missing_not_dropped(self) -> None:
+        """Silently dropping it would shrink the positive set without saying so — the same
+        shape as the empty control set this exists to prevent."""
+
+        def fetch(ids: list[str]) -> list[dict]:
+            return [{"arxiv_id": "2103.00001", "categories": ["cs.LG"], "published": "2021-03-14"}]
+
+        enriched, missing = jva.enrich_positives(self.ROWS, fetch=fetch)
+        assert [r["id"] for r in enriched] == ["2103.00001"]
+        assert missing == ["2104.00002"]
+
+    def test_a_paper_with_no_category_counts_as_missing(self) -> None:
+        def fetch(ids: list[str]) -> list[dict]:
+            return [
+                {"arxiv_id": "2103.00001", "categories": [], "published": "2021-03-14"},
+                {"arxiv_id": "2104.00002", "categories": ["cs.LG"], "published": ""},
+            ]
+
+        enriched, missing = jva.enrich_positives(self.ROWS, fetch=fetch)
+        assert enriched == []
+        assert sorted(missing) == ["2103.00001", "2104.00002"]
+
+    def test_enriched_rows_actually_draw_controls(self) -> None:
+        """The end-to-end point: unenriched rows draw nothing, enriched rows draw four each."""
+        listing = _listing_of([f"2104.000{i:02d}" for i in range(20)])
+        assert jva.arxiv_window_controls(self.ROWS, {}, "SEED", listing=listing) == []
+
+        def fetch(ids: list[str]) -> list[dict]:
+            return [
+                {"arxiv_id": "2103.00001", "categories": ["cs.LG"], "published": "2021-03-14"},
+                {"arxiv_id": "2104.00002", "categories": ["cs.LG"], "published": "2021-04-02"},
+            ]
+
+        enriched, _ = jva.enrich_positives(self.ROWS, fetch=fetch)
+        assert len(jva.arxiv_window_controls(enriched, {}, "SEED", listing=listing)) == 8
+
+
+class TestAnEmptyControlSetIsRefused:
+    def test_positives_with_no_controls_raises(self) -> None:
+        """An AUC against an empty negative class is not a null result, it is no result — and
+        without this it would look exactly like a completed run."""
+        with pytest.raises(SystemExit) as exc:
+            jva.refuse_an_empty_control_set([{"id": "1"}], [])
+        assert "ZERO controls" in str(exc.value)
+
+    def test_a_normal_draw_passes_silently(self) -> None:
+        jva.refuse_an_empty_control_set([{"id": "1"}], [{"id": "2"}])
+
+    def test_no_positives_is_not_this_functions_problem(self) -> None:
+        jva.refuse_an_empty_control_set([], [])
