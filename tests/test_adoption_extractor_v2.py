@@ -532,3 +532,54 @@ class TestTheLegacyRemineIsWindowMatched:
         monkeypatch.setattr(ma, "SEEDS", tmp_path / "seeds.json")
         rows = ma.mine({"proj": repo.as_uri()}, extractor="v2")
         assert rows and all("head_pinned" in r for r in rows)
+
+
+class TestTheSelfCitationFilterSpeaksReStructuredText:
+    """`.rst` is in `DOC_GLOBS`, so those files were opened and scanned — with a
+    markdown-only heading pattern that can never match an RST underlined heading. A
+    Sphinx-documented project's own paper was therefore invisible to the filter, and a
+    reference implementation's own paper is the strongest-looking "adoption" there is.
+
+    It never fired on the legacy 37 because they skew markdown. The enumerated population is
+    17,888 repositories, heavy in Sphinx-documented scientific Python.
+    """
+
+    def test_an_rst_underlined_heading_is_recognised(self) -> None:
+        assert ma.CITE_HEADING_RST.search("Citation\n========\n\ncite arXiv:2402.00002\n")
+        assert ma.CITE_HEADING_RST.search("BibTeX\n~~~~~~\n\narXiv:2402.00002\n")
+
+    def test_the_markdown_pattern_still_works(self) -> None:
+        assert ma.CITE_HEADING.search("## Citation\ncite arXiv:2402.00002\n")
+
+    def test_prose_without_an_underline_is_not_a_heading(self) -> None:
+        """The underline is what makes it a heading; without it every sentence containing
+        the word 'cite' would swallow the next 800 characters of real adoptions."""
+        assert not ma.CITE_HEADING_RST.search("please cite us when you can\nno underline here\n")
+
+    def test_citing_is_deliberately_out_of_scope(self) -> None:
+        """§1 registers the filter as headings containing Citation / Cite / BibTeX. "Citing"
+        is not in that list, and the markdown pattern has never matched it either. Widening
+        the word list now would change the label AFTER NR-60 scored P1 and P2 against it —
+        an unregistered change to the instrument, not a bug fix."""
+        heading = "Citing this work\n----------------\n\narXiv:2402.00002\n"
+        assert not ma.CITE_HEADING_RST.search(heading)
+        assert not ma.CITE_HEADING.search("## Citing this work\narXiv:2402.00002\n")
+
+    def test_both_patterns_are_scanned(self) -> None:
+        import inspect
+
+        assert "for cite_heading in CITE_HEADINGS" in inspect.getsource(ma.self_cited)
+
+    def test_an_rst_self_citation_is_caught_end_to_end(self, tmp_path: Path) -> None:
+        repo = tmp_path / "sphinxy"
+        repo.mkdir()
+        _git(repo, "init", "-q", "-b", "main")
+        _write(
+            repo,
+            "docs/index.rst",
+            "Overview\n========\n\nUses https://arxiv.org/abs/2106.09685.\n\n"
+            "Citation\n========\n\nIf you use this, cite arXiv:2402.00002.\n",
+        )
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-qm", "only")
+        assert ma.self_cited(repo, "HEAD", "v2") == {"2402.00002"}

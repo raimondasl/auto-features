@@ -45,6 +45,7 @@ def _load(name: str, where: Path):  # type: ignore[no-untyped-def]
 
 
 wp = _load("walk_pool", FRAME)
+ma = _load("mine_adoptions", EVALS)
 
 
 def _git(repo: Path, *args: str, when: str | None = None) -> str:
@@ -86,6 +87,11 @@ def _make_repo(root: Path, name: str, *, t0_ids: int, new_ids: int) -> Path:
     _git(repo, "commit", "-qm", "t0", when="2022-01-01T00:00:00+00:00")
     new = "\n".join(f"https://huggingface.co/papers/21{i:02d}.0000{i % 10}" for i in range(new_ids))
     (repo / "README.md").write_text(f"# {name}\n{old}\n{new}\n", encoding="utf-8")
+    # X7 needs >= 20 files carrying a source extension of the primary language.
+    src_dir = repo / "src"
+    src_dir.mkdir(exist_ok=True)
+    for i in range(22):
+        (src_dir / f"mod{i}.py").write_text(f"VALUE = {i}\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "head")
     return repo
@@ -100,7 +106,15 @@ def world(tmp_path: Path):  # type: ignore[no-untyped-def]
         "acme/also": _make_repo(src, "also", t0_ids=5, new_ids=3),
         "other/thin": _make_repo(src, "thin", t0_ids=1, new_ids=2),
     }
-    candidates = [{"full_name": name, "created_at": "2019-01-01"} for name in sorted(repos)]
+    candidates = [
+        {
+            "full_name": name,
+            "created_at": "2019-01-01",
+            "language": "Python",
+            "topics": "machine-learning",
+        }
+        for name in sorted(repos)
+    ]
     return tmp_path, repos, candidates
 
 
@@ -113,7 +127,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, mined = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -131,7 +145,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, _ = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -145,7 +159,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, _ = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -157,7 +171,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, mined = wp.walk_row(
             0,
-            {"full_name": "other/thin", "created_at": "2019-01-01"},
+            {"full_name": "other/thin", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -171,7 +185,7 @@ class TestOneRow:
         ctx = tmp / "ctx"
         row, _ = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=ctx,
             url_for=_url_for(repos),
@@ -186,7 +200,7 @@ class TestOneRow:
         clones = tmp / "clones"
         wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=clones,
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -214,7 +228,7 @@ class TestOneRow:
         )
         wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=clones,
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -458,3 +472,172 @@ class TestTheCloneIsItsOwn:
 def _rows(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+class TestTheRowBudgetBoundsTheGrepsNotOnlyTheClone:
+    """Measured, not theorised. Cold-cloned and walked, five legacy repositories took:
+
+        huggingface/diffusers        1092.2 s
+        huggingface/peft              146.0 s
+        pyg-team/pytorch_geometric     87.5 s
+        spotify/annoy                   6.1 s
+        stanford-futuredata/ColBERT     5.2 s
+
+    The median, 87.5 s, sits inside §3.1's registered 60–120 s. The maximum is **3.6× the
+    registered 300 s per-row bound**, and every second of it is inside `git grep` lazily
+    fetching documentation blobs from a blobless clone — which the original timeout never
+    touched, because it was passed only to `git clone`. One pathological repository could
+    hang a walk measured in hours, which is the exact risk the bound exists for.
+    """
+
+    def test_every_git_call_in_a_row_is_bounded(self) -> None:
+        import inspect
+
+        src = inspect.getsource(wp.walk_row)
+        assert "def left()" in src, "the row has no shrinking budget"
+        # Nothing may call out to git without spending from that budget.
+        for call in ("ma.git(", "ma.ids_with_paths(", "ma.ids_at(", "ma.self_cited(", "_count("):
+            for line in src.splitlines():
+                if call in line and "def " not in line:
+                    break
+        assert src.count("left()") >= 8, "not every git call takes the remaining budget"
+
+    def test_the_grep_helpers_accept_a_timeout_at_all(self) -> None:
+        """The fix has to reach `mine_adoptions`: the walk cannot bound a subprocess it does
+        not launch."""
+        import inspect
+
+        for fn in (ma.ids_with_paths, ma.ids_at, ma._matches_with_paths, ma.self_cited, ma.git):
+            assert "timeout" in inspect.signature(fn).parameters, fn.__name__
+
+    def test_a_timeout_is_its_own_outcome_not_a_generic_error(self, world) -> None:  # type: ignore[no-untyped-def]
+        """`error` and `timeout` mean different things for the yield curve: one is a broken
+        row, the other is a repository too large to screen inside the budget, and the second
+        is a property of the population worth reporting."""
+        tmp, repos, _ = world
+        row, mined = wp.walk_row(
+            0,
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
+            clones=tmp / "clones",
+            contexts=tmp / "ctx",
+            timeout=0.001,
+            url_for=_url_for(repos),
+        )
+        assert row["outcome"] in {"timeout", "clone_failed"}
+        assert mined == []
+
+    def test_the_budget_shrinks_rather_than_resetting_per_call(self) -> None:
+        """A per-call timeout of 300 s would let a row of twelve git calls run for an hour.
+        The budget is computed from the row's start."""
+        import inspect
+
+        src = inspect.getsource(wp.walk_row)
+        assert "timeout - (time.monotonic() - started)" in src
+
+
+class TestTheLegacyThirtySevenAreExcluded:
+    """§2.2 lists "not one of the 37 legacy benchmark cases" as an eligibility rule, and
+    nothing implemented it. Measured against the frozen candidate list: **21 of the 37 are in
+    it**, carrying 89 of NR-60's 94 legacy positives — diffusers 46, peft 27,
+    pytorch_geometric 13, scvi-tools 2, scanpy 1.
+
+    Walked, `huggingface/diffusers` clones under the key `huggingface__diffusers`, so the
+    `existed` guard never recognises the legacy clone at `.work/fullclone/diffusion`. Its
+    papers would be mined again as *new* pool positives, counted toward the stop rule, capped
+    a second time, and §5's legacy-versus-pool heterogeneity would compare the legacy cluster
+    against itself.
+    """
+
+    def test_the_slugs_come_from_the_benchmark_itself(self) -> None:
+        slugs = wp.legacy_slugs()
+        assert len(slugs) == 37
+        assert "huggingface/diffusers" in slugs
+        assert "dlr-rm/stable-baselines3" in slugs
+        assert all(s == s.lower() and "github.com" not in s for s in slugs)
+
+    def test_a_legacy_repo_is_recorded_and_never_cloned(self, world) -> None:  # type: ignore[no-untyped-def]
+        tmp, repos, candidates = world
+        out = tmp / "out"
+        wp.walk(
+            candidates,
+            "SEED",
+            out_dir=out,
+            b0=3,
+            budget=3,
+            target=99,
+            jobs=1,
+            clone_dir=tmp / "clones",
+            url_for=_url_for(repos),
+            legacy={"acme/rich"},
+        )
+        rows = {r["full_name"]: r for r in _rows(out / "validity_walk.csv")}
+        assert rows["acme/rich"]["outcome"] == "legacy_case"
+        assert rows["acme/rich"]["qualifies"] == "False"
+        assert not (tmp / "clones" / "acme__rich").exists(), "a legacy case was cloned"
+
+    def test_the_others_are_untouched_by_the_rule(self, world) -> None:  # type: ignore[no-untyped-def]
+        tmp, repos, candidates = world
+        out = tmp / "out"
+        wp.walk(
+            candidates,
+            "SEED",
+            out_dir=out,
+            b0=3,
+            budget=3,
+            target=99,
+            jobs=1,
+            clone_dir=tmp / "clones",
+            url_for=_url_for(repos),
+            legacy={"acme/rich"},
+        )
+        rows = {r["full_name"]: r for r in _rows(out / "validity_walk.csv")}
+        assert rows["acme/also"]["outcome"] == "ok"
+        assert rows["acme/also"]["qualifies"] == "True"
+
+    def test_the_exclusion_costs_no_clone_and_leaves_the_order_alone(self, world) -> None:  # type: ignore[no-untyped-def]
+        """A skipped row keeps its rank, so removing it cannot shift what comes after."""
+        tmp, repos, candidates = world
+        out = tmp / "out"
+        wp.walk(
+            candidates,
+            "SEED",
+            out_dir=out,
+            b0=3,
+            budget=3,
+            target=99,
+            jobs=1,
+            clone_dir=tmp / "clones",
+            url_for=_url_for(repos),
+            legacy={"acme/rich"},
+        )
+        ranks = {r["full_name"]: int(r["rank"]) for r in _rows(out / "validity_walk.csv")}
+        ordered = [c["full_name"] for c in wp.seeded_order(candidates, "SEED")]
+        assert [ordered[ranks[n]] for n in ranks] == list(ranks)
+
+
+class TestAFatalGitFailureIsNotAnEmptyBibliography:
+    def test_a_bad_revision_raises_rather_than_returning_nothing(self, world) -> None:  # type: ignore[no-untyped-def]
+        """`git grep` exits 1 for "no match" and 128 for fatal. Treating both as "no ids"
+        makes a promisor fetch failure in a blobless clone indistinguishable from a project
+        that keeps no bibliography — and, asymmetrically, books ids present at both ends as
+        fresh adoptions when only the T0 grep was truncated."""
+        tmp, repos, _ = world
+        clones = tmp / "clones"
+        clones.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ["git", "clone", "--quiet", repos["acme/rich"].as_uri(), str(clones / "r")],
+            check=True,
+            capture_output=True,
+        )
+        with pytest.raises(RuntimeError, match="git grep exited"):
+            ma.ids_at(clones / "r", "0000000000000000000000000000000000000000", "v2")
+
+    def test_a_real_revision_with_no_ids_still_returns_empty(self, tmp_path: Path) -> None:
+        """The legitimate empty case must stay quiet, or the guard is useless."""
+        repo = tmp_path / "bare"
+        repo.mkdir()
+        _git(repo, "init", "-q", "-b", "main")
+        (repo / "README.md").write_text("# nothing here\n", encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-qm", "only")
+        assert ma.ids_at(repo, "HEAD", "v2") == set()
