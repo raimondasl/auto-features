@@ -158,6 +158,62 @@ def legacy_slugs(bench: Path | None = None) -> set[str]:
     return out
 
 
+# §3.2's yield curve, committed every 50 rows "so a shortfall is visible in hours rather than
+# at the ceiling". The registered fields are rows walked, rejects BY RULE, clone failures,
+# timeouts, qualifiers, gross adoptions and capped-usable positives -- so the rejects are
+# broken out per outcome rather than summed, which is what "by rule" means and what makes a
+# shortfall diagnosable while it is still cheap to stop.
+CURVE_OUTCOMES = (
+    "ok",
+    "legacy_case",
+    "owner_cap",
+    "language",
+    "not_software",
+    "software_floor",
+    "readme_lang",
+    "no_history",
+    "no_head",
+    "clone_failed",
+    "clone_timeout",
+    "timeout",
+    "error",
+)
+CURVE_COLUMNS = (
+    "at",
+    "walked",
+    "qualifiers",
+    "gross_adoptions",
+    "capped_positives",
+    *(f"n_{name}" for name in CURVE_OUTCOMES),
+)
+
+
+def curve_point(rows: list[dict[str, Any]], capped_total: int) -> dict[str, Any]:
+    tally = _tally(rows, "outcome")
+    point: dict[str, Any] = {
+        "at": len(rows),
+        "walked": len(rows),
+        "qualifiers": sum(1 for r in rows if str(r.get("qualifies")) == "True"),
+        "gross_adoptions": sum(int(r.get("gross_adoptions") or 0) for r in rows),
+        "capped_positives": capped_total,
+    }
+    for name in CURVE_OUTCOMES:
+        point[f"n_{name}"] = tally.get(name, 0)
+    return point
+
+
+def append_curve(path: Path, point: dict[str, Any]) -> None:
+    """Appended, not held in memory. A curve written once at the end is a curve nobody could
+    have acted on -- the whole point is seeing a shortfall in hours."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    new = not path.exists()
+    with path.open("a", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(CURVE_COLUMNS))
+        if new:
+            writer.writeheader()
+        writer.writerow({k: point.get(k, "") for k in CURVE_COLUMNS})
+
+
 def order_key(seed: str, full_name: str) -> str:
     return hashlib.sha256(f"{seed}{full_name}".encode()).hexdigest()
 
@@ -251,8 +307,13 @@ def github_url(full_name: str) -> str:
     return f"https://github.com/{full_name}"
 
 
-def _clone(clones: Path, key: str, url: str, timeout: float) -> Path | None:
-    """Blobless, never checked out, and with a timeout.
+def _clone(clones: Path, key: str, url: str, timeout: float) -> tuple[Path | None, str]:
+    """Blobless, never checked out, and with a timeout. Returns (path, reason).
+
+    The reason matters as much as the failure. A private-or-deleted repository, a rename,
+    a network blip and a repository too large to clone inside the budget are four different
+    facts about the population, and returning None for all of them collapsed them into one
+    ledger value with git's own explanation discarded.
 
     Deliberately **not** `mine_adoptions.clone`: that resolves its destination from the
     module-level `CLONES`, and the only way to redirect it is to assign to that global. The
@@ -262,7 +323,7 @@ def _clone(clones: Path, key: str, url: str, timeout: float) -> Path | None:
     """
     path = clones / key
     if (path / "HEAD").is_file() or (path / ".git").exists():
-        return path
+        return path, ""
     clones.mkdir(parents=True, exist_ok=True)
     try:
         res = subprocess.run(
@@ -275,8 +336,11 @@ def _clone(clones: Path, key: str, url: str, timeout: float) -> Path | None:
         )
     except subprocess.TimeoutExpired:
         ma._remove_clone(path)
-        return None
-    return path if res.returncode == 0 else None
+        return None, "timeout"
+    if res.returncode != 0:
+        detail = (res.stderr or "").strip().splitlines()
+        return None, (detail[-1][:150] if detail else f"git clone exited {res.returncode}")
+    return path, ""
 
 
 def walk_row(
@@ -303,9 +367,10 @@ def walk_row(
     key = full.replace("/", "__")
     existed = (clones / key).exists()
     try:
-        repo = _clone(clones, key, url_for(full), timeout)
+        repo, why = _clone(clones, key, url_for(full), timeout)
         if repo is None:
-            return _blank_row(rank, full, created, "clone_failed", "clone failed or timed out"), []
+            outcome = "clone_timeout" if why == "timeout" else "clone_failed"
+            return _blank_row(rank, full, created, outcome, why), []
 
         def left() -> float:
             """What remains of this row's budget. Each git call is bounded by it, so the
@@ -492,12 +557,43 @@ def append_rows(path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow({k: row.get(k, "") for k in WALK_COLUMNS})
 
 
-def already_walked(path: Path) -> set[str]:
-    """Resume by name. An hours-long walk that cannot resume is a walk that never finishes."""
-    if not path.exists():
-        return set()
-    with path.open(encoding="utf-8", newline="") as fh:
-        return {row["full_name"] for row in csv.DictReader(fh) if row.get("full_name")}
+# Outcomes that say nothing about the repository, only about the attempt. A rerun may retry
+# them; everything else is a decided fact and must never be walked twice.
+TRANSIENT_OUTCOMES = frozenset({"clone_failed", "clone_timeout", "timeout", "error", "no_head"})
+
+
+def already_walked(path: Path, retry_failed: bool = False) -> set[str]:
+    """Resume by name. An hours-long walk that cannot resume is a walk that never finishes.
+
+    Plain resume skips every recorded row, which is deterministic and is the default: a rerun
+    reproduces the first run exactly. `retry_failed` re-attempts only the outcomes that record
+    a failed *attempt* rather than a fact about the repository -- a clone that timed out says
+    nothing about whether the project keeps a bibliography, and leaving it in the denominator
+    understates the qualifying rate the same way NR-57's empty pool understated a channel.
+    """
+    rows = _read_rows(path)
+    if not retry_failed:
+        return {r["full_name"] for r in rows if r.get("full_name")}
+    return {
+        r["full_name"]
+        for r in rows
+        if r.get("full_name") and r.get("outcome") not in TRANSIENT_OUTCOMES
+    }
+
+
+def drop_transient_rows(path: Path) -> int:
+    """Rewrite the ledger without transiently-failed rows, so a retry REPLACES rather than
+    duplicates. One candidate must never hold two rows: the curve counts rows."""
+    rows = _read_rows(path)
+    keep = [r for r in rows if r.get("outcome") not in TRANSIENT_OUTCOMES]
+    dropped = len(rows) - len(keep)
+    if dropped:
+        with path.open("w", encoding="utf-8", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=list(WALK_COLUMNS))
+            writer.writeheader()
+            for row in keep:
+                writer.writerow({k: row.get(k, "") for k in WALK_COLUMNS})
+    return dropped
 
 
 def assign_across_repos(
@@ -569,14 +665,20 @@ def walk(
     curve_every: int = 50,
     url_for: Any = github_url,
     legacy: set[str] | None = None,
+    retry_failed: bool = False,
 ) -> dict[str, Any]:
     ordered = seeded_order(candidates, seed)
     walk_csv = out_dir / "validity_walk.csv"
     adoptions = out_dir / "adoptions-pool-v2.json"
+    curve_csv = out_dir / "yield_curve.csv"
     contexts = out_dir / "contexts"
     head_ids = out_dir / "head_ids"
     clones = clone_dir if clone_dir is not None else EVALS / ".work" / "fullclone"
-    done = already_walked(walk_csv)
+    if retry_failed:
+        dropped = drop_transient_rows(walk_csv)
+        if dropped:
+            print(f"retrying {dropped} transiently-failed row(s)")
+    done = already_walked(walk_csv, retry_failed)
     legacy = legacy_slugs() if legacy is None else legacy
     legacy_positive_ids = legacy_ids()
 
@@ -673,18 +775,18 @@ def walk(
             merge_adoptions(adoptions, mined, seed, legacy_positive_ids)
         walked += len(rows)
         if walked % curve_every < len(rows):
-            point = {
-                "walked": walked,
-                "qualifying": sum(1 for r in _read_rows(walk_csv) if r.get("qualifies") == "True"),
-                "capped_positives": capped_total,
-            }
+            point = curve_point(_read_rows(walk_csv), capped_total)
+            append_curve(curve_csv, point)
             curve.append(point)
             print(
-                f"  [{walked:5}/{budget}] qualifying {point['qualifying']:4}  "
-                f"capped positives {capped_total:4}",
+                f"  [{walked:5}/{budget}] qualifying {point['qualifiers']:4}  "
+                f"capped positives {capped_total:4}  "
+                f"clone fail {point['n_clone_failed']}  timeout {point['n_timeout']}",
                 flush=True,
             )
     rows_all = _read_rows(walk_csv)
+    if rows_all:
+        append_curve(curve_csv, curve_point(rows_all, capped_total))
     qualifying = [r for r in rows_all if r.get("qualifies") == "True"]
     prefix = [r for r in rows_all if int(r.get("rank") or 0) < b0]
     prefix_q = [r for r in prefix if r.get("qualifies") == "True"]
@@ -733,6 +835,11 @@ def main() -> int:
     ap.add_argument("--budget", type=int, default=DEFAULT_B)
     ap.add_argument("--target", type=int, default=DEFAULT_TARGET)
     ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="re-attempt rows whose outcome was a failed ATTEMPT (clone/timeout/error)",
+    )
     ap.add_argument("--pulse", default=REGISTERED_PULSE, help="the pulse section 2.4 names")
     ap.add_argument(
         "--no-verify-pulse",
@@ -759,6 +866,7 @@ def main() -> int:
         budget=args.budget,
         target=args.target,
         jobs=args.jobs,
+        retry_failed=args.retry_failed,
     )
     print(json.dumps(summary, indent=2))
     return 0

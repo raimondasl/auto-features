@@ -523,7 +523,7 @@ class TestTheRowBudgetBoundsTheGrepsNotOnlyTheClone:
             timeout=0.001,
             url_for=_url_for(repos),
         )
-        assert row["outcome"] in {"timeout", "clone_failed"}
+        assert row["outcome"] in {"timeout", "clone_timeout", "clone_failed"}
         assert mined == []
 
     def test_the_budget_shrinks_rather_than_resetting_per_call(self) -> None:
@@ -760,3 +760,119 @@ class TestTheOwnerCapIsEvaluatedInRankOrder:
         qualifying = [r for r in rows if r["qualifies"] == "True"]
         assert len(qualifying) <= wp.OWNER_CAP, "the owner cap was exceeded under parallelism"
         assert any(r["outcome"] == "owner_cap" for r in rows)
+
+
+class TestTheYieldCurveIsCommittedNotRemembered:
+    """§3.2: the curve is "committed every 50 rows, so a shortfall is visible in hours rather
+    than at the ceiling". It was an in-memory list written once at the end — which is a curve
+    nobody could have acted on, and the whole point of it is stopping early."""
+
+    def test_it_carries_the_registered_fields(self) -> None:
+        """rows walked, rejects BY RULE, clone failures, timeouts, qualifiers, gross
+        adoptions, capped-usable positives. "By rule" means broken out per outcome, not
+        summed — a shortfall is only diagnosable if you can see which rule caused it."""
+        for field in ("walked", "qualifiers", "gross_adoptions", "capped_positives"):
+            assert field in wp.CURVE_COLUMNS
+        for outcome in ("clone_failed", "clone_timeout", "timeout", "language", "not_software"):
+            assert f"n_{outcome}" in wp.CURVE_COLUMNS
+
+    def test_a_point_tallies_outcomes_rather_than_only_successes(self) -> None:
+        rows = [
+            {"outcome": "ok", "qualifies": "True", "gross_adoptions": "4"},
+            {"outcome": "clone_failed", "qualifies": "False", "gross_adoptions": "0"},
+            {"outcome": "language", "qualifies": "False", "gross_adoptions": "0"},
+        ]
+        point = wp.curve_point(rows, capped_total=3)
+        assert point["walked"] == 3
+        assert point["qualifiers"] == 1
+        assert point["gross_adoptions"] == 4
+        assert point["capped_positives"] == 3
+        assert point["n_clone_failed"] == 1
+        assert point["n_language"] == 1
+
+    def test_it_is_written_during_the_walk(self, world) -> None:  # type: ignore[no-untyped-def]
+        tmp, repos, candidates = world
+        out = tmp / "out"
+        wp.walk(
+            candidates,
+            "SEED",
+            out_dir=out,
+            b0=3,
+            budget=3,
+            target=99,
+            jobs=1,
+            curve_every=1,
+            clone_dir=tmp / "clones",
+            url_for=_url_for(repos),
+        )
+        curve = _rows(out / "yield_curve.csv")
+        assert len(curve) >= 2, "the curve was written once, not as the walk progressed"
+        assert int(curve[-1]["walked"]) == 3
+
+    def test_it_appends_rather_than_rewriting(self, tmp_path: Path) -> None:
+        path = tmp_path / "yield_curve.csv"
+        wp.append_curve(path, wp.curve_point([{"outcome": "ok"}], 1))
+        wp.append_curve(path, wp.curve_point([{"outcome": "ok"}, {"outcome": "ok"}], 2))
+        assert len(_rows(path)) == 2
+
+
+class TestResumeKnowsAResultFromAFailedAttempt:
+    """A clone that timed out says nothing about whether the project keeps a bibliography.
+    Left in the denominator it understates the qualifying rate, the same way NR-57's empty
+    pool understated a channel."""
+
+    HEADER = ",".join(wp.WALK_COLUMNS)
+
+    def _ledger(self, tmp_path: Path, rows: list[tuple[str, str]]) -> Path:
+        path = tmp_path / "validity_walk.csv"
+        wp.append_rows(
+            path,
+            [
+                {**wp._blank_row(i, name, "2019-01-01", outcome, ""), "qualifies": False}
+                for i, (name, outcome) in enumerate(rows)
+            ],
+        )
+        return path
+
+    def test_plain_resume_skips_everything_recorded(self, tmp_path: Path) -> None:
+        """The default is deterministic: a rerun reproduces the first run exactly."""
+        path = self._ledger(tmp_path, [("a/ok", "ok"), ("b/failed", "clone_failed")])
+        assert wp.already_walked(path) == {"a/ok", "b/failed"}
+
+    def test_retry_reopens_only_the_failed_attempts(self, tmp_path: Path) -> None:
+        path = self._ledger(
+            tmp_path,
+            [("a/ok", "ok"), ("b/failed", "clone_failed"), ("c/lang", "language")],
+        )
+        assert wp.already_walked(path, retry_failed=True) == {"a/ok", "c/lang"}
+
+    def test_a_decided_fact_is_never_retried(self, tmp_path: Path) -> None:
+        """`language`, `not_software`, `no_history` and the rest are facts about the
+        repository. Re-walking them would spend a clone to learn nothing."""
+        for settled in ("ok", "legacy_case", "owner_cap", "language", "no_history"):
+            assert settled not in wp.TRANSIENT_OUTCOMES
+
+    def test_a_retry_replaces_rather_than_duplicating(self, tmp_path: Path) -> None:
+        """One candidate must never hold two rows: the curve counts rows."""
+        path = self._ledger(tmp_path, [("a/ok", "ok"), ("b/failed", "clone_timeout")])
+        assert wp.drop_transient_rows(path) == 1
+        assert [r["full_name"] for r in _rows(path)] == ["a/ok"]
+
+
+class TestACloneFailureSaysWhy:
+    def test_a_timeout_and_a_failure_are_different_outcomes(self, tmp_path: Path) -> None:
+        """A private-or-deleted repository, a rename, a network blip and a repository too
+        large to clone inside the budget are four different facts about the population."""
+        row, _ = wp.walk_row(
+            0,
+            {"full_name": "no/such", "created_at": "2019-01-01", "language": "Python"},
+            clones=tmp_path / "clones",
+            contexts=tmp_path / "ctx",
+            url_for=lambda _f: (tmp_path / "missing").as_uri(),
+        )
+        assert row["outcome"] == "clone_failed"
+        assert row["note"], "git's own explanation was discarded"
+
+    def test_the_reason_is_gits_own(self, tmp_path: Path) -> None:
+        _repo, why = wp._clone(tmp_path / "c", "k", (tmp_path / "nope").as_uri(), 60)
+        assert why and "timeout" not in why
