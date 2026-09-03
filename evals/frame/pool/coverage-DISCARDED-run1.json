@@ -1,0 +1,2416 @@
+{
+  "n_rows": 17779,
+  "n_queries": 266,
+  "n_truncated": 12,
+  "truncated_queries": [
+    "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false",
+    "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2008-01-01..2015-12-31",
+    "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2016-01-01..2018-12-31",
+    "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2019-01-01..2020-12-31",
+    "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2021-01-01..2022-12-31",
+    "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2023-01-01..2030-12-31",
+    "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false",
+    "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2008-01-01..2015-12-31",
+    "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2016-01-01..2018-12-31",
+    "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2019-01-01..2020-12-31",
+    "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2021-01-01..2022-12-31",
+    "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2023-01-01..2030-12-31"
+  ],
+  "errors": [],
+  "queries": [
+    {
+      "query": "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1196,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 20:52:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2008-01-01..2015-12-31",
+      "total_count": 1196,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 20:53:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2016-01-01..2018-12-31",
+      "total_count": 1196,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 20:53:56 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2019-01-01..2020-12-31",
+      "total_count": 1196,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 20:54:41 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2021-01-01..2022-12-31",
+      "total_count": 1196,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 20:55:25 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2023-01-01..2030-12-31",
+      "total_count": 1377,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 20:56:11 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 670,
+      "fetched": 670,
+      "pages": 7,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:56:41 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 816,
+      "fetched": 816,
+      "pages": 9,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:57:18 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 803,
+      "fetched": 803,
+      "pages": 9,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:57:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 765,
+      "fetched": 765,
+      "pages": 8,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:58:34 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 667,
+      "fetched": 667,
+      "pages": 7,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:59:07 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 484,
+      "fetched": 484,
+      "pages": 5,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:59:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:machine-learning stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 191,
+      "fetched": 191,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 20:59:38 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1322,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 21:00:23 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2008-01-01..2015-12-31",
+      "total_count": 1322,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 21:01:05 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2016-01-01..2018-12-31",
+      "total_count": 1322,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 21:01:50 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2019-01-01..2020-12-31",
+      "total_count": 1322,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 21:02:33 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2021-01-01..2022-12-31",
+      "total_count": 1322,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 21:03:16 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:100..149 created:<=2024-03-02 fork:false archived:false created:2023-01-01..2030-12-31",
+      "total_count": 1457,
+      "fetched": 1000,
+      "pages": 10,
+      "truncated": true,
+      "date": "Wed, 02 Sep 2026 21:03:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 859,
+      "fetched": 859,
+      "pages": 9,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:04:38 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 931,
+      "fetched": 931,
+      "pages": 10,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:05:24 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 988,
+      "fetched": 988,
+      "pages": 10,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:06:07 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 882,
+      "fetched": 882,
+      "pages": 9,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:06:46 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 669,
+      "fetched": 669,
+      "pages": 7,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:07:16 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 476,
+      "fetched": 476,
+      "pages": 5,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:07:40 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:deep-learning stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 177,
+      "fetched": 177,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:07:48 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 226,
+      "fetched": 226,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:07:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 121,
+      "fetched": 121,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:04 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 140,
+      "fetched": 140,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:11 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 128,
+      "fetched": 128,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 156,
+      "fetched": 156,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:25 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 118,
+      "fetched": 118,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:32 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 70,
+      "fetched": 70,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:35 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:natural-language-processing stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 40,
+      "fetched": 40,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:38 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 486,
+      "fetched": 486,
+      "pages": 5,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:08:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 297,
+      "fetched": 297,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:09:10 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 331,
+      "fetched": 331,
+      "pages": 4,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:09:27 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 342,
+      "fetched": 342,
+      "pages": 4,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:09:41 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 326,
+      "fetched": 326,
+      "pages": 4,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:09:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 214,
+      "fetched": 214,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:08 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 140,
+      "fetched": 140,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:16 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computer-vision stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 56,
+      "fetched": 56,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 202,
+      "fetched": 202,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:29 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 130,
+      "fetched": 130,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:36 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 135,
+      "fetched": 135,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 150,
+      "fetched": 150,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 147,
+      "fetched": 147,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:10:56 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 101,
+      "fetched": 101,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:02 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 77,
+      "fetched": 77,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:06 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:reinforcement-learning stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 23,
+      "fetched": 23,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:08 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 90,
+      "fetched": 90,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 46,
+      "fetched": 46,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 58,
+      "fetched": 58,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 53,
+      "fetched": 53,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:22 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 33,
+      "fetched": 33,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:24 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 26,
+      "fetched": 26,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:graph-neural-networks stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 3,
+      "fetched": 3,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 78,
+      "fetched": 78,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:34 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 55,
+      "fetched": 55,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:45 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 70,
+      "fetched": 70,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:11:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 66,
+      "fetched": 66,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:10 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 74,
+      "fetched": 74,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:14 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 55,
+      "fetched": 55,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 50,
+      "fetched": 50,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:transformers stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 21,
+      "fetched": 21,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:21 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 56,
+      "fetched": 56,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:24 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 44,
+      "fetched": 44,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:27 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 47,
+      "fetched": 47,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 66,
+      "fetched": 66,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:33 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 47,
+      "fetched": 47,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:36 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 34,
+      "fetched": 34,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:38 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 12,
+      "fetched": 12,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:40 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:diffusion-models stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 72,
+      "fetched": 72,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:46 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 37,
+      "fetched": 37,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:48 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 48,
+      "fetched": 48,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:51 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 45,
+      "fetched": 45,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:53 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 70,
+      "fetched": 70,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:12:57 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 46,
+      "fetched": 46,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:01 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 25,
+      "fetched": 25,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:03 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:speech-recognition stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 13,
+      "fetched": 13,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:05 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 28,
+      "fetched": 28,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:07 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 32,
+      "fetched": 32,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:10 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 36,
+      "fetched": 36,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 36,
+      "fetched": 36,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 25,
+      "fetched": 25,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 20,
+      "fetched": 20,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 19,
+      "fetched": 19,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:21 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:recommender-system stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 4,
+      "fetched": 4,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:23 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 26,
+      "fetched": 26,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 17,
+      "fetched": 17,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 25,
+      "fetched": 25,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 21,
+      "fetched": 21,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:33 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 29,
+      "fetched": 29,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:13:59 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 17,
+      "fetched": 17,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:01 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 10,
+      "fetched": 10,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:03 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:information-retrieval stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:05 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 148,
+      "fetched": 148,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:13 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 96,
+      "fetched": 96,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 100,
+      "fetched": 100,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:23 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 108,
+      "fetched": 108,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 112,
+      "fetched": 112,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:37 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 97,
+      "fetched": 97,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 71,
+      "fetched": 71,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:45 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:compiler stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 39,
+      "fetched": 39,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:14:48 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 346,
+      "fetched": 346,
+      "pages": 4,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:15:04 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 174,
+      "fetched": 174,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:15:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 256,
+      "fetched": 256,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:15:25 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 234,
+      "fetched": 234,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:15:37 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 252,
+      "fetched": 252,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:15:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 226,
+      "fetched": 226,
+      "pages": 3,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:01 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 193,
+      "fetched": 193,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:09 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:database stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 101,
+      "fetched": 101,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 61,
+      "fetched": 61,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 44,
+      "fetched": 44,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:22 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 46,
+      "fetched": 46,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:25 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 59,
+      "fetched": 59,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 64,
+      "fetched": 64,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:32 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 52,
+      "fetched": 52,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:35 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 62,
+      "fetched": 62,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:39 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:distributed-systems stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 32,
+      "fetched": 32,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:41 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 165,
+      "fetched": 165,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 86,
+      "fetched": 86,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:16:55 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 106,
+      "fetched": 106,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:00 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 96,
+      "fetched": 96,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:06 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 103,
+      "fetched": 103,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 80,
+      "fetched": 80,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:16 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 40,
+      "fetched": 40,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:cryptography stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 14,
+      "fetched": 14,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:21 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 16,
+      "fetched": 16,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:23 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:25 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 5,
+      "fetched": 5,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:27 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:32 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 5,
+      "fetched": 5,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:34 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:36 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:numerical-methods stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:38 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 38,
+      "fetched": 38,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 23,
+      "fetched": 23,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:44 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 34,
+      "fetched": 34,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:46 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 20,
+      "fetched": 20,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:48 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 38,
+      "fetched": 38,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:17:51 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 23,
+      "fetched": 23,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 12,
+      "fetched": 12,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:scientific-computing stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:21 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 147,
+      "fetched": 147,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 81,
+      "fetched": 81,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:34 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 86,
+      "fetched": 86,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:37 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 81,
+      "fetched": 81,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 91,
+      "fetched": 91,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:46 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 52,
+      "fetched": 52,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 30,
+      "fetched": 30,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:52 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:optimization stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 8,
+      "fetched": 8,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:18:53 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 121,
+      "fetched": 121,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:00 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 73,
+      "fetched": 73,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:04 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 64,
+      "fetched": 64,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:08 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 61,
+      "fetched": 61,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:11 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 80,
+      "fetched": 80,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 51,
+      "fetched": 51,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 43,
+      "fetched": 43,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:statistics stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 10,
+      "fetched": 10,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 154,
+      "fetched": 154,
+      "pages": 2,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:38 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 93,
+      "fetched": 93,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 89,
+      "fetched": 89,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:47 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 75,
+      "fetched": 75,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:51 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 56,
+      "fetched": 56,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:54 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 29,
+      "fetched": 29,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:57 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:19:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:bioinformatics stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:00 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 11,
+      "fetched": 11,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:03 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 11,
+      "fetched": 11,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:05 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 13,
+      "fetched": 13,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:07 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:09 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 8,
+      "fetched": 8,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 5,
+      "fetched": 5,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:14 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:40 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-biology stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:42 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 49,
+      "fetched": 49,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:46 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 37,
+      "fetched": 37,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 44,
+      "fetched": 44,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:52 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 37,
+      "fetched": 37,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:54 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 19,
+      "fetched": 19,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:56 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 12,
+      "fetched": 12,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:20:58 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:00 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:genomics stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:02 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 21,
+      "fetched": 21,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:05 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 16,
+      "fetched": 16,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:07 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 13,
+      "fetched": 13,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:09 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 19,
+      "fetched": 19,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:12 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:14 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 3,
+      "fetched": 3,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:16 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:18 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:single-cell stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:20 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:22 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 4,
+      "fetched": 4,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:49 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:51 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:53 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:55 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:21:57 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:00 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:proteomics stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:02 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:04 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:06 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 3,
+      "fetched": 3,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:09 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:11 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:13 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:systems-biology stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 18,
+      "fetched": 18,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:22 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:24 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 10,
+      "fetched": 10,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 12,
+      "fetched": 12,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:29 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:31 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:33 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:35 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:materials-science stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:22:37 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 15,
+      "fetched": 15,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:04 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 7,
+      "fetched": 7,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:06 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 19,
+      "fetched": 19,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:09 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 11,
+      "fetched": 11,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:11 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:13 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 5,
+      "fetched": 5,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-chemistry stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 20,
+      "fetched": 20,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:22 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 15,
+      "fetched": 15,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:24 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 13,
+      "fetched": 13,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 16,
+      "fetched": 16,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 8,
+      "fetched": 8,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:31 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:33 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:35 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:molecular-dynamics stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:37 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 21,
+      "fetched": 21,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:40 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 8,
+      "fetched": 8,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:41 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:44 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 4,
+      "fetched": 4,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:46 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:23:48 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 5,
+      "fetched": 5,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:15 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:17 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:quantum-chemistry stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:19 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:21 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 5,
+      "fetched": 5,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:24 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 4,
+      "fetched": 4,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 3,
+      "fetched": 3,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:32 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:34 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:density-functional-theory stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:36 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:39 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:41 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 4,
+      "fetched": 4,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:43 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 3,
+      "fetched": 3,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:45 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:47 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 2,
+      "fetched": 2,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:50 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:52 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:computational-physics stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 1,
+      "fetched": 1,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:54 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:100..149 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 31,
+      "fetched": 31,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:57 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:150..199 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 27,
+      "fetched": 27,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:24:59 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:200..299 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 19,
+      "fetched": 19,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:25:26 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:300..499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 14,
+      "fetched": 14,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:25:28 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:500..999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 9,
+      "fetched": 9,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:25:30 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:1000..2499 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 6,
+      "fetched": 6,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:25:32 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:2500..9999 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 3,
+      "fetched": 3,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:25:34 GMT",
+      "error": ""
+    },
+    {
+      "query": "topic:astronomy stars:>=10000 created:<=2024-03-02 fork:false archived:false",
+      "total_count": 0,
+      "fetched": 0,
+      "pages": 1,
+      "truncated": false,
+      "date": "Wed, 02 Sep 2026 21:25:36 GMT",
+      "error": ""
+    }
+  ]
+}

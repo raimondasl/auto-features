@@ -228,3 +228,9 @@ evals/results/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# The pool enumeration keeps its full raw API responses locally: ~250 MB across ~500 files,
+# and every payload carries html_url for every repository -- the exact `github.com/<owner>/<repo>`
+# pattern PREREG-judge-validity-pool.md section 2.1 keeps out of this tree. The committed record
+# is the trimmed archive beside it, which preserves query, Date, total_count and returned names.
+evals/frame/pool/raw/

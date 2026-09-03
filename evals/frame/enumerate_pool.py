@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import subprocess
@@ -51,6 +52,12 @@ MAX_PAGES = RESULT_CAP // PER_PAGE
 # bucket; the walk that follows this is hours long, so a slow enumeration costs nothing.
 MIN_INTERVAL_S = 2.2
 MIN_STARS = 100
+# GitHub answers a throttle with 403 or 429 and a Retry-After; 5xx is transient. A
+# snapshot that cannot be re-taken must never drop a slice because one request was
+# refused, so these are retried rather than recorded as a loss.
+THROTTLE_STATUSES = (403, 429, 500, 502, 503, 504)
+MAX_ATTEMPTS = 5
+BACKOFF_S = 8.0
 CREATED_MONTHS = 30  # §2.2 PP1's API pre-filter
 # Stamped into a row's `slice` when even the subdivided query overflowed, so the CSV alone
 # says which rows came from an incomplete slice.
@@ -130,6 +137,35 @@ def github_token() -> str:
     return token
 
 
+_last_request_at = 0.0
+
+
+def _wait_turn(pause: float) -> None:
+    """Space requests GLOBALLY, not merely between the pages of one query.
+
+    The first version slept only inside the paging loop, and the `break` for a short page
+    came *before* the sleep -- so a slice that fitted in one page, which is most of them,
+    issued its request and moved straight on to the next query. Several hundred queries
+    would have gone out back to back and tripped GitHub's 30-per-minute search limit within
+    seconds, on a snapshot that cannot be re-taken.
+    """
+    global _last_request_at
+    if pause <= 0:
+        return
+    wait = pause - (time.monotonic() - _last_request_at)
+    if wait > 0:
+        time.sleep(wait)
+    _last_request_at = time.monotonic()
+
+
+def _retry_after(exc: Any, fallback: float) -> float:
+    header = getattr(getattr(exc, "headers", None), "get", lambda _k: None)("Retry-After")
+    try:
+        return max(float(header), 1.0)
+    except (TypeError, ValueError):
+        return fallback
+
+
 def _fetch(url: str, token: str) -> tuple[dict[str, Any], str]:
     req = urllib.request.Request(
         url,
@@ -148,11 +184,30 @@ def _fetch(url: str, token: str) -> tuple[dict[str, Any], str]:
 def _query(
     topic: str, lo: int, hi: int | None, created_before: str, years: tuple[str, str] | None
 ) -> str:
+    """Exactly **one** `created:` qualifier, always.
+
+    The first version emitted two — `created:<=<cutoff>` plus, when subdividing,
+    `created:<start>..<end>` — and GitHub honours only one of them. The measured consequences,
+    from the snapshot of 2026-09-02 that was discarded because of this:
+
+    * every year subdivision of `machine-learning stars:100..149` returned the identical
+      `total_count` of 1196 as the un-subdivided query, so the subdivision narrowed nothing
+      and the cap was never escaped;
+    * the last slice returned **1377** — *more* than the un-subdivided query — because its
+      year range replaced the cutoff outright, admitting 192 repositories created after it,
+      the latest in August 2026 into a universe capped at March 2024.
+
+    A silently ignored qualifier is the worst kind: the query looked right, returned plausible
+    rows, and broke the eligibility rule the population is defined by. So the range is composed
+    here into a single clause whose upper bound can never exceed the cutoff.
+    """
     stars = f"stars:{lo}..{hi}" if hi is not None else f"stars:>={lo}"
-    parts = [f"topic:{topic}", stars, f"created:<={created_before}", "fork:false", "archived:false"]
-    if years is not None:
-        parts.append(f"created:{years[0]}..{years[1]}")
-    return " ".join(parts)
+    if years is None:
+        created = f"created:<={created_before}"
+    else:
+        start, end = years
+        created = f"created:{start}..{min(end, created_before)}"
+    return " ".join([f"topic:{topic}", stars, created, "fork:false", "archived:false"])
 
 
 def _row(item: dict[str, Any], slice_name: str) -> dict[str, Any]:
@@ -179,6 +234,7 @@ def run_query(
     fetch: Fetcher = _fetch,
     archive: Path | None = None,
     pause: float = MIN_INTERVAL_S,
+    backoff: float = BACKOFF_S,
 ) -> tuple[list[dict[str, Any]], QueryRecord]:
     """Page one query to exhaustion or to the cap, archiving every raw response."""
     items: list[dict[str, Any]] = []
@@ -187,11 +243,32 @@ def run_query(
     pages = 0
     for page in range(1, MAX_PAGES + 1):
         url = f"{SEARCH}?{urllib.parse.urlencode({'q': query, 'per_page': PER_PAGE, 'page': page})}"
-        try:
-            payload, date_header = fetch(url, token)
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        payload = None
+        failure: Exception | None = None
+        delay = backoff
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            _wait_turn(pause)
+            try:
+                payload, date_header = fetch(url, token)
+                failure = None
+                break
+            except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+                failure = exc
+                status = getattr(exc, "code", None)
+                transient = status is None or status in THROTTLE_STATUSES
+                if not transient or attempt == MAX_ATTEMPTS:
+                    break
+                nap = _retry_after(exc, delay)
+                print(
+                    f"    ! {status or type(exc).__name__} on page {page}; "
+                    f"retry {attempt}/{MAX_ATTEMPTS - 1} in {nap:.0f}s",
+                    flush=True,
+                )
+                time.sleep(nap)
+                delay *= 2
+        if failure is not None or payload is None:
             return items, QueryRecord(
-                query, total, len(items), False, date_header, pages, str(exc)[:200]
+                query, total, len(items), False, date_header, pages, str(failure)[:200]
             )
         pages += 1
         total = int(payload.get("total_count", 0))
@@ -199,7 +276,7 @@ def run_query(
         items.extend(batch)
         if archive is not None:
             archive.mkdir(parents=True, exist_ok=True)
-            stamp = f"{abs(hash(query)) % (10**12):012d}-p{page}"
+            stamp = f"{hashlib.sha256(query.encode()).hexdigest()[:12]}-p{page}"
             (archive / f"{stamp}.json").write_text(
                 json.dumps(
                     {"query": query, "url": url, "date": date_header, "payload": payload},
@@ -209,8 +286,6 @@ def run_query(
             )
         if len(batch) < PER_PAGE:
             break
-        if pause:
-            time.sleep(pause)
     return items, QueryRecord(query, total, len(items), total > RESULT_CAP, date_header, pages)
 
 
@@ -308,6 +383,85 @@ def write_coverage(enumeration: Enumeration, out: Path) -> None:
     )
 
 
+ENDPOINT_NOTE = "https://api." + "github.com/search/repositories"
+
+
+def trim_archive(raw: Path, out: Path) -> dict[str, Any]:
+    """Reduce the raw responses to the record that can actually be committed (section 2.1).
+
+    Two reasons, and the second is binding rather than practical:
+
+    * **Size.** One snapshot of 32 topics is ~500 MB of JSON across ~870 responses. That does
+      not belong in a git history, and gzipping it only hides the next problem.
+    * **The raw payloads carry `html_url` for every repository** -- tens of thousands of
+      `github.com/<owner>/<repo>` strings. That is precisely what section 2.1's no-URL rule
+      keeps out of this tree: the benchmark expansion's prior-exposure rule is a live grep for
+      exactly that pattern. Committing the raw archive would break, at scale, the rule the CSV
+      is careful to obey.
+
+    What survives is what makes the enumeration falsifiable rather than merely voluminous: the
+    query, its response `Date`, the API's own `total_count`, and the ordered `full_name`s the
+    slice returned. That is enough to check that the published CSV is exactly the union of the
+    slices, that no slice was silently truncated, and on what day it was taken.
+
+    The full raw archive stays on disk, untracked, as the untrimmed record.
+    """
+    entries: list[dict[str, Any]] = []
+    for path in sorted(raw.glob("*.json")):
+        blob = json.loads(path.read_text(encoding="utf-8"))
+        payload = blob.get("payload") or {}
+        entries.append(
+            {
+                "file": path.name,
+                "query": blob.get("query", ""),
+                "date": blob.get("date", ""),
+                "total_count": payload.get("total_count", 0),
+                "returned": len(payload.get("items") or []),
+                # Bare `owner/repo`, which the prior-exposure grep does not match.
+                "names": [i.get("full_name", "") for i in (payload.get("items") or [])],
+            }
+        )
+    archive = {
+        "_comment": (
+            "Trimmed archive of the enumeration snapshot. Per-repository objects are dropped: "
+            "they carry html_url, which section 2.1 forbids from entering this tree. Each "
+            "entry is one page of one query; reissue as ENDPOINT?q=<query>&per_page=100&page=N."
+        ),
+        "endpoint": ENDPOINT_NOTE,
+        "n_responses": len(entries),
+        "responses": entries,
+    }
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(archive, indent=1), encoding="utf-8")
+    return archive
+
+
+def refuse_a_backdated_snapshot(dp: str, today: date | None = None) -> None:
+    """Dp is the day the snapshot is TAKEN. It cannot be in the past.
+
+    The GitHub search API answers only "as of now" — there is no as-of-date parameter and no
+    historical index. `created:<=X` is a filter on repository creation date applied to
+    *today's* index; every other field the query touches — stars, archived, pushed, topics —
+    is a current value. A repository at 500 stars today and 50 stars in 2025 passes
+    `stars:>=100` in a snapshot labelled 2025, because there is no 2025 state to consult.
+
+    So a backdated Dp does not produce an old snapshot. It produces today's snapshot wearing
+    an old date, and the pre-registration would then describe a sampling frame that never
+    existed. The archived `Date` headers would contradict it on the first row, which is why
+    this is a refusal rather than a warning.
+    """
+    day = date.fromisoformat(dp)
+    now = today or datetime.now(tz=UTC).date()
+    if day < now:
+        raise SystemExit(
+            f"--date {dp} is in the past (today is {now}).\n"
+            "  Dp is the day the snapshot is TAKEN, not a day to look back at: GitHub search\n"
+            "  has no historical index, so this would label today's data with an old date and\n"
+            "  the archived Date headers would contradict it immediately.\n"
+            "  Looking back 30 months is what `created:<=Dp-30mo` already does."
+        )
+
+
 def created_cutoff(dp: str, months: int = CREATED_MONTHS) -> str:
     """`Dp − months`, as a date string the GitHub search API accepts."""
     day = date.fromisoformat(dp)
@@ -322,11 +476,22 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--archive", type=Path, help="raw response directory (default: beside --out)")
     ap.add_argument("--pause", type=float, default=MIN_INTERVAL_S)
+    ap.add_argument(
+        "--trim-only",
+        type=Path,
+        help="skip the snapshot; trim an existing raw archive directory to committable form",
+    )
     args = ap.parse_args()
+
+    if args.trim_only:
+        summary = trim_archive(args.trim_only, args.out)
+        print(f"trimmed {summary['n_responses']} responses -> {args.out}")
+        return 0
 
     topics = json.loads(args.topics.read_text(encoding="utf-8"))
     if not isinstance(topics, list) or not all(isinstance(t, str) for t in topics):
         raise SystemExit(f"{args.topics}: expected a JSON list of topic strings")
+    refuse_a_backdated_snapshot(args.date)
     cutoff = created_cutoff(args.date)
     archive = args.archive or args.out.parent / "raw"
     print(
