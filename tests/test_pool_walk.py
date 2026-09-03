@@ -87,6 +87,11 @@ def _make_repo(root: Path, name: str, *, t0_ids: int, new_ids: int) -> Path:
     _git(repo, "commit", "-qm", "t0", when="2022-01-01T00:00:00+00:00")
     new = "\n".join(f"https://huggingface.co/papers/21{i:02d}.0000{i % 10}" for i in range(new_ids))
     (repo / "README.md").write_text(f"# {name}\n{old}\n{new}\n", encoding="utf-8")
+    # X7 needs >= 20 files carrying a source extension of the primary language.
+    src_dir = repo / "src"
+    src_dir.mkdir(exist_ok=True)
+    for i in range(22):
+        (src_dir / f"mod{i}.py").write_text(f"VALUE = {i}\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "head")
     return repo
@@ -101,7 +106,15 @@ def world(tmp_path: Path):  # type: ignore[no-untyped-def]
         "acme/also": _make_repo(src, "also", t0_ids=5, new_ids=3),
         "other/thin": _make_repo(src, "thin", t0_ids=1, new_ids=2),
     }
-    candidates = [{"full_name": name, "created_at": "2019-01-01"} for name in sorted(repos)]
+    candidates = [
+        {
+            "full_name": name,
+            "created_at": "2019-01-01",
+            "language": "Python",
+            "topics": "machine-learning",
+        }
+        for name in sorted(repos)
+    ]
     return tmp_path, repos, candidates
 
 
@@ -114,7 +127,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, mined = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -132,7 +145,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, _ = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -146,7 +159,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, _ = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -158,7 +171,7 @@ class TestOneRow:
         tmp, repos, _ = world
         row, mined = wp.walk_row(
             0,
-            {"full_name": "other/thin", "created_at": "2019-01-01"},
+            {"full_name": "other/thin", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -172,7 +185,7 @@ class TestOneRow:
         ctx = tmp / "ctx"
         row, _ = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=ctx,
             url_for=_url_for(repos),
@@ -187,7 +200,7 @@ class TestOneRow:
         clones = tmp / "clones"
         wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=clones,
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -215,7 +228,7 @@ class TestOneRow:
         )
         wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=clones,
             contexts=tmp / "ctx",
             url_for=_url_for(repos),
@@ -504,7 +517,7 @@ class TestTheRowBudgetBoundsTheGrepsNotOnlyTheClone:
         tmp, repos, _ = world
         row, mined = wp.walk_row(
             0,
-            {"full_name": "acme/rich", "created_at": "2019-01-01"},
+            {"full_name": "acme/rich", "created_at": "2019-01-01", "language": "Python"},
             clones=tmp / "clones",
             contexts=tmp / "ctx",
             timeout=0.001,

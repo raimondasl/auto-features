@@ -38,7 +38,9 @@ from typing import Any
 
 EVALS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(EVALS))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import eligibility as el  # noqa: E402
 import mine_adoptions as ma  # noqa: E402
 
 POOL_DIR = EVALS / "frame" / "pool"
@@ -81,6 +83,11 @@ WALK_COLUMNS = (
     "pp1_history",
     "pp2_ids_t0",
     "pp3_owner",
+    "pp_language",
+    "pp_software",
+    "pp_source_files",
+    "pp_readme_lang",
+    "in_cap",
     "qualifies",
     "gross_adoptions",
     "usable",
@@ -153,6 +160,57 @@ def _blank_row(
     return row
 
 
+def legacy_ids(path: Path | None = None) -> set[str]:
+    """Identifiers already counted as legacy positives (NR-60's `adoptions-v2.json`).
+
+    Section 3.3 gives legacy the tie, so a paper the legacy cluster already contributes is
+    never counted again from a pool repository -- otherwise section 5's legacy-versus-pool
+    heterogeneity compares the two clusters over an overlapping set of papers.
+    """
+    src = path or (EVALS / ".work" / "adoptions-v2.json")
+    if not src.exists():
+        return set()
+    return {str(r["id"]) for r in json.loads(src.read_text(encoding="utf-8")) if r.get("usable")}
+
+
+def adoption_commit(
+    repo: Path, paper: str, t0: str, head: str, timeout: float | None = None
+) -> tuple[str | None, str | None]:
+    """When this identifier first appeared in the docs, for section 5's contamination split.
+
+    Section 5 splits positives by adoption commit date against each judge's published training
+    cutoff, and section 6 item 6 calls that the only instrument available against recognition
+    bias. Every other date on the row is repository-level -- `head_date` is identical for every
+    positive of a repository and post-cutoff by construction -- so without this the split
+    collapses into a single bucket and the sensitivity reports nothing.
+
+    Measured here because the clone is deleted at the end of the row: this is the only window
+    in which the answer is cheap. A miss is recorded as None with the reason on the row, never
+    as a blank that reads like a date nobody looked for.
+    """
+    out = ma.git(
+        repo,
+        "log",
+        "--reverse",
+        "--format=%H %ct",
+        f"-S{paper}",
+        f"{t0}..{head}",
+        "--",
+        *ma.DOC_GLOBS,
+        check=False,
+        timeout=timeout,
+    )
+    lines = out.strip().splitlines()
+    if not lines:
+        return None, None
+    sha, _, stamp = lines[0].partition(" ")
+    try:
+        when = datetime.fromtimestamp(int(stamp), tz=UTC).date().isoformat()
+    except (TypeError, ValueError):
+        return sha or None, None
+    return sha or None, when
+
+
 def github_url(full_name: str) -> str:
     return f"https://github.com/{full_name}"
 
@@ -192,6 +250,7 @@ def walk_row(
     clones: Path,
     contexts: Path,
     head_ids: Path | None = None,
+    seed: str = "",
     timeout: float = ROW_TIMEOUT_S,
     url_for: Any = github_url,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -269,8 +328,38 @@ def walk_row(
             pp2_ids_t0=len(t0_ids) >= MIN_IDS_T0,
             seconds=round(time.monotonic() - started, 1),
         )
-        row["qualifies"] = bool(row["pp1_history"] and row["pp2_ids_t0"])
+        # Section 2.2's remaining rules. Ordered cheapest first, and each records its own
+        # outcome so the ledger says WHICH rule rejected a candidate rather than only that
+        # one did.
+        language = (candidate.get("language") or "").strip()
+        readme = el.read_readme(repo, head, ma.git, left())
+        software = el.is_software_project(candidate.get("topics", ""), full, readme)
+        source_files = el.source_file_count(repo, head, language, ma.git, left())
+        english, lid_flag, _prose = el.english_readme(readme)
+        row.update(
+            pp_language=el.language_ok(language),
+            pp_software=software,
+            pp_source_files=source_files,
+            pp_readme_lang=lid_flag,
+        )
+        row["qualifies"] = bool(
+            row["pp1_history"]
+            and row["pp2_ids_t0"]
+            and row["pp_language"]
+            and software
+            and source_files >= el.MIN_SOURCE_FILES
+            and english
+        )
         if not row["qualifies"]:
+            if not row["pp_language"]:
+                row["outcome"] = "language"
+            elif not software:
+                row["outcome"] = "not_software"
+            elif source_files < el.MIN_SOURCE_FILES:
+                row["outcome"] = "software_floor"
+            elif not english:
+                row["outcome"] = "readme_lang"
+            row["seconds"] = round(time.monotonic() - started, 1)
             return row, []
 
         selfcites = ma.self_cited(
@@ -304,10 +393,26 @@ def walk_row(
             rows.append(entry)
 
         usable = [r for r in rows if r["usable"]]
+        # Section 3.3's per-repository cap is a SELECTION, not a count. It was an integer in
+        # the ledger and nothing marked WHICH eight, so whoever wrote the analysis would have
+        # picked them after the positives were visible -- inside a design whose entire
+        # anti-discretion argument is that the order was fixed by a pulse nobody could choose.
+        # Ordering by sha256(SEED_POOL || case:id) makes the choice a function of the seed.
+        for entry in rows:
+            entry["in_cap"] = False
+        chosen = sorted(usable, key=lambda e: order_key(seed, f"{e['case']}:{e['id']}"))
+        for entry in chosen[:PER_REPO_CAP]:
+            entry["in_cap"] = True
+            # Only the capped positives are judged, so only they need the date, which bounds
+            # what is otherwise one `git log -S` per adopted identifier.
+            entry["adoption_commit"], entry["adoption_date"] = adoption_commit(
+                repo, entry["id"], t0, head, left()
+            )
         row.update(
             gross_adoptions=len(rows),
             usable=len(usable),
-            capped=min(len(usable), PER_REPO_CAP),
+            capped=sum(1 for e in rows if e["in_cap"]),
+            in_cap=sum(1 for e in rows if e["in_cap"]),
         )
         if usable:
             # Persisted so judging never re-clones: the clone is deleted below, and the T0
@@ -359,7 +464,44 @@ def already_walked(path: Path) -> set[str]:
         return {row["full_name"] for row in csv.DictReader(fh) if row.get("full_name")}
 
 
-def merge_adoptions(path: Path, new: list[dict[str, Any]]) -> int:
+def assign_across_repos(
+    rows: list[dict[str, Any]], seed: str, legacy_ids: set[str] | None = None
+) -> list[dict[str, Any]]:
+    """Section 3.3: an identifier shared across repositories is assigned to ONE of them by
+    SEED_POOL and counted once, legacy winning ties.
+
+    Nothing implemented this. Two sibling projects that both adopted the same paper would each
+    contribute it, so the same (paper, T0-context) pair would be judged twice, counted twice
+    toward the stop rule, and enter the cluster bootstrap as two observations -- inflating the
+    apparent number of independent positives, which is exactly the quantity the clustered
+    interval exists to be honest about.
+
+    Every row is kept (section 3.1 keeps every row); the loser is marked `counted = False`
+    with the winner recorded, so the ledger shows the contest rather than hiding it.
+    """
+    legacy = legacy_ids or set()
+    by_id: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_id.setdefault(str(row["id"]), []).append(row)
+    for pid, contenders in by_id.items():
+        if pid in legacy:
+            # Legacy wins outright: those positives are already published as the legacy
+            # cluster, and re-counting one here would compare that cluster against itself.
+            winner = None
+        else:
+            winner = min(contenders, key=lambda r: order_key(seed, str(r["case"])))["case"]
+        for row in contenders:
+            row["assigned_to"] = winner or "legacy"
+            row["counted"] = bool(winner) and row["case"] == winner
+    return rows
+
+
+def merge_adoptions(
+    path: Path,
+    new: list[dict[str, Any]],
+    seed: str = "",
+    legacy_ids: set[str] | None = None,
+) -> int:
     """Merge, never rewrite. `--mine` rewrites its artefact, which is the NR-57 near-miss;
     a walk that restarts must not discard what the previous attempt mined."""
     existing: list[dict[str, Any]] = []
@@ -370,6 +512,9 @@ def merge_adoptions(path: Path, new: list[dict[str, Any]]) -> int:
         if (row["case"], row["id"]) not in seen:
             existing.append(row)
             seen.add((row["case"], row["id"]))
+    # Re-run over the whole file every time: a paper mined in an earlier chunk can be
+    # contested by one mined later, and the assignment must not depend on arrival order.
+    assign_across_repos(existing, seed, legacy_ids)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
     return len(existing)
@@ -397,6 +542,7 @@ def walk(
     clones = clone_dir if clone_dir is not None else EVALS / ".work" / "fullclone"
     done = already_walked(walk_csv)
     legacy = legacy_slugs() if legacy is None else legacy
+    legacy_positive_ids = legacy_ids()
 
     owners: dict[str, int] = {}
     for row in _read_rows(walk_csv):
@@ -458,6 +604,7 @@ def walk(
                         clones=clones,
                         contexts=contexts,
                         head_ids=head_ids,
+                        seed=seed,
                         url_for=url_for,
                     ),
                     prepared,
@@ -474,7 +621,7 @@ def walk(
             capped_total += int(row.get("capped") or 0)
         append_rows(walk_csv, sorted(rows, key=lambda r: r["rank"]))
         if mined:
-            merge_adoptions(adoptions, mined)
+            merge_adoptions(adoptions, mined, seed, legacy_positive_ids)
         walked += len(rows)
         if walked % curve_every < len(rows):
             point = {
