@@ -48,8 +48,13 @@ everything through `git show` / `git grep`, so nothing is ever checked out at al
 The pool needs ~60 new positives and this benchmark cannot supply them (NR-57 exhausted it),
 so the label is widened and applied to a screened population instead of to the 37:
 
-    uv run python evals/mine_adoptions.py --screen --candidates universe-D.csv   # $0, §6.2
     uv run python evals/mine_adoptions.py --mine --extractor v2                  # $0, §6.1
+
+The screen that used to live here is gone. It implemented `ids_v2(HEAD) >= 10`, the rule
+`PREREG-judge-validity-pool.md` §2.3 RETIRED in favour of `ids_v2(T0) >= 3` -- screening on
+HEAD conditions eligibility on the outcome being counted. `evals/frame/walk_pool.py` is the
+one implementation now; two implementations of one qualifying rule, one of them retired, is
+the C-9/C-12/C-14 defect this project has corrected three times.
 
 v2 writes `adoptions-v2.json`, never `adoptions.json`: §6.1 reports the v1 numbers unchanged
 as v1, so a v2 run must not be able to overwrite the record it is compared against.
@@ -58,7 +63,6 @@ as v1, so a v2 run must not be able to overwrite the record it is compared again
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import os
 import re
@@ -82,9 +86,6 @@ WORK = EVALS / ".work"
 CLONES = WORK / "fullclone"
 OUT = WORK / "adoptions.json"
 SEEDS = WORK / "adoption_seeds.json"
-# The pool is a published artefact. `.work/` is gitignored, so nothing there can be what the
-# runbook means by "committed".
-POOL_DIR = EVALS / "frame" / "pool"
 SCREEN_COLUMNS = (
     "full_name",
     "created_at",
@@ -115,7 +116,6 @@ EXTRACTORS = ("v1", "v2")
 # Applied to the HEAD side only: dropping an id from the T0 bibliography would MANUFACTURE
 # an adoption, which is the one direction this whole label cannot afford to be wrong in.
 REVERSE_CITED_PATH = re.compile(r"(projects|showcase|used[-_ ]by|gallery|community|awesome)", re.I)
-SCREEN_MIN_IDS = 10  # section 6.2: a row qualifies for the pool at ids_v2(HEAD) >= 10
 DOC_GLOBS = ("*.md", "*.rst", "*.cff", "*.bib", "*.txt")
 WINDOW_MONTHS = 24
 # The two S2 endpoints `hop` dispatches on, spelled the way it expects them.
@@ -531,78 +531,6 @@ def mine(
     return rows
 
 
-def read_candidates(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8", newline="") as fh:
-        rows = list(csv.DictReader(fh))
-    blank = [r for r in rows if not (r.get("full_name") or "").strip()]
-    if blank:
-        raise SystemExit(f"{path}: {len(blank)} row(s) have no full_name")
-    return rows
-
-
-def write_screen(rows: list[dict[str, Any]], out: Path) -> None:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(SCREEN_COLUMNS))
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({k: row.get(k, "") for k in SCREEN_COLUMNS})
-
-
-def screen(
-    candidates: list[dict[str, str]],
-    *,
-    keep_clones: bool = False,
-    created_before: str | None = None,
-) -> list[dict[str, Any]]:
-    """Section 6.2's qualifying screen: ids_v2(HEAD) >= 10, one blobless clone per row, $0.
-
-    Non-qualifying clones are deleted as soon as they are counted. Several hundred candidates
-    at ~20 MB of trees each is gigabytes of cache to answer a question that fits in one
-    integer, and this runs on a laptop. A clone that was already on disk before this ran is
-    never deleted -- it belongs to the legacy 37 or to an earlier screen, not to this one.
-    """
-    rows: list[dict[str, Any]] = []
-    for cand in candidates:
-        full = (cand["full_name"] or "").strip()
-        created = (cand.get("created_at") or "").strip()
-        row: dict[str, Any] = {
-            "full_name": full,
-            "created_at": created,
-            "clone_ok": False,
-            "ids_v1_head": "",
-            "ids_v2_head": "",
-            "qualifies": False,
-            "note": "",
-        }
-        if created_before and created and created[:10] >= created_before:
-            row["note"] = f"created {created[:10]} >= {created_before}"
-            rows.append(row)
-            print(f"[{full[:38]:38}] {row['note']}", flush=True)
-            continue
-        key = full.replace("/", "__")
-        existed = (CLONES / key).exists()
-        repo = clone(key, (cand.get("url") or "").strip() or f"https://github.com/{full}")
-        if repo is None:
-            row["note"] = "clone failed"
-            rows.append(row)
-            continue
-        row["clone_ok"] = True
-        head_paths = ids_with_paths(repo, "HEAD", "v2")
-        row["ids_v1_head"] = len(_matches_with_paths(repo, "HEAD", GREP_PATTERN, ID))
-        row["ids_v2_head"] = len(head_paths)
-        row["qualifies"] = len(head_paths) >= SCREEN_MIN_IDS
-        if not row["qualifies"] and not keep_clones and not existed:
-            row["note"] = "clone removed" if _remove_clone(repo) else "clone left on disk"
-        rows.append(row)
-        print(
-            f"[{full[:38]:38}] v1 {row['ids_v1_head']:4}  v2 {row['ids_v2_head']:4}  "
-            f"{'QUALIFIES' if row['qualifies'] else '-'}",
-            flush=True,
-        )
-    return rows
-
-
 def retro_hop(rows: list[dict[str, Any]], extractor: str = "v1") -> list[dict[str, Any]]:
     """Could the citation hop have found these papers from the T0 bibliography alone?
 
@@ -796,34 +724,8 @@ def main() -> int:
             "comparison is confounded by however far each repository has advanced."
         ),
     )
-    ap.add_argument("--screen", action="store_true", help="§6.2 qualifying screen ($0)")
-    ap.add_argument("--candidates", type=Path, help="CSV with a full_name column")
-    ap.add_argument("--out", type=Path, help="where --screen writes its CSV")
-    ap.add_argument("--created-before", help="ISO date; drop candidates created on/after it")
-    ap.add_argument("--keep-clones", action="store_true", help="keep non-qualifying clones")
     args = ap.parse_args()
     _load_env()
-
-    if args.screen:
-        if not args.candidates:
-            print("--screen needs --candidates <csv>")
-            return 1
-        screened = screen(
-            read_candidates(args.candidates),
-            keep_clones=args.keep_clones,
-            created_before=args.created_before,
-        )
-        # NOT `.work/` — that is gitignored (`.gitignore:196`), which makes the runbook's
-        # "validity_screen.csv committed" impossible to follow. The pool's artefacts are
-        # published with the paper, so they default somewhere that can actually be committed.
-        out = args.out or POOL_DIR / "validity_screen.csv"
-        write_screen(screened, out)
-        qualify = sum(1 for r in screened if r["qualifies"])
-        print(
-            f"\n{qualify}/{len(screened)} rows qualify at "
-            f"ids_v2(HEAD) >= {SCREEN_MIN_IDS} — written to {out}"
-        )
-        return 0
 
     bench = yaml.safe_load(BENCH.read_text(encoding="utf-8"))
     entries = bench["cases"] if isinstance(bench, dict) else bench

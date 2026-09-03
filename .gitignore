@@ -234,3 +234,10 @@ __marimo__/
 # pattern PREREG-judge-validity-pool.md section 2.1 keeps out of this tree. The committed record
 # is the trimmed archive beside it, which preserves query, Date, total_count and returned names.
 evals/frame/pool/raw/
+
+# T0 judge prompts. They are README excerpts, so they carry OTHER repositories' URLs
+# (measured: graph 2, rag 3) -- the github.com/<owner>/<repo> pattern section 2.1 keeps out of
+# this tree. They are working files, not datasheet artefacts: section 10 step 7 publishes the
+# ledger, positives, controls and verdicts, and each row already carries its context HASH,
+# which is what makes the prompt verifiable without publishing the prompt.
+evals/frame/pool/contexts/

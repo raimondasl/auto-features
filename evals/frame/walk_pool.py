@@ -97,6 +97,42 @@ WALK_COLUMNS = (
 )
 
 
+REGISTERED_PULSE = "2026-09-04T00:00:00Z"
+BEACON = "https://beacon.nist.gov/beacon/2.0/pulse/time/"
+
+
+def fetch_pulse(pulse_iso: str) -> str:
+    """The `outputValue` of the NIST Randomness Beacon pulse at *pulse_iso*."""
+    import urllib.request
+
+    stamp = int(datetime.fromisoformat(pulse_iso.replace("Z", "+00:00")).timestamp() * 1000)
+    with urllib.request.urlopen(f"{BEACON}{stamp}", timeout=60) as resp:  # noqa: S310
+        payload = json.loads(resp.read().decode("utf-8"))
+    return str(payload["pulse"]["outputValue"])
+
+
+def verify_seed(seed: str, pulse_iso: str, fetch: Any = fetch_pulse) -> None:
+    """Refuse to walk unless SEED_POOL really is the pulse named before the list was frozen.
+
+    Section 2.4's whole anti-discretion argument is that the order comes from a value nobody
+    could choose, published at a timestamp fixed in the commit that froze the candidate list.
+    Reading whatever happens to be in a file checks none of that: a typo, a truncated copy or
+    a hand-edited value all walk a different order, and every row afterwards is ordered by
+    something the pre-registration does not name.
+
+    Compared case-insensitively because the beacon serves uppercase hex and shells lowercase
+    it freely; that is a transcription difference, not a different value.
+    """
+    expected = fetch(pulse_iso)
+    if seed.strip().lower() != expected.strip().lower():
+        raise SystemExit(
+            f"SEED_POOL does not match the pulse named in section 2.4 ({pulse_iso}).\n"
+            f"  file   : {seed.strip()[:32]}...\n"
+            f"  beacon : {expected.strip()[:32]}...\n"
+            "  The walk order is only unchoosable if the seed IS that pulse. Refusing."
+        )
+
+
 def legacy_slugs(bench: Path | None = None) -> set[str]:
     """The 37 benchmark repositories, lowercased `owner/repo`. Section 2.2 excludes them.
 
@@ -566,8 +602,21 @@ def walk(
             break
         if walked >= b0 and capped_total >= target:
             break
-        chunk = pending[index : index + max(1, jobs)]
-        index += len(chunk)
+        # A chunk never contains two candidates from the same owner. PP3 caps owners "along
+        # the frozen seeded order", and `owners` is read for the whole chunk before any row
+        # runs and incremented only after — so four same-owner candidates in one chunk would
+        # all see a count of 3 and all pass a cap of 3. Cutting the chunk at the first repeat
+        # keeps rank order exactly and costs at most a shorter chunk.
+        chunk: list[tuple[int, dict[str, str]]] = []
+        chunk_owners: set[str] = set()
+        while len(chunk) < max(1, jobs) and index < len(pending):
+            rank, cand = pending[index]
+            owner = cand["full_name"].split("/")[0]
+            if owner in chunk_owners:
+                break
+            chunk_owners.add(owner)
+            chunk.append((rank, cand))
+            index += 1
         # PP3 is order-dependent, so it is applied here rather than inside the worker: a
         # candidate whose owner already has three qualifying repositories earlier in the
         # seeded order is skipped without being cloned.
@@ -684,11 +733,21 @@ def main() -> int:
     ap.add_argument("--budget", type=int, default=DEFAULT_B)
     ap.add_argument("--target", type=int, default=DEFAULT_TARGET)
     ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--pulse", default=REGISTERED_PULSE, help="the pulse section 2.4 names")
+    ap.add_argument(
+        "--no-verify-pulse",
+        dest="verify_pulse",
+        action="store_false",
+        help="skip the beacon check (offline reruns only; the order is then unverified)",
+    )
     args = ap.parse_args()
 
     seed = args.seed_file.read_text(encoding="utf-8").strip()
     if not seed:
         raise SystemExit(f"{args.seed_file} is empty — SEED_POOL must be a beacon pulse value")
+    if args.verify_pulse:
+        verify_seed(seed, args.pulse)
+        print(f"SEED_POOL verified against the beacon pulse at {args.pulse}")
     with args.candidates.open(encoding="utf-8", newline="") as fh:
         candidates = [r for r in csv.DictReader(fh) if (r.get("full_name") or "").strip()]
     print(f"{len(candidates)} candidates, B0={args.b0} B={args.budget} target={args.target}")
