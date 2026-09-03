@@ -133,6 +133,17 @@ KILL_SELF_CITE_FRACTION = 0.80
 CITE_HEADING = re.compile(
     r"^#{1,4}\s*.{0,40}\b(citation|cite|bibtex|reference this)\b", re.I | re.M
 )
+# The same heading in reStructuredText, which underlines rather than prefixing. `.rst` is in
+# DOC_GLOBS and those files were being opened and scanned with a markdown-only pattern, so a
+# Sphinx-documented project's own paper could never be recognised as a self-citation — and a
+# reference implementation's own paper is the strongest-looking "adoption" there is. It never
+# fired on the legacy 37 because they skew markdown; the enumerated population is 17,888
+# repositories, heavy in Sphinx-documented scientific Python.
+CITE_HEADING_RST = re.compile(
+    r"^.{0,40}\b(citation|cite|bibtex|reference this)\b.{0,20}$\n[=~^\-*+#\"']{3,}[ \t]*$",
+    re.I | re.M,
+)
+CITE_HEADINGS = (CITE_HEADING, CITE_HEADING_RST)
 
 
 def _force_writable(func: Any, target: Any, _exc: Any) -> None:
@@ -231,7 +242,17 @@ def _matches_with_paths(
         errors="replace",
         timeout=timeout,
     )
-    # git grep exits 1 when nothing matches, which is not an error here.
+    # git grep exits 1 when nothing matches, which is not an error here. Exit 128 IS: in a
+    # `--filter=blob:none` clone every grep is a lazy network fetch, so a promisor failure
+    # mid-walk returns partial or empty stdout. Swallowed, that row records ids_v2_t0 = 0,
+    # qualifies = False and outcome = "ok" -- byte-identical to a project that genuinely keeps
+    # no bibliography. The asymmetric case is worse: a truncated T0 grep beside a complete HEAD
+    # grep books identifiers present at BOTH ends as fresh adoptions, which is the one
+    # direction section 1 says this label cannot afford to be wrong in.
+    if out.returncode not in (0, 1):
+        raise RuntimeError(
+            f"git grep exited {out.returncode} at {rev} in {repo}: {out.stderr.strip()[:200]}"
+        )
     found: dict[str, set[str]] = {}
     prefix = f"{rev}:"
     for line in out.stdout.splitlines():
@@ -333,10 +354,11 @@ def self_cited(
             for pat in pats:
                 found |= {m.group(1) for m in pat.finditer(blob)}
             continue
-        for heading in CITE_HEADING.finditer(blob):
-            window = blob[heading.end() : heading.end() + 800]
-            for pat in pats:
-                found |= {m.group(1) for m in pat.finditer(window)}
+        for cite_heading in CITE_HEADINGS:
+            for heading in cite_heading.finditer(blob):
+                window = blob[heading.end() : heading.end() + 800]
+                for pat in pats:
+                    found |= {m.group(1) for m in pat.finditer(window)}
     return found
 
 

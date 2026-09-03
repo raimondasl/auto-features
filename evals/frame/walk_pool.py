@@ -90,6 +90,31 @@ WALK_COLUMNS = (
 )
 
 
+def legacy_slugs(bench: Path | None = None) -> set[str]:
+    """The 37 benchmark repositories, lowercased `owner/repo`. Section 2.2 excludes them.
+
+    Nothing implemented this rule, and it is not hypothetical: **21 of the 37 are in the
+    frozen candidate list**, and they carry 89 of NR-60's 94 legacy positives -- diffusers
+    (46), peft (27), pytorch_geometric (13), scvi-tools (2), scanpy (1).
+
+    Walked, `huggingface/diffusers` clones under the key `huggingface__diffusers`, so the
+    `existed` guard never recognises the legacy clone sitting at `.work/fullclone/diffusion`.
+    Its papers would be mined a second time as *new* pool positives, counted toward the stop
+    rule, capped a second time, and section 5's legacy-versus-pool heterogeneity would compare
+    the legacy cluster against itself.
+    """
+    import yaml
+
+    path = bench or (EVALS / "benchmark.yaml")
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    entries = data["cases"] if isinstance(data, dict) else data
+    out: set[str] = set()
+    for case in entries:
+        if isinstance(case, dict) and case.get("live_repo"):
+            out.add(case["live_repo"].rstrip("/").split("github.com/")[-1].lower())
+    return out
+
+
 def order_key(seed: str, full_name: str) -> str:
     return hashlib.sha256(f"{seed}{full_name}".encode()).hexdigest()
 
@@ -362,6 +387,7 @@ def walk(
     jobs: int = 4,
     curve_every: int = 50,
     url_for: Any = github_url,
+    legacy: set[str] | None = None,
 ) -> dict[str, Any]:
     ordered = seeded_order(candidates, seed)
     walk_csv = out_dir / "validity_walk.csv"
@@ -370,6 +396,7 @@ def walk(
     head_ids = out_dir / "head_ids"
     clones = clone_dir if clone_dir is not None else EVALS / ".work" / "fullclone"
     done = already_walked(walk_csv)
+    legacy = legacy_slugs() if legacy is None else legacy
 
     owners: dict[str, int] = {}
     for row in _read_rows(walk_csv):
@@ -402,7 +429,19 @@ def walk(
         skipped: list[dict[str, Any]] = []
         for rank, cand in chunk:
             owner = cand["full_name"].split("/")[0]
-            if owners.get(owner, 0) >= OWNER_CAP:
+            if cand["full_name"].lower() in legacy:
+                # Recorded, never cloned. A legacy repository walked here would enter
+                # the pool a second time under a different case key (section 2.2).
+                skipped.append(
+                    _blank_row(
+                        rank,
+                        cand["full_name"],
+                        (cand.get("created_at") or "")[:10],
+                        "legacy_case",
+                        "one of the 37 benchmark cases (section 2.2)",
+                    )
+                )
+            elif owners.get(owner, 0) >= OWNER_CAP:
                 row = _blank_row(
                     rank, cand["full_name"], (cand.get("created_at") or "")[:10], "owner_cap", ""
                 )
