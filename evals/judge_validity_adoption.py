@@ -75,7 +75,7 @@ import random
 import statistics
 import sys
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -540,6 +540,29 @@ def half_year_bounds(published: str) -> tuple[str, str]:
     return lo.strftime("%Y%m%d0000"), hi.strftime("%Y%m%d2359")
 
 
+LISTING_SLICES = 6  # one per month of the half-year
+FULL_ENUMERATION_CAP = 30000  # arXiv's own paging ceiling; only reached under depth="full"
+
+
+def sub_windows(lo: str, hi: str, slices: int = LISTING_SLICES) -> list[tuple[str, str]]:
+    """Split a `submittedDate` window into *slices* contiguous, non-overlapping parts.
+
+    Every day of the window falls in exactly one slice, and the parts are returned oldest
+    first. Boundaries land on day edges so a paper cannot fall between two slices or into both.
+    """
+    start = datetime.strptime(lo[:8], "%Y%m%d").date()
+    end = datetime.strptime(hi[:8], "%Y%m%d").date()
+    span = (end - start).days + 1
+    if slices < 2 or span < slices:
+        return [(lo, hi)]
+    out: list[tuple[str, str]] = []
+    for i in range(slices):
+        a = start + timedelta(days=(span * i) // slices)
+        b = start + timedelta(days=(span * (i + 1)) // slices - 1)
+        out.append((a.strftime("%Y%m%d0000"), b.strftime("%Y%m%d2359")))
+    return out
+
+
 def arxiv_window_listing(
     category: str,
     lo: str,
@@ -547,25 +570,92 @@ def arxiv_window_listing(
     *,
     want: int = LISTING_PER_WINDOW,
     archive: Path | None = None,
+    depth: str = "stratified",
+    slices: int = LISTING_SLICES,
 ) -> list[dict[str, Any]]:
-    """Every arXiv paper in *category* submitted in the window, through the shared gate.
+    """Papers in *category* submitted in the window, drawn ACROSS it rather than off its end.
+
+    This asked arXiv for `want` results sorted by `submittedDate` — and arXiv's default sort
+    order is **descending**, so it returned the *newest* 200 of the window. Measured: `cs.LG`
+    H1-2021 holds **13,262** papers, so all 200 controls for a positive in that window came
+    from its last few days. §4 registers "submitted in the same half-year" and names no cap and
+    no ordering, so the cap was an unregistered narrowing that made the negative class arXiv's
+    index order rather than the seed's.
+
+    It also mattered in a specific direction. NR-43 measured actionability rising steadily with
+    recency, 0.31 (2013) to 0.64 (2025), so controls drawn systematically months *newer* than
+    the positive they are matched against are scored *higher* — compressing the gap toward the
+    null §5 is pre-committed to reporting. Conservative, but by accident rather than design.
+
+    **`depth="stratified"` (default)** splits the window into `slices` equal parts and takes
+    `want // slices` from each, so the draw spans the whole half-year at the same request cost.
+    Residual skew is to the end of each *slice* — days, not months.
+
+    **`depth="full"`** enumerates the window completely and is what §4 would ask for if it were
+    free. It is not: at arXiv's enforced 3 s minimum interval and a 100-record page, one busy
+    window is ~6.6 minutes and a run needs 40-80 of them — **4.4 to 8.8 hours** of continuous
+    third-party API access, before any throttling. arXiv returned 429 during the measurement
+    that produced these figures. Measured 2026-09-03; the flag exists so the choice stays
+    available rather than being decided by this docstring.
 
     Archived per (category, window) because this is the **negative class of the primary
     endpoint**. An AUC is a statement about positives against these papers; if the listing
-    cannot be reproduced, neither can the number.
+    cannot be reproduced, neither can the number. The archive records every sub-query, what it
+    asked for and what it returned, so a slice that hit its own cap is visible rather than
+    inferred.
     """
     import arxiv
 
     from reporadar import collector as collector_mod
 
-    query = f"cat:{category} AND submittedDate:[{lo} TO {hi}]"
-    search = arxiv.Search(query=query, max_results=want, sort_by=arxiv.SortCriterion.SubmittedDate)
-    results = collector_mod._query_with_retry(collector_mod._shared_client(100), search)
-    papers = [collector_mod._result_to_paper(r) for r in results]
+    if depth not in ("stratified", "full"):
+        raise SystemExit(f"unknown listing depth {depth!r}; use 'stratified' or 'full'")
+
+    parts = [(lo, hi)] if depth == "full" else sub_windows(lo, hi, slices)
+    per_part = FULL_ENUMERATION_CAP if depth == "full" else max(1, want // len(parts))
+
+    papers: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    queries: list[dict[str, Any]] = []
+    for plo, phi in parts:
+        query = f"cat:{category} AND submittedDate:[{plo} TO {phi}]"
+        search = arxiv.Search(
+            query=query, max_results=per_part, sort_by=arxiv.SortCriterion.SubmittedDate
+        )
+        results = collector_mod._query_with_retry(collector_mod._shared_client(100), search)
+        got = [collector_mod._result_to_paper(r) for r in results]
+        queries.append(
+            {
+                "query": query,
+                "requested": per_part,
+                "returned": len(got),
+                # A slice that returned exactly what it asked for was cut off there. Recorded
+                # rather than inferred, because "200 of 13,262" and "200 of 200" are the same
+                # number in an archive that only stores the count.
+                "truncated": len(got) >= per_part,
+            }
+        )
+        for paper in got:
+            pid = dedup_id(str(paper.get("arxiv_id", "")))
+            if pid and pid not in seen:
+                seen.add(pid)
+                papers.append(paper)
+
     if archive is not None:
         archive.mkdir(parents=True, exist_ok=True)
         (archive / f"{category.replace('.', '_')}-{lo[:6]}.json").write_text(
-            json.dumps({"query": query, "n": len(papers), "papers": papers}, indent=2),
+            json.dumps(
+                {
+                    "category": category,
+                    "window": f"{lo}..{hi}",
+                    "depth": depth,
+                    "want": want,
+                    "sub_queries": queries,
+                    "n": len(papers),
+                    "papers": papers,
+                },
+                indent=2,
+            ),
             encoding="utf-8",
         )
     return papers

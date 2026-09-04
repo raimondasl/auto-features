@@ -252,17 +252,47 @@ def _blank_row(
     return row
 
 
-def legacy_ids(path: Path | None = None) -> set[str]:
-    """Identifiers already counted as legacy positives (NR-60's `adoptions-v2.json`).
+def legacy_capped(rows: list[dict[str, Any]], seed: str) -> list[dict[str, Any]]:
+    """The legacy positives that survive §3.3's per-repository cap of 8, in seeded order.
+
+    The same selection rule `walk_row` applies to a pool repository -- `sha256(SEED_POOL ||
+    case:id)`, take the first 8 -- so the two strata are capped by one implementation rather
+    than two, and which 8 is a function of the pulse rather than of whoever wrote the analysis.
+    """
+    by_case: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_case.setdefault(str(row["case"]), []).append(row)
+    out: list[dict[str, Any]] = []
+    for case, entries in sorted(by_case.items()):
+        chosen = sorted(entries, key=lambda e: order_key(seed, f"{case}:{e['id']}"))
+        out.extend(chosen[:PER_REPO_CAP])
+    return out
+
+
+def legacy_ids(seed: str, path: Path | None = None) -> set[str]:
+    """Identifiers the legacy cluster ACTUALLY CONTRIBUTES (NR-60's `adoptions-v2.json`).
 
     Section 3.3 gives legacy the tie, so a paper the legacy cluster already contributes is
     never counted again from a pool repository -- otherwise section 5's legacy-versus-pool
     heterogeneity compares the two clusters over an overlapping set of papers.
+
+    **The cap is applied first, and that is the whole point.** This returned all 94 usable
+    legacy positives, but §3.3's per-repository cap of 8 means only 32 of them ever enter the
+    analysis: `diffusion` holds 46 and contributes 8, `peft` 27 and contributes 8, `graph` 13
+    and contributes 8. So a pool repository adopting one of the other 62 lost the tie to a
+    paper the legacy cluster is not using -- and was then counted ZERO times, in neither
+    stratum. §3.3 says "counted once", and 62 papers counted zero times is not that. The loss
+    was also not random: those 62 are concentrated in the most widely adopted ML papers in the
+    set, which is exactly what a new ML repository is most likely to have taken up.
+
+    Maintainer decision of 2026-09-03, before the walk: the legacy set claims only the papers
+    it actually uses.
     """
     src = path or (EVALS / ".work" / "adoptions-v2.json")
     if not src.exists():
         return set()
-    return {str(r["id"]) for r in json.loads(src.read_text(encoding="utf-8")) if r.get("usable")}
+    rows = [r for r in json.loads(src.read_text(encoding="utf-8")) if r.get("usable")]
+    return {str(r["id"]) for r in legacy_capped(rows, seed)}
 
 
 def adoption_commit(
@@ -680,7 +710,7 @@ def walk(
             print(f"retrying {dropped} transiently-failed row(s)")
     done = already_walked(walk_csv, retry_failed)
     legacy = legacy_slugs() if legacy is None else legacy
-    legacy_positive_ids = legacy_ids()
+    legacy_positive_ids = legacy_ids(seed)
 
     owners: dict[str, int] = {}
     for row in _read_rows(walk_csv):

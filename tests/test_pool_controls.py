@@ -567,3 +567,87 @@ class TestAnEmptyControlSetIsRefused:
 
     def test_no_positives_is_not_this_functions_problem(self) -> None:
         jva.refuse_an_empty_control_set([], [])
+
+
+class TestTheDrawSpansTheWindowRatherThanItsEnd:
+    """`arxiv.Search(sort_by=SubmittedDate)` defaults to DESCENDING order, so asking for 200
+    returned the *newest* 200 of the half-year. Measured: `cs.LG` H1-2021 holds 13,262 papers,
+    so every control for a positive in that window came from its last few days.
+
+    §4 registers "submitted in the same half-year" and names no cap and no ordering, so the cap
+    was an unregistered narrowing that made the negative class arXiv's index order rather than
+    the seed's. It also ran in a direction: NR-43 measured actionability rising with recency
+    (0.31 in 2013 to 0.64 in 2025), so controls months newer than their positive score higher
+    and compress the gap toward the null §5 pre-commits to reporting.
+    """
+
+    def test_the_half_year_splits_into_contiguous_slices(self) -> None:
+        lo, hi = jva.half_year_bounds("2021-03-14")
+        parts = jva.sub_windows(lo, hi)
+        assert len(parts) == jva.LISTING_SLICES
+        assert parts[0][0] == lo and parts[-1][1] == hi
+        for (_, end), (start, _) in zip(parts, parts[1:], strict=False):
+            assert end[:8] < start[:8], "slices must not overlap"
+
+    def test_every_day_of_the_window_lands_in_exactly_one_slice(self) -> None:
+        from datetime import date, timedelta
+
+        lo, hi = jva.half_year_bounds("2021-09-30")
+        covered: set[date] = set()
+        for start, end in jva.sub_windows(lo, hi):
+            a = date(int(start[:4]), int(start[4:6]), int(start[6:8]))
+            b = date(int(end[:4]), int(end[4:6]), int(end[6:8]))
+            while a <= b:
+                assert a not in covered, "a paper could fall into two slices"
+                covered.add(a)
+                a += timedelta(days=1)
+        assert len(covered) == 184  # Jul 1 - Dec 31
+
+    def test_the_listing_queries_every_slice_not_just_the_window(self) -> None:
+        calls = self._listing_with(want=180)
+        assert len(calls) == jva.LISTING_SLICES
+        assert len(set(calls)) == jva.LISTING_SLICES, "each slice needs its own query"
+
+    def _listing_with(self, *, want, depth="stratified", archive=None):  # noqa: ANN001
+        queries: list[str] = []
+
+        class FakeSearch:
+            def __init__(self, query, max_results, sort_by):  # noqa: ANN001
+                queries.append(query)
+                self.max_results = max_results
+
+        import arxiv
+
+        from reporadar import collector as collector_mod
+
+        lo, hi = jva.half_year_bounds("2021-03-14")
+        with (
+            mock.patch.object(arxiv, "Search", FakeSearch),
+            mock.patch.object(collector_mod, "_query_with_retry", lambda c, s: []),
+            mock.patch.object(collector_mod, "_shared_client", lambda n: None),
+        ):
+            jva.arxiv_window_listing("cs.LG", lo, hi, want=want, depth=depth, archive=archive)
+        return queries
+
+    def test_full_depth_asks_for_the_whole_window_in_one_query(self) -> None:
+        calls = self._listing_with(want=200, depth="full")
+        assert len(calls) == 1
+        assert "20210101" in calls[0] and "20210630" in calls[0]
+
+    def test_an_unknown_depth_is_refused(self) -> None:
+        lo, hi = jva.half_year_bounds("2021-03-14")
+        with pytest.raises(SystemExit) as exc:
+            jva.arxiv_window_listing("cs.LG", lo, hi, depth="newest")
+        assert "stratified" in str(exc.value)
+
+    def test_the_archive_records_every_slice_and_whether_it_was_cut_off(
+        self, tmp_path: Path
+    ) -> None:
+        """ "200 of 13,262" and "200 of 200" are the same number in an archive that stores only
+        the count, so the truncation flag is recorded rather than inferred."""
+        self._listing_with(want=180, archive=tmp_path)
+        saved = json.loads((tmp_path / "cs_LG-202101.json").read_text(encoding="utf-8"))
+        assert len(saved["sub_queries"]) == jva.LISTING_SLICES
+        assert saved["depth"] == "stratified"
+        for q in saved["sub_queries"]:
+            assert {"query", "requested", "returned", "truncated"} <= set(q)

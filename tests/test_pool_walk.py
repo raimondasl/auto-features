@@ -876,3 +876,72 @@ class TestACloneFailureSaysWhy:
     def test_the_reason_is_gits_own(self, tmp_path: Path) -> None:
         _repo, why = wp._clone(tmp_path / "c", "k", (tmp_path / "nope").as_uri(), 60)
         assert why and "timeout" not in why
+
+
+class TestTheLegacyClusterClaimsOnlyWhatItUses:
+    """§3.3: an identifier shared across repositories is "assigned to one repository by
+    SEED_POOL and counted once, legacy winning ties."
+
+    `legacy_ids` returned all 94 usable legacy positives, but the per-repository cap of 8 means
+    only 32 ever enter the analysis. So a pool repository adopting one of the other 62 lost the
+    tie to a paper the legacy cluster is not using, and was then counted ZERO times — in
+    neither stratum. Sixty-two papers counted zero times is not "counted once", and the loss
+    was concentrated in the most widely adopted ML papers in the set: `diffusion` 38, `peft`
+    19, `graph` 5 — exactly what a new ML repository is most likely to have taken up.
+
+    Maintainer decision of 2026-09-03, before the walk: the legacy set claims only the papers
+    it actually uses.
+    """
+
+    def _rows(self, per_case: dict[str, int]) -> list[dict[str, object]]:
+        return [
+            {"case": case, "id": f"24{i:02d}.{n:05d}", "usable": True}
+            for i, (case, n_ids) in enumerate(sorted(per_case.items()))
+            for n in range(n_ids)
+        ]
+
+    def test_an_over_cap_paper_is_released_to_the_pool(self, tmp_path: Path) -> None:
+        src = tmp_path / "adoptions-v2.json"
+        src.write_text(json.dumps(self._rows({"diffusion": 46})), encoding="utf-8")
+        claimed = wp.legacy_ids("PULSE", src)
+        assert len(claimed) == wp.PER_REPO_CAP
+        assert len([r for r in self._rows({"diffusion": 46})]) - len(claimed) == 38
+
+    def test_the_cap_uses_the_same_seeded_rule_as_a_pool_repository(self) -> None:
+        """`sha256(SEED_POOL || case:id)`, take the first 8 — one implementation, so which 8
+        survive is a function of the pulse rather than of whoever wrote the analysis."""
+        rows = self._rows({"diffusion": 20})
+        kept = {r["id"] for r in wp.legacy_capped(rows, "PULSE")}
+        expected = {
+            r["id"]
+            for r in sorted(rows, key=lambda e: wp.order_key("PULSE", f"{e['case']}:{e['id']}"))[
+                : wp.PER_REPO_CAP
+            ]
+        }
+        assert kept == expected
+
+    def test_a_different_pulse_selects_a_different_eight(self) -> None:
+        rows = self._rows({"diffusion": 46})
+        a = {r["id"] for r in wp.legacy_capped(rows, "PULSE-A")}
+        b = {r["id"] for r in wp.legacy_capped(rows, "PULSE-B")}
+        assert a != b and len(a) == len(b) == wp.PER_REPO_CAP
+
+    def test_a_case_under_the_cap_keeps_everything(self) -> None:
+        rows = self._rows({"rag": 2, "llminfer": 2})
+        assert len(wp.legacy_capped(rows, "PULSE")) == 4
+
+    def test_it_is_deterministic(self, tmp_path: Path) -> None:
+        src = tmp_path / "adoptions-v2.json"
+        src.write_text(json.dumps(self._rows({"peft": 27})), encoding="utf-8")
+        assert wp.legacy_ids("PULSE", src) == wp.legacy_ids("PULSE", src)
+
+    def test_a_missing_artefact_claims_nothing(self, tmp_path: Path) -> None:
+        assert wp.legacy_ids("PULSE", tmp_path / "absent.json") == set()
+
+    def test_unusable_rows_are_never_claimed(self, tmp_path: Path) -> None:
+        """A row the filters rejected is not a legacy positive, so it wins no tie."""
+        src = tmp_path / "adoptions-v2.json"
+        src.write_text(
+            json.dumps([{"case": "graph", "id": "2401.00001", "usable": False}]), encoding="utf-8"
+        )
+        assert wp.legacy_ids("PULSE", src) == set()
