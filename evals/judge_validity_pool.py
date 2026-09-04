@@ -34,7 +34,7 @@ import re
 import subprocess
 import sys
 from collections import Counter
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -1104,6 +1104,280 @@ def draw_controls(
         },
     )
     return rows
+
+
+# ---------------------------------------------------------------------------------------
+# The purchase loop (§3.1, §4, §7, §10 step 7)
+# ---------------------------------------------------------------------------------------
+POOL_VERDICTS = WORK / "judge_validity_pool_verdicts.json"
+PURCHASE_LOCK = WORK / "judge_validity_pool.lock"
+LEGACY_VERDICTS = WORK / "judge_validity_verdicts.json"
+CHECKPOINT = 20
+
+
+def verdict_key(model: str, case: str, pid: str) -> str:
+    """One key shape, with the paper id normalised here and nowhere else."""
+    return f"{model}|{case}|{dedup_id(str(pid))}"
+
+
+def _save_store(store: Path, have: dict[str, Any]) -> None:
+    if store.resolve() == LEGACY_VERDICTS.resolve():
+        raise SystemExit(
+            "REFUSED: that is the NR-56/57 verdict store.\n"
+            "  566 paid records that §4's pool-scheme result is reported from. §1's rule for\n"
+            "  adoptions.json applies to it for the same reason: it is the record this study\n"
+            "  is compared against."
+        )
+    store.parent.mkdir(parents=True, exist_ok=True)
+    tmp = store.with_suffix(store.suffix + ".tmp")
+    tmp.write_text(json.dumps(have, indent=0), encoding="utf-8")
+    os.replace(tmp, store)
+
+
+def import_legacy_verdicts(
+    have: dict[str, Any],
+    digests: dict[str, str],
+    *,
+    source: Path | None = None,
+    recompute: Any = None,
+) -> dict[str, int]:
+    """Reuse an NR-56/57 verdict only when it answered THIS prompt, decided by recomputation.
+
+    Every one of the 566 stored records is exactly `{score, arm}` — no context digest, because
+    nothing recorded one. So the test cannot be "refuse a record without a digest": that would
+    make this path dead code. It is "rebuild the T0 context at the revision that verdict was
+    bought against and compare the digest to the one this run will use".
+
+    **Two separate facts, both measured 2026-09-03, and they point opposite ways.** §7 says the
+    legacy re-mine pins T0 "so that `t0` reproduces to the SHA" — that is **false for 2 of 9
+    cases**: `peft` moved `4c3a76fa68` → `e8ba7de573` and `llminfer` `d565bb2fd5` →
+    `8b3befc0e2`. But the T0 **context** at those two pairs of revisions is byte-identical
+    (`peft` 597f0159179d, `llminfer` d912ce5d4a6a both ways): the commits differ in code, not in
+    the documentation the prompt is built from. A SHA gate would have discarded both cases'
+    verdicts for a difference the judge never saw. The digest is what the judge was shown, so
+    the digest is what decides.
+
+    Reuse is small either way, and that is stated rather than discovered later: 33 of v1's 35
+    usable positives survive into v2 (both losses are `rl`, which contributes no usable v2
+    rows), the cap of 8 bounds it further, and **all 496 control verdicts are pool-scheme draws
+    under the old prompt shape** — versioned identifiers, unnormalised abstracts — so none of
+    them is reusable here at all.
+    """
+    src = source or LEGACY_VERDICTS
+    tally = {"imported": 0, "digest_mismatch": 0, "no_context": 0, "not_a_positive": 0}
+    if not src.is_file():
+        return tally
+    legacy = json.loads(src.read_text(encoding="utf-8"))
+    for key, record in legacy.items():
+        model, case, pid = key.split("|", 2)
+        if str(record.get("arm")) != "adopted":
+            # Controls were drawn under the pool scheme and printed with a version suffix.
+            tally["not_a_positive"] += 1
+            continue
+        want = digests.get(case)
+        if not want:
+            tally["no_context"] += 1
+            continue
+        was = (recompute or (lambda c: None))(case)
+        if was != want:
+            tally["digest_mismatch"] += 1
+            continue
+        have.setdefault(
+            verdict_key(model, case, pid),
+            {
+                "score": int(record["score"]),
+                "arm": "adopted",
+                "model": model,
+                "case": case,
+                "id": dedup_id(str(pid)),
+                "context_digest": want,
+                "source": "nr56-57",
+            },
+        )
+        tally["imported"] += 1
+    return tally
+
+
+def buy_verdicts(
+    items: list[dict[str, Any]],
+    contexts: dict[str, tuple[str, str]],
+    *,
+    judges: dict[str, Any],
+    store: Path | None = None,
+    scheme: str = "arxiv-window",
+    checkpoint: int = CHECKPOINT,
+    gate: Any = None,
+    lock: Path | None = None,
+    done_out: Path | None = None,
+) -> dict[str, Any]:
+    """Buy both judges' verdicts for every item, carrying the cache gate the whole way.
+
+    Factored out of `judge()` so the gate cannot be left behind by a future entry point, and so
+    a whole run is testable with fakes and no network. §7's cache clause binds every path that
+    buys a T0 verdict, not only the one that happened to exist when it was written.
+
+    **Every item exits with an outcome**, persisted as a list rather than the integer `void`
+    the old loop counted and printed once. §3.1 states the principle one stage earlier: "A
+    timeout is a recorded outcome, never a silent skip", and §10 step 7 publishes the void and
+    timeout lists in the datasheet. A judge whose verdicts are 60 % complete produces an AUC
+    over a different sample from the other judge's, and §5 compares the two directly — so the
+    run ends by checking that every expected verdict is either present or explained, and raises
+    on any that is neither.
+
+    The gate runs at pre-flight, at every checkpoint and at the end, and the store is written
+    **before** any raise: a mid-run trip must abort without also losing what was already paid
+    for.
+    """
+    dest = store or POOL_VERDICTS
+    lock_file = lock or PURCHASE_LOCK
+    if lock_file.is_file():
+        raise SystemExit(
+            f"{lock_file} exists: {lock_file.read_text(encoding='utf-8').strip()}\n"
+            "  Another purchase run holds it. Two loops against one store would interleave\n"
+            "  writes and each would overwrite the other's verdicts."
+        )
+
+    import judge_validity_adoption as jva
+
+    check = gate if gate is not None else jva.isolation_failures
+    cache_roots, cache_before = ((), {}) if gate is not None else jva.prepare_isolation()
+
+    have: dict[str, Any] = {}
+    if dest.is_file():
+        have = json.loads(dest.read_text(encoding="utf-8"))
+
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    lock_file.write_text(f"pid {os.getpid()} started {_now()}", encoding="utf-8")
+    outcomes: list[dict[str, Any]] = []
+    bought = 0
+
+    def fire_gate() -> None:
+        _save_store(dest, have)  # money first, guard second
+        failures = check(cache_before, cache_roots, None, None) if gate is None else check()
+        if failures:
+            raise SystemExit("\n\n".join(failures))
+
+    try:
+        for n, item in enumerate(items, start=1):
+            case, pid, arm = str(item["case"]), str(item["arxiv_id"]), str(item["arm"])
+            pair = contexts.get(case)
+            if pair is None:
+                outcomes.append({"case": case, "id": pid, "arm": arm, "outcome": "no_context"})
+                continue
+            context, digest = pair
+            for model, ask in judges.items():
+                key = verdict_key(model, case, pid)
+                prior = have.get(key)
+                if prior is not None:
+                    if str(prior.get("arm")) != arm:
+                        # A stored flag nobody reads catches nothing — which is what the
+                        # assigned-but-unread control scheme already demonstrated.
+                        raise SystemExit(
+                            f"{key}: stored arm {prior.get('arm')!r} but this run says {arm!r}.\n"
+                            "  The same paper cannot be a positive and a control in one study."
+                        )
+                    if str(prior.get("context_digest")) == digest:
+                        continue
+                    # Bought against a different prompt. Re-bought, never reused: the context is
+                    # what makes a T0 verdict a T0 verdict.
+                try:
+                    score = int(ask(case, context, item, model))
+                    have[key] = {
+                        "score": score,
+                        "arm": arm,
+                        "model": model,
+                        "case": case,
+                        "id": pid,
+                        "context_digest": digest,
+                        "scheme": scheme,
+                        "source": "pool",
+                    }
+                    bought += 1
+                    outcomes.append(
+                        {"case": case, "id": pid, "arm": arm, "outcome": "judged", "model": model}
+                    )
+                except TimeoutError:
+                    outcomes.append(
+                        {"case": case, "id": pid, "arm": arm, "outcome": "timeout", "model": model}
+                    )
+                except Exception as exc:  # noqa: BLE001 — one bad paper must not lose the rest
+                    outcomes.append(
+                        {
+                            "case": case,
+                            "id": pid,
+                            "arm": arm,
+                            "outcome": "judge_error",
+                            "model": model,
+                            "error": type(exc).__name__,
+                        }
+                    )
+            if n % checkpoint == 0:
+                fire_gate()
+                print(f"  [{n}/{len(items)}] bought {bought}", flush=True)
+        fire_gate()
+    finally:
+        lock_file.unlink(missing_ok=True)
+
+    coverage = verdict_coverage(items, have, outcomes, judges=list(judges))
+    record = {
+        "scheme": scheme,
+        "n_items": len(items),
+        "bought": bought,
+        "coverage": coverage,
+        # Lists, not a count. §10 step 7 publishes them, and "17 void" cannot be checked
+        # against anything.
+        "outcomes": [o for o in outcomes if o["outcome"] != "judged"],
+    }
+    write_artifact(done_out or JUDGING_DONE, record)
+    return record
+
+
+def verdict_coverage(
+    items: list[dict[str, Any]],
+    have: dict[str, Any],
+    outcomes: list[dict[str, Any]],
+    *,
+    judges: list[str],
+) -> dict[str, Any]:
+    """Per judge: expected, present, explained-away, and unexplained. Unexplained raises.
+
+    An absence with no recorded reason is the failure this whole loop is arranged around: one
+    arXiv 503 drops a hundred ids with a single printed line, and a judge missing those papers
+    produces an AUC over a different sample from the other judge's — which §5 then compares
+    directly, as though the two numbers were about the same thing.
+    """
+    out: dict[str, Any] = {}
+    explained = {
+        (o["model"], o["case"], o["id"])
+        for o in outcomes
+        if o["outcome"] != "judged" and "model" in o
+    }
+    no_context = {(o["case"], o["id"]) for o in outcomes if o["outcome"] == "no_context"}
+    for model in judges:
+        expected = [i for i in items if (str(i["case"]), str(i["arxiv_id"])) not in no_context]
+        present = [
+            i for i in expected if verdict_key(model, str(i["case"]), str(i["arxiv_id"])) in have
+        ]
+        void = [i for i in expected if (model, str(i["case"]), str(i["arxiv_id"])) in explained]
+        missing = len(expected) - len(present) - len(void)
+        out[model] = {
+            "n_expected": len(expected),
+            "n_present": len(present),
+            "n_void_recorded": len(void),
+            "n_missing_unexplained": missing,
+            "coverage": round(len(present) / len(expected), 4) if expected else None,
+        }
+        if missing > 0:
+            raise SystemExit(
+                f"{model}: {missing} expected verdict(s) are neither present nor explained.\n"
+                "  An absence with no recorded reason makes this judge's AUC a statement about\n"
+                "  a different sample from the other judge's, which §5 compares directly."
+            )
+    return out
+
+
+def _now() -> str:
+    return datetime.now(tz=UTC).isoformat(timespec="seconds")
 
 
 # ---------------------------------------------------------------------------------------
