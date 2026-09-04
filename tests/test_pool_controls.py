@@ -45,8 +45,15 @@ def _load(name: str):  # type: ignore[no-untyped-def]
 jva = _load("judge_validity_adoption")
 
 
-def _paper(pid: str) -> dict:
-    return {"arxiv_id": pid, "title": f"paper {pid}", "abstract": "a real abstract"}
+def _paper(pid: str, primary: str = "cs.LG") -> dict:
+    # `primary_category` is not decoration: §4 matches a control to its positive on it, and
+    # `cat:` matches cross-lists too, so the listing is a superset the draw has to filter.
+    return {
+        "arxiv_id": pid,
+        "title": f"paper {pid}",
+        "abstract": "a real abstract",
+        "primary_category": primary,
+    }
 
 
 def _listing_of(ids: list[str]):  # type: ignore[no-untyped-def]
@@ -59,6 +66,8 @@ def _listing_of(ids: list[str]):  # type: ignore[no-untyped-def]
     listing.calls = calls  # type: ignore[attr-defined]
     return listing
 
+
+CITED: dict[str, set[str]] = {"acme/rich": set()}
 
 POSITIVE = {
     "case": "acme/rich",
@@ -84,7 +93,7 @@ class TestTheWindowIsAHalfYear:
 class TestTheControlsAreMatchedAndClean:
     def test_four_controls_per_positive_from_the_matching_window(self) -> None:
         listing = _listing_of([f"2104.0000{i}" for i in range(10)])
-        out = jva.arxiv_window_controls([POSITIVE], {}, "SEED", listing=listing)
+        out = jva.arxiv_window_controls([POSITIVE], CITED, "SEED", listing=listing)
         assert len(out) == 4
         assert listing.calls == [("cs.LG", "202101010000", "202106302359")]
         assert all(c["case"] == "acme/rich" for c in out)
@@ -102,7 +111,7 @@ class TestTheControlsAreMatchedAndClean:
 
     def test_the_positive_itself_is_never_drawn_as_its_own_control(self) -> None:
         listing = _listing_of(["2103.00001", *[f"2104.0000{i}" for i in range(6)]])
-        out = jva.arxiv_window_controls([POSITIVE], {}, "SEED", listing=listing)
+        out = jva.arxiv_window_controls([POSITIVE], CITED, "SEED", listing=listing)
         assert "2103.00001" not in {c["id"] for c in out}
 
     def test_a_paper_with_no_abstract_is_skipped(self) -> None:
@@ -114,7 +123,7 @@ class TestTheControlsAreMatchedAndClean:
                 *[_paper(f"2104.0001{i}") for i in range(5)],
             ]
 
-        out = jva.arxiv_window_controls([POSITIVE], {}, "SEED", listing=listing)
+        out = jva.arxiv_window_controls([POSITIVE], CITED, "SEED", listing=listing)
         assert "2104.00001" not in {c["id"] for c in out}
 
     def test_controls_are_not_reused_across_positives_in_one_repo(self) -> None:
@@ -123,7 +132,7 @@ class TestTheControlsAreMatchedAndClean:
         cannot see."""
         listing = _listing_of([f"2104.000{i:02d}" for i in range(20)])
         second = {**POSITIVE, "id": "2104.09999"}
-        out = jva.arxiv_window_controls([POSITIVE, second], {}, "SEED", listing=listing)
+        out = jva.arxiv_window_controls([POSITIVE, second], CITED, "SEED", listing=listing)
         assert len(out) == 8
         assert len({c["id"] for c in out}) == 8
 
@@ -132,35 +141,35 @@ class TestTheControlsAreMatchedAndClean:
         multiply arXiv requests for an identical answer."""
         listing = _listing_of([f"2104.000{i:02d}" for i in range(20)])
         same_window = {**POSITIVE, "id": "2105.00002", "published": "2021-05-02"}
-        jva.arxiv_window_controls([POSITIVE, same_window], {}, "SEED", listing=listing)
+        jva.arxiv_window_controls([POSITIVE, same_window], CITED, "SEED", listing=listing)
         assert len(listing.calls) == 1
 
     def test_a_positive_missing_its_category_is_skipped_rather_than_guessed(self) -> None:
         listing = _listing_of([f"2104.0000{i}" for i in range(6)])
         bare = {"case": "acme/rich", "id": "2103.00002"}
-        assert jva.arxiv_window_controls([bare], {}, "SEED", listing=listing) == []
+        assert jva.arxiv_window_controls([bare], CITED, "SEED", listing=listing) == []
 
 
 class TestTheDrawIsSeeded:
     def test_the_same_seed_gives_the_same_controls(self) -> None:
         listing = _listing_of([f"2104.000{i:02d}" for i in range(30)])
-        a = jva.arxiv_window_controls([POSITIVE], {}, "SEED-1", listing=listing)
-        b = jva.arxiv_window_controls([POSITIVE], {}, "SEED-1", listing=listing)
+        a = jva.arxiv_window_controls([POSITIVE], CITED, "SEED-1", listing=listing)
+        b = jva.arxiv_window_controls([POSITIVE], CITED, "SEED-1", listing=listing)
         assert [c["id"] for c in a] == [c["id"] for c in b]
 
     def test_a_different_seed_gives_different_controls(self) -> None:
         listing = _listing_of([f"2104.000{i:02d}" for i in range(30)])
-        a = jva.arxiv_window_controls([POSITIVE], {}, "SEED-1", listing=listing)
-        b = jva.arxiv_window_controls([POSITIVE], {}, "SEED-2", listing=listing)
+        a = jva.arxiv_window_controls([POSITIVE], CITED, "SEED-1", listing=listing)
+        b = jva.arxiv_window_controls([POSITIVE], CITED, "SEED-2", listing=listing)
         assert [c["id"] for c in a] != [c["id"] for c in b]
 
     def test_the_draw_does_not_depend_on_the_listing_order(self) -> None:
         """arXiv returns results in its own order; a control set that depended on it would
         not be reproducible from the archived listing."""
         ids = [f"2104.000{i:02d}" for i in range(30)]
-        forward = jva.arxiv_window_controls([POSITIVE], {}, "S", listing=_listing_of(ids))
+        forward = jva.arxiv_window_controls([POSITIVE], CITED, "S", listing=_listing_of(ids))
         backward = jva.arxiv_window_controls(
-            [POSITIVE], {}, "S", listing=_listing_of(list(reversed(ids)))
+            [POSITIVE], CITED, "S", listing=_listing_of(list(reversed(ids)))
         )
         assert {c["id"] for c in forward} == {c["id"] for c in backward}
 
@@ -180,7 +189,7 @@ class TestTheListingIsArchived:
             return [_paper(f"2104.0000{i}") for i in range(6)]
 
         jva.arxiv_window_controls(
-            [POSITIVE], {}, "SEED", listing=listing, archive=tmp_path / "listings"
+            [POSITIVE], CITED, "SEED", listing=listing, archive=tmp_path / "listings"
         )
         saved = list((tmp_path / "listings").glob("*.json"))
         assert [p.name for p in saved] == ["cs_LG-202101.json"]
@@ -542,7 +551,7 @@ class TestPositivesMustBeEnrichedBeforeControlsCanBeDrawn:
     def test_enriched_rows_actually_draw_controls(self) -> None:
         """The end-to-end point: unenriched rows draw nothing, enriched rows draw four each."""
         listing = _listing_of([f"2104.000{i:02d}" for i in range(20)])
-        assert jva.arxiv_window_controls(self.ROWS, {}, "SEED", listing=listing) == []
+        assert jva.arxiv_window_controls(self.ROWS, CITED, "SEED", listing=listing) == []
 
         def fetch(ids: list[str]) -> list[dict]:
             return [
@@ -551,7 +560,7 @@ class TestPositivesMustBeEnrichedBeforeControlsCanBeDrawn:
             ]
 
         enriched, _ = jva.enrich_positives(self.ROWS, fetch=fetch)
-        assert len(jva.arxiv_window_controls(enriched, {}, "SEED", listing=listing)) == 8
+        assert len(jva.arxiv_window_controls(enriched, CITED, "SEED", listing=listing)) == 8
 
 
 class TestAnEmptyControlSetIsRefused:

@@ -232,6 +232,12 @@ def _result_to_paper(result: arxiv.Result) -> dict[str, Any]:
         "authors": [a.name for a in result.authors],
         "abstract": result.summary,
         "categories": result.categories,
+        # arXiv's own primary category, kept alongside the full list. `categories[0]` is feed
+        # tag order and is not a promise about which one is primary; the judge-validity pool
+        # matches each control to its positive on the PRIMARY category (PREREG §4), so guessing
+        # would let cross-listed papers dominate a negative class that is supposed to be
+        # same-field.
+        "primary_category": getattr(result, "primary_category", "") or "",
         "published": result.published.isoformat(),
         "updated": result.updated.isoformat() if result.updated else None,
         "url": result.entry_id,
