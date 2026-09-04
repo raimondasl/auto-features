@@ -1,0 +1,615 @@
+{
+ "_artefact": "judge-validity-pool",
+ "_comment": "Derived from the legacy clones at each row's recorded head/t0 SHAs (PREREG \u00a77). adoptions-v2.json is immutable (\u00a71) and is not modified; these are the fields the walk records for a pool repository and the legacy artefact predates.",
+ "source": "C:\\Users\\raimo\\auto-features\\evals\\.work\\adoptions-v2.json",
+ "n_cases": 8,
+ "n_usable_rows": 94,
+ "cases": {
+  "bio-scvi": {
+   "head": "4b50c60b4c8073b8d327460b74e479ebc2e36009",
+   "t0": "f8811ad999d470e9d589520496905ae0328b1402",
+   "t0_date": "2024-09-11",
+   "t0_commit_date": "2024-09-09",
+   "head_date": "2026-09-01",
+   "window_days": 722,
+   "context_digest": "927962ae1c94",
+   "n_head_ids": 5,
+   "adoptions": {
+    "1810.08278": {
+     "adoption_commit": "513012f4fef2b5b31223ff5cba0a9e58c4bcc0dc",
+     "adoption_date": "2026-05-12",
+     "note": null
+    },
+    "1910.12958": {
+     "adoption_commit": "513012f4fef2b5b31223ff5cba0a9e58c4bcc0dc",
+     "adoption_date": "2026-05-12",
+     "note": null
+    }
+   },
+   "n_adoption_dates": 2,
+   "dois_head": 44,
+   "dois_t0": 33,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "bio-singlecell": {
+   "head": "a656a33b080a5c1f64b01e841daad76f35f5ec5f",
+   "t0": "bec794c7e7e28393e7cb6ae6624ecdbd187868ac",
+   "t0_date": "2024-09-07",
+   "t0_commit_date": "2024-09-02",
+   "head_date": "2026-08-28",
+   "window_days": 725,
+   "context_digest": "e3b15e620013",
+   "n_head_ids": 3,
+   "adoptions": {
+    "0909.4061": {
+     "adoption_commit": "207245ac8e3bfc33be1ff95e59abf8205f0e6bbb",
+     "adoption_date": "2025-05-28",
+     "note": null
+    }
+   },
+   "n_adoption_dates": 1,
+   "dois_head": 78,
+   "dois_t0": 64,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "diffusion": {
+   "head": "9c6a68c32b3b2a64db91800b624d33cec6e25ab8",
+   "t0": "e780c05cc3e7816dca976622ef03bc734c486866",
+   "t0_date": "2024-08-16",
+   "t0_commit_date": "2024-08-16",
+   "head_date": "2026-08-06",
+   "window_days": 720,
+   "context_digest": "dba195dcad65",
+   "n_head_ids": 172,
+   "adoptions": {
+    "2107.03006": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2207.12598": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2210.02747": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2305.14314": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2306.01708": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2307.06350": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2309.14509": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2310.01889": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2310.11513": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2310.15169": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2311.03099": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2403.05121": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2403.06923": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2405.07719": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2405.14430": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2408.12588": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2409.11340": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2410.02416": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2410.10629": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2410.10733": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2410.15458": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2410.19355": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2411.05007": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2411.17440": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2411.18664": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2412.03603": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2412.11963": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2501.03575": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2503.06923": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2503.09641": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2503.19325": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2503.20314": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2504.07960": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2504.12626": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2504.13074": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2505.24857": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2509.14055": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2509.24695": {
+     "adoption_commit": "b3e9dfced7c9e8d00f646c710766b532383f04c6",
+     "adoption_date": "2025-11-06",
+     "note": null
+    },
+    "2510.04290": {
+     "adoption_commit": "04f9d2bf3d26e026244a13111d2f18bc95a5bb04",
+     "adoption_date": "2025-11-10",
+     "note": null
+    },
+    "2510.11690": {
+     "adoption_commit": "8ec0a5ccad96957c10388d2d2acc7fdd8e0fab84",
+     "adoption_date": "2026-03-05",
+     "note": null
+    },
+    "2511.14993": {
+     "adoption_commit": "d0c54e5563c3245b57d2b374e8e334da77305c05",
+     "adoption_date": "2025-12-03",
+     "note": null
+    },
+    "2511.22699": {
+     "adoption_commit": "c98c157a9ec6aaf4eba4b19be6d25b9f73766eba",
+     "adoption_date": "2025-12-05",
+     "note": null
+    },
+    "2511.22982": {
+     "adoption_commit": "4f136f842cdfe05c778892e50cc87e6fc705bd43",
+     "adoption_date": "2025-12-02",
+     "note": null
+    },
+    "2512.04746": {
+     "adoption_commit": "c31bb1c148c119b258db5d8464259cdfccab77d2",
+     "adoption_date": "2026-06-10",
+     "note": null
+    },
+    "2601.03233": {
+     "adoption_commit": "7298f5be9339a81bc9ce551290213f04cd7a12ce",
+     "adoption_date": "2026-03-27",
+     "note": null
+    },
+    "2602.00744": {
+     "adoption_commit": "1a8a17b71bed439b52877393c6f02c286df2aab9",
+     "adoption_date": "2026-05-01",
+     "note": null
+    }
+   },
+   "n_adoption_dates": 9,
+   "dois_head": 2,
+   "dois_t0": 2,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "graph": {
+   "head": "cc678a392255a1467872f54582724b8dce434603",
+   "t0": "6eac972f9896e34c49118ac5d33afa9833c2ce8d",
+   "t0_date": "2024-08-10",
+   "t0_commit_date": "2024-08-07",
+   "head_date": "2026-07-30",
+   "window_days": 722,
+   "context_digest": "07b29c3b697f",
+   "n_head_ids": 121,
+   "adoptions": {
+    "1706.03762": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "1810.04805": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2007.02835": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2007.14062": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2009.14794": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2010.11929": {
+     "adoption_commit": "2f1e4f2e666db65056d001650488be9b31f8dd0f",
+     "adoption_date": "2025-02-05",
+     "note": null
+    },
+    "2106.09671": {
+     "adoption_commit": "b89c37ae9e0cac1d358c453df6954e45ca36fb43",
+     "adoption_date": "2025-04-03",
+     "note": null
+    },
+    "2201.08821": {
+     "adoption_commit": "2f1e4f2e666db65056d001650488be9b31f8dd0f",
+     "adoption_date": "2025-02-05",
+     "note": null
+    },
+    "2210.14709": {
+     "adoption_commit": "e1a925b792631d4362e4dab1cc75d64f41848250",
+     "adoption_date": "2024-11-19",
+     "note": null
+    },
+    "2310.11009": {
+     "adoption_commit": "1648a0c320f67fba8cb583dfefa14c3bc2741fc9",
+     "adoption_date": "2025-08-27",
+     "note": null
+    },
+    "2312.04615": {
+     "adoption_commit": "fed2253c4a807e85ba61887efd0bb10ee869d094",
+     "adoption_date": "2025-05-13",
+     "note": null
+    },
+    "2402.07630": {
+     "adoption_commit": "1f0e1dabbda3867f4c7ef9a76b9a7dddba489404",
+     "adoption_date": "2025-09-17",
+     "note": null
+    },
+    "2409.14500": {
+     "adoption_commit": "b31c1613e1b5e469b4cf60466c6bebe9a2642eed",
+     "adoption_date": "2026-03-30",
+     "note": null
+    }
+   },
+   "n_adoption_dates": 8,
+   "dois_head": 3,
+   "dois_t0": 2,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "llminfer": {
+   "head": "6a32c29a746a2e44de463de647f9f6661eb5086b",
+   "t0": "8b3befc0e2ed8fb18b903735831496b8b0c80949",
+   "t0_date": "2024-08-16",
+   "t0_commit_date": "2024-08-16",
+   "head_date": "2026-08-06",
+   "window_days": 720,
+   "context_digest": "d912ce5d4a6a",
+   "n_head_ids": 2,
+   "adoptions": {
+    "2107.03006": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2406.17415": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    }
+   },
+   "n_adoption_dates": 0,
+   "dois_head": 0,
+   "dois_t0": 0,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "mat-phonon": {
+   "head": "3763cb98a36f0c3b0fbf28beda60a21a25c61d92",
+   "t0": "7e45094a17e35cc3c551da763b1830abfa32276a",
+   "t0_date": "2024-09-11",
+   "t0_commit_date": "2024-09-10",
+   "head_date": "2026-09-01",
+   "window_days": 721,
+   "context_digest": "668a8089957f",
+   "n_head_ids": 2,
+   "adoptions": {
+    "2401.17531": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    }
+   },
+   "n_adoption_dates": 0,
+   "dois_head": 10,
+   "dois_t0": 4,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "peft": {
+   "head": "5f55a6331b6a1620d8200ddb7c7c517dec722908",
+   "t0": "e8ba7de5732e050a8f061cde555c02ab575f7529",
+   "t0_date": "2024-08-16",
+   "t0_commit_date": "2024-08-16",
+   "head_date": "2026-08-06",
+   "window_days": 720,
+   "context_digest": "597f0159179d",
+   "n_head_ids": 71,
+   "adoptions": {
+    "1909.08053": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2212.04089": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2306.07967": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2405.11157": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2405.15179": {
+     "adoption_commit": null,
+     "adoption_date": null,
+     "note": "pickaxe exceeded 20s on a promisor clone"
+    },
+    "2405.17604": {
+     "adoption_commit": "7c2cc482afd58c44cecbb1329c36e734237a9477",
+     "adoption_date": "2026-04-01",
+     "note": null
+    },
+    "2405.17991": {
+     "adoption_commit": "77628eeb38344eb161cce4ac81690b9158d3457a",
+     "adoption_date": "2026-05-08",
+     "note": null
+    },
+    "2406.05223": {
+     "adoption_commit": "6d458b300fc2ed82e19f796b53af4c97d03ea604",
+     "adoption_date": "2024-12-19",
+     "note": null
+    },
+    "2406.13175": {
+     "adoption_commit": "a4f9334f12483e5ce4be4cda64cc70ddd40f2595",
+     "adoption_date": "2025-07-14",
+     "note": null
+    },
+    "2407.09946": {
+     "adoption_commit": "e140baf84202d527027121f3141bcaada3dd4cee",
+     "adoption_date": "2026-03-04",
+     "note": null
+    },
+    "2407.19342": {
+     "adoption_commit": "e6577076bf8000aeb303a110274c2a28569caae0",
+     "adoption_date": "2025-06-30",
+     "note": null
+    },
+    "2409.00119": {
+     "adoption_commit": "ce5c2044f1430aa0bb3d2bccda73e242efde9e72",
+     "adoption_date": "2025-08-19",
+     "note": null
+    },
+    "2410.21228": {
+     "adoption_commit": "7bb40eaf4332e1095271d52ebed8b7b206b9e4af",
+     "adoption_date": "2026-01-26",
+     "note": null
+    },
+    "2411.04358": {
+     "adoption_commit": "baa6a04316072ce2e15d9e1f3da9954692d27589",
+     "adoption_date": "2026-05-21",
+     "note": null
+    },
+    "2412.06071": {
+     "adoption_commit": "2969e633a9540e4855767639cca653b962fecadc",
+     "adoption_date": "2026-08-03",
+     "note": null
+    },
+    "2502.00987": {
+     "adoption_commit": "6c489499300c652a4990cfbcc18539417e73c262",
+     "adoption_date": "2025-05-07",
+     "note": null
+    },
+    "2503.18225": {
+     "adoption_commit": "2813b9c4bfd240408de398028da722ed52528cdb",
+     "adoption_date": "2025-10-17",
+     "note": null
+    },
+    "2504.12397": {
+     "adoption_commit": "293aea5df6db240856a77f89955d1a89ce38b50d",
+     "adoption_date": "2025-09-03",
+     "note": null
+    },
+    "2505.11235": {
+     "adoption_commit": "fe0808ca0fa28fd99ae46d742ff49eeef13e7528",
+     "adoption_date": "2026-02-27",
+     "note": null
+    },
+    "2506.00799": {
+     "adoption_commit": "cad8422c230775681289318aca1da38a69b51dd5",
+     "adoption_date": "2026-06-30",
+     "note": null
+    },
+    "2506.06266": {
+     "adoption_commit": "b4750c719c7bb7c7a7d78c46694ab9da74e84f12",
+     "adoption_date": "2026-01-07",
+     "note": null
+    },
+    "2506.16289": {
+     "adoption_commit": "14e0a59a4129b7cfed038dfa438429e8bb0649f0",
+     "adoption_date": "2026-05-08",
+     "note": null
+    },
+    "2506.19847": {
+     "adoption_commit": "d936478f07609b46b84c855f559389102d2ba0d4",
+     "adoption_date": "2025-06-26",
+     "note": null
+    },
+    "2509.15974": {
+     "adoption_commit": "7d927c30f59d14e187170c556bf59804086d6767",
+     "adoption_date": "2026-04-30",
+     "note": null
+    },
+    "2510.23346": {
+     "adoption_commit": "daf335f5035aeadce72d3cfc863c036064561a0a",
+     "adoption_date": "2026-06-15",
+     "note": null
+    },
+    "2512.07703": {
+     "adoption_commit": "b4faa378186d263a4053a73db53a625ddfdc78c2",
+     "adoption_date": "2026-02-23",
+     "note": null
+    },
+    "2602.04118": {
+     "adoption_commit": "7c2cc482afd58c44cecbb1329c36e734237a9477",
+     "adoption_date": "2026-04-01",
+     "note": null
+    }
+   },
+   "n_adoption_dates": 22,
+   "dois_head": 4,
+   "dois_t0": 2,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  },
+  "rag": {
+   "head": "cc4f3dc91c0b45d2d08c251d9d95178285c65f1c",
+   "t0": "78f6d4636df91230c29153030eeff58781854409",
+   "t0_date": "2023-10-25",
+   "t0_commit_date": "2023-10-25",
+   "head_date": "2025-10-14",
+   "window_days": 720,
+   "context_digest": "e7ac7c776205",
+   "n_head_ids": 7,
+   "adoptions": {
+    "2212.01340": {
+     "adoption_commit": "f9bc32cc335cc7d61205b0289467ef8bce423549",
+     "adoption_date": "2024-01-28",
+     "note": null
+    },
+    "2303.00807": {
+     "adoption_commit": "717802a945f8709b72f20c918037f41564e33973",
+     "adoption_date": "2024-01-28",
+     "note": null
+    }
+   },
+   "n_adoption_dates": 2,
+   "dois_head": 0,
+   "dois_t0": 0,
+   "pmids_head": 0,
+   "pmids_t0": 0
+  }
+ }
+}

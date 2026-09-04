@@ -25,12 +25,15 @@ by hash on both sides of every write rather than trusted to a convention.
 
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -806,3 +809,228 @@ def analysis_set(
             else None
         ),
     }
+
+
+# ---------------------------------------------------------------------------------------
+# The legacy materialisation pass (§4, §5, §7)
+# ---------------------------------------------------------------------------------------
+LEGACY_SIDECAR = POOL_FRAME / "legacy_sidecar.json"
+LEGACY_CLONES = WORK / "fullclone"
+
+
+def _git(repo: Path, *args: str, timeout: float = 300.0) -> str:
+    """Run git and RAISE on failure, which is the whole point of doing it here.
+
+    `mine_adoptions` runs git through `subprocess.run` with no `check`, so a failure comes back
+    as an empty string and reads downstream as "this repository has nothing". These clones are
+    `--filter=blob:none` promisors: every blob read is a lazy fetch that can fail on a network
+    blip, and a silent empty result would be written into a persisted artefact and judged.
+    """
+    out = subprocess.run(  # noqa: S603
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
+    if out.returncode != 0:
+        raise SystemExit(
+            f"git {' '.join(args[:2])} failed in {repo.name}: {(out.stderr or '').strip()[:200]}"
+        )
+    return out.stdout
+
+
+def materialise_legacy(
+    *,
+    source: Path | None = None,
+    clones: Path | None = None,
+    contexts: Path | None = None,
+    head_ids: Path | None = None,
+    out: Path | None = None,
+    timeout: float = 300.0,
+    pickaxe_timeout: float = 20.0,
+    dater: Any = None,
+) -> dict[str, Any]:
+    """Give the legacy stratum everything the pool stratum gets from the walk.
+
+    §4 says "The legacy 35 are re-run under this control scheme", and that is only a re-run if
+    the legacy arm is shown the same kind of prompt through the same code. It never has been:
+    `adoptions-v2.json` carries no T0 context, no HEAD citation set, no adoption date and no
+    realised T0 commit date, so without this pass §5's legacy-versus-pool transportability
+    contrast would compare **two code paths** rather than two populations, and the primary would
+    be pool-only — roughly 100 positives where §9's power table budgets 130, which is the
+    difference between a minimum detectable AUC of 0.578 and 0.62.
+
+    **Run once, while the clones are alive.** `.work/fullclone/*` are `--filter=blob:none`
+    promisor clones, so every document read is a lazy fetch from the origin. This cannot be
+    done at analysis time: it is mining, and mining after the verdicts are visible is the thing
+    the whole design is arranged to prevent.
+
+    Everything is pinned to the SHAs already recorded on each row (§7), so `t0` reproduces
+    exactly and a stored T0 verdict stays a verdict about the same prompt. Nothing is written
+    back into `adoptions-v2.json`, which §1 declares immutable; the derived fields land in a
+    sidecar.
+
+    Adoption dates are computed for **every** usable legacy positive rather than only the
+    capped ones. The cap is a function of `SEED_POOL`, which does not exist until the pulse —
+    computing the superset now removes the dependency and lets this run before it.
+    """
+    import mine_adoptions as ma
+    import walk_pool
+
+    src = source or LEGACY_ADOPTIONS
+    clone_root = clones or LEGACY_CLONES
+    ctx_dir = contexts or POOL_CONTEXTS
+    ids_dir = head_ids or POOL_HEAD_IDS
+    find_adoption = dater or walk_pool.adoption_commit
+    rows = [r for r in json.loads(src.read_text(encoding="utf-8")) if r.get("usable")]
+
+    by_case: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_case.setdefault(str(row["case"]), []).append(row)
+
+    ctx_dir.mkdir(parents=True, exist_ok=True)
+    ids_dir.mkdir(parents=True, exist_ok=True)
+    cases: dict[str, Any] = {}
+
+    for case, entries in sorted(by_case.items()):
+        repo = clone_root / case
+        if not (repo / ".git").is_dir() and not (repo / "HEAD").is_file():
+            raise SystemExit(
+                f"{case}: no clone at {repo}. This pass mines from the live clones and cannot\n"
+                "  be deferred — they are promisor clones and the pass needs their origins."
+            )
+        head, t0 = str(entries[0]["head"]), str(entries[0]["t0"])
+        # Every row of a case must agree about the pin, or the context, the citation set and the
+        # adoption dates would describe different revisions of the same repository.
+        for row in entries:
+            if str(row["head"]) != head or str(row["t0"]) != t0:
+                raise SystemExit(f"{case}: rows disagree about head/t0; the pin is not one pin")
+        for rev in (head, t0):
+            _git(repo, "rev-parse", "--verify", f"{rev}^{{commit}}", timeout=timeout)
+
+        # §3.1: "the nominal cutoff is not the realised one" — `rev-list --before` can land
+        # years earlier across a history gap, and §4 matches controls on the realised date.
+        # Legacy rows carry only `t0_date`, the nominal one.
+        t0_commit_date = _git(repo, "log", "-1", "--format=%cI", t0, timeout=timeout).strip()[:10]
+        head_date = _git(repo, "log", "-1", "--format=%cI", head, timeout=timeout).strip()[:10]
+
+        context = ma.t0_context(repo, case, t0)
+        assert_context_is_judgeable(case, context)
+        digest = walk_pool.context_hash("t0", context)
+        (ctx_dir / f"{case_key(case)}.{digest}.txt").write_text(context, encoding="utf-8")
+
+        cited = sorted(ma.ids_with_paths(repo, head, "v2", timeout))
+        if not cited:
+            raise SystemExit(
+                f"{case}: zero identifiers at HEAD, yet it contributed usable adoptions.\n"
+                "  A lazy fetch returned nothing rather than failing; §4's never-cited rule\n"
+                "  would become a no-op and put positives into the negative class."
+            )
+        (ids_dir / f"{case_key(case)}.json").write_text(
+            json.dumps(cited, indent=0), encoding="utf-8"
+        )
+
+        adoptions: dict[str, dict[str, Any]] = {}
+        for row in entries:
+            pid = str(row["id"])
+            try:
+                commit, when = find_adoption(repo, pid, t0, head, pickaxe_timeout)
+                note = None if commit else "no commit introduced this identifier between t0/head"
+            except subprocess.TimeoutExpired:
+                # `git log -S` diffs every commit's documents across the whole window, and every
+                # blob is a lazy fetch on a promisor clone. Measured on `diffusion`
+                # (huggingface/diffusers): ONE identifier exceeds 300 s, so its 46 would run for
+                # hours. Bounded and recorded rather than left running — the only consumer is
+                # §5's contamination split, which is VOID for this pool because no published
+                # training cutoff exists for either judge. An unavailable date therefore costs
+                # nothing today, and the partial set is still here if two sourced cutoffs ever
+                # arrive. Coverage is reported per case rather than left to be counted later.
+                commit, when = None, None
+                note = f"pickaxe exceeded {pickaxe_timeout:.0f}s on a promisor clone"
+            # A miss is recorded as null with its reason, never as a blank that reads as a date.
+            adoptions[pid] = {"adoption_commit": commit, "adoption_date": when, "note": note}
+
+        cases[case] = {
+            "head": head,
+            "t0": t0,
+            "t0_date": str(entries[0].get("t0_date") or ""),
+            "t0_commit_date": t0_commit_date,
+            "head_date": head_date,
+            "window_days": (
+                (datetime.fromisoformat(head_date) - datetime.fromisoformat(t0_commit_date)).days
+            ),
+            "context_digest": digest,
+            "n_head_ids": len(cited),
+            "adoptions": adoptions,
+            "n_adoption_dates": sum(1 for a in adoptions.values() if a["adoption_date"]),
+            # §6.2 sizes the life-science blind spot with these, so they are covariates rather
+            # than decoration and the legacy arm must carry them too.
+            "dois_head": _count_at(repo, head, walk_pool.DOI_GREP, walk_pool.DOI, timeout),
+            "dois_t0": _count_at(repo, t0, walk_pool.DOI_GREP, walk_pool.DOI, timeout),
+            "pmids_head": _count_at(repo, head, walk_pool.PMID_GREP, walk_pool.PMID, timeout),
+            "pmids_t0": _count_at(repo, t0, walk_pool.PMID_GREP, walk_pool.PMID, timeout),
+        }
+        print(
+            f"  {case:16} t0 {t0_commit_date} head {head_date}  "
+            f"{len(cited):4} ids at HEAD  {len(entries):3} usable  "
+            f"{sum(1 for a in adoptions.values() if a['adoption_date']):3} dated  ctx {digest}",
+            flush=True,
+        )
+
+    payload = {
+        "_comment": (
+            "Derived from the legacy clones at each row's recorded head/t0 SHAs (PREREG §7). "
+            "adoptions-v2.json is immutable (§1) and is not modified; these are the fields the "
+            "walk records for a pool repository and the legacy artefact predates."
+        ),
+        "source": str(src),
+        "n_cases": len(cases),
+        "n_usable_rows": len(rows),
+        "cases": cases,
+    }
+    write_artifact(out or LEGACY_SIDECAR, payload)
+    return payload
+
+
+def _count_at(repo: Path, rev: str, grep: str, pattern: Any, timeout: float) -> int:
+    import mine_adoptions as ma
+
+    return len(ma._matches_with_paths(repo, rev, grep, pattern, timeout))
+
+
+def legacy_sidecar(path: Path | None = None) -> dict[str, Any]:
+    """The materialisation pass's output, or a refusal naming the command that produces it."""
+    src = path or LEGACY_SIDECAR
+    if not src.is_file():
+        raise SystemExit(
+            f"{src} does not exist — the legacy stratum has not been materialised.\n"
+            "  Without it the legacy arm has no T0 context, no HEAD citation set and no\n"
+            "  adoption dates, so §5's transportability contrast would compare two code paths\n"
+            "  rather than two populations and the primary would be pool-only.\n"
+            "  Run: uv run python evals/judge_validity_pool.py --materialise-legacy"
+        )
+    return json.loads(src.read_text(encoding="utf-8"))
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument(
+        "--materialise-legacy",
+        action="store_true",
+        help="mine T0 contexts, HEAD citation sets, adoption dates and covariates from the "
+        "legacy clones at their recorded SHAs. Run once, while the clones are alive.",
+    )
+    args = ap.parse_args()
+    if args.materialise_legacy:
+        out = materialise_legacy()
+        print(f"\nmaterialised {out['n_cases']} legacy cases, {out['n_usable_rows']} usable rows")
+        print(f"wrote {LEGACY_SIDECAR}")
+        return 0
+    ap.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
