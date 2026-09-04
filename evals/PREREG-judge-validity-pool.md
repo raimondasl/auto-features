@@ -161,6 +161,10 @@ The walk then continues to **B = 1,200 rows** or until cumulative capped-usable 
 ### 3.3 Stop rule
 Per-repository cap **8**. Identifiers shared across repositories are assigned to one repository by SEED_POOL and counted once, legacy winning ties.
 
+**Implementation note, 2026-09-03, before the walk. The tie is won by the papers the legacy cluster actually contributes, not by all 94 it mined.** `walk_pool.legacy_ids` passed every usable legacy positive into the contest, but this section's own cap of 8 means only **32 of the 94** ever enter the analysis — `diffusion` holds 46 and contributes 8, `peft` 27 and contributes 8, `graph` 13 and contributes 8. So a pool repository adopting one of the other **62** lost the tie to a paper the legacy cluster is not using, and was then counted in **neither** stratum. Sixty-two identifiers counted zero times is not "counted once", and the loss is not random: those 62 are the most widely adopted ML papers in the legacy set, which is exactly what a newly enumerated ML repository is most likely to have taken up.
+
+The cap is therefore applied **before** the contest, by the same seeded rule a pool repository's own cap uses — `sha256(SEED_POOL ‖ case:id)`, first 8 — so both strata are capped by one implementation and which 8 survive is a function of the pulse rather than of whoever wrote the analysis. This can only *raise* the pool's positive count, which is the anti-null direction; it is taken because the alternative loses papers to nobody, not because of its effect on n, and it is recorded here before any positive exists.
+
 **Judging stops at 100 new usable positives. 60 is the reporting minimum, not a stopping point.** Fixed by the maintainer on 2026-09-02, before any verdict exists, for a power reason stated in section 9: at 90 capped positives with legacy-like concentration the primary interval can include 0.5 for a sampling reason, which would fire section 5's pre-committed null branch on an artefact. The extra 40 positives cost roughly 400 verdicts, about **$8–12**.
 
 **No endpoint is inspected before the stop rule fires.**
@@ -175,6 +179,14 @@ Changing a **rule** after exhaustion remains barred: the star floor is never low
 ## 4. Controls
 
 Four controls per positive, **arm-neutral**: arXiv listings in the positive's primary category, submitted in the same half-year, not cited anywhere in the repository at HEAD, drawn per positive under SEED_POOL. The per-(category, half-year) listing is archived, because it is the negative class of the primary endpoint and must be reproducible.
+
+**Implementation note, 2026-09-03, before any listing was archived. The draw spans the window; it used to come off the end of it.** `arxiv_window_listing` asked for 200 results sorted by `submittedDate`, and arXiv's default sort order is **descending** — so it returned the *newest* 200 of the half-year. Measured: `cs.LG` H1-2021 holds **13,262** papers, so every control for a positive in that window came from its last few days. This section registers "submitted in the same half-year" and names no cap and no ordering, so the 200 was an unregistered narrowing that made the negative class arXiv's index order rather than the seed's.
+
+It also ran in a knowable direction. NR-43 measured actionability rising steadily with recency, **0.31 (2013) to 0.64 (2025)**, so controls drawn systematically months *newer* than the positive they are matched against are scored higher — compressing the gap toward the null §5 is pre-committed to reporting. Conservative, but by accident.
+
+The window is now split into **six contiguous, non-overlapping monthly slices** covering every day of it, with the draw taken proportionally from each, at the same request cost. Residual skew is to the end of each slice — days rather than months. The archive records every sub-query, what it requested, what it returned and whether it was cut off at its own cap, because "200 of 13,262" and "200 of 200" are the same number in an archive that stores only a count.
+
+**Full enumeration was the maintainer's stated preference and was rejected on measured cost, not on principle.** At arXiv's enforced 3 s minimum request interval and a 100-record page, one busy window is ~6.6 minutes and a run needs 40–80 of them: **4.4 to 8.8 hours** of continuous third-party API access, on the critical path *after* the walk, since the windows are not known until the positives exist. arXiv returned HTTP 429 during the measurement that produced these figures and subsequent fetches did not complete. `depth="full"` is implemented and available, so the choice stays open rather than being closed by this paragraph; the default is the stratified draw.
 
 **Why not the shipped candidate pool.** A pool built by RepoRadar is RepoRadar's own HEAD-seeded output, so a judge harsher on RepoRadar-shaped papers — Sonnet, by a factor of 2.3 — would be credited with "validity". Both adoption refutations agree on this. The legacy 35 are re-run under this control scheme; the pool-control result stays reported as NR-57.
 
@@ -196,6 +208,12 @@ Both judges, byte-identical rubric, a T0 context (README excerpt, manifests, fil
 * **Secondary:** `P(actionable | adopted) − P(actionable | control)` at each judge's own threshold, Wilson intervals, cluster bootstrap; and `P(actionable | control)` per judge as the level-sensitive descriptive.
 * **Transportability:** heterogeneity of AUC between the legacy cluster and the seeded pool, and between star bands.
 * **Contamination sensitivity:** positives split by adoption commit date relative to each judge's published training cutoff (recorded at registration: GPT-5.5 `____`, Sonnet 5 `____`); AUC on the post-cutoff subset.
+
+  **Maintainer decision, 2026-09-03, before the walk and before any positive existed: the blanks are not filled, and this endpoint is VOID for this pool.** No published training cutoff for either judge is recorded anywhere in this repository, and none will be supplied. Filling them from a model's observed behaviour would be the circularity this pool exists to escape, and guessing them is something this project has already refused once on the record: `judge_date_stratify.py` (NR-43) states that its design "does not need to know the cutoff, and deliberately does not guess it", because testing for a discontinuity *anywhere* is strictly stronger than testing at a date that had to be assumed.
+
+  The endpoint is therefore reported as **not computed, with this reason attached**, and never as a computed null. §6 item 6 already names the contamination split as the only instrument available against recognition bias, so the consequence is that **recognition remains an unmitigated confound in this pool**, stated as such beside the primary rather than left implicit. That is a real weakening of what the pool can claim, and recording it here — before any positive is visible — is what keeps it from being discovered afterwards and written up as a limitation that was always known.
+
+  Nothing else changes: the adoption commit date is still recorded on every capped positive by `walk_row`, so the split remains computable by anyone who later supplies two dated, sourced cutoffs.
 
 **Pre-committed consequences, and they are deliberately asymmetric.** §4 establishes that the measured AUC is a *lower bound*: a control may be a better paper than the positive it is matched against, which can only compress the two classes together. So:
 
