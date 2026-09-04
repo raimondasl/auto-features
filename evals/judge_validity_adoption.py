@@ -493,14 +493,23 @@ def enrich_positives(
         if paper is None:
             missing.append(pid)
             continue
+        # arXiv's own primary category, and `categories[0]` only as a fallback. The two are not
+        # the same thing: `categories` is feed tag order, so `categories[0]` is a guess. §4
+        # matches a control to its positive on the PRIMARY category, and getting it wrong lets
+        # cross-listed papers dominate the negative class — a `cs.LG` positive drawing controls
+        # whose primary is `stat.ML` or `cs.CV` makes the AUC partly a measure of
+        # primary-versus-cross-list rather than of adoption.
+        primary = str(paper.get("primary_category") or "")
         categories = paper.get("categories") or []
-        if not categories or not paper.get("published"):
+        if not primary and categories:
+            primary = str(categories[0])
+        if not primary or not paper.get("published"):
             missing.append(pid)
             continue
         enriched.append(
             {
                 **row,
-                "primary_category": categories[0],
+                "primary_category": primary,
                 "published": str(paper["published"])[:10],
                 "paper": paper,
             }
@@ -690,6 +699,7 @@ def arxiv_window_controls(
 
     out: list[dict[str, Any]] = []
     taken: dict[str, set[str]] = {}
+    short: dict[int, list[str]] = {}
     for row in sorted(positives, key=lambda r: (r["case"], str(r["id"]))):
         case = row["case"]
         category = row.get("primary_category") or ""
@@ -700,7 +710,17 @@ def arxiv_window_controls(
         key = (category, lo, hi)
         if key not in cache:
             cache[key] = listing(category, lo, hi, archive=archive)
-        cited = head_ids.get(case, set())
+        if case not in head_ids:
+            # Never `.get(case, set())`. §4 excludes a "control" the repository actually went on
+            # to cite; an empty cited set turns that rule into a no-op, puts real citations into
+            # the negative class, and drags the AUC toward 0.5 — the null this study is
+            # pre-committed to reporting, arriving by accident and looking like a finding.
+            raise SystemExit(
+                f"{case}: no HEAD citation set. §4's never-cited rule cannot be applied, and\n"
+                "  defaulting it to empty would put papers the repository cites into the\n"
+                "  negative class."
+            )
+        cited = head_ids[case]
         chosen = taken.setdefault(case, set())
         pool = [
             paper
@@ -709,10 +729,29 @@ def arxiv_window_controls(
             and dedup_id(str(paper.get("arxiv_id", ""))) not in by_case[case]
             and dedup_id(str(paper.get("arxiv_id", ""))) not in chosen
             and str(paper.get("abstract") or "").strip()
+            # §4 registers the positive's PRIMARY category, and `cat:` matches any category
+            # including cross-lists — so the listing is a superset and the match is made here.
+            # Without it a `cs.LG` positive draws controls whose primary is `stat.ML` or
+            # `cs.CV`, and the AUC partly measures primary-versus-cross-list.
+            and str(paper.get("primary_category") or "") == category
         ]
         pool.sort(key=lambda paper: dedup_id(str(paper.get("arxiv_id", ""))))
         random.Random(f"{seed}:{case}:{dedup_id(str(row['id']))}").shuffle(pool)
-        for paper in pool[:per_positive]:
+        drawn = pool[:per_positive]
+        if not drawn:
+            # `pool[:n]` accepts a short draw silently, and the global empty-set guard fires
+            # only when EVERY positive drew nothing. A positive with no controls still enters
+            # the point estimate and every bootstrap draw with no compensating negatives, and
+            # cluster resampling duplicates it — so it inflates the positive class rather than
+            # being dropped.
+            raise SystemExit(
+                f"{case}/{dedup_id(str(row['id']))} drew ZERO controls from "
+                f"{category} {lo[:6]}..{hi[:6]} ({len(cache[key])} papers listed).\n"
+                "  A positive with no negatives is not a smaller sample, it is an unmatched\n"
+                "  observation that biases the estimate it enters."
+            )
+        short.setdefault(len(drawn), []).append(f"{case}/{dedup_id(str(row['id']))}")
+        for paper in drawn:
             pid = dedup_id(str(paper.get("arxiv_id", "")))
             chosen.add(pid)
             out.append(
@@ -723,9 +762,15 @@ def arxiv_window_controls(
                     "for_positive": dedup_id(str(row["id"])),
                     "window": f"{lo}..{hi}",
                     "category": category,
+                    "primary_category": str(paper.get("primary_category") or ""),
                     "paper": paper,
                 }
             )
+    for n in sorted(k for k in short if k < per_positive):
+        # Reported rather than raised: §4 asks for four and a thin window is a property of the
+        # population, not a defect. It has to be visible beside the AUC, because the realised
+        # controls-per-positive distribution is what n2 actually was.
+        print(f"  ! {len(short[n])} positive(s) drew only {n} of {per_positive} controls")
     return out
 
 
@@ -739,7 +784,7 @@ def pool_papers(case: str) -> list[dict[str, Any]]:
     return json.loads(f.read_text(encoding="utf-8"))["candidates"] if f.is_file() else []
 
 
-def controls(rng: random.Random | None = None) -> list[dict[str, Any]]:
+def pool_controls(rng: random.Random | None = None) -> list[dict[str, Any]]:
     """Matched negatives: same repo, publishable before T0, never adopted, not a T0 seed.
 
     'Publishable before T0' is the match that makes the control fair — a paper the project
@@ -797,6 +842,40 @@ def save_verdicts(have: dict[str, Any]) -> None:
     tmp = VERDICTS.with_suffix(VERDICTS.suffix + ".tmp")
     tmp.write_text(json.dumps(have, indent=0), encoding="utf-8")
     os.replace(tmp, VERDICTS)
+
+
+def controls(rng: random.Random | None = None, scheme: str | None = None) -> list[dict[str, Any]]:
+    """The negative class, chosen by `CONTROL_SCHEME` — which used to be assigned and never read.
+
+    `main()` set the module switch from `--controls` and nothing consulted it, so `arxiv-window`
+    selected exactly nothing: the flag picked the OUTPUT PATH and the provenance label while the
+    pool scheme drew the papers. `arxiv_window_controls`, `arxiv_window_listing` and
+    `enrich_positives` had no production caller anywhere in the tree, so §4's registered scheme
+    had never run on real data at all.
+
+    **`pool` is this file's own body, unchanged**, because that branch reproduces the published
+    NR-56/57 numbers and they must not move.
+
+    **`arxiv-window` is not drawn here, and that is a routing decision rather than a stub.** §4's
+    draw needs three things this function does not have and cannot honestly invent: the v2
+    positives (NR-60 replaced v1's 35 with 94, of which 31-32 survive the cap and the contest),
+    each repository's materialised HEAD citation set, and the verified `SEED_POOL`. All three
+    live in `judge_validity_pool`, so the draw does too — and pointing at it is better than
+    quietly drawing the wrong negative class under the right name.
+    """
+    resolved = scheme or CONTROL_SCHEME
+    if resolved == "pool":
+        return pool_controls(rng)
+    if resolved == "arxiv-window":
+        raise SystemExit(
+            "the arm-neutral draw runs from judge_validity_pool.draw_controls(), not here.\n"
+            "  It needs the v2 positives, the materialised HEAD citation sets and the verified\n"
+            "  SEED_POOL; this function has the v1 legacy adoptions and the shipped candidate\n"
+            "  pool, which is the negative class §4 exists to reject."
+        )
+    raise SystemExit(
+        f"unknown control scheme {resolved!r}; registered schemes are {CONTROL_SCHEMES}"
+    )
 
 
 def load_verdicts() -> dict[str, dict[str, int]]:

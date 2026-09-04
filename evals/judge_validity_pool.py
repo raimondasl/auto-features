@@ -33,6 +33,7 @@ import os
 import re
 import subprocess
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -809,6 +810,300 @@ def analysis_set(
             else None
         ),
     }
+
+
+# ---------------------------------------------------------------------------------------
+# Arm-neutral prompts (§4)
+# ---------------------------------------------------------------------------------------
+def normalise_text(value: Any) -> str:
+    """Collapse every run of whitespace to one space. Applied identically to both arms.
+
+    Not cosmetic. `diagnose_triage.fetch_papers` stores `" ".join(text.split())` while
+    `collector._result_to_paper` stores `result.summary` verbatim, and the two arms were built
+    by those two different paths — so **82 of 674** control-shaped abstracts in
+    `.work/pool-cut100/ann.json` carry embedded newlines, and a mined positive never can.
+    """
+    return " ".join(str(value or "").split())
+
+
+def judgeable_item(paper: dict[str, Any], case: str, arm: str) -> dict[str, Any]:
+    """One paper, shaped so nothing about it says which arm it came from.
+
+    §4 requires "byte-identical rubric, a T0 context ... **no arm**". The context was arm-neutral
+    and the paper was not:
+
+    * **The identifier.** `collector._result_to_paper` stores `result.get_short_id()`, which is
+      VERSIONED — measured, **674 of 674** candidates in `.work/pool-cut100/ann.json` — while
+      every mined positive id is unversioned by construction, because the extractor regexes
+      capture `\\d{4}\\.\\d{4,5}` with no version group (**0 of 120** legacy rows are versioned).
+      `judge._build_user_prompt` prints the id verbatim, so in NR-56/57 every control prompt
+      read `arXiv: 2409.11629v1` and every positive `arXiv: 2409.11629`. That is a perfect,
+      deterministic arm marker in the one place the design says must carry none — and whether
+      either judge keyed on it is unmeasurable after the fact.
+    * **The abstract.** See `normalise_text`.
+
+    So both arms are assembled here, through one function, and every field the prompt prints is
+    normalised the same way. `assert_arm_neutral` checks the result rather than trusting it.
+
+    **Consequence, stated plainly: the 496 control verdicts already in
+    `.work/judge_validity_verdicts.json` were bought under the old prompt shape and are not
+    reusable for this pool.** They remain NR-56/57's record and are not rewritten.
+    """
+    pid = dedup_id(str(paper.get("arxiv_id") or ""))
+    return {
+        "case": case,
+        "arm": arm,
+        "arxiv_id": pid,
+        "title": normalise_text(paper.get("title")),
+        "abstract": normalise_text(paper.get("abstract")),
+        "primary_category": str(paper.get("primary_category") or ""),
+    }
+
+
+def assert_arm_neutral(items: list[dict[str, Any]]) -> None:
+    """Refuse to buy a verdict on a set whose two arms are distinguishable by shape.
+
+    Checked over the assembled items rather than asserted of the code that made them: the two
+    arms reach this point through different fetch paths, and the whole failure being guarded
+    against is that one of those paths quietly reintroduces a marker.
+    """
+    for item in items:
+        pid = str(item.get("arxiv_id") or "")
+        if not pid:
+            raise SystemExit(f"{item.get('case')}: an item has no arXiv id and cannot be judged")
+        if dedup_id(pid) != pid:
+            raise SystemExit(
+                f"{item['case']}/{pid}: identifier is not in its canonical form.\n"
+                "  A version suffix on one arm and not the other is a deterministic arm marker\n"
+                "  in a prompt §4 requires to carry none."
+            )
+        for field in ("title", "abstract"):
+            if str(item.get(field) or "") != normalise_text(item.get(field)):
+                raise SystemExit(f"{item['case']}/{pid}: {field} is not normalised")
+    arms = {item["arm"] for item in items}
+    if items and len(arms) < 2:
+        raise SystemExit(f"only one arm present ({arms}); there is nothing to discriminate")
+
+
+def judgeable_items(
+    positives: list[dict[str, Any]],
+    controls: list[dict[str, Any]],
+    *,
+    fetch: Any = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Both arms, fetched by ONE path and shaped by one function.
+
+    Returns the items and the ids that could not be fetched. A dropped paper is returned rather
+    than silently skipped: a positive that never reaches the judge shrinks n without shrinking
+    anything visible, which is this project's recurring failure and the reason
+    `enrich_positives` hands back its own `missing` list too.
+    """
+    if fetch is None:
+        from diagnose_triage import fetch_papers as fetch
+
+    wanted = sorted({dedup_id(str(r["id"])) for r in positives})
+    fetched = fetch(wanted) if wanted else {}
+
+    items: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for row in positives:
+        pid = dedup_id(str(row["id"]))
+        paper = fetched.get(pid) or fetched.get(str(row["id"]))
+        if not paper:
+            missing.append(pid)
+            continue
+        items.append(judgeable_item({**paper, "arxiv_id": pid}, str(row["case"]), "adopted"))
+    for row in controls:
+        # Controls arrive with their paper attached from the listing, so they are not re-fetched
+        # — but they go through the identical shaping, which is the part that matters.
+        paper = row.get("paper") or {}
+        pid = dedup_id(str(paper.get("arxiv_id") or row.get("id") or ""))
+        if not pid:
+            missing.append(str(row.get("id") or "?"))
+            continue
+        items.append(judgeable_item({**paper, "arxiv_id": pid}, str(row["case"]), "control"))
+    assert_arm_neutral(items)
+    return items, missing
+
+
+# ---------------------------------------------------------------------------------------
+# The arm-neutral control draw (§4)
+# ---------------------------------------------------------------------------------------
+LISTINGS = POOL_FRAME / "listings"  # committed, URL-free manifests
+LISTINGS_RAW = WORK / "listings-raw"  # untracked payloads
+CONTROLS_ROWS = POOL_FRAME / "controls-arxiv-window.json"  # committed, URL-free
+CONTROLS_PAYLOAD = WORK / "controls-arxiv-window-payload.json"  # untracked
+
+
+def _listing_name(category: str, lo: str) -> str:
+    return f"{category.replace('.', '_')}-{lo[:6]}.json"
+
+
+def archived_listing(
+    category: str, lo: str, hi: str, *, want: int, live: Any, raw: Path, manifest: Path
+) -> list[dict[str, Any]]:
+    """One (category, half-year) listing, fetched at most once and replayed ever after.
+
+    §4: "The per-(category, half-year) listing is archived, because it is the negative class of
+    the primary endpoint and must be reproducible." Two artefacts, following §2.1's
+    `trim_archive` precedent:
+
+    * the **raw** payload stays UNTRACKED, because arXiv abstracts routinely contain
+      `github.com/<owner>/<repo>` strings and §11's prior-exposure grep is precisely what this
+      pool must not contaminate;
+    * a **committed, URL-free manifest** carries the query, the counts and the ordered
+      identifiers with their primary categories — enough to check that the draw used the
+      listing it says it did.
+
+    **Write-once, and a disagreement is a blocking failure.** arXiv's `cat:` membership drifts
+    as papers are cross-listed and withdrawn, so a second fetch of the same window can return a
+    different set. Silently preferring either one would make the negative class depend on when
+    somebody happened to run it.
+    """
+    raw_file = raw / _listing_name(category, lo)
+    man_file = manifest / _listing_name(category, lo)
+    if raw_file.is_file():
+        stored = json.loads(raw_file.read_text(encoding="utf-8"))
+        papers: list[dict[str, Any]] = stored["papers"]
+        if man_file.is_file():
+            recorded = json.loads(man_file.read_text(encoding="utf-8"))
+            got = [dedup_id(str(p.get("arxiv_id") or "")) for p in papers]
+            if got != [str(i) for i in recorded["ids"]]:
+                raise SystemExit(
+                    f"{man_file.name}: the archived listing and its manifest disagree.\n"
+                    "  One of the two has been edited; the negative class cannot be trusted."
+                )
+        return papers
+
+    papers = live(category, lo, hi, want=want, archive=None)
+    raw_file.parent.mkdir(parents=True, exist_ok=True)
+    raw_file.write_text(
+        json.dumps({"query": f"cat:{category} [{lo} TO {hi}]", "papers": papers}, indent=1),
+        encoding="utf-8",
+    )
+    man_file.parent.mkdir(parents=True, exist_ok=True)
+    write_artifact(
+        man_file,
+        {
+            "category": category,
+            "window": f"{lo}..{hi}",
+            "requested": want,
+            "returned": len(papers),
+            # `returned == requested` is the only signal available that a slice hit its own cap,
+            # and "200 of 13,262" and "200 of 200" are the same number without it.
+            "truncated": len(papers) >= want,
+            "ids": [dedup_id(str(p.get("arxiv_id") or "")) for p in papers],
+            "primary_categories": [str(p.get("primary_category") or "") for p in papers],
+            "has_abstract": [bool(str(p.get("abstract") or "").strip()) for p in papers],
+            "raw_sha256": hashlib.sha256(raw_file.read_bytes()).hexdigest(),
+        },
+    )
+    return papers
+
+
+def draw_controls(
+    positives: list[dict[str, Any]],
+    *,
+    seed: str,
+    head_ids: dict[str, set[str]],
+    rows_out: Path | None = None,
+    payload_out: Path | None = None,
+    raw: Path | None = None,
+    manifest: Path | None = None,
+    listing: Any = None,
+    enrich: Any = None,
+) -> list[dict[str, Any]]:
+    """§4's arm-neutral negative class, drawn once under SEED_POOL and reused thereafter.
+
+    The draw is an artefact, not a computation repeated at each entry point: `plan`, the
+    purchase loop and the analysis must all see the same negatives, and a redraw between them
+    would change n2 after verdicts had been bought. Written when absent, replayed when present,
+    and never overwritten — a second draw is a new artefact under a new name.
+
+    *seed* is the verified `SEED_POOL`, never `judge_validity_adoption.SEED`. §4 says controls
+    are "drawn per positive under SEED_POOL", and the module constant seeds the NR-57
+    reproduction, which is a different study over a different negative class.
+    """
+    import judge_validity_adoption as jva
+
+    rows_file = rows_out or CONTROLS_ROWS
+    payload_file = payload_out or CONTROLS_PAYLOAD
+    if rows_file.is_file() and payload_file.is_file():
+        rows = json.loads(rows_file.read_text(encoding="utf-8"))["controls"]
+        payload = json.loads(payload_file.read_text(encoding="utf-8"))
+        if payload.get("seed") != seed:
+            raise SystemExit(
+                f"{rows_file.name} was drawn under a different seed.\n"
+                "  §4 draws under SEED_POOL; a redraw would change the negative class after\n"
+                "  verdicts had been bought against the old one."
+            )
+        for row in rows:
+            row["paper"] = payload["papers"][row["id"]]
+        jva.refuse_an_empty_control_set(positives, rows)
+        return rows
+
+    enriched, missing = (enrich or jva.enrich_positives)(positives)
+    if missing:
+        # Returned rather than dropped, and acted on rather than logged: a positive with no
+        # category and no date draws no controls, so ignoring the list would shrink the
+        # negative class silently.
+        print(f"  ! {len(missing)} positive(s) could not be enriched: {missing[:5]}")
+    if not enriched:
+        raise SystemExit(
+            "no positive could be enriched with a primary category and a submission date, so\n"
+            "  §4's matched window cannot be resolved for any of them."
+        )
+
+    live = listing or jva.arxiv_window_listing
+    raw_dir, man_dir = raw or LISTINGS_RAW, manifest or LISTINGS
+
+    def archived(category: str, lo: str, hi: str, *, archive: Path | None = None) -> Any:
+        return archived_listing(
+            category,
+            lo,
+            hi,
+            want=jva.LISTING_PER_WINDOW,
+            live=live,
+            raw=raw_dir,
+            manifest=man_dir,
+        )
+
+    rows = jva.arxiv_window_controls(enriched, head_ids, seed, listing=archived)
+    jva.refuse_an_empty_control_set(enriched, rows)
+
+    papers = {row["id"]: row["paper"] for row in rows}
+    payload_file.parent.mkdir(parents=True, exist_ok=True)
+    payload_file.write_text(
+        json.dumps({"seed": seed, "papers": papers}, indent=1), encoding="utf-8"
+    )
+    # The committed half carries no paper text and therefore no URLs (§2.1).
+    per_positive = Counter(row["for_positive"] for row in rows)
+    write_artifact(
+        rows_file,
+        {
+            "seed": seed,
+            "scheme": "arxiv-window",
+            "stream_key_format": "{seed}:{case}:{dedup_id(positive_id)}",
+            "n_positives": len(enriched),
+            "n_control_rows": len(rows),
+            "n_distinct_control_papers": len({row["id"] for row in rows}),
+            # Cross-cluster sharing is a correlation the repository-cluster bootstrap does not
+            # capture, so the interval is very slightly too narrow. Reported rather than fixed:
+            # dropping the loser of a contest after the draw would strip a positive of controls
+            # and change n2, which would be an instrument change.
+            "n_control_papers_in_more_than_one_cluster": len(
+                {
+                    pid
+                    for pid in {row["id"] for row in rows}
+                    if len({row["case"] for row in rows if row["id"] == pid}) > 1
+                }
+            ),
+            "controls_per_positive": dict(sorted(Counter(per_positive.values()).items())),
+            "not_enriched": missing,
+            "controls": [{k: v for k, v in row.items() if k != "paper"} for row in rows],
+        },
+    )
+    return rows
 
 
 # ---------------------------------------------------------------------------------------
