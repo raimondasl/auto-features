@@ -27,6 +27,14 @@ import walk_pool as wp  # noqa: E402
 
 SEED = "PULSE-FIXTURE"
 
+# The legacy artefact lives under `evals/.work/`, which is gitignored — so every assertion
+# about it would be skipped in CI, and the cap and contest logic would be pinned only on this
+# machine. The fixture carries the REAL shape (120 rows, 94 usable, the same per-case counts,
+# and `2107.03006` usable in both `diffusion` and `llminfer`) with everything the plumbing does
+# not read stripped out. `test_the_fixture_still_matches_the_real_artefact` is what keeps the
+# two from drifting; it runs wherever the real file exists.
+LEGACY_SHAPE = ROOT / "tests" / "fixtures" / "adoptions-v2-shape.json"
+
 
 def _adoption(case: str, pid: str, **over: object) -> dict[str, object]:
     row = {
@@ -217,7 +225,7 @@ class TestTheLegacyStratumIsCappedThenContested:
     yield MORE positives: both the wrong order and the unconservative one."""
 
     def test_the_real_legacy_artefact_reduces_as_measured(self) -> None:
-        rows, ledger = jvp.legacy_positives(SEED)
+        rows, ledger = jvp.legacy_positives(SEED, LEGACY_SHAPE)
         assert ledger["n_rows"] == 120
         assert ledger["n_usable"] == 94
         assert ledger["n_usable_in_cap"] == 32
@@ -230,7 +238,7 @@ class TestTheLegacyStratumIsCappedThenContested:
         assert ledger["n_positives"] in (31, 32)
 
     def test_no_case_contributes_more_than_the_cap(self) -> None:
-        rows, _ = jvp.legacy_positives(SEED)
+        rows, _ = jvp.legacy_positives(SEED, LEGACY_SHAPE)
         counts: dict[str, int] = {}
         for row in rows:
             counts[row["case"]] = counts.get(row["case"], 0) + 1
@@ -240,20 +248,20 @@ class TestTheLegacyStratumIsCappedThenContested:
         """Uncapped, `diffusion` supplies 46 of 94 — a largest-cluster share of 0.489, and
         every registered co-report (cluster count, largest share, design effect, minimum
         detectable AUC) would be computed on a set §9 does not describe."""
-        rows, _ = jvp.legacy_positives(SEED)
+        rows, _ = jvp.legacy_positives(SEED, LEGACY_SHAPE)
         share = max(
             sum(1 for r in rows if r["case"] == c) for c in {r["case"] for r in rows}
         ) / len(rows)
         assert share < 0.30
 
     def test_it_is_deterministic_under_one_seed(self) -> None:
-        a, _ = jvp.legacy_positives(SEED)
-        b, _ = jvp.legacy_positives(SEED)
+        a, _ = jvp.legacy_positives(SEED, LEGACY_SHAPE)
+        b, _ = jvp.legacy_positives(SEED, LEGACY_SHAPE)
         assert [r["id"] for r in a] == [r["id"] for r in b]
 
     def test_a_different_pulse_selects_a_different_set(self) -> None:
-        a, _ = jvp.legacy_positives("PULSE-A")
-        b, _ = jvp.legacy_positives("PULSE-B")
+        a, _ = jvp.legacy_positives("PULSE-A", LEGACY_SHAPE)
+        b, _ = jvp.legacy_positives("PULSE-B", LEGACY_SHAPE)
         assert {r["id"] for r in a} != {r["id"] for r in b}
 
     def test_the_contest_sees_every_row_as_the_walk_does(self, tmp_path) -> None:
@@ -283,10 +291,25 @@ class TestTheLegacyStratumIsCappedThenContested:
             jvp.legacy_positives(SEED, src)
         assert "usable" in str(exc.value) and "genesis" in str(exc.value)
 
-    def test_the_legacy_artefact_is_never_written(self) -> None:
-        before = jvp.LEGACY_ADOPTIONS.read_bytes()
-        jvp.legacy_positives(SEED)
-        assert jvp.LEGACY_ADOPTIONS.read_bytes() == before
+    def test_the_source_artefact_is_never_written(self) -> None:
+        """§1: "The v1 record is immutable." `assign_across_repos` mutates the rows it is
+        handed, so the only thing keeping that true is that nothing writes them back."""
+        before = LEGACY_SHAPE.read_bytes()
+        jvp.legacy_positives(SEED, LEGACY_SHAPE)
+        assert LEGACY_SHAPE.read_bytes() == before
+
+    @pytest.mark.skipif(
+        not jvp.LEGACY_ADOPTIONS.is_file(), reason="evals/.work/ is gitignored; local only"
+    )
+    def test_the_fixture_still_matches_the_real_artefact(self) -> None:
+        """The fixture stands in for a gitignored file, so it must be checked against it
+        wherever that file exists — otherwise CI pins a shape that has quietly stopped being
+        the real one."""
+        real = json.loads(jvp.LEGACY_ADOPTIONS.read_text(encoding="utf-8"))
+        shape = json.loads(LEGACY_SHAPE.read_text(encoding="utf-8"))
+        assert [(r["case"], r["id"], bool(r.get("usable"))) for r in real] == [
+            (r["case"], r["id"], r["usable"]) for r in shape
+        ]
 
 
 class TestTheLedgerAccountsForEveryDroppedRow:
@@ -342,8 +365,8 @@ class TestTheLedgerAccountsForEveryDroppedRow:
 class TestTheTwoStrataStaySeparateAndDisjoint:
     def test_an_identifier_positive_in_both_strata_raises(self, tmp_path, monkeypatch) -> None:
         """§3.3 gives legacy the tie, so the contest should have removed every one of these."""
-        shared = [r for r in json.loads(jvp.LEGACY_ADOPTIONS.read_text(encoding="utf-8"))]
-        first = next(r["id"] for r in shared if r.get("usable"))
+        shape = json.loads(LEGACY_SHAPE.read_text(encoding="utf-8"))
+        first = next(r["id"] for r in shape if r["usable"])
         src = tmp_path / "adoptions-pool-v2.json"
         src.write_text(json.dumps([_adoption("o/r", first)]), encoding="utf-8")
         monkeypatch.setattr(
@@ -352,7 +375,7 @@ class TestTheTwoStrataStaySeparateAndDisjoint:
             lambda s, p=None: ([_adoption("graph", first)], {"stratum": "legacy"}),
         )
         with pytest.raises(SystemExit) as exc:
-            jvp.analysis_set(SEED, pool=src)
+            jvp.analysis_set(SEED, pool=src, legacy=LEGACY_SHAPE)
         assert "BOTH strata" in str(exc.value)
 
     def test_a_cluster_holding_one_paper_twice_raises(self, tmp_path) -> None:
@@ -364,7 +387,7 @@ class TestTheTwoStrataStaySeparateAndDisjoint:
             encoding="utf-8",
         )
         with pytest.raises(SystemExit) as exc:
-            jvp.analysis_set(SEED, pool=src)
+            jvp.analysis_set(SEED, pool=src, legacy=LEGACY_SHAPE)
         assert "twice" in str(exc.value)
 
     def test_the_strata_stay_labelled_rather_than_merged(self, tmp_path) -> None:
@@ -372,16 +395,18 @@ class TestTheTwoStrataStaySeparateAndDisjoint:
         budgets them separately. A merged set cannot answer either."""
         src = tmp_path / "adoptions-pool-v2.json"
         src.write_text(json.dumps([_adoption("o/r", "2999.00001")]), encoding="utf-8")
-        out = jvp.analysis_set(SEED, pool=src)
+        out = jvp.analysis_set(SEED, pool=src, legacy=LEGACY_SHAPE)
         assert set(out["by_stratum"]) == {"legacy", "pool"}
         assert len(out["by_stratum"]["pool"]) == 1
         assert out["analysis_set_positives"] == len(out["by_stratum"]["legacy"]) + 1
 
     def test_an_unwalked_pool_is_allowed_only_when_asked_for(self, tmp_path) -> None:
-        out = jvp.analysis_set(SEED, pool=tmp_path / "absent.json", require_pool=False)
+        out = jvp.analysis_set(
+            SEED, pool=tmp_path / "absent.json", legacy=LEGACY_SHAPE, require_pool=False
+        )
         assert out["ledgers"]["pool"]["_absent"]
         with pytest.raises(SystemExit):
-            jvp.analysis_set(SEED, pool=tmp_path / "absent.json")
+            jvp.analysis_set(SEED, pool=tmp_path / "absent.json", legacy=LEGACY_SHAPE)
 
 
 class TestTheContextIsTheOneTheWalkWrote:
