@@ -224,6 +224,12 @@ Both judges, byte-identical rubric, a T0 context (README excerpt, manifests, fil
 The pool runs no arm, so there is no held-out set to protect and no configuration decision it can reach. What remains:
 
 * **Judge cache.** Section 4: `use_cache=False`, a separate namespace for the second judge, and before/after hashes of both cache roots as a blocking gate.
+
+  **Implementation note, 2026-09-03, before any pool verdict was bought.** As written, this bullet's two clauses contradict each other, and the committed code could not satisfy both. `second_verdict(cache_as=…)` writes the second judge's separate namespace *inside* `.work/second_judge`, which is one of the two hashed roots — so hashing that root whole made the gate fire on precisely the runs that bought something, and because it raised first, the gold-set guard after it never executed on any such run. The gate had a true-negative rate of zero and had never passed.
+
+  The unit is therefore a **partition, not a root**: `evals/cache/judge` is hashed in full with no exclusion ever, and `.work/second_judge` is hashed except for the declared T0 namespaces, which are the "separate namespace" this section registers as legitimate. Only Sonnet's is declared — GPT runs `use_cache=False` and writes nothing, so `gpt-5.5#t0` is protected rather than permitted. An excluded namespace must not exist or must carry an ownership marker this study wrote, because an exclusion justified by spelling rather than by ownership would make overwriting somebody else's 1,504 verdicts the one thing the gate cannot see. Both guards are now evaluated and both outcomes reported, since neither implies the other: `resolve_targets` sees only ids the baseline picked whose gold verdict scores ≥ 2, so a gold-cache write for an unpicked paper moves the hash while leaving the gold set identical, and a score crossing 2 for a picked paper does the reverse.
+
+  **This narrows what the hash covers**, and is recorded here rather than in a commit message for that reason. It does not narrow what is *protected*: nothing that was watched and is not a declared, owned T0 namespace has been excluded. `tests/test_pool_controls.py::TestTheCacheIsolationGate` pins each clause.
 * **The legacy re-mine** pins each legacy case's HEAD to the last commit on or before the `head_date` already recorded in `adoptions.json`, so `t0` reproduces to the SHA and the stored T0 verdicts remain verdicts about the same prompt.
 * **Training cutoffs** are recorded at registration, not after the positives are visible.
 
