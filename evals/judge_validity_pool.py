@@ -1956,6 +1956,672 @@ def shortfall(
 
 
 # ---------------------------------------------------------------------------------------
+# Transportability (§5) and the pre-declared sensitivity (§2.3)
+# ---------------------------------------------------------------------------------------
+DP = "2026-09-02"  # the day the candidate list was taken; there is no historical star index
+
+
+def star_bands(candidates: Path | None = None) -> dict[str, int]:
+    """`{full_name: stars at Dp}`, cross-checked against the enumeration's own star grid.
+
+    The star count is on no walk column and no adoption row — it lives only in the committed
+    candidate list, which is a **snapshot**. `enumerate_pool.refuse_a_backdated_snapshot`
+    establishes there is no historical index, so this is a property at Dp and not at T0, and
+    recomputing it from the live API would be a fresh measurement taken after the positives
+    were visible.
+
+    The band boundary is `enumerate_pool.STAR_SLICES`, imported rather than retyped, and each
+    row's `slice` column carries the lower bound the enumeration actually queried under. They
+    are cross-checked and a disagreement raises: a band edge chosen at analysis time is exactly
+    the discretion an unchoosable pulse exists to remove.
+    """
+    import enumerate_pool as ep
+
+    src = candidates or CANDIDATES
+    out: dict[str, int] = {}
+    with src.open(encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            name = (row.get("full_name") or "").strip()
+            if not name:
+                continue
+            stars = int(row.get("stars") or 0)
+            declared = (row.get("slice") or "").split("|")
+            if len(declared) >= 2 and declared[1].strip().isdigit():
+                lo = int(declared[1])
+                hi = next((h for low, h in ep.STAR_SLICES if low == lo), None)
+                if stars < lo or (hi is not None and stars > hi):
+                    raise SystemExit(
+                        f"{name}: {stars} stars is outside the slice it was enumerated in "
+                        f"({lo}..{hi}). The candidate list disagrees with itself."
+                    )
+            out[name] = stars
+    return out
+
+
+def star_band(stars: int | None) -> str:
+    """The registered slice a star count falls in, or `unknown` when there is no count.
+
+    `unknown` is a band, not a hole. Three of the eight contributing legacy repositories do not
+    resolve to a row of the candidate list, and imputing a count for them would invent the very
+    covariate the contrast is cut on; dropping them would quietly shrink the legacy stratum.
+    """
+    import enumerate_pool as ep
+
+    if stars is None:
+        return "unknown"
+    for lo, hi in ep.STAR_SLICES:
+        if stars >= lo and (hi is None or stars <= hi):
+            return f"{lo}-{hi}" if hi is not None else f"{lo}+"
+    return "unknown"
+
+
+def legacy_star_counts(bench: Path | None = None, candidates: Path | None = None) -> dict[str, int]:
+    """`{legacy case: stars at Dp}` for the legacy cases that appear in the candidate list."""
+    stars = star_bands(candidates)
+    lowered = {k.lower(): v for k, v in stars.items()}
+    path = bench or (EVALS / "benchmark.yaml")
+    if not path.is_file():
+        return {}
+    import yaml
+
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    entries = data["cases"] if isinstance(data, dict) else data
+    out: dict[str, int] = {}
+    for case in entries:
+        if not (isinstance(case, dict) and case.get("live_repo") and case.get("name")):
+            continue
+        slug = case["live_repo"].rstrip("/").split("github.com/")[-1].lower()
+        if slug in lowered:
+            out[str(case["name"])] = lowered[slug]
+    return out
+
+
+def _subset_auc(
+    model: str,
+    positives: list[dict[str, Any]],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    iters: int,
+) -> dict[str, Any]:
+    """The full estimator over a subgroup, or a refusal. Never a fallback to a narrower one."""
+    import judge_validity_adoption as jva
+
+    strata = {str(r["case"]): str(r.get("stratum", "pool")) for r in positives}
+    pos = _pairs(positives, verdicts, model, strata)
+    ctl = _pairs(controls, verdicts, model, strata)
+    out = dict(jva.cluster_bootstrap_auc(pos, ctl, iters=iters, seed=jva.SEED))
+    out["model"] = model
+    return out
+
+
+def transportability(
+    models: tuple[str, ...],
+    analysis: dict[str, Any],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    iters: int = BOOTSTRAP_ITERS,
+    candidates: Path | None = None,
+) -> dict[str, Any]:
+    """§5's transportability: legacy against pool, and across star bands.
+
+    **No pre-committed consequence attaches to any of it.** §5 registers these as descriptive
+    heterogeneity; §6 item 4 and §9's power table together mean every subgroup here is
+    underpowered by construction, and the pooled primary is never re-weighted by any of them.
+    """
+    by_stratum = analysis.get("by_stratum", {})
+    controls_by_case: dict[str, list[dict[str, Any]]] = {}
+    for row in controls:
+        controls_by_case.setdefault(str(row["case"]), []).append(row)
+
+    def controls_for(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        cases = {str(r["case"]) for r in rows}
+        return [c for case in cases for c in controls_by_case.get(case, [])]
+
+    strata: dict[str, Any] = {}
+    for name in ("legacy", "pool"):
+        rows = by_stratum.get(name, [])
+        strata[name] = (
+            {m: _subset_auc(m, rows, controls_for(rows), verdicts, iters) for m in models}
+            if rows
+            else {"_refused": f"the {name} stratum has no positives"}
+        )
+
+    # Independent rather than paired: §2.2 excludes the 37 legacy repositories from the pool's
+    # population, so the two strata share no repository and there is nothing to pair on.
+    delta: dict[str, Any] = {}
+    for m in models:
+        a = strata["pool"].get(m, {}) if isinstance(strata["pool"], dict) else {}
+        b = strata["legacy"].get(m, {}) if isinstance(strata["legacy"], dict) else {}
+        if (
+            not (isinstance(a, dict) and isinstance(b, dict))
+            or a.get("auc") is None
+            or (b.get("auc") is None)
+        ):
+            delta[m] = {"_refused": "one stratum produced no AUC"}
+        else:
+            delta[m] = {"delta_auc_pool_minus_legacy": round(a["auc"] - b["auc"], 4)}
+
+    stars = star_bands(candidates)
+    legacy_stars = legacy_star_counts(candidates=candidates)
+    bands: dict[str, list[dict[str, Any]]] = {}
+    unresolved: list[str] = []
+    for row in analysis.get("positives", []):
+        case = str(row["case"])
+        if str(row.get("stratum")) == "legacy":
+            count = legacy_stars.get(case)
+            if count is None:
+                unresolved.append(case)
+        else:
+            if case not in stars:
+                # Every walked candidate came from this file; a miss means the analysis is
+                # reading a different candidate list than the walk used.
+                name = (candidates or CANDIDATES).name
+                raise SystemExit(f"{case} is a pool positive but is absent from {name}.")
+            count = stars[case]
+        bands.setdefault(star_band(count), []).append(row)
+
+    band_out: dict[str, Any] = {}
+    for band, rows in sorted(bands.items()):
+        entry: dict[str, Any] = {
+            "n_positives": len(rows),
+            "n_clusters": len({(str(r.get("stratum")), str(r["case"])) for r in rows}),
+        }
+        subset_ctl = controls_for(rows)
+        entry["n_controls"] = len(subset_ctl)
+        if entry["n_clusters"] >= 2 and subset_ctl:
+            entry["by_judge"] = {
+                m: _subset_auc(m, rows, subset_ctl, verdicts, iters) for m in models
+            }
+        else:
+            entry["_refused"] = "fewer than two clusters, or no controls, in this band"
+        band_out[band] = entry
+
+    return {
+        "strata": strata,
+        "delta_by_judge": delta,
+        "star_bands": band_out,
+        "stars_measured_on": DP,
+        "stars_note": (
+            "Star counts are a property at Dp, the day the candidate list was taken. There is "
+            "no historical index, so they are not counts at T0 — and recomputing them from the "
+            "live API would be a fresh measurement taken after the positives were visible."
+        ),
+        "legacy_cases_without_a_star_count": sorted(set(unresolved)),
+        "underpowered": True,
+        "pre_committed_consequence": None,
+        "_note": (
+            "Descriptive heterogeneity. §5 attaches no consequence to any of it, every subgroup "
+            "here is underpowered by construction, and the pooled primary is never re-weighted."
+        ),
+    }
+
+
+def sensitivity_seeds_ge_10(
+    models: tuple[str, ...],
+    analysis: dict[str, Any],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    iters: int = BOOTSTRAP_ITERS,
+) -> dict[str, Any]:
+    """§2.3's pre-declared sensitivity: the same endpoints over `ids_v2(T0) >= 10` only.
+
+    "Retained as a pre-declared sensitivity. It is a strict subset of the judged set, so it
+    costs nothing to report." `seeds_at_t0` is on every row of both strata, so nothing is
+    re-mined and nothing is re-judged.
+    """
+    keep = [r for r in analysis.get("positives", []) if int(r.get("seeds_at_t0") or 0) >= 10]
+    cases = {str(r["case"]) for r in keep}
+    subset_ctl = [c for c in controls if str(c["case"]) in cases]
+    out: dict[str, Any] = {
+        "threshold": 10,
+        "n_positives": len(keep),
+        "n_clusters": len({(str(r.get("stratum")), str(r["case"])) for r in keep}),
+        "n_controls": len(subset_ctl),
+        "pre_committed_consequence": None,
+    }
+    if out["n_clusters"] >= 2 and subset_ctl:
+        out["by_judge"] = {m: _subset_auc(m, keep, subset_ctl, verdicts, iters) for m in models}
+    else:
+        out["_refused"] = "fewer than two clusters, or no controls, above the threshold"
+    return out
+
+
+# ---------------------------------------------------------------------------------------
+# Contamination sensitivity (§5), which is VOID for this pool (§5's 2026-09-03 decision)
+# ---------------------------------------------------------------------------------------
+CONTAMINATION_ENDPOINT = (
+    "Contamination sensitivity: positives split by adoption commit date relative to each "
+    "judge's published training cutoff; AUC on the post-cutoff subset."
+)
+
+
+def training_cutoffs(prereg: Path | None = None) -> dict[str, str | None]:
+    """Each judge's published training cutoff, parsed from §5, or None where it is still blank.
+
+    Parsed rather than hard-coded, because §7 requires them "recorded at registration, not
+    after the positives are visible" — so the registered file is the only place they may come
+    from, and reading them from code would let them be filled in afterwards without a visible
+    commit to the pre-registration.
+    """
+    src = prereg or (EVALS / "PREREG-judge-validity-pool.md")
+    out: dict[str, str | None] = {"gpt-5.5": None, "claude-sonnet-5": None}
+    if not src.is_file():
+        return out
+    for line in src.read_text(encoding="utf-8").splitlines():
+        if "Contamination sensitivity" not in line:
+            continue
+        for model, label in (("gpt-5.5", "GPT-5.5"), ("claude-sonnet-5", "Sonnet 5")):
+            m = re.search(rf"{re.escape(label)}\s*`([^`]*)`", line)
+            if m and m.group(1).strip("_ ") and re.match(r"\d{4}-\d{2}", m.group(1).strip()):
+                out[model] = m.group(1).strip()
+        break
+    return out
+
+
+def contamination_split(
+    models: tuple[str, ...],
+    analysis: dict[str, Any],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    iters: int = BOOTSTRAP_ITERS,
+    cutoffs: dict[str, str | None] | None = None,
+) -> dict[str, Any]:
+    """§5's contamination split — reported as an explicit VOID while the cutoffs are unfilled.
+
+    Two independent reasons, both recorded in the registered file, and neither improves with
+    time.
+
+    **No published cutoff exists for either judge**, and none will be supplied: the maintainer's
+    decision of 2026-09-03. Guessing was refused once already on the record — `judge_date_
+    stratify.py` states its design "does not need to know the cutoff, and deliberately does not
+    guess it", because testing for a discontinuity anywhere beats testing at an assumed date.
+
+    **And the dates are 44 of 94 on the legacy stratum, missing where repositories are largest.**
+    Even with two sourced cutoffs the legacy half of the split would run on a 47 % subset that
+    is not missing at random.
+
+    So this emits `status: not_computed` with the reason and the command that would produce it —
+    values null, never a date, never 0, never an empty dict, and **the key is never absent**.
+    `mcp_arm_report` already established the shape: "Void, not zero. An unrun arm reported as 0
+    reads as a measurement, and this is its absence." §6 item 6 names this split as the only
+    instrument against recognition bias, so its absence is a real weakening of what the pool can
+    claim, and it is carried beside the primary rather than buried.
+    """
+    resolved = cutoffs if cutoffs is not None else training_cutoffs()
+    dated = [r for r in analysis.get("positives", []) if r.get("adoption_date")]
+    # Keyed on the DATE, never on the commit: `adoption_commit` has a branch returning
+    # (sha, None) when the timestamp does not parse, so keying on the sha would file such a row
+    # under a dated bucket holding a None date.
+    undated_legacy = [
+        r
+        for r in analysis.get("positives", [])
+        if not r.get("adoption_date") and str(r.get("stratum")) == "legacy"
+    ]
+    undated_pool = [
+        r
+        for r in analysis.get("positives", [])
+        if not r.get("adoption_date") and str(r.get("stratum")) != "legacy"
+    ]
+    coverage = {
+        "n_dated": len(dated),
+        # Kept apart so ~30 structurally undated legacy rows do not read as 30 failed searches.
+        "n_undated_legacy": len(undated_legacy),
+        "n_undated_pool_miss": len(undated_pool),
+    }
+
+    if not all(resolved.get(m) for m in models):
+        return {
+            "status": "not_computed",
+            "endpoint": CONTAMINATION_ENDPOINT,
+            "cutoffs": {m: resolved.get(m) for m in models},
+            "why": (
+                "No published training cutoff is recorded for either judge and none will be "
+                "supplied (maintainer decision, 2026-09-03, before any positive existed). §7 "
+                "requires them recorded at registration rather than after the positives are "
+                "visible, and this project has already refused once on the record to guess one "
+                "(judge_date_stratify.py: the design 'does not need to know the cutoff, and "
+                "deliberately does not guess it'). Independently, adoption dates are recovered "
+                "for 44 of 94 legacy positives and are missing where repositories are largest, "
+                "so even two sourced cutoffs would split a 47% subset that is not missing at "
+                "random."
+            ),
+            "consequence": (
+                "§6 item 6 names this split as the ONLY instrument available against "
+                "recognition bias, so recognition remains an unmitigated confound in this pool. "
+                "That is carried beside the primary, not buried."
+            ),
+            "how": (
+                "Fill both cutoffs in §5 of PREREG-judge-validity-pool.md with a dated, sourced "
+                "value and re-run the analysis; adoption_date is already recorded on every "
+                "capped positive, so nothing is re-mined."
+            ),
+            "adoption_date_coverage": coverage,
+        }
+
+    # Reachable only once §5 carries two sourced cutoffs. Each judge gets its OWN split.
+    by_positive: dict[str, list[dict[str, Any]]] = {}
+    for row in controls:
+        anchor = row.get("for_positive")
+        if not anchor:
+            raise SystemExit(
+                "a control row carries no `for_positive`, so the post-cutoff subset cannot be "
+                "joined to its positives. The pool-scheme drawer does not write it; §4's "
+                "arm-neutral scheme does."
+            )
+        by_positive.setdefault(str(anchor), []).append(row)
+
+    out: dict[str, Any] = {
+        "status": "computed",
+        "cutoffs": {m: resolved[m] for m in models},
+        "adoption_date_coverage": coverage,
+        "by_judge": {},
+        "_note": (
+            "Each judge is split at ITS OWN cutoff, so these are two different subsets. The two "
+            "subset AUCs must never be differenced or compared with each other."
+        ),
+    }
+    for model in models:
+        cut = str(resolved[model])
+        post = [r for r in dated if str(r["adoption_date"]) > cut]
+        subset_ctl = [c for r in post for c in by_positive.get(dedup_id(str(r["id"])), [])]
+        missing = [r for r in post if not by_positive.get(dedup_id(str(r["id"])))]
+        if missing:
+            raise SystemExit(
+                f"{model}: {len(missing)} post-cutoff positive(s) have no matched controls."
+            )
+        entry = {
+            "cutoff": cut,
+            "n_post_cutoff": len(post),
+            "n_pre_or_on_cutoff": len(dated) - len(post),
+            "controls_per_positive": round(len(subset_ctl) / len(post), 2) if post else None,
+            "pool_only": not any(str(r.get("stratum")) == "legacy" for r in post),
+        }
+        entry.update(_subset_auc(model, post, subset_ctl, verdicts, iters) if post else {})
+        out["by_judge"][model] = entry
+    return out
+
+
+# ---------------------------------------------------------------------------------------
+# Scoring the registered predictions (§8) and publishing the datasheet (§10 step 7)
+# ---------------------------------------------------------------------------------------
+def score_predictions(
+    summary: dict[str, Any],
+    analysis: dict[str, Any],
+    primaries: dict[str, dict[str, Any]],
+    secondaries: dict[str, dict[str, Any]],
+    difference: dict[str, Any],
+    *,
+    pool_adoptions: Path | None = None,
+) -> dict[str, Any]:
+    """§8's predictions, each scored from its own registered input and no other.
+
+    Two rules do most of the work here.
+
+    **A prediction is scored from the quantity it names.** P3 and P4 are defined over the
+    unconditional B₀ prefix, so they read `q_over_b0` and `y_over_b0` and never recompute over
+    the whole walk — a prefix whose length was chosen by the yield it produced is the inverse
+    sampling §3.2 exists to avoid. P5 is about the STOP RULE reaching 100 within B, so it reads
+    the stop count, not the analysis set.
+
+    **A prediction registered at an n is not scored below it.** P6 brackets both AUCs "at ≥ 130
+    capped positives"; scoring it at 70 would turn a power shortfall into a failed prediction.
+    Below that it records `not_evaluable_at_this_n`, and the AUC itself still runs at whatever
+    n exists — §3.4 requires exactly that.
+    """
+    out: dict[str, Any] = {}
+    n_analysis = int(analysis.get("analysis_set_positives") or 0)
+
+    # P1 and P2 were scored on 2026-09-02 against the legacy re-mine and are recorded in §8.
+    out["P1"] = {"status": "scored_before_the_walk", "where": "§8, 2026-09-02 [NR-60]"}
+    out["P2"] = {"status": "scored_before_the_walk", "where": "§8, 2026-09-02 [NR-60]"}
+
+    q, y = summary.get("q_over_b0"), summary.get("y_over_b0")
+    out["P3"] = (
+        {
+            "prediction": "q in [0.08, 0.30], point 0.15",
+            "observed": q,
+            "in_bracket": bool(0.08 <= q <= 0.30),
+            "n_prefix_decided": summary.get("n_prefix_decided"),
+        }
+        if q is not None
+        else {"status": "not_evaluable", "why": "the unconditional prefix produced no rate"}
+    )
+    out["P4"] = (
+        {
+            "prediction": "y in [0.8, 2.5], point 1.5",
+            "observed": y,
+            "in_bracket": bool(0.8 <= y <= 2.5),
+        }
+        if y is not None
+        else {"status": "not_evaluable", "why": "no qualifying repository in the prefix"}
+    )
+
+    stop_count = int(summary.get("capped_positives") or 0)
+    walked, budget = int(summary.get("walked") or 0), int(summary.get("budget") or 0)
+    out["P5"] = {
+        "prediction": "100 new positives within B = 1,200 rows",
+        "stop_rule_capped_positives": stop_count,
+        "walked": walked,
+        "met": bool(stop_count >= 100 and walked <= budget),
+        "_note": "Scored on the stop-rule count, which is what the prediction is about.",
+    }
+
+    if n_analysis >= 130:
+        out["P6"] = {
+            "prediction": "AUC(gpt) 0.60-0.70, AUC(sonnet) 0.62-0.72; both exclude 0.5; "
+            "their difference does not exclude 0",
+            "auc": {m: p.get("auc") for m, p in primaries.items()},
+            "both_exclude_half": all(p.get("excludes_half") for p in primaries.values()),
+            "difference_excludes_zero": difference.get("excludes_zero"),
+        }
+    else:
+        out["P6"] = {
+            "status": "not_evaluable_at_this_n",
+            "why": (
+                f"P6 registers its brackets at >= 130 capped positives; the analysis set holds "
+                f"{n_analysis}. Scoring it here would convert a power shortfall into a failed "
+                "prediction. The AUC itself still runs at whatever n exists (§3.4)."
+            ),
+        }
+
+    rates = {m: s.get("control", {}).get("rate") for m, s in secondaries.items()}
+    out["P7"] = (
+        {
+            "prediction": "P(actionable|control): gpt >= 0.70, sonnet <= 0.55",
+            "observed": rates,
+            "met": bool(
+                (rates.get("gpt-5.5") or 0) >= 0.70 and (rates.get("claude-sonnet-5") or 1) <= 0.55
+            ),
+        }
+        if all(v is not None for v in rates.values())
+        else {"status": "not_evaluable", "why": "a judge has no control verdicts"}
+    )
+
+    deffs = {m: p.get("design_effect") for m, p in primaries.items()}
+    out["P8"] = (
+        {
+            "prediction": "the realised design effect is >= 1.5",
+            "observed": deffs,
+            # Both, because one judge clearing it does not establish that the paper-level
+            # interval would have been materially too narrow. Both values are reported either way.
+            "met": all((v or 0) >= 1.5 for v in deffs.values()),
+        }
+        if all(v is not None for v in deffs.values())
+        else {"status": "not_evaluable", "why": "a design effect was not computed"}
+    )
+
+    src = pool_adoptions or POOL_ADOPTIONS
+    if src.is_file():
+        rows = json.loads(src.read_text(encoding="utf-8"))
+        fired = sum(1 for r in rows if r.get("reverse_cited") or r.get("genesis"))
+        out["P9"] = {
+            "prediction": "the reverse-citation and doc-genesis filters remove >= 5% of gross "
+            "adoptions on the enumerated population",
+            "n_gross_adoptions": len(rows),
+            "n_removed": fired,
+            "share": round(fired / len(rows), 4) if rows else None,
+            "met": bool(rows and fired / len(rows) >= 0.05),
+            "_note": (
+                "`genesis` is hard-coded False by the walk because PP2 >= 3 subsumes the "
+                "doc-genesis guard, so its half contributes structurally zero and this share is "
+                "the reverse-citation filter alone."
+            ),
+        }
+    else:
+        out["P9"] = {"status": "not_evaluable", "why": "no pool adoptions artefact"}
+    return out
+
+
+DATASHEET_COMPONENTS = (
+    "candidate_list",
+    "seed_and_pulse",
+    "walk_ledger",
+    "positives_and_controls",
+    "raw_ordinal_scores",
+    "doi_pmid_covariates",
+    "void_and_timeout_lists",
+)
+
+
+def _digest(path: Path) -> str | None:
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+
+def datasheet(
+    seed: str,
+    analysis: dict[str, Any],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    outcomes: list[dict[str, Any]],
+    *,
+    models: tuple[str, ...],
+) -> dict[str, Any]:
+    """§10 step 7's datasheet: the seven components it names, each present by name.
+
+    "the datasheet — candidate list, seed and pulse timestamp, walk ledger, positives and
+    controls, both judges' raw ordinal scores, DOI/PMID covariates, void and timeout lists —
+    published with it." Each is emitted under its own key whether or not it has content, so a
+    missing component is visible as an empty one rather than as an absent key nobody notices.
+
+    The RAW ordinal scores matter and were never stored: the legacy artefact keeps thresholded
+    counts only, so the four-level distribution the primary is actually computed over could not
+    be recovered from it.
+    """
+    import walk_pool
+
+    by_case_covariates: dict[str, Any] = {}
+    for row in _read_walk_rows():
+        if row.get("qualifies") == "True":
+            by_case_covariates[row["full_name"]] = {
+                k: int(row.get(k) or 0) for k in ("dois_head", "dois_t0", "pmids_head", "pmids_t0")
+            }
+    legacy_cov = {}
+    if LEGACY_SIDECAR.is_file():
+        legacy_cov = {
+            case: {k: c.get(k) for k in ("dois_head", "dois_t0", "pmids_head", "pmids_t0")}
+            for case, c in legacy_sidecar()["cases"].items()
+        }
+
+    scores: dict[str, list[dict[str, Any]]] = {}
+    for model in models:
+        rows = []
+        for record in verdicts.values():
+            if record.get("model") == model:
+                rows.append(
+                    {
+                        "case": record.get("case"),
+                        "id": record.get("id"),
+                        "arm": record.get("arm"),
+                        "score": record.get("score"),
+                    }
+                )
+        scores[model] = sorted(rows, key=lambda r: (str(r["case"]), str(r["id"])))
+
+    return {
+        "candidate_list": {
+            "path": str(CANDIDATES.relative_to(EVALS.parent)) if CANDIDATES.is_file() else None,
+            "sha256": _digest(CANDIDATES),
+            "dp": DP,
+        },
+        "seed_and_pulse": {
+            "pulse": walk_pool.REGISTERED_PULSE,
+            "seed_sha256": hashlib.sha256(seed.encode()).hexdigest(),
+            # The seed value itself is committed at evals/frame/pool/SEED_POOL; the digest here
+            # ties this artefact to that file without duplicating it.
+            "seed_file": str(SEED_FILE.relative_to(EVALS.parent)),
+        },
+        "walk_ledger": {
+            "path": str(POOL_WALK.relative_to(EVALS.parent)) if POOL_WALK.is_file() else None,
+            "sha256": _digest(POOL_WALK),
+            "n_rows": len(_read_walk_rows()),
+        },
+        "positives_and_controls": {
+            "n_positives": analysis.get("analysis_set_positives"),
+            "by_stratum": {k: len(v) for k, v in analysis.get("by_stratum", {}).items()},
+            "n_controls": len(controls),
+            "controls_artefact": str(CONTROLS_ROWS.relative_to(EVALS.parent)),
+            "controls_sha256": _digest(CONTROLS_ROWS),
+        },
+        # Raw, not thresholded: the primary is computed over the four rubric levels, and the
+        # legacy artefact stores only counts above the bar.
+        "raw_ordinal_scores": scores,
+        "doi_pmid_covariates": {
+            "pool": by_case_covariates,
+            "legacy": legacy_cov,
+            "_note": (
+                "§6.2 SIZES the life-science blind spot with these rather than closing it: 0 of "
+                "6 bio-* and 0 of 6 mat-* legacy cases clear ids_v2(HEAD) >= 10. They are "
+                "covariates and gate nothing."
+            ),
+        },
+        # Two lists, not one sum. §3.1: "A timeout is a recorded outcome, never a silent skip."
+        "void_and_timeout_lists": {
+            "judging": [o for o in outcomes if o.get("outcome") != "judged"],
+            "walk_timeouts": [
+                {"rank": r.get("rank"), "full_name": r.get("full_name"), "note": r.get("note")}
+                for r in _read_walk_rows()
+                if r.get("outcome") in ("timeout", "clone_timeout")
+            ],
+            "walk_failures": [
+                {"rank": r.get("rank"), "full_name": r.get("full_name"), "note": r.get("note")}
+                for r in _read_walk_rows()
+                if r.get("outcome") in ("clone_failed", "error", "no_head")
+            ],
+        },
+        "limitations": [
+            "head_ids reaches the arXiv/HF documentation channel only, so §4's 'not cited "
+            "anywhere at HEAD' is honoured for that channel and not for DOIs, PMIDs, source "
+            "comments or notebooks.",
+            "Control listings are drawn from six monthly slices of the half-year rather than "
+            "the whole window; the per-slice cap is an unregistered narrowing, recorded in §4.",
+            "Controls may be shared across clusters, a correlation the repository-cluster "
+            "bootstrap does not capture, so the interval is very slightly too narrow.",
+            "X5's language detector is absent, so the population is not filtered for English "
+            "prose (§2.2).",
+            "Adoption dates cover 44 of 94 legacy positives and are missing where repositories "
+            "are largest (§5).",
+        ],
+    }
+
+
+def _read_walk_rows(path: Path | None = None) -> list[dict[str, str]]:
+    """The walk ledger, typed the way the walk itself types it.
+
+    `csv.DictReader` returns the STRING "False", which is truthy — `walk_pool` is careful about
+    this in its own tallies and an analysis that forgot would report every walked candidate as
+    a qualifier.
+    """
+    src = path or POOL_WALK
+    if not src.is_file():
+        return []
+    with src.open(encoding="utf-8", newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+# ---------------------------------------------------------------------------------------
 # The legacy materialisation pass (§4, §5, §7)
 # ---------------------------------------------------------------------------------------
 LEGACY_SIDECAR = POOL_FRAME / "legacy_sidecar.json"
