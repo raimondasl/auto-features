@@ -576,3 +576,45 @@ class TestHeadIdsAreNeverDefaultedToEmpty:
         with pytest.raises(SystemExit) as exc:
             jvp.head_ids_for(["a/b", "a__b"], tmp_path)
         assert "mangle" in str(exc.value)
+
+
+class TestTheTargetMayGrowButOnlyWithARecordedDeviation:
+    """§3.3's target was raised from 100 to 150 on 2026-09-05, after the walk stopped at B on
+    exactly 60 — which put the analysis set at §9's 90-positive row, the row whose own entry
+    reads "may include 0.5".
+
+    Raising it can only ADD positives, which narrows the primary interval and makes §5's
+    pre-committed null harder to fire. That is the one direction a deviation cannot use to
+    manufacture the result the study would most like to report. Lowering it remains the
+    rehearsal-run hazard the check was built for.
+    """
+
+    BASE = {"walked": 2000, "budget": 4000, "capped_positives": 150}
+
+    def test_a_lowered_target_is_still_refused(self) -> None:
+        with pytest.raises(SystemExit) as exc:
+            jvp.walk_stop_reason({**self.BASE, "target": 40}, n_candidates=17888)
+        assert "below" in str(exc.value)
+
+    def test_the_registered_target_needs_no_deviation(self) -> None:
+        s = {**self.BASE, "target": 100, "capped_positives": 100}
+        assert jvp.walk_stop_reason(s, n_candidates=17888) == "target"
+
+    def test_a_raised_target_is_accepted_when_the_deviation_is_recorded(self) -> None:
+        s = {**self.BASE, "target": 150}
+        assert jvp.walk_stop_reason(s, n_candidates=17888) == "target"
+
+    def test_a_raised_target_without_the_record_is_refused(self, tmp_path, monkeypatch) -> None:
+        """A stop rule changed after seeing the yield is a deviation whether or not it is
+        written down; writing it down is what makes it one."""
+        monkeypatch.setattr(jvp, "EVALS", tmp_path)
+        with pytest.raises(SystemExit) as exc:
+            jvp.walk_stop_reason({**self.BASE, "target": 150}, n_candidates=17888)
+        assert "no deviation is recorded" in str(exc.value)
+
+    def test_the_deviation_is_actually_in_the_registered_file(self) -> None:
+        text = (jvp.EVALS / "PREREG-judge-validity-pool.md").read_text(encoding="utf-8")
+        assert "DEVIATION, 2026-09-05" in text
+        # It must say what was known and what was not when it was taken.
+        assert "No endpoint has been computed" in text
+        assert "P5 is scored against the **registered** target of 100" in text

@@ -833,6 +833,51 @@ def walk(
     legacy: set[str] | None = None,
     retry_failed: bool = False,
 ) -> dict[str, Any]:
+    lock = out_dir / "walk.lock"
+    if lock.is_file():
+        raise SystemExit(
+            f"{lock} exists: {lock.read_text(encoding='utf-8').strip()}\n"
+            "  Another walk holds it. Two walks against one out-dir append to the same ledger\n"
+            "  and merge into the same adoptions artefact, so both write rows for the same\n"
+            "  candidates. Measured 2026-09-05: two concurrent runs duplicated ranks 1200-1203.\n"
+            "  If no walk is running, delete the file."
+        )
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {os.getpid()} started {datetime.now(tz=UTC).isoformat()}", "utf-8")
+    try:
+        return _walk(
+            candidates,
+            seed,
+            out_dir=out_dir,
+            b0=b0,
+            budget=budget,
+            target=target,
+            clone_dir=clone_dir,
+            jobs=jobs,
+            curve_every=curve_every,
+            url_for=url_for,
+            legacy=legacy,
+            retry_failed=retry_failed,
+        )
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def _walk(
+    candidates: list[dict[str, str]],
+    seed: str,
+    *,
+    out_dir: Path,
+    b0: int = DEFAULT_B0,
+    budget: int = DEFAULT_B,
+    target: int = DEFAULT_TARGET,
+    clone_dir: Path | None = None,
+    jobs: int = 4,
+    curve_every: int = 50,
+    url_for: Any = github_url,
+    legacy: set[str] | None = None,
+    retry_failed: bool = False,
+) -> dict[str, Any]:
     ordered = seeded_order(candidates, seed)
     walk_csv = out_dir / "validity_walk.csv"
     adoptions = out_dir / "adoptions-pool-v2.json"

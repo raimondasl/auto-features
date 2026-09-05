@@ -153,6 +153,14 @@ Evaluating PP2 requires resolving T0 and grepping at T0, which is most of the mi
 
 A per-row timeout of **300 s**. A timeout is a recorded outcome, never a silent skip. Clone failures are recorded, never dropped.
 
+**Ledger incident, 2026-09-05, recorded here rather than in a commit message because `validity_walk.csv` is an append-only audit trail and four rows were removed from it.** While starting the §3.3 extension, two walk processes were launched against the same `out_dir` and ran concurrently for about two minutes. The walk had no lock — the purchase loop has one, and this did not. Both processes skipped the same 1,200 completed candidates, both began at rank 1200, and both appended rows for ranks **1200–1203**: `tidy-finance/website`, `neurdb/neurdb`, `Pyomo/pyomo`, `google-deepmind/dm-haiku`.
+
+The duplicate pairs **agree on every substantive field** — same outcome, same `qualifies`, same `capped` — and differ only in the `seconds` column, which is wall-clock. That is the walk being deterministic under the seed, and it is why the repair is a de-duplication rather than a re-walk: there is no disagreement to adjudicate and no discretion in choosing between them. The adoptions artefact was untouched, because `merge_adoptions` de-duplicates on `(case, id)`.
+
+The first occurrence of each rank was kept and the second removed, leaving 1,208 rows with strictly increasing ranks and no repeated `full_name`. The damaged ledger is preserved uncommitted at `evals/.work/validity_walk.raced.csv` so the claim can be checked. `walk()` now takes a lock naming its pid and start time and refuses to start beside a live one.
+
+No rule, no order and no outcome changed: the same candidates were walked, in the same order, to the same conclusions.
+
 ### 3.2 Budgets
 **B₀ = 300 rows are walked unconditionally**, and the qualifying rate and per-repository yield are estimated over exactly those 300. A fixed prefix of a seeded order is a uniform random sample of the population; a prefix whose length is set by accumulated yield is inverse sampling and biases the rate upward.
 
@@ -166,6 +174,16 @@ Per-repository cap **8**. Identifiers shared across repositories are assigned to
 The cap is therefore applied **before** the contest, by the same seeded rule a pool repository's own cap uses — `sha256(SEED_POOL ‖ case:id)`, first 8 — so both strata are capped by one implementation and which 8 survive is a function of the pulse rather than of whoever wrote the analysis. This can only *raise* the pool's positive count, which is the anti-null direction; it is taken because the alternative loses papers to nobody, not because of its effect on n, and it is recorded here before any positive exists.
 
 **Judging stops at 100 new usable positives. 60 is the reporting minimum, not a stopping point.** Fixed by the maintainer on 2026-09-02, before any verdict exists, for a power reason stated in section 9: at 90 capped positives with legacy-like concentration the primary interval can include 0.5 for a sampling reason, which would fire section 5's pre-committed null branch on an artefact. The extra 40 positives cost roughly 400 verdicts, about **$8–12**.
+
+**DEVIATION, 2026-09-05: the target is raised from 100 to 150, and this is a change to a registered stop rule made after seeing the walk's yield.** It is recorded here rather than in a commit message because that is exactly what it is, and because the sequence matters: the record is committed before the extension's rows are.
+
+*What was known when it was taken.* The walk reached B = 1,200 and stopped on **exactly 60** capped positives — the reporting minimum, and the one number §3.3 says is "not a stopping point". §3.4 forces continuation only *below* 60, so the stop was legitimate; the problem is where it left the study. 60 new plus 31 legacy is **91**, which is §9's 90-positive row almost exactly: the row whose own entry reads "**may include 0.5**", and the row this section spent $8–12 to move away from. Firing §5's null branch from there would fire it on a power artefact rather than on a finding.
+
+*What was NOT known.* No endpoint has been computed and no verdict has been bought. What was visible is what §3.2's yield curve exists to make visible and what §5's shortfall block may print before the gate: **q = 0.0447** over the unconditional 300-row prefix, against P3's registered bracket of [0.08, 0.30] — P3 fails, decisively — and **y = 1.615**, against P4's [0.8, 2.5], which is met. The shortfall is entirely in how many repositories qualify, not in what a qualifying one yields.
+
+*Why 150 and not 100.* At the measured rate the walk produces 0.072 capped positives per row, so 100 costs ~550 more rows and 150 costs ~1,250, both a fraction of an hour and both far inside the frozen order. Since a deviation is being taken at all, it is taken to a number that clears §9's 130-positive row (150 new + 31 legacy = 181) rather than to one that merely reaches the original target. Judging cost rises to roughly 1,800 verdicts, about **$35–55**; §9's "money is not the constraint" still holds.
+
+*Why this is the conservative direction, and where it is not.* More positives can only narrow the primary interval, so the deviation makes the pre-committed **null harder to fire**, not easier — it cannot manufacture the result the study would most like to report, only refuse to hand it one by accident. What it does cost is that §3.3's stop is no longer a number fixed before the data. **The extension takes more of the same frozen order and nothing else**: the seed is unchanged, the candidate list is unchanged, every rule is unchanged, and §3.4 already establishes that walking further down an order fixed by an unchoosable pulse introduces no discretion. P5 is scored against the **registered** target of 100 within B = 1,200 and **fails**; it is not re-scored against 150.
 
 **No endpoint is inspected before the stop rule fires.**
 
