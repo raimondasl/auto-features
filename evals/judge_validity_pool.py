@@ -30,6 +30,7 @@ import csv
 import hashlib
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -1378,6 +1379,580 @@ def verdict_coverage(
 
 def _now() -> str:
     return datetime.now(tz=UTC).isoformat(timespec="seconds")
+
+
+# ---------------------------------------------------------------------------------------
+# Section 5's endpoints
+# ---------------------------------------------------------------------------------------
+BOOTSTRAP_ITERS = 5000
+ORDINAL_LEVELS = (0, 1, 2, 3)
+
+# §9's two sizing rows, quoted verbatim so the discrepancy below is checkable rather than
+# asserted. (capped positives, SE low, SE high, CI at AUC 0.60, MDA as printed)
+PREREG_S9_ROWS = (
+    {"positives": 90, "se": [0.047, 0.057], "ci_at_060": [0.489, 0.711], "mda_printed": 0.62},
+    {"positives": 130, "se": [0.036, 0.044], "ci_at_060": [0.514, 0.686], "mda_printed": 0.578},
+)
+
+
+def cluster_key(row: dict[str, Any]) -> str:
+    """The resampling unit: a repository, qualified by its stratum.
+
+    Qualified because §5's transportability endpoint contrasts the two strata, and an
+    unqualified slug that existed in both would silently merge them into one cluster.
+    """
+    return f"{row.get('stratum', 'pool')}:{row['case']}"
+
+
+def _pairs(
+    rows: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    model: str,
+    strata: dict[str, str],
+    *,
+    threshold: int | None = None,
+) -> list[tuple[str, float]]:
+    """`(cluster, score)` for every row this judge scored.
+
+    *threshold* None gives the RAW ordinal score, which is what the primary takes. Passing a
+    threshold gives the 0/1 form, which is what the secondary takes — and the two must never be
+    swapped: an AUC over a 2-valued array is exactly `0.5 + (p_adopted - p_control) / 2`, so the
+    primary would become a monotone restatement of the secondary and would carry back in the
+    level §5 makes it level-free to remove.
+    """
+    out: list[tuple[str, float]] = []
+    for row in rows:
+        case, pid = str(row["case"]), dedup_id(str(row["id"]))
+        record = verdicts.get(verdict_key(model, case, pid))
+        if record is None:
+            continue
+        score = float(record["score"])
+        key = f"{strata.get(case, 'pool')}:{case}"
+        out.append(
+            (
+                key,
+                1.0
+                if threshold is not None and score >= threshold
+                else 0.0
+                if threshold is not None
+                else score,
+            )
+        )
+    return out
+
+
+def _histogram(pairs: list[tuple[str, float]]) -> dict[str, int]:
+    counts = Counter(int(s) for _, s in pairs)
+    return {str(level): counts.get(level, 0) for level in ORDINAL_LEVELS}
+
+
+def tie_fraction(
+    positives: list[tuple[str, float]], controls: list[tuple[str, float]]
+) -> float | None:
+    """The share of positive-control pairs that tie, and therefore contribute exactly 0.5.
+
+    `roc_auc` is the Mann-Whitney form over average ranks, so a tie is not an error — but with
+    four rubric levels spread over hundreds of papers a large fraction of the comparisons are
+    decided by nothing at all, and an AUC of 0.58 built from 70 % ties is a different claim from
+    one built from 5 %. Published beside every AUC rather than left to be inferred.
+    """
+    if not positives or not controls:
+        return None
+    p, c = Counter(int(s) for _, s in positives), Counter(int(s) for _, s in controls)
+    shared = sum(p[k] * c[k] for k in set(p) & set(c))
+    return round(shared / (len(positives) * len(controls)), 4)
+
+
+def prereg_s9_reference() -> dict[str, Any]:
+    """§9's sizing table beside the constant this code actually uses, and their disagreement.
+
+    Measured, not asserted. §9's **interval** column is exactly `0.60 ± 1.96 × SE_upper` and
+    reproduces to the printed digits. Its **minimum-detectable-AUC** column does not come from
+    the committed `0.5 + 2.80 × SE`: that formula gives 0.660 at 90 positives and 0.623 at 130,
+    against §9's ≈ 0.62 and ≈ 0.578, and the implied multipliers are 2.11 and 1.77 — nearer
+    `1.96 × SE`, which is a 50 %-power quantity, than the 2.80 = 1.96 + 0.84 that 80 % power
+    requires.
+
+    Neither number is changed here. The constant is frozen by the registration banner and §9 is
+    registered text; this records that the two disagree and by how much, so a reader comparing
+    the artefact against the table is not left to wonder which is wrong. Any claim about whether
+    a particular AUC was detectable is made from the **realised** `min_detectable_auc_80pct`
+    after the bootstrap, never from this table.
+    """
+    rows = []
+    for row in PREREG_S9_ROWS:
+        se_hi = row["se"][1]
+        rows.append(
+            {
+                **row,
+                "ci_recomputed_at_1_96_se_upper": [
+                    round(0.60 - 1.96 * se_hi, 3),
+                    round(0.60 + 1.96 * se_hi, 3),
+                ],
+                "mda_from_committed_formula": [
+                    round(0.5 + 2.80 * row["se"][0], 3),
+                    round(0.5 + 2.80 * se_hi, 3),
+                ],
+                "implied_multiplier_of_printed_mda": round((row["mda_printed"] - 0.5) / se_hi, 2),
+            }
+        )
+    return {
+        "_comment": (
+            "§9's interval column reproduces exactly as 0.60 +/- 1.96*SE_upper. Its "
+            "minimum-detectable-AUC column does not come from the committed 0.5 + 2.80*SE; the "
+            "implied multipliers are 2.11 and 1.77, nearer 1.96*SE (50% power) than 2.80 "
+            "(80%). Recorded, not reconciled: the constant is frozen and §9 is registered "
+            "text. Detectability claims are made from the realised value, never from this table."
+        ),
+        "committed_formula": "0.5 + 2.80 * se",
+        "rows": rows,
+    }
+
+
+def primary_auc(
+    model: str,
+    positives: list[dict[str, Any]],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    iters: int = BOOTSTRAP_ITERS,
+) -> dict[str, Any]:
+    """§5's primary: repository-clustered AUC of the judge's ORDINAL score, adopted vs control.
+
+    Over the **pooled** analysis set — §9's power table reads "90 (60 new + 30 legacy)" and
+    "130 (100 new + 30 legacy)", so the primary is legacy and pool together and the two strata
+    are the transportability arms, not two primaries.
+
+    The estimator is `judge_validity_adoption.cluster_bootstrap_auc`, called and not
+    reimplemented: it is pinned by its own tests and frozen by the registration banner, and its
+    paper-level interval — computed internally only so the design effect is a measured ratio —
+    is deliberately not surfaced, for the reason its own comment gives.
+    """
+    import judge_validity_adoption as jva
+
+    strata = {str(r["case"]): str(r.get("stratum", "pool")) for r in positives}
+    pos = _pairs(positives, verdicts, model, strata)
+    ctl = _pairs(controls, verdicts, model, strata)
+
+    # The primary must never receive a THRESHOLDED array: an AUC over 0/1 is exactly
+    # 0.5 + (p_adopted - p_control)/2, a monotone restatement of the secondary with the level
+    # §5 removes carried back in. BOTH levels must be present to call it thresholded — an
+    # all-ones array is degenerate, not thresholded, and refusing it would abort a run over a
+    # judge that scored every paper the same, which is a finding rather than a defect.
+    levels = {s for _, s in pos} | {s for _, s in ctl}
+    if levels == {0.0, 1.0}:
+        raise SystemExit(
+            f"{model}: the primary was handed a 2-valued score array {sorted(levels)}.\n"
+            "  An AUC over a thresholded score is 0.5 + (p_adopted - p_control)/2 — the\n"
+            "  secondary wearing the primary's name, with the level §5 removes put back."
+        )
+
+    # A control cluster that carries no positive is a phantom the bootstrap can draw, diluting
+    # every resample and inflating the cluster count.
+    orphan = {k for k, _ in ctl} - {k for k, _ in pos}
+    if orphan:
+        raise SystemExit(
+            f"{model}: {len(orphan)} control cluster(s) carry no positive: {sorted(orphan)[:5]}.\n"
+            "  Every bootstrap draw could pick them, diluting the resample and inflating\n"
+            "  n_clusters with repositories that contribute nothing to the comparison."
+        )
+
+    out = dict(jva.cluster_bootstrap_auc(pos, ctl, iters=iters, seed=jva.SEED))
+    out.update(
+        model=model,
+        iters=iters,
+        seed=jva.SEED,
+        score_histogram={"adopted": _histogram(pos), "control": _histogram(ctl)},
+        tie_fraction=tie_fraction(pos, ctl),
+        prereg_s9_reference=prereg_s9_reference(),
+    )
+    return out
+
+
+def _by_cluster(
+    pos: list[tuple[str, float]], ctl: list[tuple[str, float]]
+) -> dict[str, tuple[list[float], list[float]]]:
+    out: dict[str, tuple[list[float], list[float]]] = {}
+    for key, score in pos:
+        out.setdefault(key, ([], []))[0].append(score)
+    for key, score in ctl:
+        out.setdefault(key, ([], []))[1].append(score)
+    return out
+
+
+def _cluster_bootstrap_gap(
+    pos: list[tuple[str, float]],
+    ctl: list[tuple[str, float]],
+    *,
+    iters: int,
+    seed: int,
+) -> dict[str, Any]:
+    """A cluster bootstrap on the GAP, drawing the same way the AUC estimator draws.
+
+    Same unit, same replacement rule, same seed — otherwise the two intervals beside each other
+    would answer different design questions while looking like a pair.
+
+    A rate is a plain division, so a draw whose pooled positive or control arm is empty has no
+    gap at all; `roc_auc` returns NaN there and is filtered, and the equivalent here must be a
+    SKIP rather than a guarded 0.0, which would read as "no actionable controls". With the
+    legacy shape — one cluster carrying 46 of 94 usable rows before the cap — draws that pick
+    only tiny clusters are not rare.
+    """
+    clusters = sorted(_by_cluster(pos, ctl))
+    if len(clusters) < 2 or not pos or not ctl:
+        return {"_refused": "fewer than two clusters — a cluster bootstrap has nothing to resample"}
+    by = _by_cluster(pos, ctl)
+    rng = random.Random(seed)
+    draws: list[float] = []
+    skipped = 0
+    for _ in range(iters):
+        p: list[float] = []
+        c: list[float] = []
+        for _ in clusters:
+            pick = clusters[rng.randrange(len(clusters))]
+            p.extend(by[pick][0])
+            c.extend(by[pick][1])
+        if not p or not c:
+            skipped += 1
+            continue
+        draws.append(sum(p) / len(p) - sum(c) / len(c))
+    if len(draws) < 100:
+        return {"_refused": "too few usable bootstrap draws", "skipped_draws": skipped}
+    draws.sort()
+    lo, hi = draws[int(0.025 * len(draws))], draws[int(0.975 * len(draws))]
+    return {"ci95": [round(lo, 4), round(hi, 4)], "skipped_draws": skipped, "n_draws": len(draws)}
+
+
+def secondary_gap(
+    model: str,
+    positives: list[dict[str, Any]],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    iters: int = BOOTSTRAP_ITERS,
+) -> dict[str, Any]:
+    """§5's secondary: `P(actionable | adopted) − P(actionable | control)` at the shipped bar.
+
+    "Each judge's own threshold" is the shipped `>= 2` cut applied to that judge's own score
+    distribution — which is how NR-59 measured base rates of 0.874 and 0.494. Nothing in this
+    repository registers a per-judge tuned threshold, and fitting one on this data would be
+    exactly the level-fitting §5 forbids. The constant is IMPORTED from `metrics`, which already
+    has three other copies scattered through the tree.
+
+    Two intervals, and they are labelled because they answer different questions: the Wilson
+    intervals are **paper-level** and do not account for repository clustering, while the
+    bootstrap draws repositories. Neither substitutes for the other on a refusal.
+    """
+    import judge_validity_adoption as jva
+    from metrics import RELEVANT_THRESHOLD
+
+    strata = {str(r["case"]): str(r.get("stratum", "pool")) for r in positives}
+    pos = _pairs(positives, verdicts, model, strata, threshold=RELEVANT_THRESHOLD)
+    ctl = _pairs(controls, verdicts, model, strata, threshold=RELEVANT_THRESHOLD)
+    if not pos or not ctl:
+        return {
+            "model": model,
+            "threshold": RELEVANT_THRESHOLD,
+            "_refused": f"empty arm: {len(pos)} adopted, {len(ctl)} control verdicts",
+        }
+
+    k_pos, k_ctl = int(sum(s for _, s in pos)), int(sum(s for _, s in ctl))
+    p_adopted, p_control = k_pos / len(pos), k_ctl / len(ctl)
+    boot = _cluster_bootstrap_gap(pos, ctl, iters=iters, seed=jva.SEED)
+    return {
+        "model": model,
+        "threshold": RELEVANT_THRESHOLD,
+        "adopted": {
+            "n": len(pos),
+            "actionable": k_pos,
+            "rate": round(p_adopted, 4),
+            "wilson95_paper_level": jva.wilson(k_pos, len(pos)),
+        },
+        "control": {
+            "n": len(ctl),
+            "actionable": k_ctl,
+            "rate": round(p_control, 4),
+            "wilson95_paper_level": jva.wilson(k_ctl, len(ctl)),
+        },
+        "gap": round(p_adopted - p_control, 4),
+        "gap_cluster_bootstrap": boot,
+        "gap_excludes_zero": jva.excludes(boot.get("ci95"), 0.0),
+        "_note": (
+            "Youden's J at this judge's shipped operating point. §5: no outcome here switches "
+            "the primary label — a judge at a high positive rate sits in the top-right of its "
+            "ROC and is bounded low by geometry. The Wilson intervals are PAPER-LEVEL and do "
+            "not account for repository clustering; the bootstrap does."
+        ),
+    }
+
+
+def control_base_rate(secondary: dict[str, Any]) -> dict[str, Any]:
+    """`P(actionable | control)`: the level-sensitive descriptive, with no consequence of its own.
+
+    §5 names it separately from the gap because it is what NR-59's 0.874-against-0.494
+    disagreement actually is. It is reported beside both AUCs wherever the base-rate
+    disagreement is named, and it decides nothing.
+    """
+    if "_refused" in secondary:
+        return {"model": secondary["model"], "_refused": secondary["_refused"]}
+    return {
+        "model": secondary["model"],
+        "rate": secondary["control"]["rate"],
+        "wilson95_paper_level": secondary["control"]["wilson95_paper_level"],
+        "_note": (
+            "Level-sensitive descriptive. No pre-committed consequence attaches to it; it is "
+            "the quantity the two judges disagree about (NR-59: 0.874 against 0.494)."
+        ),
+    }
+
+
+RETIRED_RULE = (
+    "PREREG-rung1's 0.15 separation bar is RETIRED here, before the data (§5). The gap at a "
+    "judge's own threshold is Youden's J at that operating point, so a judge at an 87% positive "
+    "rate sits in the top-right of its ROC and is bounded low by geometry: 'the larger gap' "
+    "restates the base rates and identifies neither judge as correct."
+)
+
+
+def judge_difference(
+    models: tuple[str, str],
+    positives: list[dict[str, Any]],
+    controls: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    iters: int = BOOTSTRAP_ITERS,
+) -> dict[str, Any]:
+    """Δ AUC between the two judges, PAIRED at the cluster level and on the intersection only.
+
+    P6 predicts a difference of AUCs, and nothing computed one: the old code differenced the
+    *gaps* and read the result against a bar §5 retires. Pairing is required because the two
+    judges scored the same papers, and it is done at the cluster level because that is the unit
+    both primaries resample — one drawn set of clusters, both AUCs computed on it, then the
+    difference.
+
+    **On the intersection only.** Voids are per (model, case, paper), so a paper can carry one
+    judge's verdict and not the other's and still be fully explained by the void ledger. A
+    "paired" difference over two different samples is precisely the error pairing exists to
+    avoid. The per-judge primaries above are each computed on that judge's own coverage, so
+    whenever coverage differs this difference is **not** the subtraction of the two numbers
+    printed above it — which is stated rather than left to be noticed.
+    """
+    import judge_validity_adoption as jva
+    from metrics import roc_auc
+
+    a, b = models
+    strata = {str(r["case"]): str(r.get("stratum", "pool")) for r in positives}
+
+    def paired(rows: list[dict[str, Any]]) -> list[tuple[str, float, float]]:
+        out: list[tuple[str, float, float]] = []
+        for row in rows:
+            case, pid = str(row["case"]), dedup_id(str(row["id"]))
+            ra = verdicts.get(verdict_key(a, case, pid))
+            rb = verdicts.get(verdict_key(b, case, pid))
+            if ra is None or rb is None:
+                continue
+            out.append(
+                (f"{strata.get(case, 'pool')}:{case}", float(ra["score"]), float(rb["score"]))
+            )
+        return out
+
+    pos, ctl = paired(positives), paired(controls)
+    shape = {
+        "models": [a, b],
+        "n_paired_positives": len(pos),
+        "n_paired_controls": len(ctl),
+        "n_clusters_paired": len({k for k, _, _ in pos}),
+        "_note": (
+            "Computed on the rows BOTH judges scored. Each per-judge primary is computed on "
+            "that judge's own coverage, so where coverage differs this is not the subtraction "
+            "of the two AUCs printed above it."
+        ),
+        "rung1_0_15_rule": RETIRED_RULE,
+    }
+    clusters = sorted({k for k, _, _ in pos} | {k for k, _, _ in ctl})
+    if len(clusters) < 2 or not pos or not ctl:
+        return {**shape, "_refused": "fewer than two clusters carrying both judges' verdicts"}
+
+    by: dict[str, tuple[list[tuple[float, float]], list[tuple[float, float]]]] = {}
+    for key, sa, sb in pos:
+        by.setdefault(key, ([], []))[0].append((sa, sb))
+    for key, sa, sb in ctl:
+        by.setdefault(key, ([], []))[1].append((sa, sb))
+
+    point = roc_auc([s for _, s, _ in pos], [s for _, s, _ in ctl]) - roc_auc(
+        [s for _, _, s in pos], [s for _, _, s in ctl]
+    )
+    rng = random.Random(jva.SEED)
+    draws: list[float] = []
+    for _ in range(iters):
+        pa: list[float] = []
+        pb: list[float] = []
+        ca: list[float] = []
+        cb: list[float] = []
+        for _ in clusters:
+            pick = clusters[rng.randrange(len(clusters))]
+            for sa, sb in by[pick][0]:
+                pa.append(sa)
+                pb.append(sb)
+            for sa, sb in by[pick][1]:
+                ca.append(sa)
+                cb.append(sb)
+        if not pa or not ca:
+            continue
+        delta = roc_auc(pa, ca) - roc_auc(pb, cb)
+        if delta == delta:
+            draws.append(delta)
+    if len(draws) < 100:
+        return {**shape, "_refused": "too few usable bootstrap draws"}
+    draws.sort()
+    lo, hi = draws[int(0.025 * len(draws))], draws[int(0.975 * len(draws))]
+    return {
+        **shape,
+        "delta_auc": round(point, 4),
+        "ci95": [round(lo, 4), round(hi, 4)],
+        "excludes_zero": jva.excludes((lo, hi), 0.0),
+        "n_draws": len(draws),
+    }
+
+
+LOWER_BOUND_ARGUMENT = (
+    "§4 makes the measured AUC a LOWER BOUND: a matched control may be a better paper for the "
+    "repository than the one it actually adopted, and a genuinely useful paper sitting in the "
+    "negative class can only pull the two classes together, never apart. So this is conservative "
+    "evidence that the judge tracks something real — and it is equally not an upper limit on the "
+    "judge's quality."
+)
+
+THREE_WAY_AMBIGUITY = (
+    "An interval including 0.5 cannot separate three readings: (1) this judge does not "
+    "discriminate; (2) the controls were genuinely good papers this project never got to, which "
+    "§4 says compresses the classes together; (3) too few repositories — read against the "
+    "realised minimum detectable AUC of {mda} over {clusters} clusters. A null here is "
+    "three-ways ambiguous and is not to be reported as a clean negative."
+)
+
+
+def consequences(
+    primaries: dict[str, dict[str, Any]], base_rates: dict[str, Any]
+) -> dict[str, Any]:
+    """§5's pre-committed branches, evaluated per judge from that judge's own primary interval.
+
+    Four outcomes where §5 registers three, and the fourth is the reason the extra one exists:
+    a **refusal** is not a null. §3.3 spent $8-12 of extra judging precisely so "the primary
+    interval can include 0.5 for a sampling reason, which would fire section 5's pre-committed
+    null branch on an artefact" — folding an arithmetic refusal into the null branch would fire
+    it on an artefact anyway, by a different route. A judge with no verdicts at all is a fifth,
+    distinct again: not asked and not measurable are different facts.
+
+    No headline is hard-coded. Every sentence emitted here is built from values computed in this
+    run, because the published NR-56/57 artefact carries prose quoting a *previous* run's figures
+    beside its own computed block, and that is the failure this rule exists to prevent.
+    """
+    out: dict[str, Any] = {}
+    for model, primary in primaries.items():
+        common = {
+            # Unconditional in every branch, §5: "No outcome switches the primary label."
+            "primary_label_unchanged": True,
+            "primary_label_reason": (
+                "Adoption is a lower bound on actionability and cannot calibrate a level; the "
+                "gap at a judge's own threshold is Youden's J at that operating point."
+            ),
+            "rung1_0_15_rule": RETIRED_RULE,
+        }
+        if primary.get("n_positives", 0) == 0 and primary.get("n_controls", 0) == 0:
+            out[model] = {
+                **common,
+                "outcome": "void",
+                "reason": "this judge has no verdicts; it was not asked",
+            }
+            continue
+        if "_refused" in primary or primary.get("excludes_half") is None:
+            out[model] = {
+                **common,
+                "outcome": "no_interval",
+                "reason": primary.get("_refused", "no interval was computed"),
+                "n_clusters": primary.get("n_clusters"),
+                "not_a_null": (
+                    "This is an arithmetic refusal, NOT §5's null branch. Reporting it as no "
+                    "demonstrated discrimination would fire the null on an artefact, which is "
+                    "the outcome §3.3's target of 100 positives exists to avoid."
+                ),
+            }
+            continue
+        if primary["excludes_half"]:
+            out[model] = {
+                **common,
+                "outcome": "excludes_0.5",
+                "demonstrated_adoption_discrimination": True,
+                "lower_bound_argument": LOWER_BOUND_ARGUMENT,
+            }
+            continue
+        out[model] = {
+            **common,
+            "outcome": "includes_0.5",
+            "no_demonstrated_discrimination": True,
+            "clean_negative": False,
+            "carry_beside_headline": THREE_WAY_AMBIGUITY.format(
+                mda=primary.get("min_detectable_auc_80pct"), clusters=primary.get("n_clusters")
+            ),
+        }
+
+    decided = [v for v in out.values() if v["outcome"] in ("excludes_0.5", "includes_0.5")]
+    both = (
+        len(decided) == len(out)
+        and out
+        and all(v["outcome"] == "excludes_0.5" for v in out.values())
+    )
+    return {
+        "per_judge": out,
+        "both_exclude_half": bool(both),
+        "both_exclude_statement": (
+            "Both judges order papers meaningfully and the base-rate disagreement remains "
+            f"unresolved: P(actionable|control) is "
+            f"{ {m: r.get('rate') for m, r in base_rates.items()} }."
+        )
+        if both
+        else None,
+    }
+
+
+def shortfall(
+    analysis: dict[str, Any],
+    stop: dict[str, Any] | None,
+    primaries: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Emitted unconditionally, whatever n turned out to be.
+
+    §3.4: if the list is exhausted below 60 positives "that is the recorded negative result —
+    the analysis runs at whatever *n* exists, the shortfall is reported against section 9's
+    minimum detectable AUC, and section 5's null branch fires". So this never refuses on n; it
+    states what n was and what that costs.
+    """
+    by_stratum = analysis.get("by_stratum", {})
+    return {
+        "analysis_set_positives": analysis.get("analysis_set_positives"),
+        "n_positives_new": len(by_stratum.get("pool", [])),
+        "n_positives_legacy": len(by_stratum.get("legacy", [])),
+        "n_clusters": analysis.get("n_clusters"),
+        "largest_cluster_share": analysis.get("largest_cluster_share"),
+        # The quantity the STOP RULE counted, before the cross-repository contest removed
+        # anything — never conflated with the analysis set.
+        "stop_rule_capped_positives": (stop or {}).get("stop_rule_capped_positives"),
+        "stop_reason": (stop or {}).get("stop_reason"),
+        "target": (stop or {}).get("target"),
+        "reporting_minimum": REPORTING_MINIMUM,
+        "below_reporting_minimum": (
+            (analysis.get("analysis_set_positives") or 0) < REPORTING_MINIMUM
+        ),
+        "realised_min_detectable_auc_80pct": {
+            m: p.get("min_detectable_auc_80pct") for m, p in primaries.items()
+        },
+        "prereg_s9_reference": prereg_s9_reference(),
+        "_note": (
+            "§3.4: below the reporting minimum the analysis RUNS at whatever n exists and the "
+            "shortfall is reported against §9's sizing. It is never a reason to refuse."
+        ),
+    }
 
 
 # ---------------------------------------------------------------------------------------
