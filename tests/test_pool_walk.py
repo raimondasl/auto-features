@@ -1126,3 +1126,28 @@ class TestTheCountsMeanWhatTheySay:
         point = wp.curve_point([], 0)
         wp.append_curve(path, point)
         assert wp._last_curve_point(path) == point
+
+
+class TestTheYieldCurveCanSeeWhyCandidatesFail:
+    """§3.2 commits the curve every 50 rows "so a shortfall is visible in hours rather than at
+    the ceiling", and it breaks rejects out BY RULE. PP1 and PP2 fell through to `ok`, so the
+    commonest rejection of all — a repository that cites no papers — was counted under `n_ok`
+    and the curve read as healthy while nothing qualified. Measured on the first six real
+    candidates: two `ok` rows, both PP2 failures with zero identifiers at T0."""
+
+    def test_every_rejection_reason_has_its_own_bucket(self) -> None:
+        for name in ("thin_history", "thin_bibliography"):
+            assert name in wp.CURVE_OUTCOMES
+        assert "n_thin_bibliography" in wp.CURVE_COLUMNS
+
+    def test_a_thin_bibliography_is_not_recorded_as_ok(self) -> None:
+        import inspect
+
+        src = inspect.getsource(wp.walk_row)
+        assert 'row["outcome"] = "thin_bibliography"' in src
+        assert 'row["outcome"] = "thin_history"' in src
+
+    def test_the_two_history_failures_are_told_apart(self) -> None:
+        """`no_history` is no commit at all before the cutoff; `thin_history` is a repository
+        that has one but was born too recently for §2.2's 30 months."""
+        assert "no_history" in wp.CURVE_OUTCOMES and "thin_history" in wp.CURVE_OUTCOMES

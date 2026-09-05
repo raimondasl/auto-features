@@ -172,6 +172,8 @@ CURVE_OUTCOMES = (
     "not_software",
     "software_floor",
     "readme_lang",
+    "thin_history",
+    "thin_bibliography",
     "no_history",
     "thin_context",
     "no_head",
@@ -561,6 +563,20 @@ def walk_row(
                 row["outcome"] = "software_floor"
             elif not english:
                 row["outcome"] = "readme_lang"
+            elif not row["pp1_history"]:
+                # Distinct from `no_history`, which means no commit at all before the cutoff.
+                # This is a repository that has one but was born too recently to have the 30
+                # months §2.2 requires.
+                row["outcome"] = "thin_history"
+            elif not row["pp2_ids_t0"]:
+                # PP2, and it will be the commonest rejection by a wide margin: most software
+                # repositories cite no papers at all. It fell through to `ok`, so §3.2's yield
+                # curve — the instrument whose whole job is making a shortfall "visible in
+                # hours rather than at the ceiling" — would have counted every one of them
+                # under `n_ok` and read as healthy while nothing qualified. Measured on the
+                # first six candidates: two rows, both `ok`, both PP2 failures with zero
+                # identifiers at T0.
+                row["outcome"] = "thin_bibliography"
             row["seconds"] = round(time.monotonic() - started, 1)
             return row, []
 
