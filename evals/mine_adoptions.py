@@ -362,29 +362,39 @@ def self_cited(
     return found
 
 
-def t0_context(repo: Path, case: str, rev: str, max_readme: int = 3500) -> str:
+def t0_context(
+    repo: Path, case: str, rev: str, max_readme: int = 3500, timeout: float | None = None
+) -> str:
     """`assemble_repo_context` rebuilt from git objects, so nothing is checked out.
 
     Same three parts as the shipped helper — README excerpt, manifests, a shallow file
     listing — read at *rev* instead of from a working tree. The point is that the judge sees
     the repository as it was BEFORE the adoption, which is the only state at which "would
     this paper improve it" is a real question.
+
+    *timeout* bounds every git call here, and the walk passes its remaining row budget. Without
+    it this was the one step of a row that could not be interrupted: on a blobless clone each
+    `git show` is a lazy fetch, so a stalled origin held a worker open indefinitely while the
+    caller's 300 s per-row bound sat uselessly around a call that never returned. A timeout
+    raises, which the row's own handler records as an outcome.
     """
-    listing = subprocess.run(
+    listing = subprocess.run(  # noqa: S603
         ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", rev],
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=timeout,
     ).stdout.splitlines()
 
     def read(path: str, limit: int) -> str:
-        return subprocess.run(
+        return subprocess.run(  # noqa: S603
             ["git", "-C", str(repo), "show", f"{rev}:{path}"],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
+            timeout=timeout,
         ).stdout[:limit]
 
     parts = [f"Repository: {case}", ""]

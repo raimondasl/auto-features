@@ -945,3 +945,184 @@ class TestTheLegacyClusterClaimsOnlyWhatItUses:
             json.dumps([{"case": "graph", "id": "2401.00001", "usable": False}]), encoding="utf-8"
         )
         assert wp.legacy_ids("PULSE", src) == set()
+
+
+class TestTheWalkSurvivesItsOwnFirstRun:
+    """A pre-flight audit of the walk, before it runs for hours and fixes the study's order.
+
+    §2.4 and §3.4 bar re-rolling the seed or re-taking the population, so a defect found after
+    the walk has written rows cannot be fixed by running it again. A crash at hour three is
+    recoverable — the walk resumes. A silently wrong row is not.
+    """
+
+    def test_the_adoptions_merge_lands_before_the_ledger_row(self) -> None:
+        """An `ok` row is not transient, so `already_walked` skips it forever — including under
+        `--retry-failed` — and the clone is gone. Written the other way round, a crash between
+        the two left the ledger claiming `capped=3` for a repository whose positives existed
+        nowhere: counted toward the stop rule, absent from the analysis set, and
+        indistinguishable downstream from an ordinary contest loss.
+        """
+        import inspect
+
+        src = inspect.getsource(wp.walk)
+        assert src.index("merge_adoptions(adoptions, mined") < src.index("append_rows(walk_csv")
+
+    def test_the_adoptions_artefact_is_written_atomically(self, tmp_path: Path) -> None:
+        """A bare write truncates first, so an ENOSPC or a Windows sharing violation leaves a
+        partial JSON the next chunk cannot parse — taking every positive mined so far with it.
+        """
+        import inspect
+
+        assert "os.replace" in inspect.getsource(wp.merge_adoptions)
+        path = tmp_path / "adoptions-pool-v2.json"
+        wp.merge_adoptions(path, [{"case": "o/r", "id": "2401.00001", "usable": True}], "S")
+        assert json.loads(path.read_text(encoding="utf-8"))[0]["id"] == "2401.00001"
+        assert not list(tmp_path.glob("*.tmp"))
+
+    def test_a_pickaxe_timeout_does_not_destroy_the_row(self) -> None:
+        """A DATE is optional; the POSITIVE is not. Letting `adoption_commit` raise turned the
+        whole row into a `timeout` outcome and discarded every positive the repository had —
+        measured in the legacy pass, where one identifier on `huggingface/diffusers` exceeded
+        300 s because `git log -S` diffs every commit's docs on a promisor clone.
+        """
+        import inspect
+
+        src = inspect.getsource(wp.walk_row)
+        cut = src.index("adoption_commit(")
+        assert "TimeoutExpired" in src[cut : cut + 900]
+        assert "adoption_note" in src
+
+    def test_the_t0_context_carries_the_rows_remaining_budget(self) -> None:
+        """It was the one git call in a row with no timeout, so on a stalled origin a worker
+        stayed open indefinitely while the 300 s per-row bound sat uselessly around it.
+        """
+        import inspect
+
+        assert "timeout" in inspect.signature(ma.t0_context).parameters
+        assert "ma.t0_context(repo, full, t0, timeout=left())" in inspect.getsource(wp.walk_row)
+
+    def test_git_is_told_not_to_ask_a_human(self) -> None:
+        """The candidate list is a snapshot; some of those repositories are private by now, and
+        over HTTPS git asks for a username and blocks until the timeout burns the row.
+        """
+        import inspect
+
+        env = wp.noninteractive_git_env()
+        assert env["GIT_TERMINAL_PROMPT"] == "0"
+        assert "env=noninteractive_git_env()" in inspect.getsource(wp._clone)
+
+
+class TestTheContextIsCheckedWhileTheCloneStillExists:
+    def test_a_header_only_context_is_its_own_outcome(self) -> None:
+        """`t0_context` runs git with no `check`, so an unfetched read returns a truthy
+        one-line string that hashes to a perfectly valid digest and persists looking complete.
+        The reader-side gate catches it only at judging time, hours later, with the clone
+        deleted and the row already counted toward the stop rule.
+        """
+        assert wp.context_shortfall("o/r", "Repository: o/r\n") is not None
+        assert "thin_context" in wp.CURVE_OUTCOMES
+
+    def test_a_real_context_passes(self) -> None:
+        good = "Repository: o/r\n\n## README (excerpt)\nprose\n\n## Source files (sample)\na.py\n"
+        assert wp.context_shortfall("o/r", good) is None
+
+    def test_a_readmes_own_heading_is_not_a_section_boundary(self) -> None:
+        """`graph`'s real context carries "## Library Highlights" inside the excerpt."""
+        opens = (
+            "Repository: o/r\n\n## README (excerpt)\n## Overview\nprose\n\n"
+            "## Source files (sample)\na.py\n"
+        )
+        assert wp.context_shortfall("o/r", opens) is None
+
+    def test_a_repository_with_no_readme_section_is_still_judgeable(self) -> None:
+        """`eligibility.README_NAMES` accepts names `t0_context` never reads, and Julia, R and
+        Fortran emit no file listing — demanding a layout would reject healthy repositories.
+        """
+        text = "Repository: o/r\n\n## pyproject.toml\n[project]\n\n## Source files (sample)\na.jl\n"
+        assert wp.context_shortfall("o/r", text) is None
+
+
+class TestTheCountsMeanWhatTheySay:
+    def test_the_stop_rule_counts_what_survives_the_contest(self, tmp_path: Path) -> None:
+        """§3.3 stops at 100 "capped-usable" positives, and a paper the contest awarded to
+        another repository is not one — it is counted once, elsewhere. The ledger's `capped`
+        column is filled in before any cross-repository comparison exists.
+        """
+        path = tmp_path / "a.json"
+        path.write_text(
+            json.dumps(
+                [
+                    {
+                        "case": "a/x",
+                        "id": "2401.1",
+                        "usable": True,
+                        "in_cap": True,
+                        "counted": True,
+                    },
+                    {
+                        "case": "b/y",
+                        "id": "2401.1",
+                        "usable": True,
+                        "in_cap": True,
+                        "counted": False,
+                    },
+                    {
+                        "case": "a/x",
+                        "id": "2401.2",
+                        "usable": False,
+                        "in_cap": True,
+                        "counted": True,
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
+        assert wp.counted_positives(path) == 1
+
+    def test_pp3_is_decided_by_rank_not_by_arrival(self) -> None:
+        """§3.3 applies the cap "along the frozen seeded order". A running count is only that
+        while the walk goes forward: under `--retry-failed` a reopened row at rank 50 competed
+        against owners counted from rows at rank 900, so whether it passed depended on when it
+        was retried rather than on where the pulse put it.
+        """
+        import inspect
+
+        src = inspect.getsource(wp.walk)
+        assert "owner_ranks" in src
+        assert "if r < rank) >= OWNER_CAP" in src
+
+    def test_pp3_is_recorded_when_it_passes(self) -> None:
+        """`_blank_row` pre-seeds every column to "", so `setdefault` never fired and the column
+        recorded only rejections.
+        """
+        import inspect
+
+        assert 'row.get("pp3_owner") == ""' in inspect.getsource(wp.walk)
+
+    def test_a_failed_attempt_is_in_neither_side_of_the_qualifying_rate(self) -> None:
+        """A clone that failed says nothing about whether that repository qualifies. Leaving it
+        in the denominator biases q downward by the failure rate, which is a property of the
+        network rather than of the population.
+        """
+        import inspect
+
+        src = inspect.getsource(wp.walk)
+        assert "TRANSIENT_OUTCOMES" in src and "n_prefix_transient" in src
+
+    def test_the_summary_records_which_seed_and_list_produced_it(self) -> None:
+        """Resume matches candidates by NAME alone, so without this a walk resumed against a
+        different list or seed looks like one continuous run.
+        """
+        import inspect
+
+        src = inspect.getsource(wp.walk)
+        assert "seed_sha256" in src and "n_candidates" in src
+
+    def test_the_terminal_curve_point_is_not_appended_twice(self, tmp_path: Path) -> None:
+        """It was written on every invocation, so a walk resumed five times carried five
+        identical trailing rows and read as five stalled checkpoints.
+        """
+        path = tmp_path / "yield_curve.csv"
+        point = wp.curve_point([], 0)
+        wp.append_curve(path, point)
+        assert wp._last_curve_point(path) == point

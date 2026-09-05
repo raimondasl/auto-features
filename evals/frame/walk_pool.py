@@ -27,6 +27,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -172,6 +173,7 @@ CURVE_OUTCOMES = (
     "software_floor",
     "readme_lang",
     "no_history",
+    "thin_context",
     "no_head",
     "clone_failed",
     "clone_timeout",
@@ -202,6 +204,17 @@ def curve_point(rows: list[dict[str, Any]], capped_total: int) -> dict[str, Any]
     return point
 
 
+def _last_curve_point(path: Path) -> dict[str, Any] | None:
+    """The most recent committed curve point, typed back to what `curve_point` produces."""
+    if not path.exists():
+        return None
+    with path.open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    if not rows:
+        return None
+    return {k: int(v) if str(v).lstrip("-").isdigit() else v for k, v in rows[-1].items()}
+
+
 def append_curve(path: Path, point: dict[str, Any]) -> None:
     """Appended, not held in memory. A curve written once at the end is a curve nobody could
     have acted on -- the whole point is seeing a shortfall in hours."""
@@ -228,6 +241,45 @@ def _count(
     repo: Path, rev: str, grep: str, pattern: re.Pattern[str], timeout: float | None = None
 ) -> int:
     return len(ma._matches_with_paths(repo, rev, grep, pattern, timeout))
+
+
+README_SECTION = "## README (excerpt)"
+# Exactly the headings `mine_adoptions.t0_context` emits after the README. A bare "## " may be
+# the README's own markdown — `graph`'s real context carries "## Library Highlights" inside the
+# excerpt — so the sections are matched by name.
+CONTEXT_SECTIONS = (
+    "\n## requirements.txt",
+    "\n## pyproject.toml",
+    "\n## package.json",
+    "\n## setup.py",
+    "\n## Source files (sample)",
+)
+
+
+def context_shortfall(case: str, text: str) -> str | None:
+    """The reason this T0 context cannot be judged, or None if it can.
+
+    One implementation, called by the walk while the clone still exists and by the analysis
+    when it loads what the walk wrote. The check is **substantive, not schematic**: it demands
+    content, not a section layout. `eligibility.LANGUAGES` admits Julia, R and Fortran, whose
+    extensions `t0_context`'s `exts` does not list, so those repositories emit no file listing;
+    and `eligibility.README_NAMES` accepts `README` and `Readme.md`, which `t0_context` never
+    reads. Requiring a fixed layout would reject healthy repositories and blame a missing clone.
+
+    What must be caught is the header-only context, which is what an unfetched or missing clone
+    produces: six words that both judges would score every paper against while nothing looked
+    wrong.
+    """
+    header = f"Repository: {case}"
+    rest = text.split(header, 1)[-1] if header in text else text
+    if not rest.strip():
+        return f"T0 context is the header and nothing else ({len(text)} chars)"
+    if README_SECTION in text:
+        after = text.split(README_SECTION, 1)[1]
+        starts = [after.index(m) for m in CONTEXT_SECTIONS if m in after]
+        if not (after[: min(starts)] if starts else after).strip():
+            return "T0 context has an EMPTY README section"
+    return None
 
 
 def context_hash(rubric_marker: str, context: str) -> str:
@@ -337,6 +389,21 @@ def github_url(full_name: str) -> str:
     return f"https://github.com/{full_name}"
 
 
+def noninteractive_git_env() -> dict[str, str]:
+    """A git environment that fails instead of asking a human.
+
+    The candidate list is a snapshot taken on 2026-09-02; by the time the walk runs, some of
+    those repositories have been deleted, renamed or made private. Against a private one over
+    HTTPS git asks for a username, and with a terminal attached it BLOCKS — the timeout on the
+    subprocess covers it, but only after burning the whole per-row budget, and on a run of
+    1,200 rows that is hours spent on a prompt nobody will answer. `GIT_TERMINAL_PROMPT=0`
+    turns it into an immediate, recorded `clone_failed` with git's own reason.
+    """
+    env = dict(os.environ)
+    env.update(GIT_TERMINAL_PROMPT="0", GIT_ASKPASS="echo", GCM_INTERACTIVE="never")
+    return env
+
+
 def _clone(clones: Path, key: str, url: str, timeout: float) -> tuple[Path | None, str]:
     """Blobless, never checked out, and with a timeout. Returns (path, reason).
 
@@ -363,9 +430,13 @@ def _clone(clones: Path, key: str, url: str, timeout: float) -> tuple[Path | Non
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
+            env=noninteractive_git_env(),
         )
     except subprocess.TimeoutExpired:
-        ma._remove_clone(path)
+        if not ma._remove_clone(path):
+            # A clone that would not delete is disk this walk cannot reclaim, and on the next
+            # attempt `_clone` sees a `.git` and treats the wreckage as a finished clone.
+            return None, f"timeout, and the partial clone at {path.name} could not be removed"
         return None, "timeout"
     if res.returncode != 0:
         detail = (res.stderr or "").strip().splitlines()
@@ -536,9 +607,22 @@ def walk_row(
             entry["in_cap"] = True
             # Only the capped positives are judged, so only they need the date, which bounds
             # what is otherwise one `git log -S` per adopted identifier.
-            entry["adoption_commit"], entry["adoption_date"] = adoption_commit(
-                repo, entry["id"], t0, head, left()
-            )
+            try:
+                entry["adoption_commit"], entry["adoption_date"] = adoption_commit(
+                    repo, entry["id"], t0, head, left()
+                )
+                entry["adoption_note"] = None
+            except subprocess.TimeoutExpired:
+                # A DATE is optional; the POSITIVE is not. Letting this propagate turned the
+                # whole row into a `timeout` outcome and discarded every positive the
+                # repository had — measured in the legacy materialisation pass, where one
+                # identifier on `huggingface/diffusers` exceeded 300 s because `git log -S`
+                # diffs every commit's documentation and each blob is a lazy fetch. The date
+                # feeds only §5's contamination split, which is void for want of published
+                # training cutoffs, so an unavailable one costs nothing; the positive is the
+                # thing this walk exists to produce.
+                entry["adoption_commit"], entry["adoption_date"] = None, None
+                entry["adoption_note"] = "pickaxe timed out on a promisor clone"
         row.update(
             gross_adoptions=len(rows),
             usable=len(usable),
@@ -548,7 +632,21 @@ def walk_row(
         if usable:
             # Persisted so judging never re-clones: the clone is deleted below, and the T0
             # context is what both judges are shown.
-            context = ma.t0_context(repo, full, t0)
+            context = ma.t0_context(repo, full, t0, timeout=left())
+            # Checked HERE, while the clone still exists. `t0_context` runs git with no
+            # `check`, so a failed or unfetched read returns a truthy one-line string naming
+            # the repository and nothing else — which hashes to a perfectly valid digest and
+            # is persisted looking complete. The reader-side gate would catch it, but only at
+            # judging time, hours later, with the clone deleted and the row already counted
+            # toward the stop rule. Recorded as its own outcome so the ledger says which rule
+            # rejected the candidate.
+            thin = context_shortfall(full, context)
+            if thin:
+                row["outcome"] = "thin_context"
+                row["note"] = thin
+                row.update(qualifies=False, usable=0, capped=0, in_cap=0)
+                row["seconds"] = round(time.monotonic() - started, 1)
+                return row, []
             contexts.mkdir(parents=True, exist_ok=True)
             digest = context_hash("t0", context)
             (contexts / f"{key}.{digest}.txt").write_text(context, encoding="utf-8")
@@ -658,6 +756,22 @@ def assign_across_repos(
     return rows
 
 
+def counted_positives(path: Path) -> int:
+    """Positives that survive the per-repository cap AND the cross-repository contest.
+
+    §3.3 stops judging at 100 "cumulative capped-usable new positives", and a paper the contest
+    awarded to another repository is not one of them: it is counted once, elsewhere. The stop
+    rule read the ledger's `capped` column instead, which `walk_row` fills in **before** any
+    cross-repository comparison exists — so the walk could stop at a nominal 100 while the set
+    the analysis would actually see was smaller, and `shortfall()` would then explain the gap
+    as the contest rather than as a walk that stopped early.
+    """
+    if not path.exists():
+        return 0
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    return sum(1 for r in rows if r.get("usable") and r.get("in_cap") and r.get("counted", True))
+
+
 def merge_adoptions(
     path: Path,
     new: list[dict[str, Any]],
@@ -678,7 +792,13 @@ def merge_adoptions(
     # contested by one mined later, and the assignment must not depend on arrival order.
     assign_across_repos(existing, seed, legacy_ids)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+    # Temp file plus os.replace, the way every other artefact in this study is written. A bare
+    # write_text truncates first, so an interruption — or an ENOSPC, or a Windows sharing
+    # violation from a scanner holding the file — leaves a partial JSON that the NEXT chunk's
+    # `json.loads` cannot read, taking every positive mined so far with it.
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+    os.replace(tmp, path)
     return len(existing)
 
 
@@ -712,13 +832,18 @@ def walk(
     legacy = legacy_slugs() if legacy is None else legacy
     legacy_positive_ids = legacy_ids(seed)
 
-    owners: dict[str, int] = {}
+    # PP3 is decided by the RANKS of a owner's qualifying repositories, not by a running count.
+    # §3.3 applies the cap "along the frozen seeded order", and a running total is only that
+    # while the walk goes forward: under `--retry-failed` a reopened row at rank 50 was made to
+    # compete against owners counted from rows at rank 900, so whether it passed depended on
+    # when it was retried rather than on where the pulse put it.
+    owner_ranks: dict[str, list[int]] = {}
     for row in _read_rows(walk_csv):
         if row.get("qualifies") == "True":
-            owners[row["full_name"].split("/")[0]] = (
-                owners.get(row["full_name"].split("/")[0], 0) + 1
+            owner_ranks.setdefault(row["full_name"].split("/")[0], []).append(
+                int(row.get("rank") or 0)
             )
-    capped_total = sum(int(r.get("capped") or 0) for r in _read_rows(walk_csv))
+    capped_total = counted_positives(adoptions)
     walked = len(done)
 
     pending: list[tuple[int, dict[str, str]]] = []
@@ -768,7 +893,7 @@ def walk(
                         "one of the 37 benchmark cases (section 2.2)",
                     )
                 )
-            elif owners.get(owner, 0) >= OWNER_CAP:
+            elif sum(1 for r in owner_ranks.get(owner, []) if r < rank) >= OWNER_CAP:
                 row = _blank_row(
                     rank, cand["full_name"], (cand.get("created_at") or "")[:10], "owner_cap", ""
                 )
@@ -793,16 +918,32 @@ def walk(
             )
         rows = skipped + [r for r, _ in results]
         for row in rows:
-            row.setdefault("pp3_owner", True)
+            # Written, not `setdefault`ed: `_blank_row` pre-seeds every column to "", so the
+            # default never fired and `pp3_owner` was blank on every row that passed PP3 —
+            # a ledger column that recorded only rejections.
+            if row.get("pp3_owner") == "":
+                row["pp3_owner"] = True
         mined = [entry for _, entries in results for entry in entries]
         for row, _ in results:
             if row.get("qualifies"):
                 owner = str(row["full_name"]).split("/")[0]
-                owners[owner] = owners.get(owner, 0) + 1
-            capped_total += int(row.get("capped") or 0)
-        append_rows(walk_csv, sorted(rows, key=lambda r: r["rank"]))
+                owner_ranks.setdefault(owner, []).append(int(row["rank"]))
+        # The adoptions merge lands BEFORE the ledger row that marks the candidate done, and
+        # the order is the whole point. An `ok` row is not transient, so `already_walked` skips
+        # it forever — including under `--retry-failed` — and the clone was deleted in
+        # `walk_row`'s `finally`. Written the other way round, a crash in between left the
+        # ledger claiming `capped=3` for a repository whose positives existed nowhere, counted
+        # toward the stop rule and absent from the analysis set, indistinguishable downstream
+        # from an ordinary contest loss. This way the crash window is the harmless one: the
+        # merge is idempotent on `(case, id)`, so a candidate merged but not yet appended is
+        # simply re-walked and re-merged.
         if mined:
             merge_adoptions(adoptions, mined, seed, legacy_positive_ids)
+        append_rows(walk_csv, sorted(rows, key=lambda r: r["rank"]))
+        # Recounted from the merged artefact rather than accumulated from the ledger: the
+        # contest can un-count a paper mined in an EARLIER chunk when a later repository wins
+        # it, so a running total drifts upward from the truth as the walk goes on.
+        capped_total = counted_positives(adoptions)
         walked += len(rows)
         if walked % curve_every < len(rows):
             point = curve_point(_read_rows(walk_csv), capped_total)
@@ -815,11 +956,21 @@ def walk(
                 flush=True,
             )
     rows_all = _read_rows(walk_csv)
-    if rows_all:
-        append_curve(curve_csv, curve_point(rows_all, capped_total))
+    final = curve_point(rows_all, capped_total)
+    # Appended only when it says something the last committed point did not. A terminal point
+    # was written on EVERY invocation, so a walk resumed five times carried five identical
+    # trailing rows and the curve read as five stalled checkpoints.
+    if rows_all and final != _last_curve_point(curve_csv):
+        append_curve(curve_csv, final)
     qualifying = [r for r in rows_all if r.get("qualifies") == "True"]
     prefix = [r for r in rows_all if int(r.get("rank") or 0) < b0]
-    prefix_q = [r for r in prefix if r.get("qualifies") == "True"]
+    # A clone that failed or timed out says nothing about whether that repository qualifies, so
+    # it belongs in neither side of the rate. §3.2 estimates q over the unconditional prefix to
+    # get an unbiased qualifying rate; leaving failed ATTEMPTS in the denominator biases it
+    # downward by exactly the failure rate, which is a property of the network, not the
+    # population.
+    decided = [r for r in prefix if r.get("outcome") not in TRANSIENT_OUTCOMES]
+    prefix_q = [r for r in decided if r.get("qualifies") == "True"]
     summary = {
         "walked": len(rows_all),
         "b0": b0,
@@ -827,9 +978,17 @@ def walk(
         "target": target,
         "capped_positives": capped_total,
         "qualifying": len(qualifying),
+        # Provenance, so a later reader can tell which seed and which candidate list produced
+        # this ledger. Resume matches candidates by NAME alone, so without these a walk resumed
+        # against a different list or seed would look like one continuous run.
+        "seed_sha256": hashlib.sha256(seed.encode()).hexdigest(),
+        "pulse": REGISTERED_PULSE,
+        "n_candidates": len(candidates),
         # q and y are estimated over the unconditional prefix ONLY. Computing them over the
         # whole walk would use a prefix whose length was chosen by the yield it produced.
-        "q_over_b0": round(len(prefix_q) / len(prefix), 4) if prefix else None,
+        "q_over_b0": round(len(prefix_q) / len(decided), 4) if decided else None,
+        "n_prefix_decided": len(decided),
+        "n_prefix_transient": len(prefix) - len(decided),
         "y_over_b0": (
             round(sum(int(r.get("capped") or 0) for r in prefix_q) / len(prefix_q), 3)
             if prefix_q
