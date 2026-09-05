@@ -255,12 +255,35 @@ def walk_stop_reason(summary: dict[str, Any], n_candidates: int | None = None) -
     # `--target 40` writes `{"target": 40, "capped_positives": 40}` and is blessed as having
     # met the target, at 71 positives instead of the registered 130. §9's own power table says
     # 90 may include 0.5 for a sampling reason. The seed is not trusted to its file either.
-    target = walk_pool.DEFAULT_TARGET
-    if int(summary.get("target") or 0) != target:
+    # May GROW and only grow, exactly as the budget below may. A target BELOW the registered
+    # one is the rehearsal-run hazard this check was built for and stays refused. A target
+    # above it can only add positives, which narrows the primary interval and therefore makes
+    # §5's pre-committed null HARDER to fire — the one direction a deviation cannot use to
+    # manufacture the result the study would most like to report.
+    #
+    # §3.3's deviation of 2026-09-05 raises it from 100 to 150: the walk stopped at B on exactly
+    # 60, which put the analysis set at §9's 90-positive row, the row whose entry reads "may
+    # include 0.5". P5 is still scored against the REGISTERED 100 within B, and still fails.
+    target = int(summary.get("target") or 0)
+    if target < walk_pool.DEFAULT_TARGET:
         raise SystemExit(
-            f"the walk ran with target={summary.get('target')}, and §3.3 registers {target}.\n"
-            "  The stop rule is frozen; a walk stopped on a different one is a different study."
+            f"the walk ran with target={target}, below §3.3's registered "
+            f"{walk_pool.DEFAULT_TARGET}.\n"
+            "  A lowered target would bless a short walk as having met the stop rule."
         )
+    if target > walk_pool.DEFAULT_TARGET:
+        deviation = "DEVIATION, 2026-09-05" in (
+            (EVALS / "PREREG-judge-validity-pool.md").read_text(encoding="utf-8")
+            if (EVALS / "PREREG-judge-validity-pool.md").is_file()
+            else ""
+        )
+        if not deviation:
+            raise SystemExit(
+                f"the walk ran with target={target}, above §3.3's registered "
+                f"{walk_pool.DEFAULT_TARGET}, and no deviation is recorded in the "
+                "pre-registration.\n  A stop rule changed after seeing the yield is a deviation "
+                "whether or not it is written down; writing it down is what makes it one."
+            )
     # The budget is allowed to GROW and only to grow: §3.4 executes by re-running past B, and
     # the only way `walk()` can do that is a larger `--budget`. A smaller one is refused,
     # because it would let a ten-row walk satisfy the budget branch.

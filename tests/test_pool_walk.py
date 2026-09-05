@@ -25,6 +25,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -726,7 +727,7 @@ class TestTheOwnerCapIsEvaluatedInRankOrder:
     def test_a_chunk_never_holds_two_candidates_from_one_owner(self) -> None:
         import inspect
 
-        src = inspect.getsource(wp.walk)
+        src = inspect.getsource(wp._walk)
         assert "chunk_owners" in src
         assert "if owner in chunk_owners:" in src
 
@@ -964,7 +965,7 @@ class TestTheWalkSurvivesItsOwnFirstRun:
         """
         import inspect
 
-        src = inspect.getsource(wp.walk)
+        src = inspect.getsource(wp._walk)
         assert src.index("merge_adoptions(adoptions, mined") < src.index("append_rows(walk_csv")
 
     def test_the_adoptions_artefact_is_written_atomically(self, tmp_path: Path) -> None:
@@ -1087,7 +1088,7 @@ class TestTheCountsMeanWhatTheySay:
         """
         import inspect
 
-        src = inspect.getsource(wp.walk)
+        src = inspect.getsource(wp._walk)
         assert "owner_ranks" in src
         assert "if r < rank) >= OWNER_CAP" in src
 
@@ -1097,7 +1098,7 @@ class TestTheCountsMeanWhatTheySay:
         """
         import inspect
 
-        assert 'row.get("pp3_owner") == ""' in inspect.getsource(wp.walk)
+        assert 'row.get("pp3_owner") == ""' in inspect.getsource(wp._walk)
 
     def test_a_failed_attempt_is_in_neither_side_of_the_qualifying_rate(self) -> None:
         """A clone that failed says nothing about whether that repository qualifies. Leaving it
@@ -1106,7 +1107,7 @@ class TestTheCountsMeanWhatTheySay:
         """
         import inspect
 
-        src = inspect.getsource(wp.walk)
+        src = inspect.getsource(wp._walk)
         assert "TRANSIENT_OUTCOMES" in src and "n_prefix_transient" in src
 
     def test_the_summary_records_which_seed_and_list_produced_it(self) -> None:
@@ -1115,7 +1116,7 @@ class TestTheCountsMeanWhatTheySay:
         """
         import inspect
 
-        src = inspect.getsource(wp.walk)
+        src = inspect.getsource(wp._walk)
         assert "seed_sha256" in src and "n_candidates" in src
 
     def test_the_terminal_curve_point_is_not_appended_twice(self, tmp_path: Path) -> None:
@@ -1151,3 +1152,42 @@ class TestTheYieldCurveCanSeeWhyCandidatesFail:
         """`no_history` is no commit at all before the cutoff; `thin_history` is a repository
         that has one but was born too recently for §2.2's 30 months."""
         assert "no_history" in wp.CURVE_OUTCOMES and "thin_history" in wp.CURVE_OUTCOMES
+
+
+class TestTwoWalksCannotShareAnOutDir:
+    """Measured 2026-09-05: two walks were launched against one `out_dir` and ran concurrently
+    for about two minutes. Both skipped the same 1,200 completed candidates, both began at rank
+    1200, and both appended rows for ranks 1200-1203.
+
+    The duplicate pairs agreed on every substantive field and differed only in wall-clock
+    `seconds` — the walk is deterministic under the seed — so the repair was a de-duplication
+    rather than a re-walk. But the ledger is an append-only audit trail, and the purchase loop
+    already had a lock while this did not.
+    """
+
+    def test_a_second_walk_is_refused_while_one_holds_the_lock(self, tmp_path: Path) -> None:
+        (tmp_path / "walk.lock").write_text("pid 1 started now", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            wp.walk([], "SEED", out_dir=tmp_path)
+        assert "Another walk holds it" in str(exc.value)
+        assert "1200-1203" in str(exc.value)
+
+    def test_the_lock_names_the_process_holding_it(self, tmp_path: Path) -> None:
+        """So a stale lock can be told from a live one without guessing."""
+        seen: dict[str, str] = {}
+
+        def peek(*_a: object, **kw: object) -> dict[str, object]:
+            seen["text"] = (tmp_path / "walk.lock").read_text(encoding="utf-8")
+            return {"walked": 0}
+
+        with mock.patch.object(wp, "_walk", peek):
+            wp.walk([], "SEED", out_dir=tmp_path)
+        assert "pid" in seen["text"] and "started" in seen["text"]
+
+    def test_the_lock_is_released_even_when_the_walk_fails(self, tmp_path: Path) -> None:
+        def boom(*_a: object, **_k: object) -> None:
+            raise RuntimeError("clone exploded")
+
+        with mock.patch.object(wp, "_walk", boom), pytest.raises(RuntimeError):
+            wp.walk([], "SEED", out_dir=tmp_path)
+        assert not (tmp_path / "walk.lock").exists()
