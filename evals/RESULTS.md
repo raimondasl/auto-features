@@ -1144,6 +1144,109 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Both judges order adopted papers above matched controls — and far above what was predicted, which is the finding to be careful with. **[NR-61]**
+
+```bash
+uv run python evals/frame/walk_pool.py --candidates evals/frame/pool/pool-universe-Dp.csv \
+  --seed-file evals/frame/pool/SEED_POOL --out-dir evals/frame/pool --target 150 --budget 6000
+```
+
+`PREREG-judge-validity-pool.md` executed end to end: a seeded walk over 17,888 candidates, a
+matched control draw, 1,880 verdicts, and the §5 endpoint computed once after the stop rule
+fired. **Cost $13** — 1,880 judge calls, roughly half of what they would have cost without the
+prompt cache added the same day. The walk itself is compute and bandwidth only.
+
+**The primary — repository-clustered AUC of the raw ordinal score, adopted vs control.**
+188 positives (157 pool + 31 legacy), 752 controls, **60 clusters**, largest cluster 4.3 %.
+
+| judge | AUC | 95 % CI | excludes 0.5 | design effect | gap at its own bar | P(actionable \| control) |
+|---|---|---|---|---|---|---|
+| GPT-5.5 | **0.9215** | [0.8945, 0.9429] | yes | 1.555 | 0.7301 | 0.0891 |
+| Sonnet 5 | **0.9424** | [0.9160, 0.9641] | yes | 1.287 | 0.6370 | 0.0066 |
+
+Both intervals exclude 0.5, so §5's pre-committed both-exclude branch fires: **both judges
+order papers meaningfully, and the NR-59 base-rate disagreement remains unresolved** — 0.0891
+against 0.0066 on the same 752 controls. The two are also distinguishable from each other,
+ΔAUC **−0.0209** [−0.0371, −0.0037], Sonnet ordering slightly better. §6.4 fixed the primary
+label as GPT-5.5 before the data and it does not switch on that.
+
+It survives every cut. Legacy 0.898 / 0.910 against pool 0.927 / 0.949 — the label transports
+between the hand-built 37 and the enumerated population. Star bands run 0.89–0.95 across all
+eight. Restricted to positives with ≥ 10 seeds at T0 (n = 101, 24 clusters): 0.930 / 0.963.
+Contamination is a recorded **void** — neither judge publishes a training cutoff, as registered.
+
+> #### The number is too good, and that is the result's main limitation
+>
+> §8 registered AUC **0.60–0.70** and **0.62–0.72**. Observed 0.92 and 0.94. A miss that size
+> is not "the judges beat expectations"; it is evidence the task was easier than §4 designed
+> it to be. Controls are matched on primary category, half-year and never-cited — but inside
+> `cs.LG`, a random contemporaneous paper is very unlikely to be relevant to one *specific*
+> repository. What the judges may be separating is "related to this project at all" from
+> "unrelated", which is a far easier question than "worth adopting".
+>
+> **P7 is the corroboration.** It predicted control base rates of ≥ 0.70 (GPT) and ≤ 0.55
+> (Sonnet); observed **0.0891** and **0.0066**. Controls are being scored as near-uniformly
+> unactionable, which is what obviously-irrelevant papers look like, not near-misses.
+>
+> §4's own lower-bound argument runs the other way — a matched control may be a *better* paper
+> than the one actually adopted, so a genuinely useful paper in the negative class can only
+> pull the classes together. That argument is sound and it does not address this one. Both
+> belong in any write-up of the AUC.
+
+**Predictions: one of seven met.** P4 alone (`y` = 1.615 in [0.8, 2.5]).
+
+| id | registered | observed | |
+|---|---|---|---|
+| P3 | `q ∈ [0.08, 0.30]`, point 0.15 | **0.0447** | missed |
+| P4 | `y ∈ [0.8, 2.5]`, point 1.5 | 1.615 | met |
+| P5 | 100 positives within B = 1,200 rows | **60** within 1,200 (157 took 3,689) | missed |
+| P6 | AUC 0.60–0.70 / 0.62–0.72; both exclude 0.5; difference includes 0 | 0.9215 / 0.9424; excludes 0.5; difference **excludes** 0 | missed |
+| P7 | `P(actionable \| control)` GPT ≥ 0.70, Sonnet ≤ 0.55 | 0.0891 / 0.0066 | missed |
+| P8 | realised design effect ≥ 1.5 | 1.555 / 1.287 | missed |
+| P9 | the two filters remove ≥ 5 % of gross adoptions | 0.37 % (1 of 268) | missed |
+
+The judges did well; the study's model of its own domain did not, and wrongly in a consistent
+direction — it under-predicted discrimination and over-predicted how hard the negative class
+would be. P3 and P5 are one error counted twice: `q` was over-predicted 3.4×, which is exactly
+why 1,200 rows did not reach 100 positives.
+
+> #### Two predictions were scoring themselves wrong, and both were passing
+>
+> Found while reading the §8 output, fixed after the endpoint was computed, and recorded in
+> §8 as post-hoc because it was. **P5** tested `walked <= summary["budget"]` — the budget the
+> *run* used. §3.4 lets that budget grow and it did, 1,200 → 6,000 for the extension, so
+> `3689 <= 6000` was true and P5 read as met on positives that took three times its registered
+> B to reach. That is the hazard `walk_stop_reason` had already been hardened against in the
+> same module — *"reading the thresholds out of it let the gate take its bar from the very
+> artefact it is gating"* — with this scorer left reading the same unguarded field. An
+> operational decision about budget silently moved a registered bar.
+>
+> **P6** rendered no verdict at all above its registered *n*: it computed the parts, left the
+> brackets sitting in the prediction sentence uncompared, and emitted
+> `difference_excludes_zero: True` — the prediction failing — with nothing saying so.
+>
+> Both corrections turn a pass into a failure, which is the only direction a scoring change
+> made after seeing the data can be trusted in.
+
+**Two incidents, both recorded in §3.1.** Two walk processes were launched against one
+`out_dir` and duplicated four ledger rows; the walk had no lock and the purchase loop did.
+Then at rank 1754 every `git clone` began failing with `0xC0000142` — Windows out of process
+resources — and the walk recorded **2,239 consecutive environment failures as negative
+observations**, spending a 4,000-row budget in two minutes and writing `walked: 4000` for
+1,756 candidates actually examined. `walk_stop_reason` read that as a legitimate budget stop.
+Nothing downstream could have caught it: a `clone_failed` row for a broken machine is
+byte-identical to one for a repository that will not clone. The ledger was truncated to the
+clean prefix (no positives lost — the last was at rank 1728), and twelve consecutive clone
+failures now abort the walk, with failures held back rather than appended so an abort leaves
+no fabricated negatives behind.
+
+**What this does not show.** It does not show the judges are good at ranking *within* the
+adopted class, which is what the product actually does — the AUC is over adopted-vs-control,
+and §4 makes it a lower bound on discrimination, not an estimate of judge quality. It does not
+resolve which judge's *level* is right: both order well, their thresholds disagree by two
+orders of magnitude on the same controls, and nothing here calibrates either. And it says
+nothing about papers neither arm contains.
+
 ### Extractor v2 nearly triples the adoption label, and NR-56/57 held up. **[NR-60]**
 
 ```bash
