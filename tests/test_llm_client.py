@@ -186,3 +186,72 @@ class TestComplete:
         ):
             complete("prompt", cfg)
         assert urlopen.call_count == 1
+
+
+class TestThePromptCacheBreakpoint:
+    """The context is ~86% of a judge prompt and repeats for every paper in a case. Splitting
+    it off behind a cache breakpoint changes what the call is billed, never what it reads."""
+
+    @staticmethod
+    def _body_of(mock_urlopen: MagicMock) -> dict:
+        return json.loads(mock_urlopen.call_args[0][0].data.decode("utf-8"))
+
+    def _run(self, prompt: str, **kw: object) -> dict:
+        cfg = SimpleNamespace(
+            provider="claude", claude_api_key="k", claude_model="claude-sonnet-5", timeout=5
+        )
+        payload = {"content": [{"type": "text", "text": "ok"}]}
+        with patch("urllib.request.urlopen", return_value=_resp(payload)) as m:
+            complete(prompt, cfg, **kw)  # type: ignore[arg-type]
+            return self._body_of(m)
+
+    def test_without_the_marker_the_request_is_a_plain_string(self) -> None:
+        """The default must be byte-identical to a request built before this existed —
+        every other caller of `complete` in the product goes down this path."""
+        long = "x" * 9000
+        assert self._run(long)["messages"][0]["content"] == long
+
+    def test_the_split_preserves_the_prompt_exactly(self) -> None:
+        prompt = "# Repository context\n" + "y" * 9000 + "\n\n# Candidate paper\nTitle: T"
+        blocks = self._run(prompt, cache_split_on="# Candidate paper")["messages"][0]["content"]
+        assert isinstance(blocks, list) and len(blocks) == 2
+        # The rendered text is the prompt, unchanged and in order. A breakpoint that dropped
+        # or duplicated a byte would be a different prompt sent to a judge under a rubric
+        # that requires the two arms be shown identical text.
+        assert "".join(b["text"] for b in blocks) == prompt
+        assert blocks[0]["cache_control"] == {"type": "ephemeral"}
+        assert "cache_control" not in blocks[1], "the volatile half must not be cached"
+        assert blocks[1]["text"].startswith("# Candidate paper")
+
+    def test_a_prefix_too_short_to_cache_is_left_alone(self) -> None:
+        """Anthropic silently declines to cache a prefix under its minimum — no error and no
+        cache_creation_input_tokens. Sending two blocks for one would cost the same and read
+        as if caching were working."""
+        prompt = "# Repository context\nshort\n\n# Candidate paper\nTitle: T"
+        assert (
+            self._run(prompt, cache_split_on="# Candidate paper")["messages"][0]["content"]
+            == prompt
+        )
+
+    def test_an_absent_marker_falls_back_rather_than_guessing(self) -> None:
+        prompt = "# Repository context\n" + "z" * 9000
+        assert self._run(prompt, cache_split_on="# NOT PRESENT")["messages"][0]["content"] == prompt
+
+    def test_redaction_cannot_shift_the_split(self) -> None:
+        """`complete` redacts before dispatch. A caller passing a character offset would have
+        it land mid-prompt once redaction shortened the text — putting the paper inside the
+        cached half. Splitting on a marker is immune, so this asserts the boundary holds."""
+        cfg = SimpleNamespace(
+            provider="claude",
+            claude_api_key="k",
+            claude_model="claude-sonnet-5",
+            timeout=5,
+            redact=["SECRET"],
+        )
+        prompt = "# Repository context\nSECRET " + "w" * 9000 + "\n\n# Candidate paper\nTitle: T"
+        payload = {"content": [{"type": "text", "text": "ok"}]}
+        with patch("urllib.request.urlopen", return_value=_resp(payload)) as m:
+            complete(prompt, cfg, cache_split_on="# Candidate paper")
+            blocks = self._body_of(m)["messages"][0]["content"]
+        assert "SECRET" not in blocks[0]["text"], "redaction still applies"
+        assert blocks[1]["text"].startswith("# Candidate paper"), "boundary survived redaction"

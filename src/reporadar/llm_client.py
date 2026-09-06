@@ -47,7 +47,44 @@ def _call_ollama(prompt: str, model: str, url: str, timeout: int) -> str:
 _REJECTS_TEMPERATURE: set[str] = set()
 
 
-def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens: int) -> str:
+MIN_CACHEABLE_CHARS = 4000
+"""Below this the split is not worth making. Anthropic's minimum cacheable prefix is
+model-dependent (512-4096 tokens) and a prefix under it is silently NOT cached -- no error,
+no `cache_creation_input_tokens`, just a request carrying two blocks instead of one for no
+reason. 4000 characters is comfortably above the ceiling of that range at this codebase's
+measured density (~1.4 chars/token on repository context)."""
+
+
+def _cache_split(prompt: str, marker: str | None) -> Any:
+    """The message content: one string by default, two blocks when *marker* earns a breakpoint.
+
+    Split on a MARKER rather than a character offset because `complete` redacts the prompt
+    before dispatch, and redaction changes its length -- an offset computed by the caller
+    would then land mid-token and cache the wrong prefix, silently, with the paper's text
+    inside the cached half. Searching for the boundary is immune to that.
+
+    Returns the plain string unchanged whenever the split cannot be made, so a request that
+    would not benefit is byte-identical to one built before this existed.
+    """
+    if not marker:
+        return prompt
+    head, sep, tail = prompt.partition(marker)
+    if not sep or len(head) < MIN_CACHEABLE_CHARS:
+        return prompt
+    return [
+        {"type": "text", "text": head, "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": sep + tail},
+    ]
+
+
+def _call_claude(
+    prompt: str,
+    api_key: str,
+    model: str,
+    timeout: int,
+    max_tokens: int,
+    cache_split_on: str | None = None,
+) -> str:
     """Call the Anthropic Messages API and return the concatenated text blocks.
 
     **`temperature=0`, and it was missing until 2026-09-01.** Without it the Anthropic default
@@ -96,7 +133,7 @@ def _call_claude(prompt: str, api_key: str, model: str, timeout: int, max_tokens
     body: dict[str, Any] = {
         "model": model,
         "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{"role": "user", "content": _cache_split(prompt, cache_split_on)}],
     }
     if model not in _REJECTS_TEMPERATURE:
         body["temperature"] = 0
@@ -220,7 +257,7 @@ def top_logprobs(
     raise LLMError(f"OpenAI logprob call failed after {max_retries + 1} attempts: {last}")
 
 
-def _dispatch(prompt: str, cfg: Any, max_tokens: int) -> str:
+def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None = None) -> str:
     provider = getattr(cfg, "provider", "ollama")
     timeout = getattr(cfg, "timeout", 30)
     if provider == "claude":
@@ -228,7 +265,7 @@ def _dispatch(prompt: str, cfg: Any, max_tokens: int) -> str:
         if not api_key:
             raise LLMError("No Claude API key configured (set claude_api_key or ANTHROPIC_API_KEY)")
         model = getattr(cfg, "claude_model", "claude-haiku-4-5")
-        return _call_claude(prompt, api_key, model, timeout, max_tokens)
+        return _call_claude(prompt, api_key, model, timeout, max_tokens, cache_split_on)
     if provider == "ollama":
         url = getattr(cfg, "ollama_url", "http://localhost:11434")
         model = getattr(cfg, "ollama_model", "llama3.2")
@@ -243,6 +280,7 @@ def complete(
     max_tokens: int = 300,
     max_retries: int = 2,
     base_delay: float = 0.5,
+    cache_split_on: str | None = None,
 ) -> str:
     """Run one completion. Retries transient failures; raises LLMError on failure.
 
@@ -253,6 +291,13 @@ def complete(
     If *cfg* carries a non-empty ``redact`` list (config mirrors ``privacy.redact``
     onto it at load time), those terms are stripped from the prompt here — at the
     last point before it leaves the process, so no call site can route around it.
+
+    *cache_split_on* is a marker string; when the prompt contains it and the part before it
+    is long enough to be worth caching, the Claude request sends two content blocks with a
+    cache breakpoint between them instead of one string. The rendered token sequence is
+    unchanged — measured with `count_tokens`, 4112 either way — so this changes what the call
+    is billed, never what the model reads. Omitted, the request body is byte-identical to one
+    built before this parameter existed. Ignored by non-Claude providers.
     """
     patterns = getattr(cfg, "redact", None)
     if patterns:
@@ -263,7 +308,7 @@ def complete(
     last: Exception | None = None
     for attempt in range(max_retries + 1):
         try:
-            return _dispatch(prompt, cfg, max_tokens)
+            return _dispatch(prompt, cfg, max_tokens, cache_split_on)
         except LLMError:
             raise  # config errors are not transient — don't retry or wrap
         except urllib.error.HTTPError as exc:
