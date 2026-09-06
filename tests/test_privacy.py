@@ -461,7 +461,9 @@ class TestLLMPromptRedactionWiring:
 
         captured: list[str] = []
 
-        def fake_dispatch(prompt: str, cfg: object, max_tokens: int) -> str:
+        def fake_dispatch(
+            prompt: str, cfg: object, max_tokens: int, split: str | None = None
+        ) -> str:
             captured.append(prompt)
             return "ok"
 
@@ -493,7 +495,7 @@ class TestLLMPromptRedactionWiring:
         monkeypatch.setattr(
             llm_client,
             "_dispatch",
-            lambda prompt, cfg, max_tokens: (captured.append(prompt), "ok")[1],
+            lambda prompt, cfg, max_tokens, split=None: (captured.append(prompt), "ok")[1],
         )
         paper = {
             "title": "Learning to Rank for ProjectAtlas",
@@ -824,7 +826,9 @@ class TestTheRegistryDescribesWhatTheTriagePromptActuallyCarries:
         from reporadar.triage import build_triage_prompt
 
         sent: dict[str, str] = {}
-        monkeypatch.setattr(llm, "_dispatch", lambda prompt, cfg, mt: sent.setdefault("p", prompt))
+        monkeypatch.setattr(
+            llm, "_dispatch", lambda prompt, cfg, mt, split=None: sent.setdefault("p", prompt)
+        )
         profile = SimpleNamespace(
             keywords=[("x", 0.1)],
             anchors=["faiss"],

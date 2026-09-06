@@ -226,3 +226,36 @@ class TestSecondVerdictNeverTouchesTheGoldCache:
         ):
             sj.second_verdict("cv", "ctx", {"arxiv_id": "1.1", "title": "t", "abstract": "a"}, "m")
         assert not list((tmp_path / "second_judge").rglob("*.json"))
+
+
+class TestTheCacheBreakpointReachesTheCall:
+    """The saving is only real if the marker still divides the prompt it was named for."""
+
+    def test_the_marker_is_where_the_prompt_actually_turns(self) -> None:
+        judge_mod = _load("judge")
+        built = judge_mod._build_user_prompt(
+            "QQCONTEXTQQ", {"title": "ZZTITLEZZ", "abstract": "WWABSTRACTWW"}
+        )
+        assert judge_mod.PAPER_MARKER in built
+        head, _, tail = built.partition(judge_mod.PAPER_MARKER)
+        # The stable half must hold the context and NOT the paper — a breakpoint on the wrong
+        # side of the boundary caches the paper and re-bills the context, which is both halves
+        # of the mistake at once and shows up only as a bill.
+        assert "QQCONTEXTQQ" in head
+        assert "ZZTITLEZZ" not in head and "WWABSTRACTWW" not in head
+        assert "ZZTITLEZZ" in tail and "WWABSTRACTWW" in tail
+
+    def test_second_verdict_asks_for_the_breakpoint(self, tmp_path: Path) -> None:
+        judge_mod = _load("judge")
+        seen: dict[str, object] = {}
+
+        def fake_complete(prompt, cfg, **kw):  # type: ignore[no-untyped-def]
+            seen.update(kw)
+            return json.dumps({"score": 2, "justification": "j", "proposed_change": ""})
+
+        with (
+            patch.object(sj, "complete", fake_complete),
+            patch.object(sj, "second_cache_path", lambda *a: tmp_path / "v.json"),
+        ):
+            assert sj.second_verdict("case", "CTX " * 3000, {"arxiv_id": "1"}, "m") == 2
+        assert seen.get("cache_split_on") == judge_mod.PAPER_MARKER

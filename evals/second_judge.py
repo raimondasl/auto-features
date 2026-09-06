@@ -233,7 +233,10 @@ def second_verdict(
     # in those fragments were 2, 2 and 3 — so the dropped papers skewed ACTIONABLE and the
     # loss would have biased the second judge's base rate downward. A parse failure that
     # correlates with the verdict is not a random 3.5% dropout.
-    raw = complete(prompt, cfg, max_tokens=1200)
+    # The context is ~86% of this prompt and repeats for every item in a case, so the same
+    # bytes were being bought once per paper. Measured 2026-09-06: 3521 of 4112 tokens read
+    # from cache on the second and third calls of a burst. The prompt itself does not change.
+    raw = complete(prompt, cfg, max_tokens=1200, cache_split_on=judge_mod.PAPER_MARKER)
     a, b = raw.find("{"), raw.rfind("}")
     if a < 0 or b < 0:
         raise ValueError(f"no JSON object in response: {raw[:160]}")

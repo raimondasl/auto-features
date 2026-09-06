@@ -126,10 +126,19 @@ def _id_line_matches(cached: dict[str, Any], ident_line: str) -> bool:
     return cached.get("_id_line") == ident_line
 
 
+PAPER_MARKER = "# Candidate paper"
+"""Where the stable half of the prompt ends and the per-paper half begins.
+
+Named because a prompt cache breakpoint is placed on it (`llm_client.complete`'s
+`cache_split_on`). A literal repeated at the two sites could drift apart silently: the split
+would stop matching, the request would quietly fall back to one uncached block, and the only
+symptom would be a larger bill nobody reads."""
+
+
 def _build_user_prompt(repo_context: str, paper: dict[str, Any]) -> str:
     return (
         f"# Repository context\n{repo_context}\n\n"
-        f"# Candidate paper\n"
+        f"{PAPER_MARKER}\n"
         f"Title: {paper.get('title', '')}\n"
         f"{_identifier_line(paper)}\n"
         f"Abstract: {paper.get('abstract', '')[:1800]}\n\n"
