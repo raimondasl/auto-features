@@ -1,0 +1,23 @@
+{
+ "_artefact": "judge-validity-pool",
+ "scheme": "arxiv-window",
+ "n_items": 940,
+ "bought": 1880,
+ "coverage": {
+  "gpt-5.5": {
+   "n_expected": 940,
+   "n_present": 940,
+   "n_void_recorded": 0,
+   "n_missing_unexplained": 0,
+   "coverage": 1.0
+  },
+  "claude-sonnet-5": {
+   "n_expected": 940,
+   "n_present": 940,
+   "n_void_recorded": 0,
+   "n_missing_unexplained": 0,
+   "coverage": 1.0
+  }
+ },
+ "outcomes": []
+}

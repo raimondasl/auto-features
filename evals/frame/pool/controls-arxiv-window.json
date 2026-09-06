@@ -1,0 +1,6784 @@
+{
+ "_artefact": "judge-validity-pool",
+ "seed": "2ACF9D135F72953E4BD0A23901C043A6FD5BE92405AABA637D550E43915205358C192F7C6FCE671BE15FB535DEB3BEBFC818CE40A1DF7FECDFB05EAFB043EB19",
+ "scheme": "arxiv-window",
+ "stream_key_format": "{seed}:{case}:{dedup_id(positive_id)}",
+ "n_positives": 188,
+ "n_control_rows": 752,
+ "n_distinct_control_papers": 720,
+ "n_control_papers_in_more_than_one_cluster": 31,
+ "controls_per_positive": {
+  "4": 188
+ },
+ "not_enriched": [],
+ "controls": [
+  {
+   "case": "BlinkDL/RWKV-LM",
+   "id": "2510.27009",
+   "t0": "2024-09-04",
+   "for_positive": "2507.14417",
+   "window": "202507010000..202512312359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "BlinkDL/RWKV-LM",
+   "id": "2510.27042",
+   "t0": "2024-09-04",
+   "for_positive": "2507.14417",
+   "window": "202507010000..202512312359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "BlinkDL/RWKV-LM",
+   "id": "2510.00300",
+   "t0": "2024-09-04",
+   "for_positive": "2507.14417",
+   "window": "202507010000..202512312359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "BlinkDL/RWKV-LM",
+   "id": "2509.05323",
+   "t0": "2024-09-04",
+   "for_positive": "2507.14417",
+   "window": "202507010000..202512312359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2201.12646",
+   "t0": "2022-07-19",
+   "for_positive": "2204.05575",
+   "window": "202201010000..202206302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2203.17276",
+   "t0": "2022-07-19",
+   "for_positive": "2204.05575",
+   "window": "202201010000..202206302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2203.00469",
+   "t0": "2022-07-19",
+   "for_positive": "2204.05575",
+   "window": "202201010000..202206302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2201.12769",
+   "t0": "2022-07-19",
+   "for_positive": "2204.05575",
+   "window": "202201010000..202206302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2211.00005",
+   "t0": "2022-07-19",
+   "for_positive": "2207.02202",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2208.14326",
+   "t0": "2022-07-19",
+   "for_positive": "2207.02202",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.02385",
+   "t0": "2022-07-19",
+   "for_positive": "2207.02202",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2210.16933",
+   "t0": "2022-07-19",
+   "for_positive": "2207.02202",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2208.00210",
+   "t0": "2022-07-19",
+   "for_positive": "2208.00116",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2211.17228",
+   "t0": "2022-07-19",
+   "for_positive": "2208.00116",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.15517",
+   "t0": "2022-07-19",
+   "for_positive": "2208.00116",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.15490",
+   "t0": "2022-07-19",
+   "for_positive": "2208.00116",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2208.14201",
+   "t0": "2022-07-19",
+   "for_positive": "2209.12836",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2210.16834",
+   "t0": "2022-07-19",
+   "for_positive": "2209.12836",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2208.14437",
+   "t0": "2022-07-19",
+   "for_positive": "2209.12836",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2301.00190",
+   "t0": "2022-07-19",
+   "for_positive": "2209.12836",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.15639",
+   "t0": "2022-07-19",
+   "for_positive": "2211.07214",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2211.17170",
+   "t0": "2022-07-19",
+   "for_positive": "2211.07214",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2208.14439",
+   "t0": "2022-07-19",
+   "for_positive": "2211.07214",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2210.16924",
+   "t0": "2022-07-19",
+   "for_positive": "2211.07214",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.15397",
+   "t0": "2022-07-19",
+   "for_positive": "2211.15975",
+   "window": "202207010000..202212312359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2210.16423",
+   "t0": "2022-07-19",
+   "for_positive": "2211.15975",
+   "window": "202207010000..202212312359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.15337",
+   "t0": "2022-07-19",
+   "for_positive": "2211.15975",
+   "window": "202207010000..202212312359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2212.14209",
+   "t0": "2022-07-19",
+   "for_positive": "2211.15975",
+   "window": "202207010000..202212312359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2301.00265",
+   "t0": "2022-07-19",
+   "for_positive": "2212.08273",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2210.16788",
+   "t0": "2022-07-19",
+   "for_positive": "2212.08273",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2208.00173",
+   "t0": "2022-07-19",
+   "for_positive": "2212.08273",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2209.15501",
+   "t0": "2022-07-19",
+   "for_positive": "2212.08273",
+   "window": "202207010000..202212312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2303.00750",
+   "t0": "2022-07-19",
+   "for_positive": "2303.07601",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2303.00566",
+   "t0": "2022-07-19",
+   "for_positive": "2303.07601",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2306.17659",
+   "t0": "2022-07-19",
+   "for_positive": "2303.07601",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "id": "2307.00064",
+   "t0": "2022-07-19",
+   "for_positive": "2303.07601",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1612.09297",
+   "t0": "2021-08-07",
+   "for_positive": "1611.07308",
+   "window": "201607010000..201612312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1611.09621",
+   "t0": "2021-08-07",
+   "for_positive": "1611.07308",
+   "window": "201607010000..201612312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1612.09506",
+   "t0": "2021-08-07",
+   "for_positive": "1611.07308",
+   "window": "201607010000..201612312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1612.08543",
+   "t0": "2021-08-07",
+   "for_positive": "1611.07308",
+   "window": "201607010000..201612312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1803.00491",
+   "t0": "2021-08-07",
+   "for_positive": "1803.03735",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1803.00276",
+   "t0": "2021-08-07",
+   "for_positive": "1803.03735",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1804.00130",
+   "t0": "2021-08-07",
+   "for_positive": "1803.03735",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1805.12002",
+   "t0": "2021-08-07",
+   "for_positive": "1803.03735",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1803.11410",
+   "t0": "2021-08-07",
+   "for_positive": "1806.03536",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1801.10182",
+   "t0": "2021-08-07",
+   "for_positive": "1806.03536",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1807.00051",
+   "t0": "2021-08-07",
+   "for_positive": "1806.03536",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1805.00089",
+   "t0": "2021-08-07",
+   "for_positive": "1806.03536",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1905.13284",
+   "t0": "2021-08-07",
+   "for_positive": "1905.00067",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1905.13341",
+   "t0": "2021-08-07",
+   "for_positive": "1905.00067",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1907.00485",
+   "t0": "2021-08-07",
+   "for_positive": "1905.00067",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1903.00278",
+   "t0": "2021-08-07",
+   "for_positive": "1905.00067",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1907.12972",
+   "t0": "2021-08-07",
+   "for_positive": "1907.10903",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1912.00215",
+   "t0": "2021-08-07",
+   "for_positive": "1907.10903",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1912.00134",
+   "t0": "2021-08-07",
+   "for_positive": "1907.10903",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "1910.14147",
+   "t0": "2021-08-07",
+   "for_positive": "1907.10903",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2005.00113",
+   "t0": "2021-08-07",
+   "for_positive": "2003.09638",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2003.00365",
+   "t0": "2021-08-07",
+   "for_positive": "2003.09638",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2001.11366",
+   "t0": "2021-08-07",
+   "for_positive": "2003.09638",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2003.00229",
+   "t0": "2021-08-07",
+   "for_positive": "2003.09638",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2103.01291",
+   "t0": "2021-08-07",
+   "for_positive": "2106.05809",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2103.01342",
+   "t0": "2021-08-07",
+   "for_positive": "2106.05809",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2105.14573",
+   "t0": "2021-08-07",
+   "for_positive": "2106.05809",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2103.01308",
+   "t0": "2021-08-07",
+   "for_positive": "2106.05809",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2109.15179",
+   "t0": "2021-08-07",
+   "for_positive": "2109.08031",
+   "window": "202107010000..202112312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2112.14822",
+   "t0": "2021-08-07",
+   "for_positive": "2109.08031",
+   "window": "202107010000..202112312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2108.04817",
+   "t0": "2021-08-07",
+   "for_positive": "2109.08031",
+   "window": "202107010000..202112312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "id": "2110.15264",
+   "t0": "2021-08-07",
+   "for_positive": "2109.08031",
+   "window": "202107010000..202112312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "NACLab/ngc-learn",
+   "id": "2502.16481",
+   "t0": "2024-08-11",
+   "for_positive": "2503.21796",
+   "window": "202501010000..202506302359",
+   "category": "cs.NE",
+   "primary_category": "cs.NE"
+  },
+  {
+   "case": "NACLab/ngc-learn",
+   "id": "2502.20729",
+   "t0": "2024-08-11",
+   "for_positive": "2503.21796",
+   "window": "202501010000..202506302359",
+   "category": "cs.NE",
+   "primary_category": "cs.NE"
+  },
+  {
+   "case": "NACLab/ngc-learn",
+   "id": "2503.18066",
+   "t0": "2024-08-11",
+   "for_positive": "2503.21796",
+   "window": "202501010000..202506302359",
+   "category": "cs.NE",
+   "primary_category": "cs.NE"
+  },
+  {
+   "case": "NACLab/ngc-learn",
+   "id": "2503.21797",
+   "t0": "2024-08-11",
+   "for_positive": "2503.21796",
+   "window": "202501010000..202506302359",
+   "category": "cs.NE",
+   "primary_category": "cs.NE"
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "id": "2501.00067",
+   "t0": "2024-08-03",
+   "for_positive": "2410.02060",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "id": "2410.22805",
+   "t0": "2024-08-03",
+   "for_positive": "2410.02060",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "id": "2501.00348",
+   "t0": "2024-08-03",
+   "for_positive": "2410.02060",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "id": "2410.21641",
+   "t0": "2024-08-03",
+   "for_positive": "2410.02060",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1603.09260",
+   "t0": "2021-08-01",
+   "for_positive": "1606.03498",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1606.09197",
+   "t0": "2021-08-01",
+   "for_positive": "1606.03498",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1606.08920",
+   "t0": "2021-08-01",
+   "for_positive": "1606.03498",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1602.08448",
+   "t0": "2021-08-01",
+   "for_positive": "1606.03498",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1905.13194",
+   "t0": "2021-08-01",
+   "for_positive": "1904.06991",
+   "window": "201901010000..201906302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1907.00241",
+   "t0": "2021-08-01",
+   "for_positive": "1904.06991",
+   "window": "201901010000..201906302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1904.00469",
+   "t0": "2021-08-01",
+   "for_positive": "1904.06991",
+   "window": "201901010000..201906302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1901.11033",
+   "t0": "2021-08-01",
+   "for_positive": "1904.06991",
+   "window": "201901010000..201906302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1904.13262",
+   "t0": "2021-08-01",
+   "for_positive": "1905.10887",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1907.00378",
+   "t0": "2021-08-01",
+   "for_positive": "1905.10887",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1903.00519",
+   "t0": "2021-08-01",
+   "for_positive": "1905.10887",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1904.13389",
+   "t0": "2021-08-01",
+   "for_positive": "1905.10887",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2001.00573",
+   "t0": "2021-08-01",
+   "for_positive": "1912.04216",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1912.13480",
+   "t0": "2021-08-01",
+   "for_positive": "1912.04216",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1912.00181",
+   "t0": "2021-08-01",
+   "for_positive": "1912.04216",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "1912.13357",
+   "t0": "2021-08-01",
+   "for_positive": "1912.04216",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2006.16912",
+   "t0": "2021-08-01",
+   "for_positive": "2002.06224",
+   "window": "202001010000..202006302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2004.00115",
+   "t0": "2021-08-01",
+   "for_positive": "2002.06224",
+   "window": "202001010000..202006302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2003.00335",
+   "t0": "2021-08-01",
+   "for_positive": "2002.06224",
+   "window": "202001010000..202006302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2003.13913",
+   "t0": "2021-08-01",
+   "for_positive": "2002.06224",
+   "window": "202001010000..202006302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2001.11198",
+   "t0": "2021-08-01",
+   "for_positive": "2002.09797",
+   "window": "202001010000..202006302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2007.00062",
+   "t0": "2021-08-01",
+   "for_positive": "2002.09797",
+   "window": "202001010000..202006302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2004.14795",
+   "t0": "2021-08-01",
+   "for_positive": "2002.09797",
+   "window": "202001010000..202006302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2006.00100",
+   "t0": "2021-08-01",
+   "for_positive": "2002.09797",
+   "window": "202001010000..202006302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2007.00072",
+   "t0": "2021-08-01",
+   "for_positive": "2003.06060",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2007.00147",
+   "t0": "2021-08-01",
+   "for_positive": "2003.06060",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2004.00993",
+   "t0": "2021-08-01",
+   "for_positive": "2003.06060",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2005.00095",
+   "t0": "2021-08-01",
+   "for_positive": "2003.06060",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2108.13015",
+   "t0": "2021-08-01",
+   "for_positive": "2111.06849",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2112.15283",
+   "t0": "2021-08-01",
+   "for_positive": "2111.06849",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2112.00169",
+   "t0": "2021-08-01",
+   "for_positive": "2111.06849",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "id": "2109.15242",
+   "t0": "2021-08-01",
+   "for_positive": "2111.06849",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2307.16203",
+   "t0": "2023-09-26",
+   "for_positive": "2310.13913",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2401.00583",
+   "t0": "2023-09-26",
+   "for_positive": "2310.13913",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2310.00488",
+   "t0": "2023-09-26",
+   "for_positive": "2310.13913",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2310.00429",
+   "t0": "2023-09-26",
+   "for_positive": "2310.13913",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2404.00081",
+   "t0": "2023-09-26",
+   "for_positive": "2404.10260",
+   "window": "202401010000..202406302359",
+   "category": "q-bio.BM",
+   "primary_category": "q-bio.BM"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2404.14821",
+   "t0": "2023-09-26",
+   "for_positive": "2404.10260",
+   "window": "202401010000..202406302359",
+   "category": "q-bio.BM",
+   "primary_category": "q-bio.BM"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2401.09840",
+   "t0": "2023-09-26",
+   "for_positive": "2404.10260",
+   "window": "202401010000..202406302359",
+   "category": "q-bio.BM",
+   "primary_category": "q-bio.BM"
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "id": "2401.10462",
+   "t0": "2023-09-26",
+   "for_positive": "2404.10260",
+   "window": "202401010000..202406302359",
+   "category": "q-bio.BM",
+   "primary_category": "q-bio.BM"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2104.00038",
+   "t0": "2022-08-07",
+   "for_positive": "2103.13941",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2104.00137",
+   "t0": "2022-08-07",
+   "for_positive": "2103.13941",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2103.01342",
+   "t0": "2022-08-07",
+   "for_positive": "2103.13941",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2103.01319",
+   "t0": "2022-08-07",
+   "for_positive": "2103.13941",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2407.00747",
+   "t0": "2022-08-07",
+   "for_positive": "2402.13718",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2404.19430",
+   "t0": "2022-08-07",
+   "for_positive": "2402.13718",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2405.20274",
+   "t0": "2022-08-07",
+   "for_positive": "2402.13718",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "id": "2407.00782",
+   "t0": "2022-08-07",
+   "for_positive": "2402.13718",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "id": "2401.00897",
+   "t0": "2024-09-10",
+   "for_positive": "2307.06304",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "id": "2311.18840",
+   "t0": "2024-09-10",
+   "for_positive": "2307.06304",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "id": "2310.00369",
+   "t0": "2024-09-10",
+   "for_positive": "2307.06304",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "id": "2311.18838",
+   "t0": "2024-09-10",
+   "for_positive": "2307.06304",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2210.16306",
+   "t0": "2024-09-14",
+   "for_positive": "2209.10566",
+   "window": "202207010000..202212312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2207.14309",
+   "t0": "2024-09-14",
+   "for_positive": "2209.10566",
+   "window": "202207010000..202212312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2207.14713",
+   "t0": "2024-09-14",
+   "for_positive": "2209.10566",
+   "window": "202207010000..202212312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2210.16444",
+   "t0": "2024-09-14",
+   "for_positive": "2209.10566",
+   "window": "202207010000..202212312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2401.16934",
+   "t0": "2024-09-14",
+   "for_positive": "2403.16253",
+   "window": "202401010000..202406302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2403.00074",
+   "t0": "2024-09-14",
+   "for_positive": "2403.16253",
+   "window": "202401010000..202406302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2403.19843",
+   "t0": "2024-09-14",
+   "for_positive": "2403.16253",
+   "window": "202401010000..202406302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2407.00160",
+   "t0": "2024-09-14",
+   "for_positive": "2403.16253",
+   "window": "202401010000..202406302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2411.19518",
+   "t0": "2024-09-14",
+   "for_positive": "2407.12983",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2411.19686",
+   "t0": "2024-09-14",
+   "for_positive": "2407.12983",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2410.00105",
+   "t0": "2024-09-14",
+   "for_positive": "2407.12983",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2407.21099",
+   "t0": "2024-09-14",
+   "for_positive": "2407.12983",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2409.20379",
+   "t0": "2024-09-14",
+   "for_positive": "2410.12987",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2410.23372",
+   "t0": "2024-09-14",
+   "for_positive": "2410.12987",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2412.19955",
+   "t0": "2024-09-14",
+   "for_positive": "2410.12987",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2407.21097",
+   "t0": "2024-09-14",
+   "for_positive": "2410.12987",
+   "window": "202407010000..202412312359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2606.00529",
+   "t0": "2024-09-14",
+   "for_positive": "2603.11152",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2604.26823",
+   "t0": "2024-09-14",
+   "for_positive": "2603.11152",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2603.29321",
+   "t0": "2024-09-14",
+   "for_positive": "2603.11152",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2605.00122",
+   "t0": "2024-09-14",
+   "for_positive": "2603.11152",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.CO",
+   "primary_category": "astro-ph.CO"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2604.27477",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12790",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2604.27065",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12790",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2602.24204",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12790",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2606.00415",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12790",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2601.22872",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12810",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2605.31439",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12810",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2603.29657",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12810",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "id": "2605.31420",
+   "t0": "2024-09-14",
+   "for_positive": "2603.12810",
+   "window": "202601010000..202606302359",
+   "category": "astro-ph.GA",
+   "primary_category": "astro-ph.GA"
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "id": "1910.13969",
+   "t0": "2023-08-02",
+   "for_positive": "1910.07207",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "id": "1910.00125",
+   "t0": "2023-08-02",
+   "for_positive": "1910.07207",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "id": "1912.00183",
+   "t0": "2023-08-02",
+   "for_positive": "1910.07207",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "id": "2001.00106",
+   "t0": "2023-08-02",
+   "for_positive": "1910.07207",
+   "window": "201907010000..201912312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "SciML/ModelingToolkit.jl",
+   "id": "2503.24085",
+   "t0": "2024-09-12",
+   "for_positive": "2502.01128",
+   "window": "202501010000..202506302359",
+   "category": "eess.SY",
+   "primary_category": "eess.SY"
+  },
+  {
+   "case": "SciML/ModelingToolkit.jl",
+   "id": "2505.24805",
+   "t0": "2024-09-12",
+   "for_positive": "2502.01128",
+   "window": "202501010000..202506302359",
+   "category": "eess.SY",
+   "primary_category": "eess.SY"
+  },
+  {
+   "case": "SciML/ModelingToolkit.jl",
+   "id": "2504.00130",
+   "t0": "2024-09-12",
+   "for_positive": "2502.01128",
+   "window": "202501010000..202506302359",
+   "category": "eess.SY",
+   "primary_category": "eess.SY"
+  },
+  {
+   "case": "SciML/ModelingToolkit.jl",
+   "id": "2503.00431",
+   "t0": "2024-09-12",
+   "for_positive": "2502.01128",
+   "window": "202501010000..202506302359",
+   "category": "eess.SY",
+   "primary_category": "eess.SY"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2004.00100",
+   "t0": "2024-09-11",
+   "for_positive": "2002.01113",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2007.00072",
+   "t0": "2024-09-11",
+   "for_positive": "2002.01113",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2007.00147",
+   "t0": "2024-09-11",
+   "for_positive": "2002.01113",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2006.00339",
+   "t0": "2024-09-11",
+   "for_positive": "2002.01113",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2310.00489",
+   "t0": "2024-09-11",
+   "for_positive": "2310.10537",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2307.16285",
+   "t0": "2024-09-11",
+   "for_positive": "2310.10537",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2312.00157",
+   "t0": "2024-09-11",
+   "for_positive": "2310.10537",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2308.16089",
+   "t0": "2024-09-11",
+   "for_positive": "2310.10537",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2406.17793",
+   "t0": "2024-09-11",
+   "for_positive": "2401.15024",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2407.00745",
+   "t0": "2024-09-11",
+   "for_positive": "2401.15024",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2405.20534",
+   "t0": "2024-09-11",
+   "for_positive": "2401.15024",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2405.00136",
+   "t0": "2024-09-11",
+   "for_positive": "2401.15024",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2405.20467",
+   "t0": "2024-09-11",
+   "for_positive": "2405.16406",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2407.00809",
+   "t0": "2024-09-11",
+   "for_positive": "2405.16406",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2405.00184",
+   "t0": "2024-09-11",
+   "for_positive": "2405.16406",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2401.17178",
+   "t0": "2024-09-11",
+   "for_positive": "2405.16406",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2403.00131",
+   "t0": "2024-09-11",
+   "for_positive": "2406.00800",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2404.00657",
+   "t0": "2024-09-11",
+   "for_positive": "2406.00800",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2405.20456",
+   "t0": "2024-09-11",
+   "for_positive": "2406.00800",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2405.20538",
+   "t0": "2024-09-11",
+   "for_positive": "2406.00800",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2412.00569",
+   "t0": "2024-09-11",
+   "for_positive": "2409.17092",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2412.00613",
+   "t0": "2024-09-11",
+   "for_positive": "2409.17092",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2410.23434",
+   "t0": "2024-09-11",
+   "for_positive": "2409.17092",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2412.00423",
+   "t0": "2024-09-11",
+   "for_positive": "2409.17092",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2409.00209",
+   "t0": "2024-09-11",
+   "for_positive": "2411.07191",
+   "window": "202407010000..202412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2410.00250",
+   "t0": "2024-09-11",
+   "for_positive": "2411.07191",
+   "window": "202407010000..202412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2410.00149",
+   "t0": "2024-09-11",
+   "for_positive": "2411.07191",
+   "window": "202407010000..202412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2412.00549",
+   "t0": "2024-09-11",
+   "for_positive": "2411.07191",
+   "window": "202407010000..202412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2504.21808",
+   "t0": "2024-09-11",
+   "for_positive": "2505.11695",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2503.02655",
+   "t0": "2024-09-11",
+   "for_positive": "2505.11695",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2507.00191",
+   "t0": "2024-09-11",
+   "for_positive": "2505.11695",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "id": "2503.00639",
+   "t0": "2024-09-11",
+   "for_positive": "2505.11695",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2301.00304",
+   "t0": "2022-01-04",
+   "for_positive": "2210.05549",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2210.16865",
+   "t0": "2022-01-04",
+   "for_positive": "2210.05549",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2301.06902",
+   "t0": "2022-01-04",
+   "for_positive": "2210.05549",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2210.00113",
+   "t0": "2022-01-04",
+   "for_positive": "2210.05549",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2212.00086",
+   "t0": "2022-01-04",
+   "for_positive": "2211.12701",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2211.16858",
+   "t0": "2022-01-04",
+   "for_positive": "2211.12701",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2207.14386",
+   "t0": "2022-01-04",
+   "for_positive": "2211.12701",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2207.13988",
+   "t0": "2022-01-04",
+   "for_positive": "2211.12701",
+   "window": "202207010000..202212312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2306.00024",
+   "t0": "2022-01-04",
+   "for_positive": "2302.03241",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2301.12810",
+   "t0": "2022-01-04",
+   "for_positive": "2302.03241",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2304.14827",
+   "t0": "2022-01-04",
+   "for_positive": "2302.03241",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "id": "2303.00242",
+   "t0": "2022-01-04",
+   "for_positive": "2302.03241",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2405.19995",
+   "t0": "2024-03-08",
+   "for_positive": "2405.18379",
+   "window": "202401010000..202406302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2404.00145",
+   "t0": "2024-03-08",
+   "for_positive": "2405.18379",
+   "window": "202401010000..202406302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2401.17269",
+   "t0": "2024-03-08",
+   "for_positive": "2405.18379",
+   "window": "202401010000..202406302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2406.19958",
+   "t0": "2024-03-08",
+   "for_positive": "2405.18379",
+   "window": "202401010000..202406302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2503.24035",
+   "t0": "2024-03-08",
+   "for_positive": "2501.18577",
+   "window": "202501010000..202506302359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2505.24127",
+   "t0": "2024-03-08",
+   "for_positive": "2501.18577",
+   "window": "202501010000..202506302359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2504.20431",
+   "t0": "2024-03-08",
+   "for_positive": "2501.18577",
+   "window": "202501010000..202506302359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "id": "2503.23624",
+   "t0": "2024-03-08",
+   "for_positive": "2501.18577",
+   "window": "202501010000..202506302359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1311.7184",
+   "t0": "2021-12-24",
+   "for_positive": "1312.6114",
+   "window": "201307010000..201312312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1310.7529",
+   "t0": "2021-12-24",
+   "for_positive": "1312.6114",
+   "window": "201307010000..201312312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1307.5339",
+   "t0": "2021-12-24",
+   "for_positive": "1312.6114",
+   "window": "201307010000..201312312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1311.5479",
+   "t0": "2021-12-24",
+   "for_positive": "1312.6114",
+   "window": "201307010000..201312312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1907.00735",
+   "t0": "2021-12-24",
+   "for_positive": "1905.02450",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1903.00058",
+   "t0": "2021-12-24",
+   "for_positive": "1905.02450",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1907.00218",
+   "t0": "2021-12-24",
+   "for_positive": "1905.02450",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1901.10188",
+   "t0": "2021-12-24",
+   "for_positive": "1905.02450",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1907.12984",
+   "t0": "2021-12-24",
+   "for_positive": "1909.11942",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1909.13827",
+   "t0": "2021-12-24",
+   "for_positive": "1909.11942",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1908.11790",
+   "t0": "2021-12-24",
+   "for_positive": "1909.11942",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "id": "1912.13194",
+   "t0": "2021-12-24",
+   "for_positive": "1909.11942",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2407.21091",
+   "t0": "2024-09-13",
+   "for_positive": "2410.14269",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2410.23434",
+   "t0": "2024-09-13",
+   "for_positive": "2410.14269",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2501.00615",
+   "t0": "2024-09-13",
+   "for_positive": "2410.14269",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2412.00609",
+   "t0": "2024-09-13",
+   "for_positive": "2410.14269",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2501.00659",
+   "t0": "2024-09-13",
+   "for_positive": "2411.17838",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2410.23503",
+   "t0": "2024-09-13",
+   "for_positive": "2411.17838",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2407.21220",
+   "t0": "2024-09-13",
+   "for_positive": "2411.17838",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2410.23498",
+   "t0": "2024-09-13",
+   "for_positive": "2411.17838",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2408.16862",
+   "t0": "2024-09-13",
+   "for_positive": "2412.15826",
+   "window": "202407010000..202412312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2408.17387",
+   "t0": "2024-09-13",
+   "for_positive": "2412.15826",
+   "window": "202407010000..202412312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2407.19892",
+   "t0": "2024-09-13",
+   "for_positive": "2412.15826",
+   "window": "202407010000..202412312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2407.20697",
+   "t0": "2024-09-13",
+   "for_positive": "2412.15826",
+   "window": "202407010000..202412312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2501.18712",
+   "t0": "2024-09-13",
+   "for_positive": "2501.07172",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2506.00302",
+   "t0": "2024-09-13",
+   "for_positive": "2501.07172",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2507.00304",
+   "t0": "2024-09-13",
+   "for_positive": "2501.07172",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2506.00245",
+   "t0": "2024-09-13",
+   "for_positive": "2501.07172",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2505.00190",
+   "t0": "2024-09-13",
+   "for_positive": "2502.19364",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2501.18741",
+   "t0": "2024-09-13",
+   "for_positive": "2502.19364",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2503.00650",
+   "t0": "2024-09-13",
+   "for_positive": "2502.19364",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "id": "2506.00205",
+   "t0": "2024-09-13",
+   "for_positive": "2502.19364",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "id": "2012.15793",
+   "t0": "2023-04-14",
+   "for_positive": "2009.01325",
+   "window": "202007010000..202012312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "id": "2011.14293",
+   "t0": "2023-04-14",
+   "for_positive": "2009.01325",
+   "window": "202007010000..202012312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "id": "2009.14725",
+   "t0": "2023-04-14",
+   "for_positive": "2009.01325",
+   "window": "202007010000..202012312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "id": "2007.14477",
+   "t0": "2023-04-14",
+   "for_positive": "2009.01325",
+   "window": "202007010000..202012312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "1804.10846",
+   "t0": "2022-12-08",
+   "for_positive": "1806.08317",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "1803.11136",
+   "t0": "2022-12-08",
+   "for_positive": "1806.08317",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "1801.09386",
+   "t0": "2022-12-08",
+   "for_positive": "1806.08317",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "1803.11551",
+   "t0": "2022-12-08",
+   "for_positive": "1806.08317",
+   "window": "201801010000..201806302359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2112.15399",
+   "t0": "2022-12-08",
+   "for_positive": "2112.03857",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2111.01677",
+   "t0": "2022-12-08",
+   "for_positive": "2112.03857",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2111.15606",
+   "t0": "2022-12-08",
+   "for_positive": "2112.03857",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2111.00201",
+   "t0": "2022-12-08",
+   "for_positive": "2112.03857",
+   "window": "202107010000..202112312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2304.00101",
+   "t0": "2022-12-08",
+   "for_positive": "2305.14677",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2305.00983",
+   "t0": "2022-12-08",
+   "for_positive": "2305.14677",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2305.00412",
+   "t0": "2022-12-08",
+   "for_positive": "2305.14677",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2301.13254",
+   "t0": "2022-12-08",
+   "for_positive": "2305.14677",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2310.19784",
+   "t0": "2022-12-08",
+   "for_positive": "2308.03463",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2312.00224",
+   "t0": "2022-12-08",
+   "for_positive": "2308.03463",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2310.00517",
+   "t0": "2022-12-08",
+   "for_positive": "2308.03463",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2310.00463",
+   "t0": "2022-12-08",
+   "for_positive": "2308.03463",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2405.20336",
+   "t0": "2022-12-08",
+   "for_positive": "2403.03431",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2402.19477",
+   "t0": "2022-12-08",
+   "for_positive": "2403.03431",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2402.19326",
+   "t0": "2022-12-08",
+   "for_positive": "2403.03431",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2404.00674",
+   "t0": "2022-12-08",
+   "for_positive": "2403.03431",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2404.08666",
+   "t0": "2022-12-08",
+   "for_positive": "2403.04997",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2403.00092",
+   "t0": "2022-12-08",
+   "for_positive": "2403.04997",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2401.17461",
+   "t0": "2022-12-08",
+   "for_positive": "2403.04997",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "id": "2403.00067",
+   "t0": "2022-12-08",
+   "for_positive": "2403.04997",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "alibaba/GraphScope",
+   "id": "2402.17559",
+   "t0": "2024-06-27",
+   "for_positive": "2401.17786",
+   "window": "202401010000..202406302359",
+   "category": "cs.DB",
+   "primary_category": "cs.DB"
+  },
+  {
+   "case": "alibaba/GraphScope",
+   "id": "2407.12802",
+   "t0": "2024-06-27",
+   "for_positive": "2401.17786",
+   "window": "202401010000..202406302359",
+   "category": "cs.DB",
+   "primary_category": "cs.DB"
+  },
+  {
+   "case": "alibaba/GraphScope",
+   "id": "2403.15807",
+   "t0": "2024-06-27",
+   "for_positive": "2401.17786",
+   "window": "202401010000..202406302359",
+   "category": "cs.DB",
+   "primary_category": "cs.DB"
+  },
+  {
+   "case": "alibaba/GraphScope",
+   "id": "2402.10460",
+   "t0": "2024-06-27",
+   "for_positive": "2401.17786",
+   "window": "202401010000..202406302359",
+   "category": "cs.DB",
+   "primary_category": "cs.DB"
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "id": "2402.19330",
+   "t0": "2023-09-26",
+   "for_positive": "2403.08059",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "id": "2404.19654",
+   "t0": "2023-09-26",
+   "for_positive": "2403.08059",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "id": "2404.00785",
+   "t0": "2023-09-26",
+   "for_positive": "2403.08059",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "id": "2404.00633",
+   "t0": "2023-09-26",
+   "for_positive": "2403.08059",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1905.12926",
+   "t0": "2021-04-15",
+   "for_positive": "1901.11196",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1902.11049",
+   "t0": "2021-04-15",
+   "for_positive": "1901.11196",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1905.12676",
+   "t0": "2021-04-15",
+   "for_positive": "1901.11196",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1907.00488",
+   "t0": "2021-04-15",
+   "for_positive": "1901.11196",
+   "window": "201901010000..201906302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1903.00450",
+   "t0": "2021-04-15",
+   "for_positive": "1904.12848",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1905.13289",
+   "t0": "2021-04-15",
+   "for_positive": "1904.12848",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1903.00545",
+   "t0": "2021-04-15",
+   "for_positive": "1904.12848",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "asyml/forte",
+   "id": "1905.13341",
+   "t0": "2021-04-15",
+   "for_positive": "1904.12848",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1808.08507",
+   "t0": "2024-09-11",
+   "for_positive": "1810.08278",
+   "window": "201807010000..201812312359",
+   "category": "math.ST",
+   "primary_category": "math.ST"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1812.09367",
+   "t0": "2024-09-11",
+   "for_positive": "1810.08278",
+   "window": "201807010000..201812312359",
+   "category": "math.ST",
+   "primary_category": "math.ST"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1807.09633",
+   "t0": "2024-09-11",
+   "for_positive": "1810.08278",
+   "window": "201807010000..201812312359",
+   "category": "math.ST",
+   "primary_category": "math.ST"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1809.08330",
+   "t0": "2024-09-11",
+   "for_positive": "1810.08278",
+   "window": "201807010000..201812312359",
+   "category": "math.ST",
+   "primary_category": "math.ST"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1908.11414",
+   "t0": "2024-09-11",
+   "for_positive": "1910.12958",
+   "window": "201907010000..201912312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1908.11579",
+   "t0": "2024-09-11",
+   "for_positive": "1910.12958",
+   "window": "201907010000..201912312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1908.11444",
+   "t0": "2024-09-11",
+   "for_positive": "1910.12958",
+   "window": "201907010000..201912312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "bio-scvi",
+   "id": "1910.13657",
+   "t0": "2024-09-11",
+   "for_positive": "1910.12958",
+   "window": "201907010000..201912312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "bio-singlecell",
+   "id": "0911.1433",
+   "t0": "2024-09-07",
+   "for_positive": "0909.4061",
+   "window": "200907010000..200912312359",
+   "category": "math.NA",
+   "primary_category": "math.NA"
+  },
+  {
+   "case": "bio-singlecell",
+   "id": "0907.2083",
+   "t0": "2024-09-07",
+   "for_positive": "0909.4061",
+   "window": "200907010000..200912312359",
+   "category": "math.NA",
+   "primary_category": "math.NA"
+  },
+  {
+   "case": "bio-singlecell",
+   "id": "0910.2013",
+   "t0": "2024-09-07",
+   "for_positive": "0909.4061",
+   "window": "200907010000..200912312359",
+   "category": "math.NA",
+   "primary_category": "math.NA"
+  },
+  {
+   "case": "bio-singlecell",
+   "id": "0912.3867",
+   "t0": "2024-09-07",
+   "for_positive": "0909.4061",
+   "window": "200907010000..200912312359",
+   "category": "math.NA",
+   "primary_category": "math.NA"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2503.00566",
+   "t0": "2024-09-09",
+   "for_positive": "2503.17821",
+   "window": "202501010000..202506302359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2504.01990",
+   "t0": "2024-09-09",
+   "for_positive": "2503.17821",
+   "window": "202501010000..202506302359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2501.18542",
+   "t0": "2024-09-09",
+   "for_positive": "2503.17821",
+   "window": "202501010000..202506302359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2504.03731",
+   "t0": "2024-09-09",
+   "for_positive": "2503.17821",
+   "window": "202501010000..202506302359",
+   "category": "cs.AI",
+   "primary_category": "cs.AI"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2506.23999",
+   "t0": "2024-09-09",
+   "for_positive": "2505.06771",
+   "window": "202501010000..202506302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2505.24853",
+   "t0": "2024-09-09",
+   "for_positive": "2505.06771",
+   "window": "202501010000..202506302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2507.00268",
+   "t0": "2024-09-09",
+   "for_positive": "2505.06771",
+   "window": "202501010000..202506302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "id": "2501.18516",
+   "t0": "2024-09-09",
+   "for_positive": "2505.06771",
+   "window": "202501010000..202506302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "diffusion",
+   "id": "2404.00377",
+   "t0": "2024-08-16",
+   "for_positive": "2403.06923",
+   "window": "202401010000..202406302359",
+   "category": "quant-ph",
+   "primary_category": "quant-ph"
+  },
+  {
+   "case": "diffusion",
+   "id": "2405.01250",
+   "t0": "2024-08-16",
+   "for_positive": "2403.06923",
+   "window": "202401010000..202406302359",
+   "category": "quant-ph",
+   "primary_category": "quant-ph"
+  },
+  {
+   "case": "diffusion",
+   "id": "2403.00182",
+   "t0": "2024-08-16",
+   "for_positive": "2403.06923",
+   "window": "202401010000..202406302359",
+   "category": "quant-ph",
+   "primary_category": "quant-ph"
+  },
+  {
+   "case": "diffusion",
+   "id": "2404.00517",
+   "t0": "2024-08-16",
+   "for_positive": "2403.06923",
+   "window": "202401010000..202406302359",
+   "category": "quant-ph",
+   "primary_category": "quant-ph"
+  },
+  {
+   "case": "diffusion",
+   "id": "2408.17424",
+   "t0": "2024-08-16",
+   "for_positive": "2408.12588",
+   "window": "202407010000..202412312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2412.00477",
+   "t0": "2024-08-16",
+   "for_positive": "2408.12588",
+   "window": "202407010000..202412312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2412.00465",
+   "t0": "2024-08-16",
+   "for_positive": "2408.12588",
+   "window": "202407010000..202412312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2410.00263",
+   "t0": "2024-08-16",
+   "for_positive": "2408.12588",
+   "window": "202407010000..202412312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2505.24866",
+   "t0": "2024-08-16",
+   "for_positive": "2504.07960",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2505.00220",
+   "t0": "2024-08-16",
+   "for_positive": "2504.07960",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2501.18698",
+   "t0": "2024-08-16",
+   "for_positive": "2504.07960",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2504.00185",
+   "t0": "2024-08-16",
+   "for_positive": "2504.07960",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2503.00531",
+   "t0": "2024-08-16",
+   "for_positive": "2504.12626",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2501.18504",
+   "t0": "2024-08-16",
+   "for_positive": "2504.12626",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2506.00208",
+   "t0": "2024-08-16",
+   "for_positive": "2504.12626",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2504.00139",
+   "t0": "2024-08-16",
+   "for_positive": "2504.12626",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2601.00139",
+   "t0": "2024-08-16",
+   "for_positive": "2509.14055",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2512.00993",
+   "t0": "2024-08-16",
+   "for_positive": "2509.14055",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2512.24948",
+   "t0": "2024-08-16",
+   "for_positive": "2509.14055",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2509.26631",
+   "t0": "2024-08-16",
+   "for_positive": "2509.14055",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2509.00451",
+   "t0": "2024-08-16",
+   "for_positive": "2510.04290",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2510.26795",
+   "t0": "2024-08-16",
+   "for_positive": "2510.04290",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2507.23006",
+   "t0": "2024-08-16",
+   "for_positive": "2510.04290",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2510.27020",
+   "t0": "2024-08-16",
+   "for_positive": "2510.04290",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2507.23042",
+   "t0": "2024-08-16",
+   "for_positive": "2511.22699",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2510.26865",
+   "t0": "2024-08-16",
+   "for_positive": "2511.22699",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2507.23027",
+   "t0": "2024-08-16",
+   "for_positive": "2511.22699",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "diffusion",
+   "id": "2507.22802",
+   "t0": "2024-08-16",
+   "for_positive": "2511.22699",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2011.14376",
+   "t0": "2022-01-28",
+   "for_positive": "2010.09990",
+   "window": "202007010000..202012312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2008.13630",
+   "t0": "2022-01-28",
+   "for_positive": "2010.09990",
+   "window": "202007010000..202012312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2009.14727",
+   "t0": "2022-01-28",
+   "for_positive": "2010.09990",
+   "window": "202007010000..202012312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2010.00070",
+   "t0": "2022-01-28",
+   "for_positive": "2010.09990",
+   "window": "202007010000..202012312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2204.00130",
+   "t0": "2022-01-28",
+   "for_positive": "2206.08515",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2201.12795",
+   "t0": "2022-01-28",
+   "for_positive": "2206.08515",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2205.00354",
+   "t0": "2022-01-28",
+   "for_positive": "2206.08515",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "divelab/DIG",
+   "id": "2203.00600",
+   "t0": "2022-01-28",
+   "for_positive": "2206.08515",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "id": "2104.15139",
+   "t0": "2024-07-14",
+   "for_positive": "2104.00298",
+   "window": "202101010000..202106302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "id": "2105.14391",
+   "t0": "2024-07-14",
+   "for_positive": "2104.00298",
+   "window": "202101010000..202106302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "id": "2103.17261",
+   "t0": "2024-07-14",
+   "for_positive": "2104.00298",
+   "window": "202101010000..202106302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "id": "2103.01050",
+   "t0": "2024-07-14",
+   "for_positive": "2104.00298",
+   "window": "202101010000..202106302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "id": "2305.19377",
+   "t0": "2024-04-02",
+   "for_positive": "2302.10787",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "id": "2303.00599",
+   "t0": "2024-04-02",
+   "for_positive": "2302.10787",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "id": "2304.01008",
+   "t0": "2024-04-02",
+   "for_positive": "2302.10787",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "id": "2301.13293",
+   "t0": "2024-04-02",
+   "for_positive": "2302.10787",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "enlite-ai/maze",
+   "id": "1601.07996",
+   "t0": "2023-11-30",
+   "for_positive": "1602.01783",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "enlite-ai/maze",
+   "id": "1603.08661",
+   "t0": "2023-11-30",
+   "for_positive": "1602.01783",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "enlite-ai/maze",
+   "id": "1604.08220",
+   "t0": "2023-11-30",
+   "for_positive": "1602.01783",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "enlite-ai/maze",
+   "id": "1605.09227",
+   "t0": "2023-11-30",
+   "for_positive": "1602.01783",
+   "window": "201601010000..201606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2407.00648",
+   "t0": "2024-09-15",
+   "for_positive": "2402.18668",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2405.20477",
+   "t0": "2024-09-15",
+   "for_positive": "2402.18668",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2404.00604",
+   "t0": "2024-09-15",
+   "for_positive": "2402.18668",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2404.00727",
+   "t0": "2024-09-15",
+   "for_positive": "2402.18668",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2407.00782",
+   "t0": "2024-09-15",
+   "for_positive": "2405.21022",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2403.00071",
+   "t0": "2024-09-15",
+   "for_positive": "2405.21022",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2403.00165",
+   "t0": "2024-09-15",
+   "for_positive": "2405.21022",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2405.20315",
+   "t0": "2024-09-15",
+   "for_positive": "2405.21022",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2501.18119",
+   "t0": "2024-09-15",
+   "for_positive": "2502.11089",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2503.00491",
+   "t0": "2024-09-15",
+   "for_positive": "2502.11089",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2503.24307",
+   "t0": "2024-09-15",
+   "for_positive": "2502.11089",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2501.18154",
+   "t0": "2024-09-15",
+   "for_positive": "2502.11089",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2505.00169",
+   "t0": "2024-09-15",
+   "for_positive": "2502.13189",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2503.00592",
+   "t0": "2024-09-15",
+   "for_positive": "2502.13189",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2504.00174",
+   "t0": "2024-09-15",
+   "for_positive": "2502.13189",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2504.00194",
+   "t0": "2024-09-15",
+   "for_positive": "2502.13189",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2504.21801",
+   "t0": "2024-09-15",
+   "for_positive": "2503.14456",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2503.04793",
+   "t0": "2024-09-15",
+   "for_positive": "2503.14456",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2506.00210",
+   "t0": "2024-09-15",
+   "for_positive": "2503.14456",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2503.00356",
+   "t0": "2024-09-15",
+   "for_positive": "2503.14456",
+   "window": "202501010000..202506302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2502.06800",
+   "t0": "2024-09-15",
+   "for_positive": "2506.04761",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2507.02974",
+   "t0": "2024-09-15",
+   "for_positive": "2506.04761",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2504.00282",
+   "t0": "2024-09-15",
+   "for_positive": "2506.04761",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2507.00259",
+   "t0": "2024-09-15",
+   "for_positive": "2506.04761",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2504.00232",
+   "t0": "2024-09-15",
+   "for_positive": "2506.05233",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2506.00302",
+   "t0": "2024-09-15",
+   "for_positive": "2506.05233",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2503.00537",
+   "t0": "2024-09-15",
+   "for_positive": "2506.05233",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2502.01651",
+   "t0": "2024-09-15",
+   "for_positive": "2506.05233",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2509.00375",
+   "t0": "2024-09-15",
+   "for_positive": "2512.02556",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2510.05130",
+   "t0": "2024-09-15",
+   "for_positive": "2512.02556",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2510.26683",
+   "t0": "2024-09-15",
+   "for_positive": "2512.02556",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "id": "2507.23104",
+   "t0": "2024-09-15",
+   "for_positive": "2512.02556",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "1705.10503",
+   "t0": "2023-06-14",
+   "for_positive": "1703.05175",
+   "window": "201701010000..201706302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "1703.10034",
+   "t0": "2023-06-14",
+   "for_positive": "1703.05175",
+   "window": "201701010000..201706302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "1705.00034",
+   "t0": "2023-06-14",
+   "for_positive": "1703.05175",
+   "window": "201701010000..201706302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "1705.00125",
+   "t0": "2023-06-14",
+   "for_positive": "1703.05175",
+   "window": "201701010000..201706302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "2401.17092",
+   "t0": "2023-06-14",
+   "for_positive": "2402.12372",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "2404.00629",
+   "t0": "2023-06-14",
+   "for_positive": "2402.12372",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "2404.00828",
+   "t0": "2023-06-14",
+   "for_positive": "2402.12372",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "flairNLP/flair",
+   "id": "2405.20404",
+   "t0": "2023-06-14",
+   "for_positive": "2402.12372",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "freewym/espresso",
+   "id": "2201.12502",
+   "t0": "2022-09-15",
+   "for_positive": "2203.16502",
+   "window": "202201010000..202206302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "freewym/espresso",
+   "id": "2205.00029",
+   "t0": "2022-09-15",
+   "for_positive": "2203.16502",
+   "window": "202201010000..202206302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "freewym/espresso",
+   "id": "2203.00274",
+   "t0": "2022-09-15",
+   "for_positive": "2203.16502",
+   "window": "202201010000..202206302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "freewym/espresso",
+   "id": "2204.14268",
+   "t0": "2022-09-15",
+   "for_positive": "2203.16502",
+   "window": "202201010000..202206302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2312.00184",
+   "t0": "2024-07-12",
+   "for_positive": "2307.09283",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2310.19795",
+   "t0": "2024-07-12",
+   "for_positive": "2307.09283",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2310.19752",
+   "t0": "2024-07-12",
+   "for_positive": "2307.09283",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2310.00454",
+   "t0": "2024-07-12",
+   "for_positive": "2307.09283",
+   "window": "202307010000..202312312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2409.00160",
+   "t0": "2024-07-12",
+   "for_positive": "2409.03137",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2407.21217",
+   "t0": "2024-07-12",
+   "for_positive": "2409.03137",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2408.17366",
+   "t0": "2024-07-12",
+   "for_positive": "2409.03137",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "frgfm/holocron",
+   "id": "2410.23467",
+   "t0": "2024-07-12",
+   "for_positive": "2409.03137",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "geomstats/geomstats",
+   "id": "2401.12900",
+   "t0": "2024-08-30",
+   "for_positive": "2406.10437",
+   "window": "202401010000..202406302359",
+   "category": "cs.GR",
+   "primary_category": "cs.GR"
+  },
+  {
+   "case": "geomstats/geomstats",
+   "id": "2404.15661",
+   "t0": "2024-08-30",
+   "for_positive": "2406.10437",
+   "window": "202401010000..202406302359",
+   "category": "cs.GR",
+   "primary_category": "cs.GR"
+  },
+  {
+   "case": "geomstats/geomstats",
+   "id": "2405.17193",
+   "t0": "2024-08-30",
+   "for_positive": "2406.10437",
+   "window": "202401010000..202406302359",
+   "category": "cs.GR",
+   "primary_category": "cs.GR"
+  },
+  {
+   "case": "geomstats/geomstats",
+   "id": "2405.17811",
+   "t0": "2024-08-30",
+   "for_positive": "2406.10437",
+   "window": "202401010000..202406302359",
+   "category": "cs.GR",
+   "primary_category": "cs.GR"
+  },
+  {
+   "case": "graph",
+   "id": "1705.09932",
+   "t0": "2024-08-10",
+   "for_positive": "1706.03762",
+   "window": "201701010000..201706302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1701.08303",
+   "t0": "2024-08-10",
+   "for_positive": "1706.03762",
+   "window": "201701010000..201706302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1706.01758",
+   "t0": "2024-08-10",
+   "for_positive": "1706.03762",
+   "window": "201701010000..201706302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1703.00317",
+   "t0": "2024-08-10",
+   "for_positive": "1706.03762",
+   "window": "201701010000..201706302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1807.10800",
+   "t0": "2024-08-10",
+   "for_positive": "1810.04805",
+   "window": "201807010000..201812312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1810.12897",
+   "t0": "2024-08-10",
+   "for_positive": "1810.04805",
+   "window": "201807010000..201812312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1812.10757",
+   "t0": "2024-08-10",
+   "for_positive": "1810.04805",
+   "window": "201807010000..201812312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "1810.03444",
+   "t0": "2024-08-10",
+   "for_positive": "1810.04805",
+   "window": "201807010000..201812312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "graph",
+   "id": "2009.14712",
+   "t0": "2024-08-10",
+   "for_positive": "2010.11929",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "graph",
+   "id": "2008.13196",
+   "t0": "2024-08-10",
+   "for_positive": "2010.11929",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "graph",
+   "id": "2008.13015",
+   "t0": "2024-08-10",
+   "for_positive": "2010.11929",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "graph",
+   "id": "2009.14798",
+   "t0": "2024-08-10",
+   "for_positive": "2010.11929",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "graph",
+   "id": "2106.14011",
+   "t0": "2024-08-10",
+   "for_positive": "2106.09671",
+   "window": "202101010000..202106302359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "graph",
+   "id": "2106.00762",
+   "t0": "2024-08-10",
+   "for_positive": "2106.09671",
+   "window": "202101010000..202106302359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "graph",
+   "id": "2103.00597",
+   "t0": "2024-08-10",
+   "for_positive": "2106.09671",
+   "window": "202101010000..202106302359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "graph",
+   "id": "2104.13754",
+   "t0": "2024-08-10",
+   "for_positive": "2106.09671",
+   "window": "202101010000..202106302359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "graph",
+   "id": "2206.15476",
+   "t0": "2024-08-10",
+   "for_positive": "2201.08821",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2205.15437",
+   "t0": "2024-08-10",
+   "for_positive": "2201.08821",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2201.12830",
+   "t0": "2024-08-10",
+   "for_positive": "2201.08821",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2205.00256",
+   "t0": "2024-08-10",
+   "for_positive": "2201.08821",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2210.00044",
+   "t0": "2024-08-10",
+   "for_positive": "2210.14709",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2211.17226",
+   "t0": "2024-08-10",
+   "for_positive": "2210.14709",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2208.14338",
+   "t0": "2024-08-10",
+   "for_positive": "2210.14709",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2301.01596",
+   "t0": "2024-08-10",
+   "for_positive": "2210.14709",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2308.16279",
+   "t0": "2024-08-10",
+   "for_positive": "2312.04615",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2312.00237",
+   "t0": "2024-08-10",
+   "for_positive": "2312.04615",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2401.00521",
+   "t0": "2024-08-10",
+   "for_positive": "2312.04615",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2312.00232",
+   "t0": "2024-08-10",
+   "for_positive": "2312.04615",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2408.17376",
+   "t0": "2024-08-10",
+   "for_positive": "2409.14500",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2408.17366",
+   "t0": "2024-08-10",
+   "for_positive": "2409.14500",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2410.00171",
+   "t0": "2024-08-10",
+   "for_positive": "2409.14500",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "graph",
+   "id": "2410.23434",
+   "t0": "2024-08-10",
+   "for_positive": "2409.14500",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2407.18377",
+   "t0": "2024-05-05",
+   "for_positive": "2409.01578",
+   "window": "202407010000..202412312359",
+   "category": "stat.AP",
+   "primary_category": "stat.AP"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2410.20726",
+   "t0": "2024-05-05",
+   "for_positive": "2409.01578",
+   "window": "202407010000..202412312359",
+   "category": "stat.AP",
+   "primary_category": "stat.AP"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2409.18672",
+   "t0": "2024-05-05",
+   "for_positive": "2409.01578",
+   "window": "202407010000..202412312359",
+   "category": "stat.AP",
+   "primary_category": "stat.AP"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2501.00126",
+   "t0": "2024-05-05",
+   "for_positive": "2409.01578",
+   "window": "202407010000..202412312359",
+   "category": "stat.AP",
+   "primary_category": "stat.AP"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2510.25507",
+   "t0": "2024-05-05",
+   "for_positive": "2510.03665",
+   "window": "202507010000..202512312359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2512.00631",
+   "t0": "2024-05-05",
+   "for_positive": "2510.03665",
+   "window": "202507010000..202512312359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2507.21714",
+   "t0": "2024-05-05",
+   "for_positive": "2510.03665",
+   "window": "202507010000..202512312359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "grf-labs/grf",
+   "id": "2512.00916",
+   "t0": "2024-05-05",
+   "for_positive": "2510.03665",
+   "window": "202507010000..202512312359",
+   "category": "stat.ME",
+   "primary_category": "stat.ME"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2305.00217",
+   "t0": "2024-09-10",
+   "for_positive": "2306.12925",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2306.17674",
+   "t0": "2024-09-10",
+   "for_positive": "2306.12925",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2305.18619",
+   "t0": "2024-09-10",
+   "for_positive": "2306.12925",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2307.00108",
+   "t0": "2024-09-10",
+   "for_positive": "2306.12925",
+   "window": "202301010000..202306302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2410.21951",
+   "t0": "2024-09-10",
+   "for_positive": "2407.10759",
+   "window": "202407010000..202412312359",
+   "category": "eess.AS",
+   "primary_category": "eess.AS"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2408.17431",
+   "t0": "2024-09-10",
+   "for_positive": "2407.10759",
+   "window": "202407010000..202412312359",
+   "category": "eess.AS",
+   "primary_category": "eess.AS"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2408.16221",
+   "t0": "2024-09-10",
+   "for_positive": "2407.10759",
+   "window": "202407010000..202412312359",
+   "category": "eess.AS",
+   "primary_category": "eess.AS"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2408.06370",
+   "t0": "2024-09-10",
+   "for_positive": "2407.10759",
+   "window": "202407010000..202412312359",
+   "category": "eess.AS",
+   "primary_category": "eess.AS"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2509.26207",
+   "t0": "2024-09-10",
+   "for_positive": "2507.13264",
+   "window": "202507010000..202512312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2512.20407",
+   "t0": "2024-09-10",
+   "for_positive": "2507.13264",
+   "window": "202507010000..202512312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2507.20052",
+   "t0": "2024-09-10",
+   "for_positive": "2507.13264",
+   "window": "202507010000..202512312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "id": "2508.20796",
+   "t0": "2024-09-10",
+   "for_positive": "2507.13264",
+   "window": "202507010000..202512312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "1710.00017",
+   "t0": "2024-09-11",
+   "for_positive": "1710.07283",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "1711.11423",
+   "t0": "2024-09-11",
+   "for_positive": "1710.07283",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "1709.10222",
+   "t0": "2024-09-11",
+   "for_positive": "1710.07283",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "1712.09988",
+   "t0": "2024-09-11",
+   "for_positive": "1710.07283",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2203.00593",
+   "t0": "2024-09-11",
+   "for_positive": "2206.08917",
+   "window": "202201010000..202206302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2205.15166",
+   "t0": "2024-09-11",
+   "for_positive": "2206.08917",
+   "window": "202201010000..202206302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2203.00640",
+   "t0": "2024-09-11",
+   "for_positive": "2206.08917",
+   "window": "202201010000..202206302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2207.01506",
+   "t0": "2024-09-11",
+   "for_positive": "2206.08917",
+   "window": "202201010000..202206302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2205.15403",
+   "t0": "2024-09-11",
+   "for_positive": "2206.11990",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2207.00118",
+   "t0": "2024-09-11",
+   "for_positive": "2206.11990",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2201.12760",
+   "t0": "2024-09-11",
+   "for_positive": "2206.11990",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2201.12848",
+   "t0": "2024-09-11",
+   "for_positive": "2206.11990",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2210.16393",
+   "t0": "2024-09-11",
+   "for_positive": "2210.00579",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2210.00097",
+   "t0": "2024-09-11",
+   "for_positive": "2210.00579",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2208.13993",
+   "t0": "2024-09-11",
+   "for_positive": "2210.00579",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2301.03395",
+   "t0": "2024-09-11",
+   "for_positive": "2210.00579",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2209.15088",
+   "t0": "2024-09-11",
+   "for_positive": "2210.13587",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2301.00143",
+   "t0": "2024-09-11",
+   "for_positive": "2210.13587",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2209.15629",
+   "t0": "2024-09-11",
+   "for_positive": "2210.13587",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2209.14904",
+   "t0": "2024-09-11",
+   "for_positive": "2210.13587",
+   "window": "202207010000..202212312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2309.17131",
+   "t0": "2024-09-11",
+   "for_positive": "2310.07864",
+   "window": "202307010000..202312312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2308.15744",
+   "t0": "2024-09-11",
+   "for_positive": "2310.07864",
+   "window": "202307010000..202312312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2310.00440",
+   "t0": "2024-09-11",
+   "for_positive": "2310.07864",
+   "window": "202307010000..202312312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2312.17534",
+   "t0": "2024-09-11",
+   "for_positive": "2310.07864",
+   "window": "202307010000..202312312359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2401.16984",
+   "t0": "2024-09-11",
+   "for_positive": "2401.05848",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2401.16887",
+   "t0": "2024-09-11",
+   "for_positive": "2401.05848",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2404.19098",
+   "t0": "2024-09-11",
+   "for_positive": "2401.05848",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2404.00659",
+   "t0": "2024-09-11",
+   "for_positive": "2401.05848",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2503.24208",
+   "t0": "2024-09-11",
+   "for_positive": "2502.12147",
+   "window": "202501010000..202506302359",
+   "category": "physics.comp-ph",
+   "primary_category": "physics.comp-ph"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2503.23034",
+   "t0": "2024-09-11",
+   "for_positive": "2502.12147",
+   "window": "202501010000..202506302359",
+   "category": "physics.comp-ph",
+   "primary_category": "physics.comp-ph"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2506.22559",
+   "t0": "2024-09-11",
+   "for_positive": "2502.12147",
+   "window": "202501010000..202506302359",
+   "category": "physics.comp-ph",
+   "primary_category": "physics.comp-ph"
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "id": "2503.22652",
+   "t0": "2024-09-11",
+   "for_positive": "2502.12147",
+   "window": "202501010000..202506302359",
+   "category": "physics.comp-ph",
+   "primary_category": "physics.comp-ph"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2203.17209",
+   "t0": "2024-09-03",
+   "for_positive": "2203.02714",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2205.00281",
+   "t0": "2024-09-03",
+   "for_positive": "2203.02714",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2203.17159",
+   "t0": "2024-09-03",
+   "for_positive": "2203.02714",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2201.12803",
+   "t0": "2024-09-03",
+   "for_positive": "2203.02714",
+   "window": "202201010000..202206302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2410.00273",
+   "t0": "2024-09-03",
+   "for_positive": "2410.20625",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2407.21130",
+   "t0": "2024-09-03",
+   "for_positive": "2410.20625",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2410.23451",
+   "t0": "2024-09-03",
+   "for_positive": "2410.20625",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2409.00160",
+   "t0": "2024-09-03",
+   "for_positive": "2410.20625",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2409.00284",
+   "t0": "2024-09-03",
+   "for_positive": "2412.05270",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2410.23440",
+   "t0": "2024-09-03",
+   "for_positive": "2412.05270",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2407.21243",
+   "t0": "2024-09-03",
+   "for_positive": "2412.05270",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2407.21159",
+   "t0": "2024-09-03",
+   "for_positive": "2412.05270",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2407.21121",
+   "t0": "2024-09-03",
+   "for_positive": "2412.11768",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2410.23437",
+   "t0": "2024-09-03",
+   "for_positive": "2412.11768",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2412.00423",
+   "t0": "2024-09-03",
+   "for_positive": "2412.11768",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2410.00232",
+   "t0": "2024-09-03",
+   "for_positive": "2412.11768",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2504.00254",
+   "t0": "2024-09-03",
+   "for_positive": "2501.11584",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2503.00539",
+   "t0": "2024-09-03",
+   "for_positive": "2501.11584",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2503.00634",
+   "t0": "2024-09-03",
+   "for_positive": "2501.11584",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2503.00535",
+   "t0": "2024-09-03",
+   "for_positive": "2501.11584",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2504.00174",
+   "t0": "2024-09-03",
+   "for_positive": "2502.07752",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2501.18790",
+   "t0": "2024-09-03",
+   "for_positive": "2502.07752",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2506.00299",
+   "t0": "2024-09-03",
+   "for_positive": "2502.07752",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2502.01651",
+   "t0": "2024-09-03",
+   "for_positive": "2502.07752",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2503.00528",
+   "t0": "2024-09-03",
+   "for_positive": "2506.07254",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2507.02974",
+   "t0": "2024-09-03",
+   "for_positive": "2506.07254",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2505.00189",
+   "t0": "2024-09-03",
+   "for_positive": "2506.07254",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2505.03785",
+   "t0": "2024-09-03",
+   "for_positive": "2506.07254",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2508.21431",
+   "t0": "2024-09-03",
+   "for_positive": "2507.08963",
+   "window": "202507010000..202512312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2509.25965",
+   "t0": "2024-09-03",
+   "for_positive": "2507.08963",
+   "window": "202507010000..202512312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2512.00268",
+   "t0": "2024-09-03",
+   "for_positive": "2507.08963",
+   "window": "202507010000..202512312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "id": "2511.22916",
+   "t0": "2024-09-03",
+   "for_positive": "2507.08963",
+   "window": "202507010000..202512312359",
+   "category": "math.OC",
+   "primary_category": "math.OC"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1801.09627",
+   "t0": "2024-09-04",
+   "for_positive": "1802.05640",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1803.11410",
+   "t0": "2024-09-04",
+   "for_positive": "1802.05640",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1801.10247",
+   "t0": "2024-09-04",
+   "for_positive": "1802.05640",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1801.10242",
+   "t0": "2024-09-04",
+   "for_positive": "1802.05640",
+   "window": "201801010000..201806302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1806.11099",
+   "t0": "2024-09-04",
+   "for_positive": "1804.01000",
+   "window": "201801010000..201806302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1804.11283",
+   "t0": "2024-09-04",
+   "for_positive": "1804.01000",
+   "window": "201801010000..201806302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1805.11762",
+   "t0": "2024-09-04",
+   "for_positive": "1804.01000",
+   "window": "201801010000..201806302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "id": "1806.10348",
+   "t0": "2024-09-04",
+   "for_positive": "1804.01000",
+   "window": "201801010000..201806302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "llminfer",
+   "id": "2112.00141",
+   "t0": "2024-08-16",
+   "for_positive": "2107.03006",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "llminfer",
+   "id": "2107.14795",
+   "t0": "2024-08-16",
+   "for_positive": "2107.03006",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "llminfer",
+   "id": "2111.15646",
+   "t0": "2024-08-16",
+   "for_positive": "2107.03006",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "llminfer",
+   "id": "2108.13092",
+   "t0": "2024-08-16",
+   "for_positive": "2107.03006",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "llminfer",
+   "id": "2401.17092",
+   "t0": "2024-08-16",
+   "for_positive": "2406.17415",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "llminfer",
+   "id": "2403.00180",
+   "t0": "2024-08-16",
+   "for_positive": "2406.17415",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "llminfer",
+   "id": "2404.19714",
+   "t0": "2024-08-16",
+   "for_positive": "2406.17415",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "llminfer",
+   "id": "2402.00075",
+   "t0": "2024-08-16",
+   "for_positive": "2406.17415",
+   "window": "202401010000..202406302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "mat-phonon",
+   "id": "2407.00255",
+   "t0": "2024-09-11",
+   "for_positive": "2401.17531",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "mat-phonon",
+   "id": "2401.17339",
+   "t0": "2024-09-11",
+   "for_positive": "2401.17531",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "mat-phonon",
+   "id": "2403.00151",
+   "t0": "2024-09-11",
+   "for_positive": "2401.17531",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "mat-phonon",
+   "id": "2401.17414",
+   "t0": "2024-09-11",
+   "for_positive": "2401.17531",
+   "window": "202401010000..202406302359",
+   "category": "cond-mat.mtrl-sci",
+   "primary_category": "cond-mat.mtrl-sci"
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "id": "2310.19991",
+   "t0": "2023-05-06",
+   "for_positive": "2308.12029",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "id": "2310.00401",
+   "t0": "2023-05-06",
+   "for_positive": "2308.12029",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "id": "2307.16152",
+   "t0": "2023-05-06",
+   "for_positive": "2308.12029",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "id": "2312.00237",
+   "t0": "2023-05-06",
+   "for_positive": "2308.12029",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2011.00094",
+   "t0": "2024-07-22",
+   "for_positive": "2009.03106",
+   "window": "202007010000..202012312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2012.15637",
+   "t0": "2024-07-22",
+   "for_positive": "2009.03106",
+   "window": "202007010000..202012312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2010.16418",
+   "t0": "2024-07-22",
+   "for_positive": "2009.03106",
+   "window": "202007010000..202012312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2010.02006",
+   "t0": "2024-07-22",
+   "for_positive": "2009.03106",
+   "window": "202007010000..202012312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2104.00054",
+   "t0": "2024-07-22",
+   "for_positive": "2106.09685",
+   "window": "202101010000..202106302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2105.14444",
+   "t0": "2024-07-22",
+   "for_positive": "2106.09685",
+   "window": "202101010000..202106302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2105.14241",
+   "t0": "2024-07-22",
+   "for_positive": "2106.09685",
+   "window": "202101010000..202106302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2101.12015",
+   "t0": "2024-07-22",
+   "for_positive": "2106.09685",
+   "window": "202101010000..202106302359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2107.14707",
+   "t0": "2024-07-22",
+   "for_positive": "2110.05679",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2108.00106",
+   "t0": "2024-07-22",
+   "for_positive": "2110.05679",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2108.00819",
+   "t0": "2024-07-22",
+   "for_positive": "2110.05679",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "id": "2111.00289",
+   "t0": "2024-07-22",
+   "for_positive": "2110.05679",
+   "window": "202107010000..202112312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2307.00038",
+   "t0": "2024-07-04",
+   "for_positive": "2303.16839",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2303.18193",
+   "t0": "2024-07-04",
+   "for_positive": "2303.16839",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2301.13096",
+   "t0": "2024-07-04",
+   "for_positive": "2303.16839",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2305.07663",
+   "t0": "2024-07-04",
+   "for_positive": "2303.16839",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2503.24382",
+   "t0": "2024-07-04",
+   "for_positive": "2502.14786",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2504.21718",
+   "t0": "2024-07-04",
+   "for_positive": "2502.14786",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2504.00247",
+   "t0": "2024-07-04",
+   "for_positive": "2502.14786",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2507.00224",
+   "t0": "2024-07-04",
+   "for_positive": "2502.14786",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2501.18729",
+   "t0": "2024-07-04",
+   "for_positive": "2504.13181",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2501.18674",
+   "t0": "2024-07-04",
+   "for_positive": "2504.13181",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2505.24876",
+   "t0": "2024-07-04",
+   "for_positive": "2504.13181",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "id": "2504.00150",
+   "t0": "2024-07-04",
+   "for_positive": "2504.13181",
+   "window": "202501010000..202506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mllam/neural-lam",
+   "id": "2405.20516",
+   "t0": "2024-08-20",
+   "for_positive": "2406.04759",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "mllam/neural-lam",
+   "id": "2404.00798",
+   "t0": "2024-08-20",
+   "for_positive": "2406.04759",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "mllam/neural-lam",
+   "id": "2405.20482",
+   "t0": "2024-08-20",
+   "for_positive": "2406.04759",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "mllam/neural-lam",
+   "id": "2401.17426",
+   "t0": "2024-08-20",
+   "for_positive": "2406.04759",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "mlpack/mlpack",
+   "id": "1801.09847",
+   "t0": "2024-09-11",
+   "for_positive": "1804.02767",
+   "window": "201801010000..201806302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlpack/mlpack",
+   "id": "1803.00891",
+   "t0": "2024-09-11",
+   "for_positive": "1804.02767",
+   "window": "201801010000..201806302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlpack/mlpack",
+   "id": "1804.00113",
+   "t0": "2024-09-11",
+   "for_positive": "1804.02767",
+   "window": "201801010000..201806302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "mlpack/mlpack",
+   "id": "1806.11517",
+   "t0": "2024-09-11",
+   "for_positive": "1804.02767",
+   "window": "201801010000..201806302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2410.21641",
+   "t0": "2024-09-14",
+   "for_positive": "2407.04051",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2411.19770",
+   "t0": "2024-09-14",
+   "for_positive": "2407.04051",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2407.19823",
+   "t0": "2024-09-14",
+   "for_positive": "2407.04051",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2409.19270",
+   "t0": "2024-09-14",
+   "for_positive": "2407.04051",
+   "window": "202407010000..202412312359",
+   "category": "cs.SD",
+   "primary_category": "cs.SD"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2510.26912",
+   "t0": "2024-09-14",
+   "for_positive": "2509.12508",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2509.00388",
+   "t0": "2024-09-14",
+   "for_positive": "2509.12508",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2507.22829",
+   "t0": "2024-09-14",
+   "for_positive": "2509.12508",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "modelscope/FunASR",
+   "id": "2507.22968",
+   "t0": "2024-09-14",
+   "for_positive": "2509.12508",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "id": "2010.16279",
+   "t0": "2022-10-11",
+   "for_positive": "2010.04159",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "id": "2011.14943",
+   "t0": "2022-10-11",
+   "for_positive": "2010.04159",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "id": "2008.12873",
+   "t0": "2022-10-11",
+   "for_positive": "2010.04159",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "id": "2007.15610",
+   "t0": "2022-10-11",
+   "for_positive": "2010.04159",
+   "window": "202007010000..202012312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "1910.14084",
+   "t0": "2024-08-16",
+   "for_positive": "1909.08053",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "1907.12316",
+   "t0": "2024-08-16",
+   "for_positive": "1909.08053",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "1909.13466",
+   "t0": "2024-08-16",
+   "for_positive": "1909.08053",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "1911.12798",
+   "t0": "2024-08-16",
+   "for_positive": "1909.08053",
+   "window": "201907010000..201912312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "2210.00044",
+   "t0": "2024-08-16",
+   "for_positive": "2212.04089",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2210.00090",
+   "t0": "2024-08-16",
+   "for_positive": "2212.04089",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2208.14318",
+   "t0": "2024-08-16",
+   "for_positive": "2212.04089",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2210.16918",
+   "t0": "2024-08-16",
+   "for_positive": "2212.04089",
+   "window": "202207010000..202212312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2404.00686",
+   "t0": "2024-08-16",
+   "for_positive": "2405.11157",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2404.00781",
+   "t0": "2024-08-16",
+   "for_positive": "2405.11157",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2401.17443",
+   "t0": "2024-08-16",
+   "for_positive": "2405.11157",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2405.00217",
+   "t0": "2024-08-16",
+   "for_positive": "2405.11157",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2407.01636",
+   "t0": "2024-08-16",
+   "for_positive": "2405.17991",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2405.00196",
+   "t0": "2024-08-16",
+   "for_positive": "2405.17991",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2404.00701",
+   "t0": "2024-08-16",
+   "for_positive": "2405.17991",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2404.00742",
+   "t0": "2024-08-16",
+   "for_positive": "2405.17991",
+   "window": "202401010000..202406302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2402.00072",
+   "t0": "2024-08-16",
+   "for_positive": "2406.05223",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2405.20542",
+   "t0": "2024-08-16",
+   "for_positive": "2406.05223",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2401.17178",
+   "t0": "2024-08-16",
+   "for_positive": "2406.05223",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2407.00710",
+   "t0": "2024-08-16",
+   "for_positive": "2406.05223",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2501.18739",
+   "t0": "2024-08-16",
+   "for_positive": "2506.00799",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2501.18731",
+   "t0": "2024-08-16",
+   "for_positive": "2506.00799",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2506.00209",
+   "t0": "2024-08-16",
+   "for_positive": "2506.00799",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2502.06800",
+   "t0": "2024-08-16",
+   "for_positive": "2506.00799",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "peft",
+   "id": "2509.00388",
+   "t0": "2024-08-16",
+   "for_positive": "2509.15974",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "2510.05130",
+   "t0": "2024-08-16",
+   "for_positive": "2509.15974",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "2509.04480",
+   "t0": "2024-08-16",
+   "for_positive": "2509.15974",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "2510.01279",
+   "t0": "2024-08-16",
+   "for_positive": "2509.15974",
+   "window": "202507010000..202512312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "peft",
+   "id": "2509.26621",
+   "t0": "2024-08-16",
+   "for_positive": "2512.07703",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2512.25066",
+   "t0": "2024-08-16",
+   "for_positive": "2512.07703",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2507.22825",
+   "t0": "2024-08-16",
+   "for_positive": "2512.07703",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "peft",
+   "id": "2512.00995",
+   "t0": "2024-08-16",
+   "for_positive": "2512.07703",
+   "window": "202507010000..202512312359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "rag",
+   "id": "2208.00108",
+   "t0": "2023-10-25",
+   "for_positive": "2212.01340",
+   "window": "202207010000..202212312359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2210.15142",
+   "t0": "2023-10-25",
+   "for_positive": "2212.01340",
+   "window": "202207010000..202212312359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2211.15743",
+   "t0": "2023-10-25",
+   "for_positive": "2212.01340",
+   "window": "202207010000..202212312359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2211.14876",
+   "t0": "2023-10-25",
+   "for_positive": "2212.01340",
+   "window": "202207010000..202212312359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2305.18952",
+   "t0": "2023-10-25",
+   "for_positive": "2303.00807",
+   "window": "202301010000..202306302359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2303.04710",
+   "t0": "2023-10-25",
+   "for_positive": "2303.00807",
+   "window": "202301010000..202306302359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2305.19019",
+   "t0": "2023-10-25",
+   "for_positive": "2303.00807",
+   "window": "202301010000..202306302359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "rag",
+   "id": "2301.12660",
+   "t0": "2023-10-25",
+   "for_positive": "2303.00807",
+   "window": "202301010000..202306302359",
+   "category": "cs.IR",
+   "primary_category": "cs.IR"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "1709.10323",
+   "t0": "2024-09-12",
+   "for_positive": "1711.01861",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "1710.10793",
+   "t0": "2024-09-12",
+   "for_positive": "1711.01861",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "1708.08282",
+   "t0": "2024-09-12",
+   "for_positive": "1711.01861",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "1709.10152",
+   "t0": "2024-09-12",
+   "for_positive": "1711.01861",
+   "window": "201707010000..201712312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "2509.00263",
+   "t0": "2024-09-12",
+   "for_positive": "2508.12939",
+   "window": "202507010000..202512312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "2512.00668",
+   "t0": "2024-09-12",
+   "for_positive": "2508.12939",
+   "window": "202507010000..202512312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "2512.23927",
+   "t0": "2024-09-12",
+   "for_positive": "2508.12939",
+   "window": "202507010000..202512312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "id": "2510.25770",
+   "t0": "2024-09-12",
+   "for_positive": "2508.12939",
+   "window": "202507010000..202512312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "1503.00040",
+   "t0": "2023-07-13",
+   "for_positive": "1505.04597",
+   "window": "201501010000..201506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "1503.06813",
+   "t0": "2023-07-13",
+   "for_positive": "1505.04597",
+   "window": "201501010000..201506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "1505.07930",
+   "t0": "2023-07-13",
+   "for_positive": "1505.04597",
+   "window": "201501010000..201506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "1504.07958",
+   "t0": "2023-07-13",
+   "for_positive": "1505.04597",
+   "window": "201501010000..201506302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2306.17659",
+   "t0": "2023-07-13",
+   "for_positive": "2304.07193",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2305.00434",
+   "t0": "2023-07-13",
+   "for_positive": "2304.07193",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2303.00865",
+   "t0": "2023-07-13",
+   "for_positive": "2304.07193",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2303.00716",
+   "t0": "2023-07-13",
+   "for_positive": "2304.07193",
+   "window": "202301010000..202306302359",
+   "category": "cs.CV",
+   "primary_category": "cs.CV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2309.16210",
+   "t0": "2023-07-13",
+   "for_positive": "2309.07778",
+   "window": "202307010000..202312312359",
+   "category": "eess.IV",
+   "primary_category": "eess.IV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2311.18173",
+   "t0": "2023-07-13",
+   "for_positive": "2309.07778",
+   "window": "202307010000..202312312359",
+   "category": "eess.IV",
+   "primary_category": "eess.IV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2311.17515",
+   "t0": "2023-07-13",
+   "for_positive": "2309.07778",
+   "window": "202307010000..202312312359",
+   "category": "eess.IV",
+   "primary_category": "eess.IV"
+  },
+  {
+   "case": "slideflow/slideflow",
+   "id": "2309.17223",
+   "t0": "2023-07-13",
+   "for_positive": "2309.07778",
+   "window": "202307010000..202312312359",
+   "category": "eess.IV",
+   "primary_category": "eess.IV"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1411.3561",
+   "t0": "2019-11-08",
+   "for_positive": "1412.6575",
+   "window": "201407010000..201412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1407.2918",
+   "t0": "2019-11-08",
+   "for_positive": "1412.6575",
+   "window": "201407010000..201412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1409.4169",
+   "t0": "2019-11-08",
+   "for_positive": "1412.6575",
+   "window": "201407010000..201412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1407.8215",
+   "t0": "2019-11-08",
+   "for_positive": "1412.6575",
+   "window": "201407010000..201412312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1710.11248",
+   "t0": "2019-11-08",
+   "for_positive": "1710.09599",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1708.08813",
+   "t0": "2019-11-08",
+   "for_positive": "1710.09599",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1711.11294",
+   "t0": "2019-11-08",
+   "for_positive": "1710.09599",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1711.11443",
+   "t0": "2019-11-08",
+   "for_positive": "1710.09599",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1712.08685",
+   "t0": "2019-11-08",
+   "for_positive": "1710.10321",
+   "window": "201707010000..201712312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1709.08139",
+   "t0": "2019-11-08",
+   "for_positive": "1710.10321",
+   "window": "201707010000..201712312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1708.08136",
+   "t0": "2019-11-08",
+   "for_positive": "1710.10321",
+   "window": "201707010000..201712312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1708.08273",
+   "t0": "2019-11-08",
+   "for_positive": "1710.10321",
+   "window": "201707010000..201712312359",
+   "category": "cs.SI",
+   "primary_category": "cs.SI"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1808.09902",
+   "t0": "2019-11-08",
+   "for_positive": "1809.10341",
+   "window": "201807010000..201812312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1811.12752",
+   "t0": "2019-11-08",
+   "for_positive": "1809.10341",
+   "window": "201807010000..201812312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1812.10389",
+   "t0": "2019-11-08",
+   "for_positive": "1809.10341",
+   "window": "201807010000..201812312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1808.10551",
+   "t0": "2019-11-08",
+   "for_positive": "1809.10341",
+   "window": "201807010000..201812312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1901.10861",
+   "t0": "2019-11-08",
+   "for_positive": "1905.07953",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1904.00368",
+   "t0": "2019-11-08",
+   "for_positive": "1905.07953",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1904.13366",
+   "t0": "2019-11-08",
+   "for_positive": "1905.07953",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "id": "1904.01002",
+   "t0": "2019-11-08",
+   "for_positive": "1905.07953",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "1905.13320",
+   "t0": "2024-08-26",
+   "for_positive": "1905.04970",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "1904.00442",
+   "t0": "2024-08-26",
+   "for_positive": "1905.04970",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "1904.00284",
+   "t0": "2024-08-26",
+   "for_positive": "1905.04970",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "1905.13344",
+   "t0": "2024-08-26",
+   "for_positive": "1905.04970",
+   "window": "201901010000..201906302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2006.00276",
+   "t0": "2024-08-26",
+   "for_positive": "2006.13799",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2007.00155",
+   "t0": "2024-08-26",
+   "for_positive": "2006.13799",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2006.00234",
+   "t0": "2024-08-26",
+   "for_positive": "2006.13799",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2001.11841",
+   "t0": "2024-08-26",
+   "for_positive": "2006.13799",
+   "window": "202001010000..202006302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2103.01291",
+   "t0": "2024-08-26",
+   "for_positive": "2106.06257",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2103.01284",
+   "t0": "2024-08-26",
+   "for_positive": "2106.06257",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2104.00032",
+   "t0": "2024-08-26",
+   "for_positive": "2106.06257",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2102.00314",
+   "t0": "2024-08-26",
+   "for_positive": "2106.06257",
+   "window": "202101010000..202106302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2312.00246",
+   "t0": "2024-08-26",
+   "for_positive": "2311.02971",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2310.19957",
+   "t0": "2024-08-26",
+   "for_positive": "2311.02971",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2308.16122",
+   "t0": "2024-08-26",
+   "for_positive": "2311.02971",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "id": "2401.00534",
+   "t0": "2024-08-26",
+   "for_positive": "2311.02971",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "1909.13739",
+   "t0": "2024-04-26",
+   "for_positive": "1912.09363",
+   "window": "201907010000..201912312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "1907.12851",
+   "t0": "2024-04-26",
+   "for_positive": "1912.09363",
+   "window": "201907010000..201912312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "1910.14072",
+   "t0": "2024-04-26",
+   "for_positive": "1912.09363",
+   "window": "201907010000..201912312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "1909.13595",
+   "t0": "2024-04-26",
+   "for_positive": "1912.09363",
+   "window": "201907010000..201912312359",
+   "category": "stat.ML",
+   "primary_category": "stat.ML"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2401.02979",
+   "t0": "2024-04-26",
+   "for_positive": "2310.10688",
+   "window": "202307010000..202312312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2308.15448",
+   "t0": "2024-04-26",
+   "for_positive": "2310.10688",
+   "window": "202307010000..202312312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2310.00259",
+   "t0": "2024-04-26",
+   "for_positive": "2310.10688",
+   "window": "202307010000..202312312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2401.00284",
+   "t0": "2024-04-26",
+   "for_positive": "2310.10688",
+   "window": "202307010000..202312312359",
+   "category": "cs.CL",
+   "primary_category": "cs.CL"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2407.00717",
+   "t0": "2024-04-26",
+   "for_positive": "2402.19072",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2401.17267",
+   "t0": "2024-04-26",
+   "for_positive": "2402.19072",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2401.17443",
+   "t0": "2024-04-26",
+   "for_positive": "2402.19072",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2405.20448",
+   "t0": "2024-04-26",
+   "for_positive": "2402.19072",
+   "window": "202401010000..202406302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2410.00173",
+   "t0": "2024-04-26",
+   "for_positive": "2411.00278",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2410.23423",
+   "t0": "2024-04-26",
+   "for_positive": "2411.00278",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2408.17356",
+   "t0": "2024-04-26",
+   "for_positive": "2411.00278",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2412.00420",
+   "t0": "2024-04-26",
+   "for_positive": "2411.00278",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2412.00537",
+   "t0": "2024-04-26",
+   "for_positive": "2412.17176",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2408.17376",
+   "t0": "2024-04-26",
+   "for_positive": "2412.17176",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2410.00930",
+   "t0": "2024-04-26",
+   "for_positive": "2412.17176",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2410.23495",
+   "t0": "2024-04-26",
+   "for_positive": "2412.17176",
+   "window": "202407010000..202412312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2502.01654",
+   "t0": "2024-04-26",
+   "for_positive": "2501.13041",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2503.00528",
+   "t0": "2024-04-26",
+   "for_positive": "2501.13041",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2506.00209",
+   "t0": "2024-04-26",
+   "for_positive": "2501.13041",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2501.18691",
+   "t0": "2024-04-26",
+   "for_positive": "2501.13041",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2509.00560",
+   "t0": "2024-04-26",
+   "for_positive": "2510.02729",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2512.25034",
+   "t0": "2024-04-26",
+   "for_positive": "2510.02729",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2509.00515",
+   "t0": "2024-04-26",
+   "for_positive": "2510.02729",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2512.00976",
+   "t0": "2024-04-26",
+   "for_positive": "2510.02729",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2507.23136",
+   "t0": "2024-04-26",
+   "for_positive": "2510.15821",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2507.23035",
+   "t0": "2024-04-26",
+   "for_positive": "2510.15821",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2510.00304",
+   "t0": "2024-04-26",
+   "for_positive": "2510.15821",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "id": "2507.23128",
+   "t0": "2024-04-26",
+   "for_positive": "2510.15821",
+   "window": "202507010000..202512312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2503.01917",
+   "t0": "2024-09-13",
+   "for_positive": "2505.23719",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2507.00191",
+   "t0": "2024-09-13",
+   "for_positive": "2505.23719",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2502.01654",
+   "t0": "2024-09-13",
+   "for_positive": "2505.23719",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2507.00316",
+   "t0": "2024-09-13",
+   "for_positive": "2505.23719",
+   "window": "202501010000..202506302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2605.00184",
+   "t0": "2024-09-13",
+   "for_positive": "2602.06909",
+   "window": "202601010000..202606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2604.08588",
+   "t0": "2024-09-13",
+   "for_positive": "2602.06909",
+   "window": "202601010000..202606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2605.00929",
+   "t0": "2024-09-13",
+   "for_positive": "2602.06909",
+   "window": "202601010000..202606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unit8co/darts",
+   "id": "2604.00195",
+   "t0": "2024-09-13",
+   "for_positive": "2602.06909",
+   "window": "202601010000..202606302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1702.08092",
+   "t0": "2024-07-04",
+   "for_positive": "1705.05065",
+   "window": "201701010000..201706302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1706.08697",
+   "t0": "2024-07-04",
+   "for_positive": "1705.05065",
+   "window": "201701010000..201706302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1704.05090",
+   "t0": "2024-07-04",
+   "for_positive": "1705.05065",
+   "window": "201701010000..201706302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1703.07887",
+   "t0": "2024-07-04",
+   "for_positive": "1705.05065",
+   "window": "201701010000..201706302359",
+   "category": "cs.RO",
+   "primary_category": "cs.RO"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1801.00329",
+   "t0": "2024-07-04",
+   "for_positive": "1711.03938",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1711.11247",
+   "t0": "2024-07-04",
+   "for_positive": "1711.03938",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1801.01017",
+   "t0": "2024-07-04",
+   "for_positive": "1711.03938",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "id": "1711.00001",
+   "t0": "2024-07-04",
+   "for_positive": "1711.03938",
+   "window": "201707010000..201712312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2303.00800",
+   "t0": "2023-06-14",
+   "for_positive": "2305.09235",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2301.13323",
+   "t0": "2023-06-14",
+   "for_positive": "2305.09235",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2305.00553",
+   "t0": "2023-06-14",
+   "for_positive": "2305.09235",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2301.13289",
+   "t0": "2023-06-14",
+   "for_positive": "2305.09235",
+   "window": "202301010000..202306302359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2312.00198",
+   "t0": "2023-06-14",
+   "for_positive": "2310.16981",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2310.00488",
+   "t0": "2023-06-14",
+   "for_positive": "2310.16981",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2310.01438",
+   "t0": "2023-06-14",
+   "for_positive": "2310.16981",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "id": "2310.00448",
+   "t0": "2023-06-14",
+   "for_positive": "2310.16981",
+   "window": "202307010000..202312312359",
+   "category": "cs.LG",
+   "primary_category": "cs.LG"
+  }
+ ]
+}
