@@ -309,7 +309,19 @@ The pool runs no arm, so there is no held-out set to protect and no configuratio
 * **P2 — met, 2026-09-02 [NR-60]. 0 of v1's 35 positives are migration artefacts**, scored at each case's own recorded T0 commit. NR-56/57's gaps stand as measured and the >3 consequence does not fire.
 * **Recorded alongside, which P2 was not testing:** v2 rejects 2 of v1's 35, both in `rl`, both papers that appear only on that project's "Projects using…" page — papers citing the repository rather than adopted by it. NR-56/57's 35 were 33 adoptions and 2 reverse citations.
 * **P9's premise corrected before the fact.** "Fired zero times across the legacy 37" was true only because v1 had no such fields. Under v2 the two filters fire 10 times in 120 gross adoptions (8.3 %) on the legacy set. P9 concerns the *enumerated* population and stays open, but it is no longer predicting an unobserved event.
-* **P3–P8 remain open.** No candidate has been enumerated and no verdict bought; no AUC has been computed on real data, deliberately (P6 registers an AUC over a set that includes these repositories).
+* **P3–P9 scored, 2026-09-06 [NR-61], after the stop rule fired and the endpoint was computed once.** One of the seven is met.
+
+  | id | registered | observed | |
+  |---|---|---|---|
+  | P3 | `q ∈ [0.08, 0.30]`, point 0.15 | **0.0447** | missed |
+  | P4 | `y ∈ [0.8, 2.5]`, point 1.5 | 1.615 | **met** |
+  | P5 | 100 positives within B = 1,200 | **60** within 1,200; 157 at 3,689 | missed |
+  | P6 | AUC 0.60–0.70 / 0.62–0.72; both exclude 0.5; difference includes 0 | 0.9215 / 0.9424; both exclude 0.5; difference **excludes** 0 | missed |
+  | P7 | `P(actionable \| control)` GPT ≥ 0.70, Sonnet ≤ 0.55 | 0.0891 / 0.0066 | missed |
+  | P8 | design effect ≥ 1.5 | 1.555 / 1.287 | missed |
+  | P9 | the two filters remove ≥ 5 % of gross adoptions | 0.37 % (1 of 268) | missed |
+
+  The misses run in one direction — discrimination under-predicted, the negative class's difficulty over-predicted — and P3 and P5 are one error counted twice: `q` was over-predicted 3.4×, which is why 1,200 rows did not reach 100 positives. **§5's primary fired its both-exclude branch**: AUC 0.9215 [0.8945, 0.9429] and 0.9424 [0.9160, 0.9641] over 60 clusters, both excluding 0.5, ΔAUC −0.0209 [−0.0371, −0.0037]. P6's bracket miss is the one to be careful with, and NR-61 states why: an AUC that far above prediction is more likely to mean §4's control class is easier than intended than that the judges are extraordinary, with P7's own miss as the corroboration.
 
 **Scoring corrected, 2026-09-06, AFTER the endpoint was computed. Recorded here because that is when it happened.** The predictions above are unchanged; two of them were not being scored as written, and `score_predictions` was fixed to match the registered text. Both corrections turn a pass into a failure, which is the direction that matters: a scoring change made after seeing the data can only be trusted when it moves against the study's own interest, and these do.
 
