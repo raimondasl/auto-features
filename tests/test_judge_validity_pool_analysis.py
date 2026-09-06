@@ -258,9 +258,52 @@ class TestEachPredictionIsScoredFromWhatItNames:
         assert out["P3"]["observed"] == 0.15 and out["P3"]["in_bracket"] is True
         assert out["P4"]["observed"] == 1.4 and out["P4"]["in_bracket"] is True
 
-    def test_p5_reads_the_stop_count_not_the_analysis_set(self) -> None:
-        out = jvp.score_predictions(self.SUMMARY, {"analysis_set_positives": 71}, {}, {}, {})
+    @staticmethod
+    def _curve(tmp_path: Path, points: list[tuple[int, int]]) -> Path:
+        f = tmp_path / "yield_curve.csv"
+        rows = ["at,capped_positives", *(f"{a},{c}" for a, c in points)]
+        f.write_text("\n".join(rows) + "\n", encoding="utf-8")
+        return f
+
+    def test_p5_reads_the_stop_count_not_the_analysis_set(self, tmp_path: Path) -> None:
+        curve = self._curve(tmp_path, [(300, 40), (1200, 100)])
+        out = jvp.score_predictions(
+            self.SUMMARY, {"analysis_set_positives": 71}, {}, {}, {}, curve=curve
+        )
         assert out["P5"]["stop_rule_capped_positives"] == 100 and out["P5"]["met"] is True
+
+    def test_p5_scores_within_the_registered_b_not_the_budget_the_run_used(
+        self, tmp_path: Path
+    ) -> None:
+        """The defect this replaces: `met` was `walked <= summary["budget"]`, and §3.4 lets the
+        budget GROW. Raised to 6,000 for the extension, `3689 <= 6000` was true and P5 read as
+        met on 157 positives that took 3,689 rows — three times the B it predicted. An
+        operational decision about budget silently moved a registered bar."""
+        summary = {**self.SUMMARY, "capped_positives": 157, "walked": 3689, "budget": 6000}
+        curve = self._curve(tmp_path, [(300, 21), (1200, 60), (3689, 157)])
+        out = jvp.score_predictions(
+            summary, {"analysis_set_positives": 188}, {}, {}, {}, curve=curve
+        )
+        assert out["P5"]["registered_b"] == 1200
+        assert out["P5"]["capped_positives_within_b"] == 60
+        assert out["P5"]["met"] is False
+        # The final count is still reported: reaching 157 is a real fact, just not P5's claim.
+        assert out["P5"]["stop_rule_capped_positives"] == 157
+
+    def test_p5_is_unscored_rather_than_failed_when_no_curve_point_exists(
+        self, tmp_path: Path
+    ) -> None:
+        """A missing measurement must not read as zero positives, which would score a failure
+        the walk never actually recorded."""
+        out = jvp.score_predictions(
+            self.SUMMARY,
+            {"analysis_set_positives": 188},
+            {},
+            {},
+            {},
+            curve=tmp_path / "absent.csv",
+        )
+        assert out["P5"]["met"] is None
 
     def test_p6_is_not_scored_below_the_n_it_registered_at(self) -> None:
         """Scoring it at 71 would convert a power shortfall into a failed prediction, and §3.4
@@ -358,3 +401,55 @@ class TestTheDatasheetNamesEveryComponent:
         import inspect
 
         assert 'qualifies") == "True"' in inspect.getsource(jvp.datasheet)
+
+
+class TestP6RendersAVerdictAndNotJustItsParts:
+    """The branch that CAN score P6 used to compute `auc`, `both_exclude_half` and
+    `difference_excludes_zero` and stop. The brackets lived in the prediction sentence and were
+    never compared to anything, and `difference_excludes_zero: True` — which is the prediction
+    failing — was emitted with nothing saying so. The `else` branch explained at length why P6
+    was not evaluable at low n while the evaluable branch returned no verdict at all."""
+
+    SUMMARY = {"q_over_b0": 0.15, "y_over_b0": 1.4, "capped_positives": 100, "walked": 800}
+
+    def _score(self, primaries: dict, difference: dict) -> dict:
+        return jvp.score_predictions(
+            self.SUMMARY, {"analysis_set_positives": 188}, primaries, {}, difference
+        )["P6"]
+
+    def test_an_auc_outside_its_bracket_fails_the_prediction(self) -> None:
+        p6 = self._score(
+            {
+                "gpt-5.5": {"auc": 0.9215, "excludes_half": True},
+                "claude-sonnet-5": {"auc": 0.9424, "excludes_half": True},
+            },
+            {"excludes_zero": True},
+        )
+        assert p6["met"] is False
+        assert p6["clauses"]["auc_gpt-5.5_in_bracket"] is False
+        assert p6["clauses"]["auc_claude-sonnet-5_in_bracket"] is False
+        # Registered as "their difference does NOT exclude 0", so excluding zero is a failure.
+        assert p6["clauses"]["difference_does_not_exclude_zero"] is False
+        assert p6["both_exclude_half"] is True, "one clause passing must not carry the rest"
+
+    def test_every_clause_holding_is_the_only_way_to_pass(self) -> None:
+        p6 = self._score(
+            {
+                "gpt-5.5": {"auc": 0.65, "excludes_half": True},
+                "claude-sonnet-5": {"auc": 0.67, "excludes_half": True},
+            },
+            {"excludes_zero": False},
+        )
+        assert p6["met"] is True
+
+    def test_an_unscorable_clause_leaves_it_unscored_rather_than_passing(self) -> None:
+        """`all()` over a dict silently skips nothing — an absent difference would have to be
+        read as some boolean, and 'unknown' must not become 'passed'."""
+        p6 = self._score(
+            {
+                "gpt-5.5": {"auc": 0.65, "excludes_half": True},
+                "claude-sonnet-5": {"auc": 0.67, "excludes_half": True},
+            },
+            {},
+        )
+        assert p6["met"] is None

@@ -55,6 +55,7 @@ SEED_FILE = POOL_FRAME / "SEED_POOL"
 POOL_ADOPTIONS = POOL_FRAME / "adoptions-pool-v2.json"
 POOL_WALK = POOL_FRAME / "validity_walk.csv"
 POOL_SUMMARY = POOL_FRAME / "walk_summary.json"
+POOL_CURVE = POOL_FRAME / "yield_curve.csv"
 POOL_CONTEXTS = POOL_FRAME / "contexts"
 POOL_HEAD_IDS = POOL_FRAME / "head_ids"
 CANDIDATES = POOL_FRAME / "pool-universe-Dp.csv"
@@ -2370,6 +2371,43 @@ def contamination_split(
 # ---------------------------------------------------------------------------------------
 # Scoring the registered predictions (§8) and publishing the datasheet (§10 step 7)
 # ---------------------------------------------------------------------------------------
+def positives_within_b(curve: Path | None = None, b: int | None = None) -> dict[str, Any]:
+    """Capped positives at the last curve point on or before *b* rows.
+
+    Read from the yield curve rather than re-summed from the ledger, because the ledger's
+    `capped` column is a per-row snapshot at mining time and the contest can un-count a paper
+    later when a different repository wins it — summing it to rank 1,200 over-counts. The curve
+    records `counted_positives(adoptions)` as it stood when the walk passed that row, which is
+    what "within B rows" is asking about.
+
+    Returns `capped_positives: None` when no point exists at or before *b*, so a caller cannot
+    read a missing measurement as a zero.
+    """
+    import walk_pool
+
+    src = curve or POOL_CURVE
+    limit = walk_pool.DEFAULT_B if b is None else b
+    if not src.is_file():
+        return {"at": None, "capped_positives": None, "why": f"{src.name} does not exist"}
+    best: dict[str, Any] = {"at": None, "capped_positives": None}
+    with src.open(encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            try:
+                at = int(row.get("at") or 0)
+            except ValueError:
+                continue
+            if at <= limit and (best["at"] is None or at > int(best["at"])):
+                best = {"at": at, "capped_positives": int(row.get("capped_positives") or 0)}
+    if best["at"] is None:
+        best["why"] = f"no curve point at or before {limit} rows"
+    return best
+
+
+# §8's P6 brackets, per judge, exactly as registered. Held here rather than parsed out of the
+# prediction sentence, so the numbers scored are the numbers written down.
+P6_BRACKETS = {"gpt-5.5": (0.60, 0.70), "claude-sonnet-5": (0.62, 0.72)}
+
+
 def score_predictions(
     summary: dict[str, Any],
     analysis: dict[str, Any],
@@ -2378,6 +2416,7 @@ def score_predictions(
     difference: dict[str, Any],
     *,
     pool_adoptions: Path | None = None,
+    curve: Path | None = None,
 ) -> dict[str, Any]:
     """§8's predictions, each scored from its own registered input and no other.
 
@@ -2394,6 +2433,8 @@ def score_predictions(
     Below that it records `not_evaluable_at_this_n`, and the AUC itself still runs at whatever
     n exists — §3.4 requires exactly that.
     """
+    import walk_pool  # P5 scores against the REGISTERED B, never the summary's budget
+
     out: dict[str, Any] = {}
     n_analysis = int(analysis.get("analysis_set_positives") or 0)
 
@@ -2423,22 +2464,59 @@ def score_predictions(
     )
 
     stop_count = int(summary.get("capped_positives") or 0)
-    walked, budget = int(summary.get("walked") or 0), int(summary.get("budget") or 0)
+    walked = int(summary.get("walked") or 0)
+    at_b = positives_within_b(curve)
+    reached = at_b.get("capped_positives")
     out["P5"] = {
         "prediction": "100 new positives within B = 1,200 rows",
+        # The REGISTERED B, never `summary["budget"]`. This scored `walked <= budget` against
+        # the budget the run happened to use, and §3.4 lets that budget GROW: raised to 6,000
+        # for the extension, it made `3689 <= 6000` true and the prediction "met" on 157
+        # positives that took 3,689 rows to reach. `walk_stop_reason` was hardened against
+        # exactly this — "reading the thresholds out of it let the gate take its bar from the
+        # very artefact it is gating" — and this scorer was left reading the same unguarded
+        # field, so an operational decision about budget silently moved a registered bar.
+        "registered_b": walk_pool.DEFAULT_B,
+        "capped_positives_within_b": reached,
+        "curve_point_used": at_b.get("at"),
         "stop_rule_capped_positives": stop_count,
         "walked": walked,
-        "met": bool(stop_count >= 100 and walked <= budget),
-        "_note": "Scored on the stop-rule count, which is what the prediction is about.",
+        "met": None if reached is None else bool(reached >= 100),
+        "_note": (
+            "Both clauses, scored against the registered B. The final count is reported beside "
+            "it because reaching it is a real fact about the walk — it is simply not what P5 "
+            "predicted."
+        ),
     }
 
     if n_analysis >= 130:
+        # Every clause scored, and `met` rendered. This branch used to compute the parts and
+        # stop: the brackets lived in the prediction SENTENCE and were never compared to the
+        # AUCs, and `difference_excludes_zero: True` — which is the prediction failing — was
+        # emitted with nothing saying so. The `else` branch below carefully explains why P6 is
+        # not evaluable at low n while the branch that IS evaluable returned no verdict.
+        clauses: dict[str, Any] = {}
+        for model, p in primaries.items():
+            auc, bracket = p.get("auc"), P6_BRACKETS.get(model)
+            clauses[f"auc_{model}_in_bracket"] = (
+                None if auc is None or bracket is None else bool(bracket[0] <= auc <= bracket[1])
+            )
+        clauses["both_exclude_half"] = bool(all(p.get("excludes_half") for p in primaries.values()))
+        excludes = difference.get("excludes_zero")
+        clauses["difference_does_not_exclude_zero"] = (
+            None if excludes is None else bool(not excludes)
+        )
         out["P6"] = {
             "prediction": "AUC(gpt) 0.60-0.70, AUC(sonnet) 0.62-0.72; both exclude 0.5; "
             "their difference does not exclude 0",
             "auc": {m: p.get("auc") for m, p in primaries.items()},
-            "both_exclude_half": all(p.get("excludes_half") for p in primaries.values()),
-            "difference_excludes_zero": difference.get("excludes_zero"),
+            "brackets": {m: list(b) for m, b in P6_BRACKETS.items()},
+            "both_exclude_half": clauses["both_exclude_half"],
+            "difference_excludes_zero": excludes,
+            "clauses": clauses,
+            # A conjunction, and unknown is not pass: an unscorable clause makes the whole
+            # prediction unscored rather than quietly dropping out of the `all()`.
+            "met": None if any(v is None for v in clauses.values()) else all(clauses.values()),
         }
     else:
         out["P6"] = {
