@@ -705,6 +705,33 @@ def append_rows(path: Path, rows: list[dict[str, Any]]) -> None:
 # them; everything else is a decided fact and must never be walked twice.
 TRANSIENT_OUTCOMES = frozenset({"clone_failed", "clone_timeout", "timeout", "error", "no_head"})
 
+# A clone that fails says nothing about the repository, and a *run* of them says nothing about
+# the sample -- it says the machine has stopped working. Measured 2026-09-05: after ~1,750 rows
+# Windows began returning 0xC0000142 (STATUS_DLL_INIT_FAILED) from every `git clone`, having run
+# out of the resources needed to start a process. The walk did not notice. It recorded 2,239
+# consecutive environment failures as ordinary negative observations, exhausted a 4,000-row
+# budget in under two minutes, and wrote a summary claiming `walked: 4000` when 1,756 candidates
+# had actually been examined. `walk_stop_reason` then read `walked >= budget` with 78 positives
+# and returned "budget": the analysis gate blessed it as a completed walk, on a denominator
+# 2.3x too large. Nothing downstream could have caught it, because a `clone_failed` row is
+# indistinguishable from a repository that genuinely will not clone.
+#
+# So the run length is the signal. Independent clone failures do not queue up: the 1,756 healthy
+# rows of that walk contained ZERO. Twelve in a row is not a sample, it is an environment.
+CLONE_FAILURE_OUTCOMES = frozenset({"clone_failed", "clone_timeout"})
+CLONE_FAILURE_ABORT = 12
+
+
+def trailing_clone_failures(rows: list[dict[str, Any]]) -> int:
+    """How many rows at the end of *rows*, in rank order, are clone failures."""
+    run = 0
+    for row in reversed(rows):
+        if row.get("outcome") in CLONE_FAILURE_OUTCOMES:
+            run += 1
+        else:
+            break
+    return run
+
 
 def already_walked(path: Path, retry_failed: bool = False) -> set[str]:
     """Resume by name. An hours-long walk that cannot resume is a walk that never finishes.
@@ -915,6 +942,12 @@ def _walk(
 
     curve: list[dict[str, Any]] = []
     index = 0
+    # Clone failures are held back rather than appended, and released only once a row that is
+    # not one proves the machine is still working. An abort therefore leaves NO fabricated
+    # negatives in the ledger, which matters because `clone_failed` is transient: a `--retry-failed`
+    # rerun re-walks those candidates and appends fresh rows beside the stale ones, and duplicate
+    # ranks are exactly the corruption the 2026-09-05 ledger race had to be repaired for.
+    held_failures: list[dict[str, Any]] = []
     while index < len(pending):
         if walked >= budget:
             break
@@ -1000,7 +1033,27 @@ def _walk(
         # simply re-walked and re-merged.
         if mined:
             merge_adoptions(adoptions, mined, seed, legacy_positive_ids)
-        append_rows(walk_csv, sorted(rows, key=lambda r: r["rank"]))
+        batch = held_failures + sorted(rows, key=lambda r: r["rank"])
+        run = trailing_clone_failures(batch)
+        held_failures = batch[len(batch) - run :] if run else []
+        settled = batch[: len(batch) - run] if run else batch
+        if settled:
+            append_rows(walk_csv, settled)
+        if len(held_failures) >= CLONE_FAILURE_ABORT:
+            last = held_failures[-1]
+            raise SystemExit(
+                f"ABORTED at rank {last['rank']}: "
+                f"{len(held_failures)} consecutive clone failures.\n"
+                f"  Last: {last['full_name']} — {last.get('note') or 'no reason recorded'}\n"
+                "  This is the machine, not the sample. A run this long has never occurred in a\n"
+                "  healthy walk, and continuing would write one fabricated negative per candidate\n"
+                "  until the budget was spent, leaving a summary whose `walked` the analysis gate\n"
+                "  reads as a completed walk (measured 2026-09-05: 2,239 of them in two minutes).\n"
+                "  None of these rows were written, so the ledger is intact and this rerun is a\n"
+                "  plain resume — no --retry-failed, no repair. Fix the machine and run it again.\n"
+                "  0xC0000142 / STATUS_DLL_INIT_FAILED means Windows could not start a process:\n"
+                "  the fix is a reboot, or fewer --jobs."
+            )
         # Recounted from the merged artefact rather than accumulated from the ledger: the
         # contest can un-count a paper mined in an EARLIER chunk when a later repository wins
         # it, so a running total drifts upward from the truth as the walk goes on.
@@ -1016,6 +1069,12 @@ def _walk(
                 f"clone fail {point['n_clone_failed']}  timeout {point['n_timeout']}",
                 flush=True,
             )
+    # A walk that ends normally still owes the ledger whatever it was holding: fewer than
+    # CLONE_FAILURE_ABORT of them, so they are ordinary failed clones and real observations of
+    # the attempt. Only the aborting path discards them, and only because there they are not.
+    if held_failures:
+        append_rows(walk_csv, held_failures)
+        held_failures = []
     rows_all = _read_rows(walk_csv)
     final = curve_point(rows_all, capped_total)
     # Appended only when it says something the last committed point did not. A terminal point
