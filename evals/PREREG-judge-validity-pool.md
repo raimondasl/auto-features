@@ -161,6 +161,16 @@ The first occurrence of each rank was kept and the second removed, leaving 1,208
 
 No rule, no order and no outcome changed: the same candidates were walked, in the same order, to the same conclusions.
 
+**Second ledger incident, 2026-09-05, recorded here for the same reason: 2,246 rows were removed from the audit trail.** About ninety minutes into the extension, at rank 1754, every `git clone` began failing instantly with Windows error `0xC0000142` (`STATUS_DLL_INIT_FAILED`) — the operating system had run out of the resources needed to start a process. The walk did not notice. It recorded **2,239 consecutive environment failures as ordinary negative observations**, spent the remaining 2,246 rows of a 4,000-row budget in under two minutes, and stopped.
+
+What makes this an incident and not a crash is what happened next. `walk_summary.json` claimed `walked: 4000` with 78 capped positives; `walk_stop_reason` read `walked >= budget` and `positives >= 60` and returned **`"budget"`** — a legitimate registered stop. The analysis would have proceeded on a walk that examined 1,756 candidates while reporting 4,000, understating the qualifying rate by a factor of **2.3** (0.0163/row against the true 0.0371). Nothing downstream could have caught it: a `clone_failed` row for a machine that cannot start processes is byte-for-byte a `clone_failed` row for a repository that genuinely will not clone.
+
+The break is clean and the repair loses nothing. The first 1,756 rows contain **zero** clone failures, and the last capped positive is at rank 1728, so truncating at rank 1753 discards 2,246 rows and **no positives**: 1,754 rows, 78 positives, 65 qualifiers, ranks strictly increasing. `yield_curve.csv` was truncated at the same rank, dropping 45 contaminated points. The adoptions artefact was untouched, because a row that never cloned mines nothing. Both damaged files are preserved uncommitted at `evals/.work/validity_walk.dllfail.csv` and `evals/.work/yield_curve.dllfail.csv` so the claim can be checked.
+
+The defect was that the walk trusted its environment, and the fix is that the run length is now the signal: `CLONE_FAILURE_ABORT = 12` consecutive clone failures stops the walk, because independent failures do not queue up and a healthy walk of 1,756 rows produced none. Clone failures are now **held back rather than appended**, and released only once a row that is not one proves the machine still works — so an abort leaves no fabricated negatives in the ledger at all, and the rerun is a plain resume rather than another repair.
+
+No rule, no order and no outcome changed: the surviving rows are the rows that were actually walked.
+
 ### 3.2 Budgets
 **B₀ = 300 rows are walked unconditionally**, and the qualifying rate and per-repository yield are estimated over exactly those 300. A fixed prefix of a seeded order is a uniform random sample of the population; a prefix whose length is set by accumulated yield is inverse sampling and biases the rate upward.
 

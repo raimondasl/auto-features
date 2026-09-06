@@ -1191,3 +1191,56 @@ class TestTwoWalksCannotShareAnOutDir:
         with mock.patch.object(wp, "_walk", boom), pytest.raises(RuntimeError):
             wp.walk([], "SEED", out_dir=tmp_path)
         assert not (tmp_path / "walk.lock").exists()
+
+
+class TestARunOfCloneFailuresIsTheMachineNotTheSample:
+    """2026-09-05: at rank 1754 every `git clone` began failing with 0xC0000142
+    (STATUS_DLL_INIT_FAILED) — Windows could no longer start a process. The walk recorded 2,239
+    of them as ordinary negative observations, spent the rest of a 4,000-row budget in two
+    minutes, and wrote `walked: 4000` for 1,756 candidates actually examined. `walk_stop_reason`
+    read that as `"budget"` and blessed it, on a denominator 2.3x too large."""
+
+    def test_the_helper_counts_only_the_trailing_run(self) -> None:
+        def row(outcome: str) -> dict[str, str]:
+            return {"outcome": outcome}
+
+        assert wp.trailing_clone_failures([]) == 0
+        # A failure with a real row after it is an ordinary failed clone, not a broken machine.
+        assert wp.trailing_clone_failures([row("clone_failed"), row("ok")]) == 0
+        assert (
+            wp.trailing_clone_failures([row("ok"), row("clone_failed"), row("clone_timeout")]) == 2
+        )
+        assert wp.trailing_clone_failures([row("clone_failed")] * 5) == 5
+
+    def test_the_walk_aborts_and_writes_no_fabricated_negatives(self, tmp_path: Path) -> None:
+        candidates = [
+            {
+                "full_name": f"owner{i:03d}/repo",
+                "created_at": "2019-01-01",
+                "language": "Python",
+                "topics": "machine-learning",
+            }
+            for i in range(60)
+        ]
+        out, missing = tmp_path / "out", tmp_path / "nowhere"
+        with pytest.raises(SystemExit) as excinfo:
+            wp.walk(
+                candidates,
+                "SEED",
+                out_dir=out,
+                b0=1,
+                budget=60,
+                target=99,
+                jobs=3,
+                clone_dir=tmp_path / "clones",
+                url_for=lambda full: (missing / full.replace("/", "__")).as_uri(),
+            )
+        assert "consecutive clone failures" in str(excinfo.value)
+
+        ledger = out / "validity_walk.csv"
+        rows = _rows(ledger) if ledger.is_file() else []
+        # The whole point: held back, never appended. A rerun is a plain resume.
+        assert [r for r in rows if r["outcome"] in wp.CLONE_FAILURE_OUTCOMES] == []
+        assert len(rows) < len(candidates), "it stopped; it did not spend the budget"
+        # And nothing was written that `walk_stop_reason` could read as a completed walk.
+        assert not (out / "walk_summary.json").is_file()
