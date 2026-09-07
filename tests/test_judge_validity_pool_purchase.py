@@ -97,7 +97,50 @@ class TestTheGateTravelsWithThePurchase:
         (tmp_path / "lock").write_text("pid 1 started now", encoding="utf-8")
         with pytest.raises(SystemExit) as exc:
             _run(tmp_path, _items(), {"m": _ok()})
-        assert "Another purchase run holds it" in str(exc.value)
+        assert "A live purchase run holds it" in str(exc.value)
+
+    def test_the_refusal_says_not_to_delete_the_lock(self, tmp_path: Path) -> None:
+        """The operator reading this message is the one who caused the 2026-09-07 race by
+        deleting a live lock, so the message has to say so rather than only state the rule."""
+        (tmp_path / "lock").write_text("pid 1 started now", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            _run(tmp_path, _items(), {"m": _ok()})
+        assert "DO NOT delete this file" in str(exc.value)
+
+    def test_a_stale_lock_is_taken_rather_than_forcing_a_manual_delete(
+        self, tmp_path: Path
+    ) -> None:
+        """The root cause: before the heartbeat the ONLY way past a crashed run's lock was to
+        delete the file, and that habit works identically on a lock whose owner is still
+        writing. A lock nothing has touched for LOCK_STALE_AFTER is left by a dead run."""
+        import os
+        import time
+
+        lock = tmp_path / "lock"
+        lock.write_text("pid 1 started long ago", encoding="utf-8")
+        old = time.time() - (jvp.LOCK_STALE_AFTER + 60)
+        os.utime(lock, (old, old))
+        rec = _run(tmp_path, _items(), {"m": _ok()})
+        assert rec["bought"] > 0, "a stale lock must not block a legitimate rerun"
+
+    def test_the_heartbeat_refreshes_the_lock_while_the_run_writes(self, tmp_path: Path) -> None:
+        """A live run must never age into staleness. The lock is written "started" once and
+        refreshed "alive" at every checkpoint, so a run longer than LOCK_STALE_AFTER keeps its
+        own lock fresh — without that, a slow run would age out and a second could take it."""
+        lock = tmp_path / "lock"
+        seen: list[str] = []
+
+        def spy(case, ctx, item, model):  # noqa: ANN001, ANN202
+            if lock.is_file():
+                seen.append(lock.read_text(encoding="utf-8").split()[2])
+            return 1
+
+        # More items than CHECKPOINT, so a checkpoint fires mid-run and the spy observes the
+        # lock after it. Fewer would only ever see the initial write and pass vacuously.
+        _run(tmp_path, _items(n_pos=jvp.CHECKPOINT, n_ctl=jvp.CHECKPOINT), {"m": spy})
+        assert seen[0] == "started"
+        assert "alive" in seen, "the lock was never refreshed during the run"
+        assert not lock.is_file(), "and it is released at the end"
 
     def test_the_lock_is_released_even_when_the_run_fails(self, tmp_path: Path) -> None:
         with pytest.raises(SystemExit):
