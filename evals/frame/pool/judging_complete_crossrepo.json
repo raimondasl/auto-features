@@ -1,0 +1,23 @@
+{
+ "_artefact": "judge-validity-pool",
+ "scheme": "crossrepo",
+ "n_items": 685,
+ "bought": 1004,
+ "coverage": {
+  "gpt-5.5": {
+   "n_expected": 685,
+   "n_present": 685,
+   "n_void_recorded": 0,
+   "n_missing_unexplained": 0,
+   "coverage": 1.0
+  },
+  "claude-sonnet-5": {
+   "n_expected": 685,
+   "n_present": 685,
+   "n_void_recorded": 0,
+   "n_missing_unexplained": 0,
+   "coverage": 1.0
+  }
+ },
+ "outcomes": []
+}

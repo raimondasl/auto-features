@@ -1,0 +1,5727 @@
+{
+ "_artefact": "judge-validity-pool",
+ "seed": "7B2AD38EAB4A858B2578FA2B392A77FC6F7BC5695D93DBB517FE1EAFE4231C31D467D91E557D62815127AAEED95F406D4D30A4ED539F00C7AF0D4CFA0E038318",
+ "scheme": "crossrepo",
+ "pulse": "2026-09-07T12:00:00Z",
+ "n_positives_offered": 188,
+ "n_positives_with_a_control": 147,
+ "n_positives_excluded_empty_class": 41,
+ "n_control_rows": 538,
+ "n_distinct_control_papers": 408,
+ "n_control_papers_in_more_than_one_cluster": 82,
+ "controls_per_positive": {
+  "1": 8,
+  "2": 10,
+  "3": 6,
+  "4": 123
+ },
+ "short_of_cap": [
+  {
+   "case": "BlinkDL/RWKV-LM",
+   "for_positive": "2507.14417",
+   "n_eligible": 0
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2211.15975",
+   "n_eligible": 0
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1611.07308",
+   "n_eligible": 1
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2109.08031",
+   "n_eligible": 0
+  },
+  {
+   "case": "NACLab/ngc-learn",
+   "for_positive": "2503.21796",
+   "n_eligible": 0
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "for_positive": "2410.02060",
+   "n_eligible": 2
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.06224",
+   "n_eligible": 2
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "for_positive": "2404.10260",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2209.10566",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2403.16253",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2407.12983",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2410.12987",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2603.11152",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2603.12790",
+   "n_eligible": 0
+  },
+  {
+   "case": "PyAutoLabs/PyAutoLens",
+   "for_positive": "2603.12810",
+   "n_eligible": 0
+  },
+  {
+   "case": "SciML/ModelingToolkit.jl",
+   "for_positive": "2502.01128",
+   "n_eligible": 0
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "for_positive": "2405.18379",
+   "n_eligible": 0
+  },
+  {
+   "case": "aangelopoulos/ppi_py",
+   "for_positive": "2501.18577",
+   "n_eligible": 0
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1312.6114",
+   "n_eligible": 0
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2412.15826",
+   "n_eligible": 0
+  },
+  {
+   "case": "alibaba/GraphScope",
+   "for_positive": "2401.17786",
+   "n_eligible": 0
+  },
+  {
+   "case": "bio-scvi",
+   "for_positive": "1810.08278",
+   "n_eligible": 0
+  },
+  {
+   "case": "bio-scvi",
+   "for_positive": "1910.12958",
+   "n_eligible": 1
+  },
+  {
+   "case": "bio-singlecell",
+   "for_positive": "0909.4061",
+   "n_eligible": 0
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "for_positive": "2503.17821",
+   "n_eligible": 0
+  },
+  {
+   "case": "bold-lab-ai/JaxMARL",
+   "for_positive": "2505.06771",
+   "n_eligible": 0
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2403.06923",
+   "n_eligible": 0
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2408.12588",
+   "n_eligible": 1
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.07960",
+   "n_eligible": 3
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.12626",
+   "n_eligible": 3
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2509.14055",
+   "n_eligible": 1
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2510.04290",
+   "n_eligible": 1
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2511.22699",
+   "n_eligible": 1
+  },
+  {
+   "case": "divelab/DIG",
+   "for_positive": "2010.09990",
+   "n_eligible": 0
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.11089",
+   "n_eligible": 2
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2503.14456",
+   "n_eligible": 2
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2512.02556",
+   "n_eligible": 3
+  },
+  {
+   "case": "freewym/espresso",
+   "for_positive": "2203.16502",
+   "n_eligible": 2
+  },
+  {
+   "case": "geomstats/geomstats",
+   "for_positive": "2406.10437",
+   "n_eligible": 0
+  },
+  {
+   "case": "graph",
+   "for_positive": "1706.03762",
+   "n_eligible": 3
+  },
+  {
+   "case": "graph",
+   "for_positive": "2106.09671",
+   "n_eligible": 0
+  },
+  {
+   "case": "grf-labs/grf",
+   "for_positive": "2409.01578",
+   "n_eligible": 0
+  },
+  {
+   "case": "grf-labs/grf",
+   "for_positive": "2510.03665",
+   "n_eligible": 0
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "for_positive": "2407.10759",
+   "n_eligible": 0
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "for_positive": "2507.13264",
+   "n_eligible": 0
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "1710.07283",
+   "n_eligible": 2
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2206.08917",
+   "n_eligible": 0
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2210.00579",
+   "n_eligible": 0
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2210.13587",
+   "n_eligible": 0
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2310.07864",
+   "n_eligible": 0
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2401.05848",
+   "n_eligible": 2
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2502.12147",
+   "n_eligible": 0
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2507.08963",
+   "n_eligible": 0
+  },
+  {
+   "case": "mat-phonon",
+   "for_positive": "2401.17531",
+   "n_eligible": 3
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2407.04051",
+   "n_eligible": 2
+  },
+  {
+   "case": "rag",
+   "for_positive": "2212.01340",
+   "n_eligible": 1
+  },
+  {
+   "case": "rag",
+   "for_positive": "2303.00807",
+   "n_eligible": 0
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "for_positive": "1711.01861",
+   "n_eligible": 2
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "for_positive": "2508.12939",
+   "n_eligible": 0
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "1505.04597",
+   "n_eligible": 3
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "2309.07778",
+   "n_eligible": 0
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1412.6575",
+   "n_eligible": 1
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1710.10321",
+   "n_eligible": 0
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "1912.09363",
+   "n_eligible": 2
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "for_positive": "1705.05065",
+   "n_eligible": 0
+  }
+ ],
+ "controls": [
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2204.05575",
+   "id": "2205.07556",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2204.05575",
+   "id": "2204.12511",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2204.05575",
+   "id": "2205.01397",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2204.05575",
+   "id": "2206.09479",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2207.02202",
+   "id": "2210.11427",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2207.02202",
+   "id": "2211.08332",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2207.02202",
+   "id": "2208.01618",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2207.02202",
+   "id": "2211.13227",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2208.00116",
+   "id": "2211.05105",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2208.00116",
+   "id": "2210.00939",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2208.00116",
+   "id": "2208.12242",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2208.00116",
+   "id": "2211.13227",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2209.12836",
+   "id": "2211.13227",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2209.12836",
+   "id": "2210.00939",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2209.12836",
+   "id": "2209.09002",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2209.12836",
+   "id": "2208.01618",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2211.07214",
+   "id": "2211.12446",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2211.07214",
+   "id": "2212.00794",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2211.07214",
+   "id": "2210.00939",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2211.07214",
+   "id": "2208.12242",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2212.08273",
+   "id": "2208.01626",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2212.08273",
+   "id": "2211.12446",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2212.08273",
+   "id": "2210.16056",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2212.08273",
+   "id": "2210.05559",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2303.07601",
+   "id": "2305.07017",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2303.07601",
+   "id": "2306.04632",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2303.07601",
+   "id": "2303.15389",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "DerrickXuNu/OpenCOOD",
+   "for_positive": "2303.07601",
+   "id": "2306.07954",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1611.07308",
+   "id": "1610.09585",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201607010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1803.03735",
+   "id": "1802.03426",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1803.03735",
+   "id": "1806.08317",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1803.03735",
+   "id": "1805.08318",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1803.03735",
+   "id": "1805.07226",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1806.03536",
+   "id": "1802.09568",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1806.03536",
+   "id": "1806.01261",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1806.03536",
+   "id": "1802.05640",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1806.03536",
+   "id": "1804.00325",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1905.00067",
+   "id": "1906.01277",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1905.00067",
+   "id": "1905.11946",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1905.00067",
+   "id": "1905.02850",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1905.00067",
+   "id": "1905.07488",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1907.10903",
+   "id": "1909.11556",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1907.10903",
+   "id": "1907.02690",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1907.10903",
+   "id": "1911.07979",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "1907.10903",
+   "id": "1907.04931",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2003.09638",
+   "id": "2002.04839",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2003.09638",
+   "id": "2006.00719",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2003.09638",
+   "id": "2003.13663",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2003.09638",
+   "id": "2003.09553",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2106.05809",
+   "id": "2101.00797",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2106.05809",
+   "id": "2103.01955",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2106.05809",
+   "id": "2102.00546",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "EdisonLeeeee/GraphGallery",
+   "for_positive": "2106.05809",
+   "id": "2101.11075",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "for_positive": "2410.02060",
+   "id": "2407.14358",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.SD",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Natooz/MidiTok",
+   "for_positive": "2410.02060",
+   "id": "2407.04051",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.SD",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1606.03498",
+   "id": "1606.08415",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1606.03498",
+   "id": "1603.06560",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1606.03498",
+   "id": "1602.01783",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1606.03498",
+   "id": "1606.09375",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1904.06991",
+   "id": "1903.04057",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1904.06991",
+   "id": "1906.04397",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1904.06991",
+   "id": "1906.04032",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1904.06991",
+   "id": "1906.01930",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1905.10887",
+   "id": "1906.02691",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1905.10887",
+   "id": "1902.07153",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1905.10887",
+   "id": "1901.09504",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1905.10887",
+   "id": "1905.02850",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1912.04216",
+   "id": "1911.10635",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1912.04216",
+   "id": "1912.01823",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1912.04216",
+   "id": "1911.09798",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "1912.04216",
+   "id": "1909.11015",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.06224",
+   "id": "2002.10118",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.06224",
+   "id": "2002.03712",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.09797",
+   "id": "2001.00326",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.09797",
+   "id": "2004.01461",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.09797",
+   "id": "2006.11538",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2002.09797",
+   "id": "2003.00196",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2003.06060",
+   "id": "2006.03589",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2003.06060",
+   "id": "2006.08204",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2003.06060",
+   "id": "2004.07320",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2003.06060",
+   "id": "2004.11198",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2111.06849",
+   "id": "2111.00643",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2111.06849",
+   "id": "2109.07644",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2111.06849",
+   "id": "2109.11615",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "POSTECH-CVLab/PyTorch-StudioGAN",
+   "for_positive": "2111.06849",
+   "id": "2108.01073",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "for_positive": "2310.13913",
+   "id": "2310.10537",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "for_positive": "2310.13913",
+   "id": "2312.06635",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "for_positive": "2310.13913",
+   "id": "2309.14717",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/PaddleHelix",
+   "for_positive": "2310.13913",
+   "id": "2309.17370",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2103.13941",
+   "id": "2105.15013",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2103.13941",
+   "id": "2106.05809",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2103.13941",
+   "id": "2103.12608",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2103.13941",
+   "id": "2101.11075",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2402.13718",
+   "id": "2402.18668",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2402.13718",
+   "id": "2404.05892",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2402.13718",
+   "id": "2406.01775",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "PaddlePaddle/Research",
+   "for_positive": "2402.13718",
+   "id": "2406.07522",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "for_positive": "2307.06304",
+   "id": "2311.03226",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "for_positive": "2307.06304",
+   "id": "2309.16668",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "for_positive": "2307.06304",
+   "id": "2307.01952",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Project-MONAI/MONAI",
+   "for_positive": "2307.06304",
+   "id": "2309.16671",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "for_positive": "1910.07207",
+   "id": "1911.07979",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "for_positive": "1910.07207",
+   "id": "1910.00204",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "for_positive": "1910.07207",
+   "id": "1910.04209",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "RLE-Foundation/rllte",
+   "for_positive": "1910.07207",
+   "id": "1909.12223",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2002.01113",
+   "id": "2006.11239",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2002.01113",
+   "id": "2001.07614",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2002.01113",
+   "id": "2003.06060",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2002.01113",
+   "id": "2005.11079",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2310.10537",
+   "id": "2310.16802",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2310.10537",
+   "id": "2310.14189",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2310.10537",
+   "id": "2312.04615",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2310.10537",
+   "id": "2310.13913",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2401.15024",
+   "id": "2406.04759",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2401.15024",
+   "id": "2405.15593",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2401.15024",
+   "id": "2401.15610",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2401.15024",
+   "id": "2402.12354",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2405.16406",
+   "id": "2405.03003",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2405.16406",
+   "id": "2401.15610",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2405.16406",
+   "id": "2405.11157",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2405.16406",
+   "id": "2406.04759",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2406.00800",
+   "id": "2403.03507",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2406.00800",
+   "id": "2402.10644",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2406.00800",
+   "id": "2405.17604",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2406.00800",
+   "id": "2405.11157",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2409.17092",
+   "id": "2409.14500",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2409.17092",
+   "id": "2411.17838",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2409.17092",
+   "id": "2411.19870",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2409.17092",
+   "id": "2410.01623",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2411.07191",
+   "id": "2409.07146",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2411.07191",
+   "id": "2409.15371",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2411.07191",
+   "id": "2412.06464",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2411.07191",
+   "id": "2410.17222",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2505.11695",
+   "id": "2501.11584",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2505.11695",
+   "id": "2502.13189",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2505.11695",
+   "id": "2502.07752",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "Xilinx/brevitas",
+   "for_positive": "2505.11695",
+   "id": "2506.02475",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2210.05549",
+   "id": "2210.07564",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2210.05549",
+   "id": "2211.10438",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2210.05549",
+   "id": "2207.04672",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2210.05549",
+   "id": "2211.06679",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2211.12701",
+   "id": "2207.04672",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2211.12701",
+   "id": "2211.10438",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2211.12701",
+   "id": "2211.06679",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2211.12701",
+   "id": "2210.07564",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2302.03241",
+   "id": "2306.12925",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2302.03241",
+   "id": "2306.00978",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2302.03241",
+   "id": "2306.09782",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "ZixuanKe/PyContinual",
+   "for_positive": "2302.03241",
+   "id": "2303.02861",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1905.02450",
+   "id": "1901.07291",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1905.02450",
+   "id": "1904.09223",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1905.02450",
+   "id": "1905.11553",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1905.02450",
+   "id": "1901.10430",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1909.11942",
+   "id": "1909.06515",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1909.11942",
+   "id": "1911.03912",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1909.11942",
+   "id": "1911.02727",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "accel-brain/accel-brain-code",
+   "for_positive": "1909.11942",
+   "id": "1909.08053",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2410.14269",
+   "id": "2407.05000",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2410.14269",
+   "id": "2411.07120",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2410.14269",
+   "id": "2407.04811",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2410.14269",
+   "id": "2412.17176",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2411.17838",
+   "id": "2409.00119",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2411.17838",
+   "id": "2407.05872",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2411.17838",
+   "id": "2411.00278",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2411.17838",
+   "id": "2412.17107",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2501.07172",
+   "id": "2503.18225",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2501.07172",
+   "id": "2506.04761",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2501.07172",
+   "id": "2501.11584",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2501.07172",
+   "id": "2505.24857",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2502.19364",
+   "id": "2502.07529",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2502.19364",
+   "id": "2506.00799",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2502.19364",
+   "id": "2506.19847",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aeon-toolkit/aeon",
+   "for_positive": "2502.19364",
+   "id": "2506.04761",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "for_positive": "2009.01325",
+   "id": "2008.07347",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "for_positive": "2009.01325",
+   "id": "2010.11125",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "for_positive": "2009.01325",
+   "id": "2008.00401",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "aleximmer/Laplace",
+   "for_positive": "2009.01325",
+   "id": "2009.13102",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "1806.08317",
+   "id": "1805.08318",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "1806.08317",
+   "id": "1802.03426",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "1806.08317",
+   "id": "1803.03735",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "1806.08317",
+   "id": "1805.07226",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2112.03857",
+   "id": "2111.01118",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2112.03857",
+   "id": "2109.01903",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2112.03857",
+   "id": "2108.01073",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2112.03857",
+   "id": "2111.07991",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2305.14677",
+   "id": "2303.16199",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2305.14677",
+   "id": "2305.02463",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2305.14677",
+   "id": "2306.04632",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2305.14677",
+   "id": "2303.09556",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2308.03463",
+   "id": "2307.09283",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2308.03463",
+   "id": "2312.07537",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2308.03463",
+   "id": "2307.10159",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2308.03463",
+   "id": "2311.16711",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.03431",
+   "id": "2403.03206",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.03431",
+   "id": "2403.14572",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.03431",
+   "id": "2403.08059",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.03431",
+   "id": "2404.02733",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.04997",
+   "id": "2406.07522",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.04997",
+   "id": "2405.04434",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.04997",
+   "id": "2404.07904",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "alibaba/EasyNLP",
+   "for_positive": "2403.04997",
+   "id": "2402.18668",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "for_positive": "2403.08059",
+   "id": "2401.03048",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "for_positive": "2403.08059",
+   "id": "2404.02733",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "for_positive": "2403.08059",
+   "id": "2403.04692",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "arcadelab/deepdrr",
+   "for_positive": "2403.08059",
+   "id": "2403.05121",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1901.11196",
+   "id": "1902.07816",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1901.11196",
+   "id": "1906.08237",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1901.11196",
+   "id": "1904.11660",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1901.11196",
+   "id": "1905.02450",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1904.12848",
+   "id": "1906.02691",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1904.12848",
+   "id": "1906.03361",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1904.12848",
+   "id": "1901.01343",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "asyml/forte",
+   "for_positive": "1904.12848",
+   "id": "1905.10990",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "bio-scvi",
+   "for_positive": "1910.12958",
+   "id": "1910.09529",
+   "scheme": "crossrepo",
+   "window": [
+    "math.OC",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2408.12588",
+   "id": "2407.09946",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.07960",
+   "id": "2504.13181",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.07960",
+   "id": "2502.14786",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.07960",
+   "id": "2505.12532",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.12626",
+   "id": "2505.12532",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.12626",
+   "id": "2504.13181",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2504.12626",
+   "id": "2502.14786",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2509.14055",
+   "id": "2512.07703",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2510.04290",
+   "id": "2512.07703",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "diffusion",
+   "for_positive": "2511.22699",
+   "id": "2512.07703",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "divelab/DIG",
+   "for_positive": "2206.08515",
+   "id": "2206.09677",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "divelab/DIG",
+   "for_positive": "2206.08515",
+   "id": "2204.00825",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "divelab/DIG",
+   "for_positive": "2206.08515",
+   "id": "2201.12886",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "divelab/DIG",
+   "for_positive": "2206.08515",
+   "id": "2202.12795",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "for_positive": "2104.00298",
+   "id": "2106.05744",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "for_positive": "2104.00298",
+   "id": "2104.11222",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "for_positive": "2104.00298",
+   "id": "2102.06171",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "drivendataorg/zamba",
+   "for_positive": "2104.00298",
+   "id": "2103.00020",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "for_positive": "2302.10787",
+   "id": "2301.07733",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "for_positive": "2302.10787",
+   "id": "2302.03655",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "for_positive": "2302.10787",
+   "id": "2302.04867",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "dynamicslab/pysindy",
+   "for_positive": "2302.10787",
+   "id": "2305.15817",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "enlite-ai/maze",
+   "for_positive": "1602.01783",
+   "id": "1606.08415",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "enlite-ai/maze",
+   "for_positive": "1602.01783",
+   "id": "1605.09782",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "enlite-ai/maze",
+   "for_positive": "1602.01783",
+   "id": "1606.03498",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "enlite-ai/maze",
+   "for_positive": "1602.01783",
+   "id": "1603.06560",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201601010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2402.18668",
+   "id": "2403.04997",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2402.18668",
+   "id": "2405.15179",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2402.18668",
+   "id": "2405.13448",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2402.18668",
+   "id": "2402.12372",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2405.21022",
+   "id": "2405.15179",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2405.21022",
+   "id": "2406.01775",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2405.21022",
+   "id": "2402.13718",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2405.21022",
+   "id": "2402.09353",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.11089",
+   "id": "2506.06266",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.11089",
+   "id": "2502.00987",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.13189",
+   "id": "2503.17513",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.13189",
+   "id": "2504.07097",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.13189",
+   "id": "2505.23719",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2502.13189",
+   "id": "2501.04697",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2503.14456",
+   "id": "2502.00987",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2503.14456",
+   "id": "2506.06266",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.04761",
+   "id": "2501.12243",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.04761",
+   "id": "2505.11235",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.04761",
+   "id": "2502.07529",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.04761",
+   "id": "2505.11695",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.05233",
+   "id": "2506.02285",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.05233",
+   "id": "2502.17055",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.05233",
+   "id": "2505.11695",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2506.05233",
+   "id": "2501.10945",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2512.02556",
+   "id": "2509.12508",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2512.02556",
+   "id": "2512.04746",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "fla-org/flash-linear-attention",
+   "for_positive": "2512.02556",
+   "id": "2509.15974",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "1703.05175",
+   "id": "1705.07774",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "1703.05175",
+   "id": "1704.01212",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "1703.05175",
+   "id": "1706.08500",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "1703.05175",
+   "id": "1706.02275",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "2402.12372",
+   "id": "2405.15179",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "2402.12372",
+   "id": "2402.13718",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "2402.12372",
+   "id": "2404.06395",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "flairNLP/flair",
+   "for_positive": "2402.12372",
+   "id": "2403.04997",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "freewym/espresso",
+   "for_positive": "2203.16502",
+   "id": "2203.05797",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "freewym/espresso",
+   "for_positive": "2203.16502",
+   "id": "2205.00258",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2307.09283",
+   "id": "2311.09257",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2307.09283",
+   "id": "2309.14859",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2307.09283",
+   "id": "2307.06304",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2307.09283",
+   "id": "2312.14091",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2409.03137",
+   "id": "2412.17107",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2409.03137",
+   "id": "2412.17176",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2409.03137",
+   "id": "2411.17838",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "frgfm/holocron",
+   "for_positive": "2409.03137",
+   "id": "2411.07120",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1706.03762",
+   "id": "1705.03122",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1706.03762",
+   "id": "1704.04368",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1706.03762",
+   "id": "1704.02853",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201701010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1810.04805",
+   "id": "1812.10464",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1810.04805",
+   "id": "1811.01136",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1810.04805",
+   "id": "1809.08895",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "1810.04805",
+   "id": "1809.05053",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2010.11929",
+   "id": "2011.12438",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2010.11929",
+   "id": "2007.00398",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2010.11929",
+   "id": "2007.07805",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2010.11929",
+   "id": "2007.06600",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2201.08821",
+   "id": "2205.09991",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2201.08821",
+   "id": "2205.14135",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2201.08821",
+   "id": "2202.13914",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2201.08821",
+   "id": "2201.11113",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2210.14709",
+   "id": "2208.05863",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2210.14709",
+   "id": "2212.12794",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2210.14709",
+   "id": "2210.17323",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2210.14709",
+   "id": "2210.02186",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2312.04615",
+   "id": "2311.06243",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2312.04615",
+   "id": "2312.06635",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2312.04615",
+   "id": "2311.10090",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2312.04615",
+   "id": "2310.17202",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2409.14500",
+   "id": "2407.04811",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2409.14500",
+   "id": "2411.00278",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2409.14500",
+   "id": "2410.03883",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "graph",
+   "for_positive": "2409.14500",
+   "id": "2410.21228",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "for_positive": "2306.12925",
+   "id": "2306.09782",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "for_positive": "2306.12925",
+   "id": "2302.03241",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "for_positive": "2306.12925",
+   "id": "2305.13048",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "huggingface/huggingface.js",
+   "for_positive": "2306.12925",
+   "id": "2303.10512",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "1710.07283",
+   "id": "1711.01861",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "1710.07283",
+   "id": "1710.10903",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2206.11990",
+   "id": "2205.12454",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2206.11990",
+   "id": "2201.07858",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2206.11990",
+   "id": "2202.12795",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2206.11990",
+   "id": "2201.11113",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2401.05848",
+   "id": "2401.17531",
+   "scheme": "crossrepo",
+   "window": [
+    "cond-mat.mtrl-sci",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "janosh/matbench-discovery",
+   "for_positive": "2401.05848",
+   "id": "2403.03588",
+   "scheme": "crossrepo",
+   "window": [
+    "cond-mat.mtrl-sci",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2203.02714",
+   "id": "2206.08515",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2203.02714",
+   "id": "2204.13902",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2203.02714",
+   "id": "2203.09168",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2203.02714",
+   "id": "2205.05638",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202201010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2410.20625",
+   "id": "2409.00119",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2410.20625",
+   "id": "2411.04358",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2410.20625",
+   "id": "2412.17176",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2410.20625",
+   "id": "2410.14269",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.05270",
+   "id": "2409.00119",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.05270",
+   "id": "2410.07170",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.05270",
+   "id": "2410.21228",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.05270",
+   "id": "2412.17176",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.11768",
+   "id": "2410.14269",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.11768",
+   "id": "2411.00278",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.11768",
+   "id": "2410.03883",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2412.11768",
+   "id": "2410.07170",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2501.11584",
+   "id": "2505.11235",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2501.11584",
+   "id": "2503.17513",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2501.11584",
+   "id": "2505.24857",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2501.11584",
+   "id": "2505.19488",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2502.07752",
+   "id": "2504.07097",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2502.07752",
+   "id": "2505.19488",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2502.07752",
+   "id": "2505.24857",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2502.07752",
+   "id": "2501.10945",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2506.07254",
+   "id": "2502.10297",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2506.07254",
+   "id": "2505.11235",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2506.07254",
+   "id": "2504.07097",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "kozistr/pytorch_optimizer",
+   "for_positive": "2506.07254",
+   "id": "2506.05233",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1802.05640",
+   "id": "1804.00325",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1802.05640",
+   "id": "1802.04407",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1802.05640",
+   "id": "1802.04364",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1802.05640",
+   "id": "1802.06901",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1804.01000",
+   "id": "1804.07461",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1804.01000",
+   "id": "1805.04833",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1804.01000",
+   "id": "1806.00187",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "lightgbm-org/LightGBM",
+   "for_positive": "1804.01000",
+   "id": "1804.10959",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2107.03006",
+   "id": "2111.10603",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2107.03006",
+   "id": "2107.10060",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2107.03006",
+   "id": "2110.03753",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2107.03006",
+   "id": "2110.08727",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2406.17415",
+   "id": "2402.12372",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2406.17415",
+   "id": "2402.13718",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2406.17415",
+   "id": "2404.07904",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "llminfer",
+   "for_positive": "2406.17415",
+   "id": "2402.09353",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mat-phonon",
+   "for_positive": "2401.17531",
+   "id": "2405.07105",
+   "scheme": "crossrepo",
+   "window": [
+    "cond-mat.mtrl-sci",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mat-phonon",
+   "for_positive": "2401.17531",
+   "id": "2405.04967",
+   "scheme": "crossrepo",
+   "window": [
+    "cond-mat.mtrl-sci",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mat-phonon",
+   "for_positive": "2401.17531",
+   "id": "2401.05848",
+   "scheme": "crossrepo",
+   "window": [
+    "cond-mat.mtrl-sci",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "for_positive": "2308.12029",
+   "id": "2310.17202",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "for_positive": "2308.12029",
+   "id": "2310.14189",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "for_positive": "2308.12029",
+   "id": "2310.06625",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "median-research-group/LibMTL",
+   "for_positive": "2308.12029",
+   "id": "2309.17370",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2009.03106",
+   "id": "2012.12169",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2009.03106",
+   "id": "2011.09643",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2009.03106",
+   "id": "2010.02502",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2009.03106",
+   "id": "2007.09296",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2106.09685",
+   "id": "2103.11811",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2106.09685",
+   "id": "2103.02143",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2106.09685",
+   "id": "2102.10249",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2106.09685",
+   "id": "2106.10840",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2110.05679",
+   "id": "2111.04870",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2110.05679",
+   "id": "2109.11730",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2110.05679",
+   "id": "2107.04649",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "meta-pytorch/opacus",
+   "for_positive": "2110.05679",
+   "id": "2108.06098",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202107010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2303.16839",
+   "id": "2302.03027",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2303.16839",
+   "id": "2302.08113",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2303.16839",
+   "id": "2301.11093",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2303.16839",
+   "id": "2305.08891",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2502.14786",
+   "id": "2504.13074",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2502.14786",
+   "id": "2503.20314",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2502.14786",
+   "id": "2505.12532",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2502.14786",
+   "id": "2503.19325",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2504.13181",
+   "id": "2504.07960",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2504.13181",
+   "id": "2503.06923",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2504.13181",
+   "id": "2504.12626",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mlfoundations/open_clip",
+   "for_positive": "2504.13181",
+   "id": "2505.12532",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "mllam/neural-lam",
+   "for_positive": "2406.04759",
+   "id": "2405.15593",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mllam/neural-lam",
+   "for_positive": "2406.04759",
+   "id": "2406.00800",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mllam/neural-lam",
+   "for_positive": "2406.04759",
+   "id": "2401.15610",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mllam/neural-lam",
+   "for_positive": "2406.04759",
+   "id": "2406.13175",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "mlpack/mlpack",
+   "for_positive": "1804.02767",
+   "id": "1802.02669",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "mlpack/mlpack",
+   "for_positive": "1804.02767",
+   "id": "1801.07791",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "mlpack/mlpack",
+   "for_positive": "1804.02767",
+   "id": "1801.07829",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "mlpack/mlpack",
+   "for_positive": "1804.02767",
+   "id": "1803.09179",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201801010000"
+   ]
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2407.04051",
+   "id": "2407.14358",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.SD",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2407.04051",
+   "id": "2410.02060",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.SD",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2509.12508",
+   "id": "2509.15974",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2509.12508",
+   "id": "2510.26692",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2509.12508",
+   "id": "2512.04746",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "modelscope/FunASR",
+   "for_positive": "2509.12508",
+   "id": "2512.02556",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "for_positive": "2010.04159",
+   "id": "2012.07620",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "for_positive": "2010.04159",
+   "id": "2010.03045",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "for_positive": "2010.04159",
+   "id": "2012.09841",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "open-mmlab/mmdeploy",
+   "for_positive": "2010.04159",
+   "id": "2008.07519",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202007010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "1909.08053",
+   "id": "1910.13461",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "1909.08053",
+   "id": "1909.06515",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "1909.08053",
+   "id": "1911.04942",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "1909.08053",
+   "id": "1909.03341",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2212.04089",
+   "id": "2210.14709",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2212.04089",
+   "id": "2210.17484",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2212.04089",
+   "id": "2210.02747",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2212.04089",
+   "id": "2207.04457",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.11157",
+   "id": "2402.07630",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.11157",
+   "id": "2401.15024",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.11157",
+   "id": "2402.19072",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.11157",
+   "id": "2406.16793",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.17991",
+   "id": "2405.08748",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.17991",
+   "id": "2403.14572",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.17991",
+   "id": "2402.19159",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2405.17991",
+   "id": "2401.03048",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2406.05223",
+   "id": "2405.21060",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2406.05223",
+   "id": "2405.16406",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2406.05223",
+   "id": "2406.06484",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2406.05223",
+   "id": "2401.15024",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2506.00799",
+   "id": "2502.07752",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2506.00799",
+   "id": "2502.10297",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2506.00799",
+   "id": "2505.24857",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2506.00799",
+   "id": "2506.02285",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2509.15974",
+   "id": "2510.26692",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2509.15974",
+   "id": "2512.02556",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2509.15974",
+   "id": "2509.12508",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2509.15974",
+   "id": "2512.04746",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2512.07703",
+   "id": "2511.14993",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2512.07703",
+   "id": "2511.22982",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2512.07703",
+   "id": "2510.11690",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "peft",
+   "for_positive": "2512.07703",
+   "id": "2511.22699",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "rag",
+   "for_positive": "2212.01340",
+   "id": "2212.13937",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.IR",
+    "202207010000"
+   ]
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "for_positive": "1711.01861",
+   "id": "1710.10903",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "sbi-dev/sbi",
+   "for_positive": "1711.01861",
+   "id": "1710.07283",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "1505.04597",
+   "id": "1506.01186",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201501010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "1505.04597",
+   "id": "1506.01497",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201501010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "1505.04597",
+   "id": "1506.06724",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "201501010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "2304.07193",
+   "id": "2303.15389",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "2304.07193",
+   "id": "2305.14677",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "2304.07193",
+   "id": "2305.01115",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "slideflow/slideflow",
+   "for_positive": "2304.07193",
+   "id": "2303.09556",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CV",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1412.6575",
+   "id": "1409.0473",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "201407010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1710.09599",
+   "id": "1711.05101",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1710.09599",
+   "id": "1711.09846",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1710.09599",
+   "id": "1708.04782",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1710.09599",
+   "id": "1707.01476",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1809.10341",
+   "id": "1807.11408",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1809.10341",
+   "id": "1811.01287",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1809.10341",
+   "id": "1810.00553",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1809.10341",
+   "id": "1807.02811",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201807010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1905.07953",
+   "id": "1903.02428",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1905.07953",
+   "id": "1905.10437",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1905.07953",
+   "id": "1905.04970",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "stellargraph/stellargraph",
+   "for_positive": "1905.07953",
+   "id": "1901.02860",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "1905.04970",
+   "id": "1903.02428",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "1905.04970",
+   "id": "1902.05687",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "1905.04970",
+   "id": "1901.09504",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "1905.04970",
+   "id": "1902.08226",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201901010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2006.13799",
+   "id": "2001.07614",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2006.13799",
+   "id": "2006.10637",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2006.13799",
+   "id": "2003.03123",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2006.13799",
+   "id": "2003.09553",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202001010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2106.06257",
+   "id": "2103.17182",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2106.06257",
+   "id": "2103.02631",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2106.06257",
+   "id": "2102.11174",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2106.06257",
+   "id": "2106.13731",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202101010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2311.02971",
+   "id": "2310.06625",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2311.02971",
+   "id": "2311.10090",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2311.02971",
+   "id": "2310.17202",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "syne-tune/syne-tune",
+   "for_positive": "2311.02971",
+   "id": "2309.14509",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "1912.09363",
+   "id": "1910.07003",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "1912.09363",
+   "id": "1909.12552",
+   "scheme": "crossrepo",
+   "window": [
+    "stat.ML",
+    "201907010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2310.10688",
+   "id": "2312.11420",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2310.10688",
+   "id": "2310.01889",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2310.10688",
+   "id": "2307.08621",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2310.10688",
+   "id": "2312.15166",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.CL",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2402.19072",
+   "id": "2403.03507",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2402.19072",
+   "id": "2405.11157",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2402.19072",
+   "id": "2405.07719",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2402.19072",
+   "id": "2401.15024",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202401010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2411.00278",
+   "id": "2411.19870",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2411.00278",
+   "id": "2410.03883",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2411.00278",
+   "id": "2409.11321",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2411.00278",
+   "id": "2409.17092",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2412.17176",
+   "id": "2407.19342",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2412.17176",
+   "id": "2411.17838",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2412.17176",
+   "id": "2410.01870",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2412.17176",
+   "id": "2410.14269",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202407010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2501.13041",
+   "id": "2506.00799",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2501.13041",
+   "id": "2501.04697",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2501.13041",
+   "id": "2502.17055",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2501.13041",
+   "id": "2501.11584",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.02729",
+   "id": "2508.18258",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.02729",
+   "id": "2507.11005",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.02729",
+   "id": "2509.02981",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.02729",
+   "id": "2507.09846",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.15821",
+   "id": "2510.12402",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.15821",
+   "id": "2508.18258",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.15821",
+   "id": "2509.24218",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "thuml/Time-Series-Library",
+   "for_positive": "2510.15821",
+   "id": "2509.02981",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202507010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2505.23719",
+   "id": "2505.11235",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2505.23719",
+   "id": "2503.02130",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2505.23719",
+   "id": "2501.13041",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2505.23719",
+   "id": "2503.17513",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202501010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2602.06909",
+   "id": "2602.15322",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202601010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2602.06909",
+   "id": "2602.15763",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202601010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2602.06909",
+   "id": "2602.04118",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202601010000"
+   ]
+  },
+  {
+   "case": "unit8co/darts",
+   "for_positive": "2602.06909",
+   "id": "2604.01694",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202601010000"
+   ]
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "for_positive": "1711.03938",
+   "id": "1711.07553",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "for_positive": "1711.03938",
+   "id": "1712.07628",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "for_positive": "1711.03938",
+   "id": "1711.00937",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "unrealcv/unrealcv",
+   "for_positive": "1711.03938",
+   "id": "1711.05101",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "201707010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2305.09235",
+   "id": "2305.14342",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2305.09235",
+   "id": "2306.01708",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2305.09235",
+   "id": "2302.04867",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2305.09235",
+   "id": "2302.03655",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202301010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2310.16981",
+   "id": "2312.06635",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2310.16981",
+   "id": "2309.14509",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2310.16981",
+   "id": "2310.13913",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  },
+  {
+   "case": "vanderschaarlab/synthcity",
+   "for_positive": "2310.16981",
+   "id": "2308.11200",
+   "scheme": "crossrepo",
+   "window": [
+    "cs.LG",
+    "202307010000"
+   ]
+  }
+ ]
+}
