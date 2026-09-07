@@ -1141,6 +1141,81 @@ XREPO_PULSE = "2026-09-07T12:00:00Z"
 XREPO_CONTROLS_PER_POSITIVE = 4
 
 
+def pool_contexts(positives: list[dict[str, Any]]) -> dict[str, tuple[str, str]]:
+    """`{case: (T0 context, digest)}` for every case in *positives*, from both strata.
+
+    Pool digests come from the walk ledger's own `note` cell and legacy digests from the
+    materialisation sidecar; each context is then loaded through `t0_context_for`, which
+    re-hashes the file and refuses a mismatch. So a context edited or truncated after the walk
+    recorded it is a hash failure here rather than a successful load of the wrong bytes.
+
+    One implementation, because the purchase loop turns a case with no context into a
+    `no_context` outcome rather than an error: a second assembler that quietly missed the
+    legacy stratum would look like eight repositories declining to be judged.
+    """
+    digests = context_digests()
+    if LEGACY_SIDECAR.is_file():
+        for case, rec in legacy_sidecar()["cases"].items():
+            digest = str(rec.get("context_digest") or "")
+            if digest:
+                digests[case] = digest
+    wanted = {str(p["case"]) for p in positives}
+    return {c: (t0_context_for(c, d), d) for c, d in digests.items() if c in wanted}
+
+
+def real_judges() -> dict[str, Any]:
+    """The two judges, wired the way §7's isolation clause requires.
+
+    GPT goes through `judge_paper(..., use_cache=False)`: the gold cache is keyed on
+    (model, repo, paper) and NOT on the context, so a T0 verdict written into it would
+    overwrite the HEAD verdict for the same paper. Sonnet writes under `t0_namespace(model)`
+    rather than its default directory, which is the namespace `protected_partition` excludes
+    and `claim_namespaces` stamps. Both choices are inherited from the study this one extends,
+    not re-decided here — the isolation gate is built around exactly these two.
+    """
+    import judge as judge_mod
+    import judge_validity_adoption as jva
+    from second_judge import second_verdict
+
+    def gpt(case: str, ctx: str, item: dict[str, Any], model: str) -> int:
+        return int(judge_mod.judge_paper(case, ctx, item, model=model, use_cache=False)["score"])
+
+    def sonnet(case: str, ctx: str, item: dict[str, Any], model: str) -> int:
+        return int(second_verdict(case, ctx, item, model, cache_as=jva.t0_namespace(model)))
+
+    return {jva.GPT_MODEL: gpt, jva.SONNET_MODEL: sonnet}
+
+
+def xrepo_seed(path: Path | None = None, *, verify: bool = True, verifier: Any = None) -> str:
+    """`SEED_XREPO`, checked against the pulse §3 names — a value that did not exist when the
+    registration naming it was committed.
+
+    A separate seed from `SEED_POOL`, and not a convenience: reusing the pool's seed would make
+    this draw a deterministic function of a value chosen before the cross-repository class was
+    conceived, which is the wrong claim, and it would tie two studies' negative classes to one
+    number so that a defect in either implicates both. §9 of the companion registration records
+    that the pulse was moved once, forward, after the registering commit landed 22 minutes past
+    the pulse it first named.
+    """
+    import walk_pool
+
+    src = path or XREPO_SEED_FILE
+    if not src.is_file():
+        raise SystemExit(
+            f"{src} does not exist.\n"
+            f"  §3 names the pulse {XREPO_PULSE}; it is written here only after that pulse is\n"
+            "  published, and nothing in this study may select or order anything before then."
+        )
+    seed = src.read_text(encoding="utf-8").strip()
+    if not seed:
+        raise SystemExit(f"{src} is empty — SEED_XREPO must be the beacon pulse outputValue")
+    if verify:
+        (verifier or walk_pool.verify_seed)(
+            seed, XREPO_PULSE, name="SEED_XREPO", section="§3 of PREREG-judge-crossrepo-controls"
+        )
+    return seed
+
+
 def crossrepo_eligible(
     positives: list[dict[str, Any]],
     head_ids: dict[str, set[str]],
@@ -1279,6 +1354,47 @@ def crossrepo_controls(
     )
     jva.refuse_an_empty_control_set(positives, rows)
     return rows
+
+
+def crossrepo_inputs(enrich: Any = None) -> dict[str, Any]:
+    """Positives, HEAD sets, windows and paper records — from ONE metadata fetch.
+
+    Positives and candidates are enriched together, in a single pass over the union of their
+    identifiers, so both sides of the match are bucketed by the same code on the same day. Two
+    passes would let a positive and a candidate published hours apart fall into windows
+    computed by different runs of `half_year_bounds`, and §2's clause 2 is only a closed arm
+    marker while both sides agree on what a window is.
+    """
+    import judge_validity_adoption as jva
+
+    analysis = analysis_set(pool_seed())
+    positives = analysis["positives"]
+    head = head_ids_for(sorted({str(p["case"]) for p in positives}))
+
+    wanted = {dedup_id(str(p["id"])) for p in positives}
+    for ids in head.values():
+        wanted |= {dedup_id(str(i)) for i in ids}
+    enriched, missing = (enrich or jva.enrich_positives)(
+        [{"case": "_", "id": i} for i in sorted(wanted)]
+    )
+
+    windows: dict[str, tuple[str, str]] = {}
+    papers: dict[str, dict[str, Any]] = {}
+    for row in enriched:
+        pid = dedup_id(str(row["id"]))
+        windows[pid] = (str(row["primary_category"]), jva.half_year_bounds(row["published"])[0])
+        papers[pid] = dict(row["paper"])
+    return {
+        "analysis": analysis,
+        "positives": positives,
+        "head_ids": head,
+        "windows": windows,
+        "papers": papers,
+        "n_requested": len(wanted),
+        # Returned, never swallowed: an identifier that failed to enrich draws no controls and
+        # is eligible for none, so a silent drop shrinks the negative class invisibly.
+        "not_enriched": missing,
+    }
 
 
 def order_key_xrepo(seed: str, case: str, positive: str, control: str) -> str:
@@ -3213,11 +3329,54 @@ def main() -> int:
         help="mine T0 contexts, HEAD citation sets, adoption dates and covariates from the "
         "legacy clones at their recorded SHAs. Run once, while the clones are alive.",
     )
+    ap.add_argument(
+        "--xrepo-draw",
+        action="store_true",
+        help="verify SEED_XREPO against its pulse and draw the cross-repository negative "
+        "class. Idempotent: an existing artefact under the same seed is replayed.",
+    )
+    ap.add_argument(
+        "--xrepo-buy",
+        action="store_true",
+        help="buy verdicts for the cross-repository control arm. Positives are skipped, "
+        "because their verdicts were bought against a byte-identical prompt.",
+    )
     args = ap.parse_args()
     if args.materialise_legacy:
         out = materialise_legacy()
         print(f"\nmaterialised {out['n_cases']} legacy cases, {out['n_usable_rows']} usable rows")
         print(f"wrote {LEGACY_SIDECAR}")
+        return 0
+    if args.xrepo_draw or args.xrepo_buy:
+        seed = xrepo_seed()
+        print(f"SEED_XREPO verified against the beacon pulse at {XREPO_PULSE}")
+        src = crossrepo_inputs()
+        if src["not_enriched"]:
+            print(f"  ! {len(src['not_enriched'])} identifier(s) could not be enriched")
+        controls = crossrepo_controls(
+            src["positives"],
+            seed=seed,
+            head_ids=src["head_ids"],
+            windows=src["windows"],
+            papers=src["papers"],
+        )
+        covered = {(str(r["case"]), str(r["for_positive"])) for r in controls}
+        kept = [p for p in src["positives"] if (str(p["case"]), dedup_id(str(p["id"]))) in covered]
+        print(
+            f"{len(controls)} controls for {len(kept)} of {len(src['positives'])} positives, "
+            f"{len({p['case'] for p in kept})} clusters"
+        )
+        if not args.xrepo_buy:
+            print(f"wrote {XREPO_ROWS}")
+            return 0
+
+        items, missing = judgeable_items(kept, controls)
+        if missing:
+            print(f"  ! {len(missing)} paper(s) could not be fetched: {missing[:5]}")
+        record = buy_verdicts(items, pool_contexts(kept), judges=real_judges())
+        print(f"\nbought {record['bought']} verdicts over {record['n_items']} items")
+        for model, cov in record["coverage"].items():
+            print(f"  {model}: coverage {cov['coverage']}")
         return 0
     ap.print_help()
     return 0

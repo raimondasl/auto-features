@@ -195,3 +195,57 @@ class TestTheSchemeContrastIsPairedOnIdenticalPositives:
         pos, ca, cb, v = self._world(n_cases=1)
         out = jvp.scheme_difference(self.MODEL, pos, ca, cb, v, iters=300)
         assert "_refused" in out and "delta_auc" not in out
+
+
+class TestTheSeedIsCheckedAgainstItsOwnPulse:
+    def test_a_missing_seed_file_names_the_pulse_and_refuses(self, tmp_path: Path) -> None:
+        with pytest.raises(SystemExit) as exc:
+            jvp.xrepo_seed(tmp_path / "absent")
+        assert jvp.XREPO_PULSE in str(exc.value)
+
+    def test_an_empty_seed_file_is_not_a_seed(self, tmp_path: Path) -> None:
+        f = tmp_path / "SEED_XREPO"
+        f.write_text("   \n", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            jvp.xrepo_seed(f)
+        assert "empty" in str(exc.value)
+
+    def test_the_refusal_names_SEED_XREPO_not_SEED_POOL(self, tmp_path: Path) -> None:
+        """The check is shared with the pool study deliberately — a second implementation could
+        disagree with the first about the same file. What must not be shared is the message: a
+        refusal naming SEED_POOL and section 2.4 sends the operator to the wrong file and the
+        wrong document."""
+        import walk_pool
+
+        with pytest.raises(SystemExit) as exc:
+            walk_pool.verify_seed(
+                "DEADBEEF",
+                jvp.XREPO_PULSE,
+                lambda _p: "CAFE",
+                name="SEED_XREPO",
+                section="§3 of PREREG-judge-crossrepo-controls",
+            )
+        msg = str(exc.value)
+        assert "SEED_XREPO" in msg and "SEED_POOL" not in msg
+        assert "PREREG-judge-crossrepo-controls" in msg
+
+    def test_the_pool_seed_refusal_is_unchanged(self) -> None:
+        """The default arguments must keep the existing message byte-for-byte in spirit —
+        every runbook and every prior incident note points at that wording."""
+        import walk_pool
+
+        with pytest.raises(SystemExit) as exc:
+            walk_pool.verify_seed("AAA", "2026-09-04T00:00:00Z", lambda _p: "BBB")
+        msg = str(exc.value)
+        assert "SEED_POOL" in msg and "section 2.4" in msg
+
+    def test_a_verified_seed_is_returned(self, tmp_path: Path) -> None:
+        f = tmp_path / "SEED_XREPO"
+        f.write_text("ABC123\n", encoding="utf-8")
+        seen: dict[str, object] = {}
+
+        def fake(seed: str, pulse: str, *a: object, **kw: object) -> None:
+            seen.update({"seed": seed, "pulse": pulse, **kw})
+
+        assert jvp.xrepo_seed(f, verifier=fake) == "ABC123"
+        assert seen["pulse"] == jvp.XREPO_PULSE and seen["name"] == "SEED_XREPO"
