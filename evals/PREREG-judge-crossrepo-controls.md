@@ -35,7 +35,11 @@ Clause 1 is what makes the negative class hard: every control is a paper a real 
 | controls drawn, cap 4 per positive | **538** (mean 3.66) |
 | `controls_per_positive` | `{4: 123, 2: 10, 1: 8, 3: 6}` |
 | strata | 121 pool, 26 legacy |
-| new judge calls | **1,076** (positives reuse existing verdicts) |
+| new judge calls | **1,076** (positives reuse existing verdicts) — see the correction below |
+
+> **Correction to the call count, 2026-09-07, observed during the purchase.** 1,076 is 538 × 2 and is **too high by 72**: it multiplies control *rows* by judges, but the verdict key is `(model, case, paper)`, and **36 of the 538 rows repeat a `(case, paper)` pair already drawn** — the same paper serving two positives inside the same repository. Those are judged once and the verdict reused, because the prompt is identical: same case, same T0 context, same paper. The true figure is **1,004** (502 distinct pairs × 2), and the observed run matched it row for row.
+>
+> Nothing about the design moves. All 538 rows still carry a verdict, `n` is unchanged, the analysis set is unchanged, and the cost is lower. Corrected because a registered number that is wrong is worth fixing even when it is wrong in the harmless direction — and the arithmetic error it came from, counting rows where the code counts keys, is the kind that is not always harmless.
 
 **The 41 positives with no eligible control are excluded, and the exclusion is registered here rather than decided later.** They are dropped because the negative class is empty for them, not for anything about their scores. The analysis set is therefore **147 positives over 50 clusters**, and every endpoint below is computed on exactly that set — including the companion arm it is compared against, so the contrast is paired on identical positives.
 
