@@ -45,7 +45,13 @@ Clause 1 is what makes the negative class hard: every control is a paper a real 
 
 Four controls per positive where four exist, otherwise all that exist, ordered by `sha256(SEED_XREPO ‖ case ‖ ":" ‖ dedup_id(positive_id) ‖ ":" ‖ dedup_id(control_id))` and taken from the front. Deterministic given the seed, and a function of nothing else.
 
-**`SEED_XREPO` is the NIST Randomness Beacon pulse for `2026-09-07T00:00:00Z`** — a value that does not exist when this file is committed and cannot be chosen by anyone. It is fetched only after this registration is merged, written to `evals/frame/pool/SEED_XREPO`, and verified against the beacon at that timestamp by the same check that guards `SEED_POOL`. A run whose seed does not match the named pulse refuses to start.
+**`SEED_XREPO` is the NIST Randomness Beacon pulse for `2026-09-07T12:00:00Z`** — a value that does not exist when this file is committed and cannot be chosen by anyone. It is fetched only after this registration is merged, written to `evals/frame/pool/SEED_XREPO`, and verified against the beacon at that timestamp by the same check that guards `SEED_POOL`. A run whose seed does not match the named pulse refuses to start.
+
+> **Correction, 2026-09-07, before the seed was fetched and before any draw.** This section first named the pulse for `2026-09-07T00:00:00Z`, and the commit that registered it landed at **`2026-09-07T00:22:27Z`** — twenty-two minutes *after* that pulse was published. The claim in the sentence above was therefore false of its own commit: the value existed, publicly, when the design was fixed.
+>
+> Nobody fetched it, and the git history shows no edit to this file between the pulse and the commit. But "nobody looked" is the assurance a public beacon exists to make unnecessary — the ordering is supposed to be checkable without trusting the person who wrote the file, and for twenty-two minutes it was not.
+>
+> The named pulse is moved forward, and the only property that binds is the **commit** timestamp of the change that names it, not the merge: a later edit is a later commit and is visible as one. The correction moves the seed further out of reach rather than nearer, which is the sole direction a change to an unchoosable value may be made after the fact.
 
 A control paper may serve more than one positive, and papers shared across clusters are a correlation the repository-clustered bootstrap does not capture, so the interval is very slightly too narrow. This is reported in the artefact as a count, exactly as the companion study reports it, rather than repaired by dropping rows after the draw.
 
