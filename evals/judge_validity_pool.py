@@ -1132,6 +1132,162 @@ def draw_controls(
 
 
 # ---------------------------------------------------------------------------------------
+# The cross-repository negative class (PREREG-judge-crossrepo-controls.md)
+# ---------------------------------------------------------------------------------------
+XREPO_ROWS = POOL_FRAME / "controls-crossrepo.json"  # committed, URL-free
+XREPO_PAYLOAD = WORK / "controls-crossrepo-payload.json"  # untracked
+XREPO_SEED_FILE = POOL_FRAME / "SEED_XREPO"
+XREPO_PULSE = "2026-09-07T12:00:00Z"
+XREPO_CONTROLS_PER_POSITIVE = 4
+
+
+def crossrepo_eligible(
+    positives: list[dict[str, Any]],
+    head_ids: dict[str, set[str]],
+    windows: dict[str, tuple[str, str]],
+) -> dict[tuple[str, str], list[str]]:
+    """§2's eligibility rule, and only that rule: `{(case, positive_id): [control_id, ...]}`.
+
+    A control for a positive in repository A is an identifier that (1) appears in the HEAD set
+    of some repository B ≠ A, (2) shares the positive's primary category and half-year, and
+    (3) is not in A's own HEAD set and is not the positive.
+
+    *windows* maps a **dedup'd** identifier to `(primary_category, half_year_start)` — for the
+    positives, the window their control is matched to; for the candidates, their own. Both are
+    looked up in one dict, so a candidate and a positive can only ever be matched on identical
+    keys; two dicts would let the two sides drift into different bucketings of the same date.
+
+    Clause 2 is what keeps the arm marker shut. An arXiv identifier encodes its submission
+    month, so a control from a neighbouring window is distinguishable from a positive by its id
+    alone — the defect `assert_arm_neutral` exists to catch, arriving through the draw instead
+    of the prompt. §2 registers the resulting shortfall (41 positives with no eligible control)
+    rather than widening the window to erase it.
+    """
+    cited_by: dict[tuple[str, str], set[tuple[str, str]]] = {}
+    for case, ids in head_ids.items():
+        for raw in ids:
+            pid = dedup_id(str(raw))
+            key = windows.get(pid)
+            if key is not None:
+                cited_by.setdefault(key, set()).add((case, pid))
+
+    own = {case: {dedup_id(str(i)) for i in ids} for case, ids in head_ids.items()}
+    out: dict[tuple[str, str], list[str]] = {}
+    for row in positives:
+        case, pid = str(row["case"]), dedup_id(str(row["id"]))
+        key = windows.get(pid)
+        if key is None:
+            out[(case, pid)] = []
+            continue
+        mine = own.get(case, set())
+        out[(case, pid)] = sorted(
+            {cid for owner, cid in cited_by.get(key, set()) if owner != case} - mine - {pid}
+        )
+    return out
+
+
+def crossrepo_controls(
+    positives: list[dict[str, Any]],
+    *,
+    seed: str,
+    head_ids: dict[str, set[str]],
+    windows: dict[str, tuple[str, str]],
+    papers: dict[str, dict[str, Any]],
+    per_positive: int = XREPO_CONTROLS_PER_POSITIVE,
+    rows_out: Path | None = None,
+    payload_out: Path | None = None,
+) -> list[dict[str, Any]]:
+    """§3's draw, written when absent and replayed when present, exactly as §4's is.
+
+    Ordered by `sha256(SEED_XREPO ‖ case ‖ ":" ‖ positive ‖ ":" ‖ control)` and taken from the
+    front, so the selection is a function of the seed and nothing else — not of dict order, not
+    of when the run happened. A redraw under a different seed after verdicts were bought would
+    change n2, so a stored artefact under another seed is refused rather than regenerated.
+    """
+    import judge_validity_adoption as jva
+
+    rows_file = rows_out or XREPO_ROWS
+    payload_file = payload_out or XREPO_PAYLOAD
+    if rows_file.is_file() and payload_file.is_file():
+        stored = json.loads(rows_file.read_text(encoding="utf-8"))
+        payload = json.loads(payload_file.read_text(encoding="utf-8"))
+        if payload.get("seed") != seed or stored.get("seed") != seed:
+            raise SystemExit(
+                f"{rows_file.name} was drawn under a different seed.\n"
+                "  §3 draws under SEED_XREPO; a redraw would change the negative class after\n"
+                "  verdicts had been bought against the old one."
+            )
+        rows = stored["controls"]
+        for row in rows:
+            row["paper"] = payload["papers"][row["id"]]
+        return rows
+
+    eligible = crossrepo_eligible(positives, head_ids, windows)
+    rows: list[dict[str, Any]] = []
+    short: list[dict[str, Any]] = []
+    for row in sorted(positives, key=lambda r: (str(r["case"]), dedup_id(str(r["id"])))):
+        case, pid = str(row["case"]), dedup_id(str(row["id"]))
+        pool = [c for c in eligible[(case, pid)] if c in papers]
+        chosen = sorted(pool, key=lambda c: order_key_xrepo(seed, case, pid, c))[:per_positive]
+        if len(chosen) < per_positive:
+            short.append({"case": case, "for_positive": pid, "n_eligible": len(chosen)})
+        for cid in chosen:
+            rows.append(
+                {
+                    "case": case,
+                    "for_positive": pid,
+                    "id": cid,
+                    "scheme": "crossrepo",
+                    "window": list(windows.get(pid, ("", ""))),
+                    "paper": papers[cid],
+                }
+            )
+
+    payload_file.parent.mkdir(parents=True, exist_ok=True)
+    payload_file.write_text(
+        json.dumps({"seed": seed, "papers": {r["id"]: r["paper"] for r in rows}}, indent=1),
+        encoding="utf-8",
+    )
+    covered = {(r["case"], r["for_positive"]) for r in rows}
+    write_artifact(
+        rows_file,
+        {
+            "seed": seed,
+            "scheme": "crossrepo",
+            "pulse": XREPO_PULSE,
+            "n_positives_offered": len(positives),
+            "n_positives_with_a_control": len(covered),
+            # §2 registers this exclusion in advance: a positive is dropped because its negative
+            # class is empty, never for anything about its scores. Emitted as a count so the
+            # analysis set is readable off the artefact rather than recomputed from the rule.
+            "n_positives_excluded_empty_class": len(positives) - len(covered),
+            "n_control_rows": len(rows),
+            "n_distinct_control_papers": len({r["id"] for r in rows}),
+            "n_control_papers_in_more_than_one_cluster": len(
+                {
+                    pid
+                    for pid in {r["id"] for r in rows}
+                    if len({r["case"] for r in rows if r["id"] == pid}) > 1
+                }
+            ),
+            "controls_per_positive": dict(
+                sorted(Counter(Counter(r["for_positive"] for r in rows).values()).items())
+            ),
+            "short_of_cap": short,
+            "controls": [{k: v for k, v in r.items() if k != "paper"} for r in rows],
+        },
+    )
+    jva.refuse_an_empty_control_set(positives, rows)
+    return rows
+
+
+def order_key_xrepo(seed: str, case: str, positive: str, control: str) -> str:
+    """§3's ordering. Separate from `order_key` because the string it hashes is different, and
+    a shared helper that took a pre-joined string would let a caller join it a second way."""
+    return hashlib.sha256(f"{seed}{case}:{positive}:{control}".encode()).hexdigest()
+
+
+# ---------------------------------------------------------------------------------------
 # The purchase loop (§3.1, §4, §7, §10 step 7)
 # ---------------------------------------------------------------------------------------
 POOL_VERDICTS = WORK / "judge_validity_pool_verdicts.json"
@@ -1937,6 +2093,130 @@ def consequences(
         )
         if both
         else None,
+    }
+
+
+def scheme_difference(
+    model: str,
+    positives: list[dict[str, Any]],
+    controls_a: list[dict[str, Any]],
+    controls_b: list[dict[str, Any]],
+    verdicts: dict[str, Any],
+    *,
+    labels: tuple[str, str] = ("arxiv-window", "crossrepo"),
+    iters: int = BOOTSTRAP_ITERS,
+) -> dict[str, Any]:
+    """The cross-repo study's co-primary: Δ AUC between two CONTROL SCHEMES for one judge.
+
+    `judge_difference` pairs two judges over one negative class; this pairs two negative
+    classes over one judge, and the difference matters. Here the positive arm is not merely
+    comparable between the two arms — it is the **same rows carrying the same verdicts**, so Δ
+    isolates the negative class and nothing else.
+
+    **Restricted to positives that have at least one control in BOTH schemes**, computed here
+    rather than trusted from the caller. §2 registers the analysis set as the positives whose
+    cross-repository class is non-empty, and §4 requires the category-matched arm to be
+    recomputed on that same subset — so the published 188-positive figure is *not* the left
+    operand of this difference, and a caller passing the full set would silently make it one.
+
+    One draw of clusters serves both arms, as in `judge_difference`: resampling them
+    independently would add variance that is not in the contrast, and would let the two arms
+    disagree about which repositories exist in a given draw.
+    """
+    import judge_validity_adoption as jva
+    from metrics import roc_auc
+
+    strata = {str(r["case"]): str(r.get("stratum", "pool")) for r in positives}
+
+    def key_of(row: dict[str, Any]) -> str:
+        case = str(row["case"])
+        return f"{strata.get(case, 'pool')}:{case}"
+
+    def covered(controls: list[dict[str, Any]]) -> set[tuple[str, str]]:
+        return {
+            (str(r["case"]), dedup_id(str(r.get("for_positive") or "")))
+            for r in controls
+            if r.get("for_positive")
+        }
+
+    shared = covered(controls_a) & covered(controls_b)
+    kept = [p for p in positives if (str(p["case"]), dedup_id(str(p["id"]))) in shared]
+
+    def scored(rows: list[dict[str, Any]]) -> list[tuple[str, float]]:
+        out: list[tuple[str, float]] = []
+        for row in rows:
+            rec = verdicts.get(verdict_key(model, str(row["case"]), dedup_id(str(row["id"]))))
+            if rec is not None:
+                out.append((key_of(row), float(rec["score"])))
+        return out
+
+    def in_shared(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            r
+            for r in rows
+            if (str(r["case"]), dedup_id(str(r.get("for_positive") or ""))) in shared
+        ]
+
+    pos = scored(kept)
+    ca, cb = scored(in_shared(controls_a)), scored(in_shared(controls_b))
+    shape = {
+        "model": model,
+        "schemes": list(labels),
+        "n_positives_shared": len(pos),
+        "n_positives_offered": len(positives),
+        "n_controls": {labels[0]: len(ca), labels[1]: len(cb)},
+        "n_clusters": len({k for k, _ in pos}),
+        "_note": (
+            "Positives restricted to those carrying a control in BOTH schemes, and the "
+            "category-matched arm is recomputed over that subset — so its AUC here is not the "
+            "published full-set figure. One cluster draw serves both arms."
+        ),
+    }
+    clusters = sorted({k for k, _ in pos})
+    if len(clusters) < 2 or not pos or not ca or not cb:
+        return {**shape, "_refused": "fewer than two clusters carrying both control schemes"}
+
+    by: dict[str, tuple[list[float], list[float], list[float]]] = {}
+    for k, s in pos:
+        by.setdefault(k, ([], [], []))[0].append(s)
+    for k, s in ca:
+        by.setdefault(k, ([], [], []))[1].append(s)
+    for k, s in cb:
+        by.setdefault(k, ([], [], []))[2].append(s)
+
+    auc_a = roc_auc([s for _, s in pos], [s for _, s in ca])
+    auc_b = roc_auc([s for _, s in pos], [s for _, s in cb])
+    rng = random.Random(jva.SEED)
+    draws: list[float] = []
+    for _ in range(iters):
+        p: list[float] = []
+        a: list[float] = []
+        b: list[float] = []
+        for _ in clusters:
+            pick = clusters[rng.randrange(len(clusters))]
+            bucket = by.get(pick)
+            if bucket is None:
+                continue
+            p.extend(bucket[0])
+            a.extend(bucket[1])
+            b.extend(bucket[2])
+        if not p or not a or not b:
+            continue
+        delta = roc_auc(p, a) - roc_auc(p, b)
+        if delta == delta:
+            draws.append(delta)
+    if len(draws) < 100:
+        return {**shape, "_refused": "too few usable bootstrap draws"}
+    draws.sort()
+    lo = draws[int(0.025 * len(draws))]
+    hi = draws[min(len(draws) - 1, int(0.975 * len(draws)))]
+    return {
+        **shape,
+        "auc": {labels[0]: round(auc_a, 4), labels[1]: round(auc_b, 4)},
+        "delta_auc": round(auc_a - auc_b, 4),
+        "ci95": [round(lo, 4), round(hi, 4)],
+        "excludes_zero": bool(lo > 0 or hi < 0),
+        "n_draws": len(draws),
     }
 
 
