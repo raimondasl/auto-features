@@ -249,3 +249,98 @@ class TestTheSeedIsCheckedAgainstItsOwnPulse:
 
         assert jvp.xrepo_seed(f, verifier=fake) == "ABC123"
         assert seen["pulse"] == jvp.XREPO_PULSE and seen["name"] == "SEED_XREPO"
+
+
+class TestTheRegisteredConsequencesFireFromTheirOwnIntervals:
+    """§5's four branches, written before the seed and tested before the data."""
+
+    @staticmethod
+    def _p(auc: float, excludes: bool, clusters: int = 50) -> dict[str, object]:
+        return {"auc": auc, "excludes_half": excludes, "n_clusters": clusters}
+
+    def test_branch_2_is_the_one_that_costs_us_something(self) -> None:
+        out = jvp.crossrepo_consequences(
+            {"m": self._p(0.52, False)}, {"m": {"excludes_zero": False}}
+        )
+        j = out["per_judge"]["m"]
+        assert j["branch"] == 2 and j["outcome"] == "includes_0.5"
+        assert "not shown to be repository-conditioned" in j["statement"]
+
+    def test_branch_1_when_both_intervals_are_decisive(self) -> None:
+        out = jvp.crossrepo_consequences({"m": self._p(0.80, True)}, {"m": {"excludes_zero": True}})
+        assert out["per_judge"]["m"]["branch"] == 1
+
+    def test_branch_3_when_the_class_difficulty_did_not_matter(self) -> None:
+        out = jvp.crossrepo_consequences(
+            {"m": self._p(0.91, True)}, {"m": {"excludes_zero": False}}
+        )
+        j = out["per_judge"]["m"]
+        assert j["branch"] == 3 and "is wrong" in j["statement"]
+
+    def test_branch_4_is_evaluated_before_any_endpoint_is_read(self) -> None:
+        """Fewer than 10 clusters means no endpoint may be read at all. Evaluating the other
+        branches first would compute an outcome from an interval §5 has already declared
+        unreadable — and that outcome is the thing anyone would quote."""
+        out = jvp.crossrepo_consequences(
+            {"m": self._p(0.95, True, clusters=4)}, {"m": {"excludes_zero": True}}
+        )
+        assert out["outcome"] == "no_endpoint" and out["branch"] == 4
+        assert "per_judge" not in out, "no per-judge outcome may be emitted under branch 4"
+
+    def test_incomplete_coverage_is_a_refusal_not_a_null(self) -> None:
+        out = jvp.crossrepo_consequences(
+            {"m": self._p(0.80, True)},
+            {"m": {"excludes_zero": True}},
+            {"m": {"coverage": 0.6}},
+        )
+        assert out["branch"] == 4 and out["judges_below_full_coverage"] == ["m"]
+
+    def test_a_missing_interval_is_not_folded_into_the_null_branch(self) -> None:
+        """The companion study's §5 learned this the expensive way: an arithmetic refusal
+        folded into the null fires the pre-committed null on an artefact."""
+        out = jvp.crossrepo_consequences(
+            {"m": {"n_clusters": 50, "_refused": "fewer than two clusters"}}, {}
+        )
+        j = out["per_judge"]["m"]
+        assert j["outcome"] == "not_measurable" and "branch" not in j
+
+    def test_the_primary_label_never_switches(self) -> None:
+        out = jvp.crossrepo_consequences(
+            {"m": self._p(0.52, False)}, {"m": {"excludes_zero": False}}
+        )
+        assert out["primary_label_unchanged"] is True
+
+
+class TestEveryPredictionRendersAVerdict:
+    P = {
+        "gpt-5.5": {"auc": 0.80, "excludes_half": True, "n_clusters": 50},
+        "claude-sonnet-5": {"auc": 0.82, "excludes_half": True, "n_clusters": 50},
+    }
+    D = {"gpt-5.5": {"delta_auc": 0.12}, "claude-sonnet-5": {"delta_auc": 0.12}}
+    R = {"gpt-5.5": {"rate": 0.30}, "claude-sonnet-5": {"rate": 0.05}}
+    S = {
+        "pool": {"gpt-5.5": {"auc": 0.81}, "claude-sonnet-5": {"auc": 0.83}},
+        "legacy": {"gpt-5.5": {"auc": 0.78}, "claude-sonnet-5": {"auc": 0.80}},
+    }
+
+    def test_all_five_score_when_every_input_is_present(self) -> None:
+        out = jvp.score_xrepo_predictions(self.P, self.D, self.R, self.S)
+        assert [out[f"X{i}"]["met"] for i in range(1, 6)] == [True, True, True, True, True]
+
+    def test_one_judge_outside_a_bracket_fails_the_prediction(self) -> None:
+        p = {**self.P, "gpt-5.5": {**self.P["gpt-5.5"], "auc": 0.95}}
+        assert jvp.score_xrepo_predictions(p, self.D, self.R, self.S)["X1"]["met"] is False
+
+    def test_x4_needs_both_the_rise_and_the_ratio(self) -> None:
+        """Registered as a conjunction; either half alone is not the prediction."""
+        rates = {"gpt-5.5": {"rate": 0.30}, "claude-sonnet-5": {"rate": 0.25}}
+        x4 = jvp.score_xrepo_predictions(self.P, self.D, rates, self.S)["X4"]
+        assert x4["rose_for_both"] is True and x4["ratio"] < 5 and x4["met"] is False
+
+    def test_a_missing_input_leaves_it_unscored_rather_than_passing(self) -> None:
+        out = jvp.score_xrepo_predictions(self.P, {}, self.R, self.S)
+        assert out["X2"]["met"] is None, "an absent delta must not read as a pass"
+
+    def test_x5_is_unscored_when_a_stratum_is_absent(self) -> None:
+        out = jvp.score_xrepo_predictions(self.P, self.D, self.R, {"pool": self.S["pool"]})
+        assert out["X5"]["met"] is None
