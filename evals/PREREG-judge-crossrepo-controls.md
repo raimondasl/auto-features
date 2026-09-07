@@ -100,6 +100,20 @@ Registered with the track record attached: **the companion study met one of seve
 | **X4** | `P(actionable \| cross-repo control)` rises above the category-matched 0.089 / 0.007 for both judges, and the two judges still differ by at least a factor of 5 |
 | **X5** | The pool and legacy strata do not separate: their AUCs differ by < 0.10 for both judges |
 
+**Scored 2026-09-07 [NR-62], after coverage reached 1.0 on both judges and the endpoint was computed once. Three of five.**
+
+| id | observed | |
+|---|---|---|
+| X1 | 0.852 / **0.895** | missed, upward |
+| X2 | 0.078 / 0.049 | **met** |
+| X3 | both intervals exclude 0.5 | **met** |
+| X4 | rose 0.089 → 0.255 and 0.007 → 0.065; ratio **3.91** | missed |
+| X5 | 0.034 / 0.071 | **met** |
+
+**§5 branch 1 fired for both judges**: AUC 0.8518 [0.8001, 0.8933] and 0.8952 [0.8537, 0.9279], both excluding 0.5, with Δ = 0.0779 [0.0469, 0.1155] and 0.0488 [0.0304, 0.0730], both excluding 0. The judge conditions on the repository, *and* NR-61 overstated how strongly — the easy control class was worth 0.049–0.078 AUC.
+
+X1 missed **upward**, the same direction as every companion-study miss, so the adjustment made for that bias in the paragraph above was still not enough; two studies have now failed to calibrate this prior. X4 is the informative miss: both base rates rose as predicted — a harder class scored harder, which is itself evidence the class is harder — but the judges **converged**, from 13.5× apart to 3.9×. A harder negative class narrows the NR-59 level disagreement without resolving it.
+
 ## 7. What this cannot show
 
 It does not measure ranking **within** the adopted class, which is what the shipped rescore does; the endpoint remains adopted-vs-control.

@@ -1144,6 +1144,96 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The judge does condition on the repository, and NR-61 overstated how strongly. Both, measured. **[NR-62]**
+
+```bash
+uv run python evals/judge_validity_pool.py --xrepo-draw --xrepo-buy --xrepo-analyse
+```
+
+`PREREG-judge-crossrepo-controls.md`, registered 2026-09-06 against a beacon pulse that did not
+yet exist, executed the next day. **Cost $6.60** — 1,004 verdicts; the 147 positives were reused
+against byte-identical prompts rather than re-bought.
+
+NR-61 left the product's actual question untested. RepoRadar's gate never sees random papers; it
+sees papers **retrieved for this repository**, all topically plausible. So the operative property
+is not "can the judge tell relevant from irrelevant" but **does it condition on the repository, or
+does it recognise generally good papers?** A judge doing the latter would produce NR-61's 0.92 and
+be useless in the pipeline.
+
+The negative class becomes papers **cited at HEAD by a different repository** in the same pool,
+matched on primary category and half-year and never cited by the focal one. Every control is a
+paper a real maintainer of a real project chose to reference. Positives, contexts, rubric and
+judges are unchanged, so the contrast isolates the negative class and nothing else.
+
+**147 positives (121 pool + 26 legacy), 538 controls, 50 clusters.** The 41 positives whose
+cross-repository class is empty were excluded, registered in advance as an exclusion for having no
+negatives rather than for anything about their scores.
+
+| judge | vs category-matched | vs cross-repository | 95 % CI | Δ | Δ 95 % CI | design effect |
+|---|---|---|---|---|---|---|
+| GPT-5.5 | 0.9297 | **0.8518** | [0.8001, 0.8933] | **0.0779** | [0.0469, 0.1155] | 2.57 |
+| Sonnet 5 | 0.9441 | **0.8952** | [0.8537, 0.9279] | **0.0488** | [0.0304, 0.0730] | 1.74 |
+
+Both cross-repository intervals exclude 0.5 and both deltas exclude 0, so §5's **branch 1** fires
+for both judges — the branch that says both things are true at once.
+
+**The judge conditions on the repository.** Handed a paper another real project chose to cite —
+same field, same half-year, genuinely useful to someone — the judge still ranks the actually
+adopted paper above it, 85 % of the time for GPT and 90 % for Sonnet. This is the result the
+pipeline depends on and the one NR-61 could not reach: §5's branch 2 was written first and plainly
+in case the interval had covered 0.5, which would have meant the gate was not the stage doing the
+conditioning.
+
+**And NR-61 overstated it.** The easy control class was worth **0.049–0.078 AUC**, and that gap is
+statistically distinguishable rather than a rounding. §3.4's caveat in the paper — that an AUC that
+far above its registered bracket said more about the negative class than about the judges — was
+right, and is now a measured quantity instead of an argument.
+
+**Predictions: three of five**, against one of seven for the companion study.
+
+| id | registered | observed | |
+|---|---|---|---|
+| X1 | AUC ∈ [0.72, 0.88] both judges | 0.852 / **0.895** | missed, upward |
+| X2 | Δ ∈ [0.04, 0.20] both | 0.078 / 0.049 | met |
+| X3 | both intervals exclude 0.5 | yes | met |
+| X4 | rates rise **and** judges differ ≥ 5× | rose 0.089→0.255 and 0.007→0.065; ratio **3.91** | missed |
+| X5 | strata differ < 0.10 | 0.034 / 0.071 | met |
+
+X1 missed **upward**, the same direction as every NR-61 miss: these judges are consistently better
+than this project predicts, and two studies running have failed to calibrate that prior. X4 is the
+informative miss. Both control base rates rose as predicted — a harder negative class is scored
+harder, which is itself a check that the class is harder — but the judges **converged**, from
+13.5× apart on category-matched controls to 3.9× here. A harder class narrows the NR-59 level
+disagreement without resolving it, and nothing here calibrates either judge's threshold.
+
+> #### What the design effect says about the interval
+>
+> GPT's realised design effect nearly doubled against NR-61, 1.56 → **2.57**. That is the
+> cross-cluster sharing the registration corrected itself about before the draw: **82 of 408**
+> distinct control papers (20 %) serve more than one repository, against 31 of 720 (4.3 %) in the
+> arXiv-window study, because the cross-repository pool holds 1,249 papers total rather than 99
+> listing windows' worth. The repository bootstrap does not model that correlation, so both
+> intervals here are narrower than the data supports — by more than the companion study's, and the
+> artefact publishes the count so the claim stays checkable.
+
+**Two incidents, both in §8 of the registration.** The registering commit landed **22 minutes
+after** the pulse it named as unchoosable, so the seed was re-pointed forward and the original
+claim recorded as false of its own commit. And a purchase started without its `scheme` label was
+stopped to fix it — `ps` under Git Bash reported the processes dead, PowerShell showed four alive,
+the lock was **deleted by hand**, and two runs then interleaved writes to one verdict store. All 92
+verdicts written during the race were identifiable because the two negative classes share no
+`(case, paper)` pair; they were discarded rather than relabelled, and the store was restored to
+exactly its pre-purchase 1,880 records. `buy_verdicts` now keeps a heartbeat, so a crashed run's
+lock goes stale on its own and nobody has a reason to delete a live one.
+
+**What this does not show.** Cross-repository controls are relevant *somewhere*, but they are not
+matched to the positive on quality, so this cannot separate "wrong for this repository" from
+"weaker paper". It does not measure ranking within the adopted class, which is what the shipped
+rescore does. It says nothing about either judge's calibration — both order well, their thresholds
+still differ by a factor of four on identical papers, and no endpoint here fixes a level. And the
+controls are papers cited at HEAD rather than adopted: the stricter class was measured first and is
+infeasible at this n, which the registration states rather than discovers.
+
 ### Both judges order adopted papers above matched controls — and far above what was predicted, which is the finding to be careful with. **[NR-61]**
 
 ```bash
