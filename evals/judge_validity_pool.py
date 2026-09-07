@@ -34,6 +34,7 @@ import random
 import re
 import subprocess
 import sys
+import time
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -1411,6 +1412,14 @@ POOL_VERDICTS = WORK / "judge_validity_pool_verdicts.json"
 PURCHASE_LOCK = WORK / "judge_validity_pool.lock"
 LEGACY_VERDICTS = WORK / "judge_validity_verdicts.json"
 CHECKPOINT = 20
+LOCK_STALE_AFTER = 900
+"""Seconds after which an untouched purchase lock is treated as left by a dead run.
+
+The lock is refreshed at every checkpoint, so a live run never approaches this; a run
+killed mid-flight leaves one that ages out on its own. That is the whole point. Before
+the heartbeat the only way past a crashed run's lock was to delete the file, which is a
+habit that works identically on a lock whose owner is still writing -- and on 2026-09-07
+it did exactly that."""
 
 
 def verdict_key(model: str, case: str, pid: str) -> str:
@@ -1529,11 +1538,20 @@ def buy_verdicts(
     dest = store or POOL_VERDICTS
     lock_file = lock or PURCHASE_LOCK
     if lock_file.is_file():
-        raise SystemExit(
-            f"{lock_file} exists: {lock_file.read_text(encoding='utf-8').strip()}\n"
-            "  Another purchase run holds it. Two loops against one store would interleave\n"
-            "  writes and each would overwrite the other's verdicts."
-        )
+        age = time.time() - lock_file.stat().st_mtime
+        if age < LOCK_STALE_AFTER:
+            raise SystemExit(
+                f"{lock_file} exists and was touched {age:.0f}s ago: "
+                f"{lock_file.read_text(encoding='utf-8').strip()}\n"
+                "  A live purchase run holds it. Two loops against one store interleave\n"
+                "  writes and each overwrites the other's verdicts.\n"
+                "  DO NOT delete this file to get past it. Measured 2026-09-07: deleting a\n"
+                "  live lock and restarting produced two concurrent runs whose saves clobbered\n"
+                "  each other, and `ps` under Git Bash reported the first one dead while four\n"
+                "  Windows processes were still writing. Stop the run, then start again — a\n"
+                f"  lock left by a crash goes stale on its own after {LOCK_STALE_AFTER}s."
+            )
+        print(f"  ! taking a stale lock, last touched {age:.0f}s ago (previous run died)")
 
     import judge_validity_adoption as jva
 
@@ -1551,6 +1569,10 @@ def buy_verdicts(
 
     def fire_gate() -> None:
         _save_store(dest, have)  # money first, guard second
+        # The heartbeat. Refreshed wherever the store is, so the lock is only as fresh as the
+        # last thing this run actually wrote -- a process wedged before its next save stops
+        # renewing it and the lock ages out, which is the state the staleness check is for.
+        lock_file.write_text(f"pid {os.getpid()} alive {_now()}", encoding="utf-8")
         failures = check(cache_before, cache_roots, None, None) if gate is None else check()
         if failures:
             raise SystemExit("\n\n".join(failures))
@@ -3636,7 +3658,19 @@ def main() -> int:
         items, missing = judgeable_items(kept, controls)
         if missing:
             print(f"  ! {len(missing)} paper(s) could not be fetched: {missing[:5]}")
-        record = buy_verdicts(items, pool_contexts(kept), judges=real_judges(), done_out=XREPO_DONE)
+        # `scheme` defaults to "arxiv-window", and every verdict carries it. Left unset, this
+        # arm lands in the shared store under the companion study's label, and the datasheet
+        # §10 step 7 publishes cannot say which negative class a verdict was bought against.
+        # Caught 22 verdicts in; the two schemes share no (case, paper) pair, so those were
+        # relabelled rather than re-bought — Sonnet samples at temperature 1.0, and re-buying
+        # would have made eleven items a different draw from the other 527.
+        record = buy_verdicts(
+            items,
+            pool_contexts(kept),
+            judges=real_judges(),
+            scheme="crossrepo",
+            done_out=XREPO_DONE,
+        )
         print(f"\nbought {record['bought']} verdicts over {record['n_items']} items")
         for model, cov in record["coverage"].items():
             print(f"  {model}: coverage {cov['coverage']}")

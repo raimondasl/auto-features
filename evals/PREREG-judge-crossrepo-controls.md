@@ -117,6 +117,18 @@ A null here would not show the judge is worthless — the gate operates downstre
 3. Buy verdicts for the control arm only — **1,076 calls, ≈ $7** at the measured token volumes with prompt caching. Positive verdicts are reused, and a positive whose stored context digest no longer matches is re-bought rather than reused.
 4. Compute the endpoints once, after coverage is 1.0 for both judges. No endpoint is inspected before then, enforced by the same gate as the companion study.
 
+**Purchase incident, 2026-09-07, recorded here because 92 verdicts were bought and then discarded, and because the guard against it was removed by hand.** The first purchase run was started without `scheme="crossrepo"`, so its verdicts entered the shared store under the companion study's label — a provenance defect, not a scoring one, but one the §10-step-7 datasheet would have published. Stopping it to fix that is where the damage was done.
+
+The stop did not work and was believed to have. `ps` under Git Bash reported the target processes gone; **PowerShell showed four alive** — two complete runs, because bash had killed the wrappers and not the Windows processes underneath. This is the same false-visibility failure as the companion study's ledger race, arriving from the opposite direction: there a `grep -c` reported zero while two walks ran, here it reported success while two purchases ran.
+
+Compounding it, `judge_validity_pool.lock` was **deleted manually** to allow the restart. That lock exists for exactly one purpose — stopping two loops from interleaving writes to one verdict store — and removing it produced precisely that: two runs, each holding its own in-memory copy of the store, each save overwriting the other's, and a relabelling applied between them silently reverted.
+
+**Nothing is lost, and the reason is structural rather than lucky.** The two negative classes share **no `(case, paper)` pair**, so every verdict written during the race is identifiable from the two committed control artefacts alone. All 92 were dropped and the store restored to exactly its pre-purchase state — 1,880 records, all `arxiv-window` — verified by count and label. They were discarded rather than relabelled because Sonnet samples at temperature 1.0: some papers were judged by both runs, and "whichever save landed last" is not provenance worth keeping for $0.60, even though save order is independent of score and therefore unbiased.
+
+The run was restarted once, verified as a single process by its parent/child chain rather than by a name match, and `buy_verdicts` now keeps a **heartbeat**: the lock is refreshed at every checkpoint and a lock nothing has touched for `LOCK_STALE_AFTER` is taken as left by a dead run. That removes the reason the file was deleted in the first place — before it, the only way past a crashed run's lock was to delete it, and that habit works identically on a lock whose owner is still writing.
+
+No rule, no draw and no endpoint changed: the seed, the eligibility rule and the 538 drawn controls are the same before and after.
+
 ## 9. Deviations
 
 Any departure from this file is recorded in it, with the date, what was known at the time, and which direction it moves the result — the standard the companion registration applied to its own target change and its two ledger repairs. A deviation that makes a null harder to fire is the only kind that can be taken without re-registering.
