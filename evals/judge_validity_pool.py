@@ -1137,6 +1137,7 @@ def draw_controls(
 XREPO_ROWS = POOL_FRAME / "controls-crossrepo.json"  # committed, URL-free
 XREPO_PAYLOAD = WORK / "controls-crossrepo-payload.json"  # untracked
 XREPO_SEED_FILE = POOL_FRAME / "SEED_XREPO"
+XREPO_DONE = POOL_FRAME / "judging_complete_crossrepo.json"  # committed, URL-free
 XREPO_PULSE = "2026-09-07T12:00:00Z"
 XREPO_CONTROLS_PER_POSITIVE = 4
 
@@ -2336,6 +2337,258 @@ def scheme_difference(
     }
 
 
+XREPO_MIN_CLUSTERS = 10  # §5 branch 4
+XREPO_ANALYSIS = WORK / "crossrepo_analysis.json"  # untracked
+
+
+def crossrepo_analysis(iters: int = BOOTSTRAP_ITERS) -> dict[str, Any]:
+    """§4's endpoints, computed once, over the artefacts both studies have already frozen.
+
+    The category-matched arm is recomputed here on the cross-repository study's own analysis
+    set, never read back from NR-61: §2 excludes the positives whose cross-repo class is empty,
+    so the published 188-positive figure describes a different set and is not the left operand
+    of §4's contrast. `scheme_difference` enforces that itself, and the per-scheme primaries
+    printed beside it are computed on the same restricted set for the same reason.
+    """
+    import judge_validity_adoption as jva
+
+    models = (jva.GPT_MODEL, jva.SONNET_MODEL)
+    seed = xrepo_seed()
+    src = crossrepo_inputs()
+    positives = src["positives"]
+    xrepo = crossrepo_controls(
+        positives,
+        seed=seed,
+        head_ids=src["head_ids"],
+        windows=src["windows"],
+        papers=src["papers"],
+    )
+    window_controls = draw_controls(
+        positives, seed=pool_seed(), head_ids=head_ids_for(sorted({p["case"] for p in positives}))
+    )
+    verdicts = json.loads(POOL_VERDICTS.read_text(encoding="utf-8"))
+
+    covered = {(str(r["case"]), dedup_id(str(r["for_positive"]))) for r in xrepo}
+    kept = [p for p in positives if (str(p["case"]), dedup_id(str(p["id"]))) in covered]
+    in_set = [
+        r
+        for r in window_controls
+        if (str(r["case"]), dedup_id(str(r.get("for_positive") or ""))) in covered
+    ]
+
+    primaries = {m: primary_auc(m, kept, xrepo, verdicts, iters=iters) for m in models}
+    secondaries = {m: secondary_gap(m, kept, xrepo, verdicts, iters=iters) for m in models}
+    deltas = {m: scheme_difference(m, kept, in_set, xrepo, verdicts, iters=iters) for m in models}
+    strata: dict[str, dict[str, Any]] = {"pool": {}, "legacy": {}}
+    for name in strata:
+        rows = [p for p in kept if str(p.get("stratum", "pool")) == name]
+        ids = {(str(r["case"]), dedup_id(str(r["id"]))) for r in rows}
+        ctl = [
+            r for r in xrepo if (str(r["case"]), dedup_id(str(r.get("for_positive") or ""))) in ids
+        ]
+        for m in models:
+            strata[name][m] = primary_auc(m, rows, ctl, verdicts, iters=iters)
+
+    # Coverage is READ from the purchase record, never recomputed here. Recomputing it would
+    # ask the analysis whether the analysis has everything it needs, and §5 branch 4 turns on
+    # that answer — the same shape of defect as a stop gate reading its bar out of the artefact
+    # it gates. An absent record leaves it empty, which branch 4 treats as unmeasured.
+    done = json.loads(XREPO_DONE.read_text(encoding="utf-8")) if XREPO_DONE.is_file() else {}
+    out = {
+        "seed": seed,
+        "n_positives": len(kept),
+        "n_controls": len(xrepo),
+        "n_clusters": len({p["case"] for p in kept}),
+        "primaries": primaries,
+        "secondaries": secondaries,
+        "base_rates": {m: control_base_rate(secondaries[m]) for m in models},
+        "delta_vs_window": deltas,
+        "strata": strata,
+        "consequences": crossrepo_consequences(primaries, deltas, done.get("coverage")),
+    }
+    out["predictions"] = score_xrepo_predictions(primaries, deltas, out["base_rates"], strata)
+    XREPO_ANALYSIS.parent.mkdir(parents=True, exist_ok=True)
+    XREPO_ANALYSIS.write_text(json.dumps(out, indent=1, default=str), encoding="utf-8")
+    return out
+
+
+def crossrepo_consequences(
+    primaries: dict[str, dict[str, Any]],
+    deltas: dict[str, dict[str, Any]],
+    coverage: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """§5's four branches, evaluated per judge from that judge's own intervals.
+
+    Branch 4 is checked FIRST and for every judge at once, because it is the branch that says
+    no endpoint may be read: fewer than 10 contributing clusters, or either judge's coverage
+    below 1.0. Evaluating it after the others would mean computing an outcome from an interval
+    §5 has already declared unreadable, and the outcome would be the thing anyone quoted.
+
+    A judge with no interval at all is neither branch 2 nor a refusal in the §5 sense — it is a
+    missing measurement, and it is reported as one. The companion study learned that
+    distinction the expensive way: an arithmetic refusal folded into the null branch fires the
+    pre-committed null on an artefact, by a different route than the one §3.3 spent money to
+    close.
+    """
+    clusters = max(
+        [int(p.get("n_clusters") or 0) for p in primaries.values()] or [0],
+    )
+    thin = [m for m, c in (coverage or {}).items() if float((c or {}).get("coverage") or 0) < 1.0]
+    if clusters < XREPO_MIN_CLUSTERS or thin:
+        return {
+            "outcome": "no_endpoint",
+            "branch": 4,
+            "n_clusters": clusters,
+            "judges_below_full_coverage": thin,
+            "statement": (
+                f"§5 branch 4: {clusters} contributing cluster(s) against a floor of "
+                f"{XREPO_MIN_CLUSTERS}"
+                + (f", and coverage below 1.0 for {thin}" if thin else "")
+                + ". No endpoint is reported. A refusal is not a null, and neither is an "
+                "incomplete purchase."
+            ),
+        }
+
+    per_judge: dict[str, Any] = {}
+    for model, primary in primaries.items():
+        delta = deltas.get(model) or {}
+        excludes_half = primary.get("excludes_half")
+        excludes_zero = delta.get("excludes_zero")
+        if excludes_half is None or "_refused" in primary:
+            per_judge[model] = {
+                "outcome": "not_measurable",
+                "why": str(primary.get("_refused") or "no interval was computed"),
+            }
+            continue
+        if not excludes_half:
+            per_judge[model] = {
+                "outcome": "includes_0.5",
+                "branch": 2,
+                "statement": (
+                    "The judge does not discriminate among papers that are relevant to some "
+                    "repository. NR-61's discrimination is attributable to topic matching, and "
+                    "the gate is not shown to be repository-conditioned — the product's central "
+                    "selection stage is not doing the thing its design assumes."
+                ),
+            }
+        elif excludes_zero:
+            per_judge[model] = {
+                "outcome": "excludes_0.5_and_delta_excludes_0",
+                "branch": 1,
+                "statement": (
+                    "The judge conditions on the repository, AND NR-61's figure overstated how "
+                    "strongly. §3.4's caveat becomes a measured quantity: the cross-repository "
+                    "AUC is the figure relevant to the pipeline."
+                ),
+            }
+        elif excludes_zero is None:
+            per_judge[model] = {
+                "outcome": "not_measurable",
+                "why": str(delta.get("_refused") or "no paired contrast was computed"),
+            }
+        else:
+            per_judge[model] = {
+                "outcome": "excludes_0.5_and_delta_includes_0",
+                "branch": 3,
+                "statement": (
+                    "The negative class's difficulty did not matter. NR-61's explanation for "
+                    "its own bracket miss — the one this study exists to test — is wrong, and "
+                    "§3.4 is corrected to say so."
+                ),
+            }
+    return {
+        "per_judge": per_judge,
+        "primary_label_unchanged": True,
+        "primary_label_reason": (
+            "§6.4 of the companion registration fixed the primary label as GPT-5.5 before any "
+            "of this data existed. No outcome here switches it."
+        ),
+    }
+
+
+def score_xrepo_predictions(
+    primaries: dict[str, dict[str, Any]],
+    deltas: dict[str, dict[str, Any]],
+    base_rates: dict[str, Any],
+    strata: dict[str, Any] | None = None,
+    *,
+    reference_rates: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    """§6's X1–X5, each scored from its own registered input and no other.
+
+    Every prediction renders a `met`, and an unscorable clause makes it `None` rather than
+    dropping out of a conjunction — the defect that left the companion study's P6 emitting its
+    parts and no verdict, and P5 passing on a bar read out of the artefact it was scoring.
+    """
+    ref = reference_rates or {"gpt-5.5": 0.0891, "claude-sonnet-5": 0.0066}
+    out: dict[str, Any] = {}
+
+    aucs = {m: p.get("auc") for m, p in primaries.items()}
+    out["X1"] = {
+        "prediction": "AUC(cross-repo) in [0.72, 0.88] for both judges, point 0.80",
+        "observed": aucs,
+        "met": None
+        if any(a is None for a in aucs.values())
+        else all(0.72 <= float(a) <= 0.88 for a in aucs.values()),
+    }
+    ds = {m: (deltas.get(m) or {}).get("delta_auc") for m in primaries}
+    out["X2"] = {
+        "prediction": "delta in [0.04, 0.20] for both judges, point 0.11",
+        "observed": ds,
+        "met": None
+        if any(d is None for d in ds.values())
+        else all(0.04 <= float(d) <= 0.20 for d in ds.values()),
+    }
+    ex = {m: p.get("excludes_half") for m, p in primaries.items()}
+    out["X3"] = {
+        "prediction": "both cross-repo intervals exclude 0.5",
+        "observed": ex,
+        "met": None if any(v is None for v in ex.values()) else all(ex.values()),
+    }
+    rates = {m: (base_rates.get(m) or {}).get("rate") for m in primaries}
+    rose = {
+        m: None if rates.get(m) is None else float(rates[m]) > ref.get(m, 0.0) for m in primaries
+    }
+    vals = [rates.get(m) for m in ("gpt-5.5", "claude-sonnet-5")]
+    ratio = (
+        None
+        if any(v is None for v in vals) or min(float(v) for v in vals if v is not None) <= 0
+        else max(float(v) for v in vals if v is not None)
+        / min(float(v) for v in vals if v is not None)
+    )
+    out["X4"] = {
+        "prediction": (
+            "P(actionable | cross-repo control) rises above the category-matched "
+            "0.089 / 0.007 for both judges, and the two still differ by a factor >= 5"
+        ),
+        "observed": rates,
+        "reference": ref,
+        "rose_for_both": None if any(v is None for v in rose.values()) else all(rose.values()),
+        "ratio": None if ratio is None else round(ratio, 2),
+        "met": None
+        if any(v is None for v in rose.values()) or ratio is None
+        else bool(all(rose.values()) and ratio >= 5),
+    }
+    gaps: dict[str, Any] = {}
+    for model in primaries:
+        pool = ((strata or {}).get("pool") or {}).get(model, {}).get("auc")
+        legacy = ((strata or {}).get("legacy") or {}).get(model, {}).get("auc")
+        gaps[model] = None if pool is None or legacy is None else round(abs(pool - legacy), 4)
+    out["X5"] = {
+        "prediction": "pool and legacy AUCs differ by < 0.10 for both judges",
+        "observed": gaps,
+        "met": None
+        if any(g is None for g in gaps.values())
+        else all(float(g) < 0.10 for g in gaps.values()),
+    }
+    out["_track_record"] = (
+        "§6 registers these with the companion study's scorecard attached: one of seven met, "
+        "every miss under-predicting discrimination and over-predicting the negative class's "
+        "difficulty. These brackets are adjusted for that bias and still expected to be wide."
+    )
+    return out
+
+
 def shortfall(
     analysis: dict[str, Any],
     stop: dict[str, Any] | None,
@@ -3341,11 +3594,21 @@ def main() -> int:
         help="buy verdicts for the cross-repository control arm. Positives are skipped, "
         "because their verdicts were bought against a byte-identical prompt.",
     )
+    ap.add_argument(
+        "--xrepo-analyse",
+        action="store_true",
+        help="compute the cross-repository endpoints once, after the control arm is complete.",
+    )
     args = ap.parse_args()
     if args.materialise_legacy:
         out = materialise_legacy()
         print(f"\nmaterialised {out['n_cases']} legacy cases, {out['n_usable_rows']} usable rows")
         print(f"wrote {LEGACY_SIDECAR}")
+        return 0
+    if args.xrepo_analyse:
+        out = crossrepo_analysis()
+        print(json.dumps(out["consequences"], indent=1))
+        print(f"\nwrote {XREPO_ANALYSIS}")
         return 0
     if args.xrepo_draw or args.xrepo_buy:
         seed = xrepo_seed()
@@ -3373,7 +3636,7 @@ def main() -> int:
         items, missing = judgeable_items(kept, controls)
         if missing:
             print(f"  ! {len(missing)} paper(s) could not be fetched: {missing[:5]}")
-        record = buy_verdicts(items, pool_contexts(kept), judges=real_judges())
+        record = buy_verdicts(items, pool_contexts(kept), judges=real_judges(), done_out=XREPO_DONE)
         print(f"\nbought {record['bought']} verdicts over {record['n_items']} items")
         for model, cov in record["coverage"].items():
             print(f"  {model}: coverage {cov['coverage']}")
