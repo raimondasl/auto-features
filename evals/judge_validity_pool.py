@@ -57,6 +57,7 @@ POOL_ADOPTIONS = POOL_FRAME / "adoptions-pool-v2.json"
 POOL_WALK = POOL_FRAME / "validity_walk.csv"
 POOL_SUMMARY = POOL_FRAME / "walk_summary.json"
 POOL_CURVE = POOL_FRAME / "yield_curve.csv"
+DATASHEET = POOL_FRAME / "datasheet.json"  # committed, URL-free (§10 step 7)
 POOL_CONTEXTS = POOL_FRAME / "contexts"
 POOL_HEAD_IDS = POOL_FRAME / "head_ids"
 CANDIDATES = POOL_FRAME / "pool-universe-Dp.csv"
@@ -2359,6 +2360,41 @@ def scheme_difference(
     }
 
 
+def publish_datasheet(dest: Path | None = None) -> dict[str, Any]:
+    """§10 step 7's datasheet, over EVERY verdict in the store — both negative classes.
+
+    Written to a committed path rather than left inside an analysis blob in `.work/`. The seven
+    components §10 step 7 names are the point of publishing at all, and the one that exists
+    nowhere else is `raw_ordinal_scores`: the legacy artefact keeps thresholded counts, so the
+    four-level distribution both primaries are actually computed over is not recoverable from
+    anything else in the tree. Every row carries its `scheme`, so the two studies' controls can
+    be told apart by a reader who has only this file.
+
+    URL-free by construction: repository names, arXiv identifiers, arms and integers. No
+    abstract, no title, no `github.com/<owner>/<repo>` — §2.1 keeps those out of the tree, and
+    the committed halves of both control draws already do.
+    """
+    import judge_validity_adoption as jva
+
+    models = (jva.GPT_MODEL, jva.SONNET_MODEL)
+    seed = pool_seed()
+    analysis = analysis_set(seed)
+    head = head_ids_for(sorted({str(p["case"]) for p in analysis["positives"]}))
+    controls = draw_controls(analysis["positives"], seed=seed, head_ids=head)
+    if XREPO_ROWS.is_file():
+        stored = json.loads(XREPO_ROWS.read_text(encoding="utf-8"))
+        controls = [*controls, *stored["controls"]]
+    verdicts = json.loads(POOL_VERDICTS.read_text(encoding="utf-8"))
+    outcomes: list[dict[str, Any]] = []
+    for done in (JUDGING_DONE, XREPO_DONE):
+        if done.is_file():
+            outcomes.extend(json.loads(done.read_text(encoding="utf-8")).get("outcomes", []))
+
+    sheet = datasheet(seed, analysis, controls, verdicts, outcomes, models=models)
+    write_artifact(dest or DATASHEET, sheet)
+    return sheet
+
+
 XREPO_MIN_CLUSTERS = 10  # §5 branch 4
 XREPO_ANALYSIS = WORK / "crossrepo_analysis.json"  # untracked
 
@@ -3307,6 +3343,12 @@ def datasheet(
                         "case": record.get("case"),
                         "id": record.get("id"),
                         "arm": record.get("arm"),
+                        # Which negative class this row belongs to. A control scored against the
+                        # category-matched class and one scored against the cross-repository
+                        # class are different measurements of different things, and the two
+                        # studies share their positives — so a datasheet without this cannot be
+                        # split back into the arms its own numbers were computed over.
+                        "scheme": record.get("scheme"),
                         "score": record.get("score"),
                     }
                 )
@@ -3617,6 +3659,11 @@ def main() -> int:
         "because their verdicts were bought against a byte-identical prompt.",
     )
     ap.add_argument(
+        "--datasheet",
+        action="store_true",
+        help="publish §10 step 7's datasheet over every verdict in the store, both schemes.",
+    )
+    ap.add_argument(
         "--xrepo-analyse",
         action="store_true",
         help="compute the cross-repository endpoints once, after the control arm is complete.",
@@ -3626,6 +3673,13 @@ def main() -> int:
         out = materialise_legacy()
         print(f"\nmaterialised {out['n_cases']} legacy cases, {out['n_usable_rows']} usable rows")
         print(f"wrote {LEGACY_SIDECAR}")
+        return 0
+    if args.datasheet:
+        out = publish_datasheet()
+        for k, v in out.items():
+            if k != "limitations":
+                print(f"  {k}: {json.dumps(v)[:130]}")
+        print(f"wrote {DATASHEET}")
         return 0
     if args.xrepo_analyse:
         out = crossrepo_analysis()
