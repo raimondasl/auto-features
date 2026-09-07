@@ -112,7 +112,14 @@ def fetch_pulse(pulse_iso: str) -> str:
     return str(payload["pulse"]["outputValue"])
 
 
-def verify_seed(seed: str, pulse_iso: str, fetch: Any = fetch_pulse) -> None:
+def verify_seed(
+    seed: str,
+    pulse_iso: str,
+    fetch: Any = fetch_pulse,
+    *,
+    name: str = "SEED_POOL",
+    section: str = "section 2.4",
+) -> None:
     """Refuse to walk unless SEED_POOL really is the pulse named before the list was frozen.
 
     Section 2.4's whole anti-discretion argument is that the order comes from a value nobody
@@ -123,14 +130,21 @@ def verify_seed(seed: str, pulse_iso: str, fetch: Any = fetch_pulse) -> None:
 
     Compared case-insensitively because the beacon serves uppercase hex and shells lowercase
     it freely; that is a transcription difference, not a different value.
+
+    *name* and *section* only shape the refusal. The cross-repository study registers its own
+    seed against its own pulse and reuses this check rather than writing a second one — the
+    argument in `pool_seed` cuts both ways, and a duplicate comparison could disagree with this
+    one about the same file. What a caller must not inherit is this message: a refusal naming
+    SEED_POOL and section 2.4 while the operator is holding SEED_XREPO sends them to the wrong
+    file and the wrong document.
     """
     expected = fetch(pulse_iso)
     if seed.strip().lower() != expected.strip().lower():
         raise SystemExit(
-            f"SEED_POOL does not match the pulse named in section 2.4 ({pulse_iso}).\n"
+            f"{name} does not match the pulse named in {section} ({pulse_iso}).\n"
             f"  file   : {seed.strip()[:32]}...\n"
             f"  beacon : {expected.strip()[:32]}...\n"
-            "  The walk order is only unchoosable if the seed IS that pulse. Refusing."
+            f"  The draw is only unchoosable if {name} IS that pulse. Refusing."
         )
 
 
