@@ -55,6 +55,12 @@ Four controls per positive where four exist, otherwise all that exist, ordered b
 
 A control paper may serve more than one positive, and papers shared across clusters are a correlation the repository-clustered bootstrap does not capture, so the interval is very slightly too narrow. This is reported in the artefact as a count, exactly as the companion study reports it, rather than repaired by dropping rows after the draw.
 
+> **Correction to the sentence above, 2026-09-07T15:12Z — after the pulse published, before anything was drawn under it.** "Very slightly" is wrong, and it was written by analogy to the companion study rather than measured. A dry run of the whole draw under a **throwaway seed**, against the real identifier sets, put cross-cluster sharing at **80 of 415 distinct control papers (19 %)**, against **31 of 720 (4.3 %)** in the arXiv-window study — roughly four times the rate.
+>
+> The cause is structural and not seed-dependent, which is why a fake seed measures it honestly: the cross-repository pool holds 1,249 papers total, so one paper serving several positives is far likelier than when drawing from 99 arXiv listing windows. The real draw will land near the same figure.
+>
+> Nothing else changes. The rule is unchanged, the draw is unchanged, no endpoint has been computed, and the artefact still publishes the count — so the understatement was recoverable from the artefact either way. What is corrected is the *characterisation*: at four times the companion study's rate the interval is narrower than that phrase implies, and any interval reported from this study should be read as optimistic by more than a rounding. The original sentence is left standing above rather than rewritten, because a registration that quietly acquires better wording is not a registration.
+
 ## 4. Endpoints
 
 **Primary, per judge.** Repository-clustered AUC of the raw 0–3 ordinal score, adopted against cross-repository control, bootstrapped over repositories with 5,000 draws, 95 % percentile interval. Ordinal and level-free by construction, for the reason NR-59 established: the two judges order alike and threshold two orders of magnitude apart, so any thresholded statistic measures the threshold.
