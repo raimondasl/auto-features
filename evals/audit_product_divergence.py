@@ -566,6 +566,14 @@ NOT_UNDER_TEST: dict[str, str] = {
     "openalex.email": "credential/politeness header",
     "openalex.api_key": "credential",
     "suggestions.claude_api_key": "credential",
+    "suggestions.openai_api_key": "credential",
+    # The gate can now run on OpenAI, so one account covers the whole pipeline — the
+    # fine-scale rescore is OpenAI-only because no other vendor exposes logprobs. Every
+    # published number was measured with the gate on claude-haiku-4-5, so this model is
+    # NOT the benchmark configuration and is listed here rather than in
+    # BENCHMARK_HEADLINE: choosing it is a divergence from what was measured, and an
+    # OpenAI-gated run is an unmeasured configuration until somebody benchmarks it.
+    "suggestions.openai_model": "the benchmark's gate is provider='claude'",
     "triage.finescale.openai_api_key": "credential",
     "enrichment.hf_token": "credential",
     "hooks.email.password": "credential",
