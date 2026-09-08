@@ -456,6 +456,8 @@ def _triage_reporadar(
     scan_source: bool = False,
     typed_anchors: bool = False,
     prose_anchor: str = "start",
+    provider: str = "claude",
+    effort: str = "",
 ) -> dict[str, dict[str, Any]]:
     """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic).
 
@@ -472,8 +474,17 @@ def _triage_reporadar(
     profile = case_profile(
         repo_dir, scan_source=scan_source, prose_chars=prose_chars, prose_anchor=prose_anchor
     )
-    llm_cfg = SuggestionsConfig(
-        provider="claude", claude_api_key=keys.get("ANTHROPIC_API_KEY", ""), claude_model=model
+    llm_cfg = (
+        SuggestionsConfig(
+            provider="openai",
+            openai_api_key=keys.get("OPENAI_API_KEY", ""),
+            openai_model=model,
+            openai_reasoning_effort=effort,
+        )
+        if provider == "openai"
+        else SuggestionsConfig(
+            provider="claude", claude_api_key=keys.get("ANTHROPIC_API_KEY", ""), claude_model=model
+        )
     )
     return triage_papers(papers, profile, llm_cfg, top_k=len(papers))
 
@@ -578,6 +589,16 @@ RANKING_FLAGS = (
     # Changes the SCORE, not the candidates: the profile is untouched, so queries and
     # collection are identical and one frozen pool serves both arms.
     "rr_w_embedding",
+    # The GATE's model and provider, separate from `rr_triage_model` above. That flag is in
+    # POOL_FLAGS because HyDE writes its hypotheses with it, and that coupling is real for a
+    # live run and vacuous for a frozen one: `collect_candidates` — and HyDE inside it — is
+    # never called when a stored pool loads, so the candidates were fixed by whichever model
+    # wrote the hypotheses whenever the pool was seeded. Without this split, swapping the gate
+    # invalidates every stored pool and a gate experiment can only be run by re-collecting,
+    # which reintroduces the draw variance freezing exists to remove.
+    "rr_gate_provider",
+    "rr_gate_model",
+    "rr_gate_effort",
 )
 
 # Frozen pools stored the RANKED top-N until 2026-08-13, which made every ranking
@@ -962,11 +983,13 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
             rr_dest,
             rr_candidates,
             keys,
-            args.rr_triage_model,
+            args.rr_gate_model or args.rr_triage_model,
             args.rr_prose_chars,
             scan_source=args.rr_scan_source,
             typed_anchors=args.rr_typed_anchors,
             prose_anchor=args.rr_prose_anchor,
+            provider=args.rr_gate_provider,
+            effort=args.rr_gate_effort,
         )
         for p in rr_candidates:
             p["llm_score"] = triaged.get(p["arxiv_id"], {}).get("llm_score")
@@ -1220,6 +1243,25 @@ def main() -> int:
         "--rr-triage-model", default="claude-haiku-4-5", help="Model for RepoRadar triage."
     )
     parser.add_argument(
+        "--rr-gate-provider",
+        default="claude",
+        choices=("claude", "openai"),
+        help="Vendor for the GATE only. Not part of the pool fingerprint: HyDE (which shares "
+        "--rr-triage-model) does not run against a frozen pool, so the gate can be varied "
+        "over stored candidates.",
+    )
+    parser.add_argument(
+        "--rr-gate-model",
+        default="",
+        help="Gate model, when it differs from --rr-triage-model. Empty means they are the "
+        "same, which is what every run before 2026-09-08 did.",
+    )
+    parser.add_argument(
+        "--rr-gate-effort",
+        default="",
+        help="reasoning_effort for an OpenAI gate. Sent only when non-empty.",
+    )
+    parser.add_argument(
         "--rr-min-actionable",
         type=int,
         default=2,
@@ -1463,7 +1505,11 @@ def main() -> int:
     judge_label = "mock" if args.mock else args.model
     baseline_label = "mock" if args.mock else f"claude-opus-4-8 ({args.baseline})"
     rr_gate = (
-        f"triage{'+rerank' if args.rr_rerank else ''}({args.rr_triage_model}, "
+        # The gate that ACTUALLY ran, not the pool's HyDE model. A run labelled with the
+        # wrong model is how a measurement gets published under the wrong name, which this
+        # harness has already done once (see _triage_reporadar's docstring).
+        f"triage{'+rerank' if args.rr_rerank else ''}"
+        f"({args.rr_gate_model or args.rr_triage_model}, "
         f"min>={args.rr_min_actionable}{'+sweep' if args.rr_sweep else ''})"
     )
     rr_label = rr_gate if args.rr_triage else "heuristic 0.5"
