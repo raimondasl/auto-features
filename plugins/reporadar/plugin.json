@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/copilot-plugin.json",
+  "name": "reporadar",
+  "version": "1.0.0",
+  "description": "Find arXiv papers a repository should act on, not merely papers about its topic.",
+  "author": "raimondasl",
+  "homepage": "https://github.com/raimondasl/auto-features",
+  "license": "MIT",
+  "keywords": ["research", "arxiv", "papers", "discovery", "repository"],
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json"
+}
