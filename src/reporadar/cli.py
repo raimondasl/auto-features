@@ -102,7 +102,16 @@ def _load_and_validate(
     warning printed above a JSON document makes that document unparseable, so callers
     emitting JSON route the prose to stderr where it is still seen but not swallowed.
     """
-    cfg = load_config(config_path)
+    try:
+        cfg = load_config(config_path)
+    except FileNotFoundError as exc:
+        # A traceback here is not a stack trace anybody needs; it is the first thing a new
+        # user sees, and under the Copilot plugin it is what an MCP server prints while
+        # failing to start — where the client reports "server exited" and the actual cause
+        # never reaches the person who could fix it in one command.
+        error(f"{exc}")
+        error("Run `rr init` here first (or `rr init --measured`), then `rr doctor`.")
+        raise SystemExit(1) from None
     for warning in validate_config(cfg):
         if warnings_to_stderr:
             click.echo(click.style(warning, fg="yellow"), err=True)

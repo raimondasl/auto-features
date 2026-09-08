@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "reporadar": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "reporadar[mcp] @ git+https://github.com/raimondasl/auto-features@v1.0.0-plugin",
+        "rr",
+        "mcp"
+      ]
+    }
+  }
+}
