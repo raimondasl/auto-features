@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import webbrowser
 from collections.abc import Iterator
 from dataclasses import asdict, replace
@@ -165,13 +166,20 @@ def init(path: str, measured: bool) -> None:
     if measured:
         info("")
         info("This is the measured configuration. Before the first run:")
-        info("  1. set ANTHROPIC_API_KEY and OPENAI_API_KEY")
+        info("  1. set OPENAI_API_KEY, and ANTHROPIC_API_KEY for the gate as written.")
+        info("     One key is enough if you set `suggestions.provider: openai` — the")
+        info("     rescore is OpenAI-only either way. Note that every published number")
+        info("     was measured with the gate on claude-haiku-4-5, so an OpenAI gate is")
+        info("     a configuration nobody has benchmarked yet.")
         info('  2. uv pip install -e ".[hyde]" && rr sync-index    # one time, ~1.1 GB')
         info("     This also supplies `embeddings`, which `ranking.w_embedding: 1.5`")
         info("     needs. Without it that weight is inert and you get the configuration")
         info("     measured ~1 net@2 per repository lower - a quiet loss, not an error.")
         info("  3. set `arxiv.categories` to YOUR fields - the cs.LG/cs.CL default is a")
         info("     guess that fits an ML repository and no other.")
+        info("")
+        info("  Then `rr doctor` — it checks all three and names what each one costs.")
+        info("  Every gap above fails silently at run time; that is what doctor is for.")
         info("Cost: roughly $0.01-0.02 per repository per run.")
     else:
         # Said here rather than only in the file, because the number is large enough that
@@ -1838,6 +1846,134 @@ def workspace_digest(run_id: int | None, output_path: str | None, fmt: str) -> N
         success(f"Workspace digest written to {dest}")
     finally:
         store.close()
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to .reporadar.yml.",
+)
+def doctor(config_path: str | None) -> None:
+    """Check that the configuration you have is the configuration you can actually run.
+
+    Every gap this reports fails SILENTLY today. `hyde.enabled: true` without the index
+    produces a run with no dense discovery and no error; `ranking.w_embedding: 1.5` without
+    sentence-transformers is an inert weight, measured about 1 net@2 per repository below the
+    configuration it is meant to be — `rr init --measured` says so in prose that scrolls past
+    once and is never seen again. A configuration that quietly degrades is this project's
+    documented recurring failure (void, not null), and it applies to the product as readily as
+    to the benchmark.
+
+    Exits non-zero when something is configured but unusable, so a plugin or CI step can gate
+    on it rather than reading the output.
+    """
+    cfg = _load_and_validate(config_path)
+    problems: list[str] = []
+
+    def ok(msg: str) -> None:
+        success(f"  {msg}")
+
+    def gap(msg: str, cost: str) -> None:
+        problems.append(msg)
+        warn(f"  {msg}")
+        info(f"      {cost}")
+
+    info("Keys")
+    gate = cfg.suggestions.provider
+    if gate == "claude":
+        key = cfg.suggestions.claude_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        (
+            ok("gate: claude — key present")
+            if key
+            else gap(
+                "gate: claude — no ANTHROPIC_API_KEY",
+                "the gate is skipped, and an ungated digest measured mean net@2 -11.",
+            )
+        )
+    elif gate == "openai":
+        key = cfg.suggestions.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        (
+            ok("gate: openai — key present")
+            if key
+            else gap(
+                "gate: openai — no OPENAI_API_KEY",
+                "the gate is skipped, and an ungated digest measured mean net@2 -11.",
+            )
+        )
+    else:
+        gap(
+            f"gate: provider is {gate!r}, which runs no LLM",
+            "triage needs 'claude', 'openai' or 'ollama'; without it the 0.5 heuristic "
+            "threshold decides, measured mean net@2 -11.",
+        )
+    if cfg.triage.finescale.enabled:
+        key = cfg.triage.finescale.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        (
+            ok("fine-scale rescore: key present")
+            if key
+            else gap(
+                "fine-scale rescore enabled but no OPENAI_API_KEY",
+                "worth +1.36 net@2; it reads logprobs, so no other vendor can substitute.",
+            )
+        )
+
+    info("Dense discovery")
+    if cfg.hyde.enabled:
+        try:
+            from reporadar import hyde
+
+            shards = len(hyde.index_shards(Path(cfg.hyde.index_dir).expanduser()))
+        except ImportError:
+            shards = -1
+        if shards < 0:
+            gap(
+                'hyde.enabled but the extra is missing — uv pip install -e ".[hyde]"',
+                "worth +1.36 net@2, and it is the ONLY channel for 15 of 48 benchmark "
+                "targets, including every repository with no arXiv bibliography.",
+            )
+        elif shards == 0:
+            gap(
+                "hyde.enabled but no index synced — run `rr sync-index` (~1.1 GB, one time)",
+                "worth +1.36 net@2, and it is the ONLY channel for 15 of 48 benchmark "
+                "targets, including every repository with no arXiv bibliography.",
+            )
+        else:
+            ok(f"HyDE index: {shards} shards")
+    else:
+        info("  hyde.enabled: false — dense discovery off (-1.36 net@2 against measured)")
+
+    info("Embeddings")
+    if cfg.ranking.w_embedding > 0:
+        from reporadar.embeddings import EMBEDDINGS_AVAILABLE
+
+        (
+            ok(f"w_embedding={cfg.ranking.w_embedding} — sentence-transformers present")
+            if EMBEDDINGS_AVAILABLE
+            else gap(
+                f"w_embedding={cfg.ranking.w_embedding} but sentence-transformers is missing",
+                "the weight is INERT, not reduced: about 1 net@2 below measured. "
+                'uv pip install -e ".[embeddings]" (or ".[hyde]", which includes it).',
+            )
+        )
+    else:
+        info(f"  w_embedding={cfg.ranking.w_embedding} — semantic ranking off")
+
+    info("Fields")
+    if list(cfg.arxiv.categories) == ["cs.LG", "cs.CL"]:
+        gap(
+            "arxiv.categories is still the cs.LG/cs.CL default",
+            "that default is a guess that fits an ML repository and no other; on the wrong "
+            "field it is the difference between a digest and noise.",
+        )
+    else:
+        ok(f"arxiv.categories: {', '.join(cfg.arxiv.categories)}")
+
+    if problems:
+        error(f"\n{len(problems)} gap(s) — this configuration will run, and quietly underperform.")
+        raise SystemExit(1)
+    success("\nNothing configured that cannot run.")
 
 
 @cli.command(name="sync-index")

@@ -2078,3 +2078,72 @@ class TestCrossSourceDedupIsVersionAware:
         # would start colliding with each other.
         assert _dedup_id("oa:W123") == "oa:W123"
         assert _dedup_id("10.1101/2024.01.01.123456") == "10.1101/2024.01.01.123456"
+
+
+class TestDoctorNamesWhatEachGapCosts:
+    """Every gap it reports fails SILENTLY at run time. `hyde.enabled: true` without the index
+    is a run with no dense discovery and no error; `w_embedding: 1.5` without
+    sentence-transformers is an inert weight. `rr init --measured` says so once, in prose that
+    scrolls past and is never seen again."""
+
+    @staticmethod
+    def _cfg(tmp_path, **over):  # noqa: ANN001, ANN205
+        from reporadar.config import measured_config_yaml
+
+        body = measured_config_yaml().replace("repo_path: .", f"repo_path: {tmp_path.as_posix()}")
+        for k, v in over.items():
+            body = body.replace(k, v)
+        p = tmp_path / ".reporadar.yml"
+        p.write_text(body, encoding="utf-8")
+        return p
+
+    def _run(self, tmp_path, monkeypatch, shards=0, embeddings=True, **over):  # noqa: ANN001, ANN202
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        cfg = self._cfg(tmp_path, **over)
+        with (
+            patch("reporadar.hyde.index_shards", return_value=list(range(shards))),
+            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", embeddings),
+        ):
+            return CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
+
+    def test_a_measured_config_with_nothing_installed_fails_loudly(
+        self, tmp_path, monkeypatch
+    ) -> None:  # noqa: ANN001
+        r = self._run(tmp_path, monkeypatch)
+        assert r.exit_code == 1, "a plugin or CI step must be able to gate on this"
+        assert "no index synced" in r.output and "sync-index" in r.output
+        assert "ANTHROPIC_API_KEY" in r.output
+
+    def test_it_quantifies_rather_than_only_naming(self, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+        """A warning that does not say what it costs gets dismissed."""
+        r = self._run(tmp_path, monkeypatch)
+        assert "1.36" in r.output, "the HyDE gap must carry its measured cost"
+        assert "15 of 48" in r.output, "and that it is the ONLY channel for those"
+
+    def test_an_inert_embedding_weight_is_reported_as_inert(self, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+        r = self._run(tmp_path, monkeypatch, embeddings=False)
+        assert "INERT" in r.output.upper()
+
+    def test_a_satisfied_config_exits_zero(self, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        cfg = self._cfg(tmp_path, **{"[cs.LG, cs.CL]": "[cs.DB]"})
+        with (
+            patch("reporadar.hyde.index_shards", return_value=[1, 2, 3]),
+            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", True),
+        ):
+            r = CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
+        assert r.exit_code == 0, r.output
+        assert "Nothing configured that cannot run" in r.output
+
+    def test_the_default_categories_are_flagged_as_a_guess(self, tmp_path, monkeypatch) -> None:  # noqa: ANN001
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+        monkeypatch.setenv("OPENAI_API_KEY", "k")
+        cfg = self._cfg(tmp_path)
+        with (
+            patch("reporadar.hyde.index_shards", return_value=[1]),
+            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", True),
+        ):
+            r = CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
+        assert r.exit_code == 1 and "cs.LG/cs.CL default" in r.output
