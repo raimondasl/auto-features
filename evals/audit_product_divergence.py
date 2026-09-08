@@ -574,6 +574,7 @@ NOT_UNDER_TEST: dict[str, str] = {
     # BENCHMARK_HEADLINE: choosing it is a divergence from what was measured, and an
     # OpenAI-gated run is an unmeasured configuration until somebody benchmarks it.
     "suggestions.openai_model": "the benchmark's gate is provider='claude'",
+    "suggestions.openai_reasoning_effort": "the benchmark's gate is provider='claude'",
     "triage.finescale.openai_api_key": "credential",
     "enrichment.hf_token": "credential",
     "hooks.email.password": "credential",

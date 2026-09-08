@@ -45,6 +45,13 @@ def _call_ollama(prompt: str, model: str, url: str, timeout: int) -> str:
 # Process-local on purpose: it is a cache of an API fact, not configuration, so it must not
 # outlive a process that might be talking to a different endpoint or a changed API.
 _REJECTS_TEMPERATURE: set[str] = set()
+_TOKEN_CAP: dict[str, str] = {}
+"""Which output-cap parameter a model wants, learned from its own 400 and remembered.
+
+OpenAI renamed `max_tokens` to `max_completion_tokens` for its reasoning models and
+refuses the old name rather than accepting both. Learned rather than switched on a
+model-name prefix, because that hard-codes a naming convention this API has already
+changed once and would need editing for every model released after this line."""
 
 
 MIN_CACHEABLE_CHARS = 4000
@@ -180,6 +187,7 @@ def _call_openai(
     timeout: int,
     max_tokens: int,
     cache_split_on: str | None = None,
+    effort: str = "",
 ) -> str:
     """One OpenAI chat completion, returning the message text.
 
@@ -197,28 +205,38 @@ def _call_openai(
     Claude path does — the reasoning models refuse the parameter and the rejection is
     remembered per process rather than paid for on every call.
     """
-    body: dict[str, Any] = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
-    }
+    body: dict[str, Any] = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    body[_TOKEN_CAP.get(model, "max_tokens")] = max_tokens
     if model not in _REJECTS_TEMPERATURE:
         body["temperature"] = 0
-    try:
-        return _post_openai(body, api_key, timeout)
-    except urllib.error.HTTPError as exc:
-        if exc.code != 400 or "temperature" not in body:
-            raise
-        detail = ""
+    if effort:
+        body["reasoning_effort"] = effort
+
+    # Up to two adaptations, each learned from the message the API actually returned and
+    # remembered for the process. Measured 2026-09-07 against gpt-5.6-luna: `max_tokens` is
+    # refused outright ("use 'max_completion_tokens' instead") and `temperature: 0` is refused
+    # separately ("only the default (1) value is supported"), so a single retry that pops one
+    # of them still fails on the other. Guessing the modern shape by model-name prefix would
+    # be worse: it hard-codes a naming convention this API has already changed once.
+    for _ in range(2):
         try:
-            detail = exc.read().decode("utf-8", "replace")
-        except Exception:  # noqa: BLE001 -- an unreadable body is just an unknown 400
-            raise exc from None
-        if "temperature" not in detail and "max_tokens" not in detail:
-            raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
-        _REJECTS_TEMPERATURE.add(model)
-        body.pop("temperature")
-        return _post_openai(body, api_key, timeout)
+            return _post_openai(body, api_key, timeout)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 400:
+                raise
+            try:
+                detail = exc.read().decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001 -- an unreadable body is just an unknown 400
+                raise exc from None
+            if "max_tokens" in detail and "max_tokens" in body:
+                _TOKEN_CAP[model] = "max_completion_tokens"
+                body["max_completion_tokens"] = body.pop("max_tokens")
+            elif "temperature" in detail and "temperature" in body:
+                _REJECTS_TEMPERATURE.add(model)
+                body.pop("temperature")
+            else:
+                raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
+    return _post_openai(body, api_key, timeout)
 
 
 def _post_openai(body: dict[str, Any], api_key: str, timeout: int) -> str:
@@ -340,7 +358,8 @@ def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None
         if not api_key:
             raise LLMError("No OpenAI API key configured (set openai_api_key or OPENAI_API_KEY)")
         model = getattr(cfg, "openai_model", "gpt-4o-mini")
-        return _call_openai(prompt, api_key, model, timeout, max_tokens, cache_split_on)
+        effort = str(getattr(cfg, "openai_reasoning_effort", "") or "")
+        return _call_openai(prompt, api_key, model, timeout, max_tokens, cache_split_on, effort)
     if provider == "ollama":
         url = getattr(cfg, "ollama_url", "http://localhost:11434")
         model = getattr(cfg, "ollama_model", "llama3.2")
