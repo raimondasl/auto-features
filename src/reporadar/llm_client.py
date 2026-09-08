@@ -173,6 +173,75 @@ def _post_claude(body: dict[str, Any], api_key: str, timeout: int) -> str:
     return "\n".join(parts)
 
 
+def _call_openai(
+    prompt: str,
+    api_key: str,
+    model: str,
+    timeout: int,
+    max_tokens: int,
+    cache_split_on: str | None = None,
+) -> str:
+    """One OpenAI chat completion, returning the message text.
+
+    The gate and the triage stage needed a Claude key until this existed, while the fine-scale
+    rescore needed an OpenAI one — so a working installation required two accounts from two
+    vendors, for two calls that ask nearly the same question. That is a real barrier to anyone
+    installing this, and nothing measured depends on which vendor answers the gate.
+
+    *cache_split_on* is accepted and ignored. OpenAI matches the prefix server-side, so there
+    is no annotation to add: the caller passes a marker to `complete` and the discount applies
+    on this path without the request differing at all. Rejecting the argument here instead
+    would make one provider's caching a caller's problem.
+
+    `temperature=0` is sent, and dropped on the retry if the model rejects it, exactly as the
+    Claude path does — the reasoning models refuse the parameter and the rejection is
+    remembered per process rather than paid for on every call.
+    """
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+    }
+    if model not in _REJECTS_TEMPERATURE:
+        body["temperature"] = 0
+    try:
+        return _post_openai(body, api_key, timeout)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 400 or "temperature" not in body:
+            raise
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001 -- an unreadable body is just an unknown 400
+            raise exc from None
+        if "temperature" not in detail and "max_tokens" not in detail:
+            raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
+        _REJECTS_TEMPERATURE.add(model)
+        body.pop("temperature")
+        return _post_openai(body, api_key, timeout)
+
+
+def _post_openai(body: dict[str, Any], api_key: str, timeout: int) -> str:
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    choices = data.get("choices") or []
+    if not choices:
+        raise LLMError("OpenAI returned no choices")
+    # An empty string is a real answer to nothing, and the callers parse JSON out of this.
+    # Returning it would surface as a parse error somewhere far from the cause.
+    text = (choices[0].get("message") or {}).get("content") or ""
+    if not text.strip():
+        finish = choices[0].get("finish_reason", "?")
+        raise LLMError(f"OpenAI returned an empty message (finish_reason={finish})")
+    return str(text)
+
+
 def _call_openai_top_logprobs(
     prompt: str, api_key: str, model: str, timeout: int, top_k: int
 ) -> list[tuple[str, float]]:
@@ -266,6 +335,12 @@ def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None
             raise LLMError("No Claude API key configured (set claude_api_key or ANTHROPIC_API_KEY)")
         model = getattr(cfg, "claude_model", "claude-haiku-4-5")
         return _call_claude(prompt, api_key, model, timeout, max_tokens, cache_split_on)
+    if provider == "openai":
+        api_key = getattr(cfg, "openai_api_key", "") or os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            raise LLMError("No OpenAI API key configured (set openai_api_key or OPENAI_API_KEY)")
+        model = getattr(cfg, "openai_model", "gpt-4o-mini")
+        return _call_openai(prompt, api_key, model, timeout, max_tokens, cache_split_on)
     if provider == "ollama":
         url = getattr(cfg, "ollama_url", "http://localhost:11434")
         model = getattr(cfg, "ollama_model", "llama3.2")

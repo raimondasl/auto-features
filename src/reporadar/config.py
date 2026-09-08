@@ -295,11 +295,18 @@ class ProfilerConfig:
 
 @dataclass
 class SuggestionsConfig:
-    provider: str = "template"  # "template" | "ollama" | "claude"
+    provider: str = "template"  # "template" | "ollama" | "claude" | "openai"
     ollama_model: str = "llama3.2"
     ollama_url: str = "http://localhost:11434"
     claude_api_key: str = ""
     claude_model: str = "claude-haiku-4-5"
+    # `openai` exists so one account can run the whole pipeline. The fine-scale rescore is
+    # OpenAI-only — it reads a score distribution and no other vendor exposes logprobs — so
+    # before this, a measured-configuration install needed a key from two vendors for two
+    # calls that ask nearly the same question. Nothing measured depends on which vendor
+    # answers the gate; the benchmark's own judge is a third model either way.
+    openai_api_key: str = ""  # falls back to $OPENAI_API_KEY
+    openai_model: str = "gpt-4o-mini"
     max_suggestions: int = 3
     timeout: int = 30
     # Not user-set under `suggestions:` — populated from `privacy.redact` at load
@@ -836,7 +843,7 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         )
 
     # Suggestions
-    known_providers = {"template", "ollama", "claude"}
+    known_providers = {"template", "ollama", "claude", "openai"}
     if cfg.suggestions.provider not in known_providers:
         warnings.append(
             f"Unknown suggestions provider: {cfg.suggestions.provider!r}. "
@@ -850,11 +857,11 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         warnings.append(f"suggestions.timeout={cfg.suggestions.timeout} should be >= 1")
 
     # Triage
-    if cfg.triage.enabled and cfg.suggestions.provider not in ("ollama", "claude"):
+    if cfg.triage.enabled and cfg.suggestions.provider not in ("ollama", "claude", "openai"):
         warnings.append(
             "triage.enabled is true but suggestions.provider is "
             f"{cfg.suggestions.provider!r} — triage needs an LLM provider "
-            "(set suggestions.provider to 'ollama' or 'claude'); it will be skipped."
+            "(set suggestions.provider to 'ollama', 'claude' or 'openai'); it will be skipped."
         )
     if cfg.triage.top_k < 1:
         warnings.append(f"triage.top_k={cfg.triage.top_k} should be >= 1")

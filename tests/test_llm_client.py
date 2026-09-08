@@ -255,3 +255,81 @@ class TestThePromptCacheBreakpoint:
             blocks = self._body_of(m)["messages"][0]["content"]
         assert "SECRET" not in blocks[0]["text"], "redaction still applies"
         assert blocks[1]["text"].startswith("# Candidate paper"), "boundary survived redaction"
+
+
+class TestTheOpenAIProvider:
+    """The gate ran on Claude and the fine-scale rescore on OpenAI, so a measured-configuration
+    install needed a key from two vendors for two calls that ask nearly the same question. That
+    is where most people installing this would stop."""
+
+    CFG = SimpleNamespace(
+        provider="openai", openai_api_key="k", openai_model="gpt-4o-mini", timeout=5
+    )
+
+    @staticmethod
+    def _ok(text: str = "hello") -> MagicMock:
+        return _resp({"choices": [{"message": {"content": text}, "finish_reason": "stop"}]})
+
+    def test_a_completion_comes_back_as_text(self) -> None:
+        with patch("urllib.request.urlopen", return_value=self._ok()):
+            assert complete("prompt", self.CFG) == "hello"
+
+    def test_the_key_falls_back_to_the_environment(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        monkeypatch.setenv("OPENAI_API_KEY", "from-env")
+        cfg = SimpleNamespace(provider="openai", openai_model="gpt-4o-mini", timeout=5)
+        with patch("urllib.request.urlopen", return_value=self._ok()) as m:
+            complete("prompt", cfg)
+        assert m.call_args[0][0].headers["Authorization"] == "Bearer from-env"
+
+    def test_no_key_anywhere_is_a_config_error_not_a_request(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        cfg = SimpleNamespace(provider="openai", openai_model="gpt-4o-mini", timeout=5)
+        with pytest.raises(LLMError, match="No OpenAI API key"):
+            complete("prompt", cfg)
+
+    def test_an_empty_message_raises_rather_than_returning_it(self) -> None:
+        """Callers parse JSON out of this. An empty string is a real answer to nothing and
+        would surface as a parse error somewhere far from the cause."""
+        empty = _resp({"choices": [{"message": {"content": "  "}, "finish_reason": "length"}]})
+        with (
+            patch("urllib.request.urlopen", return_value=empty),
+            pytest.raises(LLMError, match="empty message"),
+        ):
+            complete("prompt", self.CFG)
+
+    def test_a_model_that_rejects_temperature_is_retried_without_it(self) -> None:
+        """The reasoning models refuse the parameter; the Claude path already learned this."""
+        import urllib.error
+
+        from reporadar import llm_client
+
+        llm_client._REJECTS_TEMPERATURE.discard("gpt-4o-mini")
+        err = urllib.error.HTTPError(
+            "u", 400, "bad", {}, io.BytesIO(b'{"error":{"message":"temperature unsupported"}}')
+        )
+        with patch("urllib.request.urlopen", side_effect=[err, self._ok("second")]) as m:
+            assert complete("prompt", self.CFG) == "second"
+        first = json.loads(m.call_args_list[0][0][0].data)
+        second = json.loads(m.call_args_list[1][0][0].data)
+        assert "temperature" in first and "temperature" not in second
+        assert "gpt-4o-mini" in llm_client._REJECTS_TEMPERATURE, "remembered for the process"
+        llm_client._REJECTS_TEMPERATURE.discard("gpt-4o-mini")
+
+    def test_the_cache_marker_is_accepted_and_changes_nothing(self) -> None:
+        """OpenAI matches the prefix server-side, so there is no annotation to add. Rejecting
+        the argument would make one provider's caching a caller's problem."""
+        with patch("urllib.request.urlopen", return_value=self._ok()) as m:
+            complete("a" * 9000, self.CFG, cache_split_on="# Candidate paper")
+        body = json.loads(m.call_args[0][0].data)
+        assert isinstance(body["messages"][0]["content"], str), "no content blocks"
+
+    def test_openai_is_a_known_provider_for_suggestions_and_triage(self) -> None:
+        """Both validators refused it, so the gate could not run on OpenAI at all — the
+        transport existed for the rescore and nothing could reach it for the gate."""
+        from reporadar.config import RepoRadarConfig, validate_config
+
+        cfg = RepoRadarConfig()
+        cfg.repo_path = "."
+        cfg.suggestions.provider = "openai"
+        cfg.triage.enabled = True
+        assert not [w for w in validate_config(cfg) if "provider" in w.lower()]
