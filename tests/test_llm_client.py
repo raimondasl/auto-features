@@ -333,3 +333,80 @@ class TestTheOpenAIProvider:
         cfg.suggestions.provider = "openai"
         cfg.triage.enabled = True
         assert not [w for w in validate_config(cfg) if "provider" in w.lower()]
+
+
+class TestTheOpenAIRequestShapeIsLearnedNotGuessed:
+    """Measured 2026-09-07 against gpt-5.6-luna: `max_tokens` is refused outright ("use
+    'max_completion_tokens' instead") and `temperature: 0` is refused separately ("only the
+    default (1) value is supported"). The first version of this retried once and popped
+    temperature, so it failed on the other and raised — it would never have reached the model
+    it was written for."""
+
+    CFG = SimpleNamespace(
+        provider="openai", openai_api_key="k", openai_model="m-reasoning", timeout=5
+    )
+
+    @staticmethod
+    def _400(msg: str):  # noqa: ANN205
+        import urllib.error
+
+        return urllib.error.HTTPError(
+            "u", 400, "bad", {}, io.BytesIO(json.dumps({"error": {"message": msg}}).encode())
+        )
+
+    @staticmethod
+    def _ok() -> MagicMock:
+        return _resp({"choices": [{"message": {"content": "hi"}, "finish_reason": "stop"}]})
+
+    def _reset(self) -> None:
+        from reporadar import llm_client
+
+        llm_client._TOKEN_CAP.pop("m-reasoning", None)
+        llm_client._REJECTS_TEMPERATURE.discard("m-reasoning")
+
+    def test_both_rejections_are_adapted_to_in_one_call(self) -> None:
+        self._reset()
+        side = [
+            self._400("Unsupported parameter: 'max_tokens' is not supported with this model."),
+            self._400("Unsupported value: 'temperature' does not support 0 with this model."),
+            self._ok(),
+        ]
+        with patch("urllib.request.urlopen", side_effect=side) as m:
+            assert complete("p", self.CFG) == "hi"
+        final = json.loads(m.call_args_list[-1][0][0].data)
+        assert "max_completion_tokens" in final and "max_tokens" not in final
+        assert "temperature" not in final
+        self._reset()
+
+    def test_the_rename_is_remembered_so_the_next_call_costs_no_400(self) -> None:
+        """A 400 still consumes request-rate budget, which this project has repeatedly hit."""
+        self._reset()
+        first = [
+            self._400("Unsupported parameter: 'max_tokens' is not supported with this model."),
+            self._ok(),
+        ]
+        with patch("urllib.request.urlopen", side_effect=first):
+            complete("p", self.CFG)
+        with patch("urllib.request.urlopen", side_effect=[self._ok()]) as m:
+            complete("p", self.CFG)
+        assert "max_completion_tokens" in json.loads(m.call_args_list[0][0][0].data)
+        self._reset()
+
+    def test_an_unrelated_400_is_not_retried_into_oblivion(self) -> None:
+        """A blanket retry would swallow quota and rate-limit errors as parameter problems."""
+        self._reset()
+        with (
+            patch("urllib.request.urlopen", side_effect=[self._400("insufficient_quota")]),
+            pytest.raises(LLMError, match="insufficient_quota"),
+        ):
+            complete("p", self.CFG)
+        self._reset()
+
+    def test_reasoning_effort_is_sent_only_when_configured(self) -> None:
+        with patch("urllib.request.urlopen", return_value=self._ok()) as m:
+            complete("p", self.CFG)
+        assert "reasoning_effort" not in json.loads(m.call_args[0][0].data)
+        cfg = SimpleNamespace(**{**vars(self.CFG), "openai_reasoning_effort": "none"})
+        with patch("urllib.request.urlopen", return_value=self._ok()) as m:
+            complete("p", cfg)
+        assert json.loads(m.call_args[0][0].data)["reasoning_effort"] == "none"

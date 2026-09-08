@@ -307,6 +307,12 @@ class SuggestionsConfig:
     # answers the gate; the benchmark's own judge is a third model either way.
     openai_api_key: str = ""  # falls back to $OPENAI_API_KEY
     openai_model: str = "gpt-4o-mini"
+    # Sent only when non-empty, so a model that does not take the parameter is unaffected.
+    # `none` is the faithful counterpart to the measured gate: `_call_claude` sends no thinking
+    # budget, so claude-haiku-4-5 answers the rubric without reasoning, and §6's finding is that
+    # the gate's problem is precision rather than reasoning depth. A higher effort is a
+    # different gate, not a better-configured one, and would need its own measurement.
+    openai_reasoning_effort: str = ""
     max_suggestions: int = 3
     timeout: int = 30
     # Not user-set under `suggestions:` — populated from `privacy.redact` at load
