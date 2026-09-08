@@ -1144,6 +1144,82 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Swapping the gate to GPT-5.6 Luna is a wash at the shipped threshold and a clear win at `min>=3`. One judge, one draw. **[NR-63]**
+
+```bash
+# both arms, identical but for the gate; the second adds:
+#   --rr-gate-provider openai --rr-gate-model gpt-5.6-luna --rr-gate-effort none
+uv run python evals/run_judge_eval.py --baseline api --rr-frozen-pool evals/.work/pool-cut100 \
+  --rr-all-time --rr-hyde --rr-hyde-index evals/.work/hyde_index \
+  --rr-hyde-hypotheses-file evals/.work/hyde_hypotheses_pinned.json \
+  --rr-hyde-hypotheses 4 --rr-hyde-top-k 100 --rr-prose-chars 300 --rr-bigrams verified \
+  --rr-triage-model claude-haiku-4-5 \
+  --rr-pool 50 --rr-rerank --rr-hybrid --rr-sweep --rr-finescale --rr-w-embedding 1.5
+```
+
+Asked because a Copilot plugin that needs an Anthropic key for the gate *and* an OpenAI key for
+the rescore is a plugin most people will not install. `suggestions.provider: openai` made a
+one-key install possible; this measures what it costs. Luna is the price-tier counterpart to
+Haiku — **$0.20/$1.20 per MTok against $1.00/$5.00** — and `reasoning_effort: none` is the
+faithful match, because `_call_claude` sends no thinking budget and the measured gate answers
+the rubric without reasoning.
+
+**Both arms ran against one frozen pool** (`pool-cut100`, 37 cases, collected 2026-08-30), so
+retrieval contributes exactly nothing. That required separating the gate's model from HyDE's:
+`rr_triage_model` is a POOL_FLAG because HyDE writes its hypotheses with it, which is real for a
+live run and vacuous for a frozen one — `collect_candidates` is never reached when a stored pool
+loads. The new `--rr-gate-*` flags live in RANKING_FLAGS, absent from the fingerprint, and
+POOL_FLAGS is unchanged as a set so every stored pool still loads.
+
+**The Haiku arm reproduces the published number**: +5.49 against the +5.51 of 2026-08-30. The
+flags were recovered from the pool's own `pool_config` — which exists precisely so a stranded
+pool can describe itself, and which I brute-forced 240 flag combinations before noticing.
+
+| threshold | Haiku | Luna | paired Δ (Luna − Haiku) | 95 % CI | p |
+|---|---|---|---|---|---|
+| `min>=1` | +2.32 | +0.73 | **−1.59** | [−3.60, +0.42] | 0.141 |
+| **`min>=2`** (shipped) | **+5.49** | **+4.70** | **−0.78** | [−2.09, +0.52] | 0.264 |
+| `min>=3` | +1.08 | +2.84 | **+1.76** | **[+0.95, +2.56]** | **0.000** |
+
+12 w / 16 l / 9 t at `min>=2`. **The shipped threshold cannot distinguish them**, and the
+interval is wide enough that a real loss of up to ~2 net@2 is not excluded either. What is not
+ambiguous is that the two gates *disagree*: **0 of 37 cases returned an identical set.** Every
+repository got a different digest; the net@2 consequence washed out.
+
+**`min>=3` is the finding.** Luna's top tier is both larger and cleaner — 3.7 papers per case
+against 2.1, at precision 0.92 against 0.86 — and it is the only interval here that excludes
+zero. Luna is not a worse gate, it is a differently calibrated one, more willing to spend its
+highest score and right to do so. That is §6's near-binary-gate story landing differently for a
+different model, and it is the first evidence in this project that the near-binary pathology is
+a property of the gate model rather than of the task.
+
+Luna also abstains less (1 of 37 against 3) and returns more at `min>=2` (12.6 against 10.9) at
+essentially equal precision (0.79 against 0.80).
+
+> #### What this does not establish, and the replicate that would
+>
+> **Per-case sd is 4.04**, against the **1.44** NR-54 measured for Haiku-against-Haiku on this
+> same frozen pool. Some of that excess is genuine model disagreement and some is Luna's own
+> run-to-run noise, and one draw cannot separate them — Luna refuses `temperature: 0` in some
+> modes, so it may be a sampler where the current Haiku path (since 2026-09-01) is not.
+>
+> Until a **Luna-against-Luna** replicate exists, the `min>=3` result is a single draw against a
+> floor measured for a different model, and "−0.78" and "not distinguishable" are both fair
+> readings of `min>=2`. Neither belongs in the paper yet.
+>
+> **One judge.** Both arms were scored by GPT-5.5 only. NR-59 established that the two judges
+> order alike and threshold two orders of magnitude apart, so a threshold-sweep result is
+> exactly the kind that can move under the second judge. The Sonnet pass is pending.
+
+**Cost.** The whole comparison ran on a frozen pool with a cached baseline, so it bought only
+the gate calls and the judging of newly-shown papers. Luna's own gate calls are ~5x cheaper per
+token than Haiku's, which is a real operational argument independent of the net@2 wash.
+
+**What it means for the plugin.** A one-key install is measurably no worse at the threshold that
+ships, on one judge and one draw. That is enough to keep the OpenAI gate as a supported
+configuration and not enough to make it the default, and `suggestions.openai_model` stays
+NOT_UNDER_TEST in the divergence audit until the replicate and the second judge agree.
+
 ### The judge does condition on the repository, and NR-61 overstated how strongly. Both, measured. **[NR-62]**
 
 ```bash
