@@ -1221,18 +1221,35 @@ and cleaner — 3.7 papers per case against 2.1, precision 0.92 against 0.86 —
 in either table excluding zero. That is the first evidence in this project that §6's
 near-binary pathology is a property of the gate **model** rather than of the task.
 
-> #### What this does not establish, and the replicate that would
+> #### The replicate, and what it licenses
 >
-> Per-case sd on the sweep is **4.04**, against the **1.44** NR-54 measured for
-> Haiku-against-Haiku on this same frozen pool. Some of that excess is genuine model
-> disagreement and some is Luna's own run-to-run noise, and one draw cannot separate them —
-> Luna refuses `temperature: 0` in some modes, so it may be a sampler where the current Haiku
-> path (since 2026-09-01) is not.
+> A third arm, byte-identical to the Luna one — same frozen pool, same flags, same fingerprint
+> — re-run so Luna's own draw variation could be measured rather than assumed. The gate is
+> cached nowhere, so it re-decides every paper.
 >
-> So the `min>=3` gate result is a single draw against a floor measured for a different model. A
-> **Luna-against-Luna** replicate is what would license it. The shipped-digest conclusion is the
-> more robust of the two: it holds under both judges and under the consensus label, and its
-> intervals are ±1 rather than ±2.
+> | | sweep `min>=1` | sweep `min>=2` | sweep `min>=3` | shipped digest |
+> |---|---|---|---|---|
+> | **Luna vs Luna** | +0.43, sd 2.06 | +0.22, sd **2.16** | +0.30, sd **1.02** | −0.11, sd 1.24 |
+> | Luna vs Haiku | −1.59, sd 6.24 | −0.78, sd **4.04** | +1.76, sd **2.50** | +0.08 |
+> | Haiku vs Haiku [NR-54] | — | — sd **1.44** | — | — |
+>
+> **Every Luna-against-Luna interval covers zero**, which is the check that a replicate is doing
+> what a replicate should. Luna *is* a sampler — only **3 of 37** digests reproduced exactly
+> across two identical runs — but a modest one, nearer Haiku's own 1.44 than an order worse.
+>
+> **So most of the cross-model 4.04 is genuine disagreement, not Luna's noise**: subtracting in
+> quadrature leaves ≈3.4 attributable to the two models deciding differently.
+>
+> **`min>=3` survives.** Luna re-draws there at +0.30, CI [−0.03, +0.63], against a Luna−Haiku
+> **+1.76, CI [+0.95, +2.56]** — comfortably outside its own re-draw variation. The larger,
+> cleaner top tier is a property of the model, not of the draw, and NR-63's one interval
+> excluding zero is now licensed rather than provisional.
+>
+> **And the shipped digest is stable across draws**: −0.11, CI [−0.51, +0.29]. The +0.08 wash of
+> the two gates sits well inside Luna's own run-to-run spread, so that conclusion is not resting
+> on a lucky draw either. Arm means at `min>=2` — Haiku +5.49, Luna₁ +4.70, Luna₂ +4.92 — bracket
+> closely and both Luna draws sit below Haiku, which is the permissiveness story repeating rather
+> than reversing.
 
 **Cost.** The comparison ran on a frozen pool with a cached baseline, so it bought only the gate
 calls and the judging of newly-shown papers. Luna's gate calls are ~5x cheaper per token than
@@ -1240,10 +1257,13 @@ Haiku's ($0.20/$1.20 against $1.00/$5.00), which is a real operational argument 
 measured wash.
 
 **What it means for the plugin.** A one-key OpenAI install produces the same digest quality as
-the measured configuration, under both judges, on this pool. That is enough to support the
-OpenAI gate as a configuration and not enough to make it the default:
-`suggestions.openai_model` stays NOT_UNDER_TEST in the divergence audit, because "no difference
-on 37 cases at one draw" is not "measured".
+the measured configuration — under both judges, under the consensus label, and now across two
+independent draws of the gate. That is a real result and it is still not a licence to change the
+default: `suggestions.openai_model` stays NOT_UNDER_TEST in the divergence audit, because every
+published headline was produced with the gate on `claude-haiku-4-5`, and "indistinguishable on
+one frozen pool of 37 cases" is a narrower claim than the one the audit's other column makes.
+What it does license is shipping the OpenAI gate as a supported configuration and saying, with
+numbers, what it costs: nothing measurable.
 
 ### The judge does condition on the repository, and NR-61 overstated how strongly. Both, measured. **[NR-62]**
 
