@@ -1,9 +1,12 @@
 {
-  "$schema": "https://json.schemastore.org/copilot-marketplace.json",
   "name": "reporadar",
-  "version": "1.0.1",
-  "description": "Repository-conditioned research paper discovery for GitHub Copilot.",
-  "owner": "raimondasl",
+  "metadata": {
+    "description": "Repository-conditioned research paper discovery for GitHub Copilot.",
+    "version": "1.0.1"
+  },
+  "owner": {
+    "name": "raimondasl"
+  },
   "plugins": [
     {
       "name": "reporadar",
