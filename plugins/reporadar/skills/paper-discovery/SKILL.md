@@ -41,7 +41,7 @@ thing.
 | `get_ranked_papers` | The digest: papers judged actionable for this repository, best first. |
 | `explain_relevance` | Why one specific arXiv paper was or was not surfaced. |
 | `search_papers` | Search the stored corpus by query, still conditioned on this repository. |
-| `rate_paper` | Record the user's 0–3 rating, which feeds later ranking. |
+| `rate_paper` | Record the user's **1–5** usefulness rating. Anything outside 1–5 is rejected. A 3 is accepted and then *ignored* by the feedback loop, which learns only from 4–5 and 1–2 — so do not default to 3 when the user is vague, ask them. |
 
 `get_ranked_papers` reads what has already been collected. If it returns nothing, the store is
 probably empty rather than the literature — say so and suggest `rr update`, rather than
@@ -49,9 +49,13 @@ reporting "no relevant papers exist".
 
 ## Setup, and what to say when it is missing
 
-The tools need RepoRadar initialised in the repository:
+The tools need RepoRadar initialised in the repository — and they need the `rr` command, which
+**installing the plugin does not provide**. The plugin runs the MCP server in its own throwaway
+environment, so if `rr` is not on the user's PATH that is the first thing to fix, not a sign that
+anything is broken:
 
 ```bash
+uv tool install reporadar-papers   # `rr` on PATH; add [hyde] if they also want `rr sync-index`
 rr init --measured     # writes the configuration every published number was measured under
 rr doctor              # says what is still missing and what each gap costs
 ```

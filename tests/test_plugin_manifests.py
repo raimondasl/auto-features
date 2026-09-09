@@ -91,3 +91,54 @@ class TestTheManifestsAgreeWithWhatTheyPointAt:
             f".mcp.json installs {pinned.group(1)} but the plugin manifest says "
             f"{plugin_version}; keep them in step"
         )
+
+
+class TestTheSkillDescribesTheServerItFronts:
+    """SKILL.md is the agent's whole picture of these tools, and nothing checked it against
+    the server. That is how it came to document `rate_paper` as a 0-3 scale for a tool that
+    rejects anything outside 1-5: an agent following the skill would send values the tool
+    refuses, and no gate anywhere would notice."""
+
+    SKILL = ROOT / "plugins" / "reporadar" / "skills" / "paper-discovery" / "SKILL.md"
+    SERVER = ROOT / "src" / "reporadar" / "mcp_server.py"
+
+    def _registered(self) -> set[str]:
+        # Parsed from source rather than imported: the `mcp` extra is not installed in CI
+        # (`uv sync --extra dev --extra evals`), so `build_server` cannot be called here.
+        source = self.SERVER.read_text(encoding="utf-8")
+        return set(re.findall(r"@server\.tool\(\)\s*\n\s*def (\w+)\(", source))
+
+    def _documented(self) -> set[str]:
+        rows = self.SKILL.read_text(encoding="utf-8")
+        return set(re.findall(r"^\| `(\w+)` \|", rows, re.MULTILINE))
+
+    def test_the_skill_documents_exactly_the_tools_the_server_registers(self) -> None:
+        registered, documented = self._registered(), self._documented()
+        assert registered, "no @server.tool() functions found; the parse is out of date"
+        assert documented == registered, (
+            f"SKILL.md documents {sorted(documented)} but the server registers "
+            f"{sorted(registered)}; undocumented tools go unused and documented-but-absent "
+            f"ones get called and fail"
+        )
+
+    def test_the_documented_rating_range_is_the_one_the_tool_enforces(self) -> None:
+        source = self.SERVER.read_text(encoding="utf-8")
+        bounds = re.search(r"not (\d+) <= rating <= (\d+)", source)
+        assert bounds is not None, "rate_paper's range check moved; update this guard"
+        lo, hi = bounds.groups()
+
+        row = next(
+            line
+            for line in self.SKILL.read_text(encoding="utf-8").splitlines()
+            if line.startswith("| `rate_paper`")
+        )
+        # The FIRST range in the row, not merely some range in it. The row legitimately
+        # mentions 4-5 and 1-2 further along (what the feedback loop learns from), so an
+        # "appears anywhere" check passes even when the headline scale is wrong -- which is
+        # precisely the drift this guard exists to catch.
+        first = re.search(r"(\d)\s*[-–—]\s*(\d)", row)
+        assert first is not None, f"SKILL.md's rate_paper row states no range: {row[:120]}"
+        assert first.groups() == (lo, hi), (
+            f"rate_paper enforces {lo}-{hi} but SKILL.md leads with "
+            f"{first.group(1)}-{first.group(2)}: {row[:120]}"
+        )
