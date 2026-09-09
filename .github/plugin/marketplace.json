@@ -1,14 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/copilot-marketplace.json",
   "name": "reporadar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Repository-conditioned research paper discovery for GitHub Copilot.",
   "owner": "raimondasl",
   "plugins": [
     {
       "name": "reporadar",
       "source": "./plugins/reporadar",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Find arXiv papers a repository should act on, not merely papers about its topic."
     }
   ]

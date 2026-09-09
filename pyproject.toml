@@ -16,7 +16,7 @@ build-backend = "hatchling.build"
 # still "rr" -- see [tool.hatch.build.targets.wheel] and [project.scripts]. This is the same split
 # as beautifulsoup4/bs4.
 name = "reporadar-papers"
-version = "1.0.0"
+version = "1.0.1"
 # "relevant to your repo" is the framing this project exists to argue against — the paper is
 # titled "From Relevance to Actionability", and the whole system is built around a utility
 # judgment that a topical-relevance tool does not make. That sentence was the first thing a
@@ -85,7 +85,14 @@ evals = [
 ]
 mcp = [
     # Only needed for `rr mcp` (RepoRadar as an MCP server for coding agents).
-    "mcp>=1.0",
+    #
+    # Upper-bounded deliberately. mcp 2.x renamed FastMCP to MCPServer and dropped
+    # `mcp.server.fastmcp`, which `reporadar.mcp_server.build_server` imports -- so an
+    # unbounded `mcp>=1.0` resolves to 2.x and `rr mcp` cannot start at all. uv.lock hid
+    # this completely: the dev venv and CI both pin a working 1.x, so only a user doing a
+    # fresh resolve ever saw it, and the published plugin could not start for anyone.
+    # Lift the bound when build_server is ported to MCPServer, not before.
+    "mcp>=1.0,<2",
 ]
 vectors = [
     # Optional acceleration for `rr search --semantic` on large corpora. The
