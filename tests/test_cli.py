@@ -2172,3 +2172,31 @@ def test_version_option_names_the_distribution_not_the_import_package() -> None:
     assert found.group(1) == expected, (
         f"cli.py declares package_name={found.group(1)!r} but pyproject name is {expected!r}"
     )
+
+
+def test_the_mcp_extra_excludes_the_sdk_major_that_cannot_run() -> None:
+    """`mcp` must stay upper-bounded while mcp_server imports `mcp.server.fastmcp`.
+
+    mcp 2.x renamed FastMCP to MCPServer and dropped that module, so an unbounded
+    `mcp>=1.0` resolves to a version where `rr mcp` cannot start at all. No runtime test
+    can catch this: `uv.lock` pins a working 1.x, so the dev venv and CI never do the
+    fresh resolve a user does — which is exactly how a published plugin that could not
+    start for anyone passed a green suite. Compare the declared specifier instead.
+    """
+    import tomllib
+
+    root = Path(__file__).resolve().parent.parent
+    data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    specs = data["project"]["optional-dependencies"]["mcp"]
+    spec = next(s for s in specs if s.split(">")[0].split("<")[0].split("[")[0].strip() == "mcp")
+    assert "<2" in spec.replace(" ", ""), (
+        f"the mcp extra is {spec!r}; it must exclude 2.x while "
+        "reporadar.mcp_server imports mcp.server.fastmcp"
+    )
+
+    # And retire yourself when the port lands, rather than silently holding the ceiling.
+    source = (root / "src" / "reporadar" / "mcp_server.py").read_text(encoding="utf-8")
+    assert "mcp.server.fastmcp" in source, (
+        "mcp_server no longer imports mcp.server.fastmcp: if it is ported to MCPServer, "
+        "lift the <2 bound in pyproject.toml and delete this test"
+    )

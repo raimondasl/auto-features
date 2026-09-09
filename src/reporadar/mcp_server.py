@@ -263,6 +263,17 @@ def _log_call(tool: str, **params: Any) -> None:
         pass
 
 
+def require_sdk() -> None:
+    """Import the optional MCP SDK so an unusable one fails here, with its own message.
+
+    ``build_server`` imports the SDK lazily, so a *missing* extra and an *incompatible*
+    one both surface as ImportError deep inside serving. Calling this first keeps that
+    distinction legible: mcp 2.x renamed FastMCP to MCPServer and its ModuleNotFoundError
+    names the migration, which is the text a user actually needs.
+    """
+    from mcp.server.fastmcp import FastMCP  # noqa: F401
+
+
 def build_server(
     repo_path: str | Path,
     db_path: str | Path,

@@ -1432,7 +1432,18 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
     repo_path = Path(cfg.repo_path).resolve()
     db_path = Path(db_override).resolve() if db_override else repo_path / ".reporadar" / "papers.db"
 
-    from reporadar.mcp_server import run_stdio
+    from reporadar.mcp_server import require_sdk, run_stdio
+
+    # Probe the optional SDK before serving. It is imported lazily inside build_server, so
+    # without this an incompatible version -- not merely a missing one -- surfaced here as
+    # a bare ImportError and was reported as "MCP support not installed", which was false
+    # and hid the SDK's own message naming the fix.
+    try:
+        require_sdk()
+    except ImportError as exc:
+        error(f"Cannot start the MCP server: {exc}")
+        error('The optional extra is:  uv pip install "reporadar-papers[mcp]"')
+        raise SystemExit(1) from None
 
     try:
         run_stdio(
@@ -1446,8 +1457,8 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
             output_cfg=cfg.output,
             triage_cfg=cfg.triage,
         )
-    except ImportError:
-        error('MCP support not installed. Run: uv pip install "reporadar-papers[mcp]"')
+    except ImportError as exc:  # pragma: no cover - a lazy import failing mid-serve
+        error(f"MCP server stopped on a missing import: {exc}")
         raise SystemExit(1) from None
 
 
