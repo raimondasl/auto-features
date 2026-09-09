@@ -2147,3 +2147,28 @@ class TestDoctorNamesWhatEachGapCosts:
         ):
             r = CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
         assert r.exit_code == 1 and "cs.LG/cs.CL default" in r.output
+
+
+def test_version_option_names_the_distribution_not_the_import_package() -> None:
+    """`package_name` must be pyproject's `name`, which is not the import package.
+
+    The two diverge: PyPI refused `reporadar` as too similar to an unrelated `repo-radar`,
+    so the distribution is `reporadar-papers` while the import package stays `reporadar`.
+    This cannot be caught by invoking the CLI — click >= 8.4.2 quietly recovers from a wrong
+    value by resolving it as an import name, so `rr --version` keeps working on a modern
+    click — but the declared floor is click>=8.0, where the same mistake raises RuntimeError
+    in the user's face. So compare the decorator against pyproject directly.
+    """
+    import re
+    import tomllib
+
+    root = Path(__file__).resolve().parent.parent
+    declared = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    expected = declared["project"]["name"]
+
+    source = (root / "src" / "reporadar" / "cli.py").read_text(encoding="utf-8")
+    found = re.search(r'version_option\(package_name="([^"]+)"\)', source)
+    assert found is not None, "version_option(package_name=...) not found in cli.py"
+    assert found.group(1) == expected, (
+        f"cli.py declares package_name={found.group(1)!r} but pyproject name is {expected!r}"
+    )

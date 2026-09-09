@@ -3,7 +3,19 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "reporadar"
+# The distribution name is not "reporadar": PyPI refuses that name. Its similarity check
+# ultranormalizes candidates -- strips ". _ -", folds l/L/i/I to 1 and o/O to 0 -- and under that
+# rule "reporadar" and the existing, unrelated "repo-radar" (a GitHub pull-request auditing
+# toolkit) are the same string. No spelling escapes it: "repo_radar", "RepoRadar" and "rep0radar"
+# all collapse to the same thing, and acquiring "repo-radar" would not help either, because the
+# check matches any project rather than only other people's. The "-papers" suffix is what does the
+# disambiguating work, on the axis where the two products actually differ: repo-radar audits pull
+# requests, this recommends papers.
+#
+# Only the distribution name moves. The import package is still "reporadar" and the command is
+# still "rr" -- see [tool.hatch.build.targets.wheel] and [project.scripts]. This is the same split
+# as beautifulsoup4/bs4.
+name = "reporadar-papers"
 version = "1.0.0"
 # "relevant to your repo" is the framing this project exists to argue against — the paper is
 # titled "From Relevance to Actionability", and the whole system is built around a utility
@@ -92,7 +104,7 @@ packages = ["src/reporadar"]
 
 # The sdist had no target, so hatchling swept the repository: 598 files, 16.3 MB unpacked,
 # including the 3.4 MB candidate universe, the walk ledger, the judge-validity datasheet and a
-# 0.6 MB RESULTS.md. Everyone running `pip install reporadar` would have downloaded a research
+# 0.6 MB RESULTS.md. Everyone running `pip install reporadar-papers` would have downloaded a
 # corpus to get a CLI. The wheel was already scoped and looked fine, which is why this went
 # unnoticed — the two targets fail independently.
 #
