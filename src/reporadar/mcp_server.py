@@ -5,7 +5,7 @@ Context Protocol (stdio). The differentiator vs. the many arXiv MCP servers: the
 tools are grounded in *this repository's* profile and ranking, not a generic
 search. Run with ``rr mcp``.
 
-The MCP SDK is an optional extra (``pip install 'reporadar[mcp]'``) and is imported
+The MCP SDK is an optional extra (``pip install 'reporadar-papers[mcp]'``) and is imported
 lazily, so this module and the data-gathering helpers below import (and test)
 without it — only ``build_server``/``run_stdio`` need it.
 """

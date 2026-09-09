@@ -23,7 +23,7 @@ def _check_available() -> None:
     if not EMBEDDINGS_AVAILABLE:
         raise RuntimeError(
             "sentence-transformers is not installed. "
-            "Install it with: pip install reporadar[embeddings]"
+            "Install it with: pip install 'reporadar-papers[embeddings]'"
         )
 
 

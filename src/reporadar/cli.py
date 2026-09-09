@@ -648,7 +648,10 @@ def search(
         from reporadar.embeddings import EMBEDDINGS_AVAILABLE
 
         if not EMBEDDINGS_AVAILABLE:
-            error("Semantic search needs the embeddings extra: pip install 'reporadar[embeddings]'")
+            error(
+                "Semantic search needs the embeddings extra: "
+                "pip install 'reporadar-papers[embeddings]'"
+            )
             raise SystemExit(1)
 
     from reporadar.digest import filter_since
