@@ -8,6 +8,15 @@ its topic.
 /plugin install reporadar@reporadar
 ```
 
+Installing the plugin does **not** give you the `rr` command. The plugin launches the MCP
+server in its own throwaway environment; the CLI is a separate install, and the setup below
+needs it:
+
+```bash
+uv tool install reporadar-papers            # puts `rr` on PATH
+uv tool install "reporadar-papers[hyde]"    # ...or this, if you also want `rr sync-index`
+```
+
 Then, in the repository you want a digest for:
 
 ```bash
