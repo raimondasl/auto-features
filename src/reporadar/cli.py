@@ -183,7 +183,7 @@ def init(path: str, measured: bool) -> None:
         info("     rescore is OpenAI-only either way. Note that every published number")
         info("     was measured with the gate on claude-haiku-4-5, so an OpenAI gate is")
         info("     a configuration nobody has benchmarked yet.")
-        info('  2. uv pip install -e ".[hyde]" && rr sync-index    # one time, ~1.1 GB')
+        info('  2. uv pip install "reporadar-papers[hyde]" && rr sync-index   # one time, ~1.1 GB')
         info("     This also supplies `embeddings`, which `ranking.w_embedding: 1.5`")
         info("     needs. Without it that weight is inert and you get the configuration")
         info("     measured ~1 net@2 per repository lower - a quiet loss, not an error.")
@@ -1420,7 +1420,7 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
     Exposes repo-aware tools — get_repo_profile, get_ranked_papers,
     explain_relevance, rate_paper, search_papers — to Claude Code / Cursor / VS Code
     / Windsurf.
-    Requires the optional MCP extra:  uv pip install -e ".[mcp]"
+    Requires the optional MCP extra:  uv pip install "reporadar-papers[mcp]"
 
     ``--db`` points the server at a different store while keeping the profile, the
     ranking config and the already-cited exclusion tied to ``repo_path`` — which is what
@@ -1447,7 +1447,7 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
             triage_cfg=cfg.triage,
         )
     except ImportError:
-        error('MCP support not installed. Run: uv pip install -e ".[mcp]"')
+        error('MCP support not installed. Run: uv pip install "reporadar-papers[mcp]"')
         raise SystemExit(1) from None
 
 
@@ -1944,7 +1944,7 @@ def doctor(config_path: str | None) -> None:
             shards = -1
         if shards < 0:
             gap(
-                'hyde.enabled but the extra is missing — uv pip install -e ".[hyde]"',
+                'hyde.enabled but the extra is missing — uv pip install "reporadar-papers[hyde]"',
                 "worth +1.36 net@2, and it is the ONLY channel for 15 of 48 benchmark "
                 "targets, including every repository with no arXiv bibliography.",
             )
@@ -1969,7 +1969,7 @@ def doctor(config_path: str | None) -> None:
             else gap(
                 f"w_embedding={cfg.ranking.w_embedding} but sentence-transformers is missing",
                 "the weight is INERT, not reduced: about 1 net@2 below measured. "
-                'uv pip install -e ".[embeddings]" (or ".[hyde]", which includes it).',
+                'uv pip install "reporadar-papers[embeddings]" (or [hyde], which includes it).',
             )
         )
     else:

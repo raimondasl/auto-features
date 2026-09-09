@@ -204,7 +204,7 @@ def sync_index(index_dir: Path, *, refresh: bool = False, on_shard: Any = None) 
         import pyarrow.parquet as pq
     except ImportError as exc:  # pragma: no cover - dependency guard
         raise HydeError(
-            'HyDE needs pyarrow and numpy. Install with: uv pip install -e ".[hyde]"'
+            'HyDE needs pyarrow and numpy. Install with: uv pip install "reporadar-papers[hyde]"'
         ) from exc
 
     index_dir.mkdir(parents=True, exist_ok=True)
@@ -261,7 +261,8 @@ def load_encoder(model_name: str = MODEL_NAME) -> Any:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:  # pragma: no cover - dependency guard
         raise HydeError(
-            'HyDE needs sentence-transformers. Install with: uv pip install -e ".[hyde]"'
+            "HyDE needs sentence-transformers. Install with: "
+            'uv pip install "reporadar-papers[hyde]"'
         ) from exc
     return SentenceTransformer(model_name)
 

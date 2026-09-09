@@ -979,7 +979,7 @@ def measured_config_yaml() -> str:
 #   OPENAI_API_KEY      the fine-scale rescore. A SECOND vendor is structural, not a
 #                       preference: the rescore reads token logprobs and only OpenAI
 #                       exposes them. Without it, drop `finescale` and lose ~+1.36.
-#   uv pip install -e ".[hyde]"     sentence-transformers + pyarrow
+#   uv pip install "reporadar-papers[hyde]"     sentence-transformers + pyarrow
 #   rr sync-index                   one time, ~1.1 GB on disk (432 MB index +
 #                                   ~670 MB model weights). Offline after that.
 #

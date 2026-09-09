@@ -34,12 +34,19 @@ RepoRadar automatically profiles your repository (README, dependencies, docs), q
 Requires Python 3.11+. Dependencies: `click`, `pyyaml`, `scikit-learn`, `jinja2`, `arxiv`.
 
 ```bash
-# Clone and install with uv
-git clone <repo-url>
-cd auto-features
-uv pip install -e .
+uv pip install reporadar-papers
+```
 
-# Or with dev dependencies (pytest, pytest-cov)
+The distribution is `reporadar-papers`, the command is `rr`, and the import package is
+`reporadar` — PyPI refuses the name `reporadar` itself, and the comment above `name` in
+`pyproject.toml` says why. Extras attach to the distribution, so they are
+`"reporadar-papers[hyde]"`, `[embeddings]`, `[mcp]` and `[vectors]`.
+
+To work on RepoRadar rather than run it:
+
+```bash
+git clone https://github.com/raimondasl/auto-features
+cd auto-features
 uv pip install -e ".[dev]"
 ```
 
@@ -82,8 +89,8 @@ replicates is the mean and the paired delta.
 **One line in that configuration depends on your install.** `ranking.w_embedding: 1.5` is
 worth about +1 net@2 per repository over the 0.0 it carried until 2026-08-16 — but only
 with the `embeddings` extra present. Without it the weight is silently inert and you get
-the lower-scoring configuration. `uv pip install -e ".[hyde]"` already supplies it, so
-following the setup below is enough; setting the weight without the extra is not.
+the lower-scoring configuration. `uv pip install "reporadar-papers[hyde]"` already supplies
+it, so following the setup below is enough; setting the weight without the extra is not.
 
 **The default is not a recommendation; it is what works without credentials.** A digest
 ranked by keyword overlap alone scores *worse than emitting nothing*, because `net@2`
@@ -103,7 +110,7 @@ that justifies it. Then, before the first run:
 ```bash
 export ANTHROPIC_API_KEY=...     # actionability gate + HyDE hypotheses (Claude Haiku)
 export OPENAI_API_KEY=...        # fine-scale rescore -- see "a second vendor" below
-uv pip install -e ".[hyde]"      # sentence-transformers + pyarrow
+uv pip install "reporadar-papers[hyde]"   # sentence-transformers + pyarrow
 rr sync-index                    # one time: 432 MB index + ~670 MB model weights
 ```
 
@@ -446,7 +453,7 @@ Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cu
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
 - `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
 
-Requires the optional extra: `uv pip install -e ".[mcp]"`. Register it with your agent, e.g. Claude Code:
+Requires the optional extra: `uv pip install "reporadar-papers[mcp]"`. Register it with your agent, e.g. Claude Code:
 
 ```bash
 claude mcp add reporadar -- rr mcp --config /abs/path/.reporadar.yml
@@ -852,7 +859,7 @@ Three things worth knowing:
   seeing recent work.
 
 Costs ~1.1 GB local (432 MB index + ~670 MB model weights), one LLM call per run for the
-hypotheses, and a few seconds of CPU. Install with `uv pip install -e ".[hyde]"`.
+hypotheses, and a few seconds of CPU. Install with `uv pip install "reporadar-papers[hyde]"`.
 
 ### Fine-scale rescore (`triage.finescale`)
 
