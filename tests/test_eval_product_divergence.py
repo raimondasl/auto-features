@@ -17,6 +17,7 @@ decide whether it can catch the next one:
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -333,15 +334,34 @@ class TestTheStagesTheProductShipsWithout:
         assert BENCHMARK_HEADLINE[field] is True
         assert DECLARED[field].strip()
 
-    def test_enabling_the_gate_takes_two_fields(self) -> None:
-        """The pipeline gates on `triage.enabled AND suggestions.provider in (ollama,
-        claude)`, so `triage.enabled: true` alone is a no-op. Pinned because a reader of
-        the config alone would not guess it. (In `pipeline.py` since 2026-08-16, shared by
-        `rr update` and `rr watch` -- previously inline in `cli.update`.)"""
-        source = (
-            Path(__file__).resolve().parents[1] / "src" / "reporadar" / "pipeline.py"
-        ).read_text(encoding="utf-8")
-        assert 'cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude")' in source
+    def test_every_provider_the_config_accepts_can_actually_gate(self) -> None:
+        """Enabling the gate takes two fields, and the pipeline must honour every provider.
+
+        `triage.enabled: true` alone is a no-op -- pinned because a reader of the config
+        alone would not guess it. (In `pipeline.py` since 2026-08-16, shared by `rr update`
+        and `rr watch` -- previously inline in `cli.update`.)
+
+        The tuple must also list every provider `config.validate` accepts besides
+        `template`, which is the half this test used to miss: it pinned the literal string
+        `("ollama", "claude")`, so when `openai` was added to the validator the pipeline
+        silently skipped the gate for it and the pin held the bug in place. An ungated
+        digest measures net@2 -11, and openai is the one-key setup the plugin recommends.
+        """
+        root = Path(__file__).resolve().parents[1] / "src" / "reporadar"
+        source = (root / "pipeline.py").read_text(encoding="utf-8")
+        gate = re.search(r"cfg\.suggestions\.provider in \(([^)]*)\)", source)
+        assert gate is not None, "the provider gate is no longer where this test looks"
+        gated = {p.strip().strip("\"'") for p in gate.group(1).split(",") if p.strip()}
+
+        cfg_source = (root / "config.py").read_text(encoding="utf-8")
+        known = re.search(r"known_providers = \{([^}]*)\}", cfg_source)
+        assert known is not None, "known_providers is no longer where this test looks"
+        accepted = {p.strip().strip("\"'") for p in known.group(1).split(",") if p.strip()}
+
+        assert gated == accepted - {"template"}, (
+            f"config.validate accepts {sorted(accepted)} but the pipeline gates only on "
+            f"{sorted(gated)}: a provider a user can set without the gate running"
+        )
         assert effective_shipped()["suggestions.provider"] == "template"
 
     def test_the_hyde_encoder_default_matches_the_one_the_benchmark_measures(self) -> None:
