@@ -121,9 +121,12 @@ def _load_and_validate(
 
 
 @click.group()
-@click.version_option(package_name="reporadar")
+# The DISTRIBUTION name, which is not the import name -- keep it in step with
+# `name` in pyproject.toml. Click >=8.4.2 happens to recover from a wrong value here by
+# falling back to the import package, but our floor is click>=8.0, where it raises.
+@click.version_option(package_name="reporadar-papers")
 def cli() -> None:
-    """RepoRadar — arXiv paper discovery for your repo."""
+    """RepoRadar — research papers your repo should act on, not just ones about its topic."""
 
 
 @cli.command()
