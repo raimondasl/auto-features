@@ -763,7 +763,7 @@ def _triage(
     # 8c. LLM actionability triage (Feature 6) — score the top papers for
     # whether they could genuinely improve THIS repo, so the digest can gate
     # its Top Picks on applicability instead of the raw heuristic score.
-    if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude"):
+    if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude", "openai"):
         report.info(f"Triaging top {cfg.triage.top_k} papers for actionable relevance...")
         try:
             from reporadar.evidence import partition_by_evidence
@@ -890,8 +890,15 @@ def _triage(
     elif cfg.triage.enabled:
         # The two-field trap: `triage.enabled: true` alone gates nothing, and the
         # config gives no hint of the second field. Name it rather than say "skipping".
-        report.warn("  Triage is enabled but `suggestions.provider` is 'template', so NO")
-        report.warn("  actionability gate ran. Set `suggestions.provider: claude` (or ollama)")
+        #
+        # Read the provider rather than assume 'template'. It was hardcoded, which told an
+        # `openai` user their config said something it did not and sent them to a provider
+        # they had deliberately not chosen -- the plugin recommends openai precisely
+        # because it is the one key that runs the whole pipeline.
+        report.warn(
+            f"  Triage is enabled but `suggestions.provider` is {cfg.suggestions.provider!r}, so NO"
+        )
+        report.warn("  actionability gate ran. Set it to claude, openai or ollama.")
         report.warn("  Enabling the gate takes BOTH fields.")
     else:
         # Said once per run, because this is the difference between the configuration
