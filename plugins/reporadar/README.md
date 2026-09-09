@@ -27,16 +27,16 @@ repository with no arXiv bibliography. `rr doctor` will keep telling you it is m
 
 ## Notes
 
-The MCP server is launched by `uvx` from a **pinned tag**, not from `main`, so what you run does
-not change under you when this repository is pushed to. Upgrading is a version bump in
-`.mcp.json`.
+The MCP server is launched by `uvx` from a **pinned PyPI release**
+(`reporadar-papers[mcp]==1.0.0`) — not from `main`, and no longer from a git tag — so what you run
+does not change under you when this repository is pushed to. Upgrading is a version bump in
+`.mcp.json`. It also installs a wheel instead of cloning and building the repository.
 
-The `--from` spec names the distribution `reporadar`, not `reporadar-papers`, and that is correct:
-it resolves against tag `v1.0.0-plugin`, whose `pyproject.toml` still carries the old name. PyPI
-refused `reporadar` as too similar to an unrelated `repo-radar`, so `main` now builds as
-`reporadar-papers`. The two halves must move in the same commit as the next tag -- change the
-distribution name here without cutting a tag that carries it and `uv` fails the install with a
-metadata name mismatch, which is a broken plugin rather than a broken build.
+Moving off `git+` retired a trap worth recording. While the spec resolved against a tag, the
+distribution name inside it had to match that tag's `pyproject.toml`, so renaming the distribution
+and cutting the tag had to land in the same commit or `uv` failed the install with a metadata name
+mismatch — a broken plugin rather than a broken build. A version pin has no such coupling. The
+distribution is `reporadar-papers` because PyPI refuses `reporadar`; the command is still `rr`.
 
 Every published number was measured with the gate on `claude-haiku-4-5`. An OpenAI gate is
 measured to make no difference to the shipped digest — under both judges, across two independent

@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "reporadar[mcp] @ git+https://github.com/raimondasl/auto-features@v1.0.0-plugin",
+        "reporadar-papers[mcp]==1.0.0",
         "rr",
         "mcp"
       ]
