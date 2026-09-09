@@ -91,8 +91,23 @@ mcp = [
     # unbounded `mcp>=1.0` resolves to 2.x and `rr mcp` cannot start at all. uv.lock hid
     # this completely: the dev venv and CI both pin a working 1.x, so only a user doing a
     # fresh resolve ever saw it, and the published plugin could not start for anyone.
-    # Lift the bound when build_server is ported to MCPServer, not before.
-    "mcp>=1.0,<2",
+    # Lift the bound when build_server is ported to MCPServer, not before -- and when you
+    # do, rewrite it as `>=2,<3` rather than deleting it. Of 21 actively maintained MCP
+    # server packages on PyPI (ones that released after mcp 2.0), 18 cap the major and 3
+    # pin exactly; none leave it open, and the seven that migrated to 2.x all kept a cap
+    # and moved it to `<3`. The SDK's own 2.0.0 notes prescribe this form verbatim:
+    # "keep a `<2` upper bound on your requirement (for example `mcp>=1.28,<2`)".
+    #
+    # The floor is 1.28 rather than 1.0 for the same reason: `>=1.0` advertised support for
+    # SDKs four years older than anything this is tested against.
+    #
+    # A cap is a dated TODO, not a resting state, so here is the state of the TODO. The port
+    # itself is two tokens: `from mcp.server.mcpserver import MCPServer as FastMCP` serves
+    # all five tools under 2.2.0 unchanged (measured 2026-09-09 -- MCPServer takes the same
+    # positional name, `.tool()` and `.run()` both exist). What is missing is not the port
+    # but a test matrix that exercises both majors, so nobody has to find out from a user
+    # again which one the resolver picked.
+    "mcp>=1.28,<2",
 ]
 vectors = [
     # Optional acceleration for `rr search --semantic` on large corpora. The
