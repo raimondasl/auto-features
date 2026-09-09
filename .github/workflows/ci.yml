@@ -55,3 +55,17 @@ jobs:
 
       - name: Pytest
         run: uv run pytest tests/ -q
+
+      # Deliberately OUTSIDE the locked install above. `uv sync --locked` resolves the
+      # pinned mcp, so a locked environment can never see what a user's own resolve gets --
+      # and that blind spot shipped a Copilot plugin that could not start for anyone: the
+      # extra said `mcp>=1.0`, a fresh resolve took mcp 2.x, and 2.x dropped the module
+      # build_server imports. All four gates stayed green throughout, because not one of
+      # them ever resolved the extra. This leg resolves it fresh and makes the server prove
+      # it answers, rather than proving it imports.
+      - name: MCP extra resolves fresh and the server answers
+        run: |
+          uv venv /tmp/mcpsmoke
+          uv pip install --python /tmp/mcpsmoke/bin/python ".[mcp]"
+          /tmp/mcpsmoke/bin/python -c "from importlib.metadata import version; print('resolved mcp', version('mcp'))"
+          python scripts/mcp_smoke.py /tmp/mcpsmoke/bin/rr
