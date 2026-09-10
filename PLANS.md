@@ -74,7 +74,8 @@ and `tests/test_litsearch_recall.py` both cite "PLANS item 4" and should not hav
 when something overtakes it.
 
 **Currently first: item 14** (RepoRadar *and* the agent — two arms over 12 of 37 cases,
-neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for), then
+neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for)
+and item 15 (the plugin's setup wall, which gates whether item 11's bet pays at all), then
 item 7 (product work). Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
 negative; item 5's remainder is conditional on a proposal that has not appeared.
 
@@ -973,6 +974,106 @@ retrieval over the catalogue instead of a smaller catalogue.
 
 **Sequencing:** unchanged. This waits for a decision that product work is on, not for another
 measurement. Nothing here is blocked.
+
+### 15. The plugin's setup wall — the distribution bet does not pay until this is gone
+
+Item 11 shipped the plugin; this is what using it costs today, and the answer is too much.
+After `/plugin install` the user must ALSO `uv tool install reporadar-papers` — the same
+distribution, a second time — then run `rr init`, hand-edit `.reporadar.yml`, and run
+`rr update` in a terminal before any of the five MCP tools return anything.
+
+**The measurement that settles whether that is normal.** Across ~38 published plugins that
+bundle an MCP server, the norm is zero post-install steps: the server is hosted, or fetched on
+demand by npx/uvx/dnx/docker, or shipped inside the package. In `github/awesome-copilot` — 99
+plugins, 3 with MCP servers — the requirements are "have Docker", "have the .NET SDK", and
+nothing at all. Six of the 38 do want a CLI on PATH, so that part is not unprecedented, but
+every one installs its binary ONCE, and not one gates all of its tools behind an
+init-plus-edit-plus-update sequence. We are the outlier.
+
+**The cause is that the server is read-only.** Five tools, and the only write any of them
+performs is `save_rating`. Nothing can create a config and nothing can collect papers, so
+everything that PRODUCES the data happens elsewhere — which means anyone who finishes the setup
+already has the CLI and can read `rr digest` without opening chat. The plugin currently adds a
+conversation layer on top of a workflow you had to complete without it.
+
+**Target:** install → `/paper-discovery` → it configures, collects, and answers. No terminal.
+The skill is already slash-invocable: `user-invocable` defaults to true and SKILL.md does not
+set it, so the `/` entry point exists and is simply unreachable behind the wall.
+
+#### Three decisions, resolved against what the clients do TODAY rather than what the spec allows
+
+**`update_corpus` is one blocking call that heartbeats.** No job id, no polling, no MCP tasks.
+VS Code applies no tool-call timeout at all; Copilot CLI's 180 s per-request timeout sets
+`resetTimeoutOnProgress` with no absolute cap, so a call that reports progress never reaches it.
+Tasks (SEP-1686) would be the elegant answer and is the wrong one: unreachable from `FastMCP` 1.x
+(tasks exist only on the lowlevel `Server`), removed in mcp 2.x pending an extension the Python
+SDK does not implement, and supported by Copilot CLI only under `--experimental`. Adopting it
+means rewriting to a lower-level API for a feature we would remove again at the 2.x port.
+
+It lands on a seam that already exists: `run_pipeline(report=...)` takes a Reporter and
+`ClickReporter` is one, so an `McpReporter` forwarding to `ctx.report_progress()` turns the
+pipeline's existing progress messages into the heartbeat at no design cost.
+
+**The API key is resolved by the server, not by config.** `inputs` / `${input:}` is a VS Code
+`mcp.json` feature and does not exist for a plugin-bundled one: the Agent Plugins MCP format is
+a closed schema with only `$schema` and `mcpServers`, expanding only `${PLUGIN_ROOT}` and
+`${PLUGIN_DATA}`. The spec is explicit — "Agent Plugins 1.0.0 defines no portable OAuth or
+credential-reference fields" — and no client offers an install-time prompt for plugins. So:
+process env, then a server-owned credential file, then a structured not-configured state. Never
+`.reporadar.yml`, which is repo-local and gets committed.
+
+**The server must never fail at startup.** Today a missing config exits 1 with the explanation
+on stderr, where no MCP client shows it, so the user sees "server failed to start". Unconfigured
+has to be a normal tool RESULT, not a dead process.
+
+**`setup_repo` uses a structured `needs_input` round-trip, not elicitation.** Elicitation is real
+(VS Code 1.102+, Copilot CLI) but is flat-primitives-only, is auto-answered invisibly by CLI
+autopilot, and the spec forbids using it for secrets. The load-bearing path returns
+`{status: "needs_input", missing: [...], retry: {...}}` with defaults pre-filled from the repo
+profile, so the user confirms rather than composes.
+
+#### `rr sync-index` stays a command, and should
+
+Not a tool. The server installs as `reporadar-papers[mcp]` and stays light; making sync a tool
+would force `[hyde]` — sentence-transformers, gigabytes — into every install including everyone
+who never syncs, and 1.1 GB inside a tool call is far past any timeout. Instead a
+`/reporadar-sync` command whose body runs `uvx --from "reporadar-papers[hyde]" rr sync-index`,
+with the user watching real progress, which for a download that size is a feature rather than a
+compromise.
+
+Two facts make this clean and are worth recording: `hyde.index_dir` defaults to
+`~/.cache/reporadar/hyde-index` — user-global, not per-repo, so one sync serves every repository
+— and HyDE runs only at collection time, never in the digest read path, so `mcp_server.py` never
+needs it. The 1.1 GB lands in persistent caches while the heavy environment stays disposable.
+
+#### The CLI is not being replaced
+
+Both front doors call the same functions: `setup_repo` → `measured_config_yaml()` /
+`default_config_yaml()`, `update_corpus` → `run_pipeline`. One implementation, two entry points,
+and explicitly NOT two implementations — this project has paid for that shape more than once (the
+OpenAI gate that ran in the eval harness and not in the product; SKILL.md's rating scale drifting
+from the tool's). The CLI stays first-class: it is what `action.yml` runs, what `rr watch` and
+`rr schedule` need, and the only surface for anyone not using an agent client. Both get
+instructions; neither is the fallback for the other.
+
+#### Sequencing
+
+1. The server stops needing a terminal: `McpReporter`, async `update_corpus` taking `Context`,
+   `setup_repo` with the needs-input protocol, key precedence, start-when-unconfigured. Tests:
+   initialize a repo from scratch in a tmpdir, and assert progress is actually emitted.
+2. The HyDE path: `/reporadar-sync`, plus `update_corpus` reporting rather than silently
+   degrading when `hyde.enabled` is set and the extra is absent — quiet degradation is this
+   project's documented recurring failure and the gate is worth 1.36 net@2.
+3. Docs and guards: strip the CLI prerequisite from the plugin README and SKILL.md. The
+   skill-vs-server drift guard in `tests/test_plugin_manifests.py` fails the moment the new tools
+   land undocumented, which is the intended behaviour rather than an obstacle.
+
+**Known risk, worth establishing before starting:** `run_pipeline` is synchronous and the tool is
+async, so `ctx.report_progress()` needs a bridge out of the sync Reporter. Cheap to check,
+expensive to discover mid-implementation.
+
+**Not building:** MCP tasks, `inputs`/`${input:}`, a job-id + poll pair, or elicitation as a
+required path. Each is either unsupported where we need it or a rewrite we would undo.
 
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 
