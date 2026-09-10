@@ -80,7 +80,17 @@ naming the call to retry; it is not an error, and reporting it as one strands th
 
 - **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
   mean net@2 **−11**. One key suffices: `suggestions.provider: openai` runs the whole pipeline
-  on OpenAI. The server reads it from the environment.
+  on OpenAI.
+
+  **This is the one thing you cannot do for the user, and you should not try.** Do not ask them
+  to paste a key into the chat and do not accept one if they offer — anything said here is in
+  the transcript. They run `rr auth` themselves, once; it prompts without echoing and stores the
+  key where the server can read it. An exported `OPENAI_API_KEY` also works when the server can
+  see it, which it often cannot, because an editor-launched server does not reliably inherit a
+  shell environment.
+
+  If `update_corpus` warns that the gate did not run, this is almost always why. Say what it
+  costs — the digest you are looking at is the −11 configuration, not the +5.72 one.
 - **No dense index** — the one step that is still a command, because 1.1 GB does not belong
   inside a tool call. Skipping it costs **−1.36 net@2**, and it is the *only* retrieval channel
   for 15 of 48 benchmark targets, including every repository with no arXiv bibliography. The
