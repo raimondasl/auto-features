@@ -44,6 +44,17 @@ rr update            # collect candidates
 One API key. `suggestions.provider: openai` runs the whole pipeline on OpenAI; the fine-scale
 rescore is OpenAI-only because it reads logprobs and no other vendor exposes them.
 
+```bash
+rr auth          # prompts without echoing, stores it readable only by you
+rr auth --status # says what is stored and where it came from, never the key itself
+```
+
+An exported `OPENAI_API_KEY` still works and still wins over the stored file. `rr auth` exists
+because the server here is launched by your editor rather than your shell, and does not reliably
+inherit your environment — and the three other places a key could go are all closed to it:
+`.reporadar.yml` gets committed, `.mcp.json` lives in a public repository, and anything passed
+through a tool call ends up in the model's context.
+
 Optionally `rr sync-index` — a one-time ~1.1 GB download for dense discovery. It is worth
 +1.36 net@2 and is the only retrieval channel for 15 of 48 benchmark targets, including every
 repository with no arXiv bibliography. `rr doctor` will keep telling you it is missing.

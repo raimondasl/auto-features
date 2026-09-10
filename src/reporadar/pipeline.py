@@ -886,7 +886,13 @@ def _triage(
                             f"— skipping the gate for this run (check OPENAI_API_KEY)."
                         )
         except Exception as exc:
-            report.info(f"  Triage failed: {exc}")
+            # A warning, not an info. The line five lines above already reasons this way
+            # about a PARTIAL fine-scale failure -- "a broken key must not read as nothing
+            # good" -- and the gate failing outright is the same argument at full strength:
+            # it is the difference between the configuration measured at +5.72 net@2 and
+            # the ungated one measured at -11. Callers that separate warnings from progress
+            # (the MCP server does) could not see this at all while it was an info.
+            report.warn(f"  Triage failed, so NO gate ran: {exc}")
     elif cfg.triage.enabled:
         # The two-field trap: `triage.enabled: true` alone gates nothing, and the
         # config gives no hint of the second field. Name it rather than say "skipping".

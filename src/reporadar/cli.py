@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import getpass
 import os
 import webbrowser
 from collections.abc import Iterator
@@ -12,7 +13,7 @@ from typing import Any
 
 import click
 
-from reporadar import finescale
+from reporadar import credentials, finescale
 from reporadar.collector import (
     CollectionError,
     build_queries,
@@ -1881,6 +1882,71 @@ def workspace_digest(run_id: int | None, output_path: str | None, fmt: str) -> N
 
 @cli.command()
 @click.option(
+    "--provider",
+    type=click.Choice(sorted(credentials.PROVIDERS)),
+    default="openai",
+    show_default=True,
+    help="Which vendor's key to store.",
+)
+@click.option(
+    "--status", "show_status", is_flag=True, help="Say what is stored, without printing it."
+)
+@click.option("--remove", "do_remove", is_flag=True, help="Forget the stored key.")
+def auth(provider: str, show_status: bool, do_remove: bool) -> None:
+    """Store an API key where an editor-launched MCP server can read it.
+
+    Needed because the plugin's server is spawned by VS Code or Copilot rather than by your
+    shell, and does not reliably inherit your environment. The three other places a key
+    could go are all closed: `.reporadar.yml` gets committed, the plugin's `.mcp.json` is in
+    a public repository, and a value passed through an MCP tool call would land in the
+    model's context. So it goes in a file, once, the way `gh auth login` does it.
+
+    An exported OPENAI_API_KEY still works and still wins over the file. This is the
+    fallback for the case an environment variable cannot reach.
+    """
+    if show_status and do_remove:
+        error("--status and --remove do different things; pick one.")
+        raise SystemExit(2)
+
+    if show_status:
+        info(f"Credentials file: {credentials.auth_path()}")
+        for name in sorted(credentials.PROVIDERS):
+            key = credentials.resolve_api_key(name)
+            source = credentials.source_of(name)
+            if source == "none":
+                warn(f"  {name}: no key found")
+            else:
+                # The fingerprint, never the key. A status command that echoes the secret
+                # undoes the reason for storing it out of sight.
+                info(f"  {name}: {credentials.fingerprint(key)} (from {source})")
+        return
+
+    if do_remove:
+        if credentials.remove(provider):
+            success(f"Removed the stored {provider} key.")
+        else:
+            warn(f"No stored {provider} key to remove.")
+        return
+
+    env_var = credentials.PROVIDERS[provider][1]
+    info(f"Paste your {provider} API key. It is not echoed, and not stored in shell history.")
+    # getpass, never an argument: a key on the command line goes into shell history and is
+    # visible in process listings to every other user on the machine.
+    key = getpass.getpass(f"{provider} API key: ").strip()
+    if not key:
+        error("No key entered; nothing was written.")
+        raise SystemExit(1)
+
+    path = credentials.store(provider, key)
+    success(f"Stored {provider} key {credentials.fingerprint(key)} in {path}")
+    info("  Readable only by you. That protects it from other users on this machine —")
+    info("  not from anything running as you, which is the honest limit of any such file.")
+    if os.environ.get(env_var, "").strip():
+        warn(f"  {env_var} is also set, and takes precedence over this file.")
+
+
+@cli.command()
+@click.option(
     "--config",
     "config_path",
     type=click.Path(exists=True, dir_okay=False),
@@ -1913,26 +1979,30 @@ def doctor(config_path: str | None) -> None:
 
     info("Keys")
     gate = cfg.suggestions.provider
-    if gate == "claude":
-        key = cfg.suggestions.claude_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+    # Resolved through `credentials`, exactly as `llm_client` resolves it. These used to be
+    # two spellings of one rule, which is how this command could report a key present while
+    # the pipeline found none -- and the report is the half a user believes.
+    if gate in credentials.PROVIDERS:
+        key = credentials.resolve_api_key(gate, cfg.suggestions)
+        source = credentials.source_of(gate, cfg.suggestions)
         (
-            ok("gate: claude — key present")
+            # Naming the SOURCE, not just presence. "A key is present" is not the useful
+            # fact when something misbehaves; "it is coming from the file, not the variable
+            # you just exported" is.
+            ok(f"gate: {gate} — key present (from {source})")
             if key
             else gap(
-                "gate: claude — no ANTHROPIC_API_KEY",
-                "the gate is skipped, and an ungated digest measured mean net@2 -11.",
+                f"gate: {gate} — no key",
+                # Naming all three sources, concretely. "Export the variable" is not
+                # actionable without the variable, and this line is read by someone who has
+                # just been told something is wrong and wants to be told what to type.
+                f"the gate is skipped, and an ungated digest measured mean net@2 -11. Set "
+                f"suggestions.{credentials.PROVIDERS[gate][0]} in .reporadar.yml, export "
+                f"{credentials.PROVIDERS[gate][1]}, or run `rr auth --provider {gate}`.",
             )
         )
-    elif gate == "openai":
-        key = cfg.suggestions.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
-        (
-            ok("gate: openai — key present")
-            if key
-            else gap(
-                "gate: openai — no OPENAI_API_KEY",
-                "the gate is skipped, and an ungated digest measured mean net@2 -11.",
-            )
-        )
+    elif gate == "ollama":
+        ok("gate: ollama — no key needed (local model)")
     else:
         gap(
             f"gate: provider is {gate!r}, which runs no LLM",
@@ -1940,13 +2010,15 @@ def doctor(config_path: str | None) -> None:
             "threshold decides, measured mean net@2 -11.",
         )
     if cfg.triage.finescale.enabled:
-        key = cfg.triage.finescale.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        key = credentials.resolve_api_key("openai", cfg.triage.finescale)
+        finescale_source = credentials.source_of("openai", cfg.triage.finescale)
         (
-            ok("fine-scale rescore: key present")
+            ok(f"fine-scale rescore: key present (from {finescale_source})")
             if key
             else gap(
-                "fine-scale rescore enabled but no OPENAI_API_KEY",
-                "worth +1.36 net@2; it reads logprobs, so no other vendor can substitute.",
+                "fine-scale rescore enabled but no OpenAI key",
+                "worth +1.36 net@2; it reads logprobs, so no other vendor can substitute. "
+                "Export OPENAI_API_KEY or run `rr auth`.",
             )
         )
 

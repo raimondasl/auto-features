@@ -9,11 +9,27 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import time
 import urllib.error
 import urllib.request
 from typing import Any
+
+from reporadar.credentials import resolve_api_key
+
+# One message per provider, naming every place a key can come from. The question a user
+# actually has at this point is "I set it -- why can you not see it", and an error that
+# names only one of the three sources answers a different question.
+_NO_KEY = {
+    "openai": (
+        "No OpenAI API key. Set suggestions.openai_api_key in .reporadar.yml (it may be "
+        "${OPENAI_API_KEY}), export OPENAI_API_KEY, or run `rr auth` to store one."
+    ),
+    "claude": (
+        "No Claude API key. Set suggestions.claude_api_key in .reporadar.yml (it may be "
+        "${ANTHROPIC_API_KEY}), export ANTHROPIC_API_KEY, or run `rr auth --provider "
+        "claude` to store one."
+    ),
+}
 
 
 class LLMError(Exception):
@@ -321,9 +337,9 @@ def top_logprobs(
 
         prompt = redact(prompt, compile_patterns(list(patterns)))
 
-    api_key = getattr(cfg, "openai_api_key", "") or os.environ.get("OPENAI_API_KEY", "")
+    api_key = resolve_api_key("openai", cfg)
     if not api_key:
-        raise LLMError("No OpenAI API key configured (set openai_api_key or OPENAI_API_KEY)")
+        raise LLMError(_NO_KEY["openai"])
     model = getattr(cfg, "openai_model", "gpt-4o-mini")
     timeout = getattr(cfg, "timeout", 30)
 
@@ -348,15 +364,15 @@ def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None
     provider = getattr(cfg, "provider", "ollama")
     timeout = getattr(cfg, "timeout", 30)
     if provider == "claude":
-        api_key = getattr(cfg, "claude_api_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+        api_key = resolve_api_key("claude", cfg)
         if not api_key:
-            raise LLMError("No Claude API key configured (set claude_api_key or ANTHROPIC_API_KEY)")
+            raise LLMError(_NO_KEY["claude"])
         model = getattr(cfg, "claude_model", "claude-haiku-4-5")
         return _call_claude(prompt, api_key, model, timeout, max_tokens, cache_split_on)
     if provider == "openai":
-        api_key = getattr(cfg, "openai_api_key", "") or os.environ.get("OPENAI_API_KEY", "")
+        api_key = resolve_api_key("openai", cfg)
         if not api_key:
-            raise LLMError("No OpenAI API key configured (set openai_api_key or OPENAI_API_KEY)")
+            raise LLMError(_NO_KEY["openai"])
         model = getattr(cfg, "openai_model", "gpt-4o-mini")
         effort = str(getattr(cfg, "openai_reasoning_effort", "") or "")
         return _call_openai(prompt, api_key, model, timeout, max_tokens, cache_split_on, effort)
