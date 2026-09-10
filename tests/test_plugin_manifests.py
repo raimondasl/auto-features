@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE = ROOT / ".github" / "plugin" / "marketplace.json"
 PLUGIN = ROOT / "plugins" / "reporadar" / "plugin.json"
 MCP_JSON = ROOT / "plugins" / "reporadar" / ".mcp.json"
+# Claude Code reads ONLY this path; Copilot reads MARKETPLACE above.
+CLAUDE_MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
 
 
 def _load(path: Path) -> dict:
@@ -142,3 +144,37 @@ class TestTheSkillDescribesTheServerItFronts:
             f"rate_paper enforces {lo}-{hi} but SKILL.md leads with "
             f"{first.group(1)}-{first.group(2)}: {row[:120]}"
         )
+
+
+class TestBothEcosystemsGetTheSameMarketplace:
+    """Two copies of one manifest, because the two loaders disagree on where it lives.
+
+    Copilot searches `marketplace.json`, `.plugin/`, `.github/plugin/`, `.claude-plugin/`.
+    Claude Code searches only `.claude-plugin/marketplace.json` -- verified on 2.1.198,
+    where `claude plugin marketplace add` fails with "Marketplace file not found at
+    .../.claude-plugin/marketplace.json", and the string ".github/plugin" does not
+    appear in its binary at all. So supporting both means duplicating the file, and
+    duplicated files drift. This is what stops them.
+    """
+
+    def test_claude_code_finds_a_marketplace_where_it_looks(self) -> None:
+        assert CLAUDE_MARKETPLACE.is_file(), (
+            "Claude Code reads only .claude-plugin/marketplace.json; without it "
+            "`claude plugin marketplace add` fails outright"
+        )
+
+    def test_the_two_copies_have_not_drifted(self) -> None:
+        """Compared parsed rather than byte-for-byte: line endings are normalised on
+        checkout, and it is the content both loaders read that has to agree."""
+        assert _load(CLAUDE_MARKETPLACE) == _load(MARKETPLACE), (
+            ".claude-plugin/marketplace.json and .github/plugin/marketplace.json differ; "
+            "they describe the same marketplace to two loaders and must stay identical"
+        )
+
+    def test_the_relative_source_resolves_from_the_repository_root(self) -> None:
+        """Both loaders resolve a plugin `source` against the repo root, not against the
+        manifest's own directory -- which is why one `./plugins/reporadar` works from two
+        different places."""
+        entry = _load(CLAUDE_MARKETPLACE)["plugins"][0]
+        target = (ROOT / entry["source"].removeprefix("./")).resolve()
+        assert (target / "plugin.json").is_file()
