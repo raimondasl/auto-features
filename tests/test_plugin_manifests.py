@@ -95,6 +95,42 @@ class TestTheManifestsAgreeWithWhatTheyPointAt:
         )
 
 
+class TestThePluginReadmeDescribesWhatIsActuallyInstalled:
+    """The README said the server installs 1.0.1 while `.mcp.json` pinned 1.0.2, or the other
+    way round -- prose drifting from the thing it describes. It matters because that is the
+    version a reader quotes back when something breaks, and chasing a version nobody is
+    running is an expensive way to spend an afternoon."""
+
+    README = ROOT / "plugins" / "reporadar" / "README.md"
+
+    def test_the_readme_quotes_the_version_it_actually_installs(self) -> None:
+        spec = " ".join(_load(MCP_JSON)["mcpServers"]["reporadar"]["args"])
+        pinned = re.search(r"reporadar-papers\[[a-z]+\]==([0-9][^\s\"]*)", spec)
+        assert pinned is not None, f"no pinned version in .mcp.json args: {spec}"
+
+        quoted = set(
+            re.findall(
+                r"reporadar-papers\[[a-z]+\]==([0-9][0-9.]*)",
+                self.README.read_text(encoding="utf-8"),
+            )
+        )
+        assert quoted == {pinned.group(1)}, (
+            f"the plugin README quotes {sorted(quoted) or 'nothing'} but .mcp.json installs "
+            f"{pinned.group(1)}"
+        )
+
+    def test_it_does_not_still_call_the_cli_a_prerequisite(self) -> None:
+        """Setup and collection are tools now. A README that opens by telling the reader to
+        install a CLI first is describing the wall this work removed."""
+        body = self.README.read_text(encoding="utf-8")
+        install_at = body.find("uv tool install")
+        first_ask = body.find("/paper-discovery")
+        assert first_ask != -1, "the README should show the slash command"
+        assert install_at == -1 or install_at > first_ask, (
+            "the CLI install appears before the thing that needs no CLI; `rr` is optional now"
+        )
+
+
 class TestTheSkillDescribesTheServerItFronts:
     """SKILL.md is the agent's whole picture of these tools, and nothing checked it against
     the server. That is how it came to document `rate_paper` as a 0-3 scale for a tool that
@@ -125,6 +161,15 @@ class TestTheSkillDescribesTheServerItFronts:
             f"{sorted(registered)}; undocumented tools go unused and documented-but-absent "
             f"ones get called and fail"
         )
+
+    def test_the_root_readme_lists_every_tool_too(self) -> None:
+        """The same drift, one file over. The README's tool list went stale the moment
+        `setup_repo` and `update_corpus` landed, and nothing noticed, because the guard only
+        looked at SKILL.md. A reader deciding whether this is worth installing reads the
+        README, and a tool list missing the two that remove the setup wall undersells it."""
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        missing = sorted(name for name in self._registered() if f"`{name}" not in readme)
+        assert not missing, f"README.md does not mention {missing}"
 
     def test_the_documented_rating_range_is_the_one_the_tool_enforces(self) -> None:
         source = self.SERVER.read_text(encoding="utf-8")
