@@ -16,11 +16,14 @@ Usage:  python scripts/mcp_smoke.py <path-to-rr-executable>
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 # The tools plugins/reporadar/skills/paper-discovery/SKILL.md tells an agent to reach for.
@@ -129,15 +132,20 @@ def _shutdown(proc: subprocess.Popen) -> None:
             proc.kill()
 
 
-def main(rr: str) -> None:
+MCP_JSON = Path(__file__).resolve().parents[1] / "plugins" / "reporadar" / ".mcp.json"
+
+
+def _handshake(cmd: list[str], label: str) -> tuple[set[str], dict[int, dict]]:
+    """Drive one MCP server through initialize, tools/list and a setup_repo call.
+
+    Runs against a bare directory on purpose: the server has to serve an UNINITIALISED
+    repository, which is the whole point of `setup_repo` being a tool.
+    """
     with tempfile.TemporaryDirectory() as work:
-        # Deliberately NOT initialised first. The server has to serve an unconfigured
-        # repository -- that is the whole point of `setup_repo` being a tool -- so this
-        # runs against a bare directory and lets the handshake prove it.
         (Path(work) / "README.md").write_text("# smoke", encoding="utf-8")
 
         proc = subprocess.Popen(
-            [rr, "mcp"],
+            cmd,
             cwd=work,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -159,43 +167,96 @@ def main(rr: str) -> None:
             # as "session over" and begins shutting down -- which raced the reply it was
             # already writing and lost on 3.11 while passing on 3.12/3.13. A real client
             # holds stdin open for the life of the session; so do we.
-            replies = _await(proc, out, SETUP_CALL_ID, timeout=120)
+            replies = _await(proc, out, SETUP_CALL_ID, timeout=300)
         finally:
             _shutdown(proc)
 
         stdout, stderr = "".join(out), "".join(err)
         if not stdout.strip():
-            # This is the exact shape of the shipped outage: exit non-zero, zero JSON-RPC
-            # bytes, and a message on stderr that no MCP client ever shows a user.
-            fail(
-                f"`rr mcp` produced no JSON-RPC output (exit {proc.returncode})",
-                stdout,
-                stderr,
-            )
+            # The exact shape of the shipped outage: exit non-zero, zero JSON-RPC bytes,
+            # and a message on stderr that no MCP client ever shows a user.
+            fail(f"{label}: no JSON-RPC output (exit {proc.returncode})", stdout, stderr)
         if 1 not in replies or "result" not in replies[1]:
-            fail("no initialize result", stdout, stderr)
+            fail(f"{label}: no initialize result", stdout, stderr)
         if TOOLS_LIST_ID not in replies or "result" not in replies[TOOLS_LIST_ID]:
-            fail("no tools/list result", stdout, stderr)
+            fail(f"{label}: no tools/list result", stdout, stderr)
 
-        got = {t["name"] for t in replies[TOOLS_LIST_ID]["result"].get("tools", [])}
-        missing = EXPECTED_TOOLS - got
-        if missing:
-            fail(f"tools/list is missing {sorted(missing)}; got {sorted(got)}")
+        tools = {t["name"] for t in replies[TOOLS_LIST_ID]["result"].get("tools", [])}
+        return tools, replies
 
-        setup = replies.get(SETUP_CALL_ID, {}).get("result")
-        if setup is None:
-            fail(
-                "no setup_repo result - the server did not serve an unconfigured repo",
-                stdout,
-                stderr,
-            )
-        if "needs_input" not in json.dumps(setup):
-            fail(f"setup_repo did not ask for categories; got {json.dumps(setup)[:400]}")
 
-        server = replies[1]["result"].get("serverInfo", {})
-        print(f"ok: handshake completed against {server.get('name')!r}")
-        print(f"ok: tools/list returned all {len(EXPECTED_TOOLS)} tools: {sorted(got)}")
-        print("ok: setup_repo answered on an uninitialised repository")
+def _pinned_spec() -> str:
+    args = json.loads(MCP_JSON.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+    for i, arg in enumerate(args):
+        if arg == "--from" and i + 1 < len(args):
+            return str(args[i + 1])
+    fail(f"no --from spec in {MCP_JSON}")
+    raise AssertionError  # unreachable; fail() exits
+
+
+def _is_published(spec: str) -> bool:
+    match = re.search(r'==([0-9][^\s"]*)', spec)
+    if match is None:
+        return False
+    url = f"https://pypi.org/pypi/reporadar-papers/{match.group(1)}/json"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            return bool(response.status == 200)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return False
+        raise
+
+
+def check_pinned(local_tools: set[str]) -> None:
+    """The version the plugin installs must serve what this repository's server serves.
+
+    The offline guard keeps `.mcp.json`'s pin equal to pyproject's version. This is the
+    other half of that invariant: that the version was actually PUBLISHED with this code.
+
+    Between merging a server change and releasing it, the plugin installs a version that
+    predates the change -- and that is not hypothetical. `setup_repo` and `update_corpus`
+    landed across three PRs while the pin sat on a release with only the five read-only
+    tools, so the skill instructed agents to call a tool the running server did not have.
+    Nothing caught it, because every guard compared the repository against itself.
+    """
+    spec = _pinned_spec()
+    if not _is_published(spec):
+        # A real and temporary state: merged, not yet released. Loud rather than silent, so
+        # it is visible in the CI log of the commit that created the window.
+        print(f"PENDING RELEASE: {spec} is not on PyPI yet — publish it before anyone installs")
+        return
+
+    pinned_tools, _ = _handshake(["uvx", "--from", spec, "rr", "mcp"], "pinned release")
+    missing = local_tools - pinned_tools
+    if missing:
+        fail(
+            f"the pinned release is stale: {spec} serves {sorted(pinned_tools)} but this "
+            f"repository's server has {sorted(missing)} as well. Anyone installing the "
+            f"plugin gets skills that reference tools their server does not have."
+        )
+    print(f"ok: the pinned release serves every tool this repository does ({spec})")
+
+
+def main(rr: str) -> None:
+    tools, replies = _handshake([rr, "mcp"], "local build")
+
+    missing = EXPECTED_TOOLS - tools
+    if missing:
+        fail(f"tools/list is missing {sorted(missing)}; got {sorted(tools)}")
+
+    setup = replies.get(SETUP_CALL_ID, {}).get("result")
+    if setup is None:
+        fail("no setup_repo result - the server did not serve an unconfigured repo")
+    if "needs_input" not in json.dumps(setup):
+        fail(f"setup_repo did not ask for categories; got {json.dumps(setup)[:400]}")
+
+    server = replies[1]["result"].get("serverInfo", {})
+    print(f"ok: handshake completed against {server.get('name')!r}")
+    print(f"ok: tools/list returned all {len(EXPECTED_TOOLS)} tools: {sorted(tools)}")
+    print("ok: setup_repo answered on an uninitialised repository")
+
+    check_pinned(tools)
 
 
 if __name__ == "__main__":
