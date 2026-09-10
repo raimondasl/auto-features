@@ -332,6 +332,39 @@ class McpReporter:
         return text
 
 
+# The gate block the measured template ships with. `setup_repo` swaps it when the key the
+# user actually has is an OpenAI one -- writing `provider: claude` to somebody who was told
+# "one OpenAI key is enough" produces a config that demands a credential nobody asked them
+# for, and the failure arrives minutes later as "no Claude API key" during collection.
+_CLAUDE_GATE = """  provider: claude
+  claude_api_key: ${ANTHROPIC_API_KEY}
+  claude_model: claude-haiku-4-5"""
+
+# The OpenAI gate as NR-63 measured it -- model and effort included, because "provider:
+# openai" alone would silently fall back to the `gpt-4o-mini` default, which is not the
+# configuration any published number describes.
+_OPENAI_GATE = """  provider: openai
+  openai_api_key: ${OPENAI_API_KEY}
+  openai_model: gpt-5.6-luna
+  openai_reasoning_effort: "none"
+  claude_model: claude-haiku-4-5"""
+
+
+def preferred_provider() -> str:
+    """The gate provider to configure, given the credentials this machine actually has.
+
+    OpenAI when neither is present, because the fine-scale rescore is OpenAI-only whatever
+    the gate does -- so one OpenAI key runs the whole pipeline, while claude would need two.
+    """
+    from reporadar import credentials
+
+    if credentials.resolve_api_key("openai"):
+        return "openai"
+    if credentials.resolve_api_key("claude"):
+        return "claude"
+    return "openai"
+
+
 def not_configured_payload(config_path: Path) -> dict[str, Any]:
     """What every tool returns when the repository has no config yet.
 
@@ -342,6 +375,11 @@ def not_configured_payload(config_path: Path) -> dict[str, Any]:
     return {
         "status": "not_configured",
         "config_path": str(config_path),
+        # The directory is reported, not assumed. Until the server asks the client for its
+        # roots, this is whatever the editor set as the process CWD -- which is not
+        # necessarily the project the user is looking at, and has in practice been the
+        # plugin's own install directory. Surfacing it lets the caller catch that.
+        "repo_path": str(config_path.parent),
         "why": (
             "This repository has no RepoRadar configuration yet, so there is nothing to "
             "read and no corpus to search."
@@ -356,6 +394,7 @@ def setup_repo_action(
     *,
     categories: list[str] | None = None,
     measured: bool = True,
+    provider: str | None = None,
 ) -> dict[str, Any]:
     """Create `.reporadar.yml` and `.reporadar/` for this repository.
 
@@ -397,15 +436,37 @@ def setup_repo_action(
     rendered = "[" + ", ".join(categories) + "]"
     body = body.replace(_CATEGORIES_LINE, f"  categories: {rendered}", 1)
 
+    gate = provider or preferred_provider()
+    if measured and gate == "openai" and _CLAUDE_GATE in body:
+        body = body.replace(_CLAUDE_GATE, _OPENAI_GATE, 1)
+
     config_path.write_text(body, encoding="utf-8")
     (repo_path / ".reporadar").mkdir(parents=True, exist_ok=True)
     return {
         "status": "ok",
         "config_path": str(config_path),
+        "repo_path": str(repo_path),
         "categories": list(categories),
         "measured": measured,
-        "next": "Call update_corpus to collect and rank papers.",
+        "gate_provider": gate,
+        # Said out loud so the agent can pass it on. A gate configured for a key the user
+        # does not have fails minutes into collection, and the message names a vendor they
+        # were never asked for.
+        "gate_key_present": bool(_resolved_key(gate)),
+        "next": (
+            "Call update_corpus to collect and rank papers."
+            if _resolved_key(gate)
+            else f"No {gate} key found. The user must run `rr auth --provider {gate}` "
+            f"themselves — never ask them to paste a key into the chat. Collection will "
+            f"still run, but with no actionability gate, which measured net@2 -11."
+        ),
     }
+
+
+def _resolved_key(provider: str) -> str:
+    from reporadar import credentials
+
+    return credentials.resolve_api_key(provider)
 
 
 def require_sdk() -> None:
@@ -546,7 +607,11 @@ def build_server(
         return payload
 
     @server.tool()
-    def setup_repo(categories: list[str] | None = None, measured: bool = True) -> dict[str, Any]:
+    def setup_repo(
+        categories: list[str] | None = None,
+        measured: bool = True,
+        provider: str | None = None,
+    ) -> dict[str, Any]:
         """Initialise RepoRadar in this repository: write `.reporadar.yml` and `.reporadar/`.
 
         Call with no arguments first. It answers with this repository's inferred profile and
@@ -560,6 +625,7 @@ def build_server(
             resolved_config_path,
             categories=categories,
             measured=measured,
+            provider=provider,
         )
 
     @server.tool()

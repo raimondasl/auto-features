@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from reporadar.config import RankingConfig
 from reporadar.mcp_server import (
     explain_relevance_payload,
@@ -410,3 +412,86 @@ class TestProgressReachesTheClient:
         reporter.warn("   ")
         assert reporter.warnings == []
         assert reporter.messages == []
+
+
+class TestSetupRepoConfiguresTheGateForTheKeyYouHave:
+    """Reported from a real install. `setup_repo` wrote `provider: claude` while the plugin's
+    own README says one OpenAI key is enough — so following the documentation produced a
+    config demanding a credential nobody had asked for, and the failure arrived minutes into
+    collection as "no Claude API key configured"."""
+
+    @pytest.fixture(autouse=True)
+    def _isolated(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Detection reads the real credentials FILE as well as the environment — which is
+        right for the product and means a test that only clears env vars would be answered
+        by whatever the developer happens to have stored."""
+        monkeypatch.setenv("REPORADAR_CONFIG_DIR", str(tmp_path / "creds"))
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    def test_an_openai_key_gets_an_openai_gate(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar.config import load_config
+        from reporadar.mcp_server import setup_repo_action
+
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-aaaaaaaaaa")
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        config_path = tmp_path / ".reporadar.yml"
+
+        result = setup_repo_action(tmp_path, config_path, categories=["cs.LG"])
+
+        assert result["gate_provider"] == "openai"
+        assert result["gate_key_present"] is True
+        cfg = load_config(config_path)
+        assert cfg.suggestions.provider == "openai"
+        # The MODEL travels with the provider. `provider: openai` alone falls through to the
+        # gpt-4o-mini default, which is not a configuration any published number describes.
+        assert cfg.suggestions.openai_model == "gpt-5.6-luna"
+
+    def test_an_anthropic_key_gets_the_measured_claude_gate(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar.config import load_config
+        from reporadar.mcp_server import setup_repo_action
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-bbbbbbbbbb")
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        config_path = tmp_path / ".reporadar.yml"
+
+        result = setup_repo_action(tmp_path, config_path, categories=["cs.LG"])
+        assert result["gate_provider"] == "claude"
+        assert load_config(config_path).suggestions.provider == "claude"
+
+    def test_with_no_key_at_all_it_says_so_and_names_the_command(self, tmp_path: Path) -> None:
+        """Collection still runs, but ungated, which measured net@2 -11 — so a caller that
+        reports the digest without mentioning it is describing the wrong thing."""
+        from reporadar.mcp_server import setup_repo_action
+
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        result = setup_repo_action(tmp_path, tmp_path / ".reporadar.yml", categories=["cs.LG"])
+        assert result["gate_key_present"] is False
+        assert "rr auth" in result["next"] and "-11" in result["next"]
+
+    def test_an_explicit_provider_overrides_the_detection(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar.config import load_config
+        from reporadar.mcp_server import setup_repo_action
+
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-aaaaaaaaaa")
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        config_path = tmp_path / ".reporadar.yml"
+
+        setup_repo_action(tmp_path, config_path, categories=["cs.LG"], provider="claude")
+        assert load_config(config_path).suggestions.provider == "claude"
+
+    def test_the_directory_being_configured_is_reported(self, tmp_path: Path) -> None:
+        """The server's working directory is chosen by the editor, and has in practice been
+        the plugin's own install directory rather than the user's project. Until the server
+        asks the client for its roots, reporting the path is what lets a caller catch it."""
+        from reporadar.mcp_server import setup_repo_action
+
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        result = setup_repo_action(tmp_path, tmp_path / ".reporadar.yml", categories=["cs.LG"])
+        assert result["repo_path"] == str(tmp_path)
