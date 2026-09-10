@@ -1429,8 +1429,17 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
     being destroyed to make room for the other. The eval that needed it is P27's
     narrow-vs-wide pair; the general case is an agent pointed at a snapshot.
     """
-    cfg = _load_and_validate(config_path)
-    repo_path = Path(cfg.repo_path).resolve()
+    # Deliberately NOT `_load_and_validate`. An unconfigured repository must still get a
+    # running server: exiting here wrote the fix to stderr, which no MCP client shows
+    # anyone, so the user saw "server failed to start" and never learned the cause.
+    # `setup_repo` is a tool now, so the server can initialise the repository it is
+    # pointed at, and every other tool reports `not_configured` until it does.
+    try:
+        cfg = load_config(config_path)
+    except FileNotFoundError:
+        cfg = None
+
+    repo_path = Path(cfg.repo_path).resolve() if cfg else Path.cwd()
     db_path = Path(db_override).resolve() if db_override else repo_path / ".reporadar" / "papers.db"
 
     from reporadar.mcp_server import require_sdk, run_stdio
@@ -1447,17 +1456,12 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
         raise SystemExit(1) from None
 
     try:
-        run_stdio(
-            repo_path,
-            db_path,
-            profiler_cfg=cfg.profiler,
-            ranking_cfg=cfg.ranking,
-            # So `get_ranked_papers` answers with the digest's window and gate rather
-            # than a default guess at them -- an agent and a human reading the same
-            # repository should not get different recommendations from one run.
-            output_cfg=cfg.output,
-            triage_cfg=cfg.triage,
-        )
+        # The config sections are no longer passed in. The server re-reads the file per
+        # call, so it answers with the digest's window and gate as they are ON DISK -- and
+        # picks up a config `setup_repo` writes mid-session, which a startup snapshot could
+        # not. An agent and a human reading the same repository still get the same
+        # recommendations from one run, which is what passing them was for.
+        run_stdio(repo_path, db_path, config_path=config_path)
     except ImportError as exc:  # pragma: no cover - a lazy import failing mid-serve
         error(f"MCP server stopped on a missing import: {exc}")
         raise SystemExit(1) from None

@@ -12,13 +12,25 @@ without it — only ``build_server``/``run_stdio`` need it.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from reporadar.config import OutputConfig, ProfilerConfig, RankingConfig, TriageConfig
+from reporadar.config import (
+    DEFAULT_CONFIG_NAME,
+    OutputConfig,
+    ProfilerConfig,
+    RankingConfig,
+    TriageConfig,
+    default_config_yaml,
+    load_config,
+    measured_config_yaml,
+)
 from reporadar.paper_id import dedup_id
 from reporadar.profiler import profile_repo
 from reporadar.ranker import format_score_explanation
@@ -263,6 +275,122 @@ def _log_call(tool: str, **params: Any) -> None:
         pass
 
 
+# The one line both config templates carry, and the one field no benchmark number
+# justifies. `setup_repo` rewrites it in place rather than round-tripping the YAML,
+# because the comments above it carry the measurement behind every other value.
+_CATEGORIES_LINE = "  categories: [cs.LG, cs.CL]"
+
+
+@dataclass
+class McpReporter:
+    """The pipeline's progress, on its way to an MCP client as `notifications/progress`.
+
+    Holds no SDK reference on purpose: *emit* is a plain synchronous callable, so this
+    stays importable and unit-testable without the ``mcp`` extra, and the async hop lives
+    in ``build_server`` where the Context does.
+
+    The heartbeat is load-bearing rather than decorative. VS Code applies no timeout to a
+    tool call at all, but Copilot CLI's 180 s per-request timeout is reset by every
+    progress notification and has no absolute cap — so a collection that reports nothing
+    for three minutes is cancelled, and one that narrates every stage runs to completion.
+    """
+
+    emit: Callable[[int, str], None]
+    messages: list[str] = field(default_factory=list)
+
+    def info(self, message: str) -> None:
+        text = message.strip()
+        if not text:
+            return
+        self.messages.append(text)
+        # Narration must never be able to destroy what it is narrating. Sending progress
+        # fails for reasons that have nothing to do with the work — no request context, a
+        # client that went away, a closed pipe — and losing a status line costs a status
+        # line, while letting it escape costs minutes of network and LLM calls that had
+        # already succeeded.
+        with contextlib.suppress(Exception):
+            self.emit(len(self.messages), text)
+
+    def warn(self, message: str) -> None:
+        self.info(message)
+
+
+def not_configured_payload(config_path: Path) -> dict[str, Any]:
+    """What every tool returns when the repository has no config yet.
+
+    A RESULT rather than a crash. `rr mcp` used to exit 1 here with the explanation on
+    stderr, which no MCP client shows anyone — the user saw "server failed to start" and
+    the one command that would fix it never reached them.
+    """
+    return {
+        "status": "not_configured",
+        "config_path": str(config_path),
+        "why": (
+            "This repository has no RepoRadar configuration yet, so there is nothing to "
+            "read and no corpus to search."
+        ),
+        "retry": {"tool": "setup_repo", "with": {}},
+    }
+
+
+def setup_repo_action(
+    repo_path: Path,
+    config_path: Path,
+    *,
+    categories: list[str] | None = None,
+    measured: bool = True,
+) -> dict[str, Any]:
+    """Create `.reporadar.yml` and `.reporadar/` for this repository.
+
+    Returns `needs_input` rather than guessing when *categories* is absent. `cs.LG, cs.CL`
+    is a guess that fits an ML repository and no other, and a wrong list quietly starves
+    every stage downstream — so the caller is handed this repository's own inferred
+    profile and asked to choose. An agent reading a profile is a better interview than a
+    default nobody opens the file to change.
+    """
+    if config_path.exists():
+        return {
+            "status": "already_configured",
+            "config_path": str(config_path),
+            "note": "Left as it is. Edit the file directly to change it.",
+        }
+
+    if not categories:
+        profile = profile_payload(repo_path, None)
+        return {
+            "status": "needs_input",
+            "missing": ["categories"],
+            "why": (
+                "arxiv.categories decides what gets collected at all. The cs.LG/cs.CL "
+                "default fits an ML repository and no other; on the wrong field it is the "
+                "difference between a digest and noise."
+            ),
+            "repo_profile": profile,
+            "retry": {
+                "tool": "setup_repo",
+                "with": {"categories": ["<arXiv category ids for this repo's field>"]},
+            },
+        }
+
+    body = measured_config_yaml() if measured else default_config_yaml()
+    if _CATEGORIES_LINE not in body:  # pragma: no cover - template drift guard
+        raise RuntimeError(
+            "the config template no longer contains the categories line this rewrites"
+        )
+    rendered = "[" + ", ".join(categories) + "]"
+    body = body.replace(_CATEGORIES_LINE, f"  categories: {rendered}", 1)
+
+    config_path.write_text(body, encoding="utf-8")
+    (repo_path / ".reporadar").mkdir(parents=True, exist_ok=True)
+    return {
+        "status": "ok",
+        "config_path": str(config_path),
+        "categories": list(categories),
+        "measured": measured,
+        "next": "Call update_corpus to collect and rank papers.",
+    }
+
+
 def require_sdk() -> None:
     """Import the optional MCP SDK so an unusable one fails here, with its own message.
 
@@ -281,6 +409,7 @@ def build_server(
     ranking_cfg: RankingConfig | None = None,
     output_cfg: OutputConfig | None = None,
     triage_cfg: TriageConfig | None = None,
+    config_path: str | Path | None = None,
 ) -> Any:
     """Build a FastMCP server exposing RepoRadar's repo-aware tools. Raises
     ImportError if the ``mcp`` extra is not installed.
@@ -295,10 +424,37 @@ def build_server(
     """
     from mcp.server.fastmcp import FastMCP
 
-    ranking = ranking_cfg or RankingConfig()
-    output = output_cfg or OutputConfig()
-    triage = triage_cfg or TriageConfig()
     server = FastMCP("reporadar")
+    resolved_config_path = (
+        Path(config_path) if config_path else Path(repo_path) / DEFAULT_CONFIG_NAME
+    )
+    _explicit = any(c is not None for c in (ranking_cfg, output_cfg, triage_cfg))
+
+    def _sections() -> tuple[Any, Any, Any] | None:
+        """(ranking, output, triage) for THIS call, or None if the repo is unconfigured.
+
+        Read per call rather than once at startup, because `setup_repo` can create the
+        config mid-session: a server that decided at boot that the repository was
+        uninitialised would keep saying so until somebody restarted it, which is the
+        failure this whole redesign exists to remove. Explicitly-passed sections still
+        win, so callers that hand over config (tests, and `rr mcp --db`) are unchanged.
+        """
+        if _explicit:
+            return (
+                ranking_cfg or RankingConfig(),
+                output_cfg or OutputConfig(),
+                triage_cfg or TriageConfig(),
+            )
+        cfg = _full_config()
+        if cfg is None:
+            return None
+        return (cfg.ranking, cfg.output, cfg.triage)
+
+    def _full_config() -> Any | None:
+        """The whole configuration, or None when the repository has none yet."""
+        if not resolved_config_path.exists():
+            return None
+        return load_config(resolved_config_path)
 
     @server.tool()
     def get_repo_profile() -> dict[str, Any]:
@@ -312,6 +468,10 @@ def build_server(
         """The papers RepoRadar recommends for this repository from its most recent
         update, best-first — the same set and order `rr digest` shows."""
         _log_call("get_ranked_papers", limit=limit)
+        sections = _sections()
+        if sections is None:
+            return not_configured_payload(resolved_config_path)
+        _, output, triage = sections
         with PaperStore(db_path) as store:
             return ranked_papers_payload(
                 store,
@@ -330,6 +490,10 @@ def build_server(
         """Explain why a specific paper (by arXiv id) was ranked for this repo:
         the per-component score breakdown plus any LLM actionability reason."""
         _log_call("explain_relevance", arxiv_id=arxiv_id)
+        sections = _sections()
+        if sections is None:
+            return not_configured_payload(resolved_config_path)
+        ranking, _, _ = sections
         with PaperStore(db_path) as store:
             return explain_relevance_payload(store, arxiv_id, ranking)
 
@@ -338,6 +502,8 @@ def build_server(
         """Record a 1–5 usefulness rating for a paper; ratings tune RepoRadar's
         ranking weights over time."""
         _log_call("rate_paper", arxiv_id=arxiv_id, rating=rating)
+        if _sections() is None:
+            return not_configured_payload(resolved_config_path)
         with PaperStore(db_path) as store:
             return rate_paper_action(store, arxiv_id, rating)
 
@@ -345,6 +511,8 @@ def build_server(
     def search_papers(query: str, limit: int = 10) -> dict[str, Any]:
         """Free-text search across EVERY paper RepoRadar has fetched for this repo
         (the whole local corpus, not just the latest run), ranked by BM25."""
+        if _sections() is None:
+            return not_configured_payload(resolved_config_path)
         with PaperStore(db_path) as store:
             payload = search_corpus_payload(store, query, limit)
         # The result count and the corpus size travel with the call. "How wide was this
@@ -360,6 +528,79 @@ def build_server(
         )
         return payload
 
+    @server.tool()
+    def setup_repo(categories: list[str] | None = None, measured: bool = True) -> dict[str, Any]:
+        """Initialise RepoRadar in this repository: write `.reporadar.yml` and `.reporadar/`.
+
+        Call with no arguments first. It answers with this repository's inferred profile and
+        asks for `categories`, because arxiv.categories decides what gets collected at all
+        and the cs.LG/cs.CL default fits an ML repository and no other. Propose categories
+        from the profile, confirm them with the user, then call again with them.
+        """
+        _log_call("setup_repo", categories=categories, measured=measured)
+        return setup_repo_action(
+            Path(repo_path),
+            resolved_config_path,
+            categories=categories,
+            measured=measured,
+        )
+
+    @server.tool()
+    async def update_corpus() -> dict[str, Any]:
+        """Collect, rank and gate papers for this repository — the pipeline `rr update` runs.
+
+        Minutes rather than seconds, and it reports progress as it goes. Call it once after
+        `setup_repo`, and again when you want fresh candidates; `get_ranked_papers` reads
+        what this leaves behind and never collects on its own.
+        """
+        _log_call("update_corpus")
+        # Fetched rather than taken as a parameter: `from __future__ import annotations`
+        # turns signatures into strings, and FastMCP evaluates them against MODULE globals
+        # -- where a `Context` imported inside this function does not exist. Asking the
+        # server for it also keeps `ctx` out of the tool's public schema.
+        ctx = server.get_context()
+        cfg = _full_config()
+        if cfg is None:
+            return not_configured_payload(resolved_config_path)
+
+        import anyio
+
+        def emit(n: int, message: str) -> None:
+            # Hops from the pipeline's worker thread back onto the event loop. Every one of
+            # these also resets Copilot CLI's per-request timeout, so the narration is what
+            # keeps a multi-minute collection from being cancelled underneath itself.
+            #
+            # McpReporter suppresses failures here: `report_progress` raises outright
+            # when there is no request context.
+            anyio.from_thread.run(ctx.report_progress, float(n), None, message)
+
+        reporter = McpReporter(emit=emit)
+
+        def _collect() -> Any:
+            from reporadar.pipeline import run_pipeline
+
+            return run_pipeline(
+                cfg,
+                repo_path=Path(repo_path),
+                db_path=Path(db_path),
+                report=reporter,
+            )
+
+        # `run_pipeline` is synchronous and `ctx.report_progress` is not, so the pipeline
+        # runs in a worker thread and the reporter hops back. Calling it inline would block
+        # the event loop and no progress notification could leave while it ran.
+        result = await anyio.to_thread.run_sync(_collect)
+
+        return {
+            "status": "stopped" if result.stopped else "ok",
+            "stopped": result.stopped,
+            "run_id": result.run_id,
+            "queries": len(result.queries),
+            "papers": len(result.papers),
+            "scored": len(result.scores),
+            "progress": reporter.messages,
+        }
+
     return server
 
 
@@ -370,6 +611,15 @@ def run_stdio(
     ranking_cfg: RankingConfig | None = None,
     output_cfg: OutputConfig | None = None,
     triage_cfg: TriageConfig | None = None,
+    config_path: str | Path | None = None,
 ) -> None:
     """Run the RepoRadar MCP server over stdio (blocks)."""
-    build_server(repo_path, db_path, profiler_cfg, ranking_cfg, output_cfg, triage_cfg).run()
+    build_server(
+        repo_path,
+        db_path,
+        profiler_cfg,
+        ranking_cfg,
+        output_cfg,
+        triage_cfg,
+        config_path=config_path,
+    ).run()

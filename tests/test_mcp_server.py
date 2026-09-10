@@ -260,3 +260,126 @@ class TestProfilePayload:
         assert isinstance(out["keywords"], list)
         # keyword entries are [term, weight] pairs
         assert all(len(kw) == 2 for kw in out["keywords"])
+
+
+class TestTheServerCanInitialiseARepository:
+    """`setup_repo`'s body, which is what removes the terminal from the plugin's setup.
+
+    Exercised through the pure helper for the same reason as everything else in this
+    file: CI installs `--extra dev --extra evals` and never has the `mcp` SDK, so the
+    tool wrapper is unreachable here. `scripts/mcp_smoke.py` covers the wrapper against
+    a real fresh resolve.
+    """
+
+    def test_it_asks_for_categories_rather_than_guessing(self, tmp_path: Path) -> None:
+        """The one field no benchmark number justifies. A default here is the expensive
+        kind of convenience: cs.LG/cs.CL fits an ML repository and no other, and a wrong
+        list starves every stage downstream."""
+        from reporadar.mcp_server import setup_repo_action
+
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        result = setup_repo_action(tmp_path, tmp_path / ".reporadar.yml")
+
+        assert result["status"] == "needs_input"
+        assert result["missing"] == ["categories"]
+        assert not (tmp_path / ".reporadar.yml").exists(), "must not write a guessed config"
+        # The caller is handed evidence to choose from, not just an error.
+        assert "keywords" in result["repo_profile"]
+        assert result["retry"]["tool"] == "setup_repo"
+
+    def test_it_writes_the_categories_it_was_given(self, tmp_path: Path) -> None:
+        from reporadar.config import load_config
+        from reporadar.mcp_server import setup_repo_action
+
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        config_path = tmp_path / ".reporadar.yml"
+        result = setup_repo_action(tmp_path, config_path, categories=["cs.CR", "cs.DC"])
+
+        assert result["status"] == "ok"
+        assert config_path.exists()
+        assert (tmp_path / ".reporadar").is_dir()
+        assert load_config(config_path).arxiv.categories == ["cs.CR", "cs.DC"]
+
+    def test_the_written_config_keeps_the_comments_that_justify_it(self, tmp_path: Path) -> None:
+        """The categories line is rewritten in place rather than round-tripping the YAML.
+        Every other value in the measured config carries the measurement behind it in a
+        comment, and a dump-and-reload would silently drop all of them."""
+        from reporadar.mcp_server import setup_repo_action
+
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        config_path = tmp_path / ".reporadar.yml"
+        setup_repo_action(tmp_path, config_path, categories=["math.OC"])
+
+        body = config_path.read_text(encoding="utf-8")
+        assert "categories: [math.OC]" in body
+        assert "CHANGE THIS" in body, "the measured template's own guidance is gone"
+        assert body.count("#") > 50, "the config lost the comments that carry its evidence"
+
+    def test_it_does_not_overwrite_an_existing_config(self, tmp_path: Path) -> None:
+        from reporadar.mcp_server import setup_repo_action
+
+        config_path = tmp_path / ".reporadar.yml"
+        config_path.write_text("repo_path: .\n", encoding="utf-8")
+        result = setup_repo_action(tmp_path, config_path, categories=["cs.LG"])
+
+        assert result["status"] == "already_configured"
+        assert config_path.read_text(encoding="utf-8") == "repo_path: .\n"
+
+
+class TestUnconfiguredIsAResultNotACrash:
+    def test_the_payload_names_the_tool_that_fixes_it(self, tmp_path: Path) -> None:
+        """`rr mcp` used to exit 1 here with the fix on stderr, where no MCP client shows
+        it — the user saw "server failed to start" and never learned the cause."""
+        from reporadar.mcp_server import not_configured_payload
+
+        payload = not_configured_payload(tmp_path / ".reporadar.yml")
+        assert payload["status"] == "not_configured"
+        assert payload["retry"]["tool"] == "setup_repo"
+        assert str(tmp_path) in payload["config_path"]
+
+
+class TestProgressReachesTheClient:
+    """The heartbeat is load-bearing: Copilot CLI's 180 s per-request timeout is reset by
+    every progress notification, so a silent multi-minute collection is cancelled."""
+
+    def test_every_pipeline_message_becomes_one_numbered_event(self) -> None:
+        from reporadar.mcp_server import McpReporter
+
+        sent: list[tuple[int, str]] = []
+        reporter = McpReporter(emit=lambda n, m: sent.append((n, m)))
+
+        reporter.info("Profiling repo: /x")
+        reporter.warn("  no abstract for 2 papers")
+        reporter.info("Triaging top 50 papers")
+
+        assert [n for n, _ in sent] == [1, 2, 3]
+        assert sent[0][1] == "Profiling repo: /x"
+        assert sent[1][1] == "no abstract for 2 papers", "leading whitespace should be trimmed"
+        assert reporter.messages == [m for _, m in sent]
+
+    def test_blank_messages_do_not_burn_a_progress_step(self) -> None:
+        from reporadar.mcp_server import McpReporter
+
+        sent: list[tuple[int, str]] = []
+        reporter = McpReporter(emit=lambda n, m: sent.append((n, m)))
+        reporter.info("")
+        reporter.info("   ")
+        reporter.info("real")
+        assert sent == [(1, "real")]
+
+    def test_a_failing_progress_send_does_not_kill_the_collection(self) -> None:
+        """Found by running the tool rather than reasoning about it: `report_progress`
+        raises when there is no request context, and the exception escaped the Reporter
+        and aborted the whole pipeline. Minutes of network and LLM work discarded because
+        a status line could not be delivered."""
+        from reporadar.mcp_server import McpReporter
+
+        def hostile(n: int, message: str) -> None:
+            raise ValueError("Context is not available outside of a request")
+
+        reporter = McpReporter(emit=hostile)
+        reporter.info("Profiling repo: /x")  # must not raise
+        reporter.warn("something")
+        assert reporter.messages == ["Profiling repo: /x", "something"], (
+            "the run should still be recorded even when nobody could be told about it"
+        )
