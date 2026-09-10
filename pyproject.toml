@@ -16,7 +16,7 @@ build-backend = "hatchling.build"
 # still "rr" -- see [tool.hatch.build.targets.wheel] and [project.scripts]. This is the same split
 # as beautifulsoup4/bs4.
 name = "reporadar-papers"
-version = "1.0.1"
+version = "1.0.2"
 # "relevant to your repo" is the framing this project exists to argue against — the paper is
 # titled "From Relevance to Actionability", and the whole system is built around a utility
 # judgment that a topical-relevance tool does not make. That sentence was the first thing a

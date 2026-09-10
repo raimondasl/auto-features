@@ -76,6 +76,27 @@ class TestTheManifestsAgreeWithWhatTheyPointAt:
         assert skills.is_dir()
         assert list(skills.glob("*/SKILL.md")), "no SKILL.md under the declared skills dir"
 
+    def test_the_pin_is_the_version_this_repository_builds(self) -> None:
+        """`.mcp.json` installs a published version; pyproject decides what publishing
+        produces. When the two differ, the plugin runs code this repository is no longer
+        writing -- which is exactly what happened here. The server gained `setup_repo` and
+        `update_corpus` across three PRs while the pin stayed on a release that predated all
+        of them, so the skill instructed an agent to call tools the running server did not
+        have. Keeping these equal makes the number track the code; actually publishing that
+        version is the other half, and the smoke check covers it.
+        """
+        import tomllib
+
+        data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        version = data["project"]["version"]
+        spec = " ".join(_load(MCP_JSON)["mcpServers"]["reporadar"]["args"])
+        pinned = re.search(r"reporadar-papers\[[a-z]+\]==([0-9][^\s\"]*)", spec)
+        assert pinned is not None, f"no pinned version in .mcp.json args: {spec}"
+        assert pinned.group(1) == version, (
+            f".mcp.json installs {pinned.group(1)} but this repository builds {version}; "
+            f"the plugin would run code that is not what main contains"
+        )
+
     def test_versions_move_together(self) -> None:
         """The marketplace entry, the plugin manifest and the version `.mcp.json` installs
         are kept in step deliberately. A marketplace entry's version pins what already

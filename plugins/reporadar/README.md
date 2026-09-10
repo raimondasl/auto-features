@@ -75,13 +75,70 @@ one costs — and is worth reaching for when results look thin.
 
 ## Where this works
 
-Copilot CLI, the GitHub Copilot desktop app (Customize → Plugins → the gear by the marketplace
-dropdown), VS Code (add `raimondasl/auto-features` to `chat.plugins.marketplaces`), the Copilot
-cloud agent (declaratively, via `.github/copilot/settings.json`), and Claude Code. There is no
-plugin support in Copilot Chat on github.com, on GitHub Mobile, or in JetBrains outside
-enterprise-managed settings.
+Copilot CLI, the GitHub Copilot desktop app, VS Code, the Copilot cloud agent, and Claude Code.
+There is **no** plugin support in Copilot Chat on github.com, on GitHub Mobile, or in JetBrains
+outside enterprise-managed settings.
 
-You need `uv` on PATH: the server is launched with `uvx`.
+No paid plan is needed. Agent Plugins are generally available on **all** Copilot plans, and
+Copilot Free includes both agent mode and MCP. (The plans table's "third-party agents" row refers
+to cloud coding agents — a different product — and does not apply here.) The one real gate is a
+**Copilot Business or Enterprise** seat, where an admin must enable the "MCP servers in Copilot"
+policy; personal Free/Pro accounts are not governed by it.
+
+You need `uv` on PATH everywhere: the server is launched with `uvx`. Check it resolves in the
+same shell you start your editor from.
+
+### VS Code
+
+Command Palette → **Preferences: Open User Settings (JSON)**, and add:
+
+```json
+"chat.plugins.enabled": true,
+"chat.plugins.marketplaces": ["raimondasl/auto-features"]
+```
+
+Then Extensions view (`Ctrl+Shift+X`) → type `@agentPlugins` in the search box → find
+**reporadar** → Install. The first install from a new marketplace shows a trust prompt.
+
+Verify with **MCP: List Servers** (`reporadar` should be listed and started) and
+**Chat: Configure Skills** (`paper-discovery` and `sync-index` should appear). Then use agent
+mode and type `/` — the skills are slash commands.
+
+### Copilot CLI
+
+```bash
+copilot plugin marketplace add raimondasl/auto-features
+copilot plugin install reporadar@reporadar
+```
+
+Or the same two as `/plugin …` inside a session. Verify with `/mcp show reporadar`.
+
+### The Copilot app
+
+**Customize** in the sidebar → **Plugins** → the gear beside the marketplace dropdown → add
+`raimondasl/auto-features` → filter to `reporadar` → **Install**.
+
+### Copilot cloud agent
+
+No UI; commit `.github/copilot/settings.json` in the repository the agent works in:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "reporadar": { "source": { "source": "github", "repo": "raimondasl/auto-features" } }
+  },
+  "enabledPlugins": { "reporadar@reporadar": true }
+}
+```
+
+Add a `copilot-setup-steps.yml` step installing `uv` if the agent environment lacks it.
+
+### Claude Code
+
+```bash
+claude plugin marketplace add raimondasl/auto-features
+claude plugin install reporadar@reporadar
+```
 
 ## What installing it runs
 
@@ -93,7 +150,7 @@ whole of this one is the files in this directory.
 ## Notes
 
 The MCP server is launched by `uvx` from a **pinned PyPI release**
-(`reporadar-papers[mcp]==1.0.1`) — not from `main`, and no longer from a git tag — so what you run
+(`reporadar-papers[mcp]==1.0.2`) — not from `main`, and no longer from a git tag — so what you run
 does not change under you when this repository is pushed to. Upgrading is a version bump in
 `.mcp.json`. It also installs a wheel instead of cloning and building the repository.
 
