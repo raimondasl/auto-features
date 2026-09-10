@@ -181,3 +181,42 @@ class TestBothEcosystemsGetTheSameMarketplace:
         entry = _load(CLAUDE_MARKETPLACE)["plugins"][0]
         target = (ROOT / entry["source"].removeprefix("./")).resolve()
         assert (target / "plugin.json").is_file()
+
+
+class TestEverySkillIsInvocable:
+    """A skill's directory name is the slash command the user types; its frontmatter `name`
+    is what the client registers. Both must exist and agree, or the plugin ships a command
+    nobody can guess — and `description` is what decides whether the model ever fires the
+    skill on its own, so an empty one is a skill that only works if you already know it is
+    there.
+    """
+
+    SKILLS = ROOT / "plugins" / "reporadar" / "skills"
+
+    def _skills(self) -> list[Path]:
+        found = sorted(self.SKILLS.glob("*/SKILL.md"))
+        assert found, f"no SKILL.md under {self.SKILLS}"
+        return found
+
+    def test_each_skill_names_its_own_directory(self) -> None:
+        for path in self._skills():
+            body = path.read_text(encoding="utf-8")
+            assert body.startswith("---"), f"{path.parent.name}: no frontmatter"
+            front = body.split("---", 2)[1]
+            declared = re.search(r"^name:\s*(\S+)", front, re.MULTILINE)
+            assert declared is not None, f"{path.parent.name}: frontmatter has no name"
+            assert declared.group(1) == path.parent.name, (
+                f"{path.parent.name}/SKILL.md declares name {declared.group(1)!r}; the "
+                f"directory decides the slash command, so they have to agree"
+            )
+
+    def test_each_skill_describes_itself_well_enough_to_be_triggered(self) -> None:
+        for path in self._skills():
+            front = path.read_text(encoding="utf-8").split("---", 2)[1]
+            described = re.search(r"^description:\s*(.+?)(?=^\w+:|\Z)", front, re.M | re.S)
+            assert described is not None, f"{path.parent.name}: no description"
+            text = " ".join(described.group(1).split())
+            assert len(text) > 60, (
+                f"{path.parent.name}: description is {len(text)} chars. It is the only thing "
+                f"the model sees when deciding whether to use this skill."
+            )
