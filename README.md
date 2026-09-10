@@ -452,6 +452,12 @@ Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cu
 - `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
 - `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
+- `setup_repo(categories, measured)` — write `.reporadar.yml` for this repository. Called with no arguments it returns the repo's inferred profile and asks which arXiv categories to use, rather than guessing: the `cs.LG, cs.CL` default fits an ML repository and no other
+- `update_corpus()` — run the same pipeline `rr update` runs, reporting progress as it goes. Minutes rather than seconds, and the only tool that fetches anything
+
+The last two are why an agent needs no terminal: an unconfigured repository is a tool *result*, not a failed server, and the agent can set it up and collect without you leaving the chat.
+
+**The easiest way to get all of this is the [Copilot plugin](plugins/reporadar/)** — two commands, no MCP configuration, and it works in Copilot CLI, the Copilot app, VS Code and Claude Code.
 
 Requires the optional extra: `uv pip install "reporadar-papers[mcp]"`. Register it with your agent, e.g. Claude Code:
 
