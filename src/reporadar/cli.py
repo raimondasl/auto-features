@@ -22,6 +22,7 @@ from reporadar.collector import (
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
     ArxivConfig,
+    HydeConfig,
     RankingConfig,
     RepoRadarConfig,
     default_config_yaml,
@@ -2099,13 +2100,21 @@ def sync_index(config_path: str | None, refresh: bool, verify: bool) -> None:
     """
     from reporadar import hyde
 
-    cfg = load_config(config_path)
-    index_dir = Path(cfg.hyde.index_dir).expanduser()
+    # No configuration required. The index is USER-GLOBAL -- one sync serves every
+    # repository on the machine -- so making it wait for a repo to be initialised put the
+    # 1.1 GB download behind an unrelated step and forced people to set up a project they
+    # might not have wanted yet, purely to fetch a shared asset.
+    try:
+        hyde_cfg = load_config(config_path).hyde
+    except FileNotFoundError:
+        hyde_cfg = HydeConfig()
+        info("No .reporadar.yml here — syncing to the default location.")
+    index_dir = Path(hyde_cfg.index_dir).expanduser()
 
     if verify:
-        info(f"Loading {cfg.hyde.model} (~670 MB on first use)...")
+        info(f"Loading {hyde_cfg.model} (~670 MB on first use)...")
         try:
-            ok, dists = hyde.verify_encoder(hyde.load_encoder(cfg.hyde.model))
+            ok, dists = hyde.verify_encoder(hyde.load_encoder(hyde_cfg.model))
         except hyde.HydeError as exc:
             error(str(exc))
             raise SystemExit(1) from exc
@@ -2140,7 +2149,7 @@ def sync_index(config_path: str | None, refresh: bool, verify: bool) -> None:
         )
     else:
         success(f"Index already complete: {total} shards.")
-    if not cfg.hyde.enabled:
+    if not hyde_cfg.enabled:
         info("Enable it with `hyde.enabled: true` in your config.")
 
 

@@ -154,3 +154,20 @@ def tmp_repo_minimal(tmp_path: Path) -> Path:
 def tmp_repo_empty(tmp_path: Path) -> Path:
     """An empty directory (no README, no manifests)."""
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def _no_developer_credentials(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No test may see the developer's own stored API keys.
+
+    `credentials.resolve_api_key` falls back to a user-global `auth.json`, so a machine where
+    somebody has actually run `rr auth` answers "is there a key?" differently from CI. The
+    tests that assert "no key anywhere is a config error, not a request" then found one,
+    proceeded to call the API, and were caught by the no-network guard.
+
+    Found exactly that way: green on CI, red on the one machine that had used the feature.
+    A suite whose result depends on the developer's credentials is not testing the product.
+    """
+    monkeypatch.setenv("REPORADAR_CONFIG_DIR", str(tmp_path_factory.mktemp("rr-credentials")))

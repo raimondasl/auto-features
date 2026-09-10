@@ -51,6 +51,12 @@ rather than reporting "no relevant papers exist".
 
 ## Setup — you do this, the user does not
 
+**Check the directory before you configure anything.** Every tool reports `repo_path`. It is
+the server's working directory, which the editor chooses — and it is not always the project the
+user is looking at. If it points somewhere unexpected (the plugin's own install directory, an
+extension folder, a home directory), **stop and say so** rather than initialising it. A digest
+built for the wrong repository is worse than no digest, because it looks like an answer.
+
 **Do not send the user to a terminal.** Setup is two tool calls:
 
 1. `setup_repo` with no arguments. It comes back `needs_input`, asking for `categories` and
