@@ -21,6 +21,7 @@ import sys
 import tempfile
 import threading
 import time
+from pathlib import Path
 
 # The tools plugins/reporadar/skills/paper-discovery/SKILL.md tells an agent to reach for.
 # Listing them here rather than counting means a silently dropped tool fails the check.
@@ -30,6 +31,8 @@ EXPECTED_TOOLS = {
     "explain_relevance",
     "rate_paper",
     "search_papers",
+    "setup_repo",
+    "update_corpus",
 }
 
 HANDSHAKE = [
@@ -45,9 +48,21 @@ HANDSHAKE = [
     },
     {"jsonrpc": "2.0", "method": "notifications/initialized"},
     {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+    # Exercise a tool WRAPPER, not just the listing -- pytest can never reach these,
+    # because CI installs `--extra dev --extra evals` and has no SDK. This call also
+    # proves the server serves an UNINITIALISED repository: `setup_repo` with no
+    # arguments must come back asking for categories, rather than the process having
+    # died at startup with the explanation on stderr where no client shows it.
+    {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {"name": "setup_repo", "arguments": {}},
+    },
 ]
 
 TOOLS_LIST_ID = 2
+SETUP_CALL_ID = 3
 
 
 def fail(msg: str, stdout: str = "", stderr: str = "") -> None:
@@ -116,11 +131,10 @@ def _shutdown(proc: subprocess.Popen) -> None:
 
 def main(rr: str) -> None:
     with tempfile.TemporaryDirectory() as work:
-        # `rr mcp` refuses to start without a config, by design, so make one first -- the
-        # same two steps the plugin's own README gives a user.
-        init = subprocess.run([rr, "init"], cwd=work, capture_output=True, text=True, timeout=180)
-        if init.returncode != 0:
-            fail("`rr init` failed", init.stdout, init.stderr)
+        # Deliberately NOT initialised first. The server has to serve an unconfigured
+        # repository -- that is the whole point of `setup_repo` being a tool -- so this
+        # runs against a bare directory and lets the handshake prove it.
+        (Path(work) / "README.md").write_text("# smoke", encoding="utf-8")
 
         proc = subprocess.Popen(
             [rr, "mcp"],
@@ -145,7 +159,7 @@ def main(rr: str) -> None:
             # as "session over" and begins shutting down -- which raced the reply it was
             # already writing and lost on 3.11 while passing on 3.12/3.13. A real client
             # holds stdin open for the life of the session; so do we.
-            replies = _await(proc, out, TOOLS_LIST_ID, timeout=120)
+            replies = _await(proc, out, SETUP_CALL_ID, timeout=120)
         finally:
             _shutdown(proc)
 
@@ -168,9 +182,20 @@ def main(rr: str) -> None:
         if missing:
             fail(f"tools/list is missing {sorted(missing)}; got {sorted(got)}")
 
+        setup = replies.get(SETUP_CALL_ID, {}).get("result")
+        if setup is None:
+            fail(
+                "no setup_repo result - the server did not serve an unconfigured repo",
+                stdout,
+                stderr,
+            )
+        if "needs_input" not in json.dumps(setup):
+            fail(f"setup_repo did not ask for categories; got {json.dumps(setup)[:400]}")
+
         server = replies[1]["result"].get("serverInfo", {})
         print(f"ok: handshake completed against {server.get('name')!r}")
         print(f"ok: tools/list returned all {len(EXPECTED_TOOLS)} tools: {sorted(got)}")
+        print("ok: setup_repo answered on an uninitialised repository")
 
 
 if __name__ == "__main__":

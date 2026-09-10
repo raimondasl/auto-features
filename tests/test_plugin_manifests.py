@@ -108,7 +108,10 @@ class TestTheSkillDescribesTheServerItFronts:
         # Parsed from source rather than imported: the `mcp` extra is not installed in CI
         # (`uv sync --extra dev --extra evals`), so `build_server` cannot be called here.
         source = self.SERVER.read_text(encoding="utf-8")
-        return set(re.findall(r"@server\.tool\(\)\s*\n\s*def (\w+)\(", source))
+        # Matches `async def` as well as `def`: the first async tool (update_corpus,
+        # which must be async to report progress) was invisible to the original pattern, so
+        # the guard reported a documentation gap that did not exist and missed the real one.
+        return set(re.findall(r"@server\.tool\(\)\s*\n\s*(?:async\s+)?def (\w+)\(", source))
 
     def _documented(self) -> set[str]:
         rows = self.SKILL.read_text(encoding="utf-8")

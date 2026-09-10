@@ -41,28 +41,46 @@ thing.
 | `get_ranked_papers` | The digest: papers judged actionable for this repository, best first. |
 | `explain_relevance` | Why one specific arXiv paper was or was not surfaced. |
 | `search_papers` | Search the stored corpus by query, still conditioned on this repository. |
+| `setup_repo` | Initialise RepoRadar here. Call it with no arguments first: it answers with the repository's profile and asks which arXiv categories to use. |
+| `update_corpus` | Collect, rank and gate papers. Minutes, with progress — the only tool that fetches anything. |
 | `rate_paper` | Record the user's **1–5** usefulness rating. Anything outside 1–5 is rejected. A 3 is accepted and then *ignored* by the feedback loop, which learns only from 4–5 and 1–2 — so do not default to 3 when the user is vague, ask them. |
 
-`get_ranked_papers` reads what has already been collected. If it returns nothing, the store is
-probably empty rather than the literature — say so and suggest `rr update`, rather than
-reporting "no relevant papers exist".
+`get_ranked_papers` reads what has already been collected and never fetches on its own. If it
+returns nothing, the store is probably empty rather than the literature — call `update_corpus`,
+rather than reporting "no relevant papers exist".
 
-## Setup, and what to say when it is missing
+## Setup — you do this, the user does not
 
-The tools need RepoRadar initialised in the repository — and they need the `rr` command, which
-**installing the plugin does not provide**. The plugin runs the MCP server in its own throwaway
-environment, so if `rr` is not on the user's PATH that is the first thing to fix, not a sign that
-anything is broken:
+**Do not send the user to a terminal.** Setup is two tool calls:
 
-```bash
-uv tool install reporadar-papers   # `rr` on PATH; add [hyde] if they also want `rr sync-index`
-rr init --measured     # writes the configuration every published number was measured under
-rr doctor              # says what is still missing and what each gap costs
-```
+1. `setup_repo` with no arguments. It comes back `needs_input`, asking for `categories` and
+   handing you this repository's inferred profile — keywords, libraries, domains.
+2. Read that profile, propose arXiv categories that fit it, **confirm them with the user**, then
+   call `setup_repo` again with `categories`.
 
-**`rr doctor` is the thing to run when anything looks off**, and worth suggesting proactively
-if results seem thin. It exits non-zero and names each gap with its measured cost. Three gaps
-are common and every one of them fails *silently* at run time:
+Propose rather than ask blind: "this looks like a cryptography library, so `cs.CR` — does that
+match?" is a question someone can answer. "Which arXiv categories do you want?" is not. Getting
+this wrong is expensive: on the wrong field it is the difference between a digest and noise, and
+it is the one setting no benchmark number justifies.
+
+Then call `update_corpus`. It takes minutes and reports progress; say what it is doing rather
+than going quiet.
+
+Any tool answering `{"status": "not_configured"}` means the repository has no config yet — start
+at step 1. A tool answering `{"status": "needs_input"}` is asking you for something specific and
+naming the call to retry; it is not an error, and reporting it as one strands the user.
+
+## What still needs a key, and what it costs
+
+- **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
+  mean net@2 **−11**. One key suffices: `suggestions.provider: openai` runs the whole pipeline
+  on OpenAI. The server reads it from the environment.
+- **No dense index** — `rr sync-index` is a one-time ~1.1 GB download and is the one step that
+  is still a command, because it is too large to run inside a tool call. Skipping it costs
+  **−1.36 net@2**, and it is the *only* retrieval channel for 15 of 48 benchmark targets,
+  including every repository with no arXiv bibliography.
+
+Two gaps that fail *silently* at run time:
 
 - **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
   mean net@2 **−11**. One key suffices: set `suggestions.provider: openai` and the whole
@@ -71,10 +89,11 @@ are common and every one of them fails *silently* at run time:
   **−1.36 net@2**, and it is the *only* retrieval channel for 15 of 48 benchmark targets,
   including every repository with no arXiv bibliography. Large, optional, and worth it.
 - **Default `arxiv.categories`** — `cs.LG, cs.CL` is a guess that fits an ML repository and no
-  other. On the wrong field it is the difference between a digest and noise.
+  other, which is why `setup_repo` refuses to write a config without being told.
 
-If the user has not run `rr init`, the MCP server will not start and will say so. Point them at
-these two commands rather than guessing at the cause.
+`rr doctor` remains the fullest diagnosis and is worth suggesting when results look thin, but it
+is a CLI command and the user may not have `rr` installed — the plugin does not provide it. Reach
+for it only when the tools themselves have not explained the problem.
 
 ## Reporting results honestly
 
