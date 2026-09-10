@@ -66,6 +66,12 @@ it is the one setting no benchmark number justifies.
 Then call `update_corpus`. It takes minutes and reports progress; say what it is doing rather
 than going quiet.
 
+**Read its `warnings` before reporting the result.** They are separate from `progress` because
+they change what the digest means: a stage that was configured and could not run — HyDE
+unavailable, a source that failed — makes a thin result evidence about the *setup*, not about the
+literature. Say which one it is. "Nothing came back, and dense discovery was not running" is a
+useful sentence; "no relevant papers exist" in the same situation is wrong.
+
 Any tool answering `{"status": "not_configured"}` means the repository has no config yet — start
 at step 1. A tool answering `{"status": "needs_input"}` is asking you for something specific and
 naming the call to retry; it is not an error, and reporting it as one strands the user.
@@ -75,10 +81,11 @@ naming the call to retry; it is not an error, and reporting it as one strands th
 - **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
   mean net@2 **−11**. One key suffices: `suggestions.provider: openai` runs the whole pipeline
   on OpenAI. The server reads it from the environment.
-- **No dense index** — `rr sync-index` is a one-time ~1.1 GB download and is the one step that
-  is still a command, because it is too large to run inside a tool call. Skipping it costs
-  **−1.36 net@2**, and it is the *only* retrieval channel for 15 of 48 benchmark targets,
-  including every repository with no arXiv bibliography.
+- **No dense index** — the one step that is still a command, because 1.1 GB does not belong
+  inside a tool call. Skipping it costs **−1.36 net@2**, and it is the *only* retrieval channel
+  for 15 of 48 benchmark targets, including every repository with no arXiv bibliography. The
+  `sync-index` skill has the command and the full cost; reach for it when `update_corpus`
+  reports HyDE unavailable.
 
 Two gaps that fail *silently* at run time:
 

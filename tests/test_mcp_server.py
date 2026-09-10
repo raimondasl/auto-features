@@ -383,3 +383,30 @@ class TestProgressReachesTheClient:
         assert reporter.messages == ["Profiling repo: /x", "something"], (
             "the run should still be recorded even when nobody could be told about it"
         )
+
+    def test_warnings_are_kept_apart_from_progress(self) -> None:
+        """A configured stage that could not run changes what the digest means, and it is
+        the difference between a thin result and a thin literature. Flattened into sixty
+        progress lines it is gone the moment the next one lands."""
+        from reporadar.mcp_server import McpReporter
+
+        reporter = McpReporter(emit=lambda n, m: None)
+        reporter.info("Profiling repo: /x")
+        reporter.warn("  HyDE discovery unavailable: index not found")
+        reporter.info("Collecting from arxiv")
+
+        assert reporter.warnings == ["HyDE discovery unavailable: index not found"]
+        # Still in the narration too -- the user watching progress should see it happen.
+        assert reporter.messages == [
+            "Profiling repo: /x",
+            "HyDE discovery unavailable: index not found",
+            "Collecting from arxiv",
+        ]
+
+    def test_a_blank_warning_is_not_recorded_as_one(self) -> None:
+        from reporadar.mcp_server import McpReporter
+
+        reporter = McpReporter(emit=lambda n, m: None)
+        reporter.warn("   ")
+        assert reporter.warnings == []
+        assert reporter.messages == []

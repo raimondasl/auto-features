@@ -297,11 +297,30 @@ class McpReporter:
 
     emit: Callable[[int, str], None]
     messages: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def info(self, message: str) -> None:
+        self._record(message)
+
+    def warn(self, message: str) -> None:
+        """Kept separately from `info`, because the caller has to be able to find it.
+
+        The pipeline is deliberately loud when a configured stage cannot run — "HyDE
+        discovery unavailable", a source that failed — and never degrades to the
+        keyword-only path silently, because that path measured 0/24. But a warning
+        forwarded as one more progress line is a status update among sixty, gone the
+        moment the next one replaces it. `update_corpus` returns these separately so the
+        agent can say what did not run, rather than reporting a thin digest as the state
+        of the literature.
+        """
+        text = self._record(message)
+        if text:
+            self.warnings.append(text)
+
+    def _record(self, message: str) -> str:
         text = message.strip()
         if not text:
-            return
+            return ""
         self.messages.append(text)
         # Narration must never be able to destroy what it is narrating. Sending progress
         # fails for reasons that have nothing to do with the work — no request context, a
@@ -310,9 +329,7 @@ class McpReporter:
         # already succeeded.
         with contextlib.suppress(Exception):
             self.emit(len(self.messages), text)
-
-    def warn(self, message: str) -> None:
-        self.info(message)
+        return text
 
 
 def not_configured_payload(config_path: Path) -> dict[str, Any]:
@@ -598,6 +615,10 @@ def build_server(
             "queries": len(result.queries),
             "papers": len(result.papers),
             "scored": len(result.scores),
+            # Separate from `progress` deliberately: a stage that was configured and could
+            # not run is the difference between a thin digest and a thin literature, and
+            # the agent has to be able to tell the user which one it is looking at.
+            "warnings": reporter.warnings,
             "progress": reporter.messages,
         }
 
