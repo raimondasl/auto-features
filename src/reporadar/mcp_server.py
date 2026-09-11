@@ -408,6 +408,46 @@ def choose_repo_root(candidates: list[Path], cwd: Path) -> Path | None:
     return usable[0]
 
 
+# What a checkout looks like from the outside. Deliberately broad and cheap: the question
+# is only "could this plausibly be somebody's project", and a false yes costs a confirmation
+# while a false no costs an unnecessary question.
+_PROJECT_MARKERS = (
+    ".git",
+    ".hg",
+    ".svn",
+    "pyproject.toml",
+    "setup.py",
+    "requirements.txt",
+    "package.json",
+    "Cargo.toml",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "Gemfile",
+    "composer.json",
+    "CMakeLists.txt",
+    "Makefile",
+)
+
+
+def looks_like_a_project(path: Path) -> bool:
+    """Whether *path* plausibly holds source somebody works on."""
+    return any((path / marker).exists() for marker in _PROJECT_MARKERS)
+
+
+def looks_like_a_plugin_install(path: Path) -> bool:
+    """Whether *path* is an installed agent plugin's own directory.
+
+    Worth naming separately because it is the failure that actually happened: an editor
+    launches a plugin's MCP server with the plugin's own folder as the working directory --
+    which the Agent Plugins spec mandates as the default -- so a server that trusted its
+    CWD profiled the plugin instead of the user's code. Saying "this is a plugin
+    installation" is a great deal more use than "this is not a project".
+    """
+    return (path / "plugin.json").is_file() and (path / ".mcp.json").is_file()
+
+
 def not_configured_payload(config_path: Path) -> dict[str, Any]:
     """What every tool returns when the repository has no config yet.
 
@@ -634,6 +674,44 @@ def build_server(
             source=source,
         )
 
+    def _wrong_place(loc: _Location) -> dict[str, Any] | None:
+        """A refusal when the server cannot tell which repository it is meant to serve.
+
+        The old behaviour was to guess from the working directory and carry on, which for a
+        plugin install meant profiling the plugin and presenting the result as an answer.
+        Guessing is the bug. When the client has not said which project it means AND the
+        directory shows no sign of being one, the honest move is to stop and ask -- the
+        caller is an agent working inside the project, so it knows the path and only has to
+        be asked for it.
+
+        A working directory that DOES look like a project is accepted without ceremony:
+        that is `rr mcp` run from a terminal, where the CWD is exactly right.
+        """
+        if not loc.source.startswith("cwd") or looks_like_a_project(loc.repo):
+            return None
+        plugin = looks_like_a_plugin_install(loc.repo)
+        return {
+            "status": "needs_input",
+            "missing": ["repo_path"],
+            "repo_path": str(loc.repo),
+            "repo_source": loc.source,
+            "why": (
+                (
+                    "This is an installed plugin's own directory, not a repository. Editors "
+                    "launch a plugin's MCP server here by default."
+                    if plugin
+                    else "This directory shows no sign of being a project: no .git, no manifest."
+                )
+                + " The client did not say which repository it means, so there is nothing to "
+                "infer from — and a digest built for the wrong repository still looks like an "
+                "answer, which is why this stops rather than guessing."
+            ),
+            "retry": {
+                "tool": "setup_repo",
+                "with": {"repo_path": "<absolute path to the user's project>"},
+            },
+        }
+
     def _full_config(cfg_path: Path) -> Any | None:
         """The whole configuration, or None when the repository has none yet."""
         if not cfg_path.exists():
@@ -669,6 +747,8 @@ def build_server(
         """
         _log_call("get_repo_profile")
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         payload = profile_payload(loc.repo, profiler_cfg)
         payload["repo_path"] = str(loc.repo)
         payload["repo_source"] = loc.source
@@ -680,6 +760,8 @@ def build_server(
         update, best-first — the same set and order `rr digest` shows."""
         _log_call("get_ranked_papers", limit=limit)
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         sections = _sections(loc.config_path)
         if sections is None:
             return not_configured_payload(loc.config_path)
@@ -703,6 +785,8 @@ def build_server(
         the per-component score breakdown plus any LLM actionability reason."""
         _log_call("explain_relevance", arxiv_id=arxiv_id)
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         sections = _sections(loc.config_path)
         if sections is None:
             return not_configured_payload(loc.config_path)
@@ -716,6 +800,8 @@ def build_server(
         ranking weights over time."""
         _log_call("rate_paper", arxiv_id=arxiv_id, rating=rating)
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         if _sections(loc.config_path) is None:
             return not_configured_payload(loc.config_path)
         with PaperStore(loc.db) as store:
@@ -726,6 +812,8 @@ def build_server(
         """Free-text search across EVERY paper RepoRadar has fetched for this repo
         (the whole local corpus, not just the latest run), ranked by BM25."""
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         if _sections(loc.config_path) is None:
             return not_configured_payload(loc.config_path)
         with PaperStore(loc.db) as store:
@@ -775,6 +863,8 @@ def build_server(
                 }
             _told.append(told)
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         result = setup_repo_action(
             loc.repo,
             loc.config_path,
@@ -801,6 +891,8 @@ def build_server(
         # server for it also keeps `ctx` out of the tool's public schema.
         ctx = server.get_context()
         loc = await _locate()
+        if (refusal := _wrong_place(loc)) is not None:
+            return refusal
         cfg = _full_config(loc.config_path)
         if cfg is None:
             return not_configured_payload(loc.config_path)

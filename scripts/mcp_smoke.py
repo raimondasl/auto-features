@@ -143,6 +143,10 @@ def _handshake(cmd: list[str], label: str) -> tuple[set[str], dict[int, dict]]:
     """
     with tempfile.TemporaryDirectory() as work:
         (Path(work) / "README.md").write_text("# smoke", encoding="utf-8")
+        # A project marker, deliberately. Without one the server now REFUSES to act on a
+        # directory it cannot identify, and this check would still see "needs_input" -- but
+        # for the refusal rather than for the categories question it means to exercise.
+        (Path(work) / "pyproject.toml").write_text("[project]", encoding="utf-8")
 
         proc = subprocess.Popen(
             cmd,
@@ -248,8 +252,12 @@ def main(rr: str) -> None:
     setup = replies.get(SETUP_CALL_ID, {}).get("result")
     if setup is None:
         fail("no setup_repo result - the server did not serve an unconfigured repo")
-    if "needs_input" not in json.dumps(setup):
-        fail(f"setup_repo did not ask for categories; got {json.dumps(setup)[:400]}")
+    missing = (setup.get("structuredContent") or setup).get("missing")
+    if missing != ["categories"]:
+        fail(
+            f"setup_repo should ask for categories on a plausible project; it asked for "
+            f"{missing!r}. Got: {json.dumps(setup)[:400]}"
+        )
 
     server = replies[1]["result"].get("serverInfo", {})
     print(f"ok: handshake completed against {server.get('name')!r}")

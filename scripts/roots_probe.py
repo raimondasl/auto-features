@@ -59,6 +59,10 @@ async def main(rr: str) -> None:
         for path in (decoy, project):
             path.mkdir()
             (path / "README.md").write_text(f"# {path.name}", encoding="utf-8")
+            # Both need a project marker: the server refuses to act on a directory it
+            # cannot identify, and this probe is about WHICH directory it picks rather
+            # than about that refusal.
+            (path / "pyproject.toml").write_text("[project]", encoding="utf-8")
 
         without = await _profile(rr, cwd=decoy, root=None)
         got = Path(without.get("repo_path", ""))

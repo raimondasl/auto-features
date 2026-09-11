@@ -583,3 +583,39 @@ class TestFindingTheRepositoryTheClientMeans:
         result = setup_repo_action(target, target / ".reporadar.yml", categories=["cs.LG"])
         assert result["repo_path"] == str(target)
         assert (target / ".reporadar.yml").exists()
+
+
+class TestItRefusesToGuessWhichRepositoryYouMean:
+    """The bug that survived two releases: the server inferred the project from its working
+    directory, which an editor sets to the plugin's own folder, and then answered as if that
+    were the user's code. Guessing was the defect — so it stops instead."""
+
+    def test_a_checkout_is_recognised(self, tmp_path: Path) -> None:
+        from reporadar.mcp_server import looks_like_a_project
+
+        assert not looks_like_a_project(tmp_path)
+        (tmp_path / "pyproject.toml").write_text("[project]", encoding="utf-8")
+        assert looks_like_a_project(tmp_path)
+
+    def test_a_git_directory_alone_is_enough(self, tmp_path: Path) -> None:
+        """A freshly cloned repo with nothing else in it is still a repo."""
+        from reporadar.mcp_server import looks_like_a_project
+
+        (tmp_path / ".git").mkdir()
+        assert looks_like_a_project(tmp_path)
+
+    def test_a_plugin_installation_is_recognised_as_one(self, tmp_path: Path) -> None:
+        """Named separately from "not a project" because it is the failure that happened,
+        and "this is a plugin installation" is far more use than "this is not a project"."""
+        from reporadar.mcp_server import looks_like_a_plugin_install, looks_like_a_project
+
+        (tmp_path / "plugin.json").write_text("{}", encoding="utf-8")
+        (tmp_path / ".mcp.json").write_text("{}", encoding="utf-8")
+        assert looks_like_a_plugin_install(tmp_path)
+        assert not looks_like_a_project(tmp_path)
+
+    def test_a_project_is_not_mistaken_for_a_plugin(self, tmp_path: Path) -> None:
+        from reporadar.mcp_server import looks_like_a_plugin_install
+
+        (tmp_path / "pyproject.toml").write_text("[project]", encoding="utf-8")
+        assert not looks_like_a_plugin_install(tmp_path)
