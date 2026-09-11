@@ -19,7 +19,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
+from urllib.parse import unquote, urlparse
+from urllib.request import url2pathname
 
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
@@ -365,6 +367,47 @@ def preferred_provider() -> str:
     return "openai"
 
 
+def root_uri_to_path(uri: str) -> Path | None:
+    """A `file://` root URI as a local path, or None for anything else.
+
+    Clients send roots as URIs, and on Windows that means `file:///C:/Users/...` -- a
+    leading slash before the drive letter that `Path` alone gets wrong. `url2pathname`
+    handles it, and percent-escapes (a space in a folder name) come out too.
+    """
+    parsed = urlparse(str(uri))
+    if parsed.scheme != "file":
+        return None
+    try:
+        return Path(url2pathname(unquote(parsed.path)))
+    except (OSError, ValueError):  # pragma: no cover - malformed URI
+        return None
+
+
+def choose_repo_root(candidates: list[Path], cwd: Path) -> Path | None:
+    """Which of the client's roots this server should treat as the repository.
+
+    A multi-root workspace offers several and the protocol does not say which is "current",
+    so: prefer the one that CONTAINS the process working directory -- the deepest such, for
+    nested roots -- because that is the one the editor most likely started us for. Failing
+    that take the single root if there is only one, and otherwise the first, leaving the
+    caller to say the choice was ambiguous rather than pretending it was not.
+    """
+    usable = [c for c in candidates if c.is_dir()]
+    if not usable:
+        return None
+
+    containing = []
+    for root in usable:
+        try:
+            cwd.relative_to(root)
+        except ValueError:
+            continue
+        containing.append(root)
+    if containing:
+        return max(containing, key=lambda r: len(r.parts))
+    return usable[0]
+
+
 def not_configured_payload(config_path: Path) -> dict[str, Any]:
     """What every tool returns when the repository has no config yet.
 
@@ -482,7 +525,7 @@ def require_sdk() -> None:
 
 def build_server(
     repo_path: str | Path,
-    db_path: str | Path,
+    db_path: str | Path | None = None,
     profiler_cfg: ProfilerConfig | None = None,
     ranking_cfg: RankingConfig | None = None,
     output_cfg: OutputConfig | None = None,
@@ -503,19 +546,78 @@ def build_server(
     from mcp.server.fastmcp import FastMCP
 
     server = FastMCP("reporadar")
-    resolved_config_path = (
-        Path(config_path) if config_path else Path(repo_path) / DEFAULT_CONFIG_NAME
-    )
     _explicit = any(c is not None for c in (ranking_cfg, output_cfg, triage_cfg))
+    _cwd_repo = Path(repo_path)
 
-    def _sections() -> tuple[Any, Any, Any] | None:
+    class _Location(NamedTuple):
+        repo: Path
+        config_path: Path
+        db: Path
+        source: str
+
+    async def _locate() -> _Location:
+        """Which repository this call is about — asked of the CLIENT, not the process.
+
+        An editor launches the plugin's server with a working directory of its own
+        choosing, and in practice that has been the plugin's own install directory. So
+        inferring the project from the CWD profiled the plugin instead of the user's code,
+        and wrote the configuration there too — which is worse than failing, because the
+        digest still looks like an answer.
+
+        MCP roots is the protocol's own answer to "which project am I in". The CWD stays as
+        the fallback for clients that send none, which is also what keeps `rr mcp` working
+        from a terminal.
+        """
+        repo, source = _cwd_repo, "cwd"
+        try:
+            import anyio
+            from mcp.types import ClientCapabilities, RootsCapability
+
+            session = server.get_context().session
+            # ASK WHETHER IT CAN ANSWER FIRST. `roots/list` is a request to the client, and
+            # a client that never replies leaves the tool call hanging for as long as the
+            # caller will wait -- every tool, not just this one. Caught by the smoke check,
+            # which is a deliberately minimal client and does not implement roots.
+            if not session.check_client_capability(ClientCapabilities(roots=RootsCapability())):
+                raise RuntimeError("client declares no roots capability")
+            # And a deadline even when it says it can: a capability is a promise, not a
+            # guarantee, and the fallback below is always available.
+            with anyio.fail_after(5):
+                result = await session.list_roots()
+            offered = [p for p in (root_uri_to_path(str(r.uri)) for r in result.roots) if p]
+            chosen = choose_repo_root(offered, _cwd_repo)
+            if chosen is not None:
+                repo = chosen
+                source = (
+                    "client root"
+                    if len(offered) == 1
+                    else f"client root (1 of {len(offered)} offered)"
+                )
+        except Exception:  # noqa: BLE001 - a client that sends no roots is not an error
+            pass
+
+        return _Location(
+            repo=repo,
+            config_path=Path(config_path) if config_path else repo / DEFAULT_CONFIG_NAME,
+            # An explicit --db wins; otherwise the store belongs to the repository just
+            # resolved, not to whatever directory this process was started in.
+            db=Path(db_path) if db_path else repo / ".reporadar" / "papers.db",
+            source=source,
+        )
+
+    def _full_config(cfg_path: Path) -> Any | None:
+        """The whole configuration, or None when the repository has none yet."""
+        if not cfg_path.exists():
+            return None
+        return load_config(cfg_path)
+
+    def _sections(cfg_path: Path) -> tuple[Any, Any, Any] | None:
         """(ranking, output, triage) for THIS call, or None if the repo is unconfigured.
 
         Read per call rather than once at startup, because `setup_repo` can create the
         config mid-session: a server that decided at boot that the repository was
-        uninitialised would keep saying so until somebody restarted it, which is the
-        failure this whole redesign exists to remove. Explicitly-passed sections still
-        win, so callers that hand over config (tests, and `rr mcp --db`) are unchanged.
+        uninitialised would keep saying so until somebody restarted it. Explicitly-passed
+        sections still win, so callers that hand over config (tests) are unchanged.
         """
         if _explicit:
             return (
@@ -523,38 +625,41 @@ def build_server(
                 output_cfg or OutputConfig(),
                 triage_cfg or TriageConfig(),
             )
-        cfg = _full_config()
+        cfg = _full_config(cfg_path)
         if cfg is None:
             return None
         return (cfg.ranking, cfg.output, cfg.triage)
 
-    def _full_config() -> Any | None:
-        """The whole configuration, or None when the repository has none yet."""
-        if not resolved_config_path.exists():
-            return None
-        return load_config(resolved_config_path)
-
     @server.tool()
-    def get_repo_profile() -> dict[str, Any]:
+    async def get_repo_profile() -> dict[str, Any]:
         """This repository's inferred topic profile: keyword weights, imported
-        libraries, and inferred research domains."""
+        libraries, and inferred research domains.
+
+        Also reports which directory it profiled and how that was decided — check it
+        against the project the user means before trusting anything downstream of it.
+        """
         _log_call("get_repo_profile")
-        return profile_payload(repo_path, profiler_cfg)
+        loc = await _locate()
+        payload = profile_payload(loc.repo, profiler_cfg)
+        payload["repo_path"] = str(loc.repo)
+        payload["repo_source"] = loc.source
+        return payload
 
     @server.tool()
-    def get_ranked_papers(limit: int = 10) -> dict[str, Any]:
+    async def get_ranked_papers(limit: int = 10) -> dict[str, Any]:
         """The papers RepoRadar recommends for this repository from its most recent
         update, best-first — the same set and order `rr digest` shows."""
         _log_call("get_ranked_papers", limit=limit)
-        sections = _sections()
+        loc = await _locate()
+        sections = _sections(loc.config_path)
         if sections is None:
-            return not_configured_payload(resolved_config_path)
+            return not_configured_payload(loc.config_path)
         _, output, triage = sections
-        with PaperStore(db_path) as store:
+        with PaperStore(loc.db) as store:
             return ranked_papers_payload(
                 store,
                 limit,
-                repo_path=repo_path,
+                repo_path=loc.repo,
                 top_n=output.top_n,
                 triage_threshold=(triage.min_actionable if triage.enabled else None),
                 rerank=(triage.rerank if triage.enabled else False),
@@ -564,34 +669,37 @@ def build_server(
             )
 
     @server.tool()
-    def explain_relevance(arxiv_id: str) -> dict[str, Any]:
+    async def explain_relevance(arxiv_id: str) -> dict[str, Any]:
         """Explain why a specific paper (by arXiv id) was ranked for this repo:
         the per-component score breakdown plus any LLM actionability reason."""
         _log_call("explain_relevance", arxiv_id=arxiv_id)
-        sections = _sections()
+        loc = await _locate()
+        sections = _sections(loc.config_path)
         if sections is None:
-            return not_configured_payload(resolved_config_path)
+            return not_configured_payload(loc.config_path)
         ranking, _, _ = sections
-        with PaperStore(db_path) as store:
+        with PaperStore(loc.db) as store:
             return explain_relevance_payload(store, arxiv_id, ranking)
 
     @server.tool()
-    def rate_paper(arxiv_id: str, rating: int) -> dict[str, Any]:
+    async def rate_paper(arxiv_id: str, rating: int) -> dict[str, Any]:
         """Record a 1–5 usefulness rating for a paper; ratings tune RepoRadar's
         ranking weights over time."""
         _log_call("rate_paper", arxiv_id=arxiv_id, rating=rating)
-        if _sections() is None:
-            return not_configured_payload(resolved_config_path)
-        with PaperStore(db_path) as store:
+        loc = await _locate()
+        if _sections(loc.config_path) is None:
+            return not_configured_payload(loc.config_path)
+        with PaperStore(loc.db) as store:
             return rate_paper_action(store, arxiv_id, rating)
 
     @server.tool()
-    def search_papers(query: str, limit: int = 10) -> dict[str, Any]:
+    async def search_papers(query: str, limit: int = 10) -> dict[str, Any]:
         """Free-text search across EVERY paper RepoRadar has fetched for this repo
         (the whole local corpus, not just the latest run), ranked by BM25."""
-        if _sections() is None:
-            return not_configured_payload(resolved_config_path)
-        with PaperStore(db_path) as store:
+        loc = await _locate()
+        if _sections(loc.config_path) is None:
+            return not_configured_payload(loc.config_path)
+        with PaperStore(loc.db) as store:
             payload = search_corpus_payload(store, query, limit)
         # The result count and the corpus size travel with the call. "How wide was this
         # server's corpus" is otherwise only answerable by finding the store on disk and
@@ -607,7 +715,7 @@ def build_server(
         return payload
 
     @server.tool()
-    def setup_repo(
+    async def setup_repo(
         categories: list[str] | None = None,
         measured: bool = True,
         provider: str | None = None,
@@ -618,15 +726,22 @@ def build_server(
         asks for `categories`, because arxiv.categories decides what gets collected at all
         and the cs.LG/cs.CL default fits an ML repository and no other. Propose categories
         from the profile, confirm them with the user, then call again with them.
+
+        Check the `repo_path` it reports before confirming: that is the directory which will
+        be configured, and it is not always the one the user has in mind.
         """
         _log_call("setup_repo", categories=categories, measured=measured)
-        return setup_repo_action(
-            Path(repo_path),
-            resolved_config_path,
+        loc = await _locate()
+        result = setup_repo_action(
+            loc.repo,
+            loc.config_path,
             categories=categories,
             measured=measured,
             provider=provider,
         )
+        result["repo_path"] = str(loc.repo)
+        result["repo_source"] = loc.source
+        return result
 
     @server.tool()
     async def update_corpus() -> dict[str, Any]:
@@ -642,9 +757,10 @@ def build_server(
         # -- where a `Context` imported inside this function does not exist. Asking the
         # server for it also keeps `ctx` out of the tool's public schema.
         ctx = server.get_context()
-        cfg = _full_config()
+        loc = await _locate()
+        cfg = _full_config(loc.config_path)
         if cfg is None:
-            return not_configured_payload(resolved_config_path)
+            return not_configured_payload(loc.config_path)
 
         import anyio
 
@@ -652,9 +768,8 @@ def build_server(
             # Hops from the pipeline's worker thread back onto the event loop. Every one of
             # these also resets Copilot CLI's per-request timeout, so the narration is what
             # keeps a multi-minute collection from being cancelled underneath itself.
-            #
-            # McpReporter suppresses failures here: `report_progress` raises outright
-            # when there is no request context.
+            # McpReporter suppresses failures here: `report_progress` raises outright when
+            # there is no request context.
             anyio.from_thread.run(ctx.report_progress, float(n), None, message)
 
         reporter = McpReporter(emit=emit)
@@ -664,8 +779,8 @@ def build_server(
 
             return run_pipeline(
                 cfg,
-                repo_path=Path(repo_path),
-                db_path=Path(db_path),
+                repo_path=loc.repo,
+                db_path=loc.db,
                 report=reporter,
             )
 
@@ -678,6 +793,7 @@ def build_server(
             "status": "stopped" if result.stopped else "ok",
             "stopped": result.stopped,
             "run_id": result.run_id,
+            "repo_path": str(loc.repo),
             "queries": len(result.queries),
             "papers": len(result.papers),
             "scored": len(result.scores),
@@ -693,7 +809,7 @@ def build_server(
 
 def run_stdio(
     repo_path: str | Path,
-    db_path: str | Path,
+    db_path: str | Path | None = None,
     profiler_cfg: ProfilerConfig | None = None,
     ranking_cfg: RankingConfig | None = None,
     output_cfg: OutputConfig | None = None,

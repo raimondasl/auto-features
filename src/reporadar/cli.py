@@ -1441,8 +1441,14 @@ def mcp(config_path: str | None, db_override: str | None) -> None:
     except FileNotFoundError:
         cfg = None
 
+    # Only a FALLBACK now. The server asks the client for its roots and uses those; this
+    # is what it drops back to when a client sends none, which is the case for `rr mcp`
+    # driven from a terminal.
     repo_path = Path(cfg.repo_path).resolve() if cfg else Path.cwd()
-    db_path = Path(db_override).resolve() if db_override else repo_path / ".reporadar" / "papers.db"
+    # Passed only when the user named one. Otherwise the store is derived per call from the
+    # repository the client points at -- deriving it here would pin it to this process's
+    # working directory, which is the bug the roots lookup exists to fix.
+    db_path = Path(db_override).resolve() if db_override else None
 
     from reporadar.mcp_server import require_sdk, run_stdio
 

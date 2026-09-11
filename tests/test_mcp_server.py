@@ -6,6 +6,7 @@ don't import it; only build_server/run_stdio do).
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -495,3 +496,76 @@ class TestSetupRepoConfiguresTheGateForTheKeyYouHave:
         (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
         result = setup_repo_action(tmp_path, tmp_path / ".reporadar.yml", categories=["cs.LG"])
         assert result["repo_path"] == str(tmp_path)
+
+
+class TestFindingTheRepositoryTheClientMeans:
+    """The server's working directory is chosen by the editor, and has in practice been the
+    plugin's own install directory — so a digest was built for the plugin rather than the
+    user's code. MCP roots is the protocol's answer; these cover the choosing."""
+
+    def test_a_file_uri_becomes_a_path(self) -> None:
+        from reporadar.mcp_server import root_uri_to_path
+
+        assert root_uri_to_path("file:///home/me/proj") == Path("/home/me/proj")
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="drive-letter handling is Windows-only")
+    def test_a_windows_uri_survives_the_leading_slash(self) -> None:
+        """`file:///C:/x` carries a slash before the drive letter that `Path` alone mangles.
+        Asserted only on Windows: `url2pathname` has no reason to strip it elsewhere, and a
+        POSIX server receiving a Windows URI is not a case that arises -- a remote VS Code
+        sends the remote paths, not the ones on the machine you are sitting at."""
+        from reporadar.mcp_server import root_uri_to_path
+
+        assert root_uri_to_path("file:///C:/Users/me/proj") == Path("C:/Users/me/proj")
+
+    def test_percent_escapes_are_decoded(self) -> None:
+        from reporadar.mcp_server import root_uri_to_path
+
+        got = root_uri_to_path("file:///home/me/my%20proj")
+        assert got is not None and got.name == "my proj"
+
+    def test_a_non_file_root_is_ignored_rather_than_guessed_at(self) -> None:
+        from reporadar.mcp_server import root_uri_to_path
+
+        assert root_uri_to_path("https://example.com/repo") is None
+
+    def test_the_root_containing_the_working_directory_wins(self, tmp_path: Path) -> None:
+        """A multi-root workspace offers several and the protocol does not say which is
+        current. The one we were started inside is the best available evidence."""
+        from reporadar.mcp_server import choose_repo_root
+
+        other, here = tmp_path / "other", tmp_path / "here"
+        for d in (other, here):
+            d.mkdir()
+        assert choose_repo_root([other, here], cwd=here / "src") == here
+
+    def test_the_deepest_containing_root_wins_when_they_nest(self, tmp_path: Path) -> None:
+        from reporadar.mcp_server import choose_repo_root
+
+        outer = tmp_path / "outer"
+        inner = outer / "packages" / "app"
+        inner.mkdir(parents=True)
+        assert choose_repo_root([outer, inner], cwd=inner / "src") == inner
+
+    def test_a_single_root_is_taken_even_from_elsewhere(self, tmp_path: Path) -> None:
+        from reporadar.mcp_server import choose_repo_root
+
+        only = tmp_path / "only"
+        only.mkdir()
+        assert choose_repo_root([only], cwd=tmp_path / "unrelated") == only
+
+    def test_roots_that_are_not_directories_are_skipped(self, tmp_path: Path) -> None:
+        from reporadar.mcp_server import choose_repo_root
+
+        missing = tmp_path / "gone"
+        real = tmp_path / "real"
+        real.mkdir()
+        assert choose_repo_root([missing, real], cwd=tmp_path) == real
+
+    def test_nothing_usable_means_nothing_rather_than_a_guess(self, tmp_path: Path) -> None:
+        """Falling back to the working directory is the caller's job, and it says so in the
+        payload. Inventing a root here would hide which one it was."""
+        from reporadar.mcp_server import choose_repo_root
+
+        assert choose_repo_root([tmp_path / "gone"], cwd=tmp_path) is None
+        assert choose_repo_root([], cwd=tmp_path) is None
