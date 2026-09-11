@@ -2,7 +2,7 @@
   "name": "reporadar",
   "metadata": {
     "description": "Repository-conditioned research paper discovery for GitHub Copilot.",
-    "version": "1.0.2"
+    "version": "1.0.3"
   },
   "owner": {
     "name": "raimondasl"
@@ -11,7 +11,7 @@
     {
       "name": "reporadar",
       "source": "./plugins/reporadar",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Find arXiv papers a repository should act on, not merely papers about its topic."
     }
   ]
