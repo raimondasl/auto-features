@@ -69,3 +69,6 @@ jobs:
           uv pip install --python /tmp/mcpsmoke/bin/python ".[mcp]"
           /tmp/mcpsmoke/bin/python -c "from importlib.metadata import version; print('resolved mcp', version('mcp'))"
           python scripts/mcp_smoke.py /tmp/mcpsmoke/bin/rr
+          # Run with the venv's OWN interpreter: this one drives a real MCP client, so it
+          # needs the SDK, which the repo environment deliberately does not have.
+          /tmp/mcpsmoke/bin/python scripts/roots_probe.py /tmp/mcpsmoke/bin/rr
