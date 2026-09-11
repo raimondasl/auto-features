@@ -51,21 +51,27 @@ rather than reporting "no relevant papers exist".
 
 ## Setup — you do this, the user does not
 
-**Check the directory before you configure anything, and fix it if it is wrong.** Every tool
-reports `repo_path` and `repo_source`. If `repo_source` says anything beginning `cwd`, the client
-did not tell the server which project it is in, and the server is guessing from its own working
-directory — which for a plugin install is the plugin's own folder, not the user's code.
+**If a tool asks for `repo_path`, give it one.** The server refuses to act on a directory it
+cannot identify as a project, rather than guessing — an editor launches a plugin's MCP server in
+the plugin's own folder by default, and a digest built for the wrong repository is worse than no
+digest because it still looks like an answer.
 
-Do not stop there, and do not initialise it either. **You know where the project is** — you are
-working in it. Call `setup_repo` again with `repo_path` set to its absolute path. The server
-remembers it for the rest of the session, so every later call uses it too.
+You will see:
+
+```json
+{"status": "needs_input", "missing": ["repo_path"], "repo_path": "<where it landed>", ...}
+```
+
+**You know where the project is** — you are working in it. Call `setup_repo` with the absolute
+path, and the server remembers it for every later call in the session:
 
 ```
 setup_repo(repo_path="/absolute/path/to/the/project")
 ```
 
-Confirm the path with the user if you are unsure. A digest built for the wrong repository is
-worse than no digest, because it looks like an answer.
+Confirm with the user if you are unsure which project they mean. Every tool also reports
+`repo_source`, which says how the directory was decided — `client root` (your editor told it),
+`told by the caller` (you did), or `cwd (...)` with the reason it had to fall back.
 
 **Do not send the user to a terminal.** Setup is two tool calls:
 
