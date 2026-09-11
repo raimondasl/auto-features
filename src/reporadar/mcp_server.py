@@ -548,6 +548,11 @@ def build_server(
     server = FastMCP("reporadar")
     _explicit = any(c is not None for c in (ranking_cfg, output_cfg, triage_cfg))
     _cwd_repo = Path(repo_path)
+    # Set by `setup_repo(repo_path=...)` and remembered for the rest of the session, so a
+    # caller only has to say it once. The last resort that does not depend on the client
+    # implementing roots: the agent is editing the project, so it knows where the project
+    # is, and telling us directly beats any amount of inference.
+    _told: list[Path] = []
 
     class _Location(NamedTuple):
         repo: Path
@@ -568,7 +573,20 @@ def build_server(
         the fallback for clients that send none, which is also what keeps `rr mcp` working
         from a terminal.
         """
-        repo, source = _cwd_repo, "cwd"
+        # `source` says WHY, not just what. Falling back is a legitimate outcome -- a
+        # terminal `rr mcp` has no client roots -- but "cwd" alone cannot distinguish a
+        # client that offered nothing from one that was never asked, and that is exactly
+        # the question left open when this landed and the directory was still wrong.
+        if _told:
+            told = _told[-1]
+            return _Location(
+                repo=told,
+                config_path=Path(config_path) if config_path else told / DEFAULT_CONFIG_NAME,
+                db=Path(db_path) if db_path else told / ".reporadar" / "papers.db",
+                source="told by the caller",
+            )
+
+        repo, source = _cwd_repo, "cwd (not determined)"
         try:
             import anyio
             from mcp.types import ClientCapabilities, RootsCapability
@@ -579,22 +597,33 @@ def build_server(
             # caller will wait -- every tool, not just this one. Caught by the smoke check,
             # which is a deliberately minimal client and does not implement roots.
             if not session.check_client_capability(ClientCapabilities(roots=RootsCapability())):
-                raise RuntimeError("client declares no roots capability")
-            # And a deadline even when it says it can: a capability is a promise, not a
-            # guarantee, and the fallback below is always available.
-            with anyio.fail_after(5):
-                result = await session.list_roots()
-            offered = [p for p in (root_uri_to_path(str(r.uri)) for r in result.roots) if p]
-            chosen = choose_repo_root(offered, _cwd_repo)
-            if chosen is not None:
-                repo = chosen
-                source = (
-                    "client root"
-                    if len(offered) == 1
-                    else f"client root (1 of {len(offered)} offered)"
-                )
-        except Exception:  # noqa: BLE001 - a client that sends no roots is not an error
-            pass
+                source = "cwd (client declares no roots capability)"
+            else:
+                # A deadline even when it says it can: a capability is a promise, not a
+                # guarantee, and the fallback is always available.
+                with anyio.fail_after(10):
+                    result = await session.list_roots()
+                raw = [str(r.uri) for r in result.roots]
+                offered = [p for p in (root_uri_to_path(u) for u in raw) if p]
+                chosen = choose_repo_root(offered, _cwd_repo)
+                if chosen is not None:
+                    repo = chosen
+                    source = (
+                        "client root"
+                        if len(offered) == 1
+                        else f"client root (1 of {len(offered)} offered)"
+                    )
+                elif not raw:
+                    source = "cwd (client offered no roots)"
+                else:
+                    # Roots arrived but none was usable: a non-file scheme, or a path that
+                    # does not exist on this machine. Quote them, because at that point the
+                    # URIs themselves are the evidence.
+                    source = f"cwd (no usable root among {raw[:3]})"
+        except TimeoutError:
+            source = "cwd (client did not answer roots/list in 10s)"
+        except Exception as exc:  # noqa: BLE001 - a client without roots is not an error
+            source = f"cwd (roots lookup failed: {type(exc).__name__}: {exc})"[:200]
 
         return _Location(
             repo=repo,
@@ -719,6 +748,7 @@ def build_server(
         categories: list[str] | None = None,
         measured: bool = True,
         provider: str | None = None,
+        repo_path: str | None = None,
     ) -> dict[str, Any]:
         """Initialise RepoRadar in this repository: write `.reporadar.yml` and `.reporadar/`.
 
@@ -729,8 +759,21 @@ def build_server(
 
         Check the `repo_path` it reports before confirming: that is the directory which will
         be configured, and it is not always the one the user has in mind.
+
+        If it is wrong — a plugin install directory, an editor folder, anywhere that is not
+        the user's project — pass `repo_path` with the correct absolute path. The server
+        remembers it for the rest of the session, so every later tool call uses it too.
         """
         _log_call("setup_repo", categories=categories, measured=measured)
+        if repo_path:
+            told = Path(repo_path).expanduser().resolve()
+            if not told.is_dir():
+                return {
+                    "status": "bad_repo_path",
+                    "repo_path": str(told),
+                    "why": "that path is not a directory on this machine",
+                }
+            _told.append(told)
         loc = await _locate()
         result = setup_repo_action(
             loc.repo,

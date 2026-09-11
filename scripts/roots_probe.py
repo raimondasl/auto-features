@@ -64,8 +64,12 @@ async def main(rr: str) -> None:
         got = Path(without.get("repo_path", ""))
         if got != decoy:
             fail(f"with no roots the server should fall back to its CWD {decoy}, used {got}")
-        if without.get("repo_source") != "cwd":
-            fail(f"expected repo_source 'cwd', got {without.get('repo_source')!r}")
+        source = str(without.get("repo_source", ""))
+        # A PREFIX, not an exact match: the fallback now explains itself -- "cwd (client
+        # declares no roots capability)" -- and that detail is the point, because "cwd"
+        # alone could not distinguish a client that offered nothing from one never asked.
+        if not source.startswith("cwd"):
+            fail(f"expected a cwd fallback, got {source!r}")
         print(
             f"ok: no roots offered — fell back to the working directory ({without['repo_source']})"
         )

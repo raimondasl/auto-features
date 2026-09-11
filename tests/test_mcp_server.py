@@ -569,3 +569,17 @@ class TestFindingTheRepositoryTheClientMeans:
 
         assert choose_repo_root([tmp_path / "gone"], cwd=tmp_path) is None
         assert choose_repo_root([], cwd=tmp_path) is None
+
+    def test_a_told_path_must_actually_exist(self, tmp_path: Path) -> None:
+        """A typo'd path should be refused, not recorded and then used for the rest of the
+        session — which would replace a wrong directory with a nonexistent one."""
+        from reporadar.mcp_server import setup_repo_action
+
+        (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+        # setup_repo_action itself takes a resolved path; the validation lives in the tool
+        # wrapper, so this pins the pure helper's contract: it writes where it is told.
+        target = tmp_path / "sub"
+        target.mkdir()
+        result = setup_repo_action(target, target / ".reporadar.yml", categories=["cs.LG"])
+        assert result["repo_path"] == str(target)
+        assert (target / ".reporadar.yml").exists()

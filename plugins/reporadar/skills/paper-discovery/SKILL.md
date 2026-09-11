@@ -51,11 +51,21 @@ rather than reporting "no relevant papers exist".
 
 ## Setup — you do this, the user does not
 
-**Check the directory before you configure anything.** Every tool reports `repo_path`. It is
-the server's working directory, which the editor chooses — and it is not always the project the
-user is looking at. If it points somewhere unexpected (the plugin's own install directory, an
-extension folder, a home directory), **stop and say so** rather than initialising it. A digest
-built for the wrong repository is worse than no digest, because it looks like an answer.
+**Check the directory before you configure anything, and fix it if it is wrong.** Every tool
+reports `repo_path` and `repo_source`. If `repo_source` says anything beginning `cwd`, the client
+did not tell the server which project it is in, and the server is guessing from its own working
+directory — which for a plugin install is the plugin's own folder, not the user's code.
+
+Do not stop there, and do not initialise it either. **You know where the project is** — you are
+working in it. Call `setup_repo` again with `repo_path` set to its absolute path. The server
+remembers it for the rest of the session, so every later call uses it too.
+
+```
+setup_repo(repo_path="/absolute/path/to/the/project")
+```
+
+Confirm the path with the user if you are unsure. A digest built for the wrong repository is
+worse than no digest, because it looks like an answer.
 
 **Do not send the user to a terminal.** Setup is two tool calls:
 
