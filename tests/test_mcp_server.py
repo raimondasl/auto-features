@@ -6,6 +6,7 @@ don't import it; only build_server/run_stdio do).
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -502,8 +503,17 @@ class TestFindingTheRepositoryTheClientMeans:
     plugin's own install directory — so a digest was built for the plugin rather than the
     user's code. MCP roots is the protocol's answer; these cover the choosing."""
 
+    def test_a_file_uri_becomes_a_path(self) -> None:
+        from reporadar.mcp_server import root_uri_to_path
+
+        assert root_uri_to_path("file:///home/me/proj") == Path("/home/me/proj")
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="drive-letter handling is Windows-only")
     def test_a_windows_uri_survives_the_leading_slash(self) -> None:
-        """`file:///C:/x` has a slash before the drive letter that `Path` alone mangles."""
+        """`file:///C:/x` carries a slash before the drive letter that `Path` alone mangles.
+        Asserted only on Windows: `url2pathname` has no reason to strip it elsewhere, and a
+        POSIX server receiving a Windows URI is not a case that arises -- a remote VS Code
+        sends the remote paths, not the ones on the machine you are sitting at."""
         from reporadar.mcp_server import root_uri_to_path
 
         assert root_uri_to_path("file:///C:/Users/me/proj") == Path("C:/Users/me/proj")
@@ -511,7 +521,7 @@ class TestFindingTheRepositoryTheClientMeans:
     def test_percent_escapes_are_decoded(self) -> None:
         from reporadar.mcp_server import root_uri_to_path
 
-        got = root_uri_to_path("file:///C:/Users/me/my%20proj")
+        got = root_uri_to_path("file:///home/me/my%20proj")
         assert got is not None and got.name == "my proj"
 
     def test_a_non_file_root_is_ignored_rather_than_guessed_at(self) -> None:
