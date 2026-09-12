@@ -28,7 +28,7 @@ on a cold cache. Every launch after that is around three seconds. You can get th
 in advance:
 
 ```bash
-uvx --from "reporadar-papers[mcp]==1.0.4" rr --version
+uvx --from "reporadar-papers[mcp]==1.0.5" rr --version
 ```
 
 If it is still "starting" well after that, it is not the download — check the server output (in
@@ -45,9 +45,9 @@ Without an API key the actionability gate is skipped, and an ungated digest meas
 So this matters more than it looks.
 
 ```bash
-uvx --from "reporadar-papers==1.0.4" rr auth                    # OpenAI, the default
-uvx --from "reporadar-papers==1.0.4" rr auth --provider claude  # ...or Anthropic
-uvx --from "reporadar-papers==1.0.4" rr auth --status           # what is stored, and from where
+uvx --from "reporadar-papers==1.0.5" rr auth                    # OpenAI, the default
+uvx --from "reporadar-papers==1.0.5" rr auth --provider claude  # ...or Anthropic
+uvx --from "reporadar-papers==1.0.5" rr auth --status           # what is stored, and from where
 ```
 
 **Store the key before you ask for a digest.** `setup_repo` writes a configuration for whichever
@@ -80,7 +80,7 @@ once per project — and it needs no repository at all, so you can run it before
 up:
 
 ```bash
-uvx --from "reporadar-papers[hyde]==1.0.4" rr sync-index
+uvx --from "reporadar-papers[hyde]==1.0.5" rr sync-index
 ```
 
 **Until you do, expect a warning on every collection**: "HyDE discovery unavailable". That is
@@ -191,7 +191,7 @@ for the ecosystem, and the advice that goes with it is to read a plugin before i
 whole of this one is the files in this directory.
 
 It starts a **second** process in one case: with dense discovery enabled and synced, collection
-runs as `uvx --from "reporadar-papers[hyde]==1.0.4" rr update` — the same distribution at the
+runs as `uvx --from "reporadar-papers[hyde]==1.0.5" rr update` — the same distribution at the
 same pinned version, in an environment that has the embedding model. If you would rather it
 never did that, set `RR_HYDE_SUBPROCESS=0` in the server's environment; collection then stays
 in-process and says in its warnings that dense discovery did not run.
@@ -199,7 +199,7 @@ in-process and says in its warnings that dense discovery did not run.
 ## Notes
 
 The MCP server is launched by `uvx` from a **pinned PyPI release**
-(`reporadar-papers[mcp]==1.0.4`) — not from `main`, and no longer from a git tag — so what you run
+(`reporadar-papers[mcp]==1.0.5`) — not from `main`, and no longer from a git tag — so what you run
 does not change under you when this repository is pushed to. Upgrading is a version bump in
 `.mcp.json`. It also installs a wheel instead of cloning and building the repository.
 
