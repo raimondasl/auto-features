@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "reporadar-papers[mcp]==1.0.5",
+        "reporadar-papers[mcp]==1.0.6",
         "rr",
         "mcp"
       ]
