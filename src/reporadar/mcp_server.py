@@ -552,6 +552,64 @@ def _resolved_key(provider: str) -> str:
     return credentials.resolve_api_key(provider)
 
 
+def collect_payload(
+    cfg: Any,
+    *,
+    repo: Path,
+    config_path: Path,
+    db: Path,
+    report: Any,
+) -> dict[str, Any]:
+    """Run the collection for this repository, wherever it has to happen.
+
+    `update_corpus`'s body, out here where it can be tested: building the server needs the
+    `mcp` extra, which CI does not install, and the branch that matters most is the one that
+    only runs when something has gone wrong.
+
+    The server installs as `reporadar-papers[mcp]` and cannot run dense discovery —
+    sentence-transformers pulls torch in, and putting that in the plugin would make every
+    installation pay gigabytes for a channel most never turn on. So when the configuration
+    asks for HyDE and this environment cannot provide it, the identical pipeline runs in a
+    `uvx` environment that can (see `reporadar.delegate`).
+
+    **A delegated run that fails falls back here rather than failing the call.** The
+    subprocess is the most machinery in the plugin and the likeliest thing to break; a
+    keyword-only digest the caller has been told is keyword-only is worth more than an
+    error, and the warning is what keeps that honest.
+    """
+    from reporadar import delegate
+
+    def _here(why: str) -> dict[str, Any]:
+        from reporadar.pipeline import run_pipeline
+
+        result = run_pipeline(cfg, repo_path=repo, db_path=db, report=report)
+        return {
+            "run_id": result.run_id,
+            "stopped": result.stopped,
+            "queries": len(result.queries),
+            "papers": len(result.papers),
+            "scored": len(result.scores),
+            "collected_in": why,
+        }
+
+    plan = delegate.plan(cfg, repo=repo, config_path=config_path, db=db)
+    if plan.warning:
+        report.warn(f"  {plan.warning}")
+    if not plan.delegated:
+        return _here(f"this server's environment ({plan.reason})")
+
+    try:
+        counts = delegate.run(plan, report=report)
+    except delegate.DelegationError as exc:
+        report.warn(
+            f"  Dense discovery could not run in its own environment, so this collection "
+            f"used keyword retrieval only: {exc}"
+        )
+        return _here("this server's environment, after the delegated run failed")
+    counts["collected_in"] = f"{plan.spec}, via uvx ({plan.reason})"
+    return counts
+
+
 def require_sdk() -> None:
     """Import the optional MCP SDK so an unusable one fails here, with its own message.
 
@@ -883,6 +941,11 @@ def build_server(
         Minutes rather than seconds, and it reports progress as it goes. Call it once after
         `setup_repo`, and again when you want fresh candidates; `get_ranked_papers` reads
         what this leaves behind and never collects on its own.
+
+        With dense discovery enabled it runs the pipeline in a separate `uvx` environment
+        that has the embedding model's dependencies, which this server deliberately does
+        not. The first such run is several minutes longer while that environment is built;
+        it is cached afterwards. `collected_in` in the result says which happened.
         """
         _log_call("update_corpus")
         # Fetched rather than taken as a parameter: `from __future__ import annotations`
@@ -909,13 +972,15 @@ def build_server(
 
         reporter = McpReporter(emit=emit)
 
-        def _collect() -> Any:
-            from reporadar.pipeline import run_pipeline
-
-            return run_pipeline(
+        def _collect() -> dict[str, Any]:
+            # Everything -- including the decision about WHERE to collect -- happens on this
+            # worker thread, because the reporter's progress hop only works from one: a
+            # warning emitted on the event loop would be recorded and never sent.
+            return collect_payload(
                 cfg,
-                repo_path=loc.repo,
-                db_path=loc.db,
+                repo=loc.repo,
+                config_path=loc.config_path,
+                db=loc.db,
                 report=reporter,
             )
 
@@ -925,13 +990,19 @@ def build_server(
         result = await anyio.to_thread.run_sync(_collect)
 
         return {
-            "status": "stopped" if result.stopped else "ok",
-            "stopped": result.stopped,
-            "run_id": result.run_id,
+            "status": "stopped" if result["stopped"] else "ok",
+            "stopped": result["stopped"],
+            "run_id": result["run_id"],
             "repo_path": str(loc.repo),
-            "queries": len(result.queries),
-            "papers": len(result.papers),
-            "scored": len(result.scores),
+            "queries": result["queries"],
+            "papers": result["papers"],
+            "scored": result["scored"],
+            # WHERE the pipeline ran, always. Dense discovery needs an environment this
+            # server does not have, so a collection may have happened in a `uvx` one
+            # instead — and "was HyDE actually running?" is the first question asked of a
+            # thin digest. It is not answerable afterwards from anything the run leaves
+            # behind, so it travels with the result.
+            "collected_in": result["collected_in"],
             # Separate from `progress` deliberately: a stage that was configured and could
             # not run is the difference between a thin digest and a thin literature, and
             # the agent has to be able to tell the user which one it is looking at.

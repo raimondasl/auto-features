@@ -619,3 +619,169 @@ class TestItRefusesToGuessWhichRepositoryYouMean:
 
         (tmp_path / "pyproject.toml").write_text("[project]", encoding="utf-8")
         assert not looks_like_a_plugin_install(tmp_path)
+
+
+class TestCollectionRunsSomewhereAndSaysWhere:
+    """`collect_payload` — what `update_corpus` does, out where it can be tested.
+
+    The branch that matters is the one that only happens when something has gone wrong. The
+    server cannot run dense discovery (it installs the light `[mcp]` extra), so with HyDE
+    configured it delegates collection to a `uvx` environment that can — and when that fails,
+    it must still collect. A plugin whose digest disappears because a subprocess would not
+    start has traded a missing retrieval channel for a missing answer.
+    """
+
+    class _Result:
+        run_id, stopped, queries, papers, scores = 3, None, ["q"], ["p"], ["s"]
+
+    class _Report:
+        def __init__(self) -> None:
+            self.infos: list[str] = []
+            self.warns: list[str] = []
+
+        def info(self, message: str) -> None:
+            self.infos.append(message)
+
+        def warn(self, message: str) -> None:
+            self.warns.append(message)
+
+    def _ran_here(self, monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+        """Record in-process pipeline calls instead of making one."""
+        import reporadar.pipeline
+
+        calls: list[dict] = []
+
+        def fake(cfg, **kwargs):  # noqa: ANN001, ANN003
+            calls.append(kwargs)
+            return TestCollectionRunsSomewhereAndSaysWhere._Result()
+
+        monkeypatch.setattr(reporadar.pipeline, "run_pipeline", fake)
+        return calls
+
+    def _places(self, tmp_path: Path) -> dict:
+        return {
+            "repo": tmp_path,
+            "config_path": tmp_path / ".reporadar.yml",
+            "db": tmp_path / ".reporadar" / "papers.db",
+        }
+
+    def test_without_delegation_it_collects_here_and_names_the_environment(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import delegate
+        from reporadar.mcp_server import collect_payload
+
+        calls = self._ran_here(monkeypatch)
+        monkeypatch.setattr(
+            delegate, "plan", lambda *a, **k: delegate.Plan(command=None, reason="no HyDE")
+        )
+        report = self._Report()
+
+        payload = collect_payload(object(), report=report, **self._places(tmp_path))
+
+        assert len(calls) == 1
+        assert payload["papers"] == 1 and payload["run_id"] == 3
+        assert "no HyDE" in payload["collected_in"]
+        assert not report.warns
+
+    def test_a_delegated_run_reports_the_environment_it_used(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import delegate
+        from reporadar.mcp_server import collect_payload
+
+        calls = self._ran_here(monkeypatch)
+        monkeypatch.setattr(
+            delegate,
+            "plan",
+            lambda *a, **k: delegate.Plan(
+                command=["uvx"], cwd=tmp_path, spec="reporadar-papers[hyde]==9.9.9", reason="r"
+            ),
+        )
+        monkeypatch.setattr(
+            delegate,
+            "run",
+            lambda plan, report: {
+                "run_id": 8,
+                "stopped": None,
+                "queries": 7,
+                "papers": 114,
+                "scored": 114,
+            },
+        )
+
+        payload = collect_payload(object(), report=self._Report(), **self._places(tmp_path))
+
+        assert not calls, "delegating means NOT also collecting in this process"
+        assert payload["papers"] == 114
+        assert "reporadar-papers[hyde]==9.9.9" in payload["collected_in"]
+
+    def test_a_failed_delegation_still_collects_and_says_what_was_lost(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The safety net. Whatever goes wrong in the subprocess — no network for PyPI, a
+        broken cache, a version that will not resolve — the user still gets a digest, and
+        is told it is the keyword-only one."""
+        from reporadar import delegate
+        from reporadar.mcp_server import collect_payload
+
+        calls = self._ran_here(monkeypatch)
+        monkeypatch.setattr(
+            delegate,
+            "plan",
+            lambda *a, **k: delegate.Plan(command=["uvx"], cwd=tmp_path, spec="s", reason="r"),
+        )
+
+        def boom(plan, report):  # noqa: ANN001, ARG001
+            raise delegate.DelegationError("could not start uvx: no such file")
+
+        monkeypatch.setattr(delegate, "run", boom)
+        report = self._Report()
+
+        payload = collect_payload(object(), report=report, **self._places(tmp_path))
+
+        assert len(calls) == 1, "the fallback must actually collect"
+        assert payload["papers"] == 1
+        assert "after the delegated run failed" in payload["collected_in"]
+        assert any("keyword retrieval only" in w for w in report.warns)
+        assert any("no such file" in w for w in report.warns), "say WHY it failed"
+
+    def test_a_plan_that_cannot_delegate_forwards_its_warning(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`plan` explains the reasons the pipeline itself never sees — no uvx, no version
+        to pin. Those reach the user only if this forwards them."""
+        from reporadar import delegate
+        from reporadar.mcp_server import collect_payload
+
+        self._ran_here(monkeypatch)
+        monkeypatch.setattr(
+            delegate,
+            "plan",
+            lambda *a, **k: delegate.Plan(
+                command=None, reason="uvx is not on PATH", warning="install uv, or run: ..."
+            ),
+        )
+        report = self._Report()
+
+        collect_payload(object(), report=report, **self._places(tmp_path))
+
+        assert any("install uv" in w for w in report.warns)
+
+    def test_the_pipeline_gets_the_repository_the_client_named(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Not `cfg.repo_path`. The server resolves the repository from the client's roots,
+        and the in-process pipeline must be pointed at that one — the same rule the
+        delegation check enforces on the child."""
+        from reporadar import delegate
+        from reporadar.mcp_server import collect_payload
+
+        calls = self._ran_here(monkeypatch)
+        monkeypatch.setattr(delegate, "plan", lambda *a, **k: delegate.Plan(command=None))
+        places = self._places(tmp_path)
+
+        collect_payload(object(), report=self._Report(), **places)
+
+        assert calls[0]["repo_path"] == places["repo"]
+        assert calls[0]["db_path"] == places["db"]

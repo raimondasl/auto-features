@@ -2200,3 +2200,92 @@ def test_the_mcp_extra_excludes_the_sdk_major_that_cannot_run() -> None:
         "mcp_server no longer imports mcp.server.fastmcp: if it is ported to MCPServer, "
         "lift the <2 bound in pyproject.toml and delete this test"
     )
+
+
+class TestUpdateCanNarrateItselfToAParentProcess:
+    """`--progress-json`, which is how a delegated collection's progress reaches an MCP
+    client.
+
+    RepoRadar's server cannot run dense discovery — it installs the light `[mcp]` extra, and
+    sentence-transformers would put torch in every installation — so with HyDE enabled it
+    runs the pipeline as a `uvx` subprocess instead (see `reporadar.delegate`). That only
+    works if the child narrates itself: a tool call silent for the minutes collection takes
+    is a tool call Copilot CLI cancels.
+    """
+
+    @patch("reporadar.pipeline.collect_papers")
+    def test_the_stream_carries_progress_warnings_and_the_closing_counts(
+        self, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        repo = _setup_repo(tmp_path)
+        mock_collect.return_value = [
+            {
+                "arxiv_id": "2402.00001v1",
+                "title": "Fetched",
+                "authors": ["A"],
+                "abstract": "retrieval",
+                "categories": ["cs.CL"],
+                "published": datetime.now(UTC).isoformat(),
+                "updated": None,
+                "url": "http://arxiv.org/abs/2402.00001v1",
+                "pdf_url": None,
+                "matched_query": "all:test",
+            }
+        ]
+
+        result = CliRunner().invoke(
+            cli,
+            ["update", "--config", str(repo / ".reporadar.yml"), "--progress-json"],
+        )
+
+        assert result.exit_code == 0, result.output
+        records = [
+            json.loads(line) for line in result.stderr.splitlines() if line.startswith('{"event"')
+        ]
+        assert records, f"no JSON records on stderr: {result.stderr[:400]}"
+        assert any(r["event"] == "info" for r in records)
+
+        closing = [r for r in records if r["event"] == "result"]
+        assert len(closing) == 1, "exactly one result record ends the stream"
+        assert closing[0]["papers"] == 1
+        assert set(closing[0]) >= {"run_id", "stopped", "queries", "papers", "scored"}
+
+    @patch("reporadar.pipeline.collect_papers")
+    def test_a_run_that_stops_early_still_reports_a_result(
+        self, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        """The pipeline returns early when there is nothing to collect. A parent that got
+        progress and then silence cannot tell that from a child that died, and the two call
+        for opposite responses — so the record is emitted before the early return."""
+        repo = _setup_repo(tmp_path)
+        mock_collect.return_value = []
+
+        result = CliRunner().invoke(
+            cli,
+            ["update", "--config", str(repo / ".reporadar.yml"), "--progress-json"],
+        )
+
+        assert result.exit_code == 0, result.output
+        closing = [
+            json.loads(line)
+            for line in result.stderr.splitlines()
+            if line.startswith('{"event": "result"')
+        ]
+        assert len(closing) == 1
+        assert closing[0]["stopped"]
+        assert closing[0]["papers"] == 0
+
+    @patch("reporadar.pipeline.collect_papers")
+    def test_without_the_flag_nothing_changes(
+        self, mock_collect: MagicMock, tmp_path: Path
+    ) -> None:
+        """The stream is additive. Every existing caller — the GitHub Action, `rr watch`,
+        anyone reading the terminal — must see exactly what it always saw."""
+        repo = _setup_repo(tmp_path)
+        mock_collect.return_value = []
+
+        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+
+        assert result.exit_code == 0
+        assert '{"event"' not in result.stderr
+        assert '{"event"' not in result.output

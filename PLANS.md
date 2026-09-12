@@ -1046,6 +1046,41 @@ Two facts make this clean and are worth recording: `hyde.index_dir` defaults to
 — and HyDE runs only at collection time, never in the digest read path, so `mcp_server.py` never
 needs it. The 1.1 GB lands in persistent caches while the heavy environment stays disposable.
 
+#### The second of those facts was wrong by the time it shipped [2026-09-11]
+
+"HyDE runs only at collection time … so `mcp_server.py` never needs it" was true when written
+and false the moment `update_corpus` landed, because that tool **moved collection into the
+server**. The sync stayed a command, correctly. The search did not follow it, so a user who
+spent the 1.1 GB still got "HyDE discovery unavailable" on every collection — the download
+bought them nothing, which is worse than not offering it. Found in a real VS Code install, not
+by any guard here: every test either ran in the dev venv, which has the extra, or never reached
+the stage.
+
+The constraints are genuinely opposed. Putting `[hyde]` in the plugin's extra is one line and
+downloads torch for every installation including the majority who never enable dense discovery,
+on a `uvx` cold start an editor is waiting on. Leaving it out means the server cannot embed.
+
+**Resolved by delegating the collection rather than fattening the server** —
+`reporadar/delegate.py`. When the configuration asks for HyDE and this environment cannot
+provide it, `update_corpus` runs `uvx --from "reporadar-papers[hyde]==<its own version>" rr
+update --config <path> --progress-json` and forwards the child's progress to the client as its
+own. `uvx` builds that environment once and caches it, so only the people who opted in pay for
+it, and they pay once. Still one `run_pipeline` and two invocations — the same "two front doors,
+one implementation" this item already commits to; what is new is only *where* the pipeline runs.
+
+Three properties keep it from being the fragile thing spawning a subprocess usually is. The
+child is **pinned to the parent's own installed version**, so the `--progress-json` protocol
+can never be two releases talking past each other. Delegation is **never the only path**: no
+`uvx`, no version to pin, a configuration that would collect into a different store, or a child
+that dies, all fall back to collecting in process — with a warning naming the manual command,
+because the failure mode this project keeps paying for is losing a channel quietly. And the
+decision is **in one function with the whole table tested**, rather than spread across the tool
+body.
+
+The cost is real and worth stating: progress now crosses a process boundary, which is why
+`rr update` gained `--progress-json` (JSON Lines on stderr; stdout unchanged). That flag is the
+only part of this that exists for the plugin's benefit rather than the CLI's.
+
 #### The CLI is not being replaced
 
 Both front doors call the same functions: `setup_repo` → `measured_config_yaml()` /
