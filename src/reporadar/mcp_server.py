@@ -35,6 +35,7 @@ from reporadar.config import (
 )
 from reporadar.paper_id import dedup_id
 from reporadar.profiler import profile_repo
+from reporadar.provenance import found_by
 from reporadar.ranker import format_score_explanation
 from reporadar.search import search_corpus
 from reporadar.store import PaperStore
@@ -62,6 +63,11 @@ def _paper_brief(s: dict[str, Any]) -> dict[str, Any]:
         "score_total": s.get("score_total"),
         "llm_score": s.get("llm_score"),
         "llm_reason": s.get("llm_reason"),
+        # Which retrieval channel contributed it. `dense_discovery` means keyword search did
+        # not have it -- the difference between "HyDE found this" and "keyword search would
+        # have anyway", which an agent cannot otherwise tell and a user cannot check without
+        # querying the store by hand.
+        "found_by": found_by(s.get("matched_query")),
         "abstract": (s.get("abstract") or "")[:500],
     }
     # An agent acting on a retracted result is the exact harm the withdrawal signal
@@ -180,6 +186,7 @@ def explain_relevance_payload(
         "explanation": format_score_explanation(match, ranking_cfg),
         "llm_score": match.get("llm_score"),
         "llm_reason": match.get("llm_reason"),
+        "found_by": found_by(match.get("matched_query")),
     }
     if match.get("withdrawn_in"):
         payload["withdrawn"] = True

@@ -785,3 +785,44 @@ class TestCollectionRunsSomewhereAndSaysWhere:
 
         assert calls[0]["repo_path"] == places["repo"]
         assert calls[0]["db_path"] == places["db"]
+
+
+class TestEveryPaperSaysWhichChannelFoundIt:
+    """`found_by` on the tools' papers.
+
+    Asked "did dense discovery matter?", an agent could say a paper was recommended but not
+    that keyword search never had it -- and a user could only check by querying SQLite. On
+    the run that prompted this, both top picks came from dense discovery.
+    """
+
+    def _seed_sources(self, store: PaperStore) -> int:
+        for aid in ("2401.00001v1", "2401.00002v1", "2401.00003v1"):
+            store.upsert_paper(_paper(aid))
+        run_id = store.record_run(["q1"], 3, 0)
+        store.save_scores(
+            run_id,
+            [
+                {"arxiv_id": "2401.00001v1", "score_total": 0.9, "matched_query": "hyde"},
+                {"arxiv_id": "2401.00002v1", "score_total": 0.8, "matched_query": "all:x"},
+                {"arxiv_id": "2401.00003v1", "score_total": 0.7, "matched_query": "source:dblp"},
+            ],
+        )
+        return run_id
+
+    def test_ranked_papers_carry_their_channel(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "p.db") as store:
+            self._seed_sources(store)
+            payload = ranked_papers_payload(store, 10)
+        shown = payload["papers"] + payload.get("maybe_relevant", [])
+        by_id = {p["arxiv_id"]: p["found_by"] for p in shown}
+        assert by_id == {
+            "2401.00001v1": "dense_discovery",
+            "2401.00002v1": "arxiv_keywords",
+            "2401.00003v1": "dblp",
+        }
+
+    def test_explain_relevance_says_it_too(self, tmp_path: Path) -> None:
+        with PaperStore(tmp_path / "p.db") as store:
+            self._seed_sources(store)
+            payload = explain_relevance_payload(store, "2401.00001", RankingConfig())
+        assert payload["found_by"] == "dense_discovery"
