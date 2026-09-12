@@ -42,7 +42,7 @@ thing.
 | `explain_relevance` | Why one specific arXiv paper was or was not surfaced. |
 | `search_papers` | Search the stored corpus by query, still conditioned on this repository. |
 | `setup_repo` | Initialise RepoRadar here. Call it with no arguments first: it answers with the repository's profile and asks which arXiv categories to use. |
-| `update_corpus` | Collect, rank and gate papers. Minutes, with progress — the only tool that fetches anything. |
+| `update_corpus` | Collect, rank and gate papers. Minutes, with progress — the only tool that fetches anything. Its `collected_in` says which environment the pipeline ran in. |
 | `rate_paper` | Record the user's **1–5** usefulness rating. Anything outside 1–5 is rejected. A 3 is accepted and then *ignored* by the feedback loop, which learns only from 4–5 and 1–2 — so do not default to 3 when the user is vague, ask them. |
 
 `get_ranked_papers` reads what has already been collected and never fetches on its own. If it
@@ -86,7 +86,9 @@ this wrong is expensive: on the wrong field it is the difference between a diges
 it is the one setting no benchmark number justifies.
 
 Then call `update_corpus`. It takes minutes and reports progress; say what it is doing rather
-than going quiet.
+than going quiet. With dense discovery enabled it runs the pipeline in a separate `uvx`
+environment that has the embedding model, which the first time means several extra minutes of
+building it — narrate that, because silence there reads as a hang.
 
 **Read its `warnings` before reporting the result.** They are separate from `progress` because
 they change what the digest means: a stage that was configured and could not run — HyDE
@@ -119,14 +121,20 @@ naming the call to retry; it is not an error, and reporting it as one strands th
   `sync-index` skill has the command and the full cost; reach for it when `update_corpus`
   reports HyDE unavailable.
 
+  It is a one-time act, not a prerequisite to repeat: once the index is synced, `update_corpus`
+  searches it on its own, running the pipeline in a `uvx` environment that has the embedding
+  model. Expect that first collection to take several minutes longer while the environment is
+  built, and say so rather than letting it look like a hang.
+
 Two gaps that fail *silently* at run time:
 
 - **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
   mean net@2 **−11**. One key suffices: set `suggestions.provider: openai` and the whole
   pipeline runs on OpenAI.
-- **No dense index** — `rr sync-index` is a one-time ~1.1 GB download. Skipping it costs
-  **−1.36 net@2**, and it is the *only* retrieval channel for 15 of 48 benchmark targets,
-  including every repository with no arXiv bibliography. Large, optional, and worth it.
+- **No dense index** — `rr sync-index` is a one-time ~1.1 GB download, after which collection
+  uses the channel automatically. Skipping it costs **−1.36 net@2**, and it is the *only*
+  retrieval channel for 15 of 48 benchmark targets, including every repository with no arXiv
+  bibliography. Large, optional, and worth it.
 - **Default `arxiv.categories`** — `cs.LG, cs.CL` is a guess that fits an ML repository and no
   other, which is why `setup_repo` refuses to write a config without being told.
 

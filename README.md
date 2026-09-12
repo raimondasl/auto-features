@@ -202,13 +202,15 @@ Prints the inferred topic profile: TF-IDF keywords with weights, detected packag
 
 It also flags paper sources that match the repo but aren't in `sources:` — a repo built on `scanpy`/`anndata` gets pointed at bioRxiv, one built on `duckdb`/`rocksdb` at DBLP (`rr update` prints the same hint). Suggestions only: nothing is auto-enabled, since each source has costs worth opting into knowingly, and the hint says what they are.
 
-### `rr update [--config PATH] [--explain] [--foundational] [--rebuild-embeddings] [-v]`
+### `rr update [--config PATH] [--explain] [--foundational] [--rebuild-embeddings] [--progress-json] [-v]`
 
 Runs the full pipeline: profile repo, build queries, fetch papers from arXiv, store in SQLite, score, and display top 5 results. Use `-v` for verbose logging.
 
 `--explain` prints a per-component score breakdown for the top papers, which is the only way to see why a paper ranked where it did.
 
 `--foundational` forces **all-time, relevance-first** discovery with the recency weight dropped. **This is now the default** (`lookback_days: 36500`, `sort_by: relevance`, `w_recency: 0.0`); the flag remains so a config that narrows the window can be overridden for a single run.
+
+`--progress-json` additionally streams progress, warnings and the closing counts to **stderr** as JSON Lines, for a parent process driving the run; stdout is unchanged, so in a terminal it is the ordinary output plus a machine-readable copy. The MCP server uses it to forward a delegated collection's progress to its client.
 
 The default changed because the old one — a 14-day submitted-first window — was never the configuration the benchmark measured. Every headline Tier B number since 2026-07-06 was produced under all-time/relevance, and all 48 benchmark targets are ≥11 months old, so a fortnight's window cannot reach any of them. Repeat runs do not re-show the same papers: the store records `first_seen` and the digest marks what is new. For a strict recency digest, set `lookback_days: 14` and `sort_by: submitted` — that path is supported but has never been benchmarked.
 
@@ -453,7 +455,7 @@ Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cu
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
 - `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
 - `setup_repo(categories, measured)` — write `.reporadar.yml` for this repository. Called with no arguments it returns the repo's inferred profile and asks which arXiv categories to use, rather than guessing: the `cs.LG, cs.CL` default fits an ML repository and no other
-- `update_corpus()` — run the same pipeline `rr update` runs, reporting progress as it goes. Minutes rather than seconds, and the only tool that fetches anything
+- `update_corpus()` — run the same pipeline `rr update` runs, reporting progress as it goes. Minutes rather than seconds, and the only tool that fetches anything. With `hyde.enabled` set and this environment lacking the encoder — the plugin's server installs only `[mcp]`, deliberately — it runs the pipeline in a `uvx` environment pinned to its own version instead, and forwards that run's progress as its own; `collected_in` in the result says which happened
 
 The last two are why an agent needs no terminal: an unconfigured repository is a tool *result*, not a failed server, and the agent can set it up and collect without you leaving the chat.
 

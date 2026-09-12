@@ -27,6 +27,11 @@ telling the user if they ask:
 - **The plugin's server is deliberately light.** Making this a tool would force the embedding
   model into every installation, including everyone who never syncs.
 
+**This is the only part that is manual.** Once the index is on disk, `update_corpus` searches it
+by itself — it runs the pipeline in a `uvx` environment that has the embedding model when this
+server's own environment does not. So this is a one-time act, not a step to repeat before each
+digest, and the user never types a `uvx` command for collection.
+
 ## What to run
 
 **Confirm with the user first.** This is a large download and a several-minute wait; never start
@@ -55,6 +60,12 @@ failure part-way is not wasted work.
 Nothing to configure: `setup_repo` already writes `hyde.enabled: true`, which is why
 `update_corpus` was warning that the index was missing. Call `update_corpus` again and the
 warning is gone and the channel is live.
+
+**Tell the user the next collection will be slower** — several minutes longer, once. The
+embedding model's dependencies are not in this server's environment and `uvx` builds one that
+has them the first time it is needed, then caches it. The result's `collected_in` field names
+the environment the pipeline actually ran in, so you can say whether dense discovery was really
+in play rather than assuming it.
 
 If the user declines, that is a legitimate choice — say what it costs them (**−1.36 net@2**, and
 whole classes of repository unreachable) and carry on without it. RepoRadar works without dense

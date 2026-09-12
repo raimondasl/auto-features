@@ -90,6 +90,17 @@ the path this project's own benchmark scores at 0 of 24. If you would rather not
 set `hyde.enabled: false` in `.reporadar.yml` and take the −1.36 knowingly; the warning stops
 because the answer changed, not because it was hidden.
 
+**Once you have synced, collection uses it on its own.** You do not run anything else and you do
+not type a `uvx` command again — `update_corpus` notices that dense discovery is configured and
+that this server cannot do it, and runs the same pipeline in a `uvx` environment that can,
+streaming its progress back into the chat. The server itself stays light, which is the point:
+the embedding model's dependencies are gigabytes and only the people who opted in ever download
+them.
+
+The one thing to expect is that the **first collection after syncing is several minutes longer**
+while that environment is built. It is cached afterwards, and the tool says which happened —
+`collected_in` in its result names the environment the pipeline actually ran in.
+
 ## The CLI is still here
 
 `rr` remains fully supported and is what the GitHub Action runs; `rr update`, `rr digest`,
@@ -178,6 +189,12 @@ Plugins execute with your own permissions, and this one starts a process: `.mcp.
 the server with `uvx`, which downloads `reporadar-papers` from PyPI on first use. That is ordinary
 for the ecosystem, and the advice that goes with it is to read a plugin before installing it — the
 whole of this one is the files in this directory.
+
+It starts a **second** process in one case: with dense discovery enabled and synced, collection
+runs as `uvx --from "reporadar-papers[hyde]==1.0.4" rr update` — the same distribution at the
+same pinned version, in an environment that has the embedding model. If you would rather it
+never did that, set `RR_HYDE_SUBPROCESS=0` in the server's environment; collection then stays
+in-process and says in its warnings that dense discovery did not run.
 
 ## Notes
 

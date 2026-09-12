@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import contextlib
 import getpass
+import json
 import os
 import webbrowser
 from collections.abc import Iterator
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +80,44 @@ class ClickReporter:
 
     def warn(self, message: str) -> None:
         warn(message)
+
+
+@dataclass
+class JsonReporter:
+    """The same progress, additionally as JSON Lines on stderr, for a parent process.
+
+    RepoRadar's MCP server delegates collection to a `uvx` environment when the repository
+    asks for dense discovery and the server's own environment cannot provide it (see
+    `reporadar.delegate`). A tool call that goes silent for the minutes that takes is a tool
+    call some clients cancel, so the child's progress has to reach the parent as it happens
+    rather than as a transcript at the end.
+
+    Wraps rather than replaces: stdout keeps rendering exactly as it always did, so
+    `rr update --progress-json` in a terminal is `rr update` plus a machine-readable copy.
+    stderr is the channel because stdout already carries the table and the counts, and
+    because a stream nobody parses is free to stay human.
+
+    `warn` stays a distinct event for the same reason `McpReporter` keeps it apart: a stage
+    that was configured and could not run changes what a thin digest MEANS, and that
+    distinction cannot survive being flattened into a list of status lines.
+    """
+
+    inner: Any
+
+    def info(self, message: str) -> None:
+        self.inner.info(message)
+        self.emit("info", message=message.strip())
+
+    def warn(self, message: str) -> None:
+        self.inner.warn(message)
+        self.emit("warn", message=message.strip())
+
+    def emit(self, event: str, **fields: Any) -> None:
+        # click.echo flushes, which is what makes this a live stream rather than a dump at
+        # exit. Never raises into the pipeline: losing a progress line costs a progress
+        # line, and the run it is narrating has real work behind it.
+        with contextlib.suppress(Exception):
+            click.echo(json.dumps({"event": event, **fields}), err=True)
 
 
 @contextlib.contextmanager
@@ -280,12 +319,20 @@ def profile(config_path: str | None, verbose: bool) -> None:
     is_flag=True,
     help="Clear and recompute the cached paper embeddings for this run's model.",
 )
+@click.option(
+    "--progress-json",
+    is_flag=True,
+    help="Also stream progress, warnings and the closing counts to stderr as JSON Lines. "
+    "For a parent process driving this run — RepoRadar's MCP server uses it to forward a "
+    "delegated collection's progress to its client. stdout is unchanged.",
+)
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
 def update(
     config_path: str | None,
     explain: bool,
     foundational: bool,
     rebuild_embeddings: bool,
+    progress_json: bool,
     verbose: bool,
 ) -> None:
     """Fetch new papers from arXiv and store them.
@@ -312,12 +359,14 @@ def update(
     # Ensure storage dir exists
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
+    reporter: Any = JsonReporter(inner=ClickReporter()) if progress_json else ClickReporter()
+
     try:
         result = run_pipeline(
             cfg,
             repo_path=repo_path,
             db_path=db_path,
-            report=ClickReporter(),
+            report=reporter,
             verbose=verbose,
             rebuild_embeddings=rebuild_embeddings,
         )
@@ -327,6 +376,19 @@ def update(
         raise SystemExit(1) from exc
     except StoreError as exc:
         raise SystemExit(1) from exc
+
+    if progress_json:
+        # Before the early return below, so a run that stopped reports the same record a
+        # run that finished does. A parent that got progress and then nothing cannot tell a
+        # deliberate stop ("no new papers") from a crash, and those need opposite responses.
+        reporter.emit(
+            "result",
+            run_id=result.run_id,
+            stopped=result.stopped,
+            queries=len(result.queries),
+            papers=len(result.papers),
+            scored=len(result.scores),
+        )
 
     if result.stopped is not None:
         # The pipeline has already said why -- "no queries" and "no papers" get different
