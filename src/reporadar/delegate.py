@@ -168,6 +168,19 @@ def child_paths(cfg: Any, repo: Path) -> tuple[Path, Path]:
     return child_repo, (child_repo / ".reporadar" / "papers.db").resolve()
 
 
+def index_synced(cfg: Any, repo: Path) -> bool:
+    """Whether the dense-discovery index exists where a delegated run would look for it.
+
+    Resolved the way the child resolves it: `rr update` expands `hyde.index_dir` against its
+    working directory, which is the repository. The default is an absolute user-global path,
+    so in practice this is "has anyone on this machine run `/sync-index`".
+    """
+    from reporadar.hyde import index_shards
+
+    configured = Path(cfg.hyde.index_dir).expanduser()
+    return bool(index_shards(configured if configured.is_absolute() else repo / configured))
+
+
 def plan(cfg: Any, *, repo: Path, config_path: Path, db: Path) -> Plan:
     """Decide where this collection runs.
 
@@ -182,6 +195,17 @@ def plan(cfg: Any, *, repo: Path, config_path: Path, db: Path) -> Plan:
 
     if hyde_importable():
         return Plan(command=None, reason="this environment can run dense discovery itself")
+
+    if not index_synced(cfg, repo):
+        # Nothing to search, so nothing a heavier environment could add -- and building one is
+        # the embedding model's dependencies, several gigabytes of torch on Linux. `setup_repo`
+        # writes `hyde.enabled: true` for everyone, so without this every new plugin user paid
+        # that download on their first collection only to be told the index was missing, which
+        # is the opposite of "only the people who opted in ever download it". Checked BEFORE
+        # the escape hatch so a missing index is the one thing reported. No warning here: the
+        # pipeline raises its own ("no HyDE index ... run `rr sync-index` first") before any
+        # LLM call or encoder load, and two warnings for one cause is noise.
+        return Plan(command=None, reason="no dense-discovery index is synced yet")
 
     if not _enabled():
         return Plan(

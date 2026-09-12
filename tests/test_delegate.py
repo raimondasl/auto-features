@@ -27,16 +27,31 @@ from reporadar import delegate
 
 
 class _Hyde:
-    def __init__(self, enabled: bool) -> None:
+    def __init__(self, enabled: bool, index_dir: str) -> None:
         self.enabled = enabled
+        self.index_dir = index_dir
 
 
 class Cfg:
-    """Stands in for a RepoRadarConfig: the two fields this module reads."""
+    """Stands in for a RepoRadarConfig: the fields this module reads."""
 
-    def __init__(self, *, enabled: bool = True, repo_path: str = ".") -> None:
-        self.hyde = _Hyde(enabled)
+    def __init__(
+        self, *, enabled: bool = True, repo_path: str = ".", index_dir: str = "no-index-here"
+    ) -> None:
+        self.hyde = _Hyde(enabled, index_dir)
         self.repo_path = repo_path
+
+
+# Kept before any fixture replaces it, for the tests that exercise the real lookup.
+_REAL_INDEX_SYNCED = delegate.index_synced
+
+
+def _shard(directory: Path, year: int = 1991) -> Path:
+    """One synced shard as `hyde.index_shards` recognises it: a vector file and its ids."""
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{year}.npy").write_bytes(b"")
+    (directory / f"{year}.ids").write_text("", encoding="utf-8")
+    return directory
 
 
 @dataclass
@@ -69,8 +84,10 @@ def _places(repo: Path) -> dict[str, Path]:
 
 @pytest.fixture
 def cannot_run_hyde(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The plugin's server: light on purpose, so it cannot embed anything."""
+    """The plugin's server on a machine that HAS synced the index: light on purpose, so it
+    cannot embed anything, but with something worth delegating for."""
     monkeypatch.setattr(delegate, "hyde_importable", lambda: False)
+    monkeypatch.setattr(delegate, "index_synced", lambda cfg, repo: True)
     monkeypatch.setattr(delegate, "installed_version", lambda: "9.9.9")
     monkeypatch.setattr(delegate, "uvx_executable", lambda: "/usr/bin/uvx")
     monkeypatch.delenv(delegate.ENABLE_ENV, raising=False)
@@ -187,6 +204,68 @@ class TestWhereCollectionRuns:
         assert not plan.delegated
         assert plan.warning, "a lost retrieval channel must be announced"
         assert "rr update" in plan.warning, "and the warning must name a way out"
+
+
+class TestNoIndexMeansNoHeavyEnvironment:
+    """Found by review: `plan` delegated without asking whether there was an index to search.
+
+    `setup_repo` writes `hyde.enabled: true` for every user, so every new plugin user's first
+    collection built the embedding model's environment -- several gigabytes of torch on Linux
+    -- only for the child to report that no index was synced. That contradicted the promise
+    #305's own docs make: only the people who opted in ever download it.
+    """
+
+    @pytest.mark.usefixtures("cannot_run_hyde")
+    def test_a_machine_that_never_synced_does_not_build_the_environment(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(delegate, "index_synced", _REAL_INDEX_SYNCED)
+        plan = delegate.plan(Cfg(index_dir=str(repo / "never-synced")), **_places(repo))
+        assert not plan.delegated
+        assert "index" in plan.reason
+        # The pipeline raises its own "run `rr sync-index`" warning before any LLM call or
+        # encoder load; a second one here would be the same news twice.
+        assert plan.warning is None
+
+    @pytest.mark.usefixtures("cannot_run_hyde")
+    def test_once_synced_it_delegates(self, repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(delegate, "index_synced", _REAL_INDEX_SYNCED)
+        index = _shard(repo / "synced")
+        assert delegate.plan(Cfg(index_dir=str(index)), **_places(repo)).delegated
+
+    @pytest.mark.usefixtures("cannot_run_hyde")
+    def test_a_missing_index_is_reported_rather_than_the_escape_hatch(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With both true, the index is the cause worth naming: unsetting the variable would
+        not help, and saying so would send the user to fix the wrong thing."""
+        monkeypatch.setattr(delegate, "index_synced", _REAL_INDEX_SYNCED)
+        monkeypatch.setenv(delegate.ENABLE_ENV, "0")
+        plan = delegate.plan(Cfg(index_dir=str(repo / "never-synced")), **_places(repo))
+        assert not plan.delegated
+        assert "index" in plan.reason and plan.warning is None
+
+
+class TestWhereTheIndexIsLookedFor:
+    def test_an_absolute_index_dir_is_used_as_written(self, repo: Path, tmp_path: Path) -> None:
+        index = _shard(tmp_path / "elsewhere" / "hyde-index")
+        assert _REAL_INDEX_SYNCED(Cfg(index_dir=str(index)), repo)
+
+    def test_an_empty_index_dir_is_not_synced(self, repo: Path, tmp_path: Path) -> None:
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        assert not _REAL_INDEX_SYNCED(Cfg(index_dir=str(empty)), repo)
+
+    def test_a_relative_index_dir_resolves_against_the_repository(
+        self, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Against the repository, which is the CHILD's working directory -- not this
+        process's. The server's own working directory is wherever the editor started it."""
+        _shard(repo / "local-index")
+        server_cwd = tmp_path / "where-the-editor-started-us"
+        server_cwd.mkdir()
+        monkeypatch.chdir(server_cwd)  # "local-index" does not exist relative to HERE
+        assert _REAL_INDEX_SYNCED(Cfg(index_dir="local-index"), repo)
 
 
 class TestWhichPathsAChildWouldUse:

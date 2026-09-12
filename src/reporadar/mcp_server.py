@@ -961,6 +961,7 @@ def build_server(
             return not_configured_payload(loc.config_path)
 
         import anyio
+        import anyio.lowlevel
 
         def emit(n: int, message: str) -> None:
             # Hops from the pipeline's worker thread back onto the event loop. Every one of
@@ -988,6 +989,17 @@ def build_server(
         # runs in a worker thread and the reporter hops back. Calling it inline would block
         # the event loop and no progress notification could leave while it ran.
         result = await anyio.to_thread.run_sync(_collect)
+        # A CHECKPOINT, and it is load-bearing. When the client cancels this call -- VS Code's
+        # Stop button, a TypeScript client's request timeout -- the SDK answers "Request
+        # cancelled" at once and marks the request complete, but `run_sync` shields this
+        # handler, so the cancellation is deferred until the collection's thread returns and
+        # the next await gives it somewhere to land. There was no next await: this returned a
+        # dict, the SDK tried to send a SECOND response, and `AssertionError: Request already
+        # responded to` killed the session. Silently -- the process stayed up, and the user's
+        # next request was simply never answered. Yielding here lets the cancellation raise
+        # inside the handler, where the SDK suppresses the duplicate response. It changes
+        # nothing for a call that was not cancelled. tests/test_mcp_cancellation.py.
+        await anyio.lowlevel.checkpoint()
 
         return {
             "status": "stopped" if result["stopped"] else "ok",
