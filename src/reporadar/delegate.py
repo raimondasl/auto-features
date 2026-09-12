@@ -305,6 +305,15 @@ def run(plan: Plan, *, report: Any, timeout: float | None = None) -> dict[str, A
         proc = subprocess.Popen(
             plan.command,
             cwd=str(plan.cwd),
+            # NEVER the server's stdin. Inherited, it is the MCP JSON-RPC pipe from the
+            # editor, and on Windows that deadlocks before the child runs a line: the
+            # server has a synchronous read parked on the pipe, and the child's interpreter,
+            # setting up its own stdio, queries the same file object and waits for that
+            # read. The read waits for the editor, the editor for this tool, this tool for
+            # the child. Shipped in 1.0.5 and found in a real VS Code session -- the child
+            # sat at 0.02 s of CPU for 22 minutes. On any platform a child that READ the
+            # pipe would also steal protocol bytes from the session.
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=_child_env(),
