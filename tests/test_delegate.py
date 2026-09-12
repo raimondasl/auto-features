@@ -27,16 +27,31 @@ from reporadar import delegate
 
 
 class _Hyde:
-    def __init__(self, enabled: bool) -> None:
+    def __init__(self, enabled: bool, index_dir: str) -> None:
         self.enabled = enabled
+        self.index_dir = index_dir
 
 
 class Cfg:
-    """Stands in for a RepoRadarConfig: the two fields this module reads."""
+    """Stands in for a RepoRadarConfig: the fields this module reads."""
 
-    def __init__(self, *, enabled: bool = True, repo_path: str = ".") -> None:
-        self.hyde = _Hyde(enabled)
+    def __init__(
+        self, *, enabled: bool = True, repo_path: str = ".", index_dir: str = "no-index-here"
+    ) -> None:
+        self.hyde = _Hyde(enabled, index_dir)
         self.repo_path = repo_path
+
+
+# Kept before any fixture replaces it, for the tests that exercise the real lookup.
+_REAL_INDEX_SYNCED = delegate.index_synced
+
+
+def _shard(directory: Path, year: int = 1991) -> Path:
+    """One synced shard as `hyde.index_shards` recognises it: a vector file and its ids."""
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{year}.npy").write_bytes(b"")
+    (directory / f"{year}.ids").write_text("", encoding="utf-8")
+    return directory
 
 
 @dataclass
@@ -69,8 +84,10 @@ def _places(repo: Path) -> dict[str, Path]:
 
 @pytest.fixture
 def cannot_run_hyde(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The plugin's server: light on purpose, so it cannot embed anything."""
+    """The plugin's server on a machine that HAS synced the index: light on purpose, so it
+    cannot embed anything, but with something worth delegating for."""
     monkeypatch.setattr(delegate, "hyde_importable", lambda: False)
+    monkeypatch.setattr(delegate, "index_synced", lambda cfg, repo: True)
     monkeypatch.setattr(delegate, "installed_version", lambda: "9.9.9")
     monkeypatch.setattr(delegate, "uvx_executable", lambda: "/usr/bin/uvx")
     monkeypatch.delenv(delegate.ENABLE_ENV, raising=False)
@@ -187,6 +204,68 @@ class TestWhereCollectionRuns:
         assert not plan.delegated
         assert plan.warning, "a lost retrieval channel must be announced"
         assert "rr update" in plan.warning, "and the warning must name a way out"
+
+
+class TestNoIndexMeansNoHeavyEnvironment:
+    """Found by review: `plan` delegated without asking whether there was an index to search.
+
+    `setup_repo` writes `hyde.enabled: true` for every user, so every new plugin user's first
+    collection built the embedding model's environment -- several gigabytes of torch on Linux
+    -- only for the child to report that no index was synced. That contradicted the promise
+    #305's own docs make: only the people who opted in ever download it.
+    """
+
+    @pytest.mark.usefixtures("cannot_run_hyde")
+    def test_a_machine_that_never_synced_does_not_build_the_environment(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(delegate, "index_synced", _REAL_INDEX_SYNCED)
+        plan = delegate.plan(Cfg(index_dir=str(repo / "never-synced")), **_places(repo))
+        assert not plan.delegated
+        assert "index" in plan.reason
+        # The pipeline raises its own "run `rr sync-index`" warning before any LLM call or
+        # encoder load; a second one here would be the same news twice.
+        assert plan.warning is None
+
+    @pytest.mark.usefixtures("cannot_run_hyde")
+    def test_once_synced_it_delegates(self, repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(delegate, "index_synced", _REAL_INDEX_SYNCED)
+        index = _shard(repo / "synced")
+        assert delegate.plan(Cfg(index_dir=str(index)), **_places(repo)).delegated
+
+    @pytest.mark.usefixtures("cannot_run_hyde")
+    def test_a_missing_index_is_reported_rather_than_the_escape_hatch(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With both true, the index is the cause worth naming: unsetting the variable would
+        not help, and saying so would send the user to fix the wrong thing."""
+        monkeypatch.setattr(delegate, "index_synced", _REAL_INDEX_SYNCED)
+        monkeypatch.setenv(delegate.ENABLE_ENV, "0")
+        plan = delegate.plan(Cfg(index_dir=str(repo / "never-synced")), **_places(repo))
+        assert not plan.delegated
+        assert "index" in plan.reason and plan.warning is None
+
+
+class TestWhereTheIndexIsLookedFor:
+    def test_an_absolute_index_dir_is_used_as_written(self, repo: Path, tmp_path: Path) -> None:
+        index = _shard(tmp_path / "elsewhere" / "hyde-index")
+        assert _REAL_INDEX_SYNCED(Cfg(index_dir=str(index)), repo)
+
+    def test_an_empty_index_dir_is_not_synced(self, repo: Path, tmp_path: Path) -> None:
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        assert not _REAL_INDEX_SYNCED(Cfg(index_dir=str(empty)), repo)
+
+    def test_a_relative_index_dir_resolves_against_the_repository(
+        self, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Against the repository, which is the CHILD's working directory -- not this
+        process's. The server's own working directory is wherever the editor started it."""
+        _shard(repo / "local-index")
+        server_cwd = tmp_path / "where-the-editor-started-us"
+        server_cwd.mkdir()
+        monkeypatch.chdir(server_cwd)  # "local-index" does not exist relative to HERE
+        assert _REAL_INDEX_SYNCED(Cfg(index_dir="local-index"), repo)
 
 
 class TestWhichPathsAChildWouldUse:
@@ -375,6 +454,130 @@ class TestDrivingTheChild:
         )
         with pytest.raises(delegate.DelegationError, match="could not start"):
             delegate.run(plan, report=Recorder())
+
+
+# Runs `delegate.run` the way the MCP server does: as a process whose stdin is a pipe that
+# stays open with nothing arriving on it -- the JSON-RPC channel while a tool call is pending.
+# Prints one JSON line: the counts on success, {"error": ...} when the delegated run failed.
+_SERVER_STANDIN = """
+import json, sys, threading, time
+from pathlib import Path
+from reporadar import delegate
+
+mode = sys.argv[1]
+if mode == "reader":
+    # The MCP stdio reader: a synchronous read parked on stdin before anything is spawned.
+    threading.Thread(target=lambda: sys.stdin.buffer.readline(), daemon=True).start()
+    time.sleep(1.0)
+    child = "print('never reads stdin')"
+else:
+    child = "import sys; sys.stdin.read()"
+child += (
+    "; import sys, json; sys.stderr.write(json.dumps({'event': 'result', 'run_id': 1,"
+    " 'stopped': None, 'queries': 0, 'papers': 0, 'scored': 0}) + chr(10))"
+)
+
+class Quiet:
+    def info(self, message): pass
+    def warn(self, message): pass
+
+plan = delegate.Plan(command=[sys.executable, "-c", child], cwd=Path.cwd(), spec="x", reason="t")
+try:
+    print(json.dumps(delegate.run(plan, report=Quiet(), timeout=float(sys.argv[2]))))
+except delegate.DelegationError as exc:
+    print(json.dumps({"error": str(exc)}))
+sys.stdout.flush()
+import os
+os._exit(0)
+"""
+
+
+class TestTheChildNeverSharesTheServersStdin:
+    """The 1.0.5 hang, found in a real VS Code session.
+
+    `delegate.run` did not set `stdin`, so the child inherited the MCP server's — the JSON-RPC
+    pipe from the editor. On Windows that deadlocks before a line of RepoRadar runs: the
+    server has a synchronous read parked on that pipe, and the child's interpreter, setting
+    up its own stdio, queries the same file object and waits for that read to finish. The
+    read waits for the editor's next message; the editor waits for the tool result; the tool
+    waits for the child. Observed directly: the child at 0.02 s of CPU for 22 minutes, its
+    stack in `ZwQueryInformationFile` under `Py_InitializeFromConfig`, while the server sat
+    in `NtReadFile` on stdin.
+
+    Every earlier test launched from a shell or a Python-made pipe with no read pending,
+    which is why none of them saw it. So these build the server's side on purpose.
+    """
+
+    def _standin(self, tmp_path: Path, mode: str, timeout: float) -> tuple[list[str], Path]:
+        script = tmp_path / "server_standin.py"
+        script.write_text(_SERVER_STANDIN, encoding="utf-8")
+        return [sys.executable, str(script), mode, str(timeout)], script
+
+    def test_the_child_cannot_see_the_servers_stdin(self, tmp_path: Path) -> None:
+        """Portable, and the guard CI actually runs.
+
+        The child here READS stdin. With the server's pipe inherited it would block for as
+        long as the editor stays quiet — and on POSIX, a child that read it would steal
+        JSON-RPC bytes from the session outright. Given its own empty stdin, it reads EOF
+        and finishes at once.
+        """
+        import subprocess
+
+        argv, _ = self._standin(tmp_path, "child-reads", timeout=8)
+        server = subprocess.Popen(
+            argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, cwd=tmp_path
+        )
+        try:
+            # Never `communicate()`: it closes stdin, which hands the child EOF and would
+            # pass this test with the bug still in place.
+            server.wait(timeout=60)
+            out = server.stdout.read() if server.stdout else ""
+        finally:
+            if server.poll() is None:
+                server.kill()
+            if server.stdin:
+                server.stdin.close()
+
+        result = json.loads(out.strip().splitlines()[-1])
+        assert "error" not in result, (
+            "the delegated child could see the server's stdin and blocked on it: "
+            f"{result.get('error')}"
+        )
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="the startup deadlock is Windows-only")
+    @pytest.mark.skipif(shutil.which("node") is None, reason="needs Node, as VS Code uses")
+    def test_launched_by_node_with_a_read_pending_the_child_still_starts(
+        self, tmp_path: Path
+    ) -> None:
+        """The exact failure, reproduced: Node as the parent (VS Code's libuv pipes), a read
+        parked on stdin, and a child that never touches stdin at all — it hangs anyway,
+        inside interpreter startup, unless its stdin is its own."""
+        import subprocess
+
+        argv, _ = self._standin(tmp_path, "reader", timeout=20)
+        launcher = tmp_path / "launch.js"
+        launcher.write_text(
+            "const { spawn } = require('child_process');\n"
+            "const [cmd, ...args] = JSON.parse(process.argv[2]);\n"
+            "const p = spawn(cmd, args, { stdio: ['pipe', 'pipe', 'inherit'] });\n"
+            "let out = '';\n"
+            "p.stdout.on('data', (d) => (out += d));\n"
+            "p.on('exit', () => { process.stdout.write(out); process.exit(0); });\n",
+            encoding="utf-8",
+        )
+        done = subprocess.run(
+            ["node", str(launcher), json.dumps(argv)],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            cwd=tmp_path,
+        )
+
+        result = json.loads(done.stdout.strip().splitlines()[-1])
+        assert "error" not in result, (
+            "under a Node parent with a pending stdin read, the delegated child hung at "
+            f"startup: {result.get('error')}"
+        )
 
 
 class TestReadingTheProtocol:
