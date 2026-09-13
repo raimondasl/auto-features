@@ -39,6 +39,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from reporadar import __version__
 from reporadar.paper_id import dedup_id
 
 logger = logging.getLogger(__name__)
@@ -121,7 +122,7 @@ def _search(query: str, hits_per_page: int = 20) -> tuple[list[dict[str, Any]], 
     _throttle()
     try:
         req = urllib.request.Request(
-            url, headers={"Accept": "application/json", "User-Agent": "RepoRadar/1.0"}
+            url, headers={"Accept": "application/json", "User-Agent": f"RepoRadar/{__version__}"}
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
             payload = json_mod.loads(resp.read())
