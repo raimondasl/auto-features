@@ -208,3 +208,20 @@ class TestItStaysReadOnly:
         for banned in ("llm_client", "requests", "urllib", "arxiv", "openai", "anthropic"):
             assert f"import {banned}" not in source, banned
         assert "def save" not in source and ".save_" not in source
+
+
+class TestItSaysWhichChannelFoundThePaper:
+    """`rr why` printed the raw marker -- "matched query: hyde" -- which told a reader nothing
+    unless they already knew what the column stored."""
+
+    def test_a_paper_from_dense_discovery_says_keyword_search_missed_it(self) -> None:
+        ex = explain_paper(
+            "2401.00001", _pool(_paper("2401.00001", 0.9, matched_query="hyde")), _cfg()
+        )
+        collected = _step(ex, "collected").detail
+        assert "dense discovery (HyDE)" in collected
+        assert "keyword search did not find it" in collected
+
+    def test_a_keyword_paper_names_its_query(self) -> None:
+        ex = explain_paper("2401.00001", _pool(_paper("2401.00001", 0.9)), _cfg())
+        assert "arXiv keyword search (all:transformers)" in _step(ex, "collected").detail

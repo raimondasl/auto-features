@@ -30,6 +30,7 @@ from typing import Any
 from reporadar.config import RepoRadarConfig
 from reporadar.digest import categorize_papers, digest_window
 from reporadar.paper_id import dedup_id
+from reporadar.provenance import describe
 
 # The pipeline's drop points, in the order a paper meets them. `rr why` reports the FIRST one
 # that claimed the paper, because that is the only one a user can act on: a paper the queries
@@ -136,8 +137,7 @@ def explain_paper(
     ex.paper = match
     ex.title = str(match.get("title") or "")
     rank = next(i for i, p in enumerate(scored, 1) if p is match)
-    query = match.get("matched_query") or "—"
-    ex.steps.append(Step("collected", "pass", f"matched query: {query}"))
+    ex.steps.append(Step("collected", "pass", f"found by {describe(match.get('matched_query'))}"))
 
     # ── 2. ranking ──────────────────────────────────────────────────────────────────
     rrf = match.get("rrf_score")

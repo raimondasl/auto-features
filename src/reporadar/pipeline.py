@@ -38,6 +38,7 @@ from reporadar.collector import (
 from reporadar.llm_client import LLMError
 from reporadar.paper_id import dedup_id as _dedup_id
 from reporadar.profiler import profile_repo
+from reporadar.provenance import source_marker
 from reporadar.ranker import rank_papers
 from reporadar.store import PaperStore, StoreError
 
@@ -424,7 +425,7 @@ def _collect_extra_sources(
     for key in KEYWORD_SOURCES:
         label, fetch = fetchers[key]
         if key in cfg.sources:
-            _merge_source(papers, label, fetch, report=report)
+            _merge_source(papers, label, fetch, source=key, report=report)
 
     # 3f. Learned recommendations from your ratings/stars (Feature 5, optional).
     #     Merged into the candidate pool so the local ranker re-filters them — the
@@ -479,6 +480,7 @@ def _merge_source(
     label: str,
     fetch: Any,
     *,
+    source: str,
     report: Reporter,
 ) -> None:
     """Fetch from one non-arXiv source and merge in place, version-insensitively.
@@ -488,12 +490,21 @@ def _merge_source(
     separate call sites because each merge had its own copy of the rule; this is the one
     copy. A source that fails is reported and skipped — never fatal, since arXiv has
     already produced a pool by this point.
+
+    Each paper it adds is stamped with *source* (see `reporadar.provenance`). None of these
+    sources recorded where a paper came from, so a paper they contributed used to read back
+    as "unrecorded" — indistinguishable across six channels, and no help to anyone asking
+    which channel a recommendation came from.
     """
     try:
         report.info(f"Fetching papers from {label}...")
         fetched = fetch()
         existing_ids = {_dedup_id(p["arxiv_id"]) for p in papers}
-        fresh = [p for p in fetched if _dedup_id(p["arxiv_id"]) not in existing_ids]
+        fresh = [
+            {**p, "matched_query": p.get("matched_query") or source_marker(source)}
+            for p in fetched
+            if _dedup_id(p["arxiv_id"]) not in existing_ids
+        ]
         papers.extend(fresh)
         report.info(f"  {len(fresh)} additional papers from {label}")
     except Exception as exc:

@@ -38,8 +38,8 @@ thing.
 | tool | use |
 |---|---|
 | `get_repo_profile` | What RepoRadar thinks this project is. Check this first when results look wrong — a bad profile explains a bad digest. |
-| `get_ranked_papers` | The digest: papers judged actionable for this repository, best first. |
-| `explain_relevance` | Why one specific arXiv paper was or was not surfaced. |
+| `get_ranked_papers` | The digest: papers judged actionable for this repository, best first. Each carries `found_by`, the retrieval channel that contributed it. |
+| `explain_relevance` | Why one specific arXiv paper was or was not surfaced, including `found_by`. |
 | `search_papers` | Search the stored corpus by query, still conditioned on this repository. |
 | `setup_repo` | Initialise RepoRadar here. Call it with no arguments first: it answers with the repository's profile and asks which arXiv categories to use. |
 | `update_corpus` | Collect, rank and gate papers. Minutes, with progress — the only tool that fetches anything. Its `collected_in` says which environment the pipeline ran in. |
@@ -151,6 +151,14 @@ abstention a defined value. Do not pad a thin result to seem useful.
 **Do not restate the paper's abstract as a recommendation.** The useful thing is what the
 repository would *do* with it. `explain_relevance` gives the reasoning behind a pick; prefer it
 over your own guess at why a paper was surfaced.
+
+**Say which channel found a pick when it matters.** Every paper carries `found_by`:
+`dense_discovery`, `arxiv_keywords`, `s2_recommendations`, a source such as `openalex` or
+`dblp`, or `unrecorded` for papers collected before sources were recorded. Each channel only
+adds papers no earlier one had, so `dense_discovery` means keyword search did **not** find it.
+When the user asks whether dense discovery was worth it, or picks exist that keyword search
+alone would have missed, say so with this rather than guessing. Do not read it as a quality
+signal: the gate judged every paper the same way, whichever channel brought it in.
 
 **Coverage is arXiv's.** For repositories whose literature lives elsewhere — cryptography,
 databases, most of applied science — near-abstention is the best this can structurally do, and

@@ -450,8 +450,8 @@ The audit view is the honest layer; the filter is a convenience on top of it.
 Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cursor, VS Code, Windsurf — can query your repo-aware paper store conversationally. Unlike generic arXiv MCP servers, its tools are grounded in *this repository's* profile and ranking. Tools exposed:
 
 - `get_repo_profile` — the repo's keywords / libraries / domains
-- `get_ranked_papers(limit)` — **what `rr digest` recommends** from the latest `rr update`, best-first: the same window, actionability gate, fine-scale bar and rerank the digest applies, with the second tier under `maybe_relevant` and withdrawn or already-cited papers under `muted`, each carrying the reason it was set aside
-- `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason
+- `get_ranked_papers(limit)` — **what `rr digest` recommends** from the latest `rr update`, best-first: the same window, actionability gate, fine-scale bar and rerank the digest applies, with the second tier under `maybe_relevant` and withdrawn or already-cited papers under `muted`, each carrying the reason it was set aside. Every paper also carries `found_by` — the retrieval channel that contributed it (`dense_discovery` means keyword search never had it)
+- `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason + `found_by`
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
 - `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
 - `setup_repo(categories, measured)` — write `.reporadar.yml` for this repository. Called with no arguments it returns the repo's inferred profile and asks which arXiv categories to use, rather than guessing: the `cs.LG, cs.CL` default fits an ML repository and no other
