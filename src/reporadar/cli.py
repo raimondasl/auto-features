@@ -22,6 +22,7 @@ from reporadar.collector import (
 )
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
+    LLM_PROVIDERS,
     ArxivConfig,
     HydeConfig,
     RankingConfig,
@@ -515,7 +516,7 @@ def digest(
         # LLM-powered suggestions need the repo profile; only pay to compute it
         # when an LLM provider is actually configured (templates don't need it).
         repo_profile = None
-        if cfg.suggestions.provider in ("ollama", "claude"):
+        if cfg.suggestions.provider in LLM_PROVIDERS:
             info(f"Using LLM suggestions provider: {cfg.suggestions.provider}")
             repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
 
@@ -621,7 +622,7 @@ def archive(
             run_id = last_run["run_id"]
 
         repo_profile = None
-        if cfg.suggestions.provider in ("ollama", "claude"):
+        if cfg.suggestions.provider in LLM_PROVIDERS:
             repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
 
         since_days = _parse_since(since) if since else None

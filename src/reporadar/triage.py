@@ -19,7 +19,7 @@ import re
 from typing import Any
 
 from reporadar.evidence import partition_by_evidence
-from reporadar.llm_client import LLMError, complete
+from reporadar.llm_client import LLMError, RateLimitBreaker, complete
 from reporadar.profiler import RepoProfile
 
 logger = logging.getLogger(__name__)
@@ -188,8 +188,13 @@ def triage_papers(
 
     *summary* is passed to every paper's prompt, so the one repo-summarisation call is
     amortised across the whole batch rather than repeated per paper.
+
+    Raises :class:`~reporadar.llm_client.LLMUnavailable` instead of trying the next paper when
+    the failure would repeat for every one -- no credential, a refused Azure token, a quota -- so
+    the caller can say why no gate ran, after one call rather than fifty.
     """
     out: dict[str, dict[str, Any]] = {}
+    breaker = RateLimitBreaker()
     scoreable, skipped = partition_by_evidence(list(papers[:top_k]))
     if skipped:
         # Loud, not silent. A guard that shortens a list without saying so is how a stage
@@ -208,7 +213,9 @@ def triage_papers(
         try:
             score, reason = score_actionability(paper, profile, llm_cfg, summary)
         except (LLMError, ValueError, KeyError, TypeError) as exc:
+            breaker.record(exc)
             logger.warning("Triage failed for %s: %s", arxiv_id, exc)
             continue
+        breaker.record(None)
         out[arxiv_id] = {"llm_score": score, "llm_reason": reason}
     return out

@@ -1275,6 +1275,37 @@ stage would fail on every non-reasoning deployment — and on gpt-5.6-luna after
 `max_completion_tokens` and the `top_logprobs` cap of 5; a wrong deployment name returned the 404
 guidance; `rr doctor` and `rr audit` reported the setup correctly; one `az` token served every call.
 
+**An adversarial review before the PR found ten real defects, all fixed and re-verified live.** The
+ones worth remembering:
+
+- **A committed `az.exe` could run as the Azure CLI (blocker, reproduced).** On Windows
+  `shutil.which` searches the working directory before PATH, returns a *relative* path, and
+  `CreateProcess` resolves that against the parent's directory whatever `cwd=` says. RepoRadar's
+  working directory is the repository, and a committed `.reporadar.yml` choosing Azure is what
+  triggers the lookup. `reporadar/executables.py` now walks PATH itself, absolute entries only;
+  `uvx` (the HyDE delegate) and the `rr` a schedule runs had the same hole and use it too.
+- **`subprocess.run(timeout=)` does not bound `az` on Windows.** It kills `cmd.exe` and then waits,
+  without a timeout, on pipes the surviving `python.exe` holds — under the lock every Azure call
+  queues on. `_run` kills the tree.
+- **A failure that repeats for every paper now stops the stage after one call** (`LLMUnavailable`:
+  no key, a refused token, a missing deployment, a refused effort value; or three rate-limited
+  papers in a row) and becomes the stage's warning. A lapsed `az login` used to start fifty `az`
+  processes and report only "no scores".
+- **`retry-after` beyond 20 s fails the call instead of being slept.** Capping 86400 at 60 per
+  retry per paper made a 50-paper gate on a spent quota 100 silent minutes.
+- **A refused `reasoning_effort` value was being dropped as if the parameter were unsupported**,
+  silently running gpt-5-mini at medium effort into an empty answer. Only a refused *parameter* is
+  learned now; a refused value is an error listing the values the model accepts.
+- Smaller: the token is not carried onto redirects; a refused token is forgotten so signing in
+  again works without a restart; `setup_repo`'s retries keep the Azure arguments; deployment names
+  are quoted in YAML; digest suggestions honour OpenAI and Azure (they checked their own
+  `("ollama", "claude")` list, the drift this item's guard was meant to end).
+
+**Not fixed here, and why:** the in-process pipeline still reports no progress *inside* the gate
+stage, so a slow gate can outlast Copilot CLI's 180 s no-progress window. That is the in-process
+heartbeat gap item 16 already files, not an Azure problem — Azure only makes it likelier through
+rate-limit waits, which are now bounded.
+
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 
 **The paid arm ran and the item is closed [NR-51].** ~$15, 37 cases, treatment differing from

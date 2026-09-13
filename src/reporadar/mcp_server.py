@@ -390,6 +390,13 @@ _AZURE_NEEDED = (
 _DEPLOYMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 
 
+def _yaml_str(value: str) -> str:
+    """*value* as a YAML string whatever it looks like. A deployment named `123`, `true` or
+    `null` is valid in Azure, and unquoted YAML reads it as a number, a boolean or nothing --
+    after which the config setup_repo reported writing cannot be loaded."""
+    return json.dumps(value)
+
+
 def _azure_blocks(
     endpoint: str, deployment: str, finescale_deployment: str, tenant: str
 ) -> tuple[str, str, str]:
@@ -400,12 +407,12 @@ def _azure_blocks(
         "  # Your account needs 'Cognitive Services OpenAI User' on this resource --\n"
         "  # Owner or Contributor alone are refused: they carry no data actions.\n"
         f"  endpoint: {endpoint}\n"
-        f'  tenant: "{tenant}"\n\n'
+        f"  tenant: {_yaml_str(tenant)}\n\n"
     )
     gate = (
         "  provider: azure_openai\n"
         "  # The DEPLOYMENT name chosen in Azure, not the model name (sent as `model`).\n"
-        f"  azure_deployment: {deployment}\n"
+        f"  azure_deployment: {_yaml_str(deployment)}\n"
         '  openai_reasoning_effort: "none"\n'
         "  claude_model: claude-haiku-4-5"
     )
@@ -416,7 +423,7 @@ def _azure_blocks(
         "    # returning logprobs was named; no published number describes it here.\n"
         f"    enabled: {'true' if finescale_deployment else 'false'}\n"
         "    provider: azure_openai\n"
-        f"    azure_deployment: {finescale_deployment or chr(34) * 2}\n"
+        f"    azure_deployment: {_yaml_str(finescale_deployment)}\n"
         '    reasoning_effort: "none"\n'
     )
     return section, gate, finescale
@@ -617,47 +624,77 @@ def setup_repo_action(
         }
 
     azure: dict[str, str] = {}
-    if provider == "azure_openai" and measured:
+    missing: list[str] = []
+    why: list[str] = []
+    # The retry must carry every argument the caller already gave. An agent follows `with`
+    # literally, and one that dropped `provider="azure_openai"` wrote an OpenAI config on a
+    # machine with no OpenAI key -- which setup_repo then refused to change.
+    retry_with: dict[str, Any] = {}
+    if provider is not None:
+        retry_with["provider"] = provider
+    if not measured:
+        retry_with["measured"] = False
+    if provider == "azure_openai":
+        if not measured:
+            return {
+                "status": "error",
+                "error": (
+                    "provider='azure_openai' configures the measured pipeline's gate, and "
+                    "measured=False writes a configuration with no gate to put it on. Call "
+                    "setup_repo again without measured=False."
+                ),
+            }
         azure, azure_missing, azure_problems = _azure_inputs(
             azure_endpoint, azure_deployment, azure_finescale_deployment, azure_tenant
         )
+        given = {
+            "azure_endpoint": azure_endpoint,
+            "azure_deployment": azure_deployment,
+            "azure_finescale_deployment": azure_finescale_deployment,
+            "azure_tenant": azure_tenant,
+        }
+        placeholders = {
+            "azure_endpoint": "https://<resource>.openai.azure.com",
+            "azure_deployment": "<gate deployment name>",
+            "azure_finescale_deployment": "<optional: a deployment returning logprobs>",
+            "azure_tenant": "<optional: tenant id or domain>",
+        }
+        for name, value in given.items():
+            if name in azure_missing or name == "azure_finescale_deployment" and not value:
+                retry_with[name] = placeholders[name]
+            elif value:
+                retry_with[name] = value
         if azure_missing:
-            return {
-                "status": "needs_input",
-                "missing": azure_missing + ([] if categories else ["categories"]),
-                "why": (
-                    "Keyless Azure OpenAI needs the resource endpoint and the name of the "
-                    "deployment to use for the gate — the DEPLOYMENT name chosen in Azure, not the "
-                    "model name. Ask the user for them; they are not secrets."
-                    + (f" Problems: {'; '.join(azure_problems)}" if azure_problems else "")
-                ),
-                "retry": {
-                    "tool": "setup_repo",
-                    "with": {
-                        "provider": "azure_openai",
-                        "azure_endpoint": "https://<resource>.openai.azure.com",
-                        "azure_deployment": "<gate deployment name>",
-                        "azure_finescale_deployment": "<optional: a deployment returning logprobs>",
-                    },
-                },
-            }
+            missing += azure_missing
+            why.append(
+                "Keyless Azure OpenAI needs the resource endpoint and the name of the deployment "
+                "to use for the gate — the DEPLOYMENT name chosen in Azure, not the model name. "
+                "Ask the user for them; they are not secrets."
+                + (f" Problems: {'; '.join(azure_problems)}" if azure_problems else "")
+            )
 
-    if not categories:
-        profile = profile_payload(repo_path, None)
+    result_extra: dict[str, Any] = {}
+    if categories:
+        retry_with["categories"] = list(categories)
+    else:
+        missing.append("categories")
+        why.append(
+            "arxiv.categories decides what gets collected at all. The cs.LG/cs.CL "
+            "default fits an ML repository and no other; on the wrong field it is the "
+            "difference between a digest and noise."
+        )
+        retry_with["categories"] = ["<arXiv category ids for this repo's field>"]
+        result_extra["repo_profile"] = profile_payload(repo_path, None)
+
+    if missing:
         return {
             "status": "needs_input",
-            "missing": ["categories"],
-            "why": (
-                "arxiv.categories decides what gets collected at all. The cs.LG/cs.CL "
-                "default fits an ML repository and no other; on the wrong field it is the "
-                "difference between a digest and noise."
-            ),
-            "repo_profile": profile,
-            "retry": {
-                "tool": "setup_repo",
-                "with": {"categories": ["<arXiv category ids for this repo's field>"]},
-            },
+            "missing": missing,
+            "why": " ".join(why),
+            **result_extra,
+            "retry": {"tool": "setup_repo", "with": retry_with},
         }
+    assert categories  # for the type checker: a missing list returned above
 
     body = measured_config_yaml() if measured else default_config_yaml()
     if _CATEGORIES_LINE not in body:  # pragma: no cover - template drift guard

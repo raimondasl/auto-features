@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 import platform
-import shutil
 import subprocess
 from dataclasses import dataclass
+
+from reporadar.executables import find_on_path
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ def _detect_platform() -> str:
 
 def _build_command(config_path: str) -> str:
     """Construct the command string for a scheduled run."""
-    rr = shutil.which("rr") or "rr"
+    rr = find_on_path("rr") or "rr"
     return f"{rr} update --config {config_path} && {rr} digest --config {config_path}"
 
 

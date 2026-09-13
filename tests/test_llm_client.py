@@ -279,7 +279,7 @@ class TestTheOpenAIProvider:
         cfg = SimpleNamespace(provider="openai", openai_model="gpt-4o-mini", timeout=5)
         with patch("urllib.request.urlopen", return_value=self._ok()) as m:
             complete("prompt", cfg)
-        assert m.call_args[0][0].headers["Authorization"] == "Bearer from-env"
+        assert m.call_args[0][0].get_header("Authorization") == "Bearer from-env"
 
     def test_no_key_anywhere_is_a_config_error_not_a_request(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -490,7 +490,7 @@ class TestTheAzureOpenAIProvider:
             assert complete("prompt", _azure_cfg()) == "hi"
         req = m.call_args[0][0]
         assert req.full_url == "https://myres.openai.azure.com/openai/v1/chat/completions"
-        assert req.headers["Authorization"] == "Bearer entra", "the token, never an OpenAI key"
+        assert req.get_header("Authorization") == "Bearer entra", "the token, never an OpenAI key"
         body = json.loads(req.data)
         assert body["model"] == "gpt-5.6-luna", "the DEPLOYMENT name goes in `model`"
         assert body["reasoning_effort"] == "none"
@@ -690,10 +690,194 @@ class TestA429IsGivenTheWaitItAsksFor:
     def test_retry_after_seconds_is_obeyed(self) -> None:
         assert self._sleeps({"retry-after": "3"}) == [3.0]
 
-    def test_an_absurd_wait_is_capped(self) -> None:
-        from reporadar.llm_client import RETRY_AFTER_CAP_SECONDS
+    def test_a_quota_sized_wait_fails_the_call_at_once_instead_of_sleeping(self) -> None:
+        """An exhausted quota answers `retry after 86400`. Sleeping a capped minute per retry per
+        paper turned a 50-paper gate into 100 silent minutes -- and every paper still failed."""
+        from reporadar.llm_client import LLMRateLimited
 
-        assert self._sleeps({"retry-after": "86400"}) == [RETRY_AFTER_CAP_SECONDS]
+        with (
+            patch(
+                "urllib.request.urlopen", side_effect=[_http(429, headers={"retry-after": "86400"})]
+            ),
+            patch("reporadar.llm_client.time.sleep") as sleep,
+            pytest.raises(LLMRateLimited, match="86400 s"),
+        ):
+            complete("p", self.CFG)
+        sleep.assert_not_called()
+
+    def test_retries_that_stay_rate_limited_say_so(self) -> None:
+        from reporadar.llm_client import LLMRateLimited
+
+        with (
+            patch("urllib.request.urlopen", side_effect=[_http(429) for _ in range(3)]),
+            patch("reporadar.llm_client.time.sleep"),
+            pytest.raises(LLMRateLimited),
+        ):
+            complete("p", self.CFG)
 
     def test_without_a_header_the_backoff_is_unchanged(self) -> None:
         assert self._sleeps(None) == [0.5]
+
+
+class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
+    """A lapsed `az login`, a missing key or a spent quota fails every paper the same way. Trying
+    each one paid for the same refusal fifty times -- one `az` start-up each -- and told the user
+    only "no scores"."""
+
+    @staticmethod
+    def _papers(n: int) -> list[dict]:
+        return [
+            {"arxiv_id": f"p{i}", "title": "t", "abstract": "a real abstract"} for i in range(n)
+        ]
+
+    def test_the_gate_stops_after_one_unavailable_call(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import triage
+        from reporadar.llm_client import LLMUnavailable
+
+        calls: list[int] = []
+
+        def refuse(*a: object, **k: object) -> tuple[int, str]:
+            calls.append(1)
+            raise LLMUnavailable("Not signed in to Azure. Run `az login` in a terminal.")
+
+        monkeypatch.setattr(triage, "score_actionability", refuse)
+        with pytest.raises(LLMUnavailable, match="az login"):
+            triage.triage_papers(self._papers(50), MagicMock(), SimpleNamespace(), top_k=50)
+        assert len(calls) == 1
+
+    def test_the_gate_stops_after_a_run_of_rate_limited_papers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import triage
+        from reporadar.llm_client import LLMRateLimited, LLMUnavailable, RateLimitBreaker
+
+        calls: list[int] = []
+
+        def limited(*a: object, **k: object) -> tuple[int, str]:
+            calls.append(1)
+            raise LLMRateLimited("HTTP 429")
+
+        monkeypatch.setattr(triage, "score_actionability", limited)
+        with pytest.raises(LLMUnavailable, match="rate-limited"):
+            triage.triage_papers(self._papers(50), MagicMock(), SimpleNamespace(), top_k=50)
+        assert len(calls) == RateLimitBreaker.LIMIT
+
+    def test_one_rate_limited_paper_is_skipped_not_fatal(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import triage
+        from reporadar.llm_client import LLMRateLimited
+
+        outcomes: list[object] = [
+            LLMRateLimited("429"),
+            (2, "ok"),
+            LLMRateLimited("429"),
+            (3, "ok"),
+        ]
+
+        def score(*a: object, **k: object) -> tuple[int, str]:
+            outcome = outcomes.pop(0)
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome  # type: ignore[return-value]
+
+        monkeypatch.setattr(triage, "score_actionability", score)
+        out = triage.triage_papers(self._papers(4), MagicMock(), SimpleNamespace(), top_k=4)
+        assert sorted(out) == ["p1", "p3"]
+
+    def test_the_fine_scale_stops_the_same_way(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from reporadar import finescale
+        from reporadar.llm_client import LLMUnavailable
+
+        calls: list[int] = []
+
+        def refuse(*a: object, **k: object) -> list:
+            calls.append(1)
+            raise LLMUnavailable("HTTP 403: Cognitive Services OpenAI User")
+
+        monkeypatch.setattr(finescale, "top_logprobs", refuse)
+        with pytest.raises(LLMUnavailable):
+            finescale.score_papers(self._papers(10), MagicMock(), SimpleNamespace())
+        assert len(calls) == 1
+
+    def test_the_fine_scale_warning_names_what_to_check_for_its_provider(self) -> None:
+        from reporadar.pipeline import _finescale_hint
+
+        def cfg(provider: str) -> SimpleNamespace:
+            return SimpleNamespace(
+                triage=SimpleNamespace(finescale=SimpleNamespace(provider=provider))
+            )
+
+        assert "az login" in _finescale_hint(cfg("azure_openai"))
+        assert "OPENAI_API_KEY" not in _finescale_hint(cfg("azure_openai"))
+        assert "OPENAI_API_KEY" in _finescale_hint(cfg("openai"))
+
+
+class TestReviewFindingsOnTheTransport:
+    def test_a_refused_effort_value_is_reported_not_silently_dropped(
+        self, entra: list[str]
+    ) -> None:
+        """ "does not support 'none'" refuses the VALUE. Dropping the parameter ran gpt-5-mini at
+        its default effort, which spent the gate's token cap reasoning and failed every paper with
+        an empty answer nowhere near the cause."""
+        from reporadar import llm_client
+        from reporadar.llm_client import LLMUnavailable
+
+        refused = _400(
+            "Unsupported value: 'reasoning_effort' does not support 'none' with this model. "
+            "Supported values are: 'minimal', 'low', 'medium', and 'high'.",
+            code="unsupported_value",
+        )
+        cfg = _azure_cfg(azure_deployment="gpt-5-mini")
+        with (
+            patch("urllib.request.urlopen", side_effect=[refused]) as m,
+            pytest.raises(LLMUnavailable, match="minimal"),
+        ):
+            complete("p", cfg)
+        assert m.call_count == 1
+        assert not any("gpt-5-mini" in k for k in llm_client._REJECTS_EFFORT)
+
+    @pytest.mark.parametrize("code", [401, 403])
+    def test_a_refused_token_is_forgotten(
+        self, entra: list[str], monkeypatch: pytest.MonkeyPatch, code: int
+    ) -> None:
+        from reporadar import azure_auth
+
+        forgotten: list[str] = []
+        monkeypatch.setattr(azure_auth, "forget", lambda tenant="": forgotten.append(tenant))
+        with patch("urllib.request.urlopen", side_effect=[_http(code)]), pytest.raises(LLMError):
+            complete("p", _azure_cfg(azure_tenant="t.onmicrosoft.com"))
+        assert forgotten == ["t.onmicrosoft.com"]
+
+    def test_the_token_is_not_carried_onto_a_redirect(self, entra: list[str]) -> None:
+        """urllib copies ordinary headers onto a 301/302/303, to any host, even plain http. The
+        endpoint check only guarantees the FIRST hop is Azure."""
+        captured: list[urllib.request.Request] = []
+
+        def capture(req: urllib.request.Request, timeout: float = 0) -> MagicMock:
+            captured.append(req)
+            return _ok()
+
+        with patch("urllib.request.urlopen", side_effect=capture):
+            complete("p", _azure_cfg())
+        req = captured[0]
+        assert req.get_header("Authorization") == "Bearer entra"
+        redirected = urllib.request.HTTPRedirectHandler().redirect_request(
+            req, io.BytesIO(), 302, "Found", {}, "http://evil.example/steal"
+        )
+        assert redirected is not None
+        assert redirected.get_header("Authorization") is None
+
+    def test_a_400_whose_error_is_a_string_is_still_an_llm_error(self, entra: list[str]) -> None:
+        odd = _http(400, {"error": "Bad request"})
+        with patch("urllib.request.urlopen", side_effect=[odd]), pytest.raises(LLMError):
+            complete("p", _azure_cfg())
+
+    def test_an_unknown_fine_scale_provider_sends_nothing_anywhere(self) -> None:
+        from reporadar.llm_client import LLMUnavailable, top_logprobs
+
+        with patch("urllib.request.urlopen") as m, pytest.raises(LLMUnavailable, match="logprobs"):
+            top_logprobs("p", SimpleNamespace(provider="claude", openai_api_key="k", timeout=5))
+        m.assert_not_called()

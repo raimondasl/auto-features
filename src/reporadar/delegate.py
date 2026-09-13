@@ -33,7 +33,6 @@ import importlib.util
 import json
 import os
 import queue
-import shutil
 import subprocess
 import threading
 import time
@@ -41,6 +40,8 @@ from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from reporadar.executables import find_on_path
 
 DISTRIBUTION = "reporadar-papers"
 HEAVY_EXTRA = "hyde"
@@ -128,8 +129,9 @@ def installed_version() -> str | None:
 
 def uvx_executable() -> str | None:
     """The full path to ``uvx``, or None. Resolved rather than passed as a bare name because
-    that is what makes the spawn work the same way on Windows as everywhere else."""
-    return shutil.which("uvx")
+    that is what makes the spawn work the same way on Windows as everywhere else. Never from the
+    working directory, which is the repository: see :mod:`reporadar.executables`."""
+    return find_on_path("uvx")
 
 
 def _enabled() -> bool:

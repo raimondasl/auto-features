@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NoReturn
 from urllib.parse import urlparse
 
 from reporadar.credentials import resolve_api_key
@@ -38,6 +38,43 @@ _NO_KEY = {
 
 class LLMError(Exception):
     """Raised when an LLM call fails (misconfiguration or exhausted retries)."""
+
+
+class LLMUnavailable(LLMError):
+    """A failure every further call would repeat -- no credential, a refused token, a missing
+    deployment. Stages that call once per paper stop on this instead of paying for the same
+    refusal fifty times, and the reason reaches the user as the stage's warning."""
+
+
+class LLMRateLimited(LLMError):
+    """The provider's rate limit or quota refused this call, after any wait it asked for."""
+
+
+class RateLimitBreaker:
+    """Turns a run of rate-limited papers into :class:`LLMUnavailable`.
+
+    One 429 is a paper worth skipping. Several in a row is a quota, and trying each remaining
+    paper spends its retries and waits on an answer already known -- up to minutes per paper with
+    nothing reported, in a tool call a client cancels after 180 s of silence.
+    """
+
+    LIMIT = 3
+
+    def __init__(self) -> None:
+        self.consecutive = 0
+
+    def record(self, exc: Exception | None) -> None:
+        """Note one paper's outcome: None for success. Re-raises what should end the stage."""
+        if isinstance(exc, LLMUnavailable):
+            raise exc
+        if not isinstance(exc, LLMRateLimited):
+            self.consecutive = 0
+            return
+        self.consecutive += 1
+        if self.consecutive >= self.LIMIT:
+            raise LLMUnavailable(
+                f"stopped after {self.consecutive} papers in a row were rate-limited: {exc}"
+            ) from exc
 
 
 def _call_ollama(prompt: str, model: str, url: str, timeout: int) -> str:
@@ -216,8 +253,11 @@ _TOP_LOGPROBS_LIMIT = re.compile(r"top_logprobs.*?less than or equal to (\d+)", 
 
 # A 429 that names its own wait is obeyed, up to this. Azure enforces requests-per-minute over
 # 1-10 s windows and says how long in `retry-after-ms`; the fixed half-second backoff alone spent
-# the gate's retries inside the same window and dropped the paper.
-RETRY_AFTER_CAP_SECONDS = 60.0
+# the gate's retries inside the same window and dropped the paper. A longer wait is not slept
+# through: it is a quota rather than a window, the paper fails at once, and RateLimitBreaker stops
+# the stage when that keeps happening. Sleeping a capped minute per retry per paper had turned a
+# 50-paper gate against an exhausted quota into 100 silent minutes.
+RETRY_AFTER_CAP_SECONDS = 20.0
 
 
 @dataclass(frozen=True)
@@ -233,6 +273,7 @@ class _Target:
     label: str
     bearer: Callable[[], str]
     azure_host: str = ""
+    forget_token: Callable[[], None] | None = None
 
     def key(self, model: str) -> str:
         return f"azure:{self.azure_host}:{model}" if self.azure_host else model
@@ -242,7 +283,7 @@ def _openai_target(cfg: Any, provider: str) -> _Target:
     if provider != "azure_openai":
         api_key = resolve_api_key("openai", cfg)
         if not api_key:
-            raise LLMError(_NO_KEY["openai"])
+            raise LLMUnavailable(_NO_KEY["openai"])
         return _Target(_OPENAI_URL, "OpenAI", lambda: api_key)
 
     from reporadar import azure_auth
@@ -253,16 +294,22 @@ def _openai_target(cfg: Any, provider: str) -> _Target:
         url = azure_auth.chat_completions_url(getattr(cfg, "azure_endpoint", ""))
         tenant = azure_auth.validate_tenant(getattr(cfg, "azure_tenant", ""))
     except azure_auth.AzureAuthError as exc:
-        raise LLMError(str(exc)) from None
+        raise LLMUnavailable(str(exc)) from None
     host = urlparse(url).hostname or ""
 
     def bearer() -> str:
         try:
             return azure_auth.get_token(tenant)
         except azure_auth.AzureAuthError as exc:
-            raise LLMError(str(exc)) from None
+            raise LLMUnavailable(str(exc)) from None
 
-    return _Target(url, f"Azure OpenAI ({host})", bearer, azure_host=host)
+    return _Target(
+        url,
+        f"Azure OpenAI ({host})",
+        bearer,
+        azure_host=host,
+        forget_token=lambda: azure_auth.forget(tenant),
+    )
 
 
 def _model_for(cfg: Any, target: _Target, section: str) -> str:
@@ -271,7 +318,7 @@ def _model_for(cfg: Any, target: _Target, section: str) -> str:
         return str(getattr(cfg, "openai_model", "gpt-4o-mini"))
     deployment = str(getattr(cfg, "azure_deployment", "") or "").strip()
     if not deployment:
-        raise LLMError(
+        raise LLMUnavailable(
             f"No Azure OpenAI deployment. Set {section}.azure_deployment to the deployment name "
             f"you chose in Azure — not the model name; Azure sends it as `model`."
         )
@@ -354,6 +401,17 @@ def _post_adaptive(target: _Target, body: dict[str, Any], timeout: int) -> dict[
             elif "temperature" in detail and "temperature" in body:
                 _REJECTS_TEMPERATURE.add(key)
             elif "reasoning_effort" in detail and "reasoning_effort" in body:
+                if _refuses_value(detail):
+                    # The parameter is supported and this VALUE is not ("does not support 'none'
+                    # with this model"). Dropping it would silently run the model at its default
+                    # effort -- medium on gpt-5-mini, which spends the gate's small token cap on
+                    # reasoning and fails every paper with an empty answer far from the cause.
+                    raise LLMUnavailable(
+                        f"{target.label} refused reasoning_effort {body['reasoning_effort']!r} "
+                        f"for {body['model']!r}. Set suggestions.openai_reasoning_effort (the "
+                        f"gate) or triage.finescale.reasoning_effort to a value it lists: "
+                        f"{detail[:300]}"
+                    ) from exc
                 _REJECTS_EFFORT.add(key)
             elif limit and int(body.get("top_logprobs", 0)) > int(limit.group(1)):
                 _TOP_LOGPROBS_CAP[key] = int(limit.group(1))
@@ -361,6 +419,17 @@ def _post_adaptive(target: _Target, body: dict[str, Any], timeout: int) -> dict[
                 raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
             _apply_learned(body, key)
     return _post_json(target, body, timeout)
+
+
+def _refuses_value(detail: str) -> bool:
+    """Whether a 400 refuses a parameter's value rather than the parameter itself."""
+    try:
+        error = json.loads(detail).get("error")
+    except (ValueError, AttributeError):
+        error = None
+    if isinstance(error, dict) and error.get("code") in ("unsupported_value", "invalid_value"):
+        return True
+    return "Unsupported value" in detail or "does not support" in detail
 
 
 def _apply_learned(body: dict[str, Any], key: str) -> None:
@@ -379,15 +448,20 @@ def _post_json(target: _Target, body: dict[str, Any], timeout: int) -> dict[str,
     req = urllib.request.Request(
         target.url,
         data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {target.bearer()}"},
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
+    # Unredirected: urllib copies ordinary headers onto a redirect, to whatever host and scheme
+    # the Location names. The endpoint check guarantees only the first hop is Azure.
+    req.add_unredirected_header("Authorization", f"Bearer {target.bearer()}")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         if target.azure_host and exc.code in (401, 403, 404):
-            raise LLMError(_azure_refusal(exc, target, str(body.get("model")))) from exc
+            if exc.code in (401, 403) and target.forget_token is not None:
+                target.forget_token()  # so signing in again takes effect without a restart
+            raise LLMUnavailable(_azure_refusal(exc, target, str(body.get("model")))) from exc
         raise
     return data if isinstance(data, dict) else {}
 
@@ -421,6 +495,8 @@ def _is_content_filter(detail: str) -> bool:
     try:
         error = json.loads(detail).get("error") or {}
     except (ValueError, AttributeError):
+        return '"content_filter"' in detail
+    if not isinstance(error, dict):
         return '"content_filter"' in detail
     inner = error.get("innererror") or error.get("inner_error") or {}
     return error.get("code") == "content_filter" or (
@@ -507,7 +583,13 @@ def top_logprobs(
         prompt = redact(prompt, compile_patterns(list(patterns)))
 
     provider = str(getattr(cfg, "provider", "") or "openai")
-    target = _openai_target(cfg, "azure_openai" if provider == "azure_openai" else "openai")
+    if provider not in ("openai", "azure_openai"):
+        # Not quietly OpenAI: a key would go to a vendor the config never named.
+        raise LLMUnavailable(
+            f"triage.finescale.provider {provider!r} cannot return logprobs; use openai or "
+            f"azure_openai."
+        )
+    target = _openai_target(cfg, provider)
     model = _model_for(cfg, target, "triage.finescale")
     timeout = getattr(cfg, "timeout", 30)
     effort = str(getattr(cfg, "reasoning_effort", "") or "")
@@ -523,16 +605,20 @@ def top_logprobs(
             if exc.code != 429 and exc.code < 500:
                 raise LLMError(f"{target.label} HTTP {exc.code}: {exc}") from exc
             last = exc
-            delay = _retry_after(exc)
+            delay = _retry_after(exc, target.label)
         except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
             last = exc
         if attempt < max_retries:
             time.sleep(max(0.5 * (2**attempt), delay))
-    raise LLMError(f"{target.label} logprob call failed after {max_retries + 1} attempts: {last}")
+    _raise_exhausted(f"{target.label} logprob call", max_retries, last)
 
 
-def _retry_after(exc: urllib.error.HTTPError) -> float:
-    """Seconds a 429/5xx asks us to wait, from `retry-after-ms` or `retry-after`; 0 if unsaid."""
+def _retry_after(exc: urllib.error.HTTPError, label: str = "LLM") -> float:
+    """Seconds a 429/5xx asks us to wait, from `retry-after-ms` or `retry-after`; 0 if unsaid.
+
+    Raises :class:`LLMRateLimited` for a wait longer than RETRY_AFTER_CAP_SECONDS rather than
+    sleeping any of it.
+    """
     headers = exc.headers
     if headers is None:
         return 0.0
@@ -544,8 +630,20 @@ def _retry_after(exc: urllib.error.HTTPError) -> float:
             seconds = float(raw) * scale
         except (TypeError, ValueError):
             continue
-        return min(max(seconds, 0.0), RETRY_AFTER_CAP_SECONDS)
+        if seconds > RETRY_AFTER_CAP_SECONDS:
+            raise LLMRateLimited(
+                f"{label} is rate-limited or out of quota: HTTP {exc.code}, asked to wait "
+                f"{seconds:.0f} s"
+            ) from exc
+        return max(seconds, 0.0)
     return 0.0
+
+
+def _raise_exhausted(what: str, max_retries: int, last: Exception | None) -> NoReturn:
+    message = f"{what} failed after {max_retries + 1} attempts: {last}"
+    if isinstance(last, urllib.error.HTTPError) and last.code == 429:
+        raise LLMRateLimited(message) from last
+    raise LLMError(message) from last
 
 
 def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None = None) -> str:
@@ -554,7 +652,7 @@ def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None
     if provider == "claude":
         api_key = resolve_api_key("claude", cfg)
         if not api_key:
-            raise LLMError(_NO_KEY["claude"])
+            raise LLMUnavailable(_NO_KEY["claude"])
         model = getattr(cfg, "claude_model", "claude-haiku-4-5")
         return _call_claude(prompt, api_key, model, timeout, max_tokens, cache_split_on)
     if provider in ("openai", "azure_openai"):
@@ -617,4 +715,4 @@ def complete(
             last = exc
         if attempt < max_retries:
             time.sleep(max(base_delay * (2**attempt), delay))
-    raise LLMError(f"LLM call failed after {max_retries + 1} attempts: {last}")
+    _raise_exhausted("LLM call", max_retries, last)

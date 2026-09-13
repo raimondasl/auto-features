@@ -36,7 +36,7 @@ import re
 from typing import Any
 
 from reporadar.evidence import partition_by_evidence
-from reporadar.llm_client import LLMError, top_logprobs
+from reporadar.llm_client import LLMError, RateLimitBreaker, top_logprobs
 from reporadar.profiler import RepoProfile
 from reporadar.triage import repo_context_block
 
@@ -134,9 +134,11 @@ def score_papers(
     A paper whose call fails is **omitted**, never scored 0 — the same rule the 0-3 gate
     follows, and for the same reason: "could not judge" and "judged not useful" must not
     be the same value downstream. The caller decides what an omission means; see
-    :func:`enough_scored`.
+    :func:`enough_scored`. A failure that would repeat for every paper raises
+    :class:`~reporadar.llm_client.LLMUnavailable` instead, as :func:`triage_papers` does.
     """
     out: dict[str, dict[str, float]] = {}
+    breaker = RateLimitBreaker()
     scoreable, skipped = partition_by_evidence(list(papers))
     if skipped:
         # Same guard as the gate's, and it should almost never fire here: the band this
@@ -151,8 +153,10 @@ def score_papers(
         try:
             expectation, p = score_paper(paper, profile, llm_cfg, summary)
         except (LLMError, ValueError, KeyError, TypeError) as exc:
+            breaker.record(exc)
             logger.warning("Fine-scale scoring failed for %s: %s", arxiv_id, exc)
             continue
+        breaker.record(None)
         out[arxiv_id] = {"finescale": expectation, "finescale_p": p}
     return out
 

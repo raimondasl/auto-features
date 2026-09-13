@@ -24,16 +24,19 @@ Two properties are security-relevant, not tidiness:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
-import shutil
+import signal
 import subprocess
 import sys
 import threading
 import time
 from typing import Any
 from urllib.parse import urlparse
+
+from reporadar.executables import find_on_path
 
 AUDIENCE = "https://cognitiveservices.azure.com"
 
@@ -55,12 +58,17 @@ REFRESH_MARGIN_SECONDS = 300
 # token fetch is paid once per ~hour, and a false timeout costs the whole gate.
 AZ_TIMEOUT_SECONDS = 60
 
+# How long a failed fetch is answered from memory. Long enough for the callers queued behind it;
+# shorter than anyone takes to switch to a terminal and complete `az login`.
+FAILURE_TTL_SECONDS = 15.0
+
 _LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?")
 _TENANT = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,252}[A-Za-z0-9])?")
 _ALLOWED_PATHS = ("", "/openai", "/openai/v1")
 
 _lock = threading.Lock()
 _cache: dict[str, tuple[str, float]] = {}
+_failures: dict[str, tuple[str, float]] = {}  # tenant -> (message, monotonic deadline)
 
 
 class AzureAuthError(Exception):
@@ -81,8 +89,14 @@ def chat_completions_url(endpoint: str) -> str:
             "No Azure OpenAI endpoint. Set azure_openai.endpoint in .reporadar.yml to your "
             "resource URL, e.g. https://<resource>.openai.azure.com"
         )
-    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
-    host = (parsed.hostname or "").lower()
+    try:
+        parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+        host = (parsed.hostname or "").lower()
+    except ValueError:  # "Invalid IPv6 URL" -- raised, not reported, by urlparse
+        raise AzureAuthError(
+            f"Refusing Azure OpenAI endpoint {raw!r}: it is not a URL. Tokens are only sent to "
+            f"Azure resource hosts."
+        ) from None
     suffix = next((s for s in ALLOWED_HOST_SUFFIXES if host.endswith(s)), None)
     label = host[: -len(suffix)] if suffix else ""
     problems = []
@@ -126,31 +140,60 @@ def validate_tenant(tenant: str) -> str:
 
 
 def az_executable() -> str | None:
-    """The Azure CLI, found the way azure-identity finds it. On Windows `az` is `az.cmd`."""
+    """The Azure CLI, as an absolute path. On Windows `az` is `az.cmd`.
+
+    Never looked up in the working directory, which is the repository being profiled: on Windows
+    ``shutil.which`` searches there first, and a committed ``az.exe`` would receive the call and
+    the token it returns. See :mod:`reporadar.executables`.
+    """
     if sys.platform == "win32":
-        return shutil.which("az.cmd") or shutil.which("az")
-    return shutil.which("az")
+        return find_on_path("az.cmd") or find_on_path("az")
+    return find_on_path("az")
 
 
 def get_token(tenant: str = "") -> str:
     """An Entra access token for Azure OpenAI, cached until shortly before it expires.
 
     Held under a lock across the `az` call itself: fifty gate calls arriving while the first token
-    is being fetched should wait for that one fetch, not start fifty `az` processes.
+    is being fetched should wait for that one fetch, not start fifty `az` processes. A failure is
+    remembered for :data:`FAILURE_TTL_SECONDS` for the same reason -- callers queued behind a
+    fetch that failed get its answer rather than each paying for another -- and no longer, so a
+    user who has just run `az login` is not told to run it again.
     """
     key = validate_tenant(tenant)
     with _lock:
         cached = _cache.get(key)
         if cached is not None and cached[1] - REFRESH_MARGIN_SECONDS > time.time():
             return cached[0]
-        token, expires_at = _fetch(key)
+        failed = _failures.get(key)
+        if failed is not None and failed[1] > time.monotonic():
+            raise AzureAuthError(failed[0])
+        try:
+            token, expires_at = _fetch(key)
+        except AzureAuthError as exc:
+            _failures[key] = (str(exc), time.monotonic() + FAILURE_TTL_SECONDS)
+            raise
+        _failures.pop(key, None)
         _cache[key] = (token, expires_at)
         return token
+
+
+def forget(tenant: str = "") -> None:
+    """Drop *tenant*'s cached token, so the next call asks `az` again.
+
+    For a token Azure refused. A long-lived server would otherwise keep sending it for up to an
+    hour after the user fixed the cause -- signed in to the right account, or into the tenant
+    that holds the resource -- which is exactly what the refusal message tells them to do.
+    """
+    with _lock:
+        _cache.pop((tenant or "").strip(), None)
+        _failures.pop((tenant or "").strip(), None)
 
 
 def clear_cache() -> None:
     with _lock:
         _cache.clear()
+        _failures.clear()
 
 
 def _fetch(tenant: str) -> tuple[str, float]:
@@ -165,21 +208,7 @@ def _fetch(tenant: str) -> tuple[str, float]:
     if tenant:
         command += ["--tenant", tenant]
     try:
-        done = subprocess.run(
-            command,
-            # Never the caller's stdin. Under the MCP server that is the editor's JSON-RPC pipe,
-            # and a child sharing it deadlocks on Windows (see reporadar.delegate).
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=AZ_TIMEOUT_SECONDS,
-            env={**os.environ, "AZURE_CORE_NO_COLOR": "true"},
-            # Not the repository: a command lookup relative to the working directory must never
-            # find something the repository put there.
-            cwd=os.environ.get("SYSTEMROOT") if sys.platform == "win32" else "/",
-        )
+        done = _run(command, timeout=AZ_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         raise AzureAuthError(
             f"`az account get-access-token` did not answer within {AZ_TIMEOUT_SECONDS} s."
@@ -198,6 +227,63 @@ def _fetch(tenant: str) -> tuple[str, float]:
     if not token:
         raise AzureAuthError("The Azure CLI returned an empty token.")
     return token, _expires_at(data)
+
+
+def _run(command: list[str], *, timeout: float) -> subprocess.CompletedProcess[str]:
+    """Run *command* to completion, or kill it and everything it started after *timeout*.
+
+    Not ``subprocess.run(timeout=)``: that kills only the process it started, and `az` is a
+    wrapper -- ``az.cmd`` runs ``python.exe`` through ``cmd.exe`` on Windows, a shell script runs
+    it elsewhere -- whose child inherits the output pipes. ``run`` then waits, with no timeout at
+    all, for pipes the surviving child still holds, so a stalled `az` stalled RepoRadar for as
+    long as it liked, under a lock every other Azure call was queued on.
+    """
+    windows = sys.platform == "win32"
+    process = subprocess.Popen(
+        command,
+        # Never the caller's stdin. Under the MCP server that is the editor's JSON-RPC pipe, and a
+        # child sharing it deadlocks on Windows (see reporadar.delegate).
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env={**os.environ, "AZURE_CORE_NO_COLOR": "true"},
+        # Not the repository, so nothing `az` itself looks up relative to its working directory
+        # comes from there. (The program path is already absolute: see az_executable.)
+        cwd=os.environ.get("SYSTEMROOT") if windows else "/",
+        start_new_session=not windows,
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_tree(process)
+        with contextlib.suppress(subprocess.TimeoutExpired, OSError, ValueError):
+            process.communicate(timeout=5)  # reap; a child that still holds a pipe is abandoned
+        raise
+    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
+def _kill_tree(process: subprocess.Popen[str]) -> None:
+    if sys.platform == "win32":
+        # By absolute path, for the reason az_executable is. `/T` takes the children with it,
+        # which only works while the parent is still alive -- so before `kill`, not after.
+        taskkill = os.path.join(
+            os.environ.get("SYSTEMROOT", r"C:\Windows"), "System32", "taskkill.exe"
+        )
+        with contextlib.suppress(OSError, subprocess.SubprocessError):
+            subprocess.run(
+                [taskkill, "/T", "/F", "/PID", str(process.pid)],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                timeout=10,
+            )
+    else:
+        with contextlib.suppress(OSError):
+            os.killpg(process.pid, signal.SIGKILL)
+    with contextlib.suppress(OSError):
+        process.kill()
 
 
 def _expires_at(data: dict[str, Any]) -> float:

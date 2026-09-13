@@ -126,7 +126,9 @@ class TestEveryGateDecisionUsesTheOneList:
         cfg.suggestions.provider = provider
         assert stages._gate_on(cfg)
 
-    @pytest.mark.parametrize("module", ["pipeline.py", "stages.py", "config.py"])
+    @pytest.mark.parametrize(
+        "module", ["pipeline.py", "stages.py", "config.py", "suggestions.py", "cli.py"]
+    )
     def test_no_gate_decision_keeps_its_own_provider_list(self, module: str) -> None:
         source = "\n".join(
             line
@@ -213,6 +215,89 @@ class TestSetupAsksForWhatItCannotInfer:
         result = _setup(tmp_path, azure_endpoint=ENDPOINT, azure_deployment="x\n  provider: claude")
         assert result["status"] == "needs_input"
         assert not (tmp_path / ".reporadar.yml").exists()
+
+
+class TestSetupRetriesKeepWhatTheCallerSaid:
+    """An agent follows `retry.with` literally. The categories retry used to carry only
+    categories, so following it wrote an OpenAI gate on a machine with no OpenAI key, and
+    setup_repo then refused to change the config it had just written."""
+
+    @pytest.mark.usefixtures("token_ok")
+    def test_following_the_categories_retry_still_configures_azure(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import reporadar.mcp_server as mcp_server
+
+        monkeypatch.setattr(mcp_server, "profile_payload", lambda *a, **k: {"keywords": []})
+        repo = _repo(tmp_path)
+        first = setup_repo_action(
+            repo,
+            repo / ".reporadar.yml",
+            provider="azure_openai",
+            azure_endpoint=ENDPOINT,
+            azure_deployment="gate",
+        )
+        assert first["status"] == "needs_input"
+        assert first["missing"] == ["categories"]
+        assert "repo_profile" in first
+        retry = dict(first["retry"]["with"])
+        assert retry["provider"] == "azure_openai"
+        assert retry["azure_endpoint"] == ENDPOINT
+        assert retry["azure_deployment"] == "gate"
+        retry["categories"] = ["cs.SE"]
+        retry.pop("azure_finescale_deployment")  # the optional placeholder, left unset
+        second = setup_repo_action(repo, repo / ".reporadar.yml", **retry)
+        assert second["status"] == "ok"
+        assert load_config(repo / ".reporadar.yml").suggestions.provider == "azure_openai"
+
+    def test_missing_azure_values_and_categories_are_asked_for_together(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import reporadar.mcp_server as mcp_server
+
+        monkeypatch.setattr(mcp_server, "profile_payload", lambda *a, **k: {"keywords": []})
+        repo = _repo(tmp_path)
+        result = setup_repo_action(
+            repo, repo / ".reporadar.yml", provider="azure_openai", azure_endpoint=ENDPOINT
+        )
+        assert set(result["missing"]) == {"azure_deployment", "categories"}
+        assert "repo_profile" in result
+        assert result["retry"]["with"]["azure_endpoint"] == ENDPOINT
+        assert "categories" in result["retry"]["with"]
+
+    def test_an_unmeasured_azure_setup_is_refused_not_silently_ignored(
+        self, tmp_path: Path
+    ) -> None:
+        """measured=False writes a config with no gate; it used to drop every Azure argument and
+        then tell the user to run `rr auth --provider azure_openai`, which does not exist."""
+        repo = _repo(tmp_path)
+        result = setup_repo_action(
+            repo,
+            repo / ".reporadar.yml",
+            categories=["cs.SE"],
+            measured=False,
+            provider="azure_openai",
+            azure_endpoint=ENDPOINT,
+            azure_deployment="gate",
+        )
+        assert result["status"] == "error"
+        assert not (repo / ".reporadar.yml").exists()
+
+    @pytest.mark.usefixtures("token_ok")
+    @pytest.mark.parametrize("name", ["123", "true", "null", "0x1F", "1_000"])
+    def test_a_deployment_name_yaml_would_retype_still_loads_as_that_name(
+        self, tmp_path: Path, name: str
+    ) -> None:
+        result = _setup(
+            tmp_path,
+            azure_endpoint=ENDPOINT,
+            azure_deployment=name,
+            azure_finescale_deployment=name,
+        )
+        assert result["status"] == "ok"
+        cfg = load_config(tmp_path / ".reporadar.yml")
+        assert cfg.suggestions.azure_deployment == name
+        assert cfg.triage.finescale.azure_deployment == name
 
 
 class TestSetupWritesAWorkingKeylessConfig:

@@ -9,7 +9,9 @@ must never smuggle anything into the `az` command line, which on Windows runs th
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 import time
 from typing import Any
 
@@ -63,6 +65,7 @@ class TestOnlyAzureHostsCanReceiveATokenRequest:
             "https://myres.openai.azure.com/?next=https://attacker.net",  # query
             "https://eastus.api.cognitive.microsoft.com",  # regional: rejects Entra anyway
             "https://myres.openai.azure.com#frag",
+            "https://[myres.openai.azure.com",  # urlparse raises rather than reports this
         ],
     )
     def test_anything_else_is_refused_before_it_can_become_a_request(self, endpoint: str) -> None:
@@ -107,7 +110,7 @@ class TestTheTenantCannotReachTheCommandLineAsAnythingButATenant:
 
 @pytest.fixture
 def real_fetch(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
-    """The real `_fetch`, with `subprocess.run` recorded instead of executed."""
+    """The real `_fetch`; each test replaces `_run`, so no process is started."""
     monkeypatch.setattr(azure_auth, "_fetch", _REAL_FETCH)
     monkeypatch.setattr(azure_auth, "az_executable", lambda: "/usr/bin/az")
     calls: list[dict[str, Any]] = []
@@ -134,7 +137,7 @@ class TestGettingAToken:
             seen["cmd"], seen["kwargs"] = cmd, kwargs
             return _completed(_token_json())
 
-        monkeypatch.setattr(azure_auth.subprocess, "run", run)
+        monkeypatch.setattr(azure_auth, "_run", run)
         assert azure_auth.get_token() == "tok"
         assert seen["cmd"][1:] == [
             "account",
@@ -145,19 +148,16 @@ class TestGettingAToken:
             "json",
         ]
 
-    def test_az_never_shares_the_callers_stdin(
+    def test_az_is_given_a_generous_timeout(
         self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Under the MCP server stdin is the editor's JSON-RPC pipe, and a child that inherits
-        it deadlocks on Windows — the 1.0.5 hang, which this module must not reintroduce."""
         seen: dict[str, Any] = {}
         monkeypatch.setattr(
-            azure_auth.subprocess,
-            "run",
+            azure_auth,
+            "_run",
             lambda cmd, **kw: seen.update(kw) or _completed(_token_json()),
         )
         azure_auth.get_token()
-        assert seen["stdin"] is subprocess.DEVNULL
         assert seen["timeout"] >= 30, "az can take 10-15 s; a short timeout drops the gate"
 
     def test_a_tenant_is_passed_as_its_own_argument(
@@ -165,8 +165,8 @@ class TestGettingAToken:
     ) -> None:
         seen: dict[str, Any] = {}
         monkeypatch.setattr(
-            azure_auth.subprocess,
-            "run",
+            azure_auth,
+            "_run",
             lambda cmd, **kw: seen.update(cmd=cmd) or _completed(_token_json()),
         )
         azure_auth.get_token("contoso.onmicrosoft.com")
@@ -176,7 +176,7 @@ class TestGettingAToken:
         self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         ran: list[Any] = []
-        monkeypatch.setattr(azure_auth.subprocess, "run", lambda *a, **k: ran.append(a))
+        monkeypatch.setattr(azure_auth, "_run", lambda *a, **k: ran.append(a))
         with pytest.raises(AzureAuthError):
             azure_auth.get_token("x & calc")
         assert not ran
@@ -187,8 +187,8 @@ class TestGettingAToken:
         """The gate makes up to 50 calls, and `az` can take 15 s each time."""
         runs: list[int] = []
         monkeypatch.setattr(
-            azure_auth.subprocess,
-            "run",
+            azure_auth,
+            "_run",
             lambda *a, **k: runs.append(1) or _completed(_token_json(f"t{len(runs)}")),
         )
         assert [azure_auth.get_token() for _ in range(5)] == ["t1"] * 5
@@ -199,8 +199,8 @@ class TestGettingAToken:
     ) -> None:
         expiring = [azure_auth.REFRESH_MARGIN_SECONDS - 10, 3600]
         monkeypatch.setattr(
-            azure_auth.subprocess,
-            "run",
+            azure_auth,
+            "_run",
             lambda *a, **k: _completed(_token_json(f"t{len(expiring)}", expiring.pop(0))),
         )
         assert azure_auth.get_token() == "t2"
@@ -210,8 +210,8 @@ class TestGettingAToken:
         self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(
-            azure_auth.subprocess,
-            "run",
+            azure_auth,
+            "_run",
             lambda cmd, **k: _completed(_token_json("tenant-b" if "--tenant" in cmd else "home")),
         )
         assert azure_auth.get_token() == "home"
@@ -222,7 +222,7 @@ class TestGettingAToken:
     ) -> None:
         """Older CLIs return only `expiresOn`, a naive LOCAL time; trusting it is a tz bug."""
         body = json.dumps({"accessToken": "tok", "expiresOn": "2099-01-01 00:00:00.000000"})
-        monkeypatch.setattr(azure_auth.subprocess, "run", lambda *a, **k: _completed(body))
+        monkeypatch.setattr(azure_auth, "_run", lambda *a, **k: _completed(body))
         azure_auth.get_token()
         _, expires_at = azure_auth._cache[""]
         assert expires_at - time.time() < 3600
@@ -259,9 +259,7 @@ class TestFailuresSayWhatToDo:
         tenant: str,
         expected: str,
     ) -> None:
-        monkeypatch.setattr(
-            azure_auth.subprocess, "run", lambda *a, **k: _completed(stderr=stderr, code=1)
-        )
+        monkeypatch.setattr(azure_auth, "_run", lambda *a, **k: _completed(stderr=stderr, code=1))
         with pytest.raises(AzureAuthError, match=expected.replace("`", ".")):
             azure_auth.get_token(tenant)
 
@@ -271,16 +269,111 @@ class TestFailuresSayWhatToDo:
         def run(*a: Any, **k: Any) -> Any:
             raise subprocess.TimeoutExpired(cmd="az", timeout=60)
 
-        monkeypatch.setattr(azure_auth.subprocess, "run", run)
+        monkeypatch.setattr(azure_auth, "_run", run)
         with pytest.raises(AzureAuthError, match="did not answer"):
             azure_auth.get_token()
 
     def test_unreadable_output_is_an_error_not_an_empty_token(
         self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(azure_auth.subprocess, "run", lambda *a, **k: _completed("not json"))
+        monkeypatch.setattr(azure_auth, "_run", lambda *a, **k: _completed("not json"))
         with pytest.raises(AzureAuthError, match="could not read"):
             azure_auth.get_token()
+
+
+class TestFailuresAndRefusalsAreNotRepeated:
+    def test_a_failed_fetch_answers_the_callers_right_behind_it(
+        self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A lapsed `az login` used to start one `az` per gate paper -- fifty CLI start-ups, each
+        failing with the same message."""
+        runs: list[int] = []
+        monkeypatch.setattr(
+            azure_auth,
+            "_run",
+            lambda *a, **k: runs.append(1) or _completed(stderr="Please run 'az login'", code=1),
+        )
+        for _ in range(5):
+            with pytest.raises(AzureAuthError, match="az login"):
+                azure_auth.get_token()
+        assert len(runs) == 1
+
+    def test_a_remembered_failure_expires_so_signing_in_takes_effect(
+        self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        answers = [_completed(stderr="Please run 'az login'", code=1), _completed(_token_json())]
+        monkeypatch.setattr(azure_auth, "_run", lambda *a, **k: answers.pop(0))
+        monkeypatch.setattr(azure_auth, "FAILURE_TTL_SECONDS", 0.0)
+        with pytest.raises(AzureAuthError):
+            azure_auth.get_token()
+        assert azure_auth.get_token() == "tok"
+        assert azure_auth.FAILURE_TTL_SECONDS < 60, "longer than a user takes to run az login"
+
+    def test_forget_makes_the_next_call_ask_az_again(
+        self, real_fetch: list, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """For a token Azure refused: after `az login` as the right account, a long-lived server
+        must not keep sending the old one for an hour."""
+        tokens = ["old", "new"]
+        monkeypatch.setattr(
+            azure_auth, "_run", lambda *a, **k: _completed(_token_json(tokens.pop(0)))
+        )
+        assert azure_auth.get_token("t.onmicrosoft.com") == "old"
+        azure_auth.forget("t.onmicrosoft.com")
+        assert azure_auth.get_token("t.onmicrosoft.com") == "new"
+
+
+class TestTheCliIsNeverTakenFromTheRepository:
+    def test_a_planted_az_in_the_working_directory_is_not_found(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The review's reproduction: `shutil.which` on Windows searched the working directory
+        first, returned `.\\az.cmd.COM`, and CreateProcess ran the repository's binary."""
+        for name in ("az", "az.exe", "az.cmd", "az.cmd.com", "az.cmd.exe", "az.bat"):
+            planted = tmp_path / name
+            planted.write_text("", encoding="utf-8")
+            planted.chmod(0o755)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("NoDefaultCurrentDirectoryInExePath", raising=False)
+        monkeypatch.setenv("PATH", os.pathsep.join(["", ".", "bin"]))
+        assert azure_auth.az_executable() is None
+
+    def test_what_it_finds_is_an_absolute_path(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        bindir = tmp_path / "cli"
+        bindir.mkdir()
+        real = bindir / ("az.cmd" if sys.platform == "win32" else "az")
+        real.write_text("", encoding="utf-8")
+        real.chmod(0o755)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PATH", os.pathsep.join([".", str(bindir)]))
+        found = azure_auth.az_executable()
+        assert found is not None and os.path.isabs(found)
+        assert os.path.samefile(found, real)
+
+
+class TestRunningAz:
+    """`_run` against real, harmless child processes -- never the Azure CLI."""
+
+    def test_the_child_never_shares_the_callers_stdin(self) -> None:
+        """Under the MCP server stdin is the editor's JSON-RPC pipe, and a child that inherits
+        it deadlocks on Windows — the 1.0.5 hang, which this module must not reintroduce."""
+        done = azure_auth._run(
+            [sys.executable, "-c", "import sys; print(repr(sys.stdin.read()))"], timeout=30
+        )
+        assert done.returncode == 0
+        assert done.stdout.strip() == "''"
+
+    def test_a_timeout_kills_the_grandchild_that_holds_the_pipes(self) -> None:
+        """`az.cmd` runs python through cmd.exe. `subprocess.run` killed only the wrapper and then
+        waited, with no timeout, on pipes the surviving python still held."""
+        grandchild = "import time; time.sleep(60)"
+        wrapper = f"import subprocess, sys; subprocess.run([sys.executable, '-c', {grandchild!r}])"
+        started = time.monotonic()
+        with pytest.raises(subprocess.TimeoutExpired):
+            azure_auth._run([sys.executable, "-c", wrapper], timeout=2)
+        assert time.monotonic() - started < 30
 
 
 def test_the_suite_cannot_reach_the_real_azure_cli() -> None:

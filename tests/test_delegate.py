@@ -661,4 +661,6 @@ class TestThisEnvironment:
         assert isinstance(delegate.hyde_importable(), bool)
 
     def test_uvx_is_resolved_to_a_path_when_present(self) -> None:
-        assert delegate.uvx_executable() == shutil.which("uvx")
+        from reporadar.executables import find_on_path
+
+        assert delegate.uvx_executable() == find_on_path("uvx")
