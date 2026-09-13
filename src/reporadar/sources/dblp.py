@@ -33,6 +33,7 @@ from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any
 
+from reporadar import __version__
 from reporadar.paper_id import dedup_id, doi_key
 
 logger = logging.getLogger(__name__)
@@ -118,7 +119,7 @@ def _request_json(url: str, max_retries: int = 3, base_delay: float = 5.0) -> An
     headers = {
         "Accept": "application/json",
         # Identify the client rather than sending the default python-urllib agent.
-        "User-Agent": "RepoRadar/1.0 (+https://github.com/raimondasl/auto-features)",
+        "User-Agent": f"RepoRadar/{__version__} (+https://github.com/raimondasl/auto-features)",
     }
     for attempt in range(max_retries):
         try:
