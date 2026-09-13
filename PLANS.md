@@ -77,7 +77,8 @@ when something overtakes it.
 neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for)
 and item 15 (the plugin's setup wall, which gates whether item 11's bet pays at all), then
 item 7 (product work). Item 16 (collection that works where progress never reaches the user) is
-planned but queued behind all of these. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
+planned but queued behind all of these. Item 17 (keyless Azure OpenAI via Entra ID) is being
+implemented now, at the maintainer's direction. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
 negative; item 5's remainder is conditional on a proposal that has not appeared.
 
 **Read NR-52 before spending anything on the net@2 ladder.** `evals/RESEARCH-net2-directions.md`
@@ -1181,6 +1182,73 @@ well past standalone Copilot CLI's 180 s window, even though that client sends t
 
 **Worth filing upstream:** VS Code's MCP Gateway forwards neither progress nor cancellation to the
 backing server.
+
+### 17. Keyless Azure OpenAI (Microsoft Entra ID via `az login`) — PROBED 2026-09-13, implementing
+
+**The question:** can the plugin use Azure OpenAI through Entra ID with no API keys, assuming the
+user has run `az login`, and what would the user have to supply?
+
+**Yes, and it is a transport change rather than a new client.** Every OpenAI call goes through two
+functions in `llm_client.py` that hard-code `https://api.openai.com/v1/chat/completions` and a
+Bearer key. Azure's v1 API takes the same body at `{endpoint}/openai/v1/chat/completions`, with an
+Entra token in the same header — no API version, no SDK.
+
+**Established live** against a test resource with key authentication disabled, in a Visual Studio
+subscription (kept for implementation testing):
+
+| question | answer |
+|---|---|
+| keyless auth | works: a token from `az account get-access-token`. **Both** audiences (`cognitiveservices.azure.com`, `ai.azure.com`) were accepted on `*.openai.azure.com`, `*.services.ai.azure.com`, and the undocumented `*.cognitiveservices.azure.com` |
+| RepoRadar's real gate request, gpt-5.6-luna, effort `none` | works. Azure's `max_tokens` rejection matches the existing retry rule verbatim; `temperature: 0` was then accepted, which OpenAI's own API refuses for this model |
+| content filter on a real gate prompt (README profile + abstract) | annotations present, nothing flagged — one sample |
+| fine-scale on gpt-4.1-mini, RepoRadar's exact request | works, 20 alternatives. Legacy lifecycle; retires 2027-04-14 |
+| fine-scale on gpt-5.6-luna, effort `none` | **returns logprobs, although Azure's docs say it does not** — only with `top_logprobs` ≤ 5 and `max_completion_tokens` |
+| gpt-4o-mini, the measured fine-scale model | **cannot be deployed**: Azure blocks new deployments of Deprecating models |
+| gpt-chat-latest (preview) | rejected `max_tokens`, then `temperature: 0`; logprobs never reached |
+
+**From source research** (Microsoft Learn, the REST specs, azure-identity, openai-python), each
+claim re-derived by an independent reading:
+
+- `model` is the **deployment name** the user chose, not the model name, and a mismatch is a 404.
+  On the test subscription an existing deployment named `gpt-4o` runs gpt-5.1.
+- The data-plane role is Cognitive Services OpenAI User (or Foundry User / Cognitive Services User).
+  **Owner and Contributor are not enough** — they carry no data actions. Confirmed on the test
+  account, which held only Owner.
+- Entra tokens need a custom-subdomain endpoint; regional `*.api.cognitive.microsoft.com` endpoints
+  reject them.
+- `az account get-access-token` can take 10–15 s on some CLI versions, so tokens must be cached until
+  `expires_on`. An editor launched from the GUI may not see a newly installed `az` until restarted.
+- Default content filtering includes Prompt Shields on prompts. A blocked prompt is HTTP 400
+  `content_filter`; a blocked completion is HTTP 200 with `finish_reason: content_filter` and no
+  content.
+- Requests-per-minute are enforced over 1–10 s windows; 429s carry `retry-after-ms`.
+
+**What the user supplies:** the endpoint; a deployment for the gate and HyDE; a logprobs-capable
+deployment for the fine-scale rescore; a tenant only when the resource is outside `az`'s active
+tenant. Not a key, and not an API version. **Outside RepoRadar:** `az login`, and the data-plane role.
+
+**The implementation plan:**
+
+1. **Transport.** An Azure target: `{endpoint}/openai/v1/chat/completions`, with an Entra token from
+   `az` — resolved the way azure-identity resolves it, run with its own empty stdin, cached until
+   expiry. Tokens go only to `https` hosts under `openai.azure.com`, `services.ai.azure.com` or
+   `cognitiveservices.azure.com`: `.reporadar.yml` is committed, and an endpoint written into
+   someone else's repository must not be able to receive the user's token.
+2. **The fine-scale request gets the adaptive retry the gate already has,** plus a `top_logprobs` cap
+   learned from the error. It currently sends `max_tokens`, `temperature: 0` and `top_logprobs: 20`
+   with no retry, so it would also fail on reasoning models on OpenAI's own API.
+3. **Content-filter outcomes are reported as such,** never scored as a rejection.
+4. Configuration, `rr doctor` checks (`az` present, token obtainable, 401/403 explained in terms of
+   the role), `setup_repo` support, and docs.
+
+**Calibration is the cost that remains.** The rescore's probability map and threshold were fitted to
+gpt-4o-mini, which can no longer be deployed on Azure. On gpt-4.1-mini or gpt-5.6-luna the stage
+runs uncalibrated — on the same prompt luna put 0.97 on one digit where gpt-4.1-mini split 0.5/0.5 —
+so no published number describes it until it is re-measured. And luna returning logprobs is
+undocumented behaviour that could be withdrawn.
+
+**Not in the first pass:** the GitHub Action, where Entra means OIDC federation rather than
+`az login`; and discovering endpoints or deployments automatically.
 
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 
