@@ -35,6 +35,7 @@ from reporadar.collector import (
     collect_papers,
     to_plain_keywords,
 )
+from reporadar.config import LLM_PROVIDERS
 from reporadar.llm_client import LLMError
 from reporadar.paper_id import dedup_id as _dedup_id
 from reporadar.profiler import profile_repo
@@ -774,7 +775,7 @@ def _triage(
     # 8c. LLM actionability triage (Feature 6) — score the top papers for
     # whether they could genuinely improve THIS repo, so the digest can gate
     # its Top Picks on applicability instead of the raw heuristic score.
-    if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude", "openai"):
+    if cfg.triage.enabled and cfg.suggestions.provider in LLM_PROVIDERS:
         report.info(f"Triaging top {cfg.triage.top_k} papers for actionable relevance...")
         try:
             from reporadar.evidence import partition_by_evidence

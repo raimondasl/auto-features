@@ -32,6 +32,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from reporadar.config import LLM_PROVIDERS
+
 # Entry points that build a candidate pool and rank it. `rr digest` is not one — it reads
 # scores a run already produced.
 UPDATE = "update"
@@ -63,7 +65,7 @@ class Stage:
 
 def _gate_on(cfg: Any) -> bool:
     """The gate needs BOTH fields — `triage.enabled` alone is a no-op that prints one line."""
-    return bool(cfg.triage.enabled) and cfg.suggestions.provider in ("ollama", "claude")
+    return bool(cfg.triage.enabled) and cfg.suggestions.provider in LLM_PROVIDERS
 
 
 # Ordered by how much the measurement record says each one is worth, so a truncated

@@ -61,6 +61,36 @@ def _no_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _no_azure_cli(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """No test fetches a real Entra token.
+
+    `azure_auth` runs `az account get-access-token`, and on a developer machine that CLI is
+    signed in to a real tenant: a test that forgot to mock it would reach Microsoft with the
+    developer's identity. Same verdict-at-teardown shape as `_no_network`, because the transport
+    turns a token failure into an `LLMError` that callers routinely swallow. The token cache is
+    cleared on both sides so no test sees another's token. Tests of the fetch itself restore it
+    and mock `subprocess.run` instead.
+    """
+    from reporadar import azure_auth
+
+    attempted: list[str] = []
+
+    def _blocked(tenant: str) -> tuple[str, float]:
+        attempted.append(tenant or "<default tenant>")
+        raise azure_auth.AzureAuthError("the Azure CLI is blocked in tests")
+
+    azure_auth.clear_cache()
+    monkeypatch.setattr(azure_auth, "_fetch", _blocked)
+    yield
+    azure_auth.clear_cache()
+    if attempted:
+        raise AssertionError(
+            f"test tried to fetch {len(attempted)} real Entra token(s). Patch "
+            "reporadar.azure_auth.get_token (or subprocess.run for the fetch itself)."
+        )
+
+
+@pytest.fixture(autouse=True)
 def _no_arxiv_throttle_sleep() -> Iterator[None]:
     """Drop the arXiv politeness interval to 0 for the suite.
 

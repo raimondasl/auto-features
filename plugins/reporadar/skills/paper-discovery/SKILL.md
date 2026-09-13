@@ -115,6 +115,16 @@ naming the call to retry; it is not an error, and reporting it as one strands th
 
   If `update_corpus` warns that the gate did not run, this is almost always why. Say what it
   costs — the digest you are looking at is the −11 configuration, not the +5.72 one.
+
+  **Azure OpenAI needs no key at all.** If the user has Azure OpenAI, the user signs in with
+  `az login` themselves, and you call `setup_repo` with `provider="azure_openai"`,
+  `azure_endpoint` (`https://<resource>.openai.azure.com`) and `azure_deployment` — the
+  **deployment name chosen in Azure, not the model name** — plus optionally
+  `azure_finescale_deployment` (one that returns logprobs) and `azure_tenant`. Ask the user for
+  these; they are not secrets, and no reading of the repository can supply them. If calls fail
+  with 403, their account lacks **Cognitive Services OpenAI User** on the resource — Owner or
+  Contributor alone are refused — and only they or an administrator can grant it. On Azure the
+  fine-scale rescore runs uncalibrated; say so if it comes up.
 - **No dense index** — the one step that is still a command, because 1.1 GB does not belong
   inside a tool call. Skipping it costs **−1.36 net@2**, and it is the *only* retrieval channel
   for 15 of 48 benchmark targets, including every repository with no arXiv bibliography. The

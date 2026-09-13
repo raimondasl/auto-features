@@ -74,6 +74,14 @@ def _source_enabled(name: str) -> Any:
     return lambda cfg: name in getattr(cfg, "sources", [])
 
 
+def _llm_service_active(cfg: Any, provider: str) -> bool:
+    """Whether the gate or the fine-scale rescore sends prompts to *provider*."""
+    if getattr(cfg.suggestions, "provider", "template") == provider:
+        return True
+    finescale = cfg.triage.finescale
+    return bool(finescale.enabled) and (getattr(finescale, "provider", "") or "openai") == provider
+
+
 DESTINATIONS: tuple[Destination, ...] = (
     Destination(
         module="collector",
@@ -234,6 +242,49 @@ DESTINATIONS: tuple[Destination, ...] = (
         sensitivity=NONE,
         enabled_by="suggestions.provider: ollama",
         active=lambda cfg: getattr(cfg.suggestions, "provider", "template") == "ollama",
+    ),
+    # OpenAI was missing from this registry entirely, although the gate can run on it and the
+    # fine-scale rescore always did: `rr audit` never told anyone their README and abstracts went
+    # to api.openai.com. The module guard could not see the gap, because `llm_client` was already
+    # declared under the Anthropic row -- it checks modules, not services.
+    Destination(
+        module="llm_client",
+        service="OpenAI",
+        endpoint="api.openai.com/v1/chat/completions",
+        sends=(
+            "your repo's libraries and key topics, AND up to profiler.prose_chars "
+            "characters of your README, TOGETHER WITH paper abstracts, in every prompt"
+        ),
+        sensitivity=REPO_AND_CONTENT,
+        enabled_by=(
+            "suggestions.provider: openai (the gate), or triage.finescale.enabled with provider "
+            "openai (the rescore); set profiler.prose_chars: 0 to withhold the README"
+        ),
+        active=lambda cfg: _llm_service_active(cfg, "openai"),
+    ),
+    Destination(
+        module="llm_client",
+        service="Azure OpenAI (your resource)",
+        endpoint="azure_openai.endpoint, at /openai/v1/chat/completions",
+        sends=(
+            "the same prompts as OpenAI above, to the Azure resource you configured, "
+            "authenticated with an Entra token from `az login` rather than a key"
+        ),
+        sensitivity=REPO_AND_CONTENT,
+        enabled_by=(
+            "suggestions.provider: azure_openai, or triage.finescale.provider: azure_openai; "
+            "set profiler.prose_chars: 0 to withhold the README"
+        ),
+        active=lambda cfg: _llm_service_active(cfg, "azure_openai"),
+    ),
+    Destination(
+        module="azure_auth",
+        service="Microsoft Entra ID (via the Azure CLI)",
+        endpoint="`az account get-access-token`, i.e. login.microsoftonline.com",
+        sends="a token request for the Azure Cognitive Services audience; nothing from your repo",
+        sensitivity=NONE,
+        enabled_by="the same settings as Azure OpenAI above",
+        active=lambda cfg: _llm_service_active(cfg, "azure_openai"),
     ),
     Destination(
         module="notify",

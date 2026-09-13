@@ -77,8 +77,8 @@ when something overtakes it.
 neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for)
 and item 15 (the plugin's setup wall, which gates whether item 11's bet pays at all), then
 item 7 (product work). Item 16 (collection that works where progress never reaches the user) is
-planned but queued behind all of these. Item 17 (keyless Azure OpenAI via Entra ID) is being
-implemented now, at the maintainer's direction. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
+planned but queued behind all of these. Item 17 (keyless Azure OpenAI via Entra ID) has its first
+pass implemented; its open cost is re-measuring the fine-scale rescore on an Azure model. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
 negative; item 5's remainder is conditional on a proposal that has not appeared.
 
 **Read NR-52 before spending anything on the net@2 ladder.** `evals/RESEARCH-net2-directions.md`
@@ -1183,7 +1183,7 @@ well past standalone Copilot CLI's 180 s window, even though that client sends t
 **Worth filing upstream:** VS Code's MCP Gateway forwards neither progress nor cancellation to the
 backing server.
 
-### 17. Keyless Azure OpenAI (Microsoft Entra ID via `az login`) — PROBED 2026-09-13, implementing
+### 17. Keyless Azure OpenAI (Microsoft Entra ID via `az login`) — IMPLEMENTED 2026-09-13 (first pass)
 
 **The question:** can the plugin use Azure OpenAI through Entra ID with no API keys, assuming the
 user has run `az login`, and what would the user have to supply?
@@ -1249,6 +1249,31 @@ undocumented behaviour that could be withdrawn.
 
 **Not in the first pass:** the GitHub Action, where Entra means OIDC federation rather than
 `az login`; and discovering endpoints or deployments automatically.
+
+#### What the first pass shipped
+
+The plan above, as `suggestions.provider: azure_openai` with a top-level `azure_openai:` section
+(`reporadar/azure_auth.py` for the token, `llm_client` for the transport), plus two pre-existing
+gaps it had to cross and fixed rather than stepped around:
+
+- **`rr audit` never declared OpenAI.** The privacy registry listed Anthropic and Ollama but not
+  `api.openai.com`, which the OpenAI gate and the fine-scale rescore both reach; its guard checks
+  modules, and `llm_client` was already declared under Anthropic. Now OpenAI, Azure OpenAI and the
+  Entra token request are all declared.
+- **The stage registry did not count an OpenAI gate as a gate** — the same one-list-many-copies
+  drift that once let `rr doctor` certify a gate the pipeline skipped. Every gate decision now reads
+  one `LLM_PROVIDERS`, and a test fails if a module spells the list out again.
+
+The fine-scale request's new adaptive retry is not Azure-specific: it also makes the rescore work on
+reasoning models on OpenAI's own API, where it previously could not run.
+
+**Verified live through the product code** against the test resource, not only in unit tests:
+`setup_repo` wrote a config that validated clean; the gate scored the probe's paper 2 on
+gpt-5.6-luna; the rescore ran on gpt-4.1-mini **after the adaptive retry dropped the
+`reasoning_effort` the Azure template sets, which that model refused** — without the retry the
+stage would fail on every non-reasoning deployment — and on gpt-5.6-luna after it learned both
+`max_completion_tokens` and the `top_logprobs` cap of 5; a wrong deployment name returned the 404
+guidance; `rr doctor` and `rr audit` reported the setup correctly; one `az` token served every call.
 
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 

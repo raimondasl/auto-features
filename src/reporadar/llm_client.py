@@ -1,4 +1,4 @@
-"""Shared LLM transport for Ollama and the Anthropic Messages API.
+"""Shared LLM transport for Ollama, the Anthropic Messages API, OpenAI and Azure OpenAI.
 
 A single ``complete(prompt, cfg)`` entry point used by every LLM-backed feature
 (suggestions, triage/reranking). Retries transient failures with backoff and
@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 from reporadar.credentials import resolve_api_key
 
@@ -196,16 +200,94 @@ def _post_claude(body: dict[str, Any], api_key: str, timeout: int) -> str:
     return "\n".join(parts)
 
 
+_OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+
+# More request-shape facts learned from a model's own 400, like `_REJECTS_TEMPERATURE` and
+# `_TOKEN_CAP` above. Measured 2026-09-13 on Azure (PLANS item 17): gpt-5.6-luna returns logprobs
+# at `reasoning_effort: none` -- despite Azure's docs -- but refuses `top_logprobs` above 5 with
+# "must be less than or equal to 5", and a non-reasoning model can refuse `reasoning_effort`.
+#
+# Keyed by `_Target.key(model)`: the bare model name for OpenAI, exactly as before, and
+# resource-qualified for Azure. The same name behaves differently on the two -- gpt-5.6-luna
+# refuses `temperature: 0` on OpenAI and accepted it on Azure -- so one must not teach the other.
+_REJECTS_EFFORT: set[str] = set()
+_TOP_LOGPROBS_CAP: dict[str, int] = {}
+_TOP_LOGPROBS_LIMIT = re.compile(r"top_logprobs.*?less than or equal to (\d+)", re.I | re.S)
+
+# A 429 that names its own wait is obeyed, up to this. Azure enforces requests-per-minute over
+# 1-10 s windows and says how long in `retry-after-ms`; the fixed half-second backoff alone spent
+# the gate's retries inside the same window and dropped the paper.
+RETRY_AFTER_CAP_SECONDS = 60.0
+
+
+@dataclass(frozen=True)
+class _Target:
+    """Where an OpenAI-shaped Chat Completions request goes, and how it authenticates.
+
+    OpenAI and Azure OpenAI take the same body and the same `Authorization: Bearer` header; they
+    differ only in the URL and in what the bearer is -- a stored key, or an Entra token from
+    `az login`. So the gate and the fine-scale rescore share one transport, not two copies.
+    """
+
+    url: str
+    label: str
+    bearer: Callable[[], str]
+    azure_host: str = ""
+
+    def key(self, model: str) -> str:
+        return f"azure:{self.azure_host}:{model}" if self.azure_host else model
+
+
+def _openai_target(cfg: Any, provider: str) -> _Target:
+    if provider != "azure_openai":
+        api_key = resolve_api_key("openai", cfg)
+        if not api_key:
+            raise LLMError(_NO_KEY["openai"])
+        return _Target(_OPENAI_URL, "OpenAI", lambda: api_key)
+
+    from reporadar import azure_auth
+
+    try:
+        # Validated before anything else happens, so a refused endpoint never costs a token fetch
+        # and never becomes a request.
+        url = azure_auth.chat_completions_url(getattr(cfg, "azure_endpoint", ""))
+        tenant = azure_auth.validate_tenant(getattr(cfg, "azure_tenant", ""))
+    except azure_auth.AzureAuthError as exc:
+        raise LLMError(str(exc)) from None
+    host = urlparse(url).hostname or ""
+
+    def bearer() -> str:
+        try:
+            return azure_auth.get_token(tenant)
+        except azure_auth.AzureAuthError as exc:
+            raise LLMError(str(exc)) from None
+
+    return _Target(url, f"Azure OpenAI ({host})", bearer, azure_host=host)
+
+
+def _model_for(cfg: Any, target: _Target, section: str) -> str:
+    """The `model` field: a deployment name on Azure, a model name on OpenAI."""
+    if not target.azure_host:
+        return str(getattr(cfg, "openai_model", "gpt-4o-mini"))
+    deployment = str(getattr(cfg, "azure_deployment", "") or "").strip()
+    if not deployment:
+        raise LLMError(
+            f"No Azure OpenAI deployment. Set {section}.azure_deployment to the deployment name "
+            f"you chose in Azure — not the model name; Azure sends it as `model`."
+        )
+    return deployment
+
+
 def _call_openai(
     prompt: str,
-    api_key: str,
+    target: _Target,
     model: str,
     timeout: int,
     max_tokens: int,
     cache_split_on: str | None = None,
     effort: str = "",
 ) -> str:
-    """One OpenAI chat completion, returning the message text.
+    """One OpenAI-shaped chat completion, returning the message text.
 
     The gate and the triage stage needed a Claude key until this existed, while the fine-scale
     rescore needed an OpenAI one — so a working installation required two accounts from two
@@ -221,22 +303,36 @@ def _call_openai(
     Claude path does — the reasoning models refuse the parameter and the rejection is
     remembered per process rather than paid for on every call.
     """
-    body: dict[str, Any] = {"model": model, "messages": [{"role": "user", "content": prompt}]}
-    body[_TOKEN_CAP.get(model, "max_tokens")] = max_tokens
-    if model not in _REJECTS_TEMPERATURE:
-        body["temperature"] = 0
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0,
+    }
     if effort:
         body["reasoning_effort"] = effort
+    return _message_text(_post_adaptive(target, body, timeout), target)
 
-    # Up to two adaptations, each learned from the message the API actually returned and
-    # remembered for the process. Measured 2026-09-07 against gpt-5.6-luna: `max_tokens` is
-    # refused outright ("use 'max_completion_tokens' instead") and `temperature: 0` is refused
-    # separately ("only the default (1) value is supported"), so a single retry that pops one
-    # of them still fails on the other. Guessing the modern shape by model-name prefix would
-    # be worse: it hard-codes a naming convention this API has already changed once.
-    for _ in range(2):
+
+def _post_adaptive(target: _Target, body: dict[str, Any], timeout: int) -> dict[str, Any]:
+    """POST *body*, adapting it to whatever this model refuses; return the parsed response.
+
+    Each adaptation is learned from the message the API actually returned and remembered for the
+    process. Measured 2026-09-07 against gpt-5.6-luna: `max_tokens` is refused outright ("use
+    'max_completion_tokens' instead") and `temperature: 0` is refused separately ("only the
+    default (1) value is supported"), so a single retry that pops one of them still fails on the
+    other. Guessing the modern shape by model-name prefix would be worse: it hard-codes a naming
+    convention this API has already changed once.
+
+    Shared by the gate and the fine-scale rescore. The rescore used to send `max_tokens`,
+    `temperature: 0` and `top_logprobs: 20` with no retry at all, so it failed on any reasoning
+    model -- on OpenAI's own API as much as on Azure.
+    """
+    key = target.key(str(body["model"]))
+    _apply_learned(body, key)
+    for _ in range(4):  # at most one adaptation of each kind
         try:
-            return _post_openai(body, api_key, timeout)
+            return _post_json(target, body, timeout)
         except urllib.error.HTTPError as exc:
             if exc.code != 400:
                 raise
@@ -244,40 +340,113 @@ def _call_openai(
                 detail = exc.read().decode("utf-8", "replace")
             except Exception:  # noqa: BLE001 -- an unreadable body is just an unknown 400
                 raise exc from None
+            if _is_content_filter(detail):
+                # Not a parameter problem and not transient: the same prompt is blocked again.
+                # Said as what it is, so a thin digest can be traced to a filter rather than read
+                # as the model's judgement.
+                raise LLMError(
+                    f"{target.label}'s content filter blocked this prompt, so the paper was not "
+                    f"scored: {detail[:200]}"
+                ) from exc
+            limit = _TOP_LOGPROBS_LIMIT.search(detail)
             if "max_tokens" in detail and "max_tokens" in body:
-                _TOKEN_CAP[model] = "max_completion_tokens"
-                body["max_completion_tokens"] = body.pop("max_tokens")
+                _TOKEN_CAP[key] = "max_completion_tokens"
             elif "temperature" in detail and "temperature" in body:
-                _REJECTS_TEMPERATURE.add(model)
-                body.pop("temperature")
+                _REJECTS_TEMPERATURE.add(key)
+            elif "reasoning_effort" in detail and "reasoning_effort" in body:
+                _REJECTS_EFFORT.add(key)
+            elif limit and int(body.get("top_logprobs", 0)) > int(limit.group(1)):
+                _TOP_LOGPROBS_CAP[key] = int(limit.group(1))
             else:
                 raise LLMError(f"LLM HTTP 400: {detail[:200]}") from exc
-    return _post_openai(body, api_key, timeout)
+            _apply_learned(body, key)
+    return _post_json(target, body, timeout)
 
 
-def _post_openai(body: dict[str, Any], api_key: str, timeout: int) -> str:
+def _apply_learned(body: dict[str, Any], key: str) -> None:
+    if _TOKEN_CAP.get(key) == "max_completion_tokens" and "max_tokens" in body:
+        body["max_completion_tokens"] = body.pop("max_tokens")
+    if key in _REJECTS_TEMPERATURE:
+        body.pop("temperature", None)
+    if key in _REJECTS_EFFORT:
+        body.pop("reasoning_effort", None)
+    cap = _TOP_LOGPROBS_CAP.get(key)
+    if cap is not None and int(body.get("top_logprobs", 0)) > cap:
+        body["top_logprobs"] = cap
+
+
+def _post_json(target: _Target, body: dict[str, Any], timeout: int) -> dict[str, Any]:
     req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
+        target.url,
         data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {target.bearer()}"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if target.azure_host and exc.code in (401, 403, 404):
+            raise LLMError(_azure_refusal(exc, target, str(body.get("model")))) from exc
+        raise
+    return data if isinstance(data, dict) else {}
+
+
+def _azure_refusal(exc: urllib.error.HTTPError, target: _Target, deployment: str) -> str:
+    """The three Azure refusals a keyless setup actually hits, each in terms of its fix."""
+    try:
+        detail = exc.read().decode("utf-8", "replace")[:200]
+    except Exception:  # noqa: BLE001
+        detail = ""
+    if exc.code == 403:
+        why = (
+            "your account has no data-plane role on this resource. Grant it 'Cognitive Services "
+            "OpenAI User' — Owner and Contributor are not enough, they carry no data actions. A "
+            "new assignment can take about 5 minutes to apply."
+        )
+    elif exc.code == 401:
+        why = (
+            "the Entra token was refused. If the resource is in another tenant, set "
+            "azure_openai.tenant and run `az login --tenant <tenant>`."
+        )
+    else:
+        why = (
+            f"there is no deployment named {deployment!r} on this resource. azure_deployment is "
+            f"the name you gave the deployment in Azure, not the model's name."
+        )
+    return f"{target.label} HTTP {exc.code}: {why} ({detail})"
+
+
+def _is_content_filter(detail: str) -> bool:
+    try:
+        error = json.loads(detail).get("error") or {}
+    except (ValueError, AttributeError):
+        return '"content_filter"' in detail
+    inner = error.get("innererror") or error.get("inner_error") or {}
+    return error.get("code") == "content_filter" or (
+        isinstance(inner, dict) and inner.get("code") == "ResponsibleAIPolicyViolation"
+    )
+
+
+def _message_text(data: dict[str, Any], target: _Target) -> str:
     choices = data.get("choices") or []
     if not choices:
-        raise LLMError("OpenAI returned no choices")
+        raise LLMError(f"{target.label} returned no choices")
+    finish = choices[0].get("finish_reason")
+    if finish == "content_filter":
+        raise LLMError(
+            f"{target.label}'s content filter withheld the answer, so the paper was not scored."
+        )
     # An empty string is a real answer to nothing, and the callers parse JSON out of this.
     # Returning it would surface as a parse error somewhere far from the cause.
     text = (choices[0].get("message") or {}).get("content") or ""
     if not text.strip():
-        finish = choices[0].get("finish_reason", "?")
-        raise LLMError(f"OpenAI returned an empty message (finish_reason={finish})")
+        raise LLMError(f"{target.label} returned an empty message (finish_reason={finish or '?'})")
     return str(text)
 
 
 def _call_openai_top_logprobs(
-    prompt: str, api_key: str, model: str, timeout: int, top_k: int
+    prompt: str, target: _Target, model: str, timeout: int, top_k: int, effort: str = ""
 ) -> list[tuple[str, float]]:
     """Return ``[(token, probability)]`` alternatives at the answer's FIRST token.
 
@@ -285,35 +454,34 @@ def _call_openai_top_logprobs(
     *distribution* rather than the sampled score — reading the expectation over the
     digit tokens is what turns a near-binary gate into a continuous one
     (see reporadar/finescale.py and evals/RESULTS.md). Anthropic's API exposes no
-    logprobs, so this path is OpenAI-only.
+    logprobs, so this path is OpenAI-shaped only: OpenAI, or Azure OpenAI.
 
     Deliberately urllib rather than the ``openai`` SDK: nothing else in the shipped
     package needs that dependency, and the request is one POST.
     """
-    payload = json.dumps(
-        {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 4,
-            "temperature": 0,
-            "logprobs": True,
-            "top_logprobs": top_k,
-        }
-    ).encode("utf-8")
-    req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
-        data=payload,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 4,
+        "temperature": 0,
+        "logprobs": True,
+        "top_logprobs": top_k,
+    }
+    if effort:
+        body["reasoning_effort"] = effort
+    data = _post_adaptive(target, body, timeout)
     choices = data.get("choices") or []
     if not choices:
-        raise LLMError("OpenAI returned no choices")
+        raise LLMError(f"{target.label} returned no choices")
+    if choices[0].get("finish_reason") == "content_filter":
+        raise LLMError(
+            f"{target.label}'s content filter withheld the answer, so the paper was not scored."
+        )
     content = (choices[0].get("logprobs") or {}).get("content") or []
     if not content:
-        raise LLMError("OpenAI returned no logprobs (model or account may not support them)")
+        raise LLMError(
+            f"{target.label} returned no logprobs (model or account may not support them)"
+        )
     return [
         (alt.get("token", ""), math.exp(alt["logprob"]))
         for alt in content[0].get("top_logprobs", [])
@@ -324,11 +492,12 @@ def _call_openai_top_logprobs(
 def top_logprobs(
     prompt: str, cfg: Any, *, top_k: int = 20, max_retries: int = 2
 ) -> list[tuple[str, float]]:
-    """First-token ``[(token, probability)]`` alternatives from an OpenAI model.
+    """First-token ``[(token, probability)]`` alternatives from an OpenAI-shaped model.
 
     *cfg* needs ``openai_api_key`` (or ``OPENAI_API_KEY`` in the environment),
-    ``openai_model`` and ``timeout``. Raises :class:`LLMError` on failure — never
-    returns an empty list to mean "no signal", because a caller that cannot tell
+    ``openai_model`` and ``timeout`` -- or, with ``provider: azure_openai``, the mirrored
+    ``azure_endpoint``/``azure_tenant`` and an ``azure_deployment``. Raises :class:`LLMError` on
+    failure — never returns an empty list to mean "no signal", because a caller that cannot tell
     those apart would score a failed call as a confident zero.
     """
     patterns = getattr(cfg, "redact", None)
@@ -337,27 +506,46 @@ def top_logprobs(
 
         prompt = redact(prompt, compile_patterns(list(patterns)))
 
-    api_key = resolve_api_key("openai", cfg)
-    if not api_key:
-        raise LLMError(_NO_KEY["openai"])
-    model = getattr(cfg, "openai_model", "gpt-4o-mini")
+    provider = str(getattr(cfg, "provider", "") or "openai")
+    target = _openai_target(cfg, "azure_openai" if provider == "azure_openai" else "openai")
+    model = _model_for(cfg, target, "triage.finescale")
     timeout = getattr(cfg, "timeout", 30)
+    effort = str(getattr(cfg, "reasoning_effort", "") or "")
 
     last: Exception | None = None
     for attempt in range(max_retries + 1):
+        delay = 0.0
         try:
-            return _call_openai_top_logprobs(prompt, api_key, model, timeout, top_k)
+            return _call_openai_top_logprobs(prompt, target, model, timeout, top_k, effort)
         except LLMError:
             raise
         except urllib.error.HTTPError as exc:
             if exc.code != 429 and exc.code < 500:
-                raise LLMError(f"OpenAI HTTP {exc.code}: {exc}") from exc
+                raise LLMError(f"{target.label} HTTP {exc.code}: {exc}") from exc
             last = exc
+            delay = _retry_after(exc)
         except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
             last = exc
         if attempt < max_retries:
-            time.sleep(0.5 * (2**attempt))
-    raise LLMError(f"OpenAI logprob call failed after {max_retries + 1} attempts: {last}")
+            time.sleep(max(0.5 * (2**attempt), delay))
+    raise LLMError(f"{target.label} logprob call failed after {max_retries + 1} attempts: {last}")
+
+
+def _retry_after(exc: urllib.error.HTTPError) -> float:
+    """Seconds a 429/5xx asks us to wait, from `retry-after-ms` or `retry-after`; 0 if unsaid."""
+    headers = exc.headers
+    if headers is None:
+        return 0.0
+    for name, scale in (("retry-after-ms", 0.001), ("retry-after", 1.0)):
+        raw = headers.get(name)
+        if raw is None:
+            continue
+        try:
+            seconds = float(raw) * scale
+        except (TypeError, ValueError):
+            continue
+        return min(max(seconds, 0.0), RETRY_AFTER_CAP_SECONDS)
+    return 0.0
 
 
 def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None = None) -> str:
@@ -369,13 +557,11 @@ def _dispatch(prompt: str, cfg: Any, max_tokens: int, cache_split_on: str | None
             raise LLMError(_NO_KEY["claude"])
         model = getattr(cfg, "claude_model", "claude-haiku-4-5")
         return _call_claude(prompt, api_key, model, timeout, max_tokens, cache_split_on)
-    if provider == "openai":
-        api_key = resolve_api_key("openai", cfg)
-        if not api_key:
-            raise LLMError(_NO_KEY["openai"])
-        model = getattr(cfg, "openai_model", "gpt-4o-mini")
+    if provider in ("openai", "azure_openai"):
+        target = _openai_target(cfg, provider)
+        model = _model_for(cfg, target, "suggestions")
         effort = str(getattr(cfg, "openai_reasoning_effort", "") or "")
-        return _call_openai(prompt, api_key, model, timeout, max_tokens, cache_split_on, effort)
+        return _call_openai(prompt, target, model, timeout, max_tokens, cache_split_on, effort)
     if provider == "ollama":
         url = getattr(cfg, "ollama_url", "http://localhost:11434")
         model = getattr(cfg, "ollama_model", "llama3.2")
@@ -417,6 +603,7 @@ def complete(
 
     last: Exception | None = None
     for attempt in range(max_retries + 1):
+        delay = 0.0
         try:
             return _dispatch(prompt, cfg, max_tokens, cache_split_on)
         except LLMError:
@@ -425,8 +612,9 @@ def complete(
             if exc.code != 429 and exc.code < 500:
                 raise LLMError(f"LLM HTTP {exc.code}: {exc}") from exc
             last = exc
+            delay = _retry_after(exc)
         except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
             last = exc
         if attempt < max_retries:
-            time.sleep(base_delay * (2**attempt))
+            time.sleep(max(base_delay * (2**attempt), delay))
     raise LLMError(f"LLM call failed after {max_retries + 1} attempts: {last}")
