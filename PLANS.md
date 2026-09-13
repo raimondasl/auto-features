@@ -76,7 +76,8 @@ when something overtakes it.
 **Currently first: item 14** (RepoRadar *and* the agent — two arms over 12 of 37 cases,
 neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for)
 and item 15 (the plugin's setup wall, which gates whether item 11's bet pays at all), then
-item 7 (product work). Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
+item 7 (product work). Item 16 (collection that works where progress never reaches the user) is
+planned but queued behind all of these. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
 negative; item 5's remainder is conditional on a proposal that has not appeared.
 
 **Read NR-52 before spending anything on the net@2 ladder.** `evals/RESEARCH-net2-directions.md`
@@ -1109,6 +1110,77 @@ expensive to discover mid-implementation.
 
 **Not building:** MCP tasks, `inputs`/`${input:}`, a job-id + poll pair, or elicitation as a
 required path. Each is either unsupported where we need it or a rewrite we would undo.
+
+*The job-id + poll exclusion rested on progress reaching the user, which is false on one common
+path — see item 16.*
+
+### 16. Collection that does not depend on progress reaching the user — PLANNED 2026-09-13, not started
+
+**Queued behind higher-priority work; do not start it ahead of them.** Filed so the finding and
+its costs are not lost.
+
+**Why.** Item 15 made `update_corpus` one blocking call that heartbeats, on the premise that
+progress keeps the call alive and shows the user what is happening. Checked on 2026-09-13 against
+each client's source, with every claim re-derived by a second, independent reading:
+
+| client path | sends `progressToken` | shows progress | tool-call timeout |
+|---|---|---|---|
+| VS Code, normal Agent chat (main 1.139.0) | yes | yes, live on the tool's row | none |
+| **VS Code → Copilot CLI session** | **no** | **nothing to show** | a client-side limit, not established |
+| Copilot CLI standalone (1.0.83) | yes | yes, in the terminal | 180 s, reset by each progress notification |
+| Claude Code (2.1.270) | yes | yes, until it auto-backgrounds at 120 s | ~28 h hard; 30-min idle watchdog that progress resets |
+
+**The path that breaks it is a Copilot CLI session inside VS Code.** VS Code launches the plugin's
+server and the CLI reaches it through VS Code's MCP Gateway, which calls tools with no progress
+sink (`McpTool.call()`), so the request carries no `progressToken` and FastMCP's
+`report_progress` sends nothing at all. Observed on a real install: the server's parent was
+`Code - Insiders.exe`, both RepoRadar runs were recorded in `~/.copilot/session-state/`, no
+progress was ever shown, and a 1.0.5 call failed client-side with `Request timed out` after
+1,975 s. **The server cannot fix this with progress:** MCP only permits progress notifications
+against a token the client supplied.
+
+**Proposal.** `update_corpus` starts the collection and returns at once; a status tool reports the
+stage, counts, warnings and run id; the agent polls and relays. **Hybrid:** when the `tools/call`
+request carries a `progressToken`, keep today's blocking call with progress — the three paths
+that already work would otherwise get more round trips for nothing — and go async only when it
+does not, which is exactly the gateway case.
+
+**Real-world costs to design against:**
+
+1. **An approval prompt per poll.** On that install the CLI asked for approval on every RepoRadar
+   call; one wait ran 397 s, another 59 minutes before being rejected. Polling multiplies it.
+2. **Agents cannot wait.** Without a sleep primitive they poll in a tight loop (each poll a full
+   model round trip) or end the turn and leave the waiting to the user. The status call should
+   block until something changes, up to ~60 s, to pace them.
+3. **The work outlives the call.** It then depends on a server process the editor controls; a
+   reload or restart kills it silently (and on Windows can orphan the HyDE child). Needs persisted
+   job state so a restarted server says "interrupted", and an interrupted run must never become
+   the "latest" run that `get_ranked_papers` reads.
+4. **Concurrent collections.** A retry, a second chat or a terminal `rr update` can start another.
+   Needs a per-repository single-flight lock with stale-lock recovery.
+5. **Errors arrive only if someone polls.** The status payload must carry warnings and which run
+   it describes, so stale results are never reported as fresh.
+6. **Two behaviours for the skill to explain,** blocking and async.
+7. **More machinery.** Three of the defects found in the dense-discovery work — the stdin
+   deadlock, delegating with no index, the deadline killing only `uvx.exe` — came from its newest
+   machinery, the subprocess delegation, and only surfaced under a real editor. Test under an
+   editor-shaped parent (Node, piped stdio, a read pending) from the first commit, not after.
+
+**Before building, in this order:**
+
+1. Does Copilot CLI (and VS Code) skip approval for a tool annotated `readOnlyHint`? If not, cost 1
+   may be fatal on the path this exists for.
+2. Prototype the hybrid and watch an agent poll in a real Copilot CLI session. The go/no-go is the
+   agent's behaviour, not the code.
+3. Optional confirmation of the premise: with the RepoRadar MCP output channel at Trace, the
+   `[editor -> server] tools/call` line on the gateway path shows no `_meta.progressToken`.
+
+**Independent, smaller, and worth doing regardless:** in-process collection has no heartbeat —
+only the delegated path does. arXiv's throttle backoff can stay silent for its whole 900 s budget,
+well past standalone Copilot CLI's 180 s window, even though that client sends tokens.
+
+**Worth filing upstream:** VS Code's MCP Gateway forwards neither progress nor cancellation to the
+backing server.
 
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 
