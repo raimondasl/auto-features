@@ -76,8 +76,9 @@ az login
 
 Then tell the agent to set up RepoRadar on Azure and give it three things, none of them secret:
 
-- the **endpoint**, copied from the resource's page in the Azure portal as it is — both
-  `https://<resource>.openai.azure.com` and `https://<resource>.cognitiveservices.azure.com` work;
+- the **endpoint**, copied from the resource's page in the Azure portal as it is — the
+  `.openai.azure.com`, `.cognitiveservices.azure.com` and `.services.ai.azure.com` forms all
+  work, so whichever one the portal shows you is the right one;
 - the **deployment** for the gate — the *deployment* name you chose in Azure, not the model's
   name, because a deployment named `gpt-4o` can run any model;
 - optionally a **fine-scale deployment**, one that returns logprobs.

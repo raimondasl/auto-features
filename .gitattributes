@@ -1,0 +1,23 @@
+# Text files are LF in the repository AND in the working tree, on every platform.
+#
+# Without this, a Windows checkout (core.autocrlf=true) gives every file CRLF endings, and a
+# wheel built there ships CRLF while one built on Linux ships LF -- the same release, byte
+# different, depending on who ran `uv build`. Nothing breaks at run time; it just makes the
+# artifact impossible to reproduce or compare. `eol=lf` rather than bare `text=auto` because
+# only the explicit form settles the WORKING TREE, which is what the build reads.
+* text=auto eol=lf
+
+# Binary, whatever the content sniffer thinks.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.db binary
+*.sqlite binary
+*.whl binary
+*.gz binary
+*.zip binary
+*.parquet binary
+*.npy binary
+*.safetensors binary

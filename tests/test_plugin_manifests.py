@@ -107,6 +107,20 @@ class TestTheManifestsAgreeWithWhatTheyPointAt:
         plugin_version = _load(PLUGIN)["version"]
         assert entry_version == plugin_version
 
+        # Every version field in BOTH copies, not just the plugin entry in one of them: the
+        # release bumps four numbers across two files a marketplace reads, and until this
+        # checked `metadata.version` a copy could stay behind with every gate green.
+        for path in (MARKETPLACE, CLAUDE_MARKETPLACE):
+            data = _load(path)
+            assert data["metadata"]["version"] == plugin_version, (
+                f"{path.name} metadata.version is {data['metadata']['version']} but the plugin "
+                f"manifest says {plugin_version}"
+            )
+            assert data["plugins"][0]["version"] == plugin_version, (
+                f"{path.name} plugin entry is {data['plugins'][0]['version']} but the plugin "
+                f"manifest says {plugin_version}"
+            )
+
         spec = " ".join(_load(MCP_JSON)["mcpServers"]["reporadar"]["args"])
         pinned = re.search(r"reporadar-papers\[[a-z]+\]==([0-9][^\s\"]*)", spec)
         assert pinned is not None, f"no pinned version found in .mcp.json args: {spec}"
@@ -129,9 +143,12 @@ class TestThePluginReadmeDescribesWhatIsActuallyInstalled:
         pinned = re.search(r"reporadar-papers\[[a-z]+\]==([0-9][^\s\"]*)", spec)
         assert pinned is not None, f"no pinned version in .mcp.json args: {spec}"
 
+        # The extra is optional in this pattern: `rr auth` is quoted as plain
+        # `reporadar-papers==X`, and while the guard required brackets those three lines
+        # could keep a stale version through a release with nothing failing.
         quoted = set(
             re.findall(
-                r"reporadar-papers\[[a-z]+\]==([0-9][0-9.]*)",
+                r"reporadar-papers(?:\[[a-z]+\])?==([0-9][0-9.]*)",
                 self.README.read_text(encoding="utf-8"),
             )
         )
@@ -190,17 +207,26 @@ class TestTheSkillDescribesTheServerItFronts:
         for gap in ("**No API key**", "**No dense index**", "**Default `arxiv.categories`**"):
             assert skill.count(gap) == 1, f"{gap} appears {skill.count(gap)} times"
 
-    def test_the_skill_offers_every_endpoint_form_the_server_accepts(self) -> None:
-        """Parsed, not imported, like `_registered`: a form the server accepts but the skill
-        never mentions is one the agent will ask the user to rewrite into another."""
+    @pytest.mark.parametrize(
+        "doc",
+        [
+            ROOT / "plugins" / "reporadar" / "skills" / "paper-discovery" / "SKILL.md",
+            ROOT / "plugins" / "reporadar" / "README.md",
+        ],
+        ids=["skill", "plugin-readme"],
+    )
+    def test_every_endpoint_form_the_server_accepts_is_offered(self, doc: Path) -> None:
+        """Parsed, not imported, like `_registered`: a form the server accepts but the docs
+        never mention is one a user is told to rewrite into another. The README was checked
+        only after it shipped naming two of the three."""
         source = (ROOT / "src" / "reporadar" / "azure_auth.py").read_text(encoding="utf-8")
         block = re.search(r"ALLOWED_HOST_SUFFIXES = \(([^)]*)\)", source)
         assert block is not None, "ALLOWED_HOST_SUFFIXES moved; update this guard"
         suffixes = re.findall(r'"(\.[a-z.]+)"', block.group(1))
         assert suffixes
-        skill = self.SKILL.read_text(encoding="utf-8")
-        missing = [s for s in suffixes if s not in skill]
-        assert not missing, f"SKILL.md never offers {missing}"
+        text = doc.read_text(encoding="utf-8")
+        missing = [s for s in suffixes if s not in text]
+        assert not missing, f"{doc.name} never offers {missing}"
 
     def test_the_root_readme_lists_every_tool_too(self) -> None:
         """The same drift, one file over. The README's tool list went stale the moment
