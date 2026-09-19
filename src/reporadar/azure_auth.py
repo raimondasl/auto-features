@@ -86,8 +86,9 @@ def chat_completions_url(endpoint: str) -> str:
     raw = (endpoint or "").strip()
     if not raw:
         raise AzureAuthError(
-            "No Azure OpenAI endpoint. Set azure_openai.endpoint in .reporadar.yml to your "
-            "resource URL, e.g. https://<resource>.openai.azure.com"
+            "No Azure OpenAI endpoint. Set azure_openai.endpoint in .reporadar.yml to the "
+            "Endpoint the Azure portal shows for the resource, e.g. "
+            "https://<resource>.openai.azure.com or https://<resource>.cognitiveservices.azure.com"
         )
     try:
         parsed = urlparse(raw if "://" in raw else f"https://{raw}")

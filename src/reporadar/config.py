@@ -312,8 +312,9 @@ class AzureOpenAIConfig:
     tokens come from `az login` (see reporadar.azure_auth).
     """
 
-    # The resource URL, e.g. https://<resource>.openai.azure.com. Only Azure resource hosts are
-    # accepted -- this file is committed, and it must not be able to send a user's token elsewhere.
+    # The resource's Endpoint as the Azure portal shows it: https://<resource> under
+    # .openai.azure.com, .cognitiveservices.azure.com or .services.ai.azure.com. Only those hosts
+    # are accepted -- this file is committed, and it must not send a user's token elsewhere.
     endpoint: str = ""
     # Needed only when the resource is not in the tenant `az login` made active.
     tenant: str = ""
