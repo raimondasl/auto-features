@@ -635,6 +635,8 @@ def setup_repo_action(
     if not measured:
         retry_with["measured"] = False
     if provider == "azure_openai":
+        from reporadar import azure_auth
+
         if not measured:
             return {
                 "status": "error",
@@ -654,7 +656,7 @@ def setup_repo_action(
             "azure_tenant": azure_tenant,
         }
         placeholders = {
-            "azure_endpoint": "https://<resource>.openai.azure.com",
+            "azure_endpoint": "<the resource's Endpoint, as the Azure portal shows it>",
             "azure_deployment": "<gate deployment name>",
             "azure_finescale_deployment": "<optional: a deployment returning logprobs>",
             "azure_tenant": "<optional: tenant id or domain>",
@@ -669,7 +671,10 @@ def setup_repo_action(
             why.append(
                 "Keyless Azure OpenAI needs the resource endpoint and the name of the deployment "
                 "to use for the gate — the DEPLOYMENT name chosen in Azure, not the model name. "
-                "Ask the user for them; they are not secrets."
+                "Ask the user for them; they are not secrets. For the endpoint, ask for the "
+                "Endpoint shown on the resource's page in the Azure portal and pass it as it is: "
+                + ", ".join(f"https://<resource>{s}" for s in azure_auth.ALLOWED_HOST_SUFFIXES)
+                + " all work, so do not ask the user to rewrite one form into another."
                 + (f" Problems: {'; '.join(azure_problems)}" if azure_problems else "")
             )
 
@@ -769,8 +774,12 @@ def _azure_setup_outcome(azure: dict[str, str]) -> dict[str, Any]:
         # special case: for Azure "the key" is an Entra token from `az login`.
         "gate_key_present": not token_problem,
         "notes": [
-            "The user's account needs the 'Cognitive Services OpenAI User' role on this resource; "
-            "Owner or Contributor alone are refused with 403.",
+            # A diagnosis, not a to-do. Phrased as a requirement, it was relayed to a user whose
+            # calls were already succeeding as if something were still missing.
+            "If calls to this resource fail with HTTP 403, the user's account lacks the "
+            "'Cognitive Services OpenAI User' role on it: Owner or Contributor alone are "
+            "refused, and only the user or an administrator can grant the role. Nothing can "
+            "check it before a real call, so do not raise it unless a call is refused.",
             "The fine-scale rescore is calibrated for gpt-4o-mini on OpenAI, so on Azure it runs "
             "uncalibrated"
             + ("." if azure["azure_finescale_deployment"] else " — it is off until one is named."),
@@ -1161,10 +1170,13 @@ def build_server(
         remembers it for the rest of the session, so every later tool call uses it too.
 
         For keyless Azure OpenAI (the user signs in with `az login`; no key), pass
-        `provider="azure_openai"` with `azure_endpoint` and `azure_deployment` — the DEPLOYMENT
-        name chosen in Azure, not the model name — and optionally `azure_finescale_deployment`
-        (a deployment that returns logprobs) and `azure_tenant`. Ask the user for these; they
-        are not secrets, and they cannot be inferred.
+        `provider="azure_openai"` with `azure_endpoint` — the Endpoint the Azure portal shows on
+        the resource's page, passed as it is; the `.openai.azure.com`,
+        `.cognitiveservices.azure.com` and `.services.ai.azure.com` forms all work — and
+        `azure_deployment` — the DEPLOYMENT name chosen in Azure, not the model name — and
+        optionally `azure_finescale_deployment` (a deployment that returns logprobs) and
+        `azure_tenant`. Ask the user for these; they are not secrets, and they cannot be
+        inferred.
         """
         _log_call("setup_repo", categories=categories, measured=measured, provider=provider)
         if repo_path:

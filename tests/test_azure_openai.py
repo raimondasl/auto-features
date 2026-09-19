@@ -217,6 +217,37 @@ class TestSetupAsksForWhatItCannotInfer:
         assert not (tmp_path / ".reporadar.yml").exists()
 
 
+class TestTheSetupWordingMatchesWhatUsersSee:
+    """Found in the first VS Code run (2026-09-19). The agent asked for the `<resource>` in
+    `https://<resource>.openai.azure.com` while the portal showed the resource's Endpoint as
+    `….cognitiveservices.azure.com`; and it told a user whose calls had just succeeded that
+    their account "also needs" a role -- read as something still missing."""
+
+    def test_asking_for_the_endpoint_names_every_form_the_portal_can_show(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import reporadar.mcp_server as mcp_server
+
+        monkeypatch.setattr(mcp_server, "profile_payload", lambda *a, **k: {"keywords": []})
+        repo = _repo(tmp_path)
+        result = setup_repo_action(
+            repo, repo / ".reporadar.yml", categories=["cs.SE"], provider="azure_openai"
+        )
+        for suffix in azure_auth.ALLOWED_HOST_SUFFIXES:
+            assert suffix in result["why"], f"{suffix} is accepted but never offered"
+        assert "portal" in result["retry"]["with"]["azure_endpoint"]
+        assert ".openai.azure.com" not in result["retry"]["with"]["azure_endpoint"]
+
+    @pytest.mark.usefixtures("token_ok")
+    def test_the_role_is_stated_as_the_reason_for_a_403_not_as_a_missing_step(
+        self, tmp_path: Path
+    ) -> None:
+        result = _setup(tmp_path, azure_endpoint=ENDPOINT, azure_deployment="g")
+        role = next(n for n in result["notes"] if "Cognitive Services OpenAI User" in n)
+        assert "403" in role
+        assert "needs the" not in role
+
+
 class TestSetupRetriesKeepWhatTheCallerSaid:
     """An agent follows `retry.with` literally. The categories retry used to carry only
     categories, so following it wrote an OpenAI gate on a machine with no OpenAI key, and

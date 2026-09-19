@@ -100,7 +100,10 @@ Any tool answering `{"status": "not_configured"}` means the repository has no co
 at step 1. A tool answering `{"status": "needs_input"}` is asking you for something specific and
 naming the call to retry; it is not an error, and reporting it as one strands the user.
 
-## What still needs a key, and what it costs
+## Three gaps that fail silently, and what each costs
+
+None of these stops a run. Each one makes the digest worse without an error, so check for them
+rather than read a thin result as the state of the literature.
 
 - **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
   mean net@2 **−11**. One key suffices: `suggestions.provider: openai` runs the whole pipeline
@@ -118,13 +121,21 @@ naming the call to retry; it is not an error, and reporting it as one strands th
 
   **Azure OpenAI needs no key at all.** If the user has Azure OpenAI, the user signs in with
   `az login` themselves, and you call `setup_repo` with `provider="azure_openai"`,
-  `azure_endpoint` (`https://<resource>.openai.azure.com`) and `azure_deployment` — the
-  **deployment name chosen in Azure, not the model name** — plus optionally
-  `azure_finescale_deployment` (one that returns logprobs) and `azure_tenant`. Ask the user for
-  these; they are not secrets, and no reading of the repository can supply them. If calls fail
-  with 403, their account lacks **Cognitive Services OpenAI User** on the resource — Owner or
-  Contributor alone are refused — and only they or an administrator can grant it. On Azure the
-  fine-scale rescore runs uncalibrated; say so if it comes up.
+  `azure_endpoint` and `azure_deployment`, plus optionally `azure_finescale_deployment` (a
+  deployment that returns logprobs) and `azure_tenant`. Ask the user for these; they are not
+  secrets, and no reading of the repository can supply them.
+
+  - **The endpoint** is the Endpoint the Azure portal shows on the resource's page. Ask for it
+    as it is: `https://<resource>.openai.azure.com`, `….cognitiveservices.azure.com` and
+    `….services.ai.azure.com` all work, and the portal often shows the second.
+  - **The deployment** is the name chosen in Azure, **not the model name**. The two often match,
+    but a deployment called `gpt-4o` can run any model.
+
+  The **Cognitive Services OpenAI User** role is a diagnosis, not a setup step. If calls fail
+  with 403, the user's account lacks it on the resource — Owner or Contributor alone are refused
+  — and only they or an administrator can grant it. When collection has worked, the role is
+  there; do not tell the user they still need it. On Azure the fine-scale rescore runs
+  uncalibrated; say so if it comes up.
 - **No dense index** — the one step that is still a command, because 1.1 GB does not belong
   inside a tool call. Skipping it costs **−1.36 net@2**, and it is the *only* retrieval channel
   for 15 of 48 benchmark targets, including every repository with no arXiv bibliography. The
@@ -135,16 +146,6 @@ naming the call to retry; it is not an error, and reporting it as one strands th
   searches it on its own, running the pipeline in a `uvx` environment that has the embedding
   model. Expect that first collection to take several minutes longer while the environment is
   built, and say so rather than letting it look like a hang.
-
-Two gaps that fail *silently* at run time:
-
-- **No API key** — the actionability gate is skipped entirely, and an ungated digest measured
-  mean net@2 **−11**. One key suffices: set `suggestions.provider: openai` and the whole
-  pipeline runs on OpenAI.
-- **No dense index** — `rr sync-index` is a one-time ~1.1 GB download, after which collection
-  uses the channel automatically. Skipping it costs **−1.36 net@2**, and it is the *only*
-  retrieval channel for 15 of 48 benchmark targets, including every repository with no arXiv
-  bibliography. Large, optional, and worth it.
 - **Default `arxiv.categories`** — `cs.LG, cs.CL` is a guess that fits an ML repository and no
   other, which is why `setup_repo` refuses to write a config without being told.
 

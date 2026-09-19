@@ -183,6 +183,25 @@ class TestTheSkillDescribesTheServerItFronts:
             f"ones get called and fail"
         )
 
+    def test_each_silent_gap_is_described_once(self) -> None:
+        """The key and dense-index gaps were each written up twice, a few lines apart and
+        not identically, under a heading that promised two gaps and listed three."""
+        skill = self.SKILL.read_text(encoding="utf-8")
+        for gap in ("**No API key**", "**No dense index**", "**Default `arxiv.categories`**"):
+            assert skill.count(gap) == 1, f"{gap} appears {skill.count(gap)} times"
+
+    def test_the_skill_offers_every_endpoint_form_the_server_accepts(self) -> None:
+        """Parsed, not imported, like `_registered`: a form the server accepts but the skill
+        never mentions is one the agent will ask the user to rewrite into another."""
+        source = (ROOT / "src" / "reporadar" / "azure_auth.py").read_text(encoding="utf-8")
+        block = re.search(r"ALLOWED_HOST_SUFFIXES = \(([^)]*)\)", source)
+        assert block is not None, "ALLOWED_HOST_SUFFIXES moved; update this guard"
+        suffixes = re.findall(r'"(\.[a-z.]+)"', block.group(1))
+        assert suffixes
+        skill = self.SKILL.read_text(encoding="utf-8")
+        missing = [s for s in suffixes if s not in skill]
+        assert not missing, f"SKILL.md never offers {missing}"
+
     def test_the_root_readme_lists_every_tool_too(self) -> None:
         """The same drift, one file over. The README's tool list went stale the moment
         `setup_repo` and `update_corpus` landed, and nothing noticed, because the guard only

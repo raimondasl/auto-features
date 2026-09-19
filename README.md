@@ -636,7 +636,7 @@ suggestions:
   azure_deployment: ""                # provider azure_openai: the DEPLOYMENT name, not the model
 
 azure_openai:                         # keyless: tokens from `az login`, no API key anywhere
-  endpoint: ""                        # https://<resource>.openai.azure.com (Azure hosts only)
+  endpoint: ""                        # the portal's Endpoint, e.g. https://<resource>.openai.azure.com
   tenant: ""                          # only if the resource is outside az's active tenant
 
 feedback:
