@@ -1731,7 +1731,7 @@ wheels = [
 
 [[package]]
 name = "reporadar-papers"
-version = "1.0.6"
+version = "1.0.7"
 source = { editable = "." }
 dependencies = [
     { name = "arxiv" },
