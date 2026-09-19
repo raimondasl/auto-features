@@ -293,9 +293,35 @@ class ProfilerConfig:
     prose_anchor: str = "start"  # "start" | "self_description"
 
 
+# The providers that can run the actionability gate, in ONE place. This list was written out at
+# every site that decides whether the gate runs, and the copies drifted: when `openai` was added,
+# the pipeline and the validator learned it but the stage registry did not, so `rr workspace`'s
+# skipped-stage warnings reported an OpenAI-gated config as having no gate. The same drift once
+# let `rr doctor` certify a gate the pipeline then skipped. tests/test_config.py holds every
+# gate decision to this tuple.
+LLM_PROVIDERS: tuple[str, ...] = ("ollama", "claude", "openai", "azure_openai")
+
+
+@dataclass
+class AzureOpenAIConfig:
+    """Keyless Azure OpenAI through Microsoft Entra ID (PLANS item 17).
+
+    Top-level rather than per-stage because the gate and the fine-scale rescore talk to the same
+    resource; the loader mirrors both fields onto `suggestions` and `triage.finescale`, the way it
+    mirrors `privacy.redact`, and each stage names its own deployment. There is no key field:
+    tokens come from `az login` (see reporadar.azure_auth).
+    """
+
+    # The resource URL, e.g. https://<resource>.openai.azure.com. Only Azure resource hosts are
+    # accepted -- this file is committed, and it must not be able to send a user's token elsewhere.
+    endpoint: str = ""
+    # Needed only when the resource is not in the tenant `az login` made active.
+    tenant: str = ""
+
+
 @dataclass
 class SuggestionsConfig:
-    provider: str = "template"  # "template" | "ollama" | "claude" | "openai"
+    provider: str = "template"  # "template" | "ollama" | "claude" | "openai" | "azure_openai"
     ollama_model: str = "llama3.2"
     ollama_url: str = "http://localhost:11434"
     claude_api_key: str = ""
@@ -313,11 +339,18 @@ class SuggestionsConfig:
     # the gate's problem is precision rather than reasoning depth. A higher effort is a
     # different gate, not a better-configured one, and would need its own measurement.
     openai_reasoning_effort: str = ""
+    # For `provider: azure_openai`: the DEPLOYMENT name chosen in Azure, not the model name --
+    # Azure sends it as `model`, and a deployment named `gpt-4o` can run any model. The effort
+    # above applies to Azure too; it is the same API parameter.
+    azure_deployment: str = ""
     max_suggestions: int = 3
     timeout: int = 30
     # Not user-set under `suggestions:` — populated from `privacy.redact` at load
     # time so `complete()` can strip the terms from any prompt it is about to send.
     redact: list[str] = field(default_factory=list)
+    # Not user-set either: mirrored from the top-level `azure_openai` section at load time.
+    azure_endpoint: str = ""
+    azure_tenant: str = ""
 
 
 @dataclass
@@ -356,8 +389,19 @@ class FinescaleConfig:
     """
 
     enabled: bool = False
+    # "openai" | "azure_openai". Left empty it follows the gate: `azure_openai` when
+    # `suggestions.provider` is, `openai` otherwise, so an Azure-only setup does not quietly
+    # demand an OpenAI key for this one stage.
+    provider: str = ""
     openai_api_key: str = ""  # falls back to $OPENAI_API_KEY
     openai_model: str = "gpt-4o-mini"
+    # For `provider: azure_openai`: the deployment to read logprobs from. The probability map and
+    # threshold below were fitted to gpt-4o-mini on OpenAI, which Azure no longer lets anyone
+    # deploy, so on any Azure deployment this stage runs UNCALIBRATED until re-measured.
+    azure_deployment: str = ""
+    # Sent only when non-empty. A reasoning model (e.g. gpt-5.6-luna) needs "none" to answer with
+    # a digit first; a model that rejects the parameter has it dropped and remembered.
+    reasoning_effort: str = ""
     timeout: int = 30
     # P(actionable) a band paper must clear. The default is not a tuning knob: net@2
     # values a shown paper at 3p-2, so showing pays exactly above p = 2/3. Raising it
@@ -369,12 +413,15 @@ class FinescaleConfig:
     min_success_fraction: float = 0.5
     # Populated from `privacy.redact` at load time, like SuggestionsConfig.
     redact: list[str] = field(default_factory=list)
+    # Mirrored from the top-level `azure_openai` section at load time, like `redact`.
+    azure_endpoint: str = ""
+    azure_tenant: str = ""
 
 
 @dataclass
 class TriageConfig:
     # LLM actionability triage. Uses the `suggestions` provider/model for the LLM
-    # call, so it only runs when suggestions.provider is "ollama" or "claude".
+    # call, so it only runs when suggestions.provider is one of LLM_PROVIDERS.
     enabled: bool = False
     # 50, not 15. This shipped at 15 and NO experiment had ever included that value: the
     # closest (NR-15, 2026-08-02) compared windows 20 and 50, so the default was shallower
@@ -436,6 +483,7 @@ class RepoRadarConfig:
     signals: SignalsConfig = field(default_factory=SignalsConfig)
     privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
     hyde: HydeConfig = field(default_factory=HydeConfig)
+    azure_openai: AzureOpenAIConfig = field(default_factory=AzureOpenAIConfig)
 
 
 # The scalar kinds a config leaf can declare. Lists, dicts and nested sections pass
@@ -657,6 +705,18 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
     # network with a prompt containing the repo profile, so the redaction list has to
     # travel with its config or a new call site would ship un-redacted terms.
     triage.finescale.redact = list(privacy.redact)
+    # One Azure resource, two stages: the endpoint and tenant travel to both config objects the
+    # transport reads, so `complete()` and `top_logprobs()` need no signature change.
+    azure_openai = (
+        AzureOpenAIConfig(**data["azure_openai"]) if "azure_openai" in data else AzureOpenAIConfig()
+    )
+    for stage_cfg in (suggestions, triage.finescale):
+        stage_cfg.azure_endpoint = azure_openai.endpoint
+        stage_cfg.azure_tenant = azure_openai.tenant
+    if not triage.finescale.provider:
+        triage.finescale.provider = (
+            "azure_openai" if suggestions.provider == "azure_openai" else "openai"
+        )
     feedback = FeedbackConfig(**data["feedback"]) if "feedback" in data else FeedbackConfig()
     recommendations = (
         RecommendationsConfig(**data["recommendations"])
@@ -683,6 +743,7 @@ def _dict_to_config(data: dict[str, Any]) -> RepoRadarConfig:
         signals=signals,
         privacy=privacy,
         hyde=hyde,
+        azure_openai=azure_openai,
     )
 
 
@@ -730,6 +791,42 @@ KNOWN_ARXIV_PREFIXES = frozenset(
         "stat",
     }
 )
+
+
+def _azure_warnings(cfg: RepoRadarConfig) -> list[str]:
+    """What would stop keyless Azure OpenAI from working, found before any call is made."""
+    from reporadar.azure_auth import AzureAuthError, chat_completions_url, validate_tenant
+
+    gate_on_azure = cfg.suggestions.provider == "azure_openai"
+    fs = cfg.triage.finescale
+    finescale_on_azure = fs.enabled and fs.provider == "azure_openai"
+    out: list[str] = []
+    if fs.provider not in ("", "openai", "azure_openai"):
+        out.append(
+            f"triage.finescale.provider {fs.provider!r} is unknown; it reads logprobs, so it "
+            "must be 'openai' or 'azure_openai'."
+        )
+    if not (gate_on_azure or finescale_on_azure):
+        return out
+    try:
+        chat_completions_url(cfg.azure_openai.endpoint)
+    except AzureAuthError as exc:
+        out.append(f"azure_openai.endpoint: {exc}")
+    try:
+        validate_tenant(cfg.azure_openai.tenant)
+    except AzureAuthError as exc:
+        out.append(str(exc))
+    if gate_on_azure and not cfg.suggestions.azure_deployment.strip():
+        out.append(
+            "suggestions.provider is 'azure_openai' but suggestions.azure_deployment is empty — "
+            "set it to the deployment name you chose in Azure (not the model name)."
+        )
+    if finescale_on_azure and not fs.azure_deployment.strip():
+        out.append(
+            "triage.finescale is on Azure but triage.finescale.azure_deployment is empty — name a "
+            "deployment that returns logprobs, or set triage.finescale.enabled: false."
+        )
+    return out
 
 
 def validate_config(cfg: RepoRadarConfig) -> list[str]:
@@ -849,7 +946,7 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         )
 
     # Suggestions
-    known_providers = {"template", "ollama", "claude", "openai"}
+    known_providers = {"template", *LLM_PROVIDERS}
     if cfg.suggestions.provider not in known_providers:
         warnings.append(
             f"Unknown suggestions provider: {cfg.suggestions.provider!r}. "
@@ -863,12 +960,14 @@ def validate_config(cfg: RepoRadarConfig) -> list[str]:
         warnings.append(f"suggestions.timeout={cfg.suggestions.timeout} should be >= 1")
 
     # Triage
-    if cfg.triage.enabled and cfg.suggestions.provider not in ("ollama", "claude", "openai"):
+    if cfg.triage.enabled and cfg.suggestions.provider not in LLM_PROVIDERS:
         warnings.append(
             "triage.enabled is true but suggestions.provider is "
-            f"{cfg.suggestions.provider!r} — triage needs an LLM provider "
-            "(set suggestions.provider to 'ollama', 'claude' or 'openai'); it will be skipped."
+            f"{cfg.suggestions.provider!r} — triage needs an LLM provider (set "
+            f"suggestions.provider to {', '.join(repr(p) for p in LLM_PROVIDERS)}); it will be "
+            "skipped."
         )
+    warnings.extend(_azure_warnings(cfg))
     if cfg.triage.top_k < 1:
         warnings.append(f"triage.top_k={cfg.triage.top_k} should be >= 1")
     if cfg.triage.min_actionable not in (1, 2, 3):

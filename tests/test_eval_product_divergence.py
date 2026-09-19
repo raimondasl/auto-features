@@ -346,22 +346,34 @@ class TestTheStagesTheProductShipsWithout:
         `("ollama", "claude")`, so when `openai` was added to the validator the pipeline
         silently skipped the gate for it and the pin held the bug in place. An ungated
         digest measures net@2 -11, and openai is the one-key setup the plugin recommends.
+
+        Since azure_openai both sides read `config.LLM_PROVIDERS`, so the check is now that
+        they still do: the validator is probed for what it actually accepts, and the
+        pipeline's gate must name the shared tuple rather than a literal of its own.
         """
+        from reporadar.config import LLM_PROVIDERS, RepoRadarConfig, validate_config
+        from reporadar.stages import _gate_on
+
+        def accepted(provider: str) -> bool:
+            cfg = RepoRadarConfig()
+            cfg.suggestions.provider = provider
+            return not any("Unknown suggestions provider" in w for w in validate_config(cfg))
+
+        probes = {*LLM_PROVIDERS, "template", "anthropic", "azure", "gemini", "bogus"}
+        assert {p for p in probes if accepted(p)} == {"template", *LLM_PROVIDERS}
+
         root = Path(__file__).resolve().parents[1] / "src" / "reporadar"
         source = (root / "pipeline.py").read_text(encoding="utf-8")
-        gate = re.search(r"cfg\.suggestions\.provider in \(([^)]*)\)", source)
-        assert gate is not None, "the provider gate is no longer where this test looks"
-        gated = {p.strip().strip("\"'") for p in gate.group(1).split(",") if p.strip()}
-
-        cfg_source = (root / "config.py").read_text(encoding="utf-8")
-        known = re.search(r"known_providers = \{([^}]*)\}", cfg_source)
-        assert known is not None, "known_providers is no longer where this test looks"
-        accepted = {p.strip().strip("\"'") for p in known.group(1).split(",") if p.strip()}
-
-        assert gated == accepted - {"template"}, (
-            f"config.validate accepts {sorted(accepted)} but the pipeline gates only on "
-            f"{sorted(gated)}: a provider a user can set without the gate running"
+        gates = re.findall(r"cfg\.suggestions\.provider in (\S+?):", source)
+        assert gates == ["LLM_PROVIDERS"], (
+            f"the pipeline's provider gate reads {gates}, not config.LLM_PROVIDERS: a "
+            "provider a user can set could skip the gate without any error"
         )
+        for provider in LLM_PROVIDERS:
+            cfg = RepoRadarConfig()
+            cfg.triage.enabled = True
+            cfg.suggestions.provider = provider
+            assert _gate_on(cfg), f"stages reports the gate off for {provider!r}"
         assert effective_shipped()["suggestions.provider"] == "template"
 
     def test_the_hyde_encoder_default_matches_the_one_the_benchmark_measures(self) -> None:

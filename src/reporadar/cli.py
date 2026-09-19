@@ -22,6 +22,7 @@ from reporadar.collector import (
 )
 from reporadar.config import (
     DEFAULT_CONFIG_NAME,
+    LLM_PROVIDERS,
     ArxivConfig,
     HydeConfig,
     RankingConfig,
@@ -515,7 +516,7 @@ def digest(
         # LLM-powered suggestions need the repo profile; only pay to compute it
         # when an LLM provider is actually configured (templates don't need it).
         repo_profile = None
-        if cfg.suggestions.provider in ("ollama", "claude"):
+        if cfg.suggestions.provider in LLM_PROVIDERS:
             info(f"Using LLM suggestions provider: {cfg.suggestions.provider}")
             repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
 
@@ -621,7 +622,7 @@ def archive(
             run_id = last_run["run_id"]
 
         repo_profile = None
-        if cfg.suggestions.provider in ("ollama", "claude"):
+        if cfg.suggestions.provider in LLM_PROVIDERS:
             repo_profile = profile_repo(repo_path, profiler_cfg=cfg.profiler)
 
         since_days = _parse_since(since) if since else None
@@ -2014,6 +2015,46 @@ def auth(provider: str, show_status: bool, do_remove: bool) -> None:
         warn(f"  {env_var} is also set, and takes precedence over this file.")
 
 
+def _doctor_azure(
+    cfg: RepoRadarConfig,
+    stage: str,
+    deployment: str,
+    section: str,
+    ok: Any,
+    gap: Any,
+    cost: str,
+) -> bool:
+    """Keyless Azure OpenAI, checked as far as it can be without calling a model.
+
+    Endpoint, deployment and a token are all checkable here; the data-plane role is not -- only a
+    real request reveals a 403 -- so the caller states that prerequisite once rather than claim
+    it. Returns whether this stage passed everything checkable.
+    """
+    from reporadar import azure_auth
+
+    try:
+        url = azure_auth.chat_completions_url(cfg.azure_openai.endpoint)
+    except azure_auth.AzureAuthError as exc:
+        gap(f"{stage}: azure_openai — {exc}", cost)
+        return False
+    if not deployment.strip():
+        gap(
+            f"{stage}: azure_openai — {section}.azure_deployment is empty",
+            f"{cost} Set it to the deployment name you chose in Azure, not the model name.",
+        )
+        return False
+    try:
+        azure_auth.get_token(cfg.azure_openai.tenant)
+    except azure_auth.AzureAuthError as exc:
+        gap(f"{stage}: azure_openai — no Entra token: {exc}", cost)
+        return False
+    ok(
+        f"{stage}: azure_openai — deployment {deployment!r} at {url.split('/openai/')[0]}, "
+        f"token obtained from `az` (no key)"
+    )
+    return True
+
+
 @cli.command()
 @click.option(
     "--config",
@@ -2047,6 +2088,7 @@ def doctor(config_path: str | None) -> None:
         info(f"      {cost}")
 
     info("Keys")
+    azure_ok = False
     gate = cfg.suggestions.provider
     # Resolved through `credentials`, exactly as `llm_client` resolves it. These used to be
     # two spellings of one rule, which is how this command could report a key present while
@@ -2072,15 +2114,44 @@ def doctor(config_path: str | None) -> None:
         )
     elif gate == "ollama":
         ok("gate: ollama — no key needed (local model)")
+    elif gate == "azure_openai":
+        azure_ok = _doctor_azure(
+            cfg,
+            "gate",
+            cfg.suggestions.azure_deployment,
+            "suggestions",
+            ok,
+            gap,
+            "the gate is skipped, and an ungated digest measured mean net@2 -11.",
+        )
     else:
         gap(
             f"gate: provider is {gate!r}, which runs no LLM",
-            "triage needs 'claude', 'openai' or 'ollama'; without it the 0.5 heuristic "
-            "threshold decides, measured mean net@2 -11.",
+            "triage needs 'claude', 'openai', 'azure_openai' or 'ollama'; without it the 0.5 "
+            "heuristic threshold decides, measured mean net@2 -11.",
         )
-    if cfg.triage.finescale.enabled:
-        key = credentials.resolve_api_key("openai", cfg.triage.finescale)
-        finescale_source = credentials.source_of("openai", cfg.triage.finescale)
+    finescale = cfg.triage.finescale
+    if finescale.enabled and finescale.provider == "azure_openai":
+        finescale_ok = _doctor_azure(
+            cfg,
+            "fine-scale rescore",
+            finescale.azure_deployment,
+            "triage.finescale",
+            ok,
+            gap,
+            "the rescore is skipped; it reads logprobs, so it needs a deployment returning them.",
+        )
+        azure_ok = azure_ok or finescale_ok
+        # Stated whenever it applies, not only when something is broken: a working stage whose
+        # numbers no measurement describes is exactly the kind of quiet difference this command
+        # exists to surface.
+        info(
+            "      note: the rescore's probability map was fitted to gpt-4o-mini on OpenAI, so on "
+            "an Azure deployment it runs uncalibrated until re-measured."
+        )
+    elif finescale.enabled:
+        key = credentials.resolve_api_key("openai", finescale)
+        finescale_source = credentials.source_of("openai", finescale)
         (
             ok(f"fine-scale rescore: key present (from {finescale_source})")
             if key
@@ -2089,6 +2160,11 @@ def doctor(config_path: str | None) -> None:
                 "worth +1.36 net@2; it reads logprobs, so no other vendor can substitute. "
                 "Export OPENAI_API_KEY or run `rr auth`.",
             )
+        )
+    if azure_ok:
+        info(
+            "      Azure: your account also needs 'Cognitive Services OpenAI User' on that "
+            "resource. Owner or Contributor alone are refused, and only a real call confirms it."
         )
 
     info("Dense discovery")

@@ -35,7 +35,8 @@ from reporadar.collector import (
     collect_papers,
     to_plain_keywords,
 )
-from reporadar.llm_client import LLMError
+from reporadar.config import LLM_PROVIDERS
+from reporadar.llm_client import LLMError, LLMUnavailable
 from reporadar.paper_id import dedup_id as _dedup_id
 from reporadar.profiler import profile_repo
 from reporadar.provenance import source_marker
@@ -760,6 +761,16 @@ def _integrity(
     return withdrawn
 
 
+def _finescale_hint(cfg: Any) -> str:
+    """Where to look when the fine-scale rescore mostly failed, for the provider it ran on."""
+    if cfg.triage.finescale.provider == "azure_openai":
+        return (
+            "check `az login`, the Cognitive Services OpenAI User role, and that "
+            "triage.finescale.azure_deployment returns logprobs"
+        )
+    return "check OPENAI_API_KEY"
+
+
 def _triage(
     cfg: Any,
     papers: list[dict[str, Any]],
@@ -774,7 +785,7 @@ def _triage(
     # 8c. LLM actionability triage (Feature 6) — score the top papers for
     # whether they could genuinely improve THIS repo, so the digest can gate
     # its Top Picks on applicability instead of the raw heuristic score.
-    if cfg.triage.enabled and cfg.suggestions.provider in ("ollama", "claude", "openai"):
+    if cfg.triage.enabled and cfg.suggestions.provider in LLM_PROVIDERS:
         report.info(f"Triaging top {cfg.triage.top_k} papers for actionable relevance...")
         try:
             from reporadar.evidence import partition_by_evidence
@@ -810,7 +821,9 @@ def _triage(
                     f"(score >= {cfg.triage.min_actionable})."
                 )
             else:
-                report.info("  Triage produced no scores (all calls failed).")
+                # A warning: every call failing is the ungated configuration (-11 net@2), and
+                # the MCP server shows warnings apart from progress.
+                report.warn("  Triage produced no scores (all calls failed), so NO gate ran.")
 
             # 8d. Fine-scale rescore of the band that sits exactly at the gate's
             #     threshold. The 0-3 gate is near-binary, and within its score-2
@@ -869,7 +882,13 @@ def _triage(
                     )
                 if band:
                     report.info(f"  Rescoring {len(band)} band papers on the fine scale...")
-                    fine = score_papers(band, repo_profile, cfg.triage.finescale)
+                    try:
+                        fine = score_papers(band, repo_profile, cfg.triage.finescale)
+                    except LLMUnavailable as exc:
+                        # Caught here, not by the stage's handler below: the gate DID run and
+                        # its scores are saved, and "NO gate ran" would be false.
+                        report.warn(f"  Fine-scale rescore did not run: {exc}")
+                        fine = {}
                     if enough_scored(
                         len(fine), len(band), cfg.triage.finescale.min_success_fraction
                     ):
@@ -894,7 +913,7 @@ def _triage(
                         # deliberate. A broken key must not read as "nothing good".
                         report.warn(
                             f"  Fine-scale scored only {len(fine)}/{len(band)} papers "
-                            f"— skipping the gate for this run (check OPENAI_API_KEY)."
+                            f"— skipping the gate for this run ({_finescale_hint(cfg)})."
                         )
         except Exception as exc:
             # A warning, not an info. The line five lines above already reasons this way
@@ -915,7 +934,7 @@ def _triage(
         report.warn(
             f"  Triage is enabled but `suggestions.provider` is {cfg.suggestions.provider!r}, so NO"
         )
-        report.warn("  actionability gate ran. Set it to claude, openai or ollama.")
+        report.warn(f"  actionability gate ran. Set it to one of {', '.join(LLM_PROVIDERS)}.")
         report.warn("  Enabling the gate takes BOTH fields.")
     else:
         # Said once per run, because this is the difference between the configuration

@@ -6,6 +6,8 @@ import logging
 import re
 from typing import Any
 
+from reporadar.config import LLM_PROVIDERS
+
 logger = logging.getLogger(__name__)
 
 # Each pattern maps a regex (applied to the abstract) to a suggestion template.
@@ -104,14 +106,14 @@ def enrich_papers_with_suggestions(
 ) -> list[dict[str, Any]]:
     """Add a 'suggestions' key to each paper dict.
 
-    When *config* has ``provider`` set to ``"ollama"`` or ``"claude"``
+    When *config* has ``provider`` set to one of ``config.LLM_PROVIDERS``
     and a *profile* is given, uses LLM-powered suggestions. Falls back
     to template-based suggestions on any error.
     """
     provider = getattr(config, "provider", "template") if config else "template"
-    use_llm = provider in ("ollama", "claude") and profile is not None
+    use_llm = provider in LLM_PROVIDERS and profile is not None
 
-    if provider in ("ollama", "claude") and profile is None:
+    if provider in LLM_PROVIDERS and profile is None:
         logger.warning(
             "suggestions.provider is %r but no repo profile was supplied; "
             "falling back to template suggestions.",

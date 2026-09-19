@@ -77,8 +77,8 @@ when something overtakes it.
 neither separated, with a monotone mechanism; core 25 outstanding), then item 11 (MCP distribution, which item 14 is the evidence for)
 and item 15 (the plugin's setup wall, which gates whether item 11's bet pays at all), then
 item 7 (product work). Item 16 (collection that works where progress never reaches the user) is
-planned but queued behind all of these. Item 17 (keyless Azure OpenAI via Entra ID) is being
-implemented now, at the maintainer's direction. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
+planned but queued behind all of these. Item 17 (keyless Azure OpenAI via Entra ID) has its first
+pass implemented; its open cost is re-measuring the fine-scale rescore on an Azure model. Items 1-4 are answered or built; 6, 9, 10, 12 and 13 closed
 negative; item 5's remainder is conditional on a proposal that has not appeared.
 
 **Read NR-52 before spending anything on the net@2 ladder.** `evals/RESEARCH-net2-directions.md`
@@ -1183,7 +1183,7 @@ well past standalone Copilot CLI's 180 s window, even though that client sends t
 **Worth filing upstream:** VS Code's MCP Gateway forwards neither progress nor cancellation to the
 backing server.
 
-### 17. Keyless Azure OpenAI (Microsoft Entra ID via `az login`) — PROBED 2026-09-13, implementing
+### 17. Keyless Azure OpenAI (Microsoft Entra ID via `az login`) — IMPLEMENTED 2026-09-13 (first pass)
 
 **The question:** can the plugin use Azure OpenAI through Entra ID with no API keys, assuming the
 user has run `az login`, and what would the user have to supply?
@@ -1249,6 +1249,62 @@ undocumented behaviour that could be withdrawn.
 
 **Not in the first pass:** the GitHub Action, where Entra means OIDC federation rather than
 `az login`; and discovering endpoints or deployments automatically.
+
+#### What the first pass shipped
+
+The plan above, as `suggestions.provider: azure_openai` with a top-level `azure_openai:` section
+(`reporadar/azure_auth.py` for the token, `llm_client` for the transport), plus two pre-existing
+gaps it had to cross and fixed rather than stepped around:
+
+- **`rr audit` never declared OpenAI.** The privacy registry listed Anthropic and Ollama but not
+  `api.openai.com`, which the OpenAI gate and the fine-scale rescore both reach; its guard checks
+  modules, and `llm_client` was already declared under Anthropic. Now OpenAI, Azure OpenAI and the
+  Entra token request are all declared.
+- **The stage registry did not count an OpenAI gate as a gate** — the same one-list-many-copies
+  drift that once let `rr doctor` certify a gate the pipeline skipped. Every gate decision now reads
+  one `LLM_PROVIDERS`, and a test fails if a module spells the list out again.
+
+The fine-scale request's new adaptive retry is not Azure-specific: it also makes the rescore work on
+reasoning models on OpenAI's own API, where it previously could not run.
+
+**Verified live through the product code** against the test resource, not only in unit tests:
+`setup_repo` wrote a config that validated clean; the gate scored the probe's paper 2 on
+gpt-5.6-luna; the rescore ran on gpt-4.1-mini **after the adaptive retry dropped the
+`reasoning_effort` the Azure template sets, which that model refused** — without the retry the
+stage would fail on every non-reasoning deployment — and on gpt-5.6-luna after it learned both
+`max_completion_tokens` and the `top_logprobs` cap of 5; a wrong deployment name returned the 404
+guidance; `rr doctor` and `rr audit` reported the setup correctly; one `az` token served every call.
+
+**An adversarial review before the PR found ten real defects, all fixed and re-verified live.** The
+ones worth remembering:
+
+- **A committed `az.exe` could run as the Azure CLI (blocker, reproduced).** On Windows
+  `shutil.which` searches the working directory before PATH, returns a *relative* path, and
+  `CreateProcess` resolves that against the parent's directory whatever `cwd=` says. RepoRadar's
+  working directory is the repository, and a committed `.reporadar.yml` choosing Azure is what
+  triggers the lookup. `reporadar/executables.py` now walks PATH itself, absolute entries only;
+  `uvx` (the HyDE delegate) and the `rr` a schedule runs had the same hole and use it too.
+- **`subprocess.run(timeout=)` does not bound `az` on Windows.** It kills `cmd.exe` and then waits,
+  without a timeout, on pipes the surviving `python.exe` holds — under the lock every Azure call
+  queues on. `_run` kills the tree.
+- **A failure that repeats for every paper now stops the stage after one call** (`LLMUnavailable`:
+  no key, a refused token, a missing deployment, a refused effort value; or three rate-limited
+  papers in a row) and becomes the stage's warning. A lapsed `az login` used to start fifty `az`
+  processes and report only "no scores".
+- **`retry-after` beyond 20 s fails the call instead of being slept.** Capping 86400 at 60 per
+  retry per paper made a 50-paper gate on a spent quota 100 silent minutes.
+- **A refused `reasoning_effort` value was being dropped as if the parameter were unsupported**,
+  silently running gpt-5-mini at medium effort into an empty answer. Only a refused *parameter* is
+  learned now; a refused value is an error listing the values the model accepts.
+- Smaller: the token is not carried onto redirects; a refused token is forgotten so signing in
+  again works without a restart; `setup_repo`'s retries keep the Azure arguments; deployment names
+  are quoted in YAML; digest suggestions honour OpenAI and Azure (they checked their own
+  `("ollama", "claude")` list, the drift this item's guard was meant to end).
+
+**Not fixed here, and why:** the in-process pipeline still reports no progress *inside* the gate
+stage, so a slow gate can outlast Copilot CLI's 180 s no-progress window. That is the in-process
+heartbeat gap item 16 already files, not an Azure problem — Azure only makes it likelier through
+rate-limit waits, which are now bounded.
 
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 

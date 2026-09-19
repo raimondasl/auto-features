@@ -454,7 +454,7 @@ Runs RepoRadar as an **MCP server** (stdio) so coding agents — Claude Code, Cu
 - `explain_relevance(arxiv_id)` — score-component breakdown + LLM actionability reason + `found_by`
 - `rate_paper(arxiv_id, rating)` — record a 1–5 rating (feeds the feedback loop)
 - `search_papers(query, limit)` — free-text BM25 search over the whole stored corpus
-- `setup_repo(categories, measured)` — write `.reporadar.yml` for this repository. Called with no arguments it returns the repo's inferred profile and asks which arXiv categories to use, rather than guessing: the `cs.LG, cs.CL` default fits an ML repository and no other
+- `setup_repo(categories, measured)` — write `.reporadar.yml` for this repository. Called with no arguments it returns the repo's inferred profile and asks which arXiv categories to use, rather than guessing: the `cs.LG, cs.CL` default fits an ML repository and no other. With `provider="azure_openai"`, `azure_endpoint` and `azure_deployment` it writes a **keyless Azure OpenAI** configuration: tokens come from `az login`, and the account needs the Cognitive Services OpenAI User role on the resource (Owner alone is refused)
 - `update_corpus()` — run the same pipeline `rr update` runs, reporting progress as it goes. Minutes rather than seconds, and the only tool that fetches anything. With `hyde.enabled` set and this environment lacking the encoder — the plugin's server installs only `[mcp]`, deliberately — it runs the pipeline in a `uvx` environment pinned to its own version instead, and forwards that run's progress as its own; `collected_in` in the result says which happened
 
 The last two are why an agent needs no terminal: an unconfigured repository is a tool *result*, not a failed server, and the agent can set it up and collect without you leaving the chat.
@@ -624,12 +624,20 @@ triage:
   min_actionable: 2                   # llm_score >= this qualifies as a Top Pick
   rerank: true                        # reorder by llm_score before the top-N cut
   finescale:                          # second-stage rescore of the score-2 band (see below)
-    enabled: false                    # true: needs OPENAI_API_KEY (logprobs; OpenAI-only)
+    enabled: false                    # true: needs logprobs — OpenAI, or Azure OpenAI
+    provider: ""                      # openai | azure_openai; empty follows the gate
     openai_model: gpt-4o-mini
+    azure_deployment: ""              # provider azure_openai: a deployment returning logprobs
+    reasoning_effort: ""              # "none" for a reasoning deployment such as gpt-5.6-luna
     threshold: 0.667                  # P(actionable) a band paper must clear
 
 suggestions:
-  provider: template                  # template | ollama | claude (triage needs ollama or claude)
+  provider: template                  # template | ollama | claude | openai | azure_openai
+  azure_deployment: ""                # provider azure_openai: the DEPLOYMENT name, not the model
+
+azure_openai:                         # keyless: tokens from `az login`, no API key anywhere
+  endpoint: ""                        # https://<resource>.openai.azure.com (Azure hosts only)
+  tenant: ""                          # only if the resource is outside az's active tenant
 
 feedback:
   enabled: false                      # true: learn ranking weights from your ratings
@@ -897,14 +905,19 @@ four approaches that lost to it, are in [evals/RESULTS.md](evals/RESULTS.md) und
 
 Two things to know before enabling it:
 
-- **It needs `OPENAI_API_KEY`, and only OpenAI.** Reading a token distribution requires
-  logprobs, which the Anthropic API does not expose. Approximating them by sampling Haiku
-  ten times was measured and is *much* worse (AUC 0.59 vs 0.84) — the model is nearly
+- **It needs OpenAI's API — on OpenAI, or on Azure OpenAI.** Reading a token distribution
+  requires logprobs, which the Anthropic API does not expose. Approximating them by sampling
+  Haiku ten times was measured and is *much* worse (AUC 0.59 vs 0.84) — the model is nearly
   deterministic at default temperature, so the samples re-read the mode rather than
-  revealing the distribution.
-- **The probability map is calibrated to a specific prompt.** Editing the rubric or the
-  repo-context block without refitting silently decalibrates the threshold. Both are
-  pinned by tests for that reason.
+  revealing the distribution. On Azure (`provider: azure_openai`) it authenticates with
+  `az login` instead of a key.
+- **The probability map is calibrated to a specific prompt — and model.** Editing the rubric
+  or the repo-context block without refitting silently decalibrates the threshold; both are
+  pinned by tests for that reason. It was fitted on gpt-4o-mini, which Azure no longer lets
+  anyone deploy, so on an Azure deployment the stage runs **uncalibrated** until re-measured.
+  Verified live on 2026-09-13 that gpt-4.1-mini returns the logprobs this stage reads, and
+  that gpt-5.6-luna does too at `reasoning_effort: none` — contrary to Azure's documentation,
+  so treat that as behaviour that could change.
 
 Cost is roughly one gpt-4o-mini call per band paper (~15 per run, well under a cent). If
 the stage fails for more than half the band — a bad key, an outage — the gate is skipped

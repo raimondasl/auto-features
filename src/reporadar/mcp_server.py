@@ -15,6 +15,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -359,6 +360,118 @@ _OPENAI_GATE = """  provider: openai
   claude_model: claude-haiku-4-5"""
 
 
+# The fine-scale block the measured template ships with, replaced for keyless Azure.
+_OPENAI_FINESCALE = """  finescale:
+    enabled: true
+    openai_api_key: ${OPENAI_API_KEY}
+    openai_model: gpt-4o-mini
+"""
+
+# The template header's key requirements, which are wrong for a keyless Azure config: telling a
+# user who chose Azure precisely to avoid keys that they need two of them is the confusion that
+# setup exists to prevent.
+_KEYS_NEEDED = (
+    "#   ANTHROPIC_API_KEY   the actionability gate + HyDE's hypothesis writer (Claude Haiku)\n"
+    "#   OPENAI_API_KEY      the fine-scale rescore. A SECOND vendor is structural, not a\n"
+    "#                       preference: the rescore reads token logprobs and only OpenAI\n"
+    "#                       exposes them. Without it, drop `finescale` and lose ~+1.36.\n"
+)
+_AZURE_NEEDED = (
+    "#   az login            KEYLESS Azure OpenAI (azure_openai below): the gate, HyDE's\n"
+    "#                       hypothesis writer and the fine-scale rescore authenticate with an\n"
+    "#                       Entra token, and no API key is used. Your account needs the\n"
+    "#                       'Cognitive Services OpenAI User' role on the resource.\n"
+    "#                       Not byte-for-byte the measured run: the gate runs on your Azure\n"
+    "#                       deployment, and the rescore is uncalibrated there.\n"
+)
+
+# What Azure accepts as a deployment name. Checked before it is written into YAML, because the
+# value arrives as a tool argument and ends up in a committed file.
+_DEPLOYMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+
+
+def _yaml_str(value: str) -> str:
+    """*value* as a YAML string whatever it looks like. A deployment named `123`, `true` or
+    `null` is valid in Azure, and unquoted YAML reads it as a number, a boolean or nothing --
+    after which the config setup_repo reported writing cannot be loaded."""
+    return json.dumps(value)
+
+
+def _azure_blocks(
+    endpoint: str, deployment: str, finescale_deployment: str, tenant: str
+) -> tuple[str, str, str]:
+    """(top-level section, gate block, fine-scale block) for a keyless Azure configuration."""
+    section = (
+        "azure_openai:\n"
+        "  # Keyless: RepoRadar gets an Entra token from `az login`; no key is stored.\n"
+        "  # Your account needs 'Cognitive Services OpenAI User' on this resource --\n"
+        "  # Owner or Contributor alone are refused: they carry no data actions.\n"
+        f"  endpoint: {endpoint}\n"
+        f"  tenant: {_yaml_str(tenant)}\n\n"
+    )
+    gate = (
+        "  provider: azure_openai\n"
+        "  # The DEPLOYMENT name chosen in Azure, not the model name (sent as `model`).\n"
+        f"  azure_deployment: {_yaml_str(deployment)}\n"
+        '  openai_reasoning_effort: "none"\n'
+        "  claude_model: claude-haiku-4-5"
+    )
+    finescale = (
+        "  finescale:\n"
+        "    # UNCALIBRATED on Azure: its probability map was fitted to gpt-4o-mini on\n"
+        "    # OpenAI, which Azure no longer lets anyone deploy. On only when a deployment\n"
+        "    # returning logprobs was named; no published number describes it here.\n"
+        f"    enabled: {'true' if finescale_deployment else 'false'}\n"
+        "    provider: azure_openai\n"
+        f"    azure_deployment: {_yaml_str(finescale_deployment)}\n"
+        '    reasoning_effort: "none"\n'
+    )
+    return section, gate, finescale
+
+
+def _azure_inputs(
+    endpoint: str | None,
+    deployment: str | None,
+    finescale_deployment: str | None,
+    tenant: str | None,
+) -> tuple[dict[str, str], list[str], list[str]]:
+    """Validated Azure settings, plus which are missing and what was wrong with the rest."""
+    from reporadar import azure_auth
+
+    values: dict[str, str] = {}
+    missing: list[str] = []
+    problems: list[str] = []
+    if not (endpoint or "").strip():
+        missing.append("azure_endpoint")
+    else:
+        try:
+            url = azure_auth.chat_completions_url(endpoint or "")
+            values["endpoint"] = url.split("/openai/")[0]
+        except azure_auth.AzureAuthError as exc:
+            missing.append("azure_endpoint")
+            problems.append(str(exc))
+    for name, raw in (
+        ("azure_deployment", deployment),
+        ("azure_finescale_deployment", finescale_deployment),
+    ):
+        value = (raw or "").strip()
+        if not value:
+            if name == "azure_deployment":
+                missing.append(name)
+            values[name] = ""
+        elif not _DEPLOYMENT.fullmatch(value):
+            missing.append(name)
+            problems.append(f"{name} {value!r} is not an Azure deployment name")
+        else:
+            values[name] = value
+    try:
+        values["tenant"] = azure_auth.validate_tenant(tenant or "")
+    except azure_auth.AzureAuthError as exc:
+        missing.append("azure_tenant")
+        problems.append(str(exc))
+    return values, missing, problems
+
+
 def preferred_provider() -> str:
     """The gate provider to configure, given the credentials this machine actually has.
 
@@ -485,6 +598,10 @@ def setup_repo_action(
     categories: list[str] | None = None,
     measured: bool = True,
     provider: str | None = None,
+    azure_endpoint: str | None = None,
+    azure_deployment: str | None = None,
+    azure_finescale_deployment: str | None = None,
+    azure_tenant: str | None = None,
 ) -> dict[str, Any]:
     """Create `.reporadar.yml` and `.reporadar/` for this repository.
 
@@ -493,6 +610,11 @@ def setup_repo_action(
     every stage downstream — so the caller is handed this repository's own inferred
     profile and asked to choose. An agent reading a profile is a better interview than a
     default nobody opens the file to change.
+
+    With ``provider="azure_openai"`` it configures keyless Azure OpenAI (PLANS item 17): the
+    endpoint and a gate deployment are required, a fine-scale deployment and a tenant optional.
+    Azure cannot be inferred -- a deployment's name says nothing reliable about its model -- so
+    missing or malformed values come back as `needs_input` too.
     """
     if config_path.exists():
         return {
@@ -501,22 +623,78 @@ def setup_repo_action(
             "note": "Left as it is. Edit the file directly to change it.",
         }
 
-    if not categories:
-        profile = profile_payload(repo_path, None)
+    azure: dict[str, str] = {}
+    missing: list[str] = []
+    why: list[str] = []
+    # The retry must carry every argument the caller already gave. An agent follows `with`
+    # literally, and one that dropped `provider="azure_openai"` wrote an OpenAI config on a
+    # machine with no OpenAI key -- which setup_repo then refused to change.
+    retry_with: dict[str, Any] = {}
+    if provider is not None:
+        retry_with["provider"] = provider
+    if not measured:
+        retry_with["measured"] = False
+    if provider == "azure_openai":
+        if not measured:
+            return {
+                "status": "error",
+                "error": (
+                    "provider='azure_openai' configures the measured pipeline's gate, and "
+                    "measured=False writes a configuration with no gate to put it on. Call "
+                    "setup_repo again without measured=False."
+                ),
+            }
+        azure, azure_missing, azure_problems = _azure_inputs(
+            azure_endpoint, azure_deployment, azure_finescale_deployment, azure_tenant
+        )
+        given = {
+            "azure_endpoint": azure_endpoint,
+            "azure_deployment": azure_deployment,
+            "azure_finescale_deployment": azure_finescale_deployment,
+            "azure_tenant": azure_tenant,
+        }
+        placeholders = {
+            "azure_endpoint": "https://<resource>.openai.azure.com",
+            "azure_deployment": "<gate deployment name>",
+            "azure_finescale_deployment": "<optional: a deployment returning logprobs>",
+            "azure_tenant": "<optional: tenant id or domain>",
+        }
+        for name, value in given.items():
+            if name in azure_missing or name == "azure_finescale_deployment" and not value:
+                retry_with[name] = placeholders[name]
+            elif value:
+                retry_with[name] = value
+        if azure_missing:
+            missing += azure_missing
+            why.append(
+                "Keyless Azure OpenAI needs the resource endpoint and the name of the deployment "
+                "to use for the gate — the DEPLOYMENT name chosen in Azure, not the model name. "
+                "Ask the user for them; they are not secrets."
+                + (f" Problems: {'; '.join(azure_problems)}" if azure_problems else "")
+            )
+
+    result_extra: dict[str, Any] = {}
+    if categories:
+        retry_with["categories"] = list(categories)
+    else:
+        missing.append("categories")
+        why.append(
+            "arxiv.categories decides what gets collected at all. The cs.LG/cs.CL "
+            "default fits an ML repository and no other; on the wrong field it is the "
+            "difference between a digest and noise."
+        )
+        retry_with["categories"] = ["<arXiv category ids for this repo's field>"]
+        result_extra["repo_profile"] = profile_payload(repo_path, None)
+
+    if missing:
         return {
             "status": "needs_input",
-            "missing": ["categories"],
-            "why": (
-                "arxiv.categories decides what gets collected at all. The cs.LG/cs.CL "
-                "default fits an ML repository and no other; on the wrong field it is the "
-                "difference between a digest and noise."
-            ),
-            "repo_profile": profile,
-            "retry": {
-                "tool": "setup_repo",
-                "with": {"categories": ["<arXiv category ids for this repo's field>"]},
-            },
+            "missing": missing,
+            "why": " ".join(why),
+            **result_extra,
+            "retry": {"tool": "setup_repo", "with": retry_with},
         }
+    assert categories  # for the type checker: a missing list returned above
 
     body = measured_config_yaml() if measured else default_config_yaml()
     if _CATEGORIES_LINE not in body:  # pragma: no cover - template drift guard
@@ -529,16 +707,37 @@ def setup_repo_action(
     gate = provider or preferred_provider()
     if measured and gate == "openai" and _CLAUDE_GATE in body:
         body = body.replace(_CLAUDE_GATE, _OPENAI_GATE, 1)
+    if azure:
+        section, gate_block, finescale_block = _azure_blocks(
+            azure["endpoint"],
+            azure["azure_deployment"],
+            azure["azure_finescale_deployment"],
+            azure["tenant"],
+        )
+        rewritten = (_CLAUDE_GATE, _OPENAI_FINESCALE, _KEYS_NEEDED, "\nsuggestions:\n")
+        if not all(t in body for t in rewritten):
+            raise RuntimeError(  # pragma: no cover - template drift guard
+                "the measured template no longer contains the blocks the Azure setup rewrites"
+            )
+        body = body.replace(_KEYS_NEEDED, _AZURE_NEEDED, 1)
+        body = body.replace(_CLAUDE_GATE, gate_block, 1)
+        body = body.replace(_OPENAI_FINESCALE, finescale_block, 1)
+        body = body.replace("\nsuggestions:\n", f"\n{section}suggestions:\n", 1)
 
     config_path.write_text(body, encoding="utf-8")
     (repo_path / ".reporadar").mkdir(parents=True, exist_ok=True)
-    return {
+    result: dict[str, Any] = {
         "status": "ok",
         "config_path": str(config_path),
         "repo_path": str(repo_path),
         "categories": list(categories),
         "measured": measured,
         "gate_provider": gate,
+    }
+    if azure:
+        return {**result, **_azure_setup_outcome(azure)}
+    return {
+        **result,
         # Said out loud so the agent can pass it on. A gate configured for a key the user
         # does not have fails minutes into collection, and the message names a vendor they
         # were never asked for.
@@ -549,6 +748,39 @@ def setup_repo_action(
             else f"No {gate} key found. The user must run `rr auth --provider {gate}` "
             f"themselves — never ask them to paste a key into the chat. Collection will "
             f"still run, but with no actionability gate, which measured net@2 -11."
+        ),
+    }
+
+
+def _azure_setup_outcome(azure: dict[str, str]) -> dict[str, Any]:
+    """What an agent needs to tell the user after a keyless Azure setup."""
+    from reporadar import azure_auth
+
+    try:
+        azure_auth.get_token(azure["tenant"])
+        token_problem = ""
+    except azure_auth.AzureAuthError as exc:
+        token_problem = str(exc)
+    return {
+        "azure_endpoint": azure["endpoint"],
+        "gate_deployment": azure["azure_deployment"],
+        "finescale_enabled": bool(azure["azure_finescale_deployment"]),
+        # Kept under the same name as the key-based setups, so an agent checking it needs no
+        # special case: for Azure "the key" is an Entra token from `az login`.
+        "gate_key_present": not token_problem,
+        "notes": [
+            "The user's account needs the 'Cognitive Services OpenAI User' role on this resource; "
+            "Owner or Contributor alone are refused with 403.",
+            "The fine-scale rescore is calibrated for gpt-4o-mini on OpenAI, so on Azure it runs "
+            "uncalibrated"
+            + ("." if azure["azure_finescale_deployment"] else " — it is off until one is named."),
+        ],
+        "next": (
+            "Call update_corpus to collect and rank papers."
+            if not token_problem
+            else f"No Entra token: {token_problem} The user must sign in themselves — never ask "
+            f"for credentials in the chat. Collection will still run, but with no actionability "
+            f"gate, which measured net@2 -11."
         ),
     }
 
@@ -902,6 +1134,10 @@ def build_server(
         measured: bool = True,
         provider: str | None = None,
         repo_path: str | None = None,
+        azure_endpoint: str | None = None,
+        azure_deployment: str | None = None,
+        azure_finescale_deployment: str | None = None,
+        azure_tenant: str | None = None,
     ) -> dict[str, Any]:
         """Initialise RepoRadar in this repository: write `.reporadar.yml` and `.reporadar/`.
 
@@ -916,8 +1152,14 @@ def build_server(
         If it is wrong — a plugin install directory, an editor folder, anywhere that is not
         the user's project — pass `repo_path` with the correct absolute path. The server
         remembers it for the rest of the session, so every later tool call uses it too.
+
+        For keyless Azure OpenAI (the user signs in with `az login`; no key), pass
+        `provider="azure_openai"` with `azure_endpoint` and `azure_deployment` — the DEPLOYMENT
+        name chosen in Azure, not the model name — and optionally `azure_finescale_deployment`
+        (a deployment that returns logprobs) and `azure_tenant`. Ask the user for these; they
+        are not secrets, and they cannot be inferred.
         """
-        _log_call("setup_repo", categories=categories, measured=measured)
+        _log_call("setup_repo", categories=categories, measured=measured, provider=provider)
         if repo_path:
             told = Path(repo_path).expanduser().resolve()
             if not told.is_dir():
@@ -936,6 +1178,10 @@ def build_server(
             categories=categories,
             measured=measured,
             provider=provider,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=azure_deployment,
+            azure_finescale_deployment=azure_finescale_deployment,
+            azure_tenant=azure_tenant,
         )
         result["repo_path"] = str(loc.repo)
         result["repo_source"] = loc.source

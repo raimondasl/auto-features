@@ -576,6 +576,25 @@ NOT_UNDER_TEST: dict[str, str] = {
     "suggestions.openai_model": "the benchmark's gate is provider='claude'",
     "suggestions.openai_reasoning_effort": "the benchmark's gate is provider='claude'",
     "triage.finescale.openai_api_key": "credential",
+    # Azure OpenAI with an Entra token (no key). Unmeasured for the same reason as the
+    # OpenAI gate above, and more so for the rescore: its calibration was fitted on
+    # gpt-4o-mini, which Azure no longer allows anyone to deploy.
+    "azure_openai.endpoint": "the benchmark calls vendor APIs directly, not Azure",
+    "azure_openai.tenant": "the benchmark calls vendor APIs directly, not Azure",
+    "suggestions.azure_deployment": "the benchmark's gate is provider='claude'",
+    "suggestions.azure_endpoint": "mirror of azure_openai.endpoint, populated at load",
+    "suggestions.azure_tenant": "mirror of azure_openai.tenant, populated at load",
+    "triage.finescale.provider": (
+        "resolved at load to follow the gate's vendor; the benchmark's rescore is "
+        "OpenAI gpt-4o-mini whatever the gate runs on"
+    ),
+    "triage.finescale.azure_deployment": "the benchmark's rescore is OpenAI, not Azure",
+    "triage.finescale.azure_endpoint": "mirror of azure_openai.endpoint, populated at load",
+    "triage.finescale.azure_tenant": "mirror of azure_openai.tenant, populated at load",
+    "triage.finescale.reasoning_effort": (
+        "empty unless a user sets it for a reasoning deployment; gpt-4o-mini takes none, "
+        "so the benchmark's rescore never sends it"
+    ),
     "enrichment.hf_token": "credential",
     "hooks.email.password": "credential",
     "enrichment.provider": "enrichment runs after selection; changes no returned paper",

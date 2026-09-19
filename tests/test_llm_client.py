@@ -279,7 +279,7 @@ class TestTheOpenAIProvider:
         cfg = SimpleNamespace(provider="openai", openai_model="gpt-4o-mini", timeout=5)
         with patch("urllib.request.urlopen", return_value=self._ok()) as m:
             complete("prompt", cfg)
-        assert m.call_args[0][0].headers["Authorization"] == "Bearer from-env"
+        assert m.call_args[0][0].get_header("Authorization") == "Bearer from-env"
 
     def test_no_key_anywhere_is_a_config_error_not_a_request(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -410,3 +410,474 @@ class TestTheOpenAIRequestShapeIsLearnedNotGuessed:
         with patch("urllib.request.urlopen", return_value=self._ok()) as m:
             complete("p", cfg)
         assert json.loads(m.call_args[0][0].data)["reasoning_effort"] == "none"
+
+
+# ── Keyless Azure OpenAI (PLANS item 17) ────────────────────────────────────────────────────
+#
+# Error texts below are VERBATIM from the live Azure probe of 2026-09-13, except where marked:
+# the adaptation rules match substrings, so a paraphrased message would test a rule against text
+# no service sends.
+_AZ_MAX_TOKENS = (
+    "Unsupported parameter: 'max_tokens' is not supported with this model. "
+    "Use 'max_completion_tokens' instead."
+)
+_AZ_TEMPERATURE = (
+    "Unsupported value: 'temperature' does not support 0 with this model. "
+    "Only the default (1) value is supported."
+)
+_AZ_TOP_LOGPROBS = "Invalid value for 'top_logprobs': must be less than or equal to 5."
+
+
+def _http(
+    code: int, body: dict | None = None, headers: dict | None = None
+) -> urllib.error.HTTPError:
+    return urllib.error.HTTPError(
+        "u", code, "err", headers or {}, io.BytesIO(json.dumps(body or {}).encode())
+    )
+
+
+def _400(message: str, code: str | None = None) -> urllib.error.HTTPError:
+    return _http(400, {"error": {"message": message, "code": code}})
+
+
+def _forget(*keys: str) -> None:
+    from reporadar import llm_client
+
+    for key in keys:
+        llm_client._TOKEN_CAP.pop(key, None)
+        llm_client._REJECTS_TEMPERATURE.discard(key)
+        llm_client._REJECTS_EFFORT.discard(key)
+        llm_client._TOP_LOGPROBS_CAP.pop(key, None)
+
+
+_AZ_KEY = "azure:myres.openai.azure.com:gpt-5.6-luna"
+
+
+@pytest.fixture
+def entra(monkeypatch: pytest.MonkeyPatch):  # noqa: ANN201
+    """A token from `az`, without running it. Records which tenant asked."""
+    from reporadar import azure_auth
+
+    asked: list[str] = []
+    monkeypatch.setattr(azure_auth, "get_token", lambda tenant="": asked.append(tenant) or "entra")
+    _forget(_AZ_KEY, "gpt-5.6-luna")
+    yield asked
+    _forget(_AZ_KEY, "gpt-5.6-luna")
+
+
+def _azure_cfg(**overrides: object) -> SimpleNamespace:
+    base = {
+        "provider": "azure_openai",
+        "azure_endpoint": "https://myres.openai.azure.com",
+        "azure_tenant": "",
+        "azure_deployment": "gpt-5.6-luna",
+        "openai_reasoning_effort": "none",
+        "timeout": 5,
+    }
+    return SimpleNamespace(**{**base, **overrides})
+
+
+def _ok(text: str = "hi", finish: str = "stop") -> MagicMock:
+    return _resp({"choices": [{"message": {"content": text}, "finish_reason": finish}]})
+
+
+class TestTheAzureOpenAIProvider:
+    def test_the_request_is_the_openai_body_at_the_v1_url_with_an_entra_token(
+        self, entra: list[str], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-must-not-be-sent-to-azure")
+        with patch("urllib.request.urlopen", return_value=_ok()) as m:
+            assert complete("prompt", _azure_cfg()) == "hi"
+        req = m.call_args[0][0]
+        assert req.full_url == "https://myres.openai.azure.com/openai/v1/chat/completions"
+        assert req.get_header("Authorization") == "Bearer entra", "the token, never an OpenAI key"
+        body = json.loads(req.data)
+        assert body["model"] == "gpt-5.6-luna", "the DEPLOYMENT name goes in `model`"
+        assert body["reasoning_effort"] == "none"
+
+    def test_the_tenant_travels_to_the_token_request(self, entra: list[str]) -> None:
+        with patch("urllib.request.urlopen", return_value=_ok()):
+            complete("p", _azure_cfg(azure_tenant="contoso.onmicrosoft.com"))
+        assert entra == ["contoso.onmicrosoft.com"]
+
+    def test_a_refused_endpoint_costs_no_token_and_sends_nothing(self, entra: list[str]) -> None:
+        """The committed-config attack: a repository that points your token somewhere else."""
+        with (
+            patch("urllib.request.urlopen") as m,
+            pytest.raises(LLMError, match="Refusing Azure OpenAI endpoint"),
+        ):
+            complete("p", _azure_cfg(azure_endpoint="https://attacker.example.com"))
+        m.assert_not_called()
+        assert entra == []
+
+    def test_a_missing_deployment_is_a_config_error_not_a_request(self, entra: list[str]) -> None:
+        with patch("urllib.request.urlopen") as m, pytest.raises(LLMError, match="deployment"):
+            complete("p", _azure_cfg(azure_deployment=""))
+        m.assert_not_called()
+
+    def test_a_token_failure_is_reported_with_its_fix_and_not_retried(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import azure_auth
+
+        def refuse(tenant: str = "") -> str:
+            raise azure_auth.AzureAuthError("Not signed in to Azure. Run `az login` in a terminal.")
+
+        monkeypatch.setattr(azure_auth, "get_token", refuse)
+        with patch("urllib.request.urlopen") as m, pytest.raises(LLMError, match="az login"):
+            complete("p", _azure_cfg())
+        m.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("code", "expected"),
+        [
+            (403, "Cognitive Services OpenAI User"),
+            (401, "azure_openai.tenant"),
+            (404, "not the model's name"),
+        ],
+    )
+    def test_the_refusals_a_keyless_setup_hits_name_their_fix(
+        self, entra: list[str], code: int, expected: str
+    ) -> None:
+        """403 is the one that actually happened: an Owner with no data-plane role."""
+        with (
+            patch("urllib.request.urlopen", side_effect=[_http(code)]) as m,
+            pytest.raises(LLMError, match=expected),
+        ):
+            complete("p", _azure_cfg())
+        assert m.call_count == 1, "a refusal is not transient; retrying it only burns quota"
+
+    def test_a_blocked_prompt_is_reported_as_a_content_filter_not_retried(
+        self, entra: list[str]
+    ) -> None:
+        blocked = _http(
+            400,
+            {
+                "error": {
+                    "code": "content_filter",
+                    "message": "The response was filtered",
+                    "innererror": {"code": "ResponsibleAIPolicyViolation"},
+                }
+            },
+        )
+        with (
+            patch("urllib.request.urlopen", side_effect=[blocked]) as m,
+            pytest.raises(LLMError, match="content filter"),
+        ):
+            complete("p", _azure_cfg())
+        assert m.call_count == 1
+
+    def test_a_withheld_completion_is_reported_as_a_content_filter(self, entra: list[str]) -> None:
+        withheld = _resp(
+            {"choices": [{"message": {"content": None}, "finish_reason": "content_filter"}]}
+        )
+        with (
+            patch("urllib.request.urlopen", return_value=withheld),
+            pytest.raises(LLMError, match="content filter"),
+        ):
+            complete("p", _azure_cfg())
+
+    def test_azures_own_error_text_drives_the_existing_adaptation(self, entra: list[str]) -> None:
+        with patch("urllib.request.urlopen", side_effect=[_400(_AZ_MAX_TOKENS), _ok()]) as m:
+            assert complete("p", _azure_cfg()) == "hi"
+        final = json.loads(m.call_args_list[-1][0][0].data)
+        assert "max_completion_tokens" in final and "max_tokens" not in final
+
+    def test_what_azure_teaches_about_a_name_does_not_leak_into_openai(
+        self, entra: list[str]
+    ) -> None:
+        """gpt-5.6-luna refuses `temperature: 0` on OpenAI and accepted it on Azure: the same
+        name, two behaviours, so one endpoint's lesson must not rewrite the other's request."""
+        from reporadar import llm_client
+
+        with patch("urllib.request.urlopen", side_effect=[_400(_AZ_TEMPERATURE), _ok()]):
+            complete("p", _azure_cfg())
+        assert _AZ_KEY in llm_client._REJECTS_TEMPERATURE
+        assert "gpt-5.6-luna" not in llm_client._REJECTS_TEMPERATURE
+
+
+class TestTheFineScaleRequestAdaptsToo:
+    """It used to send `max_tokens`, `temperature: 0` and `top_logprobs: 20` with no retry, so it
+    could not run on a reasoning model at all — on OpenAI's own API as much as on Azure. Live on
+    Azure, gpt-5.6-luna needed both max_completion_tokens and top_logprobs <= 5."""
+
+    @staticmethod
+    def _logprobs() -> MagicMock:
+        return _resp(
+            {
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "logprobs": {
+                            "content": [
+                                {"token": "6", "top_logprobs": [{"token": "6", "logprob": -0.03}]}
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
+    def test_every_rejection_luna_made_is_adapted_to_in_one_call(self, entra: list[str]) -> None:
+        from reporadar.llm_client import top_logprobs
+
+        side = [
+            _400(_AZ_MAX_TOKENS),
+            _400(_AZ_TEMPERATURE),
+            _400(_AZ_TOP_LOGPROBS),
+            self._logprobs(),
+        ]
+        cfg = _azure_cfg(reasoning_effort="none")
+        with patch("urllib.request.urlopen", side_effect=side) as m:
+            got = top_logprobs("p", cfg)
+        assert got[0][0] == "6"
+        final = json.loads(m.call_args_list[-1][0][0].data)
+        assert final["top_logprobs"] == 5
+        assert "max_completion_tokens" in final and "max_tokens" not in final
+        assert "temperature" not in final
+        assert final["reasoning_effort"] == "none"
+
+    def test_the_cap_is_remembered_so_the_next_paper_costs_no_400(self, entra: list[str]) -> None:
+        from reporadar.llm_client import top_logprobs
+
+        first = [_400(_AZ_TOP_LOGPROBS), self._logprobs()]
+        with patch("urllib.request.urlopen", side_effect=first):
+            top_logprobs("p", _azure_cfg())
+        with patch("urllib.request.urlopen", side_effect=[self._logprobs()]) as m:
+            top_logprobs("p", _azure_cfg())
+        assert json.loads(m.call_args_list[0][0][0].data)["top_logprobs"] == 5
+
+    def test_a_model_that_refuses_reasoning_effort_has_it_dropped(self, entra: list[str]) -> None:
+        """Seen live: gpt-4.1-mini refused the "none" the Azure template sets for this stage.
+        The message text here is paraphrased; the rule matches only the parameter's name."""
+        from reporadar.llm_client import top_logprobs
+
+        key = "azure:myres.openai.azure.com:gpt-4.1-mini"
+        refused = _400("Unrecognized request argument supplied: reasoning_effort")
+        cfg = _azure_cfg(azure_deployment="gpt-4.1-mini", reasoning_effort="none")
+        _forget(key)
+        with patch("urllib.request.urlopen", side_effect=[refused, self._logprobs()]) as m:
+            top_logprobs("p", cfg)
+        assert "reasoning_effort" not in json.loads(m.call_args_list[-1][0][0].data)
+        _forget(key)
+
+    def test_without_a_provider_the_rescore_is_still_openai(self) -> None:
+        """Every config written before Azure existed, and the eval harness, pass no provider."""
+        from reporadar.llm_client import top_logprobs
+
+        with patch("urllib.request.urlopen", return_value=self._logprobs()) as m:
+            top_logprobs("p", SimpleNamespace(openai_api_key="k", timeout=5))
+        assert m.call_args[0][0].full_url == "https://api.openai.com/v1/chat/completions"
+
+
+class TestA429IsGivenTheWaitItAsksFor:
+    """Azure enforces requests-per-minute over 1-10 s windows and says how long in
+    `retry-after-ms`. The fixed half-second backoff spent every retry inside the same window."""
+
+    CFG = SimpleNamespace(provider="openai", openai_api_key="k", openai_model="m", timeout=5)
+
+    def _sleeps(self, headers: dict | None) -> list[float]:
+        with (
+            patch("urllib.request.urlopen", side_effect=[_http(429, headers=headers), _ok()]),
+            patch("reporadar.llm_client.time.sleep") as sleep,
+        ):
+            complete("p", self.CFG)
+        return [c.args[0] for c in sleep.call_args_list]
+
+    def test_retry_after_ms_is_obeyed(self) -> None:
+        assert self._sleeps({"retry-after-ms": "2500"}) == [2.5]
+
+    def test_retry_after_seconds_is_obeyed(self) -> None:
+        assert self._sleeps({"retry-after": "3"}) == [3.0]
+
+    def test_a_quota_sized_wait_fails_the_call_at_once_instead_of_sleeping(self) -> None:
+        """An exhausted quota answers `retry after 86400`. Sleeping a capped minute per retry per
+        paper turned a 50-paper gate into 100 silent minutes -- and every paper still failed."""
+        from reporadar.llm_client import LLMRateLimited
+
+        with (
+            patch(
+                "urllib.request.urlopen", side_effect=[_http(429, headers={"retry-after": "86400"})]
+            ),
+            patch("reporadar.llm_client.time.sleep") as sleep,
+            pytest.raises(LLMRateLimited, match="86400 s"),
+        ):
+            complete("p", self.CFG)
+        sleep.assert_not_called()
+
+    def test_retries_that_stay_rate_limited_say_so(self) -> None:
+        from reporadar.llm_client import LLMRateLimited
+
+        with (
+            patch("urllib.request.urlopen", side_effect=[_http(429) for _ in range(3)]),
+            patch("reporadar.llm_client.time.sleep"),
+            pytest.raises(LLMRateLimited),
+        ):
+            complete("p", self.CFG)
+
+    def test_without_a_header_the_backoff_is_unchanged(self) -> None:
+        assert self._sleeps(None) == [0.5]
+
+
+class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
+    """A lapsed `az login`, a missing key or a spent quota fails every paper the same way. Trying
+    each one paid for the same refusal fifty times -- one `az` start-up each -- and told the user
+    only "no scores"."""
+
+    @staticmethod
+    def _papers(n: int) -> list[dict]:
+        return [
+            {"arxiv_id": f"p{i}", "title": "t", "abstract": "a real abstract"} for i in range(n)
+        ]
+
+    def test_the_gate_stops_after_one_unavailable_call(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import triage
+        from reporadar.llm_client import LLMUnavailable
+
+        calls: list[int] = []
+
+        def refuse(*a: object, **k: object) -> tuple[int, str]:
+            calls.append(1)
+            raise LLMUnavailable("Not signed in to Azure. Run `az login` in a terminal.")
+
+        monkeypatch.setattr(triage, "score_actionability", refuse)
+        with pytest.raises(LLMUnavailable, match="az login"):
+            triage.triage_papers(self._papers(50), MagicMock(), SimpleNamespace(), top_k=50)
+        assert len(calls) == 1
+
+    def test_the_gate_stops_after_a_run_of_rate_limited_papers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import triage
+        from reporadar.llm_client import LLMRateLimited, LLMUnavailable, RateLimitBreaker
+
+        calls: list[int] = []
+
+        def limited(*a: object, **k: object) -> tuple[int, str]:
+            calls.append(1)
+            raise LLMRateLimited("HTTP 429")
+
+        monkeypatch.setattr(triage, "score_actionability", limited)
+        with pytest.raises(LLMUnavailable, match="rate-limited"):
+            triage.triage_papers(self._papers(50), MagicMock(), SimpleNamespace(), top_k=50)
+        assert len(calls) == RateLimitBreaker.LIMIT
+
+    def test_one_rate_limited_paper_is_skipped_not_fatal(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from reporadar import triage
+        from reporadar.llm_client import LLMRateLimited
+
+        outcomes: list[object] = [
+            LLMRateLimited("429"),
+            (2, "ok"),
+            LLMRateLimited("429"),
+            (3, "ok"),
+        ]
+
+        def score(*a: object, **k: object) -> tuple[int, str]:
+            outcome = outcomes.pop(0)
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome  # type: ignore[return-value]
+
+        monkeypatch.setattr(triage, "score_actionability", score)
+        out = triage.triage_papers(self._papers(4), MagicMock(), SimpleNamespace(), top_k=4)
+        assert sorted(out) == ["p1", "p3"]
+
+    def test_the_fine_scale_stops_the_same_way(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from reporadar import finescale
+        from reporadar.llm_client import LLMUnavailable
+
+        calls: list[int] = []
+
+        def refuse(*a: object, **k: object) -> list:
+            calls.append(1)
+            raise LLMUnavailable("HTTP 403: Cognitive Services OpenAI User")
+
+        monkeypatch.setattr(finescale, "top_logprobs", refuse)
+        with pytest.raises(LLMUnavailable):
+            finescale.score_papers(self._papers(10), MagicMock(), SimpleNamespace())
+        assert len(calls) == 1
+
+    def test_the_fine_scale_warning_names_what_to_check_for_its_provider(self) -> None:
+        from reporadar.pipeline import _finescale_hint
+
+        def cfg(provider: str) -> SimpleNamespace:
+            return SimpleNamespace(
+                triage=SimpleNamespace(finescale=SimpleNamespace(provider=provider))
+            )
+
+        assert "az login" in _finescale_hint(cfg("azure_openai"))
+        assert "OPENAI_API_KEY" not in _finescale_hint(cfg("azure_openai"))
+        assert "OPENAI_API_KEY" in _finescale_hint(cfg("openai"))
+
+
+class TestReviewFindingsOnTheTransport:
+    def test_a_refused_effort_value_is_reported_not_silently_dropped(
+        self, entra: list[str]
+    ) -> None:
+        """ "does not support 'none'" refuses the VALUE. Dropping the parameter ran gpt-5-mini at
+        its default effort, which spent the gate's token cap reasoning and failed every paper with
+        an empty answer nowhere near the cause."""
+        from reporadar import llm_client
+        from reporadar.llm_client import LLMUnavailable
+
+        refused = _400(
+            "Unsupported value: 'reasoning_effort' does not support 'none' with this model. "
+            "Supported values are: 'minimal', 'low', 'medium', and 'high'.",
+            code="unsupported_value",
+        )
+        cfg = _azure_cfg(azure_deployment="gpt-5-mini")
+        with (
+            patch("urllib.request.urlopen", side_effect=[refused]) as m,
+            pytest.raises(LLMUnavailable, match="minimal"),
+        ):
+            complete("p", cfg)
+        assert m.call_count == 1
+        assert not any("gpt-5-mini" in k for k in llm_client._REJECTS_EFFORT)
+
+    @pytest.mark.parametrize("code", [401, 403])
+    def test_a_refused_token_is_forgotten(
+        self, entra: list[str], monkeypatch: pytest.MonkeyPatch, code: int
+    ) -> None:
+        from reporadar import azure_auth
+
+        forgotten: list[str] = []
+        monkeypatch.setattr(azure_auth, "forget", lambda tenant="": forgotten.append(tenant))
+        with patch("urllib.request.urlopen", side_effect=[_http(code)]), pytest.raises(LLMError):
+            complete("p", _azure_cfg(azure_tenant="t.onmicrosoft.com"))
+        assert forgotten == ["t.onmicrosoft.com"]
+
+    def test_the_token_is_not_carried_onto_a_redirect(self, entra: list[str]) -> None:
+        """urllib copies ordinary headers onto a 301/302/303, to any host, even plain http. The
+        endpoint check only guarantees the FIRST hop is Azure."""
+        captured: list[urllib.request.Request] = []
+
+        def capture(req: urllib.request.Request, timeout: float = 0) -> MagicMock:
+            captured.append(req)
+            return _ok()
+
+        with patch("urllib.request.urlopen", side_effect=capture):
+            complete("p", _azure_cfg())
+        req = captured[0]
+        assert req.get_header("Authorization") == "Bearer entra"
+        redirected = urllib.request.HTTPRedirectHandler().redirect_request(
+            req, io.BytesIO(), 302, "Found", {}, "http://evil.example/steal"
+        )
+        assert redirected is not None
+        assert redirected.get_header("Authorization") is None
+
+    def test_a_400_whose_error_is_a_string_is_still_an_llm_error(self, entra: list[str]) -> None:
+        odd = _http(400, {"error": "Bad request"})
+        with patch("urllib.request.urlopen", side_effect=[odd]), pytest.raises(LLMError):
+            complete("p", _azure_cfg())
+
+    def test_an_unknown_fine_scale_provider_sends_nothing_anywhere(self) -> None:
+        from reporadar.llm_client import LLMUnavailable, top_logprobs
+
+        with patch("urllib.request.urlopen") as m, pytest.raises(LLMUnavailable, match="logprobs"):
+            top_logprobs("p", SimpleNamespace(provider="claude", openai_api_key="k", timeout=5))
+        m.assert_not_called()

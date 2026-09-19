@@ -62,8 +62,31 @@ environment, and the other three places a key could live are all closed to it. `
 gets committed, `.mcp.json` is in a public repository, and a tool argument would reach the model.
 
 One key is enough: `suggestions.provider: openai` runs the whole pipeline on OpenAI. The
-fine-scale rescore is OpenAI-only regardless, because it reads logprobs and no other vendor
-exposes them.
+fine-scale rescore needs logprobs, which only OpenAI's API exposes — on OpenAI itself, or on
+Azure OpenAI below.
+
+### Or no key at all: Azure OpenAI with `az login`
+
+If your organisation uses Azure OpenAI, RepoRadar can run on it with **no API key**: it gets a
+Microsoft Entra token from the Azure CLI, so nothing secret is stored anywhere. Sign in once:
+
+```bash
+az login
+```
+
+Then tell the agent to set up RepoRadar on Azure and give it three things, none of them secret:
+
+- the **endpoint** — `https://<resource>.openai.azure.com`;
+- the **deployment** for the gate — the *deployment* name you chose in Azure, not the model's
+  name, because a deployment named `gpt-4o` can run any model;
+- optionally a **fine-scale deployment**, one that returns logprobs.
+
+Two things to know. Your account needs the **Cognitive Services OpenAI User** role on the resource:
+**Owner or Contributor alone are refused**, because they carry no permission to call a model, and a
+new assignment can take about five minutes to apply. And the fine-scale rescore was calibrated on
+gpt-4o-mini, which Azure no longer lets anyone deploy, so on Azure it runs uncalibrated — `rr
+doctor` says so. If you installed the Azure CLI after starting your editor, restart the editor
+first: a server it launched still has the old PATH.
 
 ## Optional: dense discovery
 
