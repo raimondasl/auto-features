@@ -883,6 +883,13 @@ def build_server(
     from mcp.server.fastmcp import FastMCP
 
     server = FastMCP("reporadar")
+    # The version a client is shown in `serverInfo`. Unset, the SDK reports its OWN package
+    # version -- 1.30.0 for a 1.0.7 install -- which varies with the day the environment was
+    # built and says nothing about which RepoRadar is running. FastMCP takes no version
+    # argument, so it is set on the low-level server it wraps; a test pins the handshake.
+    from reporadar import __version__
+
+    server._mcp_server.version = __version__
     _explicit = any(c is not None for c in (ranking_cfg, output_cfg, triage_cfg))
     _cwd_repo = Path(repo_path)
     # Set by `setup_repo(repo_path=...)` and remembered for the rest of the session, so a
