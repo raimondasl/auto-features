@@ -244,3 +244,6 @@ evals/frame/pool/contexts/
 
 # isitdone receipts (tool-local, not shared state)
 .isitdone/
+
+# Submission draft: lives in the private paper repo, never here (double-blind)
+paper/SUBMISSION.md
