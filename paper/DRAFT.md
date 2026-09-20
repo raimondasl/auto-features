@@ -1,9 +1,8 @@
 # From Topic Match to Actionability: Building, Debugging, and Calibrating a Paper-Recommendation System for Code Repositories
 
-**Raimondas L.**¹
-¹ *RepoRadar project* — `github.com/raimondasl/auto-features`
-
-*Draft of 2026-08-15. Comments welcome.*
+*Technical report, content as of 2026-08-28. **Frozen 2026-09-19** — no changes from this
+date onward. Findings recorded after the freeze live in `evals/RESULTS.md` and are
+deliberately not folded back into this document.*
 
 ---
 
