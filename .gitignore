@@ -241,3 +241,6 @@ evals/frame/pool/raw/
 # ledger, positives, controls and verdicts, and each row already carries its context HASH,
 # which is what makes the prompt verifiable without publishing the prompt.
 evals/frame/pool/contexts/
+
+# isitdone receipts (tool-local, not shared state)
+.isitdone/
