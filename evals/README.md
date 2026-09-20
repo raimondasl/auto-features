@@ -41,6 +41,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §6.5 near-binary distribution | `diagnose_triage.py`, `diagnose_ranker.py` |
 | §7 E1–E5 band ranking | `band_testbeds.py` (shared), `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`, `exp_pairwise.py`, `exp_features.py` |
 | §8.1–8.3 calibration | `exp_finescale.py`, `compare_finescale_baseline.py` |
+| §8.1–8.3 calibration, current-gate replication [NR-64] | `finescale_current_gate.py` (writes `finescale_current_gate.json`) |
 | §8.4 live run | `run_judge_eval.py --rr-finescale` |
 | §8.5 dense channel end to end | `run_judge_eval.py --rr-hyde` |
 | §8.6 calibration audit | `calibrate_finescale.py` |
