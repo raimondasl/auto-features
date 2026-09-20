@@ -1,0 +1,10 @@
+{
+  "checks": {
+    "lint": "uv run ruff check .",
+    "format": { "cmd": "uv run ruff format --check .", "kind": "lite" },
+    "typecheck": "uv run mypy src/reporadar",
+    "test": "uv run pytest tests/ -q"
+  },
+  "liteTimeout": 180,
+  "timeout": 900
+}
