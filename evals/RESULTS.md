@@ -1146,6 +1146,11 @@ coverage number for that table on non-Python repositories first.
 
 ### The rescore orders the band on the cohort it was built for, and not on the one added later. **[NR-64]**
 
+> **Superseded in part by [C-36] below: this entry measured a Luna-gated band, not the
+> shipped Haiku one.** The domain split survives; the 32.1% gate figure, the "does not
+> transfer" verdict and the recorded prediction failure do not. Corrected numbers are in
+> C-36; the text below is left as written.
+
 Pre-registered in [PREREG-finescale-current-gate.md](PREREG-finescale-current-gate.md),
 committed at `d625ec8` before any score existed.
 
@@ -1205,6 +1210,70 @@ honest figure is 0.675 overall, 0.754 where it was developed, and chance where i
 
 Artifact: `evals/finescale_current_gate.json`, tracked, with per-paper rows. Script:
 `evals/finescale_current_gate.py`. 630 `gpt-4o-mini` calls, under $1, cached per paper.
+
+
+#### CORRECTION — NR-64 measured a Luna-gated band, not the shipped one. **[C-36]**
+
+NR-64 scored the score-2 band of run `...20260908T163150Z`. That run's
+`ranking_config.rr_gate_provider` is **`openai`** and its `rr_gate_model` is
+**`gpt-5.6-luna`**. It is the treatment arm of NR-63, not the shipped configuration.
+
+**How the error was made, because the shape recurs.** I checked
+`pool_config.rr_triage_model`, saw `claude-haiku-4-5`, and stopped. That field describes how
+the *pool* was collected. Which gate the *run* used lives in `ranking_config`, a different
+dict in the same entry. Both files carry `claude-haiku-4-5` in `pool_config`, so the field I
+read cannot distinguish the arms and reads as confirmation in both. A `grep -c luna` on the
+file would have caught it in one second, and the entry claimed "the gate has moved" without
+ever asking which gate.
+
+**What was wrong in the entry.** The 32.1% score-3 share was attributed to the shipped gate.
+It is a Luna property. Re-measured on the Haiku control arm of the same session
+(`...20260908T063132Z`, identical pool, identical flags, gate the only variable):
+
+| gate | admits | score-3 | band (score 2) |
+|---|---|---|---|
+| Haiku 4.5 (shipped) | 404 | **18.8%** | 328 |
+| Luna (NR-63 arm) | 464 | **32.1%** | 315 |
+
+Three more Haiku runs on 2026-09-01 give 17.3%, 17.5% and 18.0%, so 18.8% is the stable
+figure. The Haiku gate did move — 4.5% to 13.6% on the August diagnostics against ~18% now —
+but far less than the entry claimed, and confounded with the pool changing underneath. The
+dramatic part was the model swap.
+
+**Re-measured on the shipped gate.** Same scorer, same prompt, 328 band papers, all joining
+`pool-cut100`:
+
+| cohort | n | base rate | band AUC | 95% CI | (Luna arm, for contrast) |
+|---|---|---|---|---|---|
+| overall | 328 | 0.832 | **0.726** | [0.635, 0.805] | 0.675 |
+| legacy ML/CS | 224 | 0.835 | **0.785** | [0.686, 0.873] | 0.754 |
+| scientific | 104 | 0.827 | **0.587** | [0.415, 0.743] | 0.525 |
+
+**The finding survives and one claim does not.** Legacy clears the pre-registered *replicates*
+bar at 0.785. The scientific cohort remains far below it at 0.587. But the scientific interval
+is now [0.415, 0.743], which spans chance *and* reaches above the 0.65 *does-not-transfer*
+threshold, so NR-64's "does not transfer, interval contains chance" was stated on the wrong
+arm and is too strong on the right one. The honest reading for that cohort is **unresolved at
+n = 104, with a point estimate 0.20 below legacy**.
+
+**A prediction failure that was also an artifact.** NR-64 recorded the pre-registered
+prediction (0.78, range 0.70 to 0.85) as *wrong*, because the Luna overall came in at 0.675.
+The Haiku overall is **0.726**, inside the predicted range. The prediction was right and the
+arm was wrong, which is a worse error than a failed prediction: it manufactured a false lesson
+about my own reasoning being aimed at the wrong axis.
+
+**What still stands from NR-64.** The domain split is real on both arms and larger than the
+arm difference. The connection to the stage's end-to-end sign flip between cohorts stands: on
+the scientific cohort the ordering signal is weak, so the threshold has little to act on. And
+the 0.841 remains a claim about the August 22-case configuration rather than the current one.
+
+**The Luna measurement is kept**, in `evals/finescale_current_gate_luna.json`, because the
+contrast is evidence rather than waste: the same scorer on the same pool orders a Haiku-gated
+band at 0.726 and a Luna-gated band at 0.675, which is a second reading of NR-63's finding
+that the band's character is a property of the gate model.
+
+Artifacts: `evals/finescale_current_gate.json` (Haiku, shipped) and
+`evals/finescale_current_gate_luna.json` (Luna, superseded).
 
 
 ### The gate can run on OpenAI: no difference in the shipped digest under either judge, because the rescore absorbs one. **[NR-63]**

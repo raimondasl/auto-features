@@ -5,9 +5,13 @@ RESULTS.md. These tests keep the file and the entry from drifting apart, in the 
 that matters: the numbers quoted in prose are recomputed here from the per-paper rows
 rather than read back out of the summary the same script wrote.
 
-The split is the finding. Overall band AUC dropped from Testbed A's 0.841 to 0.675, and the
-drop is entirely the scientific cohort: 0.754 on the 25 legacy ML/CS cases against 0.525 on
-the 12 biology and materials-science ones, whose interval contains chance.
+The split is the finding. Overall band AUC drops from Testbed A's 0.841 to 0.726, and the drop
+concentrates in the scientific cohort: 0.785 on the 25 legacy ML/CS cases against 0.587 on the
+12 biology and materials-science ones.
+
+These are the HAIKU numbers, the shipped gate. C-36 records that the first version of this
+experiment scored a Luna-gated band by mistake, so the gate assertion below is not decoration:
+it is the guard against repeating it.
 """
 
 from __future__ import annotations
@@ -58,8 +62,8 @@ def _auc(rows: list[dict]) -> float:
 class TestTheArtifactIsComplete:
     def test_every_band_paper_scored(self, artifact: dict) -> None:
         s = artifact["summary"]
-        assert s["band_papers"] == 315
-        assert s["scored"] == 315, "an unscored paper is a void row, not a null one"
+        assert s["band_papers"] == 328
+        assert s["scored"] == 328, "an unscored paper is a void row, not a null one"
         assert s["unscored"] == 0
 
     def test_rows_match_the_declared_count(self, artifact: dict) -> None:
@@ -70,22 +74,22 @@ class TestTheQuotedNumbersAreRecomputable:
     """RESULTS.md quotes these. Recompute them from the rows so prose cannot drift."""
 
     def test_overall(self, artifact: dict) -> None:
-        assert _auc(artifact["rows"]) == pytest.approx(0.675, abs=0.001)
+        assert _auc(artifact["rows"]) == pytest.approx(0.726, abs=0.001)
 
     def test_legacy_cohort_replicates(self, artifact: dict) -> None:
         rows = [r for r in artifact["rows"] if r["case"] not in SCIENTIFIC]
-        assert len(rows) == 196
-        assert _auc(rows) == pytest.approx(0.754, abs=0.001)
+        assert len(rows) == 224
+        assert _auc(rows) == pytest.approx(0.785, abs=0.001)
 
     def test_scientific_cohort_is_near_chance(self, artifact: dict) -> None:
         rows = [r for r in artifact["rows"] if r["case"] in SCIENTIFIC]
-        assert len(rows) == 119
-        assert _auc(rows) == pytest.approx(0.525, abs=0.001)
+        assert len(rows) == 104
+        assert _auc(rows) == pytest.approx(0.587, abs=0.001)
 
     def test_the_split_is_not_a_class_balance_artifact(self, artifact: dict) -> None:
-        """Both cohorts sit near a 0.74 base rate, so the gap is not imbalance."""
+        """Both cohorts sit near a 0.83 base rate, so the gap is not imbalance."""
         for key in ("legacy", "scientific"):
-            assert artifact["summary"][key]["base_rate"] == pytest.approx(0.74, abs=0.01)
+            assert artifact["summary"][key]["base_rate"] == pytest.approx(0.83, abs=0.01)
 
 
 class TestTheComparisonIsHonest:
@@ -98,3 +102,12 @@ class TestTheComparisonIsHonest:
     def test_the_scorer_is_the_original(self, artifact: dict) -> None:
         """A different model would make the comparison to 0.841 meaningless."""
         assert artifact["summary"]["model"] == "gpt-4o-mini"
+
+    def test_the_band_came_from_the_shipped_gate(self, artifact: dict) -> None:
+        """C-36. The first run of this experiment scored a Luna-gated band while believing it
+        was Haiku, because it read pool_config instead of ranking_config. Both files say
+        claude-haiku-4-5 in pool_config, so the field that was checked could not tell the arms
+        apart. This asserts the gate the artifact actually records."""
+        gate = artifact["summary"]["gate"]
+        assert gate["provider"] == "claude", f"band came from a {gate['provider']} gate"
+        assert gate["model"] == "claude-haiku-4-5", f"band came from {gate['model']}"

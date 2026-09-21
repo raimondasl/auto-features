@@ -1,0 +1,56 @@
+{
+ "prices": {
+  "claude-haiku-4-5": {
+   "in": 1.0,
+   "out": 5.0,
+   "source": "Anthropic list, 2026-09"
+  },
+  "gpt-4o-mini": {
+   "in": 0.15,
+   "out": 0.6,
+   "source": "OpenAI list, 2026-09"
+  }
+ },
+ "sampled_cases": [
+  "ann",
+  "bio-align",
+  "bio-kmer"
+ ],
+ "gate": {
+  "model": "claude-haiku-4-5",
+  "calls": 150,
+  "in": 97182,
+  "out": 10831,
+  "per_case": {
+   "ann": {
+    "calls": 50,
+    "in": 31646,
+    "out": 4093
+   },
+   "bio-align": {
+    "calls": 50,
+    "in": 31507,
+    "out": 3376
+   },
+   "bio-kmer": {
+    "calls": 50,
+    "in": 34029,
+    "out": 3362
+   }
+  }
+ },
+ "rescore": {
+  "model": "gpt-4o-mini",
+  "calls": 9,
+  "in": 5088,
+  "out": 9,
+  "band_papers_per_repo": 8.513513513513514
+ },
+ "per_repository_usd": {
+  "gate": 0.05045,
+  "rescore": 0.00073,
+  "total_excl_hyde": 0.05117
+ },
+ "published_claim": "$0.01-0.02 per repository per run",
+ "note": "HyDE hypothesis generation is one further call per repository and is not included here. The gate dominates."
+}
