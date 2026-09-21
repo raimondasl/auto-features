@@ -1144,6 +1144,69 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The rescore orders the band on the cohort it was built for, and not on the one added later. **[NR-64]**
+
+Pre-registered in [PREREG-finescale-current-gate.md](PREREG-finescale-current-gate.md),
+committed at `d625ec8` before any score existed.
+
+**Why it needed asking.** The band AUC of **0.841** was Testbed A: 22 cases, 2026-08-07. Every
+fine-scale artifact in this project predates 2026-08-09. The gate has moved a long way since —
+4.5% to 13.6% of admits scored 3 on the August diagnostics, against **32.1%** on the 2026-09-08
+sweep (149 of 464). The modal band is still 67.9% of the digest, but it is not the population
+0.841 describes, so the ordering claim was standing on a configuration the product no longer
+runs.
+
+**Design.** One arm, no new method. The **315** papers the 2026-09-08 sweep gated at exactly 2,
+each already carrying a GPT-5.5 verdict, all 315 joining `pool-cut100` for their abstracts —
+and here the gate score is *read*, not positionally reconstructed as on Testbed A. Scoring is
+`exp_finescale.score_paper` unchanged: same `SCALE_PROMPT`, same `gpt-4o-mini`, temperature 0,
+top-20 logprobs, repo side from `band_testbeds.repo_block`. Reusing the original path is the
+point; a new prompt would measure a different thing.
+
+| cohort | n | base rate | band AUC | 95% CI |
+|---|---|---|---|---|
+| overall | 315 | 0.737 | **0.675** | [0.596, 0.748] |
+| legacy ML/CS (25 cases) | 196 | 0.735 | **0.754** | [0.663, 0.833] |
+| scientific (12 cases) | 119 | 0.740 | **0.525** | [0.425, 0.625] |
+
+Intervals are a case-clustered bootstrap over 4,000 draws, resampling *repositories* rather
+than papers, because papers within a repository are not independent.
+
+**Against the pre-registered bars.** Overall 0.675 lands in *transfers, weakened* (0.65–0.75).
+Legacy 0.754 clears *replicates* (≥ 0.75). Scientific 0.525 sits below *does not transfer*
+(< 0.65), and its interval contains chance.
+
+**The prediction was wrong, and the way it was wrong matters.** Recorded beforehand: 0.78, range
+0.70–0.85, on the reasoning that a gate now routing clear wins to a 3 leaves a more homogeneous
+band. The overall landed below that range. The reasoning was aimed at the wrong axis. The drop
+is not about band homogeneity; it is about **domain**.
+
+**The split is the result.** Four of the twelve scientific repositories score below chance:
+`mat-phonon` 0.214, `mat-toolkit` 0.300, `mat-featurize` 0.303, `mat-chgpot` 0.500. Base rates
+are near-identical across cohorts (0.735 legacy against 0.740 scientific), so this is not a
+class-balance artifact, and n = 119 is not the binding constraint either.
+
+**It explains a result already in the record.** The fine-scale stage's end-to-end value was
+measured at **−1.25** net@2/case on the scientific cohort under GPT-5.5 and **+3.75** under
+Sonnet, and the sign flip was attributed to the judges' base-rate disagreement. That is half of
+it. The other half is now measured: on that cohort the stage has **no ordering signal to
+begin with**, so where its threshold falls is close to arbitrary. A base-rate disagreement and
+an absent signal produce the same symptom, and only one of them was named.
+
+**Two candidate mechanisms, neither tested here.** The profiler may build poor repository
+descriptions for biology and materials-science codebases, starving the prompt's repo side. Or
+`gpt-4o-mini` may lack the domain knowledge to judge actionability there, which would sit
+consistently beside the score-3 over-emission already measured on materials science (27.8%
+against 8.0% legacy). Separating them needs an arm that swaps one at a time.
+
+**What this does to the standing claim.** "The rescore orders the band at 0.84" is now a claim
+about ML and systems repositories on the August configuration. On the current configuration the
+honest figure is 0.675 overall, 0.754 where it was developed, and chance where it was not.
+
+Artifact: `evals/finescale_current_gate.json`, tracked, with per-paper rows. Script:
+`evals/finescale_current_gate.py`. 630 `gpt-4o-mini` calls, under $1, cached per paper.
+
+
 ### The gate can run on OpenAI: no difference in the shipped digest under either judge, because the rescore absorbs one. **[NR-63]**
 
 > **This entry's first version was wrong about which number ships, and the correction is the

@@ -50,9 +50,16 @@ class TestTheReportIsFrozen:
 
 class TestTheReportCarriesNoByline:
     def test_no_author_attribution(self) -> None:
-        """Removed while a double-blind submission derived from this report is under review."""
+        """Removed while a double-blind submission derived from this report is under review.
+
+        The names are assembled rather than written, because a guard that spells out the
+        string it forbids puts that string in a public repository, which is the thing the
+        de-bylining was for. FROZEN_SHA256 is the stronger check anyway: it catches any
+        edit at all. This one exists for the clearer failure message.
+        """
         text = DRAFT.read_text(encoding="utf-8")
-        for identifying in ("Raimondas", "raimondasl"):
+        for parts in (("Raim", "ondas"), ("raimo", "ndasl")):
+            identifying = "".join(parts)
             assert identifying not in text, (
-                f"paper/DRAFT.md reintroduces {identifying!r}; the report is de-bylined"
+                "paper/DRAFT.md reintroduces an author-identifying string; it is de-bylined"
             )
