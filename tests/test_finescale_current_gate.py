@@ -1,15 +1,18 @@
-"""Pin NR-64: the rescore orders the band on ML/CS repositories and not on scientific ones.
+"""Pin C-37's shipped-band re-measurement of NR-64. The legacy/scientific split these numbers
+show is one scorer-judge reading, gpt-4o-mini against GPT-5.5, not a property of the cohort
+(C-38).
 
 `evals/finescale_current_gate.json` is the tracked artifact behind the NR-64 entry in
 RESULTS.md. These tests keep the file and the entry from drifting apart, in the direction
 that matters: the numbers quoted in prose are recomputed here from the per-paper rows
 rather than read back out of the summary the same script wrote.
 
-The split is the finding. Overall band AUC drops from Testbed A's 0.841 to 0.726, and the drop
-concentrates in the scientific cohort: 0.785 on the 25 legacy ML/CS cases against 0.587 on the
-12 biology and materials-science ones.
+C-38 withdraws the split as a property of the cohort; these tests pin the numbers, not that
+reading. Overall band AUC drops from Testbed A's 0.841 to 0.726, and the drop concentrates in
+the scientific cohort: 0.785 on the 25 legacy ML/CS cases against 0.587 on the 12 biology and
+materials-science ones.
 
-These are the HAIKU numbers, the shipped gate. C-36 records that the first version of this
+These are the HAIKU numbers, the shipped gate. C-37 records that the first version of this
 experiment scored a Luna-gated band by mistake, so the gate assertion below is not decoration:
 it is the guard against repeating it.
 """
@@ -81,7 +84,7 @@ class TestTheQuotedNumbersAreRecomputable:
         assert len(rows) == 224
         assert _auc(rows) == pytest.approx(0.785, abs=0.001)
 
-    def test_scientific_cohort_is_near_chance(self, artifact: dict) -> None:
+    def test_scientific_cohort(self, artifact: dict) -> None:
         rows = [r for r in artifact["rows"] if r["case"] in SCIENTIFIC]
         assert len(rows) == 104
         assert _auc(rows) == pytest.approx(0.587, abs=0.001)
@@ -104,7 +107,7 @@ class TestTheComparisonIsHonest:
         assert artifact["summary"]["model"] == "gpt-4o-mini"
 
     def test_the_band_came_from_the_shipped_gate(self, artifact: dict) -> None:
-        """C-36. The first run of this experiment scored a Luna-gated band while believing it
+        """C-37. The first run of this experiment scored a Luna-gated band while believing it
         was Haiku, because it read pool_config instead of ranking_config. Both files say
         claude-haiku-4-5 in pool_config, so the field that was checked could not tell the arms
         apart. This asserts the gate the artifact actually records."""

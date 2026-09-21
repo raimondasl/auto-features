@@ -150,7 +150,7 @@ either way.**
 
 **And the disagreement is about the LEVEL, not the ranking [NR-59, 2026-09-02].** On the 324
 band papers the two judges' AUCs against the fine-scale score differ by **0.027** (0.729 vs
-0.702) while their base rates differ by **0.380** (0.874 vs 0.494). They agree about which
+0.702) while their base rates differ by **0.380** (0.873 vs 0.494). They agree about which
 papers are better and disagree about **how many are good**, by nearly a factor of two.
 
 That reframes the judge question. A probability map is a *calibration*, so it inherits the base
@@ -1306,11 +1306,14 @@ stage, so a slow gate can outlast Copilot CLI's 180 s no-progress window. That i
 heartbeat gap item 16 already files, not an Azure problem — Azure only makes it likelier through
 rate-limit waits, which are now bounded.
 
-**The Azure rescore, measured 2026-09-21 [NR-65].** Pre-registered and run on the test resource:
-gpt-4.1-mini on Azure orders the fine-scale band at least as well as gpt-4o-mini under both judges.
-Whether the frozen threshold admits the same papers stayed unresolved, since the upper bound
-missed the margin by 0.008. The registered outcome is U, so the product keeps calling the stage
-uncalibrated on Azure.
+**The Azure rescore, measured 2026-09-21 [NR-65, wording corrected by C-39].** Pre-registered
+and run on the test resource. On the registered band, which a gpt-5.6-luna gate produced,
+gpt-4.1-mini's ordering was non-inferior to gpt-4o-mini's within 0.05 AUC under both judges.
+On the shipped Haiku band, read with the same margin, it is unresolved under GPT-5.5. Whether
+the frozen map admits the same number of band papers stayed unresolved: the upper bound missed
+the margin by 0.008 in one parser reading and 0.011 in the other. gpt-4.1-mini also piles its
+scores just above the cut, so its admissions are unusually sensitive to where the threshold sits.
+The registered outcome is U, so the product keeps calling the stage uncalibrated on Azure.
 
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 

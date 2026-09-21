@@ -1144,7 +1144,146 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The judges disagree about what the rescore is worth, not about how it orders the band, and the domain split was one scorer read against one judge. **[NR-66]**
+
+Descriptive and post hoc, $0. Nothing here was pre-registered. Script `evals/judge_dependence.py`,
+artifact `evals/judge_dependence.json` with every paper, pinned by `tests/test_judge_dependence.py`.
+
+**Why it needed doing.** Three score-2 bands are now fully dual-judged. The first is the
+37-repository band of 2026-08-20 (aug20, 324 papers, the population behind the paper's 0.73 and
+0.70). The second is band H, the shipped Haiku gate's band (328 papers). The third is band L, the
+Luna-gated band (315 papers). H and L also have a second scorer, gpt-4.1-mini, from NR-65. A
+review of NR-65 found that several standing claims about these bands move with the judge, the
+scorer or the band. It also found that the log quoted most of them without intervals. This puts
+every such figure in one tracked place, with a case bootstrap (4,000 draws, seed 20260921,
+resampling all 37 benchmark cases, with a stratified draw for anything read within a cohort).
+
+**The ordering is shared, within noise.** AUC of the fine-scale expectation against each judge's
+actionable label:
+
+| band | scorer | GPT-5.5 | Sonnet |
+|---|---|---|---|
+| aug20 | gpt-4o-mini | 0.729 [0.640, 0.824] | 0.702 [0.635, 0.769] |
+| H | gpt-4o-mini | 0.726 [0.637, 0.809] | 0.693 [0.641, 0.749] |
+| H | gpt-4.1-mini | 0.700 [0.619, 0.774] | 0.743 [0.686, 0.802] |
+| L | gpt-4o-mini | 0.675 [0.595, 0.749] | 0.694 [0.627, 0.762] |
+| L | gpt-4.1-mini | 0.711 [0.648, 0.772] | 0.743 [0.685, 0.803] |
+
+Every interval sits above 0.59. The ordering difference between the judges, AUC under GPT-5.5
+minus AUC under Sonnet, is +0.027 [-0.063, +0.129] on aug20. On the other four band-scorer
+pairs it runs from -0.043 to +0.033, and none of the five intervals excludes zero. Which judge a
+scorer looks better under is not stable: gpt-4o-mini's point is higher under GPT-5.5 on H, and
+gpt-4.1-mini's is higher under Sonnet.
+
+**The level is not shared.** The share of the band each judge calls actionable:
+
+| band | GPT-5.5 | Sonnet | difference |
+|---|---|---|---|
+| aug20 | 0.873 | 0.494 | 0.380 [0.301, 0.457] |
+| H | 0.832 | 0.445 | 0.387 [0.319, 0.455] |
+| L | 0.737 | 0.273 | 0.463 [0.411, 0.517] |
+
+"The level difference is fourteen times the ordering difference" (NR-59's section) is a ratio of
+point estimates whose denominator interval contains zero. At the top of that interval the ratio
+is about three. What replicates is the pair of intervals: a level gap near 0.4 on every band,
+and an ordering gap indistinguishable from zero on every band and both scorers. "Rank alike" is
+a statement about the pooled band. Within a cohort the ordering gaps reach 0.15, and two of them
+exclude zero: +0.087 [+0.020, +0.153] on H's legacy cases and -0.151 [-0.277, -0.041] on L's
+scientific ones, both with gpt-4o-mini.
+
+NR-59 printed aug20's GPT-5.5 share as 0.874. It is 283 of 324, which is 0.873. The first draft
+of this entry repeated the error and made four more of the same kind, because the script
+stored every figure at 4 dp and printed 3 dp from that. It now stores full precision.
+
+**What the stage is worth depends on the judge, and the intervals now say so.** Per repository
+over all 37, stage minus showing none of the band, and stage minus showing all of it:
+
+| band | scorer | judge | stage − none | stage − all | admitted | precision |
+|---|---|---|---|---|---|---|
+| aug20 | 4o | GPT-5.5 | +4.97 [+3.78, +6.24] | -0.46 [-1.19, +0.24] | 244 | 0.918 |
+| aug20 | 4o | Sonnet | -1.92 [-3.57, -0.30] | +2.62 [+1.54, +3.78] | 244 | 0.570 |
+| H | 4o | GPT-5.5 | +4.38 [+3.05, +5.73] | -0.03 [-0.92, +0.89] | 231 | 0.900 |
+| H | 4o | Sonnet | -2.68 [-4.35, -1.05] | +3.22 [+2.05, +4.51] | 231 | 0.524 |
+| H | 4.1 | GPT-5.5 | +4.46 [+3.22, +5.73] | +0.05 [-0.73, +0.84] | 249 | 0.888 |
+| H | 4.1 | Sonnet | -2.51 [-4.32, -0.76] | +3.38 [+2.35, +4.49] | 249 | 0.542 |
+| L | 4o | GPT-5.5 | +2.24 [+1.32, +3.16] | +0.46 [-0.59, +1.57] | 173 | 0.827 |
+| L | 4o | Sonnet | -4.08 [-5.68, -2.59] | +5.97 [+4.19, +8.03] | 173 | 0.376 |
+| L | 4.1 | GPT-5.5 | +2.62 [+1.57, +3.62] | +0.84 [-0.14, +1.84] | 181 | 0.845 |
+| L | 4.1 | Sonnet | -4.03 [-5.43, -2.73] | +6.03 [+4.30, +8.00] | 181 | 0.392 |
+
+Against showing none, the stage wins under GPT-5.5 and loses under Sonnet on every band and both
+scorers, and every interval excludes zero. Against showing all, no GPT-5.5 interval excludes
+zero, with points from -0.46 to +0.84, and every Sonnet interval sits above zero. This is the
+level gap restated rather than a second finding. A shown
+paper is worth 3p - 2, so the stage beats showing none exactly when the admitted papers'
+actionable rate clears 2/3. The admitted precision is 0.83 to 0.92 under GPT-5.5 and 0.38 to
+0.57 under Sonnet, on opposite sides of that line on every row. It is the cleanest
+demonstration in the record that net@2 inherits the judge's base rate. It comes with intervals
+that more repositories would only narrow.
+
+The cohort figure the log has quoted since NR-59 also gets its intervals. On aug20's twelve
+scientific repositories, stage minus showing all is -1.25 [-2.08, -0.33] under GPT-5.5 and
++3.75 [+1.83, +5.50] under Sonnet. Both exclude zero. The same direction shows on the legacy
+repositories (-0.08 against +2.08) and on the whole band (-0.46 against +2.62), with the GPT-5.5
+side within noise each time.
+
+NR-65's per-case E4 figures divide by the cases that have band papers, 35 on L and 34 on H,
+not by 37. The totals are identical, and the script checks them against NR-65's own.
+
+#### CORRECTION — the domain split is not a property of the scientific cohort. **[C-38]**
+
+NR-64 put the rescore's ordering at 0.754 "where it was developed, and chance where it was
+not". C-37 moved the measurement to the shipped band and kept the split: "The domain split is
+real on both arms and larger than the arm difference." Legacy minus scientific AUC, with a
+stratified bootstrap, and the paired contrast between the judges on the same draws:
+
+| band | scorer | GPT-5.5 | Sonnet | GPT-5.5 minus Sonnet |
+|---|---|---|---|---|
+| aug20 | gpt-4o-mini | +0.077 [-0.103, +0.228] | -0.068 [-0.186, +0.079] | +0.145 [-0.099, +0.327] |
+| H | gpt-4o-mini | +0.199 [+0.014, +0.379] | +0.003 [-0.115, +0.134] | +0.196 [+0.028, +0.337] |
+| H | gpt-4.1-mini | +0.026 [-0.140, +0.198] | -0.027 [-0.141, +0.100] | +0.053 [-0.130, +0.224] |
+| L | gpt-4o-mini | +0.229 [+0.096, +0.356] | +0.037 [-0.105, +0.163] | +0.192 [+0.039, +0.357] |
+| L | gpt-4.1-mini | +0.069 [-0.084, +0.204] | -0.004 [-0.127, +0.110] | +0.073 [-0.078, +0.221] |
+
+The split is detected only when gpt-4o-mini's scores are read against GPT-5.5's labels, on H and
+L. No Sonnet interval excludes zero, and no gpt-4.1-mini interval does. Those cells alone cannot
+rule out a gap, but the paired contrasts can. For gpt-4o-mini on H and L, the gap under GPT-5.5
+exceeds the gap under Sonnet by an interval that excludes zero. Under GPT-5.5, gpt-4o-mini's gap
+exceeds gpt-4.1-mini's by +0.173 [+0.028, +0.345] on H and +0.160 [+0.025, +0.312] on L. On
+aug20, which covers the same repositories, the split is not detected under either judge and the
+judge contrast spans zero. H and L share 165 papers, so the two readings where it appears are not
+independent.
+
+So NR-64's "chance where it was not" is withdrawn. The scientific cohort orders at 0.695 under
+Sonnet on H, and at 0.681 under GPT-5.5 with the second scorer. What is left is a gap that shows
+only for one scorer read against one judge, on two overlapping bands. Its mechanism is not
+identified here. NR-64's two candidate mechanisms are both weakened. A starved repository
+description, or a scorer short of domain knowledge, would each show under Sonnet too. On H and L
+both scorers were also given the same prompt, and gpt-4.1-mini's gap is the smaller one.
+
+C-37's second surviving claim goes with it. "On the scientific cohort the ordering signal is
+weak, so the threshold has little to act on" was offered as the other half of the stage's sign
+flip between judges on that cohort. That flip is stage minus showing all, measured on aug20,
+where the cohort orders at 0.678 [0.581, 0.829] under GPT-5.5 and 0.751 [0.632, 0.834] under
+Sonnet. The signal was not absent there. Both sides of the flip exclude zero on that cohort:
+-1.25 [-2.08, -0.33] and +3.75 [+1.83, +5.50]. The arithmetic is the base rate's. The stage
+admits the same papers under both judges, and showing all beats it exactly when the papers it
+withholds are more than 2/3 actionable. Of the 33 scientific papers it withholds on aug20,
+GPT-5.5 calls 27 actionable (0.818) and Sonnet calls 7 (0.212), on opposite sides of 2/3. On H
+and L, and on every whole band, only the Sonnet side of this comparison excludes zero. The
+absent-signal half is withdrawn.
+
+**What this does to the paper.** It makes no domain claim. "The judges rank papers alike" is
+stated with its two intervals and scoped to the pooled band. The stage's value is stated under
+both judges, against both comparators, as above.
+
+
 ### Azure's gpt-4.1-mini ranks the fine-scale band at least as well as gpt-4o-mini. Whether the fixed threshold sits in the same place is unresolved. [NR-65]
+
+> **Corrected in part by [C-39] below.** The measurement, the outcome U and every endpoint
+> stand. "At least as well" overstates the registered test. The title and "What it means" do not
+> name the band, and the score shift is described as spread when its main feature is a
+> compressed top. The text below is left as written.
 
 Pre-registered in [PREREG-finescale-model-transfer.md](PREREG-finescale-model-transfer.md),
 committed at `48d5777` and published as PR #323 before any score or new verdict existed. Script
@@ -1222,12 +1361,88 @@ on gpt-4o-mini under both judges. Whether the frozen threshold admits the same p
 settled at 35 cases: it admitted 8 more of 315, and the interval allows up to 28. Registered
 outcome U means the product keeps calling the stage uncalibrated on Azure.
 
+#### CORRECTION — NR-65's summary lines say more than its registered test, and describe the score shift wrongly. **[C-39]**
+
+The measurement, the registered outcome U and every endpoint stand. An independent review
+reproduced each of them from the rows at the registered seed. What is corrected is how the
+entry's title, its "What it means" paragraph and the PLANS note state them, plus several
+smaller record errors. The entry above is left as written.
+
+**"At least as well" is not what was tested.** The registered E1 reading is non-inferiority:
+the lower bound of Delta AUC at or above -0.05. Three of band L's four intervals include zero:
+
+| judge | control-parser reading | product-parser reading |
+|---|---|---|
+| GPT-5.5 | +0.034 [-0.041, +0.109] | +0.036 [-0.025, +0.100] |
+| Sonnet | +0.045 [-0.013, +0.102] | +0.049 [+0.001, +0.097] |
+
+The fourth excludes zero only at the registered seed, by 0.0008. The same bootstrap at seeds 1,
+2 and 3 puts its lower bound at -0.0002, -0.0007 and -0.0016. The supported wording is
+"non-inferior within 0.05 AUC". The commit title says "as well as" and the PR title "ranks as
+well"; both overstate it the same way the entry does.
+
+**"The fine-scale band" is band L, the Luna-gated one.** Band H is the band the shipped Haiku
+gate produces. The registration set it no bars, but read with the same margin it is
+unresolved under GPT-5.5 in both readings: -0.026 [-0.097, +0.053] and -0.035 [-0.116, +0.052].
+Under Sonnet it is +0.050 [+0.002, +0.100] and +0.046 [-0.007, +0.102]. Band H's E1 would read
+split. Any claim that the ordering survives a change of scorer has to carry that band scope.
+
+**The score shift is compression at the top, not spread.** "Wider" is not supported, and "the
+extra admissions come from spread, not from a higher level" is wrong. gpt-4.1-mini is narrower
+in the middle and at the top. Its interquartile range is 1.77 against gpt-4o-mini's 2.26 on band
+L, and 1.15 against 1.47 on band H. Its standard deviation is nearly equal on band L, 1.54
+against 1.56, and lower on band H, 1.15 against 1.25. Its lower tail is not compressed: below 6
+it puts 101 papers against 99 on band L, and 55 against 55 on band H. What it does is cap the
+top and pile the middle just above the cut. Between the cut at 6.72 and 7.5 it puts 112 papers against 61 on band L, and 129
+against 60 on band H. At 8 or above it puts 10 against 27, and 17 against 69. Its highest
+expectation on either band is 8.01. These figures are in `evals/judge_dependence.json` (NR-66)
+and pinned there.
+The paired-shift quartiles the entry quotes, -0.88 and +0.31, measure how much the two scorers
+disagree about individual papers, not how wide either distribution is. gpt-4.1-mini pulls the
+upper half of the band down toward 7, where the frozen cut sits at 6.72, so its admission count
+is unusually sensitive to where that cut falls. That strengthens the reason the Azure caveat
+stays.
+
+**E2 is a count, and the miss depends on the reading.** "Whether the frozen threshold admits
+the same papers" misdescribes E2, which compares how many band papers each arm admits. The arms
+disagree on 72 of band L's 315 papers (40 admitted only by gpt-4.1-mini, 32 only by
+gpt-4o-mini), so they plainly do not admit the same papers. "Missed the margin by 0.008" is the
+product-parser reading. The control-parser upper bound is +0.091, 0.011 past.
+
+**Two registered predictions went unscored.** The between-arm Spearman was predicted at 0.75
+to 0.85 and missed low: 0.725 on band L and 0.745 on band H in the product-parser reading, and
+lower still in the control-parser one. Non-inferiority held anyway. E3 under GPT-5.5 was
+predicted near zero and came out +0.40 per case [-0.23, +1.00], which is +14 net@2 over the
+band: consistent with zero, with the point leaning positive.
+
+**The two parser readings are not two corroborations.** They differ only because the control
+parser raises on alternatives that `str.isdigit()` accepts and `int()` rejects (circled five,
+subscript two, superscript three), which unscores the whole row. A lenient parse that skips
+those alternatives reproduces the product reading's endpoints. Agreement between the readings
+is therefore expected, not evidence.
+
+**Smaller record errors.**
+
+- The crash was not "at paper 126". Band L's first-pass cache holds 134 rows written before a
+  66-second gap, ending 17:11:47Z. Scoring resumed at 17:12:53Z, sixteen seconds after
+  `de046eb` was committed. The artifact's `run.stops` does not record the interruption.
+- "The product's parser scored all 643 papers" counts the 165 papers the two bands share twice.
+  It scored 478 distinct papers, in 643 band memberships.
+- No test pinned any NR-65 number: the test file never read the tracked artifact. It now
+  recomputes the band L and H GPT-5.5 endpoints and band L's GPT-5.5 intervals, both parser
+  readings from the stored tokens, and the retest, all from tracked files. This artifact carries
+  no per-paper Sonnet labels. `evals/judge_dependence.json` (NR-66) does, and its script checks
+  its Sonnet AUCs against NR-65's summary.
+
+
 ### The rescore orders the band on the cohort it was built for, and not on the one added later. **[NR-64]**
 
-> **Superseded in part by [C-36] below: this entry measured a Luna-gated band, not the
-> shipped Haiku one.** The domain split survives; the 32.1% gate figure, the "does not
-> transfer" verdict and the recorded prediction failure do not. Corrected numbers are in
-> C-36; the text below is left as written.
+> **Superseded in part by [C-37] below: this entry measured a Luna-gated band, not the
+> shipped Haiku one.** The 32.1% gate figure, the "does not transfer" verdict and the recorded
+> prediction failure do not survive; corrected numbers are in C-37. **The domain split does not
+> survive either, as a property of the cohort, and nor does the explanation that the scientific
+> cohort's sign flip came from an absent ordering signal: see [C-38] under NR-66.** The text
+> below is left as written.
 
 Pre-registered in [PREREG-finescale-current-gate.md](PREREG-finescale-current-gate.md),
 committed at `d625ec8` before any score existed.
@@ -1290,7 +1505,23 @@ Artifact: `evals/finescale_current_gate.json`, tracked, with per-paper rows. Scr
 `evals/finescale_current_gate.py`. 630 `gpt-4o-mini` calls, under $1, cached per paper.
 
 
-#### CORRECTION — NR-64 measured a Luna-gated band, not the shipped one. **[C-36]**
+#### CORRECTION — NR-64 measured a Luna-gated band, not the shipped one. **[C-37]**
+
+> Filed first as C-36, a label already held by the NR-58 correction further down. Renumbered
+> 2026-09-21. `PREREG-finescale-model-transfer.md` was registered before the renumbering and
+> cites this entry as C-36; a registered document is not edited, so read its "C-36" as C-37.
+>
+> **Superseded in part by [C-38] under NR-66:** the first two claims of "What still stands from
+> NR-64" below do not stand. The domain split is a reading of one scorer against one judge, and
+> the scientific cohort's stage sign flip was measured on a band where that cohort orders at
+> 0.678, not near chance. The third, that 0.841 describes the August configuration, stands.
+>
+> The 0.726 against 0.675 contrast in the last paragraph, offered as a second reading of NR-63,
+> is also one scorer read against one judge. With gpt-4o-mini under Sonnet the two bands order at
+> 0.693 and 0.694. With gpt-4.1-mini they order at 0.700 and 0.711 under GPT-5.5, and 0.743 and
+> 0.743 under Sonnet (NR-66). What differs between the bands is the share each judge calls
+> actionable, 0.832 against 0.737 under GPT-5.5 and 0.445 against 0.273 under Sonnet. The
+> ordering does not demonstrably differ.
 
 NR-64 scored the score-2 band of run `...20260908T163150Z`. That run's
 `ranking_config.rr_gate_provider` is **`openai`** and its `rr_gate_model` is
@@ -1733,6 +1964,12 @@ against synthetic fixtures — deliberately, since P6 registers an AUC over a se
 same repositories.
 
 ### The judges order alike and level differently, so no combination of them helps. **[NR-59]**
+
+> **Qualified by [NR-66].** "Order alike" holds for the pooled band, with an ordering gap of
+> +0.027 [-0.063, +0.129], and not within every cohort. "Fourteen times" below is a ratio of
+> point estimates whose denominator interval contains zero, so NR-66 states the two intervals
+> instead. The 0.874 below is 0.873 at full precision, 283 of 324. The text below is left as
+> written.
 
 `finescale.SLOPE`/`INTERCEPT` were fitted on **GPT-labelled** papers, so `finescale_p` is a
 calibrated estimate of *P(GPT calls this actionable)*, not P(actionable). The threshold it is

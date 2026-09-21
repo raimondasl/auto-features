@@ -12,13 +12,14 @@ import json
 import math
 import urllib.error
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import finescale_model_transfer as fmt
 import pytest
 
 from reporadar import azure_auth, llm_client
 from reporadar.llm_client import LLMError, LLMRateLimited, LLMUnavailable
+from reporadar.paper_id import dedup_id
 
 PROMPT = "Respond with ONLY a single digit 0-9."
 
@@ -638,3 +639,473 @@ def test_papers_still_in_error_are_counted_as_errors_not_missing() -> None:
     assert [it.state for it in items] == ["error", "answered", "missing"]
     stats = fmt.reading_stats(items, ["c"], "product_parser")
     assert stats["counts"]["errors_dropped"] == 1 and stats["counts"]["missing"] == 1
+
+
+# ── NR-65, pinned from tracked files ──────────────────────────────────────────────────────
+#
+# Everything above runs the script on synthetic input, so none of it could notice the NR-65 entry
+# in evals/RESULTS.md drifting from the run it reports. The tests below pin the entry's numbers.
+# Each one is recomputed from per-paper rows in tracked files, never read back from the summary
+# the script wrote. The recomputed value is then held against that summary too, so neither the
+# prose nor the summary can move without the rows moving. The estimators, parsers, map and
+# threshold are the script's own (fmt.tb, fmt.ef, fmt.finescale, fmt.admitted), because the point
+# is to recompute the run's numbers, not to measure them a second way.
+
+ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT = ROOT / "evals" / "finescale_model_transfer.json"
+# Each band's gpt-4o-mini control, which also carries the band's GPT-5.5 labels.
+CONTROLS = {
+    "L": ROOT / "evals" / "finescale_current_gate_luna.json",
+    "H": ROOT / "evals" / "finescale_current_gate.json",
+}
+# The artifact's two readings and the row field each one reads.
+FIELDS = {"control_parser": "control_exp", "product_parser": "product_exp"}
+# The characters RESULTS names: str.isdigit() accepts them and int() rejects them.
+INT_REJECTS = {"⑤", "₂", "³"}  # circled five, subscript two, superscript three
+
+Key = tuple[str, str]
+Pair = tuple[dict[str, Any], dict[str, Any]]  # (control row, the treatment's reparsed reading)
+
+
+def _key(case: str, paper_id: str) -> Key:
+    return case, dedup_id(paper_id)
+
+
+def _response(row: dict[str, Any]) -> dict[str, Any]:
+    """The response the live run parsed, rebuilt from the tokens and alternatives the artifact
+    keeps. A token's own logprob is not kept, and neither parser reads it."""
+    content = [
+        {"token": tok, "top_logprobs": [{"token": a, "logprob": lp} for a, lp in alts]}
+        for tok, alts in zip(row["tokens"], row["alternatives"], strict=True)
+    ]
+    return {"choices": [{"finish_reason": row["finish_reason"], "logprobs": {"content": content}}]}
+
+
+def _int_rejects(text: str) -> bool:
+    try:
+        int(text)
+    except ValueError:
+        return True
+    return False
+
+
+@pytest.fixture(scope="module")
+def transfer() -> dict[str, Any]:
+    # Asserted rather than skipped. The artifact is tracked, so its absence is a broken
+    # repository, and a skip would leave NR-65 unguarded while the suite stayed green.
+    assert ARTIFACT.is_file(), f"{ARTIFACT} is tracked and must be present"
+    data: dict[str, Any] = json.loads(ARTIFACT.read_text(encoding="utf-8"))
+    return data
+
+
+@pytest.fixture(scope="module")
+def control_files() -> dict[str, dict[str, Any]]:
+    out = {}
+    for name, path in CONTROLS.items():
+        assert path.is_file(), f"{path} is tracked and must be present"
+        out[name] = json.loads(path.read_text(encoding="utf-8"))
+    return out
+
+
+@pytest.fixture(scope="module")
+def stored(transfer: dict[str, Any]) -> dict[str, dict[Key, dict[str, Any]]]:
+    """The artifact's rows per pass, keyed by case and version-stripped id."""
+    return {
+        pass_name: {_key(r["case"], r["id"]): r for r in rows.values()}
+        for pass_name, rows in transfer["rows"].items()
+    }
+
+
+@pytest.fixture(scope="module")
+def reparsed(
+    stored: dict[str, dict[Key, dict[str, Any]]],
+) -> dict[str, dict[Key, dict[str, Any]]]:
+    """Both parsers' readings of every row, recomputed from its stored tokens by `fmt.readings`.
+    Everything downstream reads these, not the expectations the run stored."""
+    return {
+        pass_name: {k: fmt.readings(_response(r)) for k, r in rows.items()}
+        for pass_name, rows in stored.items()
+    }
+
+
+@pytest.fixture(scope="module")
+def band_keys(control_files: dict[str, dict[str, Any]]) -> dict[str, set[Key]]:
+    return {
+        name: {_key(r["case"], r["id"]) for r in data["rows"]}
+        for name, data in control_files.items()
+    }
+
+
+@pytest.fixture(scope="module")
+def bands(
+    control_files: dict[str, dict[str, Any]], reparsed: dict[str, dict[Key, dict[str, Any]]]
+) -> dict[str, list[Pair]]:
+    """Each band as (control row, first-pass reading) pairs. Band H's papers shared with band L
+    were scored once, in band L's first pass, so both bands read the same first-pass row."""
+    first = reparsed["first"]
+    return {
+        name: [(c, first[_key(c["case"], c["id"])]) for c in data["rows"]]
+        for name, data in control_files.items()
+    }
+
+
+def _fallback(pairs: list[Pair], field: str) -> dict[str, bool]:
+    """Per case, whether the product would admit it whole: under half its papers scored."""
+    scored: dict[str, list[bool]] = {}
+    for c, t in pairs:
+        scored.setdefault(c["case"], []).append(t[field] is not None)
+    return {
+        case: not fmt.finescale.enough_scored(sum(s), len(s), 0.5) for case, s in scored.items()
+    }
+
+
+class _Paper(NamedTuple):
+    actionable: bool  # under GPT-5.5's label
+    treatment: float | None  # gpt-4.1-mini's exp09 under one reading
+    control: float  # gpt-4o-mini's exp09
+    adm_t: bool
+    adm_c: bool
+    threshold_part: bool  # scored, in a case where the stage ran
+
+
+def _papers(pairs: list[Pair], field: str) -> dict[str, list[_Paper]]:
+    fallback = _fallback(pairs, field)
+    by_case: dict[str, list[_Paper]] = {case: [] for case in sorted(fallback)}
+    for c, t in pairs:
+        x, whole = t[field], fallback[c["case"]]
+        by_case[c["case"]].append(
+            _Paper(
+                actionable=c["judge"] >= fmt.tb.ACTIONABLE,
+                treatment=x,
+                control=float(c["exp09"]),
+                adm_t=whole or fmt.admitted(x),
+                adm_c=fmt.admitted(c["exp09"]),
+                threshold_part=x is not None and not whole,
+            )
+        )
+    return by_case
+
+
+def _points(pairs: list[Pair], field: str) -> dict[str, Any]:
+    """One band's GPT-5.5 point estimates under one reading."""
+    by_case = _papers(pairs, field)
+    papers = [p for group in by_case.values() for p in group]
+    scored = [p for p in papers if p.treatment is not None]
+    labels = [p.actionable for p in scored]
+    # Both arms are ranked on the papers this reading scored. So the control's AUC depends on the
+    # reading, and under the control-parser reading it is not the registered 0.675.
+    auc_t = fmt.tb.auc([p.treatment for p in scored], labels)
+    auc_c = fmt.tb.auc([p.control for p in scored], labels)
+    n = len(papers)
+    return {
+        "scored": len(scored),
+        "fallback": sorted(case for case, whole in _fallback(pairs, field).items() if whole),
+        "auc_t_gpt": auc_t,
+        "auc_c_gpt": auc_c,
+        "d_auc_gpt": auc_t - auc_c,
+        "A": sum(p.adm_t - p.adm_c for p in papers) / n,
+        "A_threshold": sum(p.adm_t - p.adm_c for p in papers if p.threshold_part) / n,
+        "admissions": {
+            "treatment": sum(p.adm_t for p in papers),
+            "control": sum(p.adm_c for p in papers),
+            "only_treatment": sum(p.adm_t and not p.adm_c for p in papers),
+            "only_control": sum(p.adm_c and not p.adm_t for p in papers),
+        },
+    }
+
+
+def _intervals(pairs: list[Pair], field: str) -> dict[str, tuple[float, float] | None]:
+    """The registered paired case bootstrap for the GPT-5.5 endpoints. The draws and interval
+    indices are the script's; the pooled statistics are recomputed here from the rows."""
+    by_case = _papers(pairs, field)
+    stats: dict[str, list[float]] = {"A": [], "A_threshold": [], "d_auc_gpt": [], "auc_t_gpt": []}
+    for draw in fmt.draws_for(sorted(by_case)):
+        pool = [p for case in draw for p in by_case[case]]
+        n = len(pool)
+        stats["A"].append(sum(p.adm_t - p.adm_c for p in pool) / n)
+        stats["A_threshold"].append(sum(p.adm_t - p.adm_c for p in pool if p.threshold_part) / n)
+        scored = [p for p in pool if p.treatment is not None]
+        labels = [p.actionable for p in scored]
+        if 0 < sum(labels) < len(labels):
+            auc_t = fmt.tb.auc([p.treatment for p in scored], labels)
+            stats["auc_t_gpt"].append(auc_t)
+            stats["d_auc_gpt"].append(auc_t - fmt.tb.auc([p.control for p in scored], labels))
+    return {key: fmt.interval(values) for key, values in stats.items()}
+
+
+@pytest.fixture(scope="module")
+def band_l_intervals(bands: dict[str, list[Pair]]) -> dict[str, dict[str, Any]]:
+    # About two seconds per reading, so computed once for the module.
+    return {reading: _intervals(bands["L"], field) for reading, field in FIELDS.items()}
+
+
+@pytest.fixture(scope="module")
+def band_h_intervals(bands: dict[str, list[Pair]]) -> dict[str, dict[str, Any]]:
+    return {reading: _intervals(bands["H"], field) for reading, field in FIELDS.items()}
+
+
+class TestNR65TheArtifactAndItsPopulations:
+    def test_the_tracked_artifact_is_the_one_the_script_writes(self) -> None:
+        assert fmt.OUT == ARTIFACT
+        assert ARTIFACT.is_file(), f"{ARTIFACT} is tracked and must be present"
+
+    def test_the_controls_are_the_registered_bands(
+        self, control_files: dict[str, dict[str, Any]]
+    ) -> None:
+        """Band L's control is the Luna-gated file and band H's the Haiku one (C-37; the
+        registration calls it C-36)."""
+        for name, data in control_files.items():
+            band = fmt.BANDS[name]
+            assert band.control == CONTROLS[name].name
+            assert data["summary"]["run"] == band.run
+            assert len(data["rows"]) == band.size
+        gate = control_files["H"]["summary"]["gate"]
+        assert (gate["provider"], gate["model"]) == fmt.BANDS["H"].gate
+
+    def test_the_first_pass_scored_both_bands_once(
+        self,
+        transfer: dict[str, Any],
+        stored: dict[str, dict[Key, dict[str, Any]]],
+        band_keys: dict[str, set[Key]],
+    ) -> None:
+        # No two rows collapse to one paper under the shared id rule.
+        assert len(stored["first"]) == len(transfer["rows"]["first"]) == 478
+        assert (len(band_keys["L"]), len(band_keys["H"])) == (315, 328)
+        assert len(band_keys["L"] & band_keys["H"]) == 165
+        assert set(stored["first"]) == band_keys["L"] | band_keys["H"]
+
+    def test_the_retest_is_band_l_exactly(
+        self,
+        transfer: dict[str, Any],
+        stored: dict[str, dict[Key, dict[str, Any]]],
+        band_keys: dict[str, set[Key]],
+    ) -> None:
+        assert len(stored["retest"]) == len(transfer["rows"]["retest"]) == 315
+        assert set(stored["retest"]) == band_keys["L"]
+
+    def test_all_793_calls_answered(self, stored: dict[str, dict[Key, dict[str, Any]]]) -> None:
+        rows = [r for pass_rows in stored.values() for r in pass_rows.values()]
+        assert len(rows) == 793
+        assert {r["state"] for r in rows} == {"answered"}
+        assert {r["response_model"] for r in rows} == {"gpt-4.1-mini-2025-04-14"}
+
+
+class TestNR65BothParsersFromTheStoredTokens:
+    def test_the_product_parser_reproduces_every_stored_expectation(
+        self,
+        stored: dict[str, dict[Key, dict[str, Any]]],
+        reparsed: dict[str, dict[Key, dict[str, Any]]],
+    ) -> None:
+        """RESULTS: the product's parser scored all 643 band papers, in both passes."""
+        wrong = [
+            (pass_name, k)
+            for pass_name, rows in stored.items()
+            for k, r in rows.items()
+            if reparsed[pass_name][k]["product_exp"] is None
+            or not math.isclose(reparsed[pass_name][k]["product_exp"], r["product_exp"])
+        ]
+        assert not wrong
+
+    def test_the_control_parser_fails_exactly_where_the_artifact_says(
+        self,
+        transfer: dict[str, Any],
+        stored: dict[str, dict[Key, dict[str, Any]]],
+        reparsed: dict[str, dict[Key, dict[str, Any]]],
+        bands: dict[str, list[Pair]],
+    ) -> None:
+        for pass_name, rows in stored.items():
+            got = reparsed[pass_name]
+            raised = {k for k, r in got.items() if r["control_parse_raised"]}
+            assert raised == {k for k, r in rows.items() if r["control_parse_raised"]}
+            assert raised == {k for k, r in rows.items() if r["control_exp"] is None}
+            assert all(got[k]["control_exp"] is None for k in raised)
+            wrong = [
+                k
+                for k, r in rows.items()
+                if k not in raised and not math.isclose(got[k]["control_exp"], r["control_exp"])
+            ]
+            assert not wrong
+        counts = {
+            name: sum(t["control_parse_raised"] for _, t in pairs) for name, pairs in bands.items()
+        }
+        assert counts == {"L": 38, "H": 23}
+        summary = transfer["summary"]["bands"]
+        assert counts == {name: summary[name]["control_parse_raised"] for name in counts}
+
+    def test_it_fails_on_a_digit_int_rejects_behind_an_ascii_first_token(
+        self, stored: dict[str, dict[Key, dict[str, Any]]]
+    ) -> None:
+        """RESULTS: every first token was an ASCII digit, and the control's parser failed on the
+        circled five, subscript two or superscript three among its alternatives."""
+        seen: set[str] = set()
+        for rows in stored.values():
+            for r in rows.values():
+                assert r["tokens"][0] in set("0123456789")
+                if not r["control_parse_raised"]:
+                    continue
+                content = _response(r)["choices"][0]["logprobs"]["content"]
+                with pytest.raises(ValueError):
+                    fmt.ef._digit_expectation(fmt._as_objects(content))
+                bad = {
+                    a.strip()
+                    for a, _ in r["alternatives"][0]
+                    if a.strip().isdigit() and _int_rejects(a.strip())
+                }
+                assert bad, "a row that raised must hold a digit int() rejects"
+                seen |= bad
+        assert seen == INT_REJECTS
+
+
+class TestNR65TheGptEndpoints:
+    """Band L and band H under GPT-5.5 labels, from the rows and the two tracked controls."""
+
+    def test_band_l_product_reading(self, bands: dict[str, list[Pair]]) -> None:
+        pt = _points(bands["L"], "product_exp")
+        assert pt["scored"] == 315
+        assert pt["auc_t_gpt"] == pytest.approx(0.711, abs=0.001)
+        assert pt["auc_c_gpt"] == pytest.approx(0.675, abs=0.001)
+        assert pt["d_auc_gpt"] == pytest.approx(0.036, abs=0.001)
+        # Every paper is scored, so the control's AUC is the one the registration fixed.
+        assert round(pt["auc_c_gpt"], 4) == fmt.BANDS["L"].control_auc
+
+    def test_band_l_control_parser_reading(self, bands: dict[str, list[Pair]]) -> None:
+        pt = _points(bands["L"], "control_exp")
+        assert pt["scored"] == 315 - 38
+        assert pt["d_auc_gpt"] == pytest.approx(0.034, abs=0.001)
+        # Case http lost over half its papers to the control's parser, so it is admitted whole.
+        assert pt["fallback"] == ["http"]
+
+    def test_band_h_product_reading(self, bands: dict[str, list[Pair]]) -> None:
+        pt = _points(bands["H"], "product_exp")
+        assert pt["scored"] == 328
+        assert pt["d_auc_gpt"] == pytest.approx(-0.026, abs=0.001)
+        assert round(pt["auc_c_gpt"], 4) == fmt.BANDS["H"].control_auc
+
+    def test_band_l_admissions(self, bands: dict[str, list[Pair]]) -> None:
+        """181 against 173, and 72 papers admitted by one arm only: 8 more of 315."""
+        pt = _points(bands["L"], "product_exp")
+        assert pt["admissions"] == {
+            "treatment": 181,
+            "control": 173,
+            "only_treatment": 40,
+            "only_control": 32,
+        }
+        assert pt["A"] == pytest.approx(8 / 315)
+        assert pt["A"] == pytest.approx(0.025, abs=0.001)
+
+    def test_band_h_admissions(self, bands: dict[str, list[Pair]]) -> None:
+        adm = _points(bands["H"], "product_exp")["admissions"]
+        assert (adm["treatment"], adm["control"]) == (249, 231)
+
+    @pytest.mark.parametrize("name", ["L", "H"])
+    @pytest.mark.parametrize("reading", list(FIELDS))
+    def test_the_points_equal_the_artifacts_summary(
+        self, transfer: dict[str, Any], bands: dict[str, list[Pair]], name: str, reading: str
+    ) -> None:
+        pt = _points(bands[name], FIELDS[reading])
+        stats = transfer["summary"]["bands"][name]["readings"][reading]
+        for key in ("auc_t_gpt", "auc_c_gpt", "d_auc_gpt", "A", "A_threshold"):
+            assert pt[key] == pytest.approx(stats["point"][key], abs=1e-12), key
+        assert pt["admissions"] == stats["admissions"]
+        assert pt["fallback"] == stats["fallback_cases"]
+        assert pt["scored"] == stats["counts"]["scored"]
+
+
+class TestNR65TheRetest:
+    def test_band_l_scored_twice(
+        self, transfer: dict[str, Any], reparsed: dict[str, dict[Key, dict[str, Any]]]
+    ) -> None:
+        """Mean absolute exp09 difference 0.086, Spearman 0.993, 9 of 315 admissions flipped."""
+        first, retest = reparsed["first"], reparsed["retest"]
+        pairs = [(first[k]["product_exp"], r["product_exp"]) for k, r in retest.items()]
+        assert len(pairs) == 315
+        mad = sum(abs(a - b) for a, b in pairs) / len(pairs)
+        rho = fmt.spearman([a for a, _ in pairs], [b for _, b in pairs])
+        flips = sum(fmt.admitted(a) != fmt.admitted(b) for a, b in pairs)
+        assert mad == pytest.approx(0.086, abs=0.001)
+        assert rho == pytest.approx(0.993, abs=0.001)
+        assert flips == 9
+        recorded = transfer["summary"]["retest"]["product_exp"]
+        assert recorded == pytest.approx(
+            {"n": 315, "mean_abs_diff": mad, "spearman": rho, "admission_flips": flips}, abs=1e-12
+        )
+
+
+class TestNR65TheRegisteredOutcome:
+    def test_the_recorded_outcome_is_u_under_both_readings(self, transfer: dict[str, Any]) -> None:
+        summary = transfer["summary"]
+        assert summary["outcome_per_reading"] == {"control_parser": "U", "product_parser": "U"}
+        assert summary["outcome"] == "U" == fmt.combine(summary["outcome_per_reading"])
+
+    def test_each_recorded_row_follows_from_its_recorded_intervals(
+        self, transfer: dict[str, Any]
+    ) -> None:
+        band_l = transfer["summary"]["bands"]["L"]
+        forced = band_l["void"] > fmt.VOID_LIMIT
+        for reading in FIELDS:
+            stats = band_l["readings"][reading]
+            assert fmt.outcome_for(stats, sonnet_forced=forced) == stats["outcome"]
+
+    @pytest.mark.parametrize(
+        ("reading", "d_auc", "e2"),
+        [
+            ("product_parser", (-0.025, 0.100), (-0.038, 0.088)),
+            ("control_parser", (-0.041, 0.109), (-0.035, 0.091)),
+        ],
+    )
+    def test_band_l_gpt_intervals_recomputed_from_the_rows(
+        self,
+        transfer: dict[str, Any],
+        band_l_intervals: dict[str, dict[str, Any]],
+        reading: str,
+        d_auc: tuple[float, float],
+        e2: tuple[float, float],
+    ) -> None:
+        """What makes U without Sonnet. GPT-5.5's half of E1 is non-inferior, the floor did not
+        fire, and E2 misses "the threshold holds" by its upper bound. Under the registered table
+        that is U unless Sonnet read worse, which would be W1. Sonnet's verdicts are not in this
+        artifact, so that half is checked against the record above, not recomputed."""
+        got = band_l_intervals[reading]
+        assert got["d_auc_gpt"] == pytest.approx(d_auc, abs=0.001)
+        assert got["A"] == pytest.approx(e2, abs=0.001)
+        recorded = transfer["summary"]["bands"]["L"]["readings"][reading]["intervals"]
+        for key, ci in got.items():
+            assert ci == pytest.approx(tuple(recorded[key]), abs=1e-12), key
+        assert fmt.judge_reading(got["d_auc_gpt"]) == "non-inferior"
+        assert not fmt.includes_half(got["auc_t_gpt"])
+        assert fmt.e2_reading(got["A"]) == "unresolved"
+        assert fmt.e2_reading(got["A_threshold"]) == "unresolved"
+
+    def test_the_treatments_own_auc_interval(
+        self, band_l_intervals: dict[str, dict[str, Any]]
+    ) -> None:
+        """RESULTS: 0.711 [0.648, 0.773] under GPT-5.5, the product-parser reading."""
+        got = band_l_intervals["product_parser"]["auc_t_gpt"]
+        assert got == pytest.approx((0.648, 0.773), abs=0.001)
+
+    @pytest.mark.parametrize(
+        ("reading", "point", "ci"),
+        [
+            ("product_parser", -0.026, (-0.097, 0.053)),
+            ("control_parser", -0.035, (-0.116, 0.052)),
+        ],
+    )
+    def test_band_h_gpt_d_auc_recomputed_from_the_rows(
+        self,
+        transfer: dict[str, Any],
+        bands: dict[str, list[Pair]],
+        band_h_intervals: dict[str, dict[str, Any]],
+        reading: str,
+        point: float,
+        ci: tuple[float, float],
+    ) -> None:
+        """Band H's GPT-5.5 Delta AUC under both readings, by the same registered bootstrap as
+        band L's. Both points are negative, and both intervals span zero."""
+        pt = _points(bands["H"], FIELDS[reading])
+        got = band_h_intervals[reading]
+        assert pt["d_auc_gpt"] == pytest.approx(point, abs=0.0005)
+        assert got["d_auc_gpt"] == pytest.approx(ci, abs=0.0005)
+        recorded = transfer["summary"]["bands"]["H"]["readings"][reading]
+        assert pt["d_auc_gpt"] == pytest.approx(recorded["point"]["d_auc_gpt"], abs=1e-12)
+        for key, interval in got.items():
+            assert interval == pytest.approx(tuple(recorded["intervals"][key]), abs=1e-12), key
