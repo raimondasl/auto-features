@@ -42,6 +42,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §7 E1–E5 band ranking | `band_testbeds.py` (shared), `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`, `exp_pairwise.py`, `exp_features.py` |
 | §8.1–8.3 calibration | `exp_finescale.py`, `compare_finescale_baseline.py` |
 | §8.1–8.3 calibration, current-gate replication [NR-64] | `finescale_current_gate.py` (writes `finescale_current_gate.json`) |
+| cost per repository, measured [C-36 sibling] | `measure_cost.py` (writes `cost_measured.json`) |
 | §8.4 live run | `run_judge_eval.py --rr-finescale` |
 | §8.5 dense channel end to end | `run_judge_eval.py --rr-hyde` |
 | §8.6 calibration audit | `calibrate_finescale.py` |
@@ -100,6 +101,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | thin-docs detection (NR-37) | `thin_docs_detector.py` ($0; also carries the ablation-arm → budget mapping) |
 | stated-intent experiment (NR-26) | `make_goals.py`, `run_judge_eval.py --rr-goals` |
 | personalization (Tier S) | `seeded.py`, `run_seeded_eval.py` |
+| what does one repository actually cost to run? the published "~$0.01-0.02 per repository" figure | `measure_cost.py` (needs ANTHROPIC_API_KEY and OPENAI_API_KEY; prices the gate and the fine-scale rescore from the usage the APIs report, using the shipped prompt builders, and writes `cost_measured.json`. HyDE's one call per repository is excluded and named as excluded) |
 
 Scripts prefixed `verify_*` are the **$0 stage-1 dependency probes** that precede a paid
 experiment; `diagnose_*` answer a question without changing anything; `exp_*` are the

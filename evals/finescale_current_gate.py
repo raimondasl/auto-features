@@ -35,11 +35,21 @@ from reporadar.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 RUN = (
-    EVALS / "results" / ("judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260908T163150Z.json")
+    EVALS
+    / "results"
+    / (
+        # The HAIKU control arm of the 2026-09-08 session. The first version of this script used
+        # the sibling 163150Z run, which is the Luna arm: ranking_config.rr_gate_model is
+        # gpt-5.6-luna there. pool_config.rr_triage_model says claude-haiku-4-5 in BOTH files,
+        # because it describes how the pool was collected rather than which gate the run used.
+        # Reading that field and stopping is what produced C-31.
+        "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260908T063132Z.json"
+    )
 )
 POOL = EVALS / ".work" / "pool-cut100"
-CACHE = EVALS / ".work" / "exp" / "finescale_current_gate"
+CACHE = EVALS / ".work" / "exp" / "finescale_current_gate_haiku"
 OUT = EVALS / "finescale_current_gate.json"
+OUT_LUNA = EVALS / "finescale_current_gate_luna.json"
 
 # The 12 scientific cases, for the pre-registered descriptive split.
 SCIENTIFIC = {
@@ -122,6 +132,18 @@ def report(rows: list[dict]) -> dict:
                 else None
             ),
         }
+
+    # Record WHICH GATE produced this band. C-36: the first version of this script scored a
+    # Luna-gated band while believing it was Haiku, because it read pool_config (how the pool
+    # was collected) instead of ranking_config (which gate the run used). An artifact that
+    # cannot say which gate it measured cannot be checked, so it says.
+    run = json.loads(RUN.read_text(encoding="utf-8"))
+    rc = run[0].get("ranking_config") or {}
+    out["gate"] = {
+        "provider": rc.get("rr_gate_provider") or "claude",
+        "model": rc.get("rr_gate_model")
+        or (run[0].get("pool_config") or {}).get("rr_triage_model"),
+    }
 
     out["overall"] = auc_of(scored)
     out["legacy"] = auc_of([r for r in scored if r["case"] not in SCIENTIFIC])
