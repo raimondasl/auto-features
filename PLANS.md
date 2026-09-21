@@ -1306,6 +1306,12 @@ stage, so a slow gate can outlast Copilot CLI's 180 s no-progress window. That i
 heartbeat gap item 16 already files, not an Azure problem — Azure only makes it likelier through
 rate-limit waits, which are now bounded.
 
+**The Azure rescore, measured 2026-09-21 [NR-65].** Pre-registered and run on the test resource:
+gpt-4.1-mini on Azure orders the fine-scale band at least as well as gpt-4o-mini under both judges.
+Whether the frozen threshold admits the same papers stayed unresolved, since the upper bound
+missed the margin by 0.008. The registered outcome is U, so the product keeps calling the stage
+uncalibrated on Azure.
+
 ### 12. Iterative retrieval (PRF-HyDE) — CLOSED NEGATIVE 2026-08-31 [NR-49, NR-50, NR-51]
 
 **The paid arm ran and the item is closed [NR-51].** ~$15, 37 cases, treatment differing from
