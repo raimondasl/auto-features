@@ -101,6 +101,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | thin-docs detection (NR-37) | `thin_docs_detector.py` ($0; also carries the ablation-arm → budget mapping) |
 | stated-intent experiment (NR-26) | `make_goals.py`, `run_judge_eval.py --rr-goals` |
 | personalization (Tier S) | `seeded.py`, `run_seeded_eval.py` |
+| does the fine-scale rescore behave the same on Azure's gpt-4.1-mini? (PREREG-finescale-model-transfer.md) | `finescale_model_transfer.py` (~$2 of Sonnet for 124 missing second-judge verdicts, plus under $1 of Azure credit; scores bands L and H on the Azure deployment through the shipped transport, retests band L, and reads the registered outcome. The Azure resource is named by environment variables only. Writes evals/finescale_model_transfer.json, pinned by tests/test_finescale_model_transfer.py) |
 | what does one repository actually cost to run? the published "~$0.01-0.02 per repository" figure | `measure_cost.py` (needs ANTHROPIC_API_KEY and OPENAI_API_KEY; prices the gate and the fine-scale rescore from the usage the APIs report, using the shipped prompt builders, and writes `cost_measured.json`. HyDE's one call per repository is excluded and named as excluded) |
 
 Scripts prefixed `verify_*` are the **$0 stage-1 dependency probes** that precede a paid

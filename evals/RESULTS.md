@@ -1144,6 +1144,84 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Azure's gpt-4.1-mini ranks the fine-scale band at least as well as gpt-4o-mini. Whether the fixed threshold sits in the same place is unresolved. [NR-65]
+
+Pre-registered in [PREREG-finescale-model-transfer.md](PREREG-finescale-model-transfer.md),
+committed at `48d5777` and published as PR #323 before any score or new verdict existed. Script
+`evals/finescale_model_transfer.py` (`c435ed3`, plus the operational fix `de046eb` below).
+Artifact `evals/finescale_model_transfer.json`, with every row.
+
+The registered outcome is U. Nothing changes in the product, and the Azure caveat stays as it is.
+
+The question. On Azure the fine-scale rescore runs on the user's own deployment, through a
+probability map fitted to gpt-4o-mini, which Azure no longer deploys. The treatment is the
+gpt-4.1-mini deployment on the test resource, called through the shipped transport. The control
+is the gpt-4o-mini scores already on disk. Band L, the 315 papers a gpt-5.6-luna gate scored 2,
+is primary because a keyless Azure install gates on the user's own deployment.
+
+Band L, the registered endpoints. Paired case bootstrap, 4,000 draws, 35 cases.
+
+| endpoint | control-parser reading | product-parser reading | reading |
+|---|---|---|---|
+| Delta AUC, GPT-5.5 labels | +0.034 [-0.041, +0.109] | +0.036 [-0.025, +0.100] | non-inferior |
+| Delta AUC, Sonnet labels | +0.045 [-0.013, +0.102] | +0.049 [+0.001, +0.097] | non-inferior |
+| E2, admissions change / band | +0.029 [-0.035, +0.091] | +0.025 [-0.038, +0.088] | unresolved |
+
+E1 is non-inferior under both judges and both readings, and the floor did not fire: the
+treatment's own AUC under GPT-5.5 is 0.711 [0.648, 0.773]. E2 misses "the threshold holds" by
+its upper bound, 0.008 past the +0.08 margin. Admissions are 181 against gpt-4o-mini's 173, and
+72 papers are admitted by one arm only. Each reading therefore reads U, and so does the pair.
+
+Descriptive, with no bars.
+
+- Scores. gpt-4.1-mini sits slightly lower on the 0-9 scale and wider: mean exp09 shift -0.19,
+  median -0.22, quartiles -0.88 and +0.31. Between-arm Spearman 0.725 on band L and 0.745 on
+  band H.
+- E3, band net against gpt-4o-mini. +0.40 per case [-0.23, +1.00] under GPT-5.5, and +0.06
+  [-0.86, +1.00] under Sonnet.
+- E4, value. Under GPT-5.5 the treatment beats showing none by +2.77 per case [+1.66, +3.77] and
+  is level with showing everything, +0.89 [-0.14, +1.94]. Under Sonnet it beats showing everything
+  by +6.37 [+4.60, +8.31] and loses to showing none by -4.26 [-5.77, -2.89]. The stage's value is
+  set by the judge's strictness, as the registration found on files already on disk.
+- Retest, band L scored twice. Mean absolute exp09 difference 0.086, Spearman 0.993, 9 of 315
+  admissions flipped (2.9%). gpt-4o-mini's own replicate was 0.071, 0.993 and 2.4%.
+- Band H, the Haiku-gated band. Delta AUC -0.026 [-0.097, +0.053] under GPT-5.5 and +0.050
+  [+0.002, +0.100] under Sonnet. Admissions change +0.055 [-0.015, +0.130], 249 against 231.
+
+The predictions, scored.
+
+- E1 landed inside its predicted range, +0.01 with range -0.06 to +0.08, and read non-inferior,
+  one of the three outcomes given about 0.3 each.
+- E2 went the wrong way. I predicted gpt-4.1-mini would score about 0.5 higher and admit 190 to
+  215. It scored about 0.2 lower and admitted 181. The extra admissions come from spread, not from
+  a higher level.
+- The retest landed inside its prediction.
+- E4 went as predicted. E3 under Sonnet was predicted negative and came out near zero.
+
+The run. 124 Sonnet verdicts were bought, with 0 void and 0 drifted cases. 793 Azure calls
+returned 0 errors, 0 content filters, 0 no-digit answers, 0 stops and 0 rate-limit stops. Every
+response named gpt-4.1-mini-2025-04-14. Every request dropped `reasoning_effort`, which
+gpt-4.1-mini refuses; that is the one permitted adaptation.
+
+One interruption was not a registered stop. The first `--score` process died at paper 126 of
+band L's first pass, when Windows refused the atomic rename of the artifact ("Access is
+denied") while another process held the file for a moment. Every row before it was cached, and
+the pass progress was intact. `de046eb` retries the rename, and the run resumed from its caches
+without asking any paper twice.
+
+A parser detail the registration anticipated. The control's parser could not score 38 band L
+papers and 23 band H papers. gpt-4.1-mini put ⑤ (circled digit five), ₂ or ³ among a first
+token's 20 alternatives, at tiny probability. `str.isdigit()` accepts those and `int()` rejects
+them, so the eval parser raises for the whole row. Every first token was an ASCII digit, and the
+product's parser scored all 643 papers. Under the control-parser reading those papers are
+unscored, as registered, and in band L that also sends case `http` to the whole-band fallback.
+Both readings give U.
+
+What it means. On Azure's gpt-4.1-mini, the rescore orders band papers at least as well as it does
+on gpt-4o-mini under both judges. Whether the frozen threshold admits the same papers is not
+settled at 35 cases: it admitted 8 more of 315, and the interval allows up to 28. Registered
+outcome U means the product keeps calling the stage uncalibrated on Azure.
+
 ### The rescore orders the band on the cohort it was built for, and not on the one added later. **[NR-64]**
 
 > **Superseded in part by [C-36] below: this entry measured a Luna-gated band, not the
