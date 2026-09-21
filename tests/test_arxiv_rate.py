@@ -27,6 +27,28 @@ def _restore() -> object:
     arxiv_rate.set_min_interval(previous)
 
 
+class _GrantClock:
+    """Stands in for `arxiv_rate`'s `time` module: real time, read finely, per thread.
+
+    `wait_turn` reads the clock last when it records the grant, so after it returns, the
+    calling thread's last reading is the time the limiter let it go. Kept per thread so a
+    reading on one thread cannot be overwritten by another before it is collected.
+    """
+
+    def __init__(self) -> None:
+        self._local = threading.local()
+
+    def monotonic(self) -> float:
+        self._local.last = time.perf_counter()
+        return self._local.last
+
+    def sleep(self, seconds: float) -> None:
+        time.sleep(seconds)
+
+    def last_reading(self) -> float:
+        return self._local.last
+
+
 class TestTheShippedIntervalIsArxivsStatedCeiling:
     def test_the_default_is_three_seconds(self) -> None:
         """The suite runs with the interval at 0 (see conftest). This asserts what ships,
@@ -55,24 +77,42 @@ class TestWaitTurnSpacesRequests:
 
     def test_concurrent_callers_queue_rather_than_waking_together(self) -> None:
         """A naive check-then-sleep lets N threads read the same stale timestamp and fire
-        at once — the exact burst a rate limiter exists to prevent."""
-        arxiv_rate.set_min_interval(0.1)
-        arxiv_rate.wait_turn()
-        stamps: list[float] = []
-        lock = threading.Lock()
+        at once — the exact burst a rate limiter exists to prevent.
 
-        def go() -> None:
+        The gaps are measured between the grant times the limiter itself reads, not between
+        stamps each thread takes after `wait_turn` returns. Stamping afterwards failed once
+        in a loaded full-suite run on Windows with gaps of [0.094, 0.125, 0.078], and passed
+        5 of 5 alone. Two things compressed the gaps without the limiter doing anything
+        wrong: a thread delayed between its grant and its stamp moved that stamp toward the
+        next one, and Windows' `time.monotonic` ticks every 15.6 ms, so 0.078 is five ticks.
+        Both are gone here. The limiter runs on `perf_counter` for the duration, and each
+        thread reports the last reading the limiter took on it, which is its grant.
+
+        The threads still really sleep, so a limiter that lets them read one stale timestamp
+        still wakes them together and still fails with gaps near zero.
+        """
+        clock = _GrantClock()
+        # Pinned so the limiter's first reading on `perf_counter` is not compared with a
+        # timestamp from `monotonic`, and restored so later tests do not inherit one.
+        with (
+            patch.object(arxiv_rate, "time", clock),
+            patch.object(arxiv_rate, "_last_request_at", 0.0),
+        ):
+            arxiv_rate.set_min_interval(0.1)
             arxiv_rate.wait_turn()
-            with lock:
-                stamps.append(time.monotonic())
+            grants: list[float] = []
 
-        threads = [threading.Thread(target=go) for _ in range(4)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        stamps.sort()
-        gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
+            def go() -> None:
+                arxiv_rate.wait_turn()
+                grants.append(clock.last_reading())
+
+            threads = [threading.Thread(target=go) for _ in range(4)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        grants.sort()
+        gaps = [b - a for a, b in zip(grants, grants[1:], strict=False)]
         assert all(g >= 0.08 for g in gaps), f"requests bunched: {gaps}"
 
 
