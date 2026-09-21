@@ -322,13 +322,28 @@ def save_artifact(art: dict[str, Any]) -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     tmp = OUT.with_suffix(".json.tmp")
     tmp.write_text(text, encoding="utf-8")
-    tmp.replace(OUT)
+    _replace(tmp, OUT)
+
+
+def _replace(tmp: Path, target: Path) -> None:
+    """`tmp.replace(target)`, retried while Windows refuses it.
+
+    On Windows the rename fails with "Access is denied" while another process -- an editor's file
+    watcher, the virus scanner -- has *target* open for a moment. The first --score run died on
+    exactly that at paper 126, with every row before it safely cached."""
+    for attempt in range(40):
+        try:
+            tmp.replace(target)
+            return
+        except PermissionError:
+            time.sleep(0.25 * min(attempt + 1, 8))
+    tmp.replace(target)
 
 
 def write_atomic(path: Path, data: dict[str, Any]) -> None:
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
-    tmp.replace(path)
+    _replace(tmp, path)
 
 
 def utc() -> str:
