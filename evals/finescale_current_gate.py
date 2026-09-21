@@ -42,7 +42,7 @@ RUN = (
         # the sibling 163150Z run, which is the Luna arm: ranking_config.rr_gate_model is
         # gpt-5.6-luna there. pool_config.rr_triage_model says claude-haiku-4-5 in BOTH files,
         # because it describes how the pool was collected rather than which gate the run used.
-        # Reading that field and stopping is what produced C-31.
+        # Reading that field and stopping is what produced C-37.
         "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260908T063132Z.json"
     )
 )
@@ -133,7 +133,7 @@ def report(rows: list[dict]) -> dict:
             ),
         }
 
-    # Record WHICH GATE produced this band. C-36: the first version of this script scored a
+    # Record WHICH GATE produced this band. C-37: the first version of this script scored a
     # Luna-gated band while believing it was Haiku, because it read pool_config (how the pool
     # was collected) instead of ranking_config (which gate the run used). An artifact that
     # cannot say which gate it measured cannot be checked, so it says.

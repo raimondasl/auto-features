@@ -42,7 +42,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | §7 E1–E5 band ranking | `band_testbeds.py` (shared), `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`, `exp_pairwise.py`, `exp_features.py` |
 | §8.1–8.3 calibration | `exp_finescale.py`, `compare_finescale_baseline.py` |
 | §8.1–8.3 calibration, current-gate replication [NR-64] | `finescale_current_gate.py` (writes `finescale_current_gate.json`) |
-| cost per repository, measured [C-36 sibling] | `measure_cost.py` (writes `cost_measured.json`) |
+| cost per repository, measured [C-37 sibling] | `measure_cost.py` (writes `cost_measured.json`) |
 | §8.4 live run | `run_judge_eval.py --rr-finescale` |
 | §8.5 dense channel end to end | `run_judge_eval.py --rr-hyde` |
 | §8.6 calibration audit | `calibrate_finescale.py` |
@@ -102,6 +102,7 @@ numbers themselves, with dates and costs, are in [RESULTS.md](RESULTS.md).
 | stated-intent experiment (NR-26) | `make_goals.py`, `run_judge_eval.py --rr-goals` |
 | personalization (Tier S) | `seeded.py`, `run_seeded_eval.py` |
 | does the fine-scale rescore behave the same on Azure's gpt-4.1-mini? (PREREG-finescale-model-transfer.md) | `finescale_model_transfer.py` (~$2 of Sonnet for 124 missing second-judge verdicts, plus under $1 of Azure credit; scores bands L and H on the Azure deployment through the shipped transport, retests band L, and reads the registered outcome. The Azure resource is named by environment variables only. Writes evals/finescale_model_transfer.json, pinned by tests/test_finescale_model_transfer.py) |
+| which band claims depend on the judge, the scorer or the band? (descriptive and post hoc) | `judge_dependence.py` ($0, offline. Joins the three dual-judged score-2 bands, aug20, H and L, with gpt-4o-mini and gpt-4.1-mini scores and both judges' labels. Writes AUC, legacy-minus-scientific gap, judge ordering and level gaps, and stage value per repository, each with a case-bootstrap interval, to evals/judge_dependence.json, pinned by tests/test_judge_dependence.py. Rerunning needs untracked inputs: evals/.work/second_judge_band.json, the Sonnet verdict cache under evals/.work/second_judge/, and four run files under evals/results/, which is gitignored (the two 2026-08-20 aug20 runs, band H's 20260908T063132Z run and band L's 20260908T163150Z run). The tracked artifact and its tests do not) |
 | what does one repository actually cost to run? the published "~$0.01-0.02 per repository" figure | `measure_cost.py` (needs ANTHROPIC_API_KEY and OPENAI_API_KEY; prices the gate and the fine-scale rescore from the usage the APIs report, using the shipped prompt builders, and writes `cost_measured.json`. HyDE's one call per repository is excluded and named as excluded) |
 
 Scripts prefixed `verify_*` are the **$0 stage-1 dependency probes** that precede a paid
