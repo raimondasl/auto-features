@@ -1146,6 +1146,9 @@ coverage number for that table on non-Python repositories first.
 
 ### The headline margin rests on the negative controls and on the development repositories, and under the primary judge its sign depends on the penalty. **[NR-68]**
 
+> **Corrected in part by [C-40] below.** The controls' advantage holds at λ = 2 under every label,
+> not at every λ: under GPT-5.5 it needs λ > 17/14. The text below is left as written.
+
 Descriptive and post hoc, $0. Script `evals/comparison_sensitivity.py`, artifact
 `evals/comparison_sensitivity.json`, pinned by `tests/test_comparison_sensitivity.py`. Every figure
 is recomputed from NR-52's tracked per-case counts. At λ = 2 the script reproduces NR-52's
@@ -1216,6 +1219,28 @@ agreement is 80% of its ceiling. The low κ is mostly the level gap restated.
 pipeline's advantage that holds under every label and every λ is abstention on the negative
 controls. Cost is outside this analysis and does not depend on it. Beyond the controls, the
 primary judge sees parity at λ = 2 and the second judge sees the baseline ahead.
+
+#### CORRECTION — the controls' advantage does not hold at every penalty under GPT-5.5. **[C-40]**
+
+"What this changes" above says the advantage that holds "under every label and every λ" is
+abstention on the negative controls. Under GPT-5.5 it is not. The baseline's 31 papers on the
+controls are 17 actionable and 14 not under that label, so they net the baseline 17 - 14λ. That
+favours our arm only for λ > 17/14. At λ = 1 the controls favour the baseline by 3 net@1, -0.08
+per case. Under consensus (12 and 19) and Sonnet (2 and 29) the controls favour our arm at every λ
+in the 1 to 4 grid. The corrected sentence: at λ = 2, under every label, the pipeline's advantage
+is abstention on the negative controls. `tests/test_comparison_sensitivity.py` now pins the three
+break-evens.
+
+#### CORRECTION — P4's "equal-candidate" comparison gave the four-hypothesis arm four times the budget. **[C-41]**
+
+P4 (the blind HyDE stage) warned that `hyde4-union`'s top-1k had already read up to 4,000
+candidates, and then compared arms "within 4k". For single-query arms that is 4,000 candidates.
+For `hyde4-union` it is a 4,000 cut on the best of four lists, up to 16,000. So "42/48 vs 23/48
+for one hypothesis" compared 16,000 candidates with 4,000, and "four diverse guesses are worth
+far more than one, at the same candidate cost" does not follow. At about 4,000 candidates per
+repository the arms are 27/48 (four hypotheses), 23/48 (one), 12/48 (README) and 9/48 (keywords).
+Four guesses still beat one, and every HyDE arm still beats the repository-derived queries by a
+wide margin. `evals/hyde_replication.py` now labels that printout with each arm's real budget.
 
 
 ### The identifier line did not move the second judge. NR-52's Sonnet margin stands. **[NR-67]**
@@ -9453,6 +9478,12 @@ per repo by the time it reports a top-1k hit, so it is not comparable to a singl
 at 1,000. The equal-candidate column is the fair one, and it says the same thing:
 **42/48 vs 23/48 for one hypothesis and 12/48 for the README.** Four diverse guesses are
 worth far more than one, at the same candidate cost.
+
+> **Corrected by [C-41].** The comparison just above is not equal-candidate. The "within 4k"
+> column applies a 4,000 cut to `hyde4-union`'s best rank over four lists, so its 42/48 has read
+> up to 16,000 candidates. At an equal budget of about 4,000 per repository the arms are
+> `hyde4-union` top-1k 27/48, `hyde1` 23/48, README 12/48 and keywords 9/48. Four guesses beat
+> one by 4 targets, not 19, and both still beat the repository-derived queries.
 
 ### The number that matters: the two channels barely overlap
 
