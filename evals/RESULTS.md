@@ -1209,6 +1209,11 @@ could not measure a base rate, and it did not. It widened the range the base rat
   losses and 2 ties. It is -1.55 [-7.82, +5.14] on the 22 development repositories and -3.33
   [-8.47, +2.13] on the 15 later ones. These cuts were chosen after NR-68 had seen the other two
   judges' margins, so they describe the run and test nothing.
+- The judges' margins against each other, per case on the same runs, with NR-52's
+  paired_bootstrap. GPT-5.5 minus Sonnet is +3.73 [+0.41, +6.73], so those two judges' margins
+  differ by more than sampling noise although neither margin alone excludes zero. GPT-5.5 minus
+  Gemini is +2.59 [-1.78, +6.89], and Sonnet minus Gemini -1.14 [-3.97, +1.62]. This was asked
+  in review, after every margin was known.
 
 **The run.** 1,534 distinct prompts and 1,536 calls, two of them one retry each. $6.45, computed
 from each response's reported usage at the registered prices. No rate limit, no void, one model

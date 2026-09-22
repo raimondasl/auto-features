@@ -150,3 +150,26 @@ class TestComparison:
         assert got == [-4.29, -8.21, -0.35]
         w = art["comparison"]["without_controls"]
         assert [round(w["margin"], 2), *(round(x, 2) for x in w["ci95"])] == got
+
+    @pytest.mark.parametrize(
+        ("pair", "want"),
+        [
+            ("gpt_minus_sonnet", [3.73, 0.41, 6.73]),
+            ("gpt_minus_gemini", [2.59, -1.78, 6.89]),
+            ("sonnet_minus_gemini", [-1.14, -3.97, 1.62]),
+        ],
+    )
+    def test_the_judges_margins_on_the_same_runs(
+        self, per_case: dict[str, dict[str, Any]], pair: str, want: list[float]
+    ) -> None:
+        """Recomputed from NR-68's per-case deltas and E4's, with NR-52's paired_bootstrap."""
+        sens = json.loads((ROOT / "evals" / "comparison_sensitivity.json").read_text("utf-8"))
+        deltas = {
+            "gpt": {c: v["delta_net2"] for c, v in sens["per_case"]["gpt"].items()},
+            "sonnet": {c: v["delta_net2"] for c, v in sens["per_case"]["sonnet_only"].items()},
+            "gemini": {c: v["delta"] for c, v in per_case.items()},
+        }
+        a, b = pair.split("_minus_")
+        d = [float(deltas[a][c] - deltas[b][c]) for c in sorted(per_case)]
+        lo, hi = paired_bootstrap(d)
+        assert [round(statistics.mean(d), 2), round(lo, 2), round(hi, 2)] == want

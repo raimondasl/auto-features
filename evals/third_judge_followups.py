@@ -52,6 +52,7 @@ from reporadar.paper_id import dedup_id  # noqa: E402
 EVALS = Path(__file__).resolve().parent
 THIRD = EVALS / "third_judge.json"
 DEPENDENCE = EVALS / "judge_dependence.json"
+SENSITIVITY = EVALS / "comparison_sensitivity.json"
 OUT = EVALS / "third_judge_followups.json"
 
 JUDGES = ("gpt", "sonnet", "gemini")
@@ -205,6 +206,32 @@ def margin(per_case: dict[str, dict[str, Any]], cases: list[str]) -> dict[str, A
     }
 
 
+def judge_contrasts(third: dict[str, Any], sensitivity: dict[str, Any]) -> dict[str, Any]:
+    """Each pair of judges' margins on the same runs: the per-case difference of their deltas.
+
+    NR-52 gives each judge's margin with an interval, and each interval includes zero. That does
+    not say whether the judges' margins differ from each other by more than sampling noise, which
+    is a paired question over the same 37 cases. The GPT-5.5 and Sonnet deltas are NR-68's, the
+    Gemini deltas E4's, and each margin must first reproduce as published.
+    """
+    deltas = {
+        "gpt": {c: v["delta_net2"] for c, v in sensitivity["per_case"]["gpt"].items()},
+        "sonnet": {c: v["delta_net2"] for c, v in sensitivity["per_case"]["sonnet_only"].items()},
+        "gemini": {c: v["delta"] for c, v in third["summary"]["E4"]["per_case"].items()},
+    }
+    cases = sorted(deltas["gemini"])
+    for judge, want in (("gpt", 0.32), ("sonnet", -3.41), ("gemini", -2.27)):
+        expect(sorted(deltas[judge]) == cases, f"{judge} deltas cover other cases")
+        got = statistics.mean(deltas[judge][c] for c in cases)
+        expect(round(got, 2) == want, f"{judge} margin {got:.4f} != published {want}")
+    out: dict[str, Any] = {}
+    for a, b in (("gpt", "sonnet"), ("gpt", "gemini"), ("sonnet", "gemini")):
+        d = [float(deltas[a][c] - deltas[b][c]) for c in cases]
+        lo, hi = paired_bootstrap(d)
+        out[f"{a}_minus_{b}"] = {"n": len(d), "difference": statistics.mean(d), "ci95": [lo, hi]}
+    return out
+
+
 def comparison(third: dict[str, Any]) -> dict[str, Any]:
     e4 = third["summary"]["E4"]
     per_case = e4["per_case"]
@@ -257,6 +284,7 @@ def build() -> dict[str, Any]:
         "comparison": {
             "bootstrap": "bigram_report.paired_bootstrap, NR-52's own",
             **comparison(third),
+            "judge_contrasts": judge_contrasts(third, read(SENSITIVITY)),
         },
     }
 
@@ -283,6 +311,9 @@ def show(art: dict[str, Any]) -> None:
             f"baseline {m['baseline_mean_net']:+.2f}  {m['wins']}/{m['losses']}/{m['ties']}"
         )
     print(f"  controls {c['controls']}")
+    for k, v in c["judge_contrasts"].items():
+        lo, hi = v["ci95"]
+        print(f"  margin {k:<18} {v['difference']:+.2f} [{lo:+.2f}, {hi:+.2f}] over {v['n']}")
 
 
 def main() -> int:
