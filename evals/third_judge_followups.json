@@ -1,0 +1,229 @@
+{
+ "_comment": "Descriptive and post hoc follow-ups to NR-69, $0. Nothing here was registered. Written by evals/third_judge_followups.py and pinned by tests/test_third_judge_followups.py. Figures are stored at full precision.",
+ "inputs": {
+  "third_judge": "third_judge.json",
+  "judge_dependence": "judge_dependence.json"
+ },
+ "band": "aug20",
+ "stage_value": {
+  "recipe": "NR-66: admitted papers +1 actionable, -2 not, per benchmark case",
+  "bootstrap": {
+   "draws": 4000,
+   "seed": 20260921,
+   "unit": "case, all 37"
+  },
+  "reproduces_nr66": true,
+  "by_judge": {
+   "gpt": {
+    "stage_minus_none": {
+     "point": 4.972972972972973,
+     "ci": [
+      3.7837837837837838,
+      6.243243243243243
+     ],
+     "draws": 4000
+    },
+    "stage_minus_all": {
+     "point": -0.4594594594594595,
+     "ci": [
+      -1.1891891891891893,
+      0.24324324324324326
+     ],
+     "draws": 4000
+    },
+    "admitted_precision": {
+     "point": 0.9180327868852459,
+     "ci": [
+      0.8777292576419214,
+      0.9578947368421052
+     ],
+     "draws": 4000
+    },
+    "band_actionable": {
+     "point": 0.8734567901234568,
+     "ci": [
+      0.8286516853932584,
+      0.9144736842105263
+     ],
+     "draws": 4000
+    }
+   },
+   "sonnet": {
+    "stage_minus_none": {
+     "point": -1.9189189189189189,
+     "ci": [
+      -3.5675675675675675,
+      -0.2972972972972973
+     ],
+     "draws": 4000
+    },
+    "stage_minus_all": {
+     "point": 2.6216216216216215,
+     "ci": [
+      1.5405405405405406,
+      3.7837837837837838
+     ],
+     "draws": 4000
+    },
+    "admitted_precision": {
+     "point": 0.569672131147541,
+     "ci": [
+      0.48936170212765956,
+      0.6503496503496503
+     ],
+     "draws": 4000
+    },
+    "band_actionable": {
+     "point": 0.49382716049382713,
+     "ci": [
+      0.41935483870967744,
+      0.5681818181818182
+     ],
+     "draws": 4000
+    }
+   },
+   "gemini": {
+    "stage_minus_none": {
+     "point": -6.864864864864865,
+     "ci": [
+      -9.162162162162161,
+      -4.8108108108108105
+     ],
+     "draws": 4000
+    },
+    "stage_minus_all": {
+     "point": 3.3513513513513513,
+     "ci": [
+      2.4054054054054053,
+      4.405405405405405
+     ],
+     "draws": 4000
+    },
+    "admitted_precision": {
+     "point": 0.319672131147541,
+     "ci": [
+      0.24302788844621515,
+      0.4007352941176471
+     ],
+     "draws": 4000
+    },
+    "band_actionable": {
+     "point": 0.2777777777777778,
+     "ci": [
+      0.20915032679738563,
+      0.3473684210526316
+     ],
+     "draws": 4000
+    }
+   }
+  }
+ },
+ "agreement": {
+  "gpt_sonnet": {
+   "both": 156,
+   "gpt_only": 127,
+   "sonnet_only": 4,
+   "neither": 37,
+   "p_gpt": 0.8734567901234568,
+   "p_sonnet": 0.49382716049382713,
+   "kappa": 0.19874650758891488,
+   "kappa_max": 0.24767801857585137
+  },
+  "gpt_gemini": {
+   "both": 90,
+   "gpt_only": 193,
+   "gemini_only": 0,
+   "neither": 41,
+   "p_gpt": 0.8734567901234568,
+   "p_gemini": 0.2777777777777778,
+   "kappa": 0.10556127703398559,
+   "kappa_max": 0.10556127703398559
+  },
+  "sonnet_gemini": {
+   "both": 81,
+   "sonnet_only": 79,
+   "gemini_only": 9,
+   "neither": 155,
+   "p_sonnet": 0.49382716049382713,
+   "p_gemini": 0.2777777777777778,
+   "kappa": 0.4537931034482759,
+   "kappa_max": 0.5655172413793104
+  },
+  "gemini_accepts": {
+   "n": 90,
+   "also_gpt": 90,
+   "also_sonnet": 81,
+   "also_both": 81
+  },
+  "gemini_scores": {
+   "0": 0,
+   "1": 234,
+   "2": 77,
+   "3": 13
+  }
+ },
+ "comparison": {
+  "bootstrap": "bigram_report.paired_bootstrap, NR-52's own",
+  "all": {
+   "n": 37,
+   "margin": -2.27027027027027,
+   "ci95": [
+    -6.594594594594595,
+    2.3513513513513513
+   ],
+   "ours_mean_net": -7.297297297297297,
+   "baseline_mean_net": -5.027027027027027,
+   "wins": 14,
+   "losses": 21,
+   "ties": 2
+  },
+  "controls": {
+   "deltas": {
+    "webdev": 10,
+    "cli": 12,
+    "http": 40
+   },
+   "controls_sum": 62,
+   "total": -84
+  },
+  "without_controls": {
+   "n": 34,
+   "margin": -4.294117647058823,
+   "ci95": [
+    -8.205882352941176,
+    -0.35294117647058826
+   ],
+   "ours_mean_net": -7.9411764705882355,
+   "baseline_mean_net": -3.6470588235294117,
+   "wins": 11,
+   "losses": 21,
+   "ties": 2
+  },
+  "development": {
+   "n": 22,
+   "margin": -1.5454545454545454,
+   "ci95": [
+    -7.818181818181818,
+    5.136363636363637
+   ],
+   "ours_mean_net": -6.181818181818182,
+   "baseline_mean_net": -4.636363636363637,
+   "wins": 8,
+   "losses": 12,
+   "ties": 2
+  },
+  "later": {
+   "n": 15,
+   "margin": -3.3333333333333335,
+   "ci95": [
+    -8.466666666666667,
+    2.1333333333333333
+   ],
+   "ours_mean_net": -8.933333333333334,
+   "baseline_mean_net": -5.6,
+   "wins": 6,
+   "losses": 9,
+   "ties": 0
+  }
+ }
+}

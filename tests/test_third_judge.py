@@ -788,6 +788,13 @@ def loaded(
 class TestWhatBothModesRefuse:
     """`--report` asks `readiness` the same questions as `--judge`, minus the key."""
 
+    @pytest.fixture(autouse=True)
+    def _own_state(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """readiness compares the case list with the ledger's. Without its own STATE every test
+        here read the real run's ledger, and the clean-load test passed only until the first
+        --judge wrote one."""
+        monkeypatch.setattr(tj, "STATE", tmp_path)
+
     def test_a_clean_load_raises_nothing_about_the_populations(self) -> None:
         out = " | ".join(tj.readiness(loaded(), key=False, count=no_count))
         for quiet in ("drifted", "T0 context", "registered", "no prompt", "case list", "Tokens"):
@@ -894,3 +901,40 @@ class TestTheTrackedArtifact:
 
     def test_the_existing_judges_reproduced(self, data: dict[str, Any]) -> None:
         assert data["reproductions"] and all(r["ok"] for r in data["reproductions"])
+
+    def test_one_model_answered_every_prompt(self, data: dict[str, Any]) -> None:
+        assert {r["model_version"] for r in data["rows"]} == {tj.MODEL}
+        assert {r["finish_reason"] for r in data["rows"]} == {"STOP"}
+
+    def test_the_run_was_frozen_at_its_start_commit(self, data: dict[str, Any]) -> None:
+        """NR-69 quotes the head the run started from. The frozen files are the ones of 1a4914c."""
+        assert data["frozen"]["head"] == "f2f9af671c452e60a28e50815e91f5b0c03cf726"
+        assert set(data["frozen"]["files"]) == set(tj.FROZEN)
+
+    def test_the_readings_quoted_in_nr69(self, data: dict[str, Any]) -> None:
+        """The registered readings and the figures RESULTS.md and the paper quote beside them."""
+        s = data["summary"]
+
+        def r3(x: float) -> float:
+            return round(x, 3)
+
+        assert (r3(s["E1"]["rate"]), [r3(x) for x in s["E1"]["ci"]]) == (0.278, [0.210, 0.346])
+        assert s["E1"]["reading"] == "below both"
+        assert (r3(s["E2"]["auc"]), [r3(x) for x in s["E2"]["ci"]]) == (0.672, [0.574, 0.767])
+        assert s["E2"]["reading"] == "orders the band"
+        adopted, cross = s["E3"]["adopted"], s["E3"]["crossrepo"]
+        assert (r3(adopted["rate"]), [r3(x) for x in adopted["ci"]]) == (0.468, [0.355, 0.571])
+        assert adopted["reading"] == "below both"
+        assert (r3(cross["rate"]), [r3(x) for x in cross["ci"]]) == (0.042, [0.018, 0.071])
+        assert cross["reading"] == "overlaps Sonnet"
+        assert r3(s["E3"]["auc"]["auc"]) == 0.879
+        assert (round(s["E4"]["margin"], 2), [round(x, 2) for x in s["E4"]["ci"]]) == (
+            -2.27,
+            [-6.59, 2.35],
+        )
+        assert s["E4"]["reading"] == "between"
+        assert {k: r3(v) for k, v in s["E4"]["precision"].items()} == {
+            "ours": 0.373,
+            "baseline": 0.493,
+        }
+        assert all(v["void"] == 0 for v in s["voids"].values())
