@@ -1144,6 +1144,80 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### The headline margin rests on the negative controls and on the development repositories, and under the primary judge its sign depends on the penalty. **[NR-68]**
+
+Descriptive and post hoc, $0. Script `evals/comparison_sensitivity.py`, artifact
+`evals/comparison_sensitivity.json`, pinned by `tests/test_comparison_sensitivity.py`. Every figure
+is recomputed from NR-52's tracked per-case counts. At λ = 2 the script reproduces NR-52's
+margins, intervals and win/loss/tie counts exactly before it writes anything. Intervals are
+NR-52's own `bigram_report.paired_bootstrap`.
+
+**Why it needed doing.** A review of the write-up found three dependencies of NR-52's +0.32 that
+the record never measured: the metric's penalty, three negative-control repositories, and the
+split between the repositories the pipeline was developed on and the ones added later.
+
+**1. The penalty.** net@λ = a - λu, re-scored over the same shown sets. The margin is exactly
+linear in λ.
+
+| label | λ = 1 | λ = 2 | λ = 3 | λ = 4 | zero crossing |
+|---|---|---|---|---|---|
+| GPT-5.5 | -0.24 [-1.97, +1.51] | +0.32 [-1.78, +2.51] | +0.89 [-1.78, +3.81] | +1.46 [-1.89, +5.22] | λ = 10/7 |
+| consensus | -0.08 [-1.86, +1.70] | +0.57 [-1.73, +2.92] | +1.22 [-1.76, +4.41] | +1.86 [-1.84, +6.05] | λ = 9/8 |
+| Sonnet | -2.73 [-5.03, -0.32] | -3.41 [-7.00, +0.54] | -4.08 [-9.14, +1.62] | -4.76 [-11.27, +2.76] | none |
+
+Under the GPT-5.5 labels the sign of the comparison depends on λ. It favours the baseline below
+λ = 10/7 and our pipeline above it, and no interval excludes zero at any λ. Our pipeline shows
+fewer papers at a slightly higher GPT-5.5 precision (0.889 against 0.846), so a heavier penalty
+charges the baseline more. Under Sonnet the margin is negative at every λ ≥ 0, because our
+pipeline shows more unactionable papers in total. At λ = 1 its interval excludes zero. Sonnet's
+precision for our pipeline, 0.585, falls below the break-even λ/(1 + λ) from λ = 1.5; the
+baseline's, 0.714, from λ = 3.
+
+This re-scores fixed digests. A different λ would also move the display threshold, λ/(1 + λ), and
+change what our pipeline shows. It measures how sensitive the evaluation is to λ, not how a
+pipeline re-tuned for each λ would compare.
+
+**2. The negative controls.** Our pipeline shows nothing on webdev, cli and http under any label.
+The baseline shows 31 papers there. That abstention favours our pipeline under every label: +11
+net@2 of the +12 total under GPT-5.5, +26 under consensus, +56 under Sonnet.
+
+| label | all 37 | without the 3 controls (34) |
+|---|---|---|
+| GPT-5.5 | +0.32 [-1.78, +2.51] | +0.03 [-2.15, +2.29] |
+| consensus | +0.57 [-1.73, +2.92] | -0.15 [-2.38, +2.12] |
+| Sonnet | -3.41 [-7.00, +0.54] | -5.35 [-8.41, -2.32] |
+
+Without the controls the GPT-5.5 margin is zero to two decimals, and the Sonnet deficit excludes
+zero.
+
+**3. Development against later repositories.** The 22 development repositories are Testbed A's
+cases. The gate, the rescore and its map were built on them. The three thin cases were added on
+2026-08-09. They came after the testbed but before the digest width, gate depth and ranking
+weights were chosen on the 25 core cases. Only the 12 scientific cases saw no design decision.
+
+| group | n | GPT-5.5 | consensus | Sonnet |
+|---|---|---|---|---|
+| development | 22 | +2.27 [-0.50, +5.05] | +2.82 [-0.05, +5.73] | -1.82 [-6.91, +3.86] |
+| later | 15 | -2.53 [-5.53, +0.20] | -2.73 [-5.93, +0.13] | -5.73 [-10.33, -1.47] |
+| scientific | 12 | -2.58 [-6.08, +0.75] | -2.83 [-6.67, +0.75] | -4.58 [-10.00, +0.25] |
+| core | 25 | +1.72 [-0.72, +4.28] | +2.20 [-0.32, +4.88] | -2.84 [-7.44, +2.40] |
+
+Only one interval excludes zero: Sonnet on the later 15. The contrast is confounded twice. All
+three negative controls are development repositories, and the later group is mostly the
+scientific cohort, where the baseline is strongest (P26). So this does not show that the pipeline
+was fitted to its development set. It shows that the +0.32 does not travel to the repositories
+the design never saw.
+
+**4. The kappa ceiling.** On the 324-paper aug20 band the judges agree at κ = 0.199. With their
+marginals (0.873 and 0.494 actionable), the largest κ attainable is 0.248, so the observed
+agreement is 80% of its ceiling. The low κ is mostly the level gap restated.
+
+**What this changes.** A statement of the comparison must carry all three dependencies. The
+pipeline's advantage that holds under every label and every λ is abstention on the negative
+controls. Cost is outside this analysis and does not depend on it. Beyond the controls, the
+primary judge sees parity at λ = 2 and the second judge sees the baseline ahead.
+
+
 ### The judges disagree about what the rescore is worth, not about how it orders the band, and the domain split was one scorer read against one judge. **[NR-66]**
 
 Descriptive and post hoc, $0. Nothing here was pre-registered. Script `evals/judge_dependence.py`,
@@ -2621,6 +2695,11 @@ the first draw and self-agreement would have been unmeasurable by construction.
 `tests/test_sonnet_self_agreement.py`.
 
 ### The margin passes the second-judge gate, and the gate barely tested it. **[NR-52, rung 1]**
+
+> **Qualified by [NR-68].** The +0.32 under GPT-5.5 is +11 of +12 from three negative-control
+> repositories, where our arm shows nothing. Without them it is +0.03 [-2.15, +2.29] under GPT-5.5
+> and -5.35 [-8.41, -2.32] under Sonnet. Its sign under GPT-5.5 also depends on the penalty, with a
+> zero crossing at λ = 10/7. The reading below is left as written.
 
 The validity gate the ladder in `RESEARCH-net2-directions.md` put before every dollar: is the
 +0.5-ish margin over Opus 5 a property of RepoRadar or of GPT-5.5? Pre-registered in
