@@ -417,6 +417,27 @@ class TestTheControls:
         assert len(kept) == 34
         _check(_margin(_deltas(rows, kept, 2.0)), CONTROL_FIGURES[label][2], label)
 
+    @pytest.mark.parametrize(
+        ("label", "accepted", "rejected"),
+        [("gpt", 17, 14), ("consensus", 12, 19), ("sonnet_only", 2, 29)],
+    )
+    def test_where_the_controls_stop_favouring_us(
+        self, artifact: dict, label: str, accepted: int, rejected: int
+    ) -> None:
+        """C-40. The controls favour our arm only when lambda * rejected > accepted. Under
+        GPT-5.5 that is lambda > 17/14, so at lambda = 1 they favour the baseline by 3. NR-68
+        said the advantage held at every lambda, which is true only under the other two labels
+        across the 1 to 4 grid."""
+        rows = _rows(artifact, label)
+        a = sum(rows[c]["op_a"] for c in CONTROLS)
+        u = sum(rows[c]["op_u"] for c in CONTROLS)
+        assert (a, u) == (accepted, rejected)
+        for lam in (1.0, 1.5, 2.0, 3.0, 4.0):
+            ours_minus_baseline = -(a - lam * u)
+            assert (ours_minus_baseline > 0) == (lam > a / u), (label, lam)
+        if label == "gpt":
+            assert -(a - 1.0 * u) == -3
+
     def test_interval_signs_without_them(self, artifact: dict) -> None:
         """Without the controls, GPT-5.5's margin is about zero and Sonnet's excludes it."""
         rows = {label: _rows(artifact, label) for label in ("gpt", "sonnet_only")}
