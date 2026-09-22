@@ -1218,6 +1218,52 @@ controls. Cost is outside this analysis and does not depend on it. Beyond the co
 primary judge sees parity at λ = 2 and the second judge sees the baseline ahead.
 
 
+### The identifier line did not move the second judge. NR-52's Sonnet margin stands. **[NR-67]**
+
+Pre-registered in [PREREG-sonnet-id-probe.md](PREREG-sonnet-id-probe.md), committed at `564cafd`
+and pushed before any verdict existed. Script `evals/sonnet_id_probe.py`, artifact
+`evals/sonnet_id_probe.json` with every row, pinned by `tests/test_sonnet_id_probe.py`.
+
+**The question.** NR-52 showed GPT-5.5 the baseline's arXiv picks with versioned ids, the
+resolver's record, and showed Sonnet the same picks with unversioned ones. Our arm was versioned
+under both judges. So under Sonnet, and only there, the prompt's identifier line differed by arm,
+and Sonnet accepted the baseline's arXiv picks at 0.789 against 0.567 for its DOI picks and 0.585
+for ours. The probe asked Sonnet about the 237 arXiv picks twice, with prompts that differ only in
+that line: arm V with the versioned id GPT-5.5 saw, arm U with the unversioned id NR-52 used.
+
+**The registered reading is Immaterial.**
+
+| endpoint | result |
+|---|---|
+| E1, actionable rate, V minus U (primary) | +0.004 [-0.026, +0.040]; 0.793 against 0.789; 7 papers actionable in V only, 6 in U only |
+| E2, Sonnet-only margin | V -3.49 [-7.11, +0.49]; U -3.41 [-7.08, +0.62]; shift -0.08 [-0.73, +0.49] |
+| E4, consensus margin | V +0.65 [-1.70, +3.05]; U +0.73 [-1.68, +3.19]; shift -0.08 [-0.24, 0.00] |
+| E3, U against NR-52's draws | 12 of 237 flip across score 2 (5.1%); 12 of the 226 NR-52 drew itself (5.3%) |
+
+The E1 interval includes zero, so by the registered rule the id line did not move Sonnet's
+verdicts. The two arms agree on 224 of 237 papers, and the 13 that differ split 7 to 6. Under
+arm V, the recipe that matches GPT-5.5's, the Sonnet-only margin is -3.49 instead of -3.41.
+
+**The predictions, scored.** E1 was predicted at -0.04, range -0.10 to +0.02, with its interval
+including zero: it came out +0.004, inside the range. The reading was predicted Immaterial at
+about 0.6, and it was. The E2 shift was predicted between -0.5 and +0.5 (-0.08). The E3 flip rate
+was predicted between 5% and 12% (5.1%).
+
+**What it means.** The asymmetry was real and it did not matter. The gap between Sonnet's
+acceptance of the baseline's arXiv picks and of its DOI picks is not produced by the identifier
+line. NR-52's Sonnet reading stands as recorded, and the second judge's reversal of the
+comparison is not an artifact of the identifier line.
+
+**The run.** 474 calls, 0 void, 0 retries charged, no outage. The request carried no temperature
+field, as NR-52's did. 37 of 37 contexts verified before the first call, and NR-52's margins
+reproduced from its own verdicts (-3.4054 and +0.5676) before either arm was read. Estimated cost
+about $8.
+
+**Any later judge** asks about the baseline's arXiv picks with versioned ids, the recipe GPT-5.5
+used. This probe shows the choice does not matter for Sonnet, and using the one recipe removes the
+question.
+
+
 ### The judges disagree about what the rescore is worth, not about how it orders the band, and the domain split was one scorer read against one judge. **[NR-66]**
 
 Descriptive and post hoc, $0. Nothing here was pre-registered. Script `evals/judge_dependence.py`,
@@ -2700,6 +2746,11 @@ the first draw and self-agreement would have been unmeasurable by construction.
 > repositories, where our arm shows nothing. Without them it is +0.03 [-2.15, +2.29] under GPT-5.5
 > and -5.35 [-8.41, -2.32] under Sonnet. Its sign under GPT-5.5 also depends on the penalty, with a
 > zero crossing at λ = 10/7. The reading below is left as written.
+
+> **Tested by [NR-67].** Under Sonnet only, this entry's prompts showed the baseline's arXiv
+> picks with unversioned ids and ours with versioned ones. A pre-registered probe re-asked Sonnet
+> with the versioned ids GPT-5.5 saw: the verdicts did not move (+0.004 [-0.026, +0.040]), and
+> the Sonnet-only margin is -3.49 under that recipe against -3.41 here. The reading below stands.
 
 The validity gate the ladder in `RESEARCH-net2-directions.md` put before every dollar: is the
 +0.5-ish margin over Opus 5 a property of RepoRadar or of GPT-5.5? Pre-registered in
