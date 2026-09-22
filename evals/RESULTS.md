@@ -1144,6 +1144,86 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### A third vendor's judge is stricter than both, so two judges understated how far LLM judges differ in level. **[NR-69]**
+
+Pre-registered in [PREREG-third-judge.md](PREREG-third-judge.md), committed at `1a4914c` with the
+script and client that decide its readings, all three frozen and pushed before any verdict
+existed. The registration's header says 2026-09-23, which is a typo left in the frozen file. The
+commit is dated 2026-09-22 19:12 UTC, and the first verdict came at 19:21 UTC. The bootstrap seed
+20260923 is only a number. The run started from `f2f9af6`, whose message records the author's
+confirmation that the key's project is on a paid tier. Script `evals/third_judge.py`, artifact `evals/third_judge.json`
+with every row, pinned by `tests/test_third_judge.py`. The descriptive follow-ups below are in
+`evals/third_judge_followups.py` and `.json`, pinned by `tests/test_third_judge_followups.py`.
+
+**The question.** GPT-5.5 and Sonnet order the band alike and disagree about its level (NR-59,
+NR-66). Two judges cannot show whether that spread is typical of LLM judges. This asked where a
+judge from a third vendor, Google's `gemini-3.8-flash`, falls on the same prompts.
+
+**The registered readings.**
+
+| endpoint | Gemini | GPT-5.5 | Sonnet | reading |
+|---|---|---|---|---|
+| E1, band actionable, 324 papers | 0.278 [0.210, 0.346] | 0.873 | 0.494 | below both |
+| E2, band AUC of the fine-scale expectation | 0.672 [0.574, 0.767] | 0.729 | 0.702 | orders the band |
+| E3, adopted actionable, 188 | 0.468 [0.355, 0.571] | 0.819 | 0.644 | below both |
+| E3, cross-repository controls actionable, 502 | 0.042 [0.018, 0.071] | 0.255 | 0.068 | overlaps Sonnet |
+| E4, margin, ours minus the baseline, 37 cases | -2.27 [-6.59, +2.35] | +0.32 | -3.41 | between |
+
+Gemini orders adopted papers above the cross-repository controls at AUC 0.879 [0.834, 0.914].
+NR-62's 0.852 and 0.895 for the other two judges are over 147 adoptions and are not the same
+comparison. Under Gemini our arm's precision is 0.373 and the baseline's 0.493, both below the
+2/3 break-even.
+
+**The predictions, scored.** E1 was predicted at about 0.70, range 0.55 to 0.85, reading
+`between` at about 0.5. It came out 0.278, outside the range, reading `below both`, one of the
+readings registered together at about 0.25. E2 was predicted at 0.70 in 0.62 to 0.78, and came out
+0.672. The adopted rate was predicted at 0.75 in 0.60 to 0.88 and came out 0.468. The
+cross-repository rate was predicted at 0.15 in 0.07 to 0.28 and came out 0.042. Both were
+predicted `between` at about 0.45, and neither was. The adoption AUC was predicted at 0.75 or more
+(0.879). E4 was predicted at -1.5 and `between` at about 0.6, and it was, at -2.27. No population
+had a void, against a prediction of under 2%. The registration named the alternative that
+happened: Gemini thinks by default, "which may make it stricter than both".
+
+**What it means.** The registered consequence of `below both` is that the spread understates how
+far LLM judges differ in level, and the range to report widens to include Gemini. On the band the
+three judges call 0.873, 0.494 and 0.278 actionable, and all three order it, at AUC 0.672 to
+0.729. Of the papers repositories went on to adopt, Gemini accepts fewer than half. Adoption
+confirms positives only, so that counts against Gemini's cut-off on the one error adoption can
+see and says nothing about the other. It does not pick a judge. NR-59 argued that a third judge
+could not measure a base rate, and it did not. It widened the range the base rate could lie in.
+
+**Descriptive and post hoc.** Nothing in this paragraph was registered.
+
+- Nesting. Gemini accepts 90 of the 324 band papers. All 90 are GPT-5.5 acceptances and 81 are
+  Sonnet acceptances. Gemini and GPT-5.5 agree at kappa 0.106, the most their marginals allow.
+  Gemini and Sonnet agree at 0.454 against a ceiling of 0.566. On this band the three judges
+  behave like one ordering read at three cut-offs.
+- The stage, by NR-66's recipe and on NR-66's draws. Under Gemini the rescore stage loses 6.86
+  net@2 per repository against withholding the band, [-9.16, -4.81], and gains 3.35 against
+  showing all of it, [+2.41, +4.41]. It admits papers Gemini calls actionable at 0.320. That is
+  Sonnet's sign pattern, larger. Under all three judges the stage beats withholding exactly when
+  its admitted precision clears 2/3.
+- The comparison, cut as NR-68 cut it. Our arm averages -7.30 net@2 per repository under Gemini
+  and the baseline -5.03, so abstaining everywhere would beat both. The controls contribute +62 of
+  the -84 total. Without them the margin is -4.29 [-8.21, -0.35] over 34 cases, 11 wins, 21
+  losses and 2 ties. It is -1.55 [-7.82, +5.14] on the 22 development repositories and -3.33
+  [-8.47, +2.13] on the 15 later ones. These cuts were chosen after NR-68 had seen the other two
+  judges' margins, so they describe the run and test nothing.
+- The judges' margins against each other, per case on the same runs, with NR-52's
+  paired_bootstrap. GPT-5.5 minus Sonnet is +3.73 [+0.41, +6.73], so those two judges' margins
+  differ by more than sampling noise although neither margin alone excludes zero. GPT-5.5 minus
+  Gemini is +2.59 [-1.78, +6.89], and Sonnet minus Gemini -1.14 [-3.97, +1.62]. This was asked
+  in review, after every margin was known.
+
+**The run.** 1,534 distinct prompts and 1,536 calls, two of them one retry each. $6.45, computed
+from each response's reported usage at the registered prices. No rate limit, no void, one model
+version on every row, and every finish reason `STOP`. All ten reproductions of the existing
+judges' figures held before any Gemini verdict was read.
+
+**Also fixed.** One test in `tests/test_third_judge.py` asked `readiness` about a synthetic load
+while `readiness` read the real run's ledger, so the test passed only until `--judge` wrote one.
+Every test in that class now gets its own state directory. No frozen file changed.
+
 ### The headline margin rests on the negative controls and on the development repositories, and under the primary judge its sign depends on the penalty. **[NR-68]**
 
 > **Corrected in part by [C-40] below.** The controls' advantage holds at λ = 2 under every label,
@@ -2167,6 +2247,10 @@ a function of the base rate -- the one thing the two judges answer differently.
 
 ## Why this settles "add a third judge"
 
+> **A third judge was run in [NR-69], as a measurement, not as a vote.** It fell below both on
+> level (0.278 of the band actionable) while still ordering the band, so the range of judge levels
+> widened. It confirms the argument below rather than answering it: no judge measured the base rate.
+
 Consensus, majority-of-three and a Gemini tiebreaker are the same operation in different clothes
 -- with a binary label, majority-of-three **is** the tiebreaker -- and **none of them measures a
 base rate.** They pick one by construction, and every threshold inherits it. Adding models to an
@@ -2766,6 +2850,10 @@ the first draw and self-agreement would have been unmeasurable by construction.
 `tests/test_sonnet_self_agreement.py`.
 
 ### The margin passes the second-judge gate, and the gate barely tested it. **[NR-52, rung 1]**
+
+> **A third judge in [NR-69].** Under a pre-registered Gemini label the margin is -2.27 [-6.59,
+> +2.35], between this entry's two. Gemini calls 0.373 of our shown papers actionable and 0.493 of
+> the baseline's, so both arms fall below abstaining under it.
 
 > **Qualified by [NR-68].** The +0.32 under GPT-5.5 is +11 of +12 from three negative-control
 > repositories, where our arm shows nothing. Without them it is +0.03 [-2.15, +2.29] under GPT-5.5
