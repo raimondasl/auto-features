@@ -359,10 +359,16 @@ def report(rows: list[dict[str, Any]]) -> None:
     # `hyde4-union` is best-of-4, so its top-1k has already spent up to 4,000 candidates.
     # Comparing it with a single-query arm at 1,000 would be reading a bigger budget as a
     # better query. The single-budget comparison is the centroid; this is the other half.
-    print(f"\nequal-candidate comparison — every arm at {N_HYPOTHESES}k candidates:")
+    # C-41: this loop once headed itself "every arm at 4k candidates", but `hyde4-union`'s rank
+    # is already the best over four lists, so within 4,000 it has read up to 16,000. Its
+    # equal-budget figure is its own top-1k above; the loop is labelled for what it measures.
+    print(f"\nrank within {TOP_1K * N_HYPOTHESES:,} (equal budget for single-query arms only):")
     for arm in arms:
         wide = sum(1 for r in rows if r[arm] <= TOP_1K * N_HYPOTHESES)
-        print(f"  {arm:16} {wide:>2}/{n} within {TOP_1K * N_HYPOTHESES:,}")
+        budget = TOP_1K * N_HYPOTHESES * (N_HYPOTHESES if arm == "hyde4-union" else 1)
+        print(
+            f"  {arm:16} {wide:>2}/{n} within {TOP_1K * N_HYPOTHESES:,}  (<= {budget:,} candidates)"
+        )
 
     for name in ("crypto", "systems"):
         sel = [r for r in rows if r["case"] == name]
