@@ -1,0 +1,1510 @@
+{
+ "summary": {
+  "what": "descriptive and post hoc; the lambda grid, the controls split, the groups and the kappa ceiling were chosen after NR-52's margins were known, so no figure here confirms a hypothesis and no interval here is a test",
+  "inputs": {
+   "comparison": "evals/rung1_second_judge.json labels.<label>.per_case (NR-52)",
+   "kappa": "evals/judge_dependence.json rows with band == 'aug20'",
+   "controls": "evals/benchmark.yaml negative_control flags",
+   "development": "band_testbeds.POOL50 (judge-gpt-5.5-20260807T180938Z.json), written out in the script"
+  },
+  "development_list_checked_against_run_file": true,
+  "labels": {
+   "gpt": "GPT-5.5 >= 2",
+   "consensus": "GPT-5.5 >= 2 and Sonnet >= 1",
+   "sonnet_only": "Sonnet >= 2"
+  },
+  "recovery": "net@2 = a - 2u and n = a + u, so a = (net + 2n) / 3 and u = (n - net) / 3",
+  "bootstrap": {
+   "function": "bigram_report.paired_bootstrap, called as rung1_second_judge.report calls it, on per-case deltas",
+   "draws": 10000,
+   "seed": 20260812,
+   "unit": "benchmark case, with replacement",
+   "interval": "percentile, sorted means at int(0.025n) and int(0.975n)",
+   "note": "every call reseeds, so two sets of deltas of the same length are resampled with the same case indices: the lambda sweep is paired across lambda"
+  },
+  "wlt": "band_testbeds.sign_test: wins, losses and ties of the per-case delta",
+  "lambdas": [
+   1.0,
+   1.5,
+   2.0,
+   3.0,
+   4.0
+  ],
+  "break_even": "an arm's net@lambda per shown paper is positive when its precision exceeds lambda / (1 + lambda)",
+  "penalty": {
+   "gpt": {
+    "n_cases": 37,
+    "sum_delta_a": -30,
+    "sum_delta_u": -21,
+    "mean_delta_a": -0.8108108108108109,
+    "mean_delta_u": -0.5675675675675675,
+    "linear_form": "margin(lambda) = (-30 + 21 * lambda) / 37",
+    "crossover": {
+     "lambda": 1.4285714285714286,
+     "exact": "10/7",
+     "root": 1.4285714285714286,
+     "reading": "the margin is positive for every lambda above 1.4286"
+    },
+    "rr_precision": 0.8888888888888888,
+    "opus5_precision": 0.84593837535014,
+    "by_lambda": {
+     "1": {
+      "lambda": 1.0,
+      "rr_mean_net": 6.4324324324324325,
+      "opus5_mean_net": 6.675675675675675,
+      "n_cases": 37,
+      "margin": -0.24324324324324326,
+      "ci95": [
+       -1.972972972972973,
+       1.5135135135135136
+      ],
+      "wins": 18,
+      "losses": 16,
+      "ties": 3,
+      "break_even_precision": 0.5,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "1.5": {
+      "lambda": 1.5,
+      "rr_mean_net": 5.972972972972973,
+      "opus5_mean_net": 5.9324324324324325,
+      "n_cases": 37,
+      "margin": 0.04054054054054054,
+      "ci95": [
+       -1.864864864864865,
+       1.972972972972973
+      ],
+      "wins": 19,
+      "losses": 18,
+      "ties": 0,
+      "break_even_precision": 0.6,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "2": {
+      "lambda": 2.0,
+      "rr_mean_net": 5.513513513513513,
+      "opus5_mean_net": 5.1891891891891895,
+      "n_cases": 37,
+      "margin": 0.32432432432432434,
+      "ci95": [
+       -1.7837837837837838,
+       2.5135135135135136
+      ],
+      "wins": 17,
+      "losses": 17,
+      "ties": 3,
+      "break_even_precision": 0.6666666666666666,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "3": {
+      "lambda": 3.0,
+      "rr_mean_net": 4.594594594594595,
+      "opus5_mean_net": 3.7027027027027026,
+      "n_cases": 37,
+      "margin": 0.8918918918918919,
+      "ci95": [
+       -1.7837837837837838,
+       3.810810810810811
+      ],
+      "wins": 18,
+      "losses": 18,
+      "ties": 1,
+      "break_even_precision": 0.75,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "4": {
+      "lambda": 4.0,
+      "rr_mean_net": 3.675675675675676,
+      "opus5_mean_net": 2.2162162162162162,
+      "n_cases": 37,
+      "margin": 1.4594594594594594,
+      "ci95": [
+       -1.8918918918918919,
+       5.216216216216216
+      ],
+      "wins": 20,
+      "losses": 16,
+      "ties": 1,
+      "break_even_precision": 0.8,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     }
+    }
+   },
+   "consensus": {
+    "n_cases": 37,
+    "sum_delta_a": -27,
+    "sum_delta_u": -24,
+    "mean_delta_a": -0.7297297297297297,
+    "mean_delta_u": -0.6486486486486487,
+    "linear_form": "margin(lambda) = (-27 + 24 * lambda) / 37",
+    "crossover": {
+     "lambda": 1.125,
+     "exact": "9/8",
+     "root": 1.125,
+     "reading": "the margin is positive for every lambda above 1.1250"
+    },
+    "rr_precision": 0.8823529411764706,
+    "opus5_precision": 0.8319327731092437,
+    "by_lambda": {
+     "1": {
+      "lambda": 1.0,
+      "rr_mean_net": 6.324324324324325,
+      "opus5_mean_net": 6.405405405405405,
+      "n_cases": 37,
+      "margin": -0.08108108108108109,
+      "ci95": [
+       -1.864864864864865,
+       1.7027027027027026
+      ],
+      "wins": 19,
+      "losses": 15,
+      "ties": 3,
+      "break_even_precision": 0.5,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "1.5": {
+      "lambda": 1.5,
+      "rr_mean_net": 5.837837837837838,
+      "opus5_mean_net": 5.594594594594595,
+      "n_cases": 37,
+      "margin": 0.24324324324324326,
+      "ci95": [
+       -1.7702702702702702,
+       2.2432432432432434
+      ],
+      "wins": 20,
+      "losses": 17,
+      "ties": 0,
+      "break_even_precision": 0.6,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "2": {
+      "lambda": 2.0,
+      "rr_mean_net": 5.351351351351352,
+      "opus5_mean_net": 4.783783783783784,
+      "n_cases": 37,
+      "margin": 0.5675675675675675,
+      "ci95": [
+       -1.7297297297297298,
+       2.918918918918919
+      ],
+      "wins": 18,
+      "losses": 16,
+      "ties": 3,
+      "break_even_precision": 0.6666666666666666,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "3": {
+      "lambda": 3.0,
+      "rr_mean_net": 4.378378378378378,
+      "opus5_mean_net": 3.1621621621621623,
+      "n_cases": 37,
+      "margin": 1.2162162162162162,
+      "ci95": [
+       -1.7567567567567568,
+       4.405405405405405
+      ],
+      "wins": 19,
+      "losses": 17,
+      "ties": 1,
+      "break_even_precision": 0.75,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "4": {
+      "lambda": 4.0,
+      "rr_mean_net": 3.4054054054054053,
+      "opus5_mean_net": 1.5405405405405406,
+      "n_cases": 37,
+      "margin": 1.864864864864865,
+      "ci95": [
+       -1.837837837837838,
+       6.054054054054054
+      ],
+      "wins": 21,
+      "losses": 15,
+      "ties": 1,
+      "break_even_precision": 0.8,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     }
+    }
+   },
+   "sonnet_only": {
+    "n_cases": 37,
+    "sum_delta_a": -76,
+    "sum_delta_u": 25,
+    "mean_delta_a": -2.054054054054054,
+    "mean_delta_u": 0.6756756756756757,
+    "linear_form": "margin(lambda) = (-76 - 25 * lambda) / 37",
+    "crossover": {
+     "lambda": null,
+     "exact": null,
+     "root": -3.04,
+     "reading": "the margin is negative for every lambda >= 0"
+    },
+    "rr_precision": 0.5849673202614379,
+    "opus5_precision": 0.7142857142857143,
+    "by_lambda": {
+     "1": {
+      "lambda": 1.0,
+      "rr_mean_net": 1.4054054054054055,
+      "opus5_mean_net": 4.135135135135135,
+      "n_cases": 37,
+      "margin": -2.72972972972973,
+      "ci95": [
+       -5.027027027027027,
+       -0.32432432432432434
+      ],
+      "wins": 11,
+      "losses": 24,
+      "ties": 2,
+      "break_even_precision": 0.5,
+      "rr_above_break_even": true,
+      "opus5_above_break_even": true
+     },
+     "1.5": {
+      "lambda": 1.5,
+      "rr_mean_net": -0.3108108108108108,
+      "opus5_mean_net": 2.7567567567567566,
+      "n_cases": 37,
+      "margin": -3.0675675675675675,
+      "ci95": [
+       -5.972972972972973,
+       0.06756756756756757
+      ],
+      "wins": 13,
+      "losses": 23,
+      "ties": 1,
+      "break_even_precision": 0.6,
+      "rr_above_break_even": false,
+      "opus5_above_break_even": true
+     },
+     "2": {
+      "lambda": 2.0,
+      "rr_mean_net": -2.027027027027027,
+      "opus5_mean_net": 1.3783783783783783,
+      "n_cases": 37,
+      "margin": -3.4054054054054053,
+      "ci95": [
+       -7.0,
+       0.5405405405405406
+      ],
+      "wins": 13,
+      "losses": 23,
+      "ties": 1,
+      "break_even_precision": 0.6666666666666666,
+      "rr_above_break_even": false,
+      "opus5_above_break_even": true
+     },
+     "3": {
+      "lambda": 3.0,
+      "rr_mean_net": -5.45945945945946,
+      "opus5_mean_net": -1.3783783783783783,
+      "n_cases": 37,
+      "margin": -4.081081081081081,
+      "ci95": [
+       -9.135135135135135,
+       1.6216216216216217
+      ],
+      "wins": 12,
+      "losses": 24,
+      "ties": 1,
+      "break_even_precision": 0.75,
+      "rr_above_break_even": false,
+      "opus5_above_break_even": false
+     },
+     "4": {
+      "lambda": 4.0,
+      "rr_mean_net": -8.891891891891891,
+      "opus5_mean_net": -4.135135135135135,
+      "n_cases": 37,
+      "margin": -4.756756756756757,
+      "ci95": [
+       -11.27027027027027,
+       2.7567567567567566
+      ],
+      "wins": 11,
+      "losses": 26,
+      "ties": 0,
+      "break_even_precision": 0.8,
+      "rr_above_break_even": false,
+      "opus5_above_break_even": false
+     }
+    }
+   }
+  },
+  "controls_note": "negative controls are repositories with no research to apply, where the right output is nothing; the margin here is net@2. share_of_total is controls_sum / total and has no share reading when the two differ in sign, as under sonnet_only; per_case_contribution is controls_sum / 37, the part of the 37-case margin they carry",
+  "controls": {
+   "gpt": {
+    "deltas": {
+     "webdev": 4,
+     "cli": -3,
+     "http": 10
+    },
+    "rr_shown": {
+     "webdev": 0,
+     "cli": 0,
+     "http": 0
+    },
+    "opus5_shown": {
+     "webdev": 5,
+     "cli": 6,
+     "http": 20
+    },
+    "controls_sum": 11,
+    "total": 12,
+    "share_of_total": 0.9166666666666666,
+    "per_case_contribution": 0.2972972972972973,
+    "with": {
+     "n_cases": 37,
+     "margin": 0.32432432432432434,
+     "ci95": [
+      -1.7837837837837838,
+      2.5135135135135136
+     ],
+     "wins": 17,
+     "losses": 17,
+     "ties": 3
+    },
+    "without": {
+     "n_cases": 34,
+     "margin": 0.029411764705882353,
+     "ci95": [
+      -2.1470588235294117,
+      2.2941176470588234
+     ],
+     "wins": 15,
+     "losses": 16,
+     "ties": 3
+    }
+   },
+   "consensus": {
+    "deltas": {
+     "webdev": 7,
+     "cli": 3,
+     "http": 16
+    },
+    "rr_shown": {
+     "webdev": 0,
+     "cli": 0,
+     "http": 0
+    },
+    "opus5_shown": {
+     "webdev": 5,
+     "cli": 6,
+     "http": 20
+    },
+    "controls_sum": 26,
+    "total": 21,
+    "share_of_total": 1.2380952380952381,
+    "per_case_contribution": 0.7027027027027027,
+    "with": {
+     "n_cases": 37,
+     "margin": 0.5675675675675675,
+     "ci95": [
+      -1.7297297297297298,
+      2.918918918918919
+     ],
+     "wins": 18,
+     "losses": 16,
+     "ties": 3
+    },
+    "without": {
+     "n_cases": 34,
+     "margin": -0.14705882352941177,
+     "ci95": [
+      -2.3823529411764706,
+      2.1176470588235294
+     ],
+     "wins": 15,
+     "losses": 16,
+     "ties": 3
+    }
+   },
+   "sonnet_only": {
+    "deltas": {
+     "webdev": 7,
+     "cli": 12,
+     "http": 37
+    },
+    "rr_shown": {
+     "webdev": 0,
+     "cli": 0,
+     "http": 0
+    },
+    "opus5_shown": {
+     "webdev": 5,
+     "cli": 6,
+     "http": 20
+    },
+    "controls_sum": 56,
+    "total": -126,
+    "share_of_total": -0.4444444444444444,
+    "per_case_contribution": 1.5135135135135136,
+    "with": {
+     "n_cases": 37,
+     "margin": -3.4054054054054053,
+     "ci95": [
+      -7.0,
+      0.5405405405405406
+     ],
+     "wins": 13,
+     "losses": 23,
+     "ties": 1
+    },
+    "without": {
+     "n_cases": 34,
+     "margin": -5.352941176470588,
+     "ci95": [
+      -8.411764705882353,
+      -2.323529411764706
+     ],
+     "wins": 10,
+     "losses": 23,
+     "ties": 1
+    }
+   }
+  },
+  "groups_note": "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed (Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were chosen on the 25 core cases. So only the 12 scientific cases saw no design decision, and 'later' is not the same as 'untouched'.",
+  "groups": {
+   "gpt": {
+    "development": {
+     "n_cases": 22,
+     "margin": 2.272727272727273,
+     "ci95": [
+      -0.5,
+      5.045454545454546
+     ],
+     "wins": 13,
+     "losses": 9,
+     "ties": 0
+    },
+    "later": {
+     "n_cases": 15,
+     "margin": -2.533333333333333,
+     "ci95": [
+      -5.533333333333333,
+      0.2
+     ],
+     "wins": 4,
+     "losses": 8,
+     "ties": 3
+    },
+    "scientific": {
+     "n_cases": 12,
+     "margin": -2.5833333333333335,
+     "ci95": [
+      -6.083333333333333,
+      0.75
+     ],
+     "wins": 4,
+     "losses": 6,
+     "ties": 2
+    },
+    "core": {
+     "n_cases": 25,
+     "margin": 1.72,
+     "ci95": [
+      -0.72,
+      4.28
+     ],
+     "wins": 13,
+     "losses": 11,
+     "ties": 1
+    }
+   },
+   "consensus": {
+    "development": {
+     "n_cases": 22,
+     "margin": 2.8181818181818183,
+     "ci95": [
+      -0.045454545454545456,
+      5.7272727272727275
+     ],
+     "wins": 14,
+     "losses": 8,
+     "ties": 0
+    },
+    "later": {
+     "n_cases": 15,
+     "margin": -2.7333333333333334,
+     "ci95": [
+      -5.933333333333334,
+      0.13333333333333333
+     ],
+     "wins": 4,
+     "losses": 8,
+     "ties": 3
+    },
+    "scientific": {
+     "n_cases": 12,
+     "margin": -2.8333333333333335,
+     "ci95": [
+      -6.666666666666667,
+      0.75
+     ],
+     "wins": 4,
+     "losses": 6,
+     "ties": 2
+    },
+    "core": {
+     "n_cases": 25,
+     "margin": 2.2,
+     "ci95": [
+      -0.32,
+      4.88
+     ],
+     "wins": 14,
+     "losses": 10,
+     "ties": 1
+    }
+   },
+   "sonnet_only": {
+    "development": {
+     "n_cases": 22,
+     "margin": -1.8181818181818181,
+     "ci95": [
+      -6.909090909090909,
+      3.8636363636363638
+     ],
+     "wins": 8,
+     "losses": 13,
+     "ties": 1
+    },
+    "later": {
+     "n_cases": 15,
+     "margin": -5.733333333333333,
+     "ci95": [
+      -10.333333333333334,
+      -1.4666666666666666
+     ],
+     "wins": 5,
+     "losses": 10,
+     "ties": 0
+    },
+    "scientific": {
+     "n_cases": 12,
+     "margin": -4.583333333333333,
+     "ci95": [
+      -10.0,
+      0.25
+     ],
+     "wins": 5,
+     "losses": 7,
+     "ties": 0
+    },
+    "core": {
+     "n_cases": 25,
+     "margin": -2.84,
+     "ci95": [
+      -7.44,
+      2.4
+     ],
+     "wins": 8,
+     "losses": 16,
+     "ties": 1
+    }
+   }
+  },
+  "kappa": {
+   "band": "aug20",
+   "n": 324,
+   "cut": "label >= 2, for both judges",
+   "table": {
+    "both": 156,
+    "gpt_only": 127,
+    "sonnet_only": 4,
+    "neither": 37
+   },
+   "p_gpt": 0.8734567901234568,
+   "p_sonnet": 0.49382716049382713,
+   "p_o": 0.595679012345679,
+   "p_e": 0.49538942234415484,
+   "p_o_max": 0.6203703703703703,
+   "kappa": 0.19874650758891488,
+   "kappa_max": 0.24767801857585137,
+   "kappa_over_max": 0.802439024390244,
+   "formula": "kappa = (p_o - p_e) / (1 - p_e); kappa_max = (p_o_max - p_e) / (1 - p_e); p_e = p_gpt * p_sonnet + (1 - p_gpt) * (1 - p_sonnet); p_o_max = min(p_gpt, p_sonnet) + min(1 - p_gpt, 1 - p_sonnet)",
+   "estimator": "second_judge.cohens_kappa, the one second_judge_band.py used"
+  }
+ },
+ "per_case": {
+  "gpt": {
+   "ann": {
+    "rr_a": 12,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 0,
+    "delta_net2": 2
+   },
+   "bio-align": {
+    "rr_a": 8,
+    "rr_u": 3,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": -5
+   },
+   "bio-kmer": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 10,
+    "op_u": 2,
+    "delta_net2": -3
+   },
+   "bio-mdsim": {
+    "rr_a": 11,
+    "rr_u": 1,
+    "op_a": 6,
+    "op_u": 0,
+    "delta_net2": 3
+   },
+   "bio-mdtraj": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 0,
+    "op_u": 0,
+    "delta_net2": 3
+   },
+   "bio-scvi": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 16,
+    "op_u": 2,
+    "delta_net2": -5
+   },
+   "bio-singlecell": {
+    "rr_a": 6,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": 0
+   },
+   "cli": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 5,
+    "op_u": 1,
+    "delta_net2": -3
+   },
+   "columnar": {
+    "rr_a": 7,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": 3
+   },
+   "compiler": {
+    "rr_a": 1,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": -3
+   },
+   "crypto": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 5,
+    "op_u": 0,
+    "delta_net2": -2
+   },
+   "cv": {
+    "rr_a": 7,
+    "rr_u": 1,
+    "op_a": 12,
+    "op_u": 0,
+    "delta_net2": -7
+   },
+   "db": {
+    "rr_a": 12,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": 5
+   },
+   "diffusion": {
+    "rr_a": 15,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 1,
+    "delta_net2": 10
+   },
+   "encryption": {
+    "rr_a": 1,
+    "rr_u": 0,
+    "op_a": 4,
+    "op_u": 1,
+    "delta_net2": -1
+   },
+   "graph": {
+    "rr_a": 15,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": 8
+   },
+   "http": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 10,
+    "op_u": 10,
+    "delta_net2": 10
+   },
+   "linter": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 3,
+    "op_u": 10,
+    "delta_net2": 17
+   },
+   "llminfer": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 15,
+    "op_u": 0,
+    "delta_net2": -8
+   },
+   "mat-chgpot": {
+    "rr_a": 11,
+    "rr_u": 1,
+    "op_a": 23,
+    "op_u": 1,
+    "delta_net2": -12
+   },
+   "mat-descriptors": {
+    "rr_a": 10,
+    "rr_u": 1,
+    "op_a": 5,
+    "op_u": 2,
+    "delta_net2": 7
+   },
+   "mat-featurize": {
+    "rr_a": 7,
+    "rr_u": 4,
+    "op_a": 6,
+    "op_u": 4,
+    "delta_net2": 1
+   },
+   "mat-mlip": {
+    "rr_a": 9,
+    "rr_u": 3,
+    "op_a": 18,
+    "op_u": 0,
+    "delta_net2": -15
+   },
+   "mat-phonon": {
+    "rr_a": 10,
+    "rr_u": 2,
+    "op_a": 8,
+    "op_u": 1,
+    "delta_net2": 0
+   },
+   "mat-toolkit": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 0,
+    "delta_net2": -5
+   },
+   "numerics": {
+    "rr_a": 6,
+    "rr_u": 0,
+    "op_a": 13,
+    "op_u": 0,
+    "delta_net2": -7
+   },
+   "peft": {
+    "rr_a": 13,
+    "rr_u": 1,
+    "op_a": 5,
+    "op_u": 0,
+    "delta_net2": 6
+   },
+   "rag": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 12,
+    "op_u": 0,
+    "delta_net2": -5
+   },
+   "rl": {
+    "rr_a": 11,
+    "rr_u": 1,
+    "op_a": 7,
+    "op_u": 1,
+    "delta_net2": 4
+   },
+   "speech": {
+    "rr_a": 12,
+    "rr_u": 3,
+    "op_a": 9,
+    "op_u": 0,
+    "delta_net2": -3
+   },
+   "storage": {
+    "rr_a": 13,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": 6
+   },
+   "systems": {
+    "rr_a": 4,
+    "rr_u": 1,
+    "op_a": 2,
+    "op_u": 6,
+    "delta_net2": 12
+   },
+   "thin-gnn": {
+    "rr_a": 12,
+    "rr_u": 3,
+    "op_a": 6,
+    "op_u": 0,
+    "delta_net2": 0
+   },
+   "thin-kv": {
+    "rr_a": 8,
+    "rr_u": 2,
+    "op_a": 7,
+    "op_u": 1,
+    "delta_net2": -1
+   },
+   "thin-lang": {
+    "rr_a": 0,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": -6
+   },
+   "vectordb": {
+    "rr_a": 12,
+    "rr_u": 1,
+    "op_a": 10,
+    "op_u": 1,
+    "delta_net2": 2
+   },
+   "webdev": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 2,
+    "op_u": 3,
+    "delta_net2": 4
+   }
+  },
+  "consensus": {
+   "ann": {
+    "rr_a": 12,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 0,
+    "delta_net2": 2
+   },
+   "bio-align": {
+    "rr_a": 8,
+    "rr_u": 3,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": -5
+   },
+   "bio-kmer": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 10,
+    "op_u": 2,
+    "delta_net2": -3
+   },
+   "bio-mdsim": {
+    "rr_a": 11,
+    "rr_u": 1,
+    "op_a": 6,
+    "op_u": 0,
+    "delta_net2": 3
+   },
+   "bio-mdtraj": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 0,
+    "op_u": 0,
+    "delta_net2": 3
+   },
+   "bio-scvi": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 16,
+    "op_u": 2,
+    "delta_net2": -5
+   },
+   "bio-singlecell": {
+    "rr_a": 6,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": 0
+   },
+   "cli": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 3,
+    "op_u": 3,
+    "delta_net2": 3
+   },
+   "columnar": {
+    "rr_a": 7,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": 3
+   },
+   "compiler": {
+    "rr_a": 1,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": -3
+   },
+   "crypto": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 5,
+    "op_u": 0,
+    "delta_net2": -2
+   },
+   "cv": {
+    "rr_a": 7,
+    "rr_u": 1,
+    "op_a": 12,
+    "op_u": 0,
+    "delta_net2": -7
+   },
+   "db": {
+    "rr_a": 12,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": 5
+   },
+   "diffusion": {
+    "rr_a": 15,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 1,
+    "delta_net2": 10
+   },
+   "encryption": {
+    "rr_a": 1,
+    "rr_u": 0,
+    "op_a": 4,
+    "op_u": 1,
+    "delta_net2": -1
+   },
+   "graph": {
+    "rr_a": 14,
+    "rr_u": 1,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": 5
+   },
+   "http": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 12,
+    "delta_net2": 16
+   },
+   "linter": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 3,
+    "op_u": 10,
+    "delta_net2": 17
+   },
+   "llminfer": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 15,
+    "op_u": 0,
+    "delta_net2": -8
+   },
+   "mat-chgpot": {
+    "rr_a": 10,
+    "rr_u": 2,
+    "op_a": 23,
+    "op_u": 1,
+    "delta_net2": -15
+   },
+   "mat-descriptors": {
+    "rr_a": 10,
+    "rr_u": 1,
+    "op_a": 5,
+    "op_u": 2,
+    "delta_net2": 7
+   },
+   "mat-featurize": {
+    "rr_a": 7,
+    "rr_u": 4,
+    "op_a": 6,
+    "op_u": 4,
+    "delta_net2": 1
+   },
+   "mat-mlip": {
+    "rr_a": 9,
+    "rr_u": 3,
+    "op_a": 18,
+    "op_u": 0,
+    "delta_net2": -15
+   },
+   "mat-phonon": {
+    "rr_a": 10,
+    "rr_u": 2,
+    "op_a": 8,
+    "op_u": 1,
+    "delta_net2": 0
+   },
+   "mat-toolkit": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 8,
+    "op_u": 0,
+    "delta_net2": -5
+   },
+   "numerics": {
+    "rr_a": 6,
+    "rr_u": 0,
+    "op_a": 13,
+    "op_u": 0,
+    "delta_net2": -7
+   },
+   "peft": {
+    "rr_a": 13,
+    "rr_u": 1,
+    "op_a": 5,
+    "op_u": 0,
+    "delta_net2": 6
+   },
+   "rag": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 12,
+    "op_u": 0,
+    "delta_net2": -5
+   },
+   "rl": {
+    "rr_a": 11,
+    "rr_u": 1,
+    "op_a": 7,
+    "op_u": 1,
+    "delta_net2": 4
+   },
+   "speech": {
+    "rr_a": 12,
+    "rr_u": 3,
+    "op_a": 9,
+    "op_u": 0,
+    "delta_net2": -3
+   },
+   "storage": {
+    "rr_a": 13,
+    "rr_u": 0,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": 6
+   },
+   "systems": {
+    "rr_a": 4,
+    "rr_u": 1,
+    "op_a": 2,
+    "op_u": 6,
+    "delta_net2": 12
+   },
+   "thin-gnn": {
+    "rr_a": 12,
+    "rr_u": 3,
+    "op_a": 6,
+    "op_u": 0,
+    "delta_net2": 0
+   },
+   "thin-kv": {
+    "rr_a": 8,
+    "rr_u": 2,
+    "op_a": 7,
+    "op_u": 1,
+    "delta_net2": -1
+   },
+   "thin-lang": {
+    "rr_a": 0,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": -6
+   },
+   "vectordb": {
+    "rr_a": 12,
+    "rr_u": 1,
+    "op_a": 10,
+    "op_u": 1,
+    "delta_net2": 2
+   },
+   "webdev": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 1,
+    "op_u": 4,
+    "delta_net2": 7
+   }
+  },
+  "sonnet_only": {
+   "ann": {
+    "rr_a": 6,
+    "rr_u": 7,
+    "op_a": 8,
+    "op_u": 0,
+    "delta_net2": -16
+   },
+   "bio-align": {
+    "rr_a": 9,
+    "rr_u": 2,
+    "op_a": 6,
+    "op_u": 1,
+    "delta_net2": 1
+   },
+   "bio-kmer": {
+    "rr_a": 1,
+    "rr_u": 2,
+    "op_a": 9,
+    "op_u": 3,
+    "delta_net2": -6
+   },
+   "bio-mdsim": {
+    "rr_a": 5,
+    "rr_u": 7,
+    "op_a": 3,
+    "op_u": 3,
+    "delta_net2": -6
+   },
+   "bio-mdtraj": {
+    "rr_a": 3,
+    "rr_u": 0,
+    "op_a": 0,
+    "op_u": 0,
+    "delta_net2": 3
+   },
+   "bio-scvi": {
+    "rr_a": 9,
+    "rr_u": 1,
+    "op_a": 11,
+    "op_u": 7,
+    "delta_net2": 10
+   },
+   "bio-singlecell": {
+    "rr_a": 4,
+    "rr_u": 3,
+    "op_a": 7,
+    "op_u": 3,
+    "delta_net2": -3
+   },
+   "cli": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 0,
+    "op_u": 6,
+    "delta_net2": 12
+   },
+   "columnar": {
+    "rr_a": 1,
+    "rr_u": 6,
+    "op_a": 7,
+    "op_u": 3,
+    "delta_net2": -12
+   },
+   "compiler": {
+    "rr_a": 0,
+    "rr_u": 1,
+    "op_a": 5,
+    "op_u": 5,
+    "delta_net2": 3
+   },
+   "crypto": {
+    "rr_a": 1,
+    "rr_u": 2,
+    "op_a": 4,
+    "op_u": 1,
+    "delta_net2": -5
+   },
+   "cv": {
+    "rr_a": 3,
+    "rr_u": 5,
+    "op_a": 11,
+    "op_u": 1,
+    "delta_net2": -16
+   },
+   "db": {
+    "rr_a": 9,
+    "rr_u": 3,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": -4
+   },
+   "diffusion": {
+    "rr_a": 8,
+    "rr_u": 7,
+    "op_a": 6,
+    "op_u": 2,
+    "delta_net2": -8
+   },
+   "encryption": {
+    "rr_a": 1,
+    "rr_u": 0,
+    "op_a": 3,
+    "op_u": 2,
+    "delta_net2": 2
+   },
+   "graph": {
+    "rr_a": 9,
+    "rr_u": 6,
+    "op_a": 7,
+    "op_u": 0,
+    "delta_net2": -10
+   },
+   "http": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 1,
+    "op_u": 19,
+    "delta_net2": 37
+   },
+   "linter": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 2,
+    "op_u": 11,
+    "delta_net2": 20
+   },
+   "llminfer": {
+    "rr_a": 5,
+    "rr_u": 5,
+    "op_a": 15,
+    "op_u": 0,
+    "delta_net2": -20
+   },
+   "mat-chgpot": {
+    "rr_a": 5,
+    "rr_u": 7,
+    "op_a": 18,
+    "op_u": 6,
+    "delta_net2": -15
+   },
+   "mat-descriptors": {
+    "rr_a": 7,
+    "rr_u": 4,
+    "op_a": 6,
+    "op_u": 1,
+    "delta_net2": -5
+   },
+   "mat-featurize": {
+    "rr_a": 6,
+    "rr_u": 5,
+    "op_a": 5,
+    "op_u": 5,
+    "delta_net2": 1
+   },
+   "mat-mlip": {
+    "rr_a": 5,
+    "rr_u": 7,
+    "op_a": 18,
+    "op_u": 0,
+    "delta_net2": -27
+   },
+   "mat-phonon": {
+    "rr_a": 6,
+    "rr_u": 6,
+    "op_a": 7,
+    "op_u": 2,
+    "delta_net2": -9
+   },
+   "mat-toolkit": {
+    "rr_a": 2,
+    "rr_u": 1,
+    "op_a": 5,
+    "op_u": 3,
+    "delta_net2": 1
+   },
+   "numerics": {
+    "rr_a": 3,
+    "rr_u": 3,
+    "op_a": 12,
+    "op_u": 1,
+    "delta_net2": -13
+   },
+   "peft": {
+    "rr_a": 12,
+    "rr_u": 2,
+    "op_a": 5,
+    "op_u": 0,
+    "delta_net2": 3
+   },
+   "rag": {
+    "rr_a": 10,
+    "rr_u": 0,
+    "op_a": 12,
+    "op_u": 0,
+    "delta_net2": -2
+   },
+   "rl": {
+    "rr_a": 6,
+    "rr_u": 6,
+    "op_a": 6,
+    "op_u": 2,
+    "delta_net2": -8
+   },
+   "speech": {
+    "rr_a": 8,
+    "rr_u": 7,
+    "op_a": 9,
+    "op_u": 0,
+    "delta_net2": -15
+   },
+   "storage": {
+    "rr_a": 10,
+    "rr_u": 3,
+    "op_a": 6,
+    "op_u": 1,
+    "delta_net2": 0
+   },
+   "systems": {
+    "rr_a": 2,
+    "rr_u": 3,
+    "op_a": 2,
+    "op_u": 6,
+    "delta_net2": 6
+   },
+   "thin-gnn": {
+    "rr_a": 7,
+    "rr_u": 8,
+    "op_a": 4,
+    "op_u": 2,
+    "delta_net2": -9
+   },
+   "thin-kv": {
+    "rr_a": 4,
+    "rr_u": 6,
+    "op_a": 8,
+    "op_u": 0,
+    "delta_net2": -16
+   },
+   "thin-lang": {
+    "rr_a": 0,
+    "rr_u": 1,
+    "op_a": 8,
+    "op_u": 2,
+    "delta_net2": -6
+   },
+   "vectordb": {
+    "rr_a": 12,
+    "rr_u": 1,
+    "op_a": 11,
+    "op_u": 0,
+    "delta_net2": -1
+   },
+   "webdev": {
+    "rr_a": 0,
+    "rr_u": 0,
+    "op_a": 1,
+    "op_u": 4,
+    "delta_net2": 7
+   }
+  }
+ },
+ "groups": {
+  "development": [
+   "ann",
+   "cli",
+   "columnar",
+   "compiler",
+   "crypto",
+   "cv",
+   "db",
+   "diffusion",
+   "encryption",
+   "graph",
+   "http",
+   "linter",
+   "llminfer",
+   "numerics",
+   "peft",
+   "rag",
+   "rl",
+   "speech",
+   "storage",
+   "systems",
+   "vectordb",
+   "webdev"
+  ],
+  "later": [
+   "bio-align",
+   "bio-kmer",
+   "bio-mdsim",
+   "bio-mdtraj",
+   "bio-scvi",
+   "bio-singlecell",
+   "mat-chgpot",
+   "mat-descriptors",
+   "mat-featurize",
+   "mat-mlip",
+   "mat-phonon",
+   "mat-toolkit",
+   "thin-gnn",
+   "thin-kv",
+   "thin-lang"
+  ],
+  "scientific": [
+   "bio-align",
+   "bio-kmer",
+   "bio-mdsim",
+   "bio-mdtraj",
+   "bio-scvi",
+   "bio-singlecell",
+   "mat-chgpot",
+   "mat-descriptors",
+   "mat-featurize",
+   "mat-mlip",
+   "mat-phonon",
+   "mat-toolkit"
+  ],
+  "core": [
+   "ann",
+   "cli",
+   "columnar",
+   "compiler",
+   "crypto",
+   "cv",
+   "db",
+   "diffusion",
+   "encryption",
+   "graph",
+   "http",
+   "linter",
+   "llminfer",
+   "numerics",
+   "peft",
+   "rag",
+   "rl",
+   "speech",
+   "storage",
+   "systems",
+   "thin-gnn",
+   "thin-kv",
+   "thin-lang",
+   "vectordb",
+   "webdev"
+  ],
+  "_note": "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed (Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were chosen on the 25 core cases. So only the 12 scientific cases saw no design decision, and 'later' is not the same as 'untouched'."
+ }
+}
