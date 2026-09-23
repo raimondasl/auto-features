@@ -16,11 +16,12 @@
 #                                   ~670 MB model weights). Offline after that.
 #
 # WHAT IT COSTS PER `rr update`, PER REPOSITORY
-#   gate         ~$0.01   Haiku over `triage.top_k` papers (measured ~$0.02/100)
+#   gate         ~$0.05   Haiku over `triage.top_k` papers (measured $0.050 at 50)
 #   rescore      <$0.01   gpt-4o-mini, one call per paper in the threshold band only
 #   HyDE         <$0.01   4 Haiku hypotheses per run; the index search itself is free
 #   ------------------------------------------------------------------------------
-#   total        ~$0.01-0.02, against ~$0.80/repo for the agentic baseline it beats.
+#   total        ~$0.05, measured (evals/cost_measured.json), against ~$9.50/repo at
+#                list prices for the current agentic baseline, Claude Opus 5.
 #
 # Every value below that carries a measurement cites it. Fields with no citation were
 # measured at the value shown but not varied, which is a weaker claim and marked as such.

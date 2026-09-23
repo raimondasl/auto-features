@@ -470,7 +470,8 @@ class TestTheGroups:
 
     def test_the_thin_cases_are_dated(self, artifact: dict) -> None:
         note = artifact["groups"]["_note"]
-        assert "2026-08-09" in note and "only the 12 scientific cases" in note
+        # C-45: the scientific cases were later, not untouched.
+        assert "2026-08-09" in note and "six-repository pilot" in note and "C-45" in note
         assert artifact["summary"]["groups_note"] == note
 
     @pytest.mark.parametrize(("label", "group"), list(GROUPS))

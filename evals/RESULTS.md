@@ -1,5 +1,14 @@
 # Tier B benchmark — results
 
+> **Read this first (2026-09-22).** This file is the project's running lab record, and entries
+> are not in date order. The headline just below (+4.55 against Opus 4.8, 2026-08-09) and every
+> comparison against Opus 4.8 describe a superseded comparator. The current comparison is
+> against Claude Opus 5 over all 37 repositories: NR-52 gives +0.32 under GPT-5.5 and -3.41
+> under Sonnet, NR-68 shows what that margin rests on, and NR-69 gives -2.27 under a third
+> judge. The "+0.54/case" in PREREG-rung1.md came from an earlier run of the same
+> configuration; the registration fixed the run NR-52 reports as its control before any margin
+> on it existed. Entries marked [C-nn] are this record's own corrections.
+
 > ## ⚠ Every number below this line was measured at a digest window of **10**
 >
 > On **2026-08-15** the benchmark's returned-set cut moved 10 → 15, to match the shipped
@@ -593,6 +602,15 @@ frozen 08-07 file all experiments are scored against.)
 | E5 free features, LORO logistic | 0.585 | Brier 0.214 | +1.50 | **Below bar** (0.60) — metadata is weak |
 | E5 combined (features + E1-E4 columns) | 0.778 | Brier 0.147 | +2.50 | Worse than exp09 alone on every axis |
 
+> #### CORRECTION — E5 ran five of the seven registered features, and added one. **[C-47]**
+>
+> The registration (RESEARCH-score2-ranking.md, Experiment 5) listed has-code, stars, S2
+> influential citations, months since release, hop coupling, HyDE rank and SPECTER2 cosine to
+> the repository's wants. `exp_features.py` used age, S2 citations, S2 influential citations,
+> HyDE rank and hop coupling. Has-code, stars and SPECTER2 were dropped and raw citations
+> added, and no entry recorded why. The verdict, below the 0.60 bar, stands for the features
+> that ran.
+
 ### What won: de-quantizing the gate, not restructuring it
 
 The research pass's bet was that comparative structure (selection, pairwise) carries the
@@ -649,6 +667,15 @@ actionable shown only drops 97 → 91: precision 0.73 → **0.89**. Every negati
 rescued — including both members of the diffusion/vectordb pair, which was the exact
 failure adaptive digest size could not touch — and the entire toll on the all-good tail
 is **one paper on `diffusion`**.
+
+> #### CORRECTION — Testbed A's show-all precision is 0.78, not 0.73. **[C-42]**
+>
+> Show-all shows 129 papers, 100 of them actionable: `compare_finescale_baseline.py` gives
+> +42 net@2 over 22 cases, the +1.91 above. So shown papers drop 129 → 102, actionable 100 →
+> 91, and precision rises 0.78 → 0.89. The 132, 97 and 0.73 were copied from gate_full_pool's
+> whole-pool gate precision (0.73 over 33 admits), a different quantity. 132 shown at 97
+> actionable would give +1.23, not +1.91. The same row of the 2026-08-08 comparison table is
+> wrong the same way. +1.91 and +3.14 stand. Found by the ECIR artifact audit.
 
 **Replication on the other arm.** Freezing the map fitted on Testbed A and applying it
 unchanged to the pool-300 arm (different run, different shown sets): **+3.09 vs +1.73**,
@@ -1277,6 +1304,15 @@ zero.
 cases. The gate, the rescore and its map were built on them. The three thin cases were added on
 2026-08-09. They came after the testbed but before the digest width, gate depth and ranking
 weights were chosen on the 25 core cases. Only the 12 scientific cases saw no design decision.
+
+> #### CORRECTION — the 12 scientific cases were later, not untouched. **[C-45]**
+>
+> They were added after the width, depth and weights were chosen, but their predictions were
+> written after a pilot that ran and judged six of them (RESEARCH-scientific-software.md,
+> "Written from the §5 single draw"), five repositories where the pipeline was known to be
+> weakest were excluded, and the shipped configuration was confirmed with their scores
+> visible. So "saw no design decision" overstates. The later-15 contrast is unchanged as
+> measured. The note in `comparison_sensitivity.py` and its artifact now says so.
 
 | group | n | GPT-5.5 | consensus | Sonnet |
 |---|---|---|---|---|
@@ -6111,6 +6147,11 @@ judge verdicts on whatever the no-fusion arm surfaces that has never been judged
 
 ### PRE-REGISTERED — what does the out-of-the-box configuration actually score? (2026-08-16)
 
+> **Corrected by [C-46].** This entry and its result are dated 2026-08-16, but the run file is
+> `20260814T194558Z` and the prediction was committed together with the result, in 4a89047 on
+> 2026-08-14. Git cannot show whether the prediction below preceded the result, so this entry is
+> not a registration in the sense of the later PREREG files.
+
 **Why this is being run at all.** PR #134 shipped a README table row reading
 "mean net@2 on the 25-repo benchmark | **−11** | **+5.42**", and **−11 was never measured
 on the 25-repo benchmark.** It is the mean of four cases from 2026-07-05 — `rag` 0,
@@ -8671,6 +8712,8 @@ left open, computed rather than projected.
 | RepoRadar, show-all | +1.91 | +0.09 | 0.73 | 132 | 5/22 | 4 |
 | Opus 4.8 baseline | +1.82 | — | 0.94 | 49 | 4/22 | 1 (`linter` −6) |
 
+> **Corrected by [C-42].** Show-all precision is 0.78 on 129 papers shown, not 0.73 on 132.
+
 Win/loss/tie against Opus goes from **8/8/6 to 10/6/6**. The sign test is **p = 0.45** —
 so on 22 paired cases this is *not* a statistically significant win, and should be read
 as "clearly ahead on the mean, not established as reliably better per repo".
@@ -8728,6 +8771,14 @@ the model is nearly deterministic on this task, so the draws re-read the mode in
 revealing the distribution around it. Monte Carlo cannot recover a distribution the
 sampler will not explore, and at N=10 the resolution is 0.1 against a continuous
 reading. Raising N buys resolution but not exploration, so it does not address the cause.
+
+> #### CORRECTION — 44% is where all ten draws agree, not nine or ten. **[C-43]**
+>
+> The statistic is the share of papers whose modal digit carries more than 0.9 of the ten
+> draws, which with ten draws means all ten agree: 96 of 219. Nine or ten agree on 126 of 219,
+> 58%. The argument is stronger for it. `finescale_haiku10_a.json` also labels its model
+> gpt-4o-mini in `summary.model`; its `arm: haiku` field is the right one, because
+> `exp_finescale.summarize` hard-codes the label.
 
 So the OpenAI dependency is load-bearing rather than incidental, and the Anthropic-native
 fallback is measured-and-rejected rather than untried.
@@ -10836,6 +10887,16 @@ Harvesting a repository's own bibliography looks like a free, keyless, offline w
 corpus. It is not: **0 of the 24 appear anywhere in the repos' own docs**, including `graph`
 (pytorch_geometric), whose README lists 112 arXiv papers.
 
+> #### CORRECTION — one of the 24 is linked from its own repository's documentation. **[C-44]**
+>
+> detectron2's MODEL_ZOO.md line 444 links 2012.07177 (Simple Copy-Paste), a `cv` target, as
+> `arxiv.org/pdf/2012.07177.pdf`. The seed regex in `diagnose_citation_hop.py`,
+> `(?:arxiv\.org/abs/|arXiv[:/])`, does not match `/pdf/` links, so the paper was never
+> subtracted as a seed and counts as a hop hit in the reach tables. With it treated as a seed
+> the hop reaches 20 of 56 and the union 42 of 56 (0.75). The finding stands at 23 of 24.
+> Separately, the graph README has 112 arXiv links to about 101 distinct papers; "lists 112
+> arXiv papers" counted links.
+
 The reason is structural and worth stating plainly, because it recurs below: **a codebase
 cites what it implements. The valuable paper describes what it should adopt next.** Those
 are disjoint by construction. A project's bibliography is a well-targeted index of things it
@@ -10920,6 +10981,8 @@ Against 0/24 for keyword search, 2/24 for LLM phrases and 1/24 for citation-sort
 this is the only approach that reaches the papers at all. The targets are genuinely
 discovered, not handed over: seeds are subtracted from the candidate set, and 0 of the 24
 appear in any repo's own documentation.
+
+> **Corrected by [C-44].** One of the 24 is linked, as a PDF link the seed regex skips.
 
 **Both hop directions earn their place.** Forward (papers *citing* a seed) does most of the
 work — consistent with "what improves a codebase is later work building on what it already

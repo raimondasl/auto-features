@@ -289,7 +289,7 @@ class TestInitCommand:
         assert data["suggestions"]["provider"] == "claude"
         # Telling somebody to enable four paid stages without naming the bill is worse
         # than not telling them at all.
-        for needed in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "rr sync-index", "$0.01"):
+        for needed in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "rr sync-index", "$0.05"):
             assert needed in result.output, f"init --measured never mentions {needed}"
 
     def test_the_measured_config_loads_and_enables_every_stage(self, tmp_path: Path) -> None:

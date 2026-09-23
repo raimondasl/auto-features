@@ -593,4 +593,4 @@ class TestShippedDefaultsMatchTheMeasuredConfiguration:
         text = measured_config_yaml()
         for needed in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "rr sync-index", "1.1 GB"):
             assert needed in text, f"the measured config never mentions {needed}"
-        assert "$0.01" in text
+        assert "$0.05" in text
