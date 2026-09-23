@@ -55,7 +55,7 @@ DEFAULT_MODEL = "claude-sonnet-5"
 def arm(name: str) -> dict[str, list[dict[str, Any]]]:
     """Shown papers per case, as the arm returned them."""
     run = json.loads((RES / name).read_text(encoding="utf-8"))
-    return {e["case"]: list(e["returned"]["reporadar_toppicks"]) for e in run}
+    return {e["case"]: list(e["returned"]["anonymous_toppicks"]) for e in run}
 
 
 def pool_meta() -> dict[tuple[str, str], dict[str, Any]]:

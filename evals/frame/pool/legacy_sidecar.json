@@ -1,7 +1,7 @@
 {
  "_artefact": "judge-validity-pool",
  "_comment": "Derived from the legacy clones at each row's recorded head/t0 SHAs (PREREG \u00a77). adoptions-v2.json is immutable (\u00a71) and is not modified; these are the fields the walk records for a pool repository and the legacy artefact predates.",
- "source": "C:\\Users\\raimo\\auto-features\\evals\\.work\\adoptions-v2.json",
+ "source": "C:\\Users\\user\\artifact\\evals\\.work\\adoptions-v2.json",
  "n_cases": 8,
  "n_usable_rows": 94,
  "cases": {

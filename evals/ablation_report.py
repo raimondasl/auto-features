@@ -5,7 +5,7 @@
 
 Every case in the benchmark has a README of at least 1,639 characters against a
 300-character prose budget — **none under 1,000, none under 300** — so no measurement in
-this project has ever run in the regime RepoRadar's stated target user lives in: a
+this project has ever run in the regime Anonymous's stated target user lives in: a
 private codebase with almost no prose. `--rr-ablate-docs` builds that regime out of a
 real case by capping the README and withholding `docs/`, while the judge keeps seeing the
 real repository so ground truth does not degrade alongside the treatment.
@@ -105,7 +105,7 @@ def load_arm(path: str) -> dict[str, dict[str, Any]]:
 
 
 def summarise(arm: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    tp = [r["reporadar_toppicks"] for r in arm.values()]
+    tp = [r["anonymous_toppicks"] for r in arm.values()]
     shown = sum(m["n_returned"] for m in tp)
     actionable = sum(m["n_actionable"] for m in tp)
     nets = [m["net_value@2"] for m in tp]
@@ -172,15 +172,15 @@ def main() -> int:
     print(f"\n{'case':11}" + "".join(f"{label:>10}" for label in labels))
     for case in sorted(base_cases):
         row = "".join(
-            f"{arms[label][case]['reporadar_toppicks']['net_value@2']:>10.1f}" for label in labels
+            f"{arms[label][case]['anonymous_toppicks']['net_value@2']:>10.1f}" for label in labels
         )
         print(f"{case:11}{row}")
 
     print("\npaired against the control arm, same session:")
     for label in labels[1:]:
         deltas = [
-            arms[label][c]["reporadar_toppicks"]["net_value@2"]
-            - arms[control][c]["reporadar_toppicks"]["net_value@2"]
+            arms[label][c]["anonymous_toppicks"]["net_value@2"]
+            - arms[control][c]["anonymous_toppicks"]["net_value@2"]
             for c in sorted(base_cases)
         ]
         pos, neg, ties, p = sign_test(deltas)

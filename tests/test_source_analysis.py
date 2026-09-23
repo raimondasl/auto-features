@@ -1,10 +1,10 @@
-"""Tests for reporadar.source_analysis."""
+"""Tests for anonymous.source_analysis."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from reporadar.source_analysis import (
+from anonymous.source_analysis import (
     detect_ml_patterns,
     extract_identifiers,
     extract_imports,

@@ -105,7 +105,7 @@ def mre_for(provenance: str, width: str = "10") -> tuple[float, str]:
 
 def top10_ids(record: dict[str, Any]) -> set[str]:
     """The papers this case actually returned, for arm-divergence."""
-    returned = (record.get("returned") or {}).get("reporadar_top10") or []
+    returned = (record.get("returned") or {}).get("anonymous_top10") or []
     return {r.get("arxiv_id", "") for r in returned if r.get("arxiv_id")}
 
 
@@ -323,7 +323,7 @@ def main() -> int:
     print(f"\n{'case':11}" + "".join(f"{label:>10}" for label in labels))
     for case in cases:
         row = "".join(
-            f"{arms[label][case]['reporadar_toppicks']['net_value@2']:>10.1f}" for label in labels
+            f"{arms[label][case]['anonymous_toppicks']['net_value@2']:>10.1f}" for label in labels
         )
         print(f"{case:11}{row}")
 
@@ -331,8 +331,8 @@ def main() -> int:
     paired = {}
     for label in labels[1:]:
         deltas = [
-            arms[label][c]["reporadar_toppicks"]["net_value@2"]
-            - arms[control][c]["reporadar_toppicks"]["net_value@2"]
+            arms[label][c]["anonymous_toppicks"]["net_value@2"]
+            - arms[control][c]["anonymous_toppicks"]["net_value@2"]
             for c in cases
         ]
         mean = statistics.mean(deltas)

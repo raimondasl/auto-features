@@ -43,10 +43,10 @@ import diagnose_query_generation as qg  # noqa: E402
 from build_hop_pool import resolve_targets  # noqa: E402
 from diagnose_citation_hop import hop, seeds_for  # noqa: E402
 
-from reporadar.config import SuggestionsConfig  # noqa: E402
-from reporadar.llm_client import complete  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
-from reporadar.profiler import _collect_text_corpus, profile_repo  # noqa: E402
+from anonymous.config import SuggestionsConfig  # noqa: E402
+from anonymous.llm_client import complete  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
+from anonymous.profiler import _collect_text_corpus, profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
@@ -103,7 +103,7 @@ def _yymm(arxiv_id: str) -> int:
 
 def citation_counts(ids: list[str]) -> dict[str, int]:
     """S2 citation count per id, for hub-ranking seeds. Missing ids are simply absent."""
-    from reporadar.citations import _s2_batch_post, _s2_id
+    from anonymous.citations import _s2_batch_post, _s2_id
 
     out: dict[str, int] = {}
     for i in range(0, len(ids), 200):
@@ -123,7 +123,7 @@ def seeds_from_phrases(phrases: list[str], rank: str = "votes") -> tuple[list[st
     """Search each phrase QUOTED, rank candidates by phrase agreement. Returns (seeds, hits).
 
     Quoted because an unquoted space after a field prefix is OR on arXiv, not AND — the
-    defect PR #62 fixed, which made every multi-word query an OR union (§3.6).
+    defect a later fix removed, which made every multi-word query an OR union (§3.6).
 
     *rank* selects which 40 of the matches become seeds:
 

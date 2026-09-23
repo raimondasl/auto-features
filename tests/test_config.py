@@ -1,4 +1,4 @@
-"""Tests for reporadar.config."""
+"""Tests for anonymous.config."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.config import (
+from anonymous.config import (
+    AnonymousConfig,
     ArxivConfig,
     EmailHookConfig,
     HooksConfig,
@@ -15,7 +16,6 @@ from reporadar.config import (
     QueriesConfig,
     RankingConfig,
     RecommendationsConfig,
-    RepoRadarConfig,
     SignalsConfig,
     SuggestionsConfig,
     TriageConfig,
@@ -29,14 +29,14 @@ from reporadar.config import (
 class TestEnvExpansion:
     def test_expands_braced_env_var(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setenv("RR_TEST_SLACK", "https://hooks.example/abc")
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text("hooks:\n  slack_webhook_url: ${RR_TEST_SLACK}\n", encoding="utf-8")
         cfg = load_config(cfg_file)
         assert cfg.hooks.slack_webhook_url == "https://hooks.example/abc"
 
     def test_unset_var_becomes_empty(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.delenv("RR_TEST_MISSING", raising=False)
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text("openalex:\n  api_key: ${RR_TEST_MISSING}\n", encoding="utf-8")
         cfg = load_config(cfg_file)
         assert cfg.openalex.api_key == ""
@@ -44,14 +44,14 @@ class TestEnvExpansion:
     def test_leaves_bare_dollar_and_plain_text_untouched(self, tmp_path: Path, monkeypatch) -> None:
         # A bare $HOME (no braces) and a lone $ must be left exactly as written.
         monkeypatch.setenv("HOME", "/wherever")
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text('queries:\n  seed:\n    - "cost is $5 for $HOME"\n', encoding="utf-8")
         cfg = load_config(cfg_file)
         assert cfg.queries.seed == ["cost is $5 for $HOME"]
 
     def test_expands_inside_list_items(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setenv("RR_TERM", "diffusion")
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text('queries:\n  seed:\n    - "${RR_TERM} models"\n', encoding="utf-8")
         cfg = load_config(cfg_file)
         assert cfg.queries.seed == ["diffusion models"]
@@ -59,7 +59,7 @@ class TestEnvExpansion:
     def test_non_string_leaves_round_trip(self, tmp_path: Path, monkeypatch) -> None:
         # Ints/bools must pass through untouched while a sibling ${VAR} still expands.
         monkeypatch.setenv("RR_CAT", "cs.AI")
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text(
             'arxiv:\n  categories: ["${RR_CAT}"]\n'
             "  max_results_per_query: 42\n  lookback_days: 7\n",
@@ -73,7 +73,7 @@ class TestEnvExpansion:
 
 class TestLoadConfig:
     def test_load_full_config(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             """\
 repo_path: /some/repo
@@ -114,7 +114,7 @@ output:
         assert cfg.output.top_n == 10
 
     def test_load_minimal_config(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text("repo_path: .\n", encoding="utf-8")
 
         cfg = load_config(config_file)
@@ -128,13 +128,13 @@ output:
         assert cfg.output.top_n == 15
 
     def test_load_empty_yaml(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text("", encoding="utf-8")
 
         cfg = load_config(config_file)
 
         # Should return all defaults
-        assert isinstance(cfg, RepoRadarConfig)
+        assert isinstance(cfg, AnonymousConfig)
         assert cfg.repo_path == "."
 
     def test_file_not_found(self, tmp_path: Path) -> None:
@@ -156,7 +156,7 @@ class TestDefaultConfigYaml:
         assert "output" in data
 
     def test_round_trips_through_load(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(default_config_yaml(), encoding="utf-8")
 
         cfg = load_config(config_file)
@@ -167,7 +167,7 @@ class TestDefaultConfigYaml:
 
 class TestSignalsConfig:
     def test_defaults(self) -> None:
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         # Integrity defaults ON: recommending retracted work is the worst ranking
         # failure, and the check costs a couple of throttled requests.
         assert cfg.signals.integrity is True
@@ -177,7 +177,7 @@ class TestSignalsConfig:
         assert cfg.ranking.withdrawn_penalty == 0.1
 
     def test_parsed_from_yaml(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             "repo_path: .\nsignals:\n  integrity: false\n  hackernews: true\n",
             encoding="utf-8",
@@ -188,11 +188,11 @@ class TestSignalsConfig:
 
     def test_attention_weight_without_the_source_warns(self) -> None:
         # Otherwise the weight is silently inert: nothing ever fetches the data.
-        cfg = RepoRadarConfig(ranking=RankingConfig(w_attention=1.0))
+        cfg = AnonymousConfig(ranking=RankingConfig(w_attention=1.0))
         assert any("w_attention" in w and "hackernews" in w for w in validate_config(cfg))
 
     def test_attention_weight_with_the_source_is_clean(self) -> None:
-        cfg = RepoRadarConfig(
+        cfg = AnonymousConfig(
             ranking=RankingConfig(w_attention=1.0), signals=SignalsConfig(hackernews=True)
         )
         assert validate_config(cfg) == []
@@ -200,15 +200,15 @@ class TestSignalsConfig:
     def test_out_of_range_withdrawn_penalty_warns(self) -> None:
         # > 1 would *promote* withdrawn papers — an inverted feature, not a tweak.
         for bad in (2.0, -0.5):
-            cfg = RepoRadarConfig(ranking=RankingConfig(withdrawn_penalty=bad))
+            cfg = AnonymousConfig(ranking=RankingConfig(withdrawn_penalty=bad))
             assert any("withdrawn_penalty" in w for w in validate_config(cfg))
 
     def test_penalty_of_one_is_a_legitimate_opt_out(self) -> None:
-        cfg = RepoRadarConfig(ranking=RankingConfig(withdrawn_penalty=1.0))
+        cfg = AnonymousConfig(ranking=RankingConfig(withdrawn_penalty=1.0))
         assert validate_config(cfg) == []
 
     def test_negative_attention_weight_warns(self) -> None:
-        cfg = RepoRadarConfig(
+        cfg = AnonymousConfig(
             ranking=RankingConfig(w_attention=-1.0), signals=SignalsConfig(hackernews=True)
         )
         assert any("Negative ranking weight: w_attention" in w for w in validate_config(cfg))
@@ -223,8 +223,8 @@ class TestEnrichmentOffSwitch:
     provider: False".
     """
 
-    def _load(self, tmp_path: Path, raw: str) -> RepoRadarConfig:
-        config_file = tmp_path / ".reporadar.yml"
+    def _load(self, tmp_path: Path, raw: str) -> AnonymousConfig:
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(f"repo_path: .\nenrichment:\n  provider: {raw}\n", encoding="utf-8")
         return load_config(config_file)
 
@@ -255,12 +255,12 @@ class TestEnrichmentOffSwitch:
 
 class TestValidateConfig:
     def test_valid_config_no_warnings(self) -> None:
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         warnings = validate_config(cfg)
         assert warnings == []
 
     def test_unknown_category_prefix(self) -> None:
-        cfg = RepoRadarConfig(arxiv=ArxivConfig(categories=["xx.YY", "cs.LG"]))
+        cfg = AnonymousConfig(arxiv=ArxivConfig(categories=["xx.YY", "cs.LG"]))
         warnings = validate_config(cfg)
         assert len(warnings) == 1
         assert "Unknown arXiv category prefix" in warnings[0]
@@ -268,12 +268,12 @@ class TestValidateConfig:
 
     def test_triage_enabled_without_llm_provider_warns(self) -> None:
         # Default suggestions.provider is "template" — triage needs an LLM.
-        cfg = RepoRadarConfig(triage=TriageConfig(enabled=True))
+        cfg = AnonymousConfig(triage=TriageConfig(enabled=True))
         warnings = validate_config(cfg)
         assert any("triage.enabled" in w and "LLM provider" in w for w in warnings)
 
     def test_triage_enabled_with_llm_provider_no_warning(self) -> None:
-        cfg = RepoRadarConfig(
+        cfg = AnonymousConfig(
             triage=TriageConfig(enabled=True),
             suggestions=SuggestionsConfig(provider="claude", claude_api_key="k"),
         )
@@ -281,17 +281,17 @@ class TestValidateConfig:
         assert not any("triage.enabled" in w for w in warnings)
 
     def test_recommendations_defaults_and_bounds(self) -> None:
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         assert cfg.recommendations.enabled is False  # opt-in
         assert validate_config(cfg) == []
 
-        bad = RepoRadarConfig(recommendations=RecommendationsConfig(limit=0, max_seeds=0))
+        bad = AnonymousConfig(recommendations=RecommendationsConfig(limit=0, max_seeds=0))
         warnings = validate_config(bad)
         assert any("recommendations.limit" in w for w in warnings)
         assert any("recommendations.max_seeds" in w for w in warnings)
 
     def test_recommendations_loaded_from_yaml(self, tmp_path: Path) -> None:
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text(
             "recommendations:\n  enabled: true\n  limit: 5\n  max_seeds: 3\n", encoding="utf-8"
         )
@@ -301,21 +301,21 @@ class TestValidateConfig:
         assert cfg.recommendations.max_seeds == 3
 
     def test_biorxiv_dblp_are_known_sources(self) -> None:
-        cfg = RepoRadarConfig(sources=["arxiv", "biorxiv", "dblp"])
+        cfg = AnonymousConfig(sources=["arxiv", "biorxiv", "dblp"])
         assert not any("Unknown source" in w for w in validate_config(cfg))
 
     def test_unknown_source_warns(self) -> None:
-        cfg = RepoRadarConfig(sources=["arxiv", "bogus"])
+        cfg = AnonymousConfig(sources=["arxiv", "bogus"])
         warnings = validate_config(cfg)
         assert any("Unknown source" in w and "bogus" in w for w in warnings)
 
     def test_openalex_enabled_without_api_key_warns(self) -> None:
-        cfg = RepoRadarConfig(sources=["arxiv", "openalex"])
+        cfg = AnonymousConfig(sources=["arxiv", "openalex"])
         warnings = validate_config(cfg)
         assert any("openalex" in w and "api_key" in w for w in warnings)
 
     def test_openalex_with_api_key_no_warning(self) -> None:
-        cfg = RepoRadarConfig(
+        cfg = AnonymousConfig(
             sources=["arxiv", "openalex"],
             openalex=OpenAlexConfig(api_key="k"),
         )
@@ -324,48 +324,48 @@ class TestValidateConfig:
 
     def test_openalex_not_enabled_no_key_warning(self) -> None:
         # Default sources is [arxiv] only; no OpenAlex key warning expected.
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         warnings = validate_config(cfg)
         assert not any("api_key" in w for w in warnings)
 
     def test_max_results_out_of_range(self) -> None:
-        cfg = RepoRadarConfig(arxiv=ArxivConfig(max_results_per_query=0))
+        cfg = AnonymousConfig(arxiv=ArxivConfig(max_results_per_query=0))
         warnings = validate_config(cfg)
         assert any("max_results_per_query" in w for w in warnings)
 
-        cfg2 = RepoRadarConfig(arxiv=ArxivConfig(max_results_per_query=501))
+        cfg2 = AnonymousConfig(arxiv=ArxivConfig(max_results_per_query=501))
         warnings2 = validate_config(cfg2)
         assert any("max_results_per_query" in w for w in warnings2)
 
     def test_lookback_days_too_low(self) -> None:
-        cfg = RepoRadarConfig(arxiv=ArxivConfig(lookback_days=0))
+        cfg = AnonymousConfig(arxiv=ArxivConfig(lookback_days=0))
         warnings = validate_config(cfg)
         assert any("lookback_days" in w for w in warnings)
 
     def test_negative_ranking_weights(self) -> None:
-        cfg = RepoRadarConfig(ranking=RankingConfig(w_keyword=-1.0, w_category=0.5, w_recency=0.3))
+        cfg = AnonymousConfig(ranking=RankingConfig(w_keyword=-1.0, w_category=0.5, w_recency=0.3))
         warnings = validate_config(cfg)
         assert any("Negative ranking weight" in w for w in warnings)
         assert any("w_keyword" in w for w in warnings)
 
     def test_negative_embedding_weight(self) -> None:
-        cfg = RepoRadarConfig(ranking=RankingConfig(w_embedding=-0.5))
+        cfg = AnonymousConfig(ranking=RankingConfig(w_embedding=-0.5))
         warnings = validate_config(cfg)
         assert any("w_embedding" in w for w in warnings)
 
     def test_negative_category_weight(self) -> None:
-        cfg = RepoRadarConfig(ranking=RankingConfig(category_weights={"cs.CL": -1.0}))
+        cfg = AnonymousConfig(ranking=RankingConfig(category_weights={"cs.CL": -1.0}))
         warnings = validate_config(cfg)
         assert any("Negative category weight" in w for w in warnings)
         assert any("cs.CL" in w for w in warnings)
 
     def test_negative_citations_weight(self) -> None:
-        cfg = RepoRadarConfig(ranking=RankingConfig(w_citations=-0.5))
+        cfg = AnonymousConfig(ranking=RankingConfig(w_citations=-0.5))
         warnings = validate_config(cfg)
         assert any("w_citations" in w for w in warnings)
 
     def test_top_n_too_low(self) -> None:
-        cfg = RepoRadarConfig(output=OutputConfig(top_n=0))
+        cfg = AnonymousConfig(output=OutputConfig(top_n=0))
         warnings = validate_config(cfg)
         assert any("top_n" in w for w in warnings)
 
@@ -393,11 +393,11 @@ class TestDataclassDefaults:
 
     def test_output_defaults(self) -> None:
         cfg = OutputConfig()
-        assert cfg.digest_path == "./reporadar_digest.md"
+        assert cfg.digest_path == "./anonymous_digest.md"
         assert cfg.top_n == 15
 
     def test_sources_defaults(self) -> None:
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         assert cfg.sources == ["arxiv"]
 
     def test_openalex_defaults(self) -> None:
@@ -407,7 +407,7 @@ class TestDataclassDefaults:
 
 class TestSourcesConfig:
     def test_load_sources(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             "repo_path: .\nsources: [arxiv, semantic_scholar, openalex]\n",
             encoding="utf-8",
@@ -416,17 +416,17 @@ class TestSourcesConfig:
         assert cfg.sources == ["arxiv", "semantic_scholar", "openalex"]
 
     def test_unknown_source_warning(self) -> None:
-        cfg = RepoRadarConfig(sources=["arxiv", "unknown_source"])
+        cfg = AnonymousConfig(sources=["arxiv", "unknown_source"])
         warnings = validate_config(cfg)
         assert any("Unknown source" in w for w in warnings)
 
     def test_valid_sources_no_warning(self) -> None:
-        cfg = RepoRadarConfig(sources=["arxiv", "semantic_scholar", "openalex"])
+        cfg = AnonymousConfig(sources=["arxiv", "semantic_scholar", "openalex"])
         warnings = validate_config(cfg)
         assert not any("Unknown source" in w for w in warnings)
 
     def test_load_openalex_config(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             "repo_path: .\nopenalex:\n  email: user@example.com\n",
             encoding="utf-8",
@@ -455,12 +455,12 @@ class TestHooksConfig:
         assert cfg.password == ""
         assert cfg.use_tls is True
 
-    def test_reporadar_config_has_hooks(self) -> None:
-        cfg = RepoRadarConfig()
+    def test_anonymous_config_has_hooks(self) -> None:
+        cfg = AnonymousConfig()
         assert isinstance(cfg.hooks, HooksConfig)
 
     def test_load_hooks_from_yaml(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             "repo_path: .\n"
             "hooks:\n"
@@ -490,7 +490,7 @@ class TestHooksConfig:
         assert cfg.hooks.email.use_tls is False
 
     def test_hooks_missing_in_yaml_uses_defaults(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text("repo_path: .\n", encoding="utf-8")
         cfg = load_config(config_file)
         assert cfg.hooks.on_digest == ""
@@ -498,7 +498,7 @@ class TestHooksConfig:
 
     def test_invalid_smtp_port_warning(self) -> None:
         hooks = HooksConfig(email=EmailHookConfig(smtp_port=0))
-        cfg = RepoRadarConfig(hooks=hooks)
+        cfg = AnonymousConfig(hooks=hooks)
         warnings = validate_config(cfg)
         assert any("smtp_port" in w for w in warnings)
 
@@ -539,7 +539,7 @@ class TestShippedDefaultsMatchTheMeasuredConfiguration:
         # disagreement is intended, so an accidental one fails.
         INTENDED_OVERRIDES = {"ranking.w_embedding"}
 
-        cfg = RepoRadarConfig(repo_path=".")
+        cfg = AnonymousConfig(repo_path=".")
         parsed = yaml.safe_load(default_config_yaml())
         mismatches = []
         for section, body in parsed.items():
@@ -575,7 +575,7 @@ class TestShippedDefaultsMatchTheMeasuredConfiguration:
         import yaml
 
         data = yaml.safe_load(measured_config_yaml())
-        cfg = RepoRadarConfig(repo_path=".")
+        cfg = AnonymousConfig(repo_path=".")
         for section, field in (
             ("triage", "enabled"),
             ("hyde", "enabled"),

@@ -1,10 +1,10 @@
-"""Tests for reporadar.vec_index — numpy KNN and (when available) sqlite-vec parity."""
+"""Tests for anonymous.vec_index — numpy KNN and (when available) sqlite-vec parity."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from reporadar.vec_index import knn, knn_numpy, knn_sqlite_vec, sqlite_vec_available
+from anonymous.vec_index import knn, knn_numpy, knn_sqlite_vec, sqlite_vec_available
 
 
 def _vectors() -> dict[str, np.ndarray]:

@@ -173,7 +173,7 @@ def _fetch(url: str, token: str) -> tuple[dict[str, Any], str]:
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "reporadar-validity-pool",
+            "User-Agent": "anonymous-validity-pool",
         },
     )
     with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310 - fixed https host

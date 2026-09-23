@@ -55,19 +55,19 @@ sys.path.insert(0, str(EVALS_DIR.parent / "src"))
 # is what throttled this machine on 2026-08-12.
 from harness import WORK_DIR, load_benchmark, profile_case_repo  # noqa: E402
 
-from reporadar import arxiv_cache  # noqa: E402
-from reporadar.collector import (  # noqa: E402
+from anonymous import arxiv_cache  # noqa: E402
+from anonymous.collector import (  # noqa: E402
     CollectionError,
     build_queries,
     collect_papers,
     to_plain_keywords,
 )
-from reporadar.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
-from reporadar.paper_id import dedup_id, is_arxiv_id  # noqa: E402
-from reporadar.pipeline import KEYWORD_SOURCE_QUERIES  # noqa: E402
-from reporadar.ranker import rank_papers  # noqa: E402
-from reporadar.retrieval import hybrid_reorder  # noqa: E402
-from reporadar.sources import openalex  # noqa: E402
+from anonymous.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
+from anonymous.paper_id import dedup_id, is_arxiv_id  # noqa: E402
+from anonymous.pipeline import KEYWORD_SOURCE_QUERIES  # noqa: E402
+from anonymous.ranker import rank_papers  # noqa: E402
+from anonymous.retrieval import hybrid_reorder  # noqa: E402
+from anonymous.sources import openalex  # noqa: E402
 
 # OpenAlex documents 10 req/s and 100k/day with a key. One request per second is far inside
 # that; this probe is not in a hurry and a throttled answer is worthless to it.

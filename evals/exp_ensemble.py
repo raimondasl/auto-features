@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import band_testbeds as tb  # noqa: E402
 
-from reporadar.llm_client import LLMError, complete  # noqa: E402
+from anonymous.llm_client import LLMError, complete  # noqa: E402
 
 MODEL = "claude-haiku-4-5"
 

@@ -57,20 +57,20 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import yaml  # noqa: E402
 
-from reporadar.config import (  # noqa: E402
-    RepoRadarConfig,
+from anonymous.config import (  # noqa: E402
+    AnonymousConfig,
     default_config_yaml,
     measured_config_yaml,
 )
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 # Modules that participate in the collect -> rank -> gate -> show pipeline on either side.
 # The merge and digest-window passes are about how THIS pipeline behaves, so they are
 # scoped to it deliberately.
 PIPELINE_MODULES = (
-    ("src", "reporadar", "cli.py"),
-    ("src", "reporadar", "pipeline.py"),
-    ("src", "reporadar", "digest.py"),
+    ("src", "anonymous", "cli.py"),
+    ("src", "anonymous", "pipeline.py"),
+    ("src", "anonymous", "digest.py"),
     ("evals", "harness.py"),
     ("evals", "run_eval.py"),
     ("evals", "run_judge_eval.py"),
@@ -89,7 +89,7 @@ def all_modules() -> list[Path]:
 
     `evals/.work/` holds cloned benchmark repositories, which are other people's source.
     """
-    files = sorted((ROOT / "src" / "reporadar").rglob("*.py"))
+    files = sorted((ROOT / "src" / "anonymous").rglob("*.py"))
     files += sorted((ROOT / "evals").glob("*.py"))
     return [p for p in files if ".work" not in p.parts]
 
@@ -202,7 +202,7 @@ DECLARED_WIRING: dict[str, str] = {
         "The product declines to recommend a paper the repository's own README, CITATION "
         "file or docs already cite (`profiler.cited_arxiv_ids_of` -> `categorize_papers"
         "(cited_ids=...)`), and the benchmark does not: `run_judge_eval.py` derives "
-        "RepoRadar's Top Picks itself and never calls the tiering helper, so no published "
+        "Anonymous's Top Picks itself and never calls the tiering helper, so no published "
         "number is affected -- but from 2026-08-18 the product shows one fewer paper than "
         "the benchmark would score it on, on any repository that cites its own work. The "
         "rule was measured on six scientific-software repositories, where the repo's own "
@@ -334,7 +334,7 @@ def pass_wiring() -> list[Divergence]:
         # be pointed at a synthetic tree that HAS the defect -- the only way to know it can
         # still fail. A checker that cannot fail reads as a clean bill of health.
         rel = _rel(path)
-        is_product = path.parts[-3:-1] == ("src", "reporadar")
+        is_product = path.parts[-3:-1] == ("src", "anonymous")
         for line, passes in _tier_callers(path):
             if not is_product:
                 bench_tiering.append(f"{rel}:{line}")
@@ -403,7 +403,7 @@ def pass_wiring() -> list[Divergence]:
 # "The shipped default" is not one object. There are two surfaces and they can disagree:
 #
 #   1. the dataclass default — what a field is worth when the yml omits it, and
-#   2. `default_config_yaml()` — what `rr init` WRITES into `.reporadar.yml`.
+#   2. `default_config_yaml()` — what `rr init` WRITES into `.anonymous.yml`.
 #
 # Where the template sets a value, that value is what a user runs, and the dataclass
 # default is dead text. The first version of this pass compared twelve hand-listed fields
@@ -436,7 +436,7 @@ def config_leaves() -> dict[str, Any]:
                 out[key] = value
         return out
 
-    return walk(RepoRadarConfig(repo_path="."), "")
+    return walk(AnonymousConfig(repo_path="."), "")
 
 
 def _flatten_yaml(text: str) -> dict[str, Any]:
@@ -453,7 +453,7 @@ def _flatten_yaml(text: str) -> dict[str, Any]:
 
 
 def template_values() -> dict[str, Any]:
-    """What `rr init` writes into `.reporadar.yml`, flattened to the same dotted keys.
+    """What `rr init` writes into `.anonymous.yml`, flattened to the same dotted keys.
 
     Parsed rather than duplicated, so the template and this audit cannot drift apart —
     the failure mode the audit exists to catch, applied to the audit itself.
@@ -688,7 +688,7 @@ DECLARED: dict[str, str] = {
         "shrinking helps for reasons unrelated to ranking. It would be a finding about "
         "the 0.5 tier rule wearing a finding about fusion. The question that IS worth "
         "money moved to where fusion actually ships: it has been on in every headline "
-        "since PR #30 and had never been ablated inside the MEASURED configuration, whose "
+        "since launch and had never been ablated inside the MEASURED configuration, whose "
         "keep decision rests on NR-11's pre-rescore argument. That ablation ran on "
         "2026-08-16 and came back +0.00 net@2/case, CI [-1.00, +0.96], inside the 0.74 "
         "floor, while changing 25/25 returned sets — and the gate-free measure puts 8.80 "
@@ -893,7 +893,7 @@ def _split_v(arxiv_id: str) -> str:
 # The commit that gave the HyDE candidate merge the shared id rule. Duplicates in a run
 # recorded BEFORE this are the C-12 defect's history; duplicates after it are a live bug,
 # and a reader cannot tell which without the date. Reporting a raw count conflates them.
-HYDE_MERGE_FIX = "2026-08-14T03:35Z"  # cae8c88, `known = {dedup_id(...)}`
+HYDE_MERGE_FIX = "2026-08-14T03:35Z"  # withheld, `known = {dedup_id(...)}`
 _RUN_STAMP = re.compile(r"(\d{8}T\d{6})Z")
 
 
@@ -963,7 +963,7 @@ def pass_blast_radius() -> None:
             if not isinstance(case, dict):
                 continue
             returned = case.get("returned") or {}
-            top10 = returned.get("reporadar_top10") or []
+            top10 = returned.get("anonymous_top10") or []
             for rec in top10:
                 aid = rec.get("arxiv_id") or ""
                 if aid:

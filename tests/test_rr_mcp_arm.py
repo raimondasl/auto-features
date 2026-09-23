@@ -1,9 +1,9 @@
 """The augmented arm's wiring: what the agent may see, and what it must never see. [P27]
 
-Arm C is Opus 5 with RepoRadar's MCP server attached. What makes it a controlled arm rather
+Arm C is Opus 5 with Anonymous's MCP server attached. What makes it a controlled arm rather
 than a new system is that its tool serves **exactly what arm A returned** — same papers,
 same order, same gate scores — so a C-vs-A difference cannot be a different draw of
-RepoRadar (NR-54 priced that at sd 1.44/case).
+Anonymous (NR-54 priced that at sd 1.44/case).
 
 The tests here are almost all about one failure. The frozen results file records
 ``judge_score`` and ``judge_justification`` beside every pick, and seeding those would hand
@@ -55,7 +55,7 @@ def _synthetic_arm(tmp_path: Path, **extra: object) -> Path:
         "ranking_config": {},
         "pool_config": {"rr_all_time": True},
         "returned": {
-            "reporadar_toppicks": [
+            "anonymous_toppicks": [
                 {
                     "arxiv_id": "2401.00001v1",
                     "title": "T",
@@ -76,7 +76,7 @@ class TestTheJudgeNeverReachesTheAgent:
     @needs_arm_a
     def test_arm_picks_drops_the_verdict_fields(self, arm_a_rows) -> None:
         for row in arm_a_rows:
-            raw = row["returned"]["reporadar_toppicks"]
+            raw = row["returned"]["anonymous_toppicks"]
             if not raw:
                 continue
             # The fields ARE in the source — a test that passed because the frozen file
@@ -113,9 +113,9 @@ class TestTheStoreServesArmAsOutput:
     def test_every_arm_a_case_has_picks_to_serve(self, arm_a_rows) -> None:
         for row in arm_a_rows:
             picks = rr_mcp_arm.arm_picks(ARM_A, row["case"])
-            assert len(picks) == len(row["returned"]["reporadar_toppicks"])
+            assert len(picks) == len(row["returned"]["anonymous_toppicks"])
             assert [p["arxiv_id"] for p in picks] == [
-                p["arxiv_id"] for p in row["returned"]["reporadar_toppicks"]
+                p["arxiv_id"] for p in row["returned"]["anonymous_toppicks"]
             ]
 
     def test_the_pool_is_matched_by_fingerprint_not_by_filename(self) -> None:
@@ -140,7 +140,7 @@ class TestTheWideCorpusChangesExactlyOneTool:
 
     def _store(self, path: Path, extra_corpus: int):
         """A store with one scored+gated pick and *extra_corpus* unscored papers."""
-        from reporadar.store import PaperStore
+        from anonymous.store import PaperStore
 
         with PaperStore(path) as store:
             store.upsert_paper(
@@ -177,8 +177,8 @@ class TestTheWideCorpusChangesExactlyOneTool:
     def test_widening_the_corpus_leaves_the_recommendations_byte_identical(self, tmp_path):
         """The synthetic version of `compare_stores`, so the invariant is checked on a
         fresh clone rather than only where the seeded stores happen to exist."""
-        from reporadar.mcp_server import ranked_papers_payload
-        from reporadar.store import PaperStore
+        from anonymous.mcp_server import ranked_papers_payload
+        from anonymous.store import PaperStore
 
         self._store(tmp_path / "narrow.db", 0)
         self._store(tmp_path / "wide.db", 300)
@@ -195,8 +195,8 @@ class TestTheWideCorpusChangesExactlyOneTool:
     def test_the_wider_corpus_does_reach_the_search_tool(self, tmp_path):
         """The other half: if `search_papers` did NOT widen, the arm would change nothing
         at all and a null result would be unreadable."""
-        from reporadar.mcp_server import search_corpus_payload
-        from reporadar.store import PaperStore
+        from anonymous.mcp_server import search_corpus_payload
+        from anonymous.store import PaperStore
 
         self._store(tmp_path / "narrow.db", 0)
         self._store(tmp_path / "wide.db", 300)
@@ -221,8 +221,8 @@ class TestTheWideCorpusChangesExactlyOneTool:
 
         Which is why the assertion is that the wide payload has no `maybe_relevant` key
         rather than that its contents are harmless."""
-        from reporadar.mcp_server import ranked_papers_payload
-        from reporadar.store import PaperStore
+        from anonymous.mcp_server import ranked_papers_payload
+        from anonymous.store import PaperStore
 
         self._store(tmp_path / "wide.db", 40)
         with PaperStore(tmp_path / "wide.db") as store:
@@ -241,10 +241,10 @@ class TestTheWideCorpusChangesExactlyOneTool:
 
     def test_the_server_is_pointed_at_the_right_store(self, tmp_path: Path) -> None:
         cfg, _ = rr_mcp_arm.write_config("rag", repo_dir=tmp_path, wide=True)
-        args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+        args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["anonymous"]["args"]
         assert args[args.index("--db") + 1] == str(rr_mcp_arm.case_db("rag", wide=True))
         narrow, _ = rr_mcp_arm.write_config("rag", repo_dir=tmp_path)
-        n_args = json.loads(narrow.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+        n_args = json.loads(narrow.read_text(encoding="utf-8"))["mcpServers"]["anonymous"]["args"]
         assert n_args[n_args.index("--db") + 1] == str(rr_mcp_arm.case_db("rag"))
         assert cfg != narrow  # and the two configs cannot overwrite each other
 
@@ -282,7 +282,7 @@ class TestTheToolsetIsAConfigurationAxis:
         """A `web+rr` artifact full of plain-web draws is unfalsifiable from the rows: the
         treatment's absence is invisible. Same rule `prompt_for` already applies."""
         with pytest.raises(ValueError):
-            baseline_mod.tools_for("web+reporadar")
+            baseline_mod.tools_for("web+anonymous")
 
 
 class TestTheTreatmentCannotBeSilentlyAbsent:
@@ -351,7 +351,7 @@ class TestTheTreatmentCannotBeSilentlyAbsent:
         one, log_one = rr_mcp_arm.write_config("rag", repo_dir=tmp_path, token="aaaa1111")
         two, log_two = rr_mcp_arm.write_config("rag", repo_dir=tmp_path, token="bbbb2222")
         assert one != two and log_one != log_two
-        cfg = json.loads(one.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]
+        cfg = json.loads(one.read_text(encoding="utf-8"))["mcpServers"]["anonymous"]
         assert cfg["env"]["RR_MCP_CALL_LOG"] == str(log_one)
         assert cfg["args"][0] == "mcp"
 
@@ -393,7 +393,7 @@ class TestTheDriverActuallyServesTheArmItWasAskedFor:
             db.write_bytes(b"")
         for tools, wide in (("web+rrwide", True), ("web+rr", False)):
             cfg, _log = gold_spread.mcp_config_for("acase", tools)
-            args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["reporadar"]["args"]
+            args = json.loads(cfg.read_text(encoding="utf-8"))["mcpServers"]["anonymous"]["args"]
             assert args[args.index("--db") + 1] == str(rr_mcp_arm.case_db("acase", wide=wide))
 
     def test_the_guard_checks_the_store_the_toolset_asked_for(

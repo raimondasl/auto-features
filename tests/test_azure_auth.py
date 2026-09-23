@@ -1,7 +1,7 @@
-"""Tests for reporadar.azure_auth — keyless Azure OpenAI tokens, and where they may go.
+"""Tests for anonymous.azure_auth — keyless Azure OpenAI tokens, and where they may go.
 
-The security properties are the load-bearing ones. `.reporadar.yml` is committed to repositories,
-so the endpoint and tenant are attacker-controllable the moment someone runs RepoRadar in a
+The security properties are the load-bearing ones. `.anonymous.yml` is committed to repositories,
+so the endpoint and tenant are attacker-controllable the moment someone runs Anonymous in a
 repository they did not write: the endpoint must never send a token outside Azure, and the tenant
 must never smuggle anything into the `az` command line, which on Windows runs through cmd.exe.
 """
@@ -17,8 +17,8 @@ from typing import Any
 
 import pytest
 
-from reporadar import azure_auth
-from reporadar.azure_auth import AzureAuthError, chat_completions_url, validate_tenant
+from anonymous import azure_auth
+from anonymous.azure_auth import AzureAuthError, chat_completions_url, validate_tenant
 
 _REAL_FETCH = azure_auth._fetch  # captured before conftest's guard replaces it per test
 
@@ -84,7 +84,7 @@ class TestOnlyAzureHostsCanReceiveATokenRequest:
 
 class TestTheTenantCannotReachTheCommandLineAsAnythingButATenant:
     @pytest.mark.parametrize(
-        "tenant", ["", "6fb0b7a7-07cb-421e-ac5d-c19fb4bf995a", "contoso.onmicrosoft.com"]
+        "tenant", ["", "12345678-1234-1234-1234-123456789abc", "contoso.onmicrosoft.com"]
     )
     def test_ids_and_domains_pass(self, tenant: str) -> None:
         assert validate_tenant(f" {tenant} ") == tenant
@@ -358,7 +358,7 @@ class TestRunningAz:
 
     def test_the_child_never_shares_the_callers_stdin(self) -> None:
         """Under the MCP server stdin is the editor's JSON-RPC pipe, and a child that inherits
-        it deadlocks on Windows — the 1.0.5 hang, which this module must not reintroduce."""
+        it deadlocks on Windows — a hang this module must not reintroduce."""
         done = azure_auth._run(
             [sys.executable, "-c", "import sys; print(repr(sys.stdin.read()))"], timeout=30
         )

@@ -1,4 +1,4 @@
-"""Tests for reporadar.output."""
+"""Tests for anonymous.output."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import patch
 import click
 from click.testing import CliRunner
 
-from reporadar.output import error, info, muted, setup_verbose_logging, success, warn
+from anonymous.output import error, info, muted, setup_verbose_logging, success, warn
 
 
 def _capture(func, msg):
@@ -34,7 +34,7 @@ class TestOutputHelpers:
 
     def test_error_goes_to_stderr(self) -> None:
         # error() writes to stderr via click.echo(..., err=True)
-        with patch("reporadar.output.click.echo") as mock_echo:
+        with patch("anonymous.output.click.echo") as mock_echo:
             error("Something broke")
             mock_echo.assert_called_once()
             # Verify err=True was passed

@@ -3,12 +3,12 @@
     uv run python evals/why_case.py --case linter
     uv run python evals/why_case.py --case linter,webdev,http,cli --run <artifact.json>
 
-`rr why` answers this for a real repository, against the `.reporadar/papers.db` a product run
+`rr why` answers this for a real repository, against the `.anonymous/papers.db` a product run
 writes. **The eval harness writes no store**, so the command built for exactly this question
 could not be pointed at the data that raised it — the four cases in §16.4 that returned nothing
 while holding actionable papers. This is that adapter.
 
-It reports the same stages `reporadar.explain` names, from the fields a results artifact
+It reports the same stages `anonymous.explain` names, from the fields a results artifact
 actually carries (`llm_score`, `judge_score`, `finescale`/`finescale_p`, tier membership), and
 says so where the artifact has no equivalent: the per-paper `score_total` and `rrf_score` are
 not written, so *ranking* detail is unavailable here in a way it is not in `rr why`. Nothing is
@@ -87,9 +87,9 @@ def load(paths: list[Path]) -> dict[str, dict]:
 
 
 def report(case: str, row: dict) -> None:
-    top10 = row["returned"]["reporadar_top10"]
-    picks = {p["arxiv_id"] for p in row["returned"]["reporadar_toppicks"]}
-    tp = row["reporadar_toppicks"]
+    top10 = row["returned"]["anonymous_top10"]
+    picks = {p["arxiv_id"] for p in row["returned"]["anonymous_toppicks"]}
+    tp = row["anonymous_toppicks"]
 
     print(f"\n{'=' * 78}\n{case}  —  {row['repo']}\n{'=' * 78}")
     print(

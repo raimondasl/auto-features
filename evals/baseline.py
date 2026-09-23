@@ -182,7 +182,7 @@ DEFAULT_MODEL = BASELINE_MODEL
 DEFAULT_EFFORT = None
 
 # Which tools the agent is allowed. `"web"` is every run published so far: WebSearch and
-# WebFetch, nothing else. `"web+rr"` adds RepoRadar's own MCP server on top of them, which
+# WebFetch, nothing else. `"web+rr"` adds Anonymous's own MCP server on top of them, which
 # is the P27 arm -- the agent keeps everything it had and gains the ranked list.
 #
 # A toolset is a configuration axis exactly like the model and the prompt, so it gets the
@@ -193,10 +193,10 @@ DEFAULT_EFFORT = None
 # rating papers would mutate the store its own run is being served from -- a treatment that
 # edits its own input partway through. The other four are read-only.
 RR_MCP_TOOLS = (
-    "mcp__reporadar__get_repo_profile",
-    "mcp__reporadar__get_ranked_papers",
-    "mcp__reporadar__explain_relevance",
-    "mcp__reporadar__search_papers",
+    "mcp__anonymous__get_repo_profile",
+    "mcp__anonymous__get_ranked_papers",
+    "mcp__anonymous__explain_relevance",
+    "mcp__anonymous__search_papers",
 )
 # `web+rrwide` is the SAME four tools serving a WIDER corpus [P27]. The label is the whole
 # server configuration, not just the tool list -- which is the honest reading of "what tools
@@ -230,7 +230,7 @@ def tools_for(version: str) -> tuple[str, ...]:
     """The extra tools *version* adds, or a loud failure. Never falls back to the default.
 
     Same rule as `prompt_for`: a typo'd `--tools` that quietly ran the plain web arm would
-    produce a `web+rr`-labelled artifact in which RepoRadar was never available, and every
+    produce a `web+rr`-labelled artifact in which Anonymous was never available, and every
     row would look well-formed. That is the void-not-null shape, and it is worse here than
     for the prompt -- the treatment would simply be absent.
     """
@@ -313,7 +313,7 @@ def flags_for(
     extra = tools_for(tools)
     if extra:
         if mcp_config is None:
-            # Refuse rather than run. `--allowedTools mcp__reporadar__*` with no server to
+            # Refuse rather than run. `--allowedTools mcp__anonymous__*` with no server to
             # provide them is not an error the CLI reports: the agent simply never sees the
             # tools, finishes normally, and the row lands in a `web+rr` artifact having had
             # no treatment at all. That is the most expensive failure available here.

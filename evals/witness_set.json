@@ -12,7 +12,7 @@
   "cli-v2-opus5-rrwide@30": 69,
   "cli-v2-opus5@30": 302,
   "cli-v2@30": 155,
-  "reporadar": 189
+  "anonymous": 189
  },
  "sources": [
   "cli",
@@ -24,7 +24,7 @@
   "cli-v2-opus5-rrwide@30",
   "cli-v2-opus5@30",
   "cli-v2@30",
-  "reporadar"
+  "anonymous"
  ],
  "n_non_self": 522,
  "witnesses": {
@@ -32,19 +32,19 @@
    "1603.08390": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1702.08734": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1802.06466": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1908.10396": {
@@ -59,13 +59,13 @@
    "2008.03260": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2103.09944": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2104.03221": {
@@ -84,25 +84,25 @@
    "2304.04759": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2310.13870": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2312.03940": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2402.02044": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2403.04871": {
@@ -170,13 +170,13 @@
    "2601.11808": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2603.20009": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    }
   },
@@ -952,7 +952,7 @@
    "2004.14471": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2010.03090": {
@@ -971,26 +971,26 @@
    "2105.09894": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2106.13020": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2204.06074": {
     "judge": 2,
     "sources": [
      "api",
-     "reporadar"
+     "anonymous"
     ]
    },
    "2204.12889": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2205.05982": {
@@ -1003,7 +1003,7 @@
    "2210.06827": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2307.15255": {
@@ -1015,7 +1015,7 @@
    "2412.02192": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2502.06112": {
@@ -1027,7 +1027,7 @@
    "2504.06151": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2508.02280": {
@@ -1039,7 +1039,7 @@
    "2607.07696": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2607.11271": {
@@ -1121,7 +1121,7 @@
    "1901.03771": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1912.05036": {
@@ -1153,7 +1153,7 @@
    "2407.13712": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "doi:10.1007/978-3-642-37051-9_6": {
@@ -1200,7 +1200,7 @@
    "1709.01552": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1812.04959": {
@@ -1212,13 +1212,13 @@
    "2007.11481": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2108.04600": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2405.18993": {
@@ -1238,7 +1238,7 @@
    "2606.13445": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.18405": {
@@ -1297,7 +1297,7 @@
    "1404.0736": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1704.04503": {
@@ -1372,13 +1372,13 @@
    "2109.01123": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2111.12126": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2112.01527": {
@@ -1391,13 +1391,13 @@
    "2112.01698": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2112.09290": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2201.03545": {
@@ -1410,7 +1410,7 @@
    "2202.06934": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2203.03605": {
@@ -1422,7 +1422,7 @@
    "2203.16527": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2307.08691": {
@@ -1434,13 +1434,13 @@
    "2308.05168": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2309.03893": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2311.05613": {
@@ -1452,7 +1452,7 @@
    "2408.00350": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2412.05496": {
@@ -1464,13 +1464,13 @@
    "2509.12871": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2510.15783": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    }
   },
@@ -1497,25 +1497,25 @@
    "2401.15210": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2404.16486": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2408.13480": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2410.12496": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2410.14066": {
@@ -1533,7 +1533,7 @@
    "2502.09541": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2502.15181": {
@@ -1548,13 +1548,13 @@
    "2503.21087": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2504.01157": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2504.15247": {
@@ -1573,7 +1573,7 @@
    "2506.13670": {
     "judge": 3,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-redraw",
      "cli-v2@30",
      "cli-v2-opus5@30"
@@ -1588,31 +1588,31 @@
    "2510.07963": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2511.16455": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2512.01490": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2603.15023": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.03946": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.22423": {
@@ -1665,25 +1665,25 @@
    "2106.15282": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2302.02412": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2302.04304": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2303.06555": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2303.17604": {
@@ -1695,13 +1695,13 @@
    "2304.07087": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2306.00964": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2310.17347": {
@@ -1720,13 +1720,13 @@
    "2312.06899": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2404.08799": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2404.14507": {
@@ -1745,13 +1745,13 @@
    "2408.02054": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2408.17095": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2410.05317": {
@@ -1770,7 +1770,7 @@
    "2501.00289": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2502.01776": {
@@ -1800,7 +1800,7 @@
    "2503.07578": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2506.19852": {
@@ -1837,7 +1837,7 @@
    "2510.12789": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2511.14993": {
@@ -1855,7 +1855,7 @@
    "2601.21610": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2602.00744": {
@@ -1867,7 +1867,7 @@
    "2604.24877": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2605.11335": {
@@ -1887,7 +1887,7 @@
    "1806.03160": {
     "judge": 2,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-v2-opus5@30"
     ]
    },
@@ -1927,7 +1927,7 @@
    "2101.07956": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2106.09671": {
@@ -1957,13 +1957,13 @@
    "2112.02052": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2112.10558": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2201.08821": {
@@ -1995,13 +1995,13 @@
    "2207.09955": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2208.09151": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2210.11790": {
@@ -2045,7 +2045,7 @@
    "2305.10863": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2305.17589": {
@@ -2063,7 +2063,7 @@
    "2308.13466": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2310.01267": {
@@ -2087,19 +2087,19 @@
    "2311.02399": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2311.02909": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2312.02368": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2312.04615": {
@@ -2117,13 +2117,13 @@
    "2403.14853": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2409.11129": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2409.14500": {
@@ -2135,13 +2135,13 @@
    "2410.22697": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2412.20379": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    }
   },
@@ -2333,13 +2333,13 @@
    "2306.03078": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2307.03738": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2312.07104": {
@@ -2384,7 +2384,7 @@
    "2405.03594": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2406.10774": {
@@ -2447,7 +2447,7 @@
    "2501.00032": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2501.16383": {
@@ -2477,7 +2477,7 @@
    "2505.17331": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2507.01449": {
@@ -2507,31 +2507,31 @@
    "2602.19626": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2603.17891": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2604.21026": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2605.20706": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2607.09791": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    }
   },
@@ -3447,13 +3447,13 @@
    "2112.11508": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2403.15632": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2511.18429": {
@@ -3516,7 +3516,7 @@
    "2210.07558": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2306.07967": {
@@ -3547,19 +3547,19 @@
    "2405.13952": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2405.17357": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2405.19597": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2406.09044": {
@@ -3585,7 +3585,7 @@
    "2409.05926": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2409.14396": {
@@ -3609,7 +3609,7 @@
    "2502.03884": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2502.04959": {
@@ -3621,13 +3621,13 @@
    "2504.00254": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2505.12433": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2505.18877": {
@@ -3639,7 +3639,7 @@
    "2506.00236": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2506.16289": {
@@ -3651,7 +3651,7 @@
    "2507.03220": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2509.15974": {
@@ -3663,25 +3663,25 @@
    "2509.18629": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2510.02630": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2510.08396": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2602.15195": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2603.22276": {
@@ -3707,7 +3707,7 @@
    "2103.09944": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2108.10341": {
@@ -3731,13 +3731,13 @@
    "2205.09707": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2208.08942": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2212.01340": {
@@ -3755,7 +3755,7 @@
    "2303.07678": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2304.01982": {
@@ -3763,7 +3763,7 @@
     "sources": [
      "cli",
      "api",
-     "reporadar",
+     "anonymous",
      "cli-redraw",
      "cli-redraw@30",
      "cli-v2@30",
@@ -3773,7 +3773,7 @@
    "2308.11512": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2403.13291": {
@@ -3796,14 +3796,14 @@
    "2404.14989": {
     "judge": 2,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-v2-opus5@30"
     ]
    },
    "2405.00975": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2405.19504": {
@@ -3818,14 +3818,14 @@
    "2406.17968": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2409.14683": {
     "judge": 3,
     "sources": [
      "cli",
-     "reporadar",
+     "anonymous",
      "cli-redraw",
      "cli-redraw@30",
      "cli-v2@30",
@@ -3835,7 +3835,7 @@
    "2412.03193": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2501.17788": {
@@ -3864,7 +3864,7 @@
    "2602.02827": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.05568": {
@@ -3939,13 +3939,13 @@
    "1903.08894": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1906.02771": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2108.13264": {
@@ -3964,7 +3964,7 @@
    "2111.15382": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2205.07802": {
@@ -3977,25 +3977,25 @@
    "2301.03679": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2301.10919": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2302.00671": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2312.07624": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2403.03950": {
@@ -4009,7 +4009,7 @@
    "2403.09110": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2407.04811": {
@@ -4021,7 +4021,7 @@
    "2407.20230": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2410.09754": {
@@ -4033,25 +4033,25 @@
    "2412.06685": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2509.25174": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2601.01803": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.21525": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    }
   },
@@ -4095,14 +4095,14 @@
    "2305.11095": {
     "judge": 3,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-v2@30"
     ]
    },
    "2307.03183": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2307.14743": {
@@ -4130,7 +4130,7 @@
    "2405.03484": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2406.02560": {
@@ -4142,13 +4142,13 @@
    "2406.04512": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2406.10052": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2408.16589": {
@@ -4161,7 +4161,7 @@
    "2412.11272": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2501.11378": {
@@ -4174,7 +4174,7 @@
    "2502.01547": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2505.12969": {
@@ -4186,14 +4186,14 @@
    "2507.21522": {
     "judge": 3,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-v2@30"
     ]
    },
    "2508.12301": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2509.09987": {
@@ -4213,7 +4213,7 @@
    "2510.24992": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2603.06193": {
@@ -4227,7 +4227,7 @@
    "2604.25611": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.07473": {
@@ -4261,20 +4261,20 @@
    "2010.12734": {
     "judge": 3,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-v2@30"
     ]
    },
    "2101.06801": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2109.13142": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2110.13801": {
@@ -4299,7 +4299,7 @@
    "2307.16693": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2311.15380": {
@@ -4321,7 +4321,7 @@
    "2406.18099": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2407.15581": {
@@ -4345,20 +4345,20 @@
    "2411.11091": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2504.17178": {
     "judge": 3,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-redraw"
     ]
    },
    "2506.04678": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2506.08671": {
@@ -4370,7 +4370,7 @@
    "2506.14630": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2508.13909": {
@@ -4382,25 +4382,25 @@
    "2509.10714": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2602.01873": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2604.13743": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2605.23815": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2606.18138": {
@@ -4465,7 +4465,7 @@
    "1506.08800": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1512.00727": {
@@ -4486,7 +4486,7 @@
    "1703.08425": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1707.00788": {
@@ -4498,13 +4498,13 @@
    "1905.01403": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2002.02017": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2208.10578": {
@@ -4516,7 +4516,7 @@
    "2306.06742": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2308.16862": {
@@ -4581,7 +4581,7 @@
    "2005.03300": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2005.09863": {
@@ -4605,7 +4605,7 @@
    "2010.05337": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2010.16103": {
@@ -4618,13 +4618,13 @@
    "2104.06700": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2104.10569": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2110.07875": {
@@ -4650,7 +4650,7 @@
    "2206.00057": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2209.15486": {
@@ -4668,7 +4668,7 @@
    "2212.05009": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2302.11636": {
@@ -4680,13 +4680,13 @@
    "2305.09887": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2410.22697": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    }
   },
@@ -4694,7 +4694,7 @@
    "1306.3906": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1504.00204": {
@@ -4707,19 +4707,19 @@
    "1801.06340": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1811.02059": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1906.01365": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1908.04509": {
@@ -4754,7 +4754,7 @@
    "2211.00741": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2301.07313": {
@@ -4768,13 +4768,13 @@
    "2312.01229": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2403.11221": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2504.06975": {
@@ -4786,7 +4786,7 @@
    "2509.07157": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2511.14067": {
@@ -4798,13 +4798,13 @@
    "2603.09122": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2607.02856": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "doi:10.1145/1620585.1620587": {
@@ -4831,7 +4831,7 @@
    "1603.01112": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "1807.06702": {
@@ -4949,13 +4949,13 @@
    "2401.02116": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2402.02044": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2403.04871": {
@@ -5013,44 +5013,44 @@
    "2501.10479": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2502.01528": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2503.04422": {
     "judge": 3,
     "sources": [
-     "reporadar",
+     "anonymous",
      "cli-v2-opus5@30"
     ]
    },
    "2509.12086": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2509.25487": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2510.27141": {
     "judge": 3,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2601.11557": {
     "judge": 2,
     "sources": [
-     "reporadar"
+     "anonymous"
     ]
    },
    "2607.00768": {

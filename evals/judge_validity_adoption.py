@@ -85,7 +85,7 @@ sys.path.insert(0, str(EVALS.parent / "src"))
 
 from metrics import roc_auc  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 WORK = EVALS / ".work"
 ADOPTIONS = WORK / "adoptions.json"
@@ -479,7 +479,7 @@ def enrich_positives(
     That is the silent zero this project keeps being bitten by, so the *missing* ids are
     returned rather than dropped. A caller that ignores them is choosing to, in writing.
     """
-    from reporadar import collector as collector_mod
+    from anonymous import collector as collector_mod
 
     wanted = sorted({dedup_id(str(r["id"])) for r in rows})
     getter = fetch or collector_mod.collect_by_ids
@@ -615,7 +615,7 @@ def arxiv_window_listing(
     """
     import arxiv
 
-    from reporadar import collector as collector_mod
+    from anonymous import collector as collector_mod
 
     if depth not in ("stratified", "full"):
         raise SystemExit(f"unknown listing depth {depth!r}; use 'stratified' or 'full'")
@@ -681,8 +681,8 @@ def arxiv_window_controls(
 ) -> list[dict[str, Any]]:
     """Four controls per positive: same primary category, same half-year, never cited.
 
-    **Why not the shipped candidate pool.** A pool built by RepoRadar is RepoRadar's own
-    HEAD-seeded output, so a judge that is harsher on RepoRadar-shaped papers -- Sonnet, by
+    **Why not the shipped candidate pool.** A pool built by Anonymous is Anonymous's own
+    HEAD-seeded output, so a judge that is harsher on Anonymous-shaped papers -- Sonnet, by
     a factor of 2.3 -- would be credited with "validity" for a property of the control set.
     Both adoption refutations landed on this point. An arXiv category listing is produced by
     arXiv, not by the system under test.
@@ -995,7 +995,7 @@ def judge() -> int:
 def report() -> int:
     if CONTROL_SCHEME != "pool":
         # `--controls` is accepted by the parser and assigned to CONTROL_SCHEME, but `controls()`
-        # does not read it yet: it always draws from `.work/pool-cut100/`, RepoRadar's own
+        # does not read it yet: it always draws from `.work/pool-cut100/`, Anonymous's own
         # HEAD-seeded candidate pool. Left unguarded, `--controls arxiv-window` would write
         # POOL-drawn numbers into a file named `-arxiv-window` and stamped `controls:
         # arxiv-window` — an artefact asserting it used the arm-neutral negative class when it
@@ -1315,7 +1315,7 @@ def main() -> int:
         choices=CONTROL_SCHEMES,
         default="pool",
         help=(
-            "'pool' reproduces NR-56/57 (RepoRadar's own candidate pool). 'arxiv-window' is "
+            "'pool' reproduces NR-56/57 (Anonymous's own candidate pool). 'arxiv-window' is "
             "the arm-neutral scheme the validity pool registers (§4): same primary category, "
             "same half-year, never cited by the repository at HEAD."
         ),

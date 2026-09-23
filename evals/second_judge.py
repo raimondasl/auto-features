@@ -67,8 +67,8 @@ import judge as judge_mod  # noqa: E402
 from diagnose_triage import _load_env, fetch_papers  # noqa: E402
 from harness import WORK_DIR, assemble_repo_context  # noqa: E402
 
-from reporadar.config import SuggestionsConfig  # noqa: E402
-from reporadar.llm_client import complete  # noqa: E402
+from anonymous.config import SuggestionsConfig  # noqa: E402
+from anonymous.llm_client import complete  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"

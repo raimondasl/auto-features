@@ -1,4 +1,4 @@
-"""Tests for reporadar.sources.europepmc (mocked HTTP).
+"""Tests for anonymous.sources.europepmc (mocked HTTP).
 
 The adapter exists because bioRxiv's own API cannot be searched by keyword, and it was
 written after probing the live Europe PMC API rather than from its documentation. The cases
@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar.sources.europepmc import (
+from anonymous.sources.europepmc import (
     EuropePMCError,
     _strip_markup,
     build_query,
@@ -115,7 +115,7 @@ class TestMarkupIsStrippedWithoutEatingTheScience:
 
 
 class TestNormalisation:
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_the_doi_is_the_id(self, mock_req: MagicMock) -> None:
         """So a preprint arriving here and from OpenAlex is one paper, not two (F15)."""
         mock_req.return_value = _response(_record())
@@ -123,7 +123,7 @@ class TestNormalisation:
         assert paper["arxiv_id"] == "doi:10.64898/2026.07.30.741827"
         assert paper["url"] == "https://doi.org/10.64898/2026.07.30.741827"
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_both_doi_prefixes_are_handled(self, mock_req: MagicMock) -> None:
         """10.1101 is bioRxiv's original prefix and 10.64898 its current one; a 785-record
         sample held 284 of the first and 216 of the second, so both are live."""
@@ -136,7 +136,7 @@ class TestNormalisation:
             "doi:10.64898/2026.07.30.741827",
         ]
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_categories_are_left_empty(self, mock_req: MagicMock) -> None:
         """Europe PMC returns no subject classification for a preprint — `publisher` and
         `pubType` are both null. Filling `categories` from another taxonomy is exactly the
@@ -146,14 +146,14 @@ class TestNormalisation:
         [paper] = search_papers("crispr", lookback_days=14)
         assert paper["categories"] == []
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_a_record_without_a_usable_doi_is_dropped(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _response(
             _record(doi=""), _record(doi="not-a-doi"), _record("10.1101/ok.1")
         )
         assert [p["arxiv_id"] for p in search_papers("x", 14)] == ["doi:10.1101/ok.1"]
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_the_title_is_stripped_as_well_as_the_abstract(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _response(
             _record(
@@ -170,20 +170,20 @@ class TestARefusalIsNotAZero:
     """The mistake this project has published twice: an API that said no, recorded as a
     source that found nothing."""
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_an_empty_result_is_an_empty_list(self, mock_req: MagicMock) -> None:
         """Europe PMC answers a genuine miss with `hitCount: 0` and a present `resultList`,
         so honest emptiness is distinguishable from refusal at the transport level."""
         mock_req.return_value = _response(hit_count=0)
         assert search_papers("zzqx nonexistent qqz", 14) == []
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_one_refused_query_is_skipped_not_fatal(self, mock_req: MagicMock) -> None:
         mock_req.side_effect = [EuropePMCError("HTTP 503"), _response(_record())]
         papers = collect_papers(["a", "b"], lookback_days=36500)
         assert len(papers) == 1
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_every_query_refused_raises(self, mock_req: MagicMock) -> None:
         """Returning `[]` here would let a caller record "Europe PMC contributed nothing"
         about a conversation that never happened."""
@@ -191,8 +191,8 @@ class TestARefusalIsNotAZero:
         with pytest.raises(EuropePMCError, match="not a zero"):
             collect_papers(["a", "b"], lookback_days=36500)
 
-    @patch("reporadar.sources.europepmc.urllib.request.urlopen")
-    @patch("reporadar.sources.europepmc.time.sleep")
+    @patch("anonymous.sources.europepmc.urllib.request.urlopen")
+    @patch("anonymous.sources.europepmc.time.sleep")
     def test_a_4xx_is_not_retried(self, _sleep: MagicMock, mock_open: MagicMock) -> None:
         import urllib.error
 
@@ -201,8 +201,8 @@ class TestARefusalIsNotAZero:
             search_papers("x", 14)
         assert mock_open.call_count == 1
 
-    @patch("reporadar.sources.europepmc.urllib.request.urlopen")
-    @patch("reporadar.sources.europepmc.time.sleep")
+    @patch("anonymous.sources.europepmc.urllib.request.urlopen")
+    @patch("anonymous.sources.europepmc.time.sleep")
     def test_a_503_is_retried_then_succeeds(self, _sleep: MagicMock, mock_open: MagicMock) -> None:
         """A burst of unspaced requests drew 504s and then a 503 during probing; 22
         consecutive spaced ones completed clean. The flakiness is real and transient."""
@@ -220,8 +220,8 @@ class TestARefusalIsNotAZero:
 
 
 class TestCollect:
-    @patch("reporadar.sources.europepmc.time.sleep")
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc.time.sleep")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_queries_are_merged_and_deduplicated(
         self, mock_req: MagicMock, _sleep: MagicMock
     ) -> None:
@@ -236,7 +236,7 @@ class TestCollect:
             "doi:10.1101/c",
         ]
 
-    @patch("reporadar.sources.europepmc._request_json")
+    @patch("anonymous.sources.europepmc._request_json")
     def test_blank_queries_cost_no_request(self, mock_req: MagicMock) -> None:
         assert collect_papers(["", "   "], lookback_days=36500) == []
         assert mock_req.call_count == 0

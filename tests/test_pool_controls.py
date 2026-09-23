@@ -1,9 +1,9 @@
 """Arm-neutral controls for the validity pool. [PREREG-judge-validity-pool §4]
 
 The control set decides what the primary endpoint means. NR-56/57 drew controls from
-RepoRadar's own candidate pool, which is a problem the frame states plainly: a pool built by
+Anonymous's own candidate pool, which is a problem the frame states plainly: a pool built by
 the system under test is HEAD-seeded by that system, so a judge that happens to be harsher on
-RepoRadar-shaped papers — Sonnet, by a factor of 2.3 — gets credited with "validity" for a
+Anonymous-shaped papers — Sonnet, by a factor of 2.3 — gets credited with "validity" for a
 property of the *controls*. Both adoption refutations landed on exactly this. An arXiv
 category listing is produced by arXiv.
 
@@ -212,7 +212,7 @@ class TestTheSchemeIsSelectable:
 
 class TestWhyNotThePool:
     def test_the_reason_is_recorded_beside_the_code(self) -> None:
-        """A judge harsher on RepoRadar-shaped papers would be credited with validity for a
+        """A judge harsher on Anonymous-shaped papers would be credited with validity for a
         property of the control set. Both adoption refutations landed here, so the reason
         lives next to the function rather than only in the pre-registration."""
         doc = jva.arxiv_window_controls.__doc__ or ""
@@ -627,7 +627,7 @@ class TestTheDrawSpansTheWindowRatherThanItsEnd:
 
         import arxiv
 
-        from reporadar import collector as collector_mod
+        from anonymous import collector as collector_mod
 
         lo, hi = jva.half_year_bounds("2021-03-14")
         with (

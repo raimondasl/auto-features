@@ -1,4 +1,4 @@
-"""Tests for reporadar.store."""
+"""Tests for anonymous.store."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.store import CURRENT_SCHEMA_VERSION, PaperStore, StoreError
+from anonymous.store import CURRENT_SCHEMA_VERSION, PaperStore, StoreError
 
 
 def _make_paper(**overrides) -> dict:

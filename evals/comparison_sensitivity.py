@@ -167,7 +167,7 @@ def recover(rung1: dict[str, Any]) -> dict[str, dict[str, dict[str, int]]]:
         rows: dict[str, dict[str, int]] = {}
         for case in sorted(stored):
             r = stored[case]
-            rr_a, rr_u = counts(r["rr"], r["rr_n"], f"{label} {case} RepoRadar")
+            rr_a, rr_u = counts(r["rr"], r["rr_n"], f"{label} {case} Anonymous")
             op_a, op_u = counts(r["opus5"], r["opus5_n"], f"{label} {case} Opus 5")
             delta = (rr_a - 2 * rr_u) - (op_a - 2 * op_u)
             expect(delta == r["delta"], f"{label} {case}: delta {delta} != stored {r['delta']}")
@@ -410,7 +410,7 @@ def reproduce(summary: dict[str, Any], rung1: dict[str, Any]) -> None:
         expect(ci == stored["ci95"], f"{label} interval {ci} != stored {stored['ci95']}")
         wlt = (got["wins"], got["losses"], got["ties"])
         expect(wlt == (stored["wins"], stored["losses"], stored["ties"]), f"{label} w/l/t {wlt}")
-        expect(round(got["rr_mean_net"], 2) == stored["rr_mean_net2"], f"{label} RepoRadar mean")
+        expect(round(got["rr_mean_net"], 2) == stored["rr_mean_net2"], f"{label} Anonymous mean")
         expect(round(got["opus5_mean_net"], 2) == stored["opus5_mean_net2"], f"{label} Opus 5")
         same = summary["controls"][label]["with"]
         expect(same["margin"] == got["margin"] and same["ci95"] == got["ci95"], f"{label} with")
@@ -433,11 +433,11 @@ def show(summary: dict[str, Any]) -> None:
         p = summary["penalty"][label]
         c = p["crossover"]
         print(
-            f"\n  {label}: pooled precision RepoRadar {p['rr_precision']:.3f}, "
+            f"\n  {label}: pooled precision Anonymous {p['rr_precision']:.3f}, "
             f"Opus 5 {p['opus5_precision']:.3f}"
         )
         print(
-            f"  {'lambda':>6}{'RepoRadar':>11}{'Opus 5':>9}{'margin':>9}{'CI95':>19}"
+            f"  {'lambda':>6}{'Anonymous':>11}{'Opus 5':>9}{'margin':>9}{'CI95':>19}"
             f"{'w/l/t':>10}{'break-even':>12}{'RR above':>10}{'O5 above':>10}"
         )
         for e in p["by_lambda"].values():

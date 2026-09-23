@@ -1,4 +1,4 @@
-"""Tests for reporadar.ranker."""
+"""Tests for anonymous.ranker."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from reporadar.config import QueriesConfig, RankingConfig
-from reporadar.profiler import RepoProfile
-from reporadar.ranker import (
+from anonymous.config import QueriesConfig, RankingConfig
+from anonymous.profiler import RepoProfile
+from anonymous.ranker import (
     compute_exclude_penalty,
     format_score_explanation,
     rank_papers,
@@ -183,7 +183,7 @@ class TestCachedEmbeddingsEquivalence:
 
         # Uncached path: rank_papers calls compute_paper_embedding per paper.
         with patch(
-            "reporadar.embeddings.compute_paper_embedding",
+            "anonymous.embeddings.compute_paper_embedding",
             side_effect=lambda p: vecs[p["arxiv_id"]],
         ):
             uncached = rank_papers(
@@ -300,7 +300,7 @@ class TestAbsentCategoryPolicy:
     def test_impute_falls_back_to_zero_when_nothing_in_the_pool_has_categories(self) -> None:
         """A mean over an empty set is not a number, and imputing 1.0 there would hand
         every paper in an all-non-arXiv pool a perfect category score."""
-        from reporadar.ranker import rank_papers
+        from anonymous.ranker import rank_papers
 
         papers = [_make_paper(arxiv_id=f"ss:{i}", categories=[]) for i in range(3)]
         ranked = rank_papers(
@@ -897,8 +897,8 @@ class TestEmbeddingScoreIntegration:
         repo_emb = np.array([1.0, 0.0, 0.0])
 
         with (
-            patch("reporadar.embeddings.compute_paper_embedding") as mock_emb,
-            patch("reporadar.embeddings.cosine_similarity") as mock_cos,
+            patch("anonymous.embeddings.compute_paper_embedding") as mock_emb,
+            patch("anonymous.embeddings.cosine_similarity") as mock_cos,
         ):
             mock_emb.side_effect = [np.array([0.9, 0.1, 0.0]), np.array([0.0, 0.0, 1.0])]
             mock_cos.side_effect = [0.99, 0.0]

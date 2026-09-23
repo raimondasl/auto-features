@@ -1,4 +1,4 @@
-"""Tests for reporadar.provenance — which channel a paper came from, and who records it.
+"""Tests for anonymous.provenance — which channel a paper came from, and who records it.
 
 The guards matter more than the mapping. The channel is recorded in one column by four
 different writers, and a reader that silently files an unknown marker under "arXiv keyword
@@ -14,10 +14,10 @@ from typing import Any
 
 import pytest
 
-from reporadar import pipeline, provenance
-from reporadar.provenance import describe, found_by, source_marker
+from anonymous import pipeline, provenance
+from anonymous.provenance import describe, found_by, source_marker
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "reporadar"
+SRC = Path(__file__).resolve().parents[1] / "src" / "anonymous"
 
 
 class TestFoundBy:
@@ -78,7 +78,7 @@ class TestNoWriterGoesUnrecognised:
         }
         assert not misread, (
             f"these markers would read back as keyword search or unrecorded: {misread}; "
-            "teach reporadar.provenance about them"
+            "teach anonymous.provenance about them"
         )
 
     def test_every_keyword_source_has_a_label(self) -> None:

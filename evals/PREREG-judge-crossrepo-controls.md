@@ -8,7 +8,7 @@ NR-61 measured the repository-clustered AUC of both judges' ordinal score over 1
 
 Both overshot their registered brackets of 0.60–0.70 and 0.62–0.72 by a wide margin, and NR-61 reports the likeliest reason as a property of the control class rather than of the judges: inside one category and half-year a random contemporaneous paper is unlikely to be relevant to one *specific* repository, so the judges may be separating **"related to this project at all"** from **"unrelated"** — a far easier question than "worth adopting". P7 corroborated: predicted control base rates of ≥ 0.70 and ≤ 0.55, observed **0.089** and **0.007**, which is what obviously-irrelevant papers look like rather than near-misses.
 
-That leaves the product's actual question untested. RepoRadar's gate never sees random papers; it sees papers **retrieved for this repository**, all topically plausible. So the operative property is not "can the judge tell a relevant paper from an irrelevant one" but **does the judge condition on the repository at all, or does it recognise generally good papers?** A judge that scores every well-written, on-topic paper highly would produce NR-61's 0.92 and be useless in the pipeline.
+That leaves the product's actual question untested. Anonymous's gate never sees random papers; it sees papers **retrieved for this repository**, all topically plausible. So the operative property is not "can the judge tell a relevant paper from an irrelevant one" but **does the judge condition on the repository at all, or does it recognise generally good papers?** A judge that scores every well-written, on-topic paper highly would produce NR-61's 0.92 and be useless in the pipeline.
 
 This study replaces the negative class with papers that are demonstrably relevant to *some* repository, and holds everything else fixed.
 
@@ -118,7 +118,7 @@ X1 missed **upward**, the same direction as every companion-study miss, so the a
 
 It does not measure ranking **within** the adopted class, which is what the shipped rescore does; the endpoint remains adopted-vs-control.
 
-It does not use RepoRadar's own candidate pool, and deliberately: §4 of the companion registration rejected that class because a judge harsher on RepoRadar-shaped papers would be credited with validity for a property of the control set. The cross-repository class is produced by other projects' maintainers, not by the system under test.
+It does not use Anonymous's own candidate pool, and deliberately: §4 of the companion registration rejected that class because a judge harsher on Anonymous-shaped papers would be credited with validity for a property of the control set. The cross-repository class is produced by other projects' maintainers, not by the system under test.
 
 It cannot separate **"this paper is wrong for this repository"** from **"this paper is a weaker paper"**. Cross-repository controls are relevant somewhere, but they are not matched to the positive on quality, and no available label would let them be.
 

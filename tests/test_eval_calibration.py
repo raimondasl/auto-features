@@ -1,6 +1,6 @@
 """Tests for the fine-scale calibration audit (evals/calibrate_finescale.py).
 
-The audit decides whether the two frozen constants in `reporadar.finescale` are still
+The audit decides whether the two frozen constants in `anonymous.finescale` are still
 where they were fitted, so its arithmetic is load-bearing on a published claim. Two
 properties get the most attention here, because both are ways this analysis could
 silently agree with itself:
@@ -36,7 +36,7 @@ from calibrate_finescale import (  # noqa: E402
 )
 from run_judge_eval import returned_records  # noqa: E402
 
-from reporadar.finescale import INTERCEPT, SHOW_THRESHOLD, SLOPE, probability  # noqa: E402
+from anonymous.finescale import INTERCEPT, SHOW_THRESHOLD, SLOPE, probability  # noqa: E402
 
 
 def row(judge: int, gate: int | None = 2, expectation: float | None = None) -> dict[str, Any]:

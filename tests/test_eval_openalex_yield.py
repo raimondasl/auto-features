@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evals"))
 import openalex_yield  # noqa: E402
 from openalex_yield import RequestWatch, _title_key, measure, split_appearances  # noqa: E402
 
-from reporadar.sources import openalex  # noqa: E402
+from anonymous.sources import openalex  # noqa: E402
 
 
 def _row(case: str, in_top: int, pool: int = 250) -> dict[str, object]:

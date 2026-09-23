@@ -1,4 +1,4 @@
-# RepoRadar evaluation benchmark.
+# Anonymous evaluation benchmark.
 #
 # Each case pairs a realistic repo profile with a labeled pool of arXiv papers.
 # - offline mode: profiles `repo_dir` and ranks the frozen pool in fixtures/<name>.json
@@ -89,7 +89,7 @@ cases:
   # it only needs `live_repo` + `expected_categories`. Tier A (offline) fixtures
   # are NOT generated yet; run `build_fixtures.py` before using these offline.
 
-  # More ML — arXiv-rich domains where RepoRadar should surface actionable work.
+  # More ML — arXiv-rich domains where Anonymous should surface actionable work.
   - name: peft
     description: Parameter-efficient fine-tuning library (LoRA, adapters, prompt tuning)
     repo_dir: repos/peft
@@ -163,7 +163,7 @@ cases:
     distractor_n: 24
 
   # Research-adjacent but NOT on arXiv — real fields whose literature lives on
-  # IACR ePrint / VLDB / OSDI. A well-behaved RepoRadar should mostly abstain
+  # IACR ePrint / VLDB / OSDI. A well-behaved Anonymous should mostly abstain
   # here (like webdev, but with adjacent research that genuinely exists).
   - name: crypto
     description: Cryptography library (research lives on IACR ePrint, thin on arXiv)
@@ -247,7 +247,7 @@ cases:
   #
   # These ten close four *named* blind spots rather than adding more of the same.
   # The measured criteria table is in evals/README.md.
-  #   T = thin/operational docs (RepoRadar's real target user; all 12 originals
+  #   T = thin/operational docs (Anonymous's real target user; all 12 originals
   #       are popular OSS with maintained READMEs, so the shipped
   #       `profiler.prose_chars: 300` default may be an artifact of that)
   #   B = no arXiv bibliography (structural zero for the citation hop; only
@@ -448,7 +448,7 @@ cases:
 
   # --- thin-docs cohort (added 2026-08-09) -----------------------------------
   # Every other case has a README of 1,639+ characters against a 300-character prose
-  # budget — none under 1,000 — so the regime RepoRadar's stated target user lives in
+  # budget — none under 1,000 — so the regime Anonymous's stated target user lives in
   # was unsampled, not merely underrepresented. The ablation (evals/RESULTS.md,
   # "Thin docs") measured that regime by stripping docs from these same repos and found
   # precision 0.925 -> 0.636 with the gate's top tier at 0.53, but ablation yields a

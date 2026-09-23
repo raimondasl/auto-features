@@ -5,7 +5,7 @@ Committed before any gpt-4.1-mini score or new second-judge verdict exists. Regi
 ## Why ask
 
 On Azure OpenAI the fine-scale rescore runs on whatever deployment the user names. It cannot run on
-the model it was built for. The probability map in `src/reporadar/finescale.py` (`SLOPE`,
+the model it was built for. The probability map in `src/anonymous/finescale.py` (`SLOPE`,
 `INTERCEPT`) was fitted on gpt-4o-mini's outputs. Azure refused a new gpt-4o-mini deployment on the
 test subscription, because the model is being retired. So an Azure user runs the stage on a
 different model, through a map fitted to another one. `rr doctor`, the `setup_repo` result and the
@@ -62,8 +62,8 @@ refuses temperature 0 and Azure accepts it, and a user's gate deployment may be 
   `ranking_config` names `rr_gate_provider` openai, `rr_gate_model` gpt-5.6-luna, `rr_gate_effort`
   none.
 - 315 papers, 35 cases, 232 actionable under GPT-5.5 (base rate 0.737).
-- Control `evals/finescale_current_gate_luna.json`. It was written at `ed0fce5` as
-  `evals/finescale_current_gate.json` and moved unchanged at `901927a` (C-36). All 315 are scored.
+- Control `evals/finescale_current_gate_luna.json`. It was written at `withheld` as
+  `evals/finescale_current_gate.json` and moved unchanged at `withheld` (C-36). All 315 are scored.
   Control AUC 0.6749, 95% interval [0.594, 0.747] under the recipe below. NR-64 reported [0.596,
   0.748] with a different seed; the bars use this one. The frozen map admits 173.
 
@@ -93,8 +93,8 @@ registration on, these fingerprints fix them. They cannot show that the controls
 because the control caches kept scores and not prompts. That rests on file times: every file the
 prompts and labels read predates both controls, which were scored on 2026-09-20. No file on the
 prompt path has changed since either control was written: `evals/band_testbeds.py`,
-`evals/exp_finescale.py`, `src/reporadar/profiler.py`, `src/reporadar/triage.py`,
-`src/reporadar/finescale.py`, and `load_band`, whose only change since was which run it reads.
+`evals/exp_finescale.py`, `src/anonymous/profiler.py`, `src/anonymous/triage.py`,
+`src/anonymous/finescale.py`, and `load_band`, whose only change since was which run it reads.
 
 ## Labels
 
@@ -392,7 +392,7 @@ or unresolved E1. The two readings are then combined as described under Statisti
 | O | E1 non-inferior, and E2 over- or under-admits | The Azure note says gpt-4.1-mini ranks band papers like gpt-4o-mini, but it admits N more (or fewer) band papers than gpt-4o-mini: K through the fixed threshold, and F because a paper or a whole case could not be scored. N, K and F are given with the gpt-4o-mini count. No new map. |
 | U | E1 split or unresolved, or E2 unresolved with E1 non-inferior, or the two readings disagree, or the floor fires while the control's GPT-5.5 AUC interval on the papers that reading scored includes 0.5 | Nothing changes. The caveat stays, and the numbers are reported. |
 
-The measured wording for P. RepoRadar cannot see which model an Azure deployment runs, because the
+The measured wording for P. Anonymous cannot see which model an Azure deployment runs, because the
 user names it. So the note is conditional: "If your fine-scale deployment runs gpt-4.1-mini (version
 V): measured on DATE, behind a gpt-5.6-luna gate, it ranks and admits band papers like gpt-4o-mini
 on OpenAI. Delta AUC X [CI] under GPT-5.5 and X' [CI] under Sonnet; admissions Y [CI], with N band

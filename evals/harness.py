@@ -1,6 +1,6 @@
-"""Shared logic for the RepoRadar eval benchmark.
+"""Shared logic for the Anonymous eval benchmark.
 
-Profiles a benchmark repo with the *real* RepoRadar profiler and ranks a
+Profiles a benchmark repo with the *real* Anonymous profiler and ranks a
 candidate pool with the *real* ranker, so the eval measures the shipping code
 paths — not a reimplementation.
 """
@@ -13,10 +13,10 @@ from typing import Any
 
 import yaml
 
-from reporadar import arxiv_cache
-from reporadar.config import ProfilerConfig, QueriesConfig, RankingConfig
-from reporadar.profiler import RepoProfile, profile_repo
-from reporadar.ranker import rank_papers
+from anonymous import arxiv_cache
+from anonymous.config import ProfilerConfig, QueriesConfig, RankingConfig
+from anonymous.profiler import RepoProfile, profile_repo
+from anonymous.ranker import rank_papers
 
 EVALS_DIR = Path(__file__).resolve().parent
 WORK_DIR = EVALS_DIR / ".work"
@@ -28,7 +28,7 @@ ARXIV_CACHE_DIR = WORK_DIR / "arxiv-cache"
 # requests) got the last two cases refused after 930 s of waiting out throttles. The rate
 # limiter was correct throughout; nothing in this project was tracking VOLUME.
 #
-# Enabled here rather than in `reporadar.collector`, so the product keeps fetching fresh:
+# Enabled here rather than in `anonymous.collector`, so the product keeps fetching fresh:
 # serving a six-hour-old answer to a daily digest is a behaviour change nobody measured.
 arxiv_cache.configure(ARXIV_CACHE_DIR)
 
@@ -102,7 +102,7 @@ def rank_pool(
     repo_embedding = None
     if embeddings and repo_dir is not None:
         try:
-            from reporadar.embeddings import EMBEDDINGS_AVAILABLE, compute_repo_embedding
+            from anonymous.embeddings import EMBEDDINGS_AVAILABLE, compute_repo_embedding
 
             if EMBEDDINGS_AVAILABLE:
                 repo_embedding = compute_repo_embedding(repo_dir)
@@ -153,23 +153,23 @@ def collect_live_papers(
 ) -> list[dict[str, Any]]:
     """Build queries and fetch papers from the requested live sources.
 
-    ``sort_by="relevance"`` with a large ``lookback_days`` lets RepoRadar reach
+    ``sort_by="relevance"`` with a large ``lookback_days`` lets Anonymous reach
     seminal older papers instead of only the recent fetch window.
 
     ``bigrams`` selects the phrase-query policy under test — see
-    ``reporadar.collector._generate_bigram_queries``. It is a *retrieval* setting, so
+    ``anonymous.collector._generate_bigram_queries``. It is a *retrieval* setting, so
     ``run_judge_eval.POOL_FLAGS`` carries it and a frozen pool cannot be reused across
     values of it.
     """
-    from reporadar.collector import (
+    from anonymous.collector import (
         CollectionError,
         build_queries,
         collect_papers,
         to_plain_keywords,
     )
-    from reporadar.config import ArxivConfig
-    from reporadar.paper_id import dedup_id
-    from reporadar.pipeline import KEYWORD_SOURCE_QUERIES, KEYWORD_SOURCES
+    from anonymous.config import ArxivConfig
+    from anonymous.paper_id import dedup_id
+    from anonymous.pipeline import KEYWORD_SOURCE_QUERIES, KEYWORD_SOURCES
 
     arxiv_cfg = ArxivConfig(
         categories=categories or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"],
@@ -198,7 +198,7 @@ def collect_live_papers(
     # the treatment arm and none in the control.
     seen = {dedup_id(p["arxiv_id"]) for p in papers}
     # arXiv's boolean grammar is not a keyword query; every non-arXiv source below needs
-    # the words out of it. See reporadar.collector.to_plain_keywords for what this
+    # the words out of it. See anonymous.collector.to_plain_keywords for what this
     # replaced and why the old one-liner silently stopped working.
     # The PRODUCT's cap, imported rather than repeated. This line said `[:5]` while
     # `pipeline.KEYWORD_SOURCE_QUERIES` said 8 — B4 (§12.2) raised it in the product and not
@@ -207,7 +207,7 @@ def collect_live_papers(
     plain = [to_plain_keywords(q) for q in queries[:KEYWORD_SOURCE_QUERIES]]
 
     if "openalex" in sources:
-        from reporadar.sources.openalex import collect_papers as oa_collect
+        from anonymous.sources.openalex import collect_papers as oa_collect
 
         for p in oa_collect(
             plain, lookback_days=lookback_days, api_key=keys.get("OPENALEX_API_KEY")
@@ -217,7 +217,7 @@ def collect_live_papers(
                 seen.add(dedup_id(p["arxiv_id"]))
 
     if "semantic_scholar" in sources:
-        from reporadar.sources.semantic_scholar import collect_papers as ss_collect
+        from anonymous.sources.semantic_scholar import collect_papers as ss_collect
 
         for p in ss_collect(
             plain, api_key=keys.get("SEMANTIC_SCHOLAR_API_KEY"), lookback_days=lookback_days
@@ -227,7 +227,7 @@ def collect_live_papers(
                 seen.add(dedup_id(p["arxiv_id"]))
 
     if "dblp" in sources:
-        from reporadar.sources.dblp import collect_papers as dblp_collect
+        from anonymous.sources.dblp import collect_papers as dblp_collect
 
         for p in dblp_collect(plain, lookback_days=lookback_days):
             if dedup_id(p["arxiv_id"]) not in seen:
@@ -235,7 +235,7 @@ def collect_live_papers(
                 seen.add(dedup_id(p["arxiv_id"]))
 
     if "iacr" in sources:
-        from reporadar.sources.iacr import collect_papers as iacr_collect
+        from anonymous.sources.iacr import collect_papers as iacr_collect
 
         for p in iacr_collect(plain, lookback_days=lookback_days):
             if dedup_id(p["arxiv_id"]) not in seen:
@@ -243,7 +243,7 @@ def collect_live_papers(
                 seen.add(dedup_id(p["arxiv_id"]))
 
     if "biorxiv" in sources:
-        from reporadar.sources.biorxiv import collect_papers as bx_collect
+        from anonymous.sources.biorxiv import collect_papers as bx_collect
 
         for p in bx_collect(plain, lookback_days=lookback_days):
             if dedup_id(p["arxiv_id"]) not in seen:
@@ -254,7 +254,7 @@ def collect_live_papers(
         # No `email=`, matching `pipeline._europepmc`: Europe PMC accepts one as politeness
         # and works without it, and forwarding a key given for another service is a data flow
         # the privacy registry would have to declare.
-        from reporadar.sources.europepmc import collect_papers as epmc_collect
+        from anonymous.sources.europepmc import collect_papers as epmc_collect
 
         for p in epmc_collect(plain, lookback_days=lookback_days):
             if dedup_id(p["arxiv_id"]) not in seen:

@@ -1,4 +1,4 @@
-"""Tests for reporadar.semantic — embedding search + hybrid fusion (mocked embeddings)."""
+"""Tests for anonymous.semantic — embedding search + hybrid fusion (mocked embeddings)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import numpy as np
 
-from reporadar.semantic import semantic_search
-from reporadar.store import PaperStore
+from anonymous.semantic import semantic_search
+from anonymous.store import PaperStore
 
 # A tiny deterministic "embedding": a bag-of-words count vector over a fixed vocab,
 # so cosine similarity tracks term overlap — enough to verify the ranking pipeline
@@ -51,7 +51,7 @@ def _seed(store: PaperStore) -> None:
 
 def _fakes():
     return patch.multiple(
-        "reporadar.embeddings",
+        "anonymous.embeddings",
         compute_paper_embedding=_embed_paper,
         compute_embedding=_embed,
     )

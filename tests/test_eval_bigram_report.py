@@ -36,8 +36,8 @@ def _case(name: str, ids: list[str], net: float = 0.0, mode: str = "adjacent") -
     return {
         "case": name,
         "bigram_mode": mode,
-        "reporadar_toppicks": {"net_value@2": net},
-        "returned": {"reporadar_top10": [{"arxiv_id": i} for i in ids]},
+        "anonymous_toppicks": {"net_value@2": net},
+        "returned": {"anonymous_top10": [{"arxiv_id": i} for i in ids]},
     }
 
 
@@ -67,7 +67,7 @@ class TestArmValidity:
         assert d["mean_jaccard"] == 1.0
 
     def test_top10_ids_ignores_records_without_an_id(self) -> None:
-        record = {"returned": {"reporadar_top10": [{"arxiv_id": "1"}, {"title": "no id"}]}}
+        record = {"returned": {"anonymous_top10": [{"arxiv_id": "1"}, {"title": "no id"}]}}
         assert top10_ids(record) == {"1"}
 
     def test_missing_returned_block_is_empty_not_an_error(self) -> None:
@@ -86,7 +86,7 @@ class TestLabelCheck:
     def test_run_predating_the_flag_is_trusted_with_a_warning(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        arm = {"a": {"case": "a", "reporadar_toppicks": {"net_value@2": 0.0}}}
+        arm = {"a": {"case": "a", "anonymous_toppicks": {"net_value@2": 0.0}}}
         check_labels("adjacent", arm)
         assert "no `bigram_mode` recorded" in capsys.readouterr().out
 

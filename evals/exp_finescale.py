@@ -147,7 +147,7 @@ def score_paper_haiku(case: str, paper: tb.Paper, samples: int, cache_dir: Path)
             return cached
     from types import SimpleNamespace
 
-    from reporadar.llm_client import LLMError, complete
+    from anonymous.llm_client import LLMError, complete
 
     cfg = SimpleNamespace(provider="claude", claude_model=HAIKU_MODEL, timeout=60)
     prompt = SCALE_PROMPT.format(

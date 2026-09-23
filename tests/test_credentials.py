@@ -1,4 +1,4 @@
-"""Tests for reporadar.credentials — where the API key lives and who is allowed to find it.
+"""Tests for anonymous.credentials — where the API key lives and who is allowed to find it.
 
 The precedence tests are the load-bearing ones. Key resolution used to be written out at six
 call sites, and that is how `rr doctor` came to certify a gate as healthy while the pipeline
@@ -16,13 +16,13 @@ from unittest import mock
 
 import pytest
 
-from reporadar import credentials
+from anonymous import credentials
 
 
 @pytest.fixture(autouse=True)
 def isolated_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Never touch the developer's real credentials file."""
-    monkeypatch.setenv("REPORADAR_CONFIG_DIR", str(tmp_path / "cfg"))
+    monkeypatch.setenv("ANONYMOUS_CONFIG_DIR", str(tmp_path / "cfg"))
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     return tmp_path
@@ -38,7 +38,7 @@ class Cfg:
 
 class TestWhereTheFileGoes:
     def test_the_override_wins(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("REPORADAR_CONFIG_DIR", str(tmp_path / "elsewhere"))
+        monkeypatch.setenv("ANONYMOUS_CONFIG_DIR", str(tmp_path / "elsewhere"))
         assert credentials.config_dir() == tmp_path / "elsewhere"
         assert credentials.auth_path().name == "auth.json"
 
@@ -169,7 +169,7 @@ class TestNobodyResolvesKeysOnTheirOwnAnymore:
     """
 
     def test_no_module_reads_a_vendor_key_out_of_the_environment_itself(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "src" / "reporadar"
+        root = Path(__file__).resolve().parents[1] / "src" / "anonymous"
         offenders = []
         for path in sorted(root.rglob("*.py")):
             if path.name == "credentials.py":
@@ -179,7 +179,7 @@ class TestNobodyResolvesKeysOnTheirOwnAnymore:
                 if f'os.environ.get("{var}"' in body or f'os.environ["{var}"]' in body:
                     offenders.append(f"{path.name} reads {var} directly")
         assert not offenders, (
-            "resolve keys through reporadar.credentials.resolve_api_key instead: "
+            "resolve keys through anonymous.credentials.resolve_api_key instead: "
             + "; ".join(offenders)
         )
 
@@ -205,7 +205,7 @@ class TestLookupNeverTakesTheRunWithIt:
     def test_a_missing_home_directory_reads_as_nothing_stored(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.delenv("REPORADAR_CONFIG_DIR", raising=False)
+        monkeypatch.delenv("ANONYMOUS_CONFIG_DIR", raising=False)
         with mock.patch.dict(os.environ, {}, clear=True):
             assert credentials.stored("openai") == ""
             assert credentials.resolve_api_key("openai") == ""

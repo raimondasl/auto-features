@@ -20,8 +20,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar import citations, s2_rate
-from reporadar.sources import semantic_scholar
+from anonymous import citations, s2_rate
+from anonymous.sources import semantic_scholar
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,7 @@ class FakeClock:
     reporting a scheduling delay rather than a defect. Observed 2026-08-19; the same test
     passed 11/11 in isolation.
 
-    Substituted for :mod:`reporadar.s2_rate`'s `time` module, this makes elapsed time an
+    Substituted for :mod:`anonymous.s2_rate`'s `time` module, this makes elapsed time an
     input instead of a measurement, so the assertions can be *exact* rather than merely
     positive. It deliberately does not fake `time` anywhere else: the request functions
     those tests drive keep their own real `time` for retry backoff, and the gate is the only
@@ -94,7 +94,7 @@ class TestTheGate:
         s2_rate.set_min_interval(0.05)
         s2_rate._next_allowed_at = 0.0
         clock = FakeClock()
-        with patch("reporadar.s2_rate.time", clock):
+        with patch("anonymous.s2_rate.time", clock):
             assert s2_rate.wait_turn() == 0.0
             assert s2_rate.wait_turn() == pytest.approx(0.05)
 
@@ -154,7 +154,7 @@ class TestTheGate:
         """
         s2_rate.set_min_interval(0.0)
         s2_rate.note_throttled()
-        with patch("reporadar.s2_rate.time.sleep") as sleep:
+        with patch("anonymous.s2_rate.time.sleep") as sleep:
             assert s2_rate.wait_turn() == 0.0
         assert not sleep.called
 
@@ -194,8 +194,8 @@ class TestEveryS2ModuleSharesTheClock:
             return slept
 
         with (
-            patch("reporadar.s2_rate.time", clock),
-            patch("reporadar.s2_rate.wait_turn", recording_wait),
+            patch("anonymous.s2_rate.time", clock),
+            patch("anonymous.s2_rate.wait_turn", recording_wait),
             patch("urllib.request.urlopen", return_value=self._json_response({"data": []})),
         ):
             semantic_scholar.search_papers("q", api_key="k")
@@ -213,10 +213,10 @@ class TestEveryS2ModuleSharesTheClock:
 
     def test_recommendations_uses_the_gate(self) -> None:
         s2_rate.set_min_interval(0.0)
-        from reporadar.sources import s2_recommendations
+        from anonymous.sources import s2_recommendations
 
         with (
-            patch("reporadar.s2_rate.wait_turn", return_value=0.0) as gate,
+            patch("anonymous.s2_rate.wait_turn", return_value=0.0) as gate,
             patch(
                 "urllib.request.urlopen",
                 return_value=self._json_response({"recommendedPapers": []}),
@@ -227,6 +227,6 @@ class TestEveryS2ModuleSharesTheClock:
 
     def test_specter_goes_through_citations_batch(self) -> None:
         """specter.py imports `_s2_batch_post`, so gating that one covers both."""
-        from reporadar import specter
+        from anonymous import specter
 
         assert specter._s2_batch_post is citations._s2_batch_post

@@ -11,7 +11,7 @@ is comparing two different systems.
 This script runs *only* the two steps a gold set needs -- the `cli` baseline, then the judge
 over whatever it recommends -- through the same modules `run_judge_eval` calls, so no prompt
 is reimplemented here (the C-3 rule). Both write to the shared caches, so a later full paired
-run on these cases reuses this work and pays only for RepoRadar's side.
+run on these cases reuses this work and pays only for Anonymous's side.
 
 **What it deliberately will not do.** `diagnose_pool.actionable_baseline_ids` derives the gold
 set from the baseline cache, so re-running a baseline for a case that already has one
@@ -55,7 +55,7 @@ from harness import WORK_DIR, assemble_repo_context, clone_repo  # noqa: E402
 from run_judge_eval import load_dotenv  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 CLI_CACHE = EVALS / "cache" / "baseline" / "cli"

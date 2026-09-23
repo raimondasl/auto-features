@@ -76,7 +76,7 @@ from second_judge import (  # noqa: E402
 )
 from second_judge import _load_env as load_env  # noqa: E402
 
-from reporadar.llm_client import LLMError  # noqa: E402
+from anonymous.llm_client import LLMError  # noqa: E402
 
 POOLS = WORK / "pool-cohort3"
 OUT = WORK / "second_judge_band.json"
@@ -91,7 +91,7 @@ def band_papers(path: Path, population: str) -> list[dict[str, Any]]:
     """Every score-2 band paper of one artifact, tagged shown/withheld by the shipped map."""
     rows = []
     for rec in json.loads(path.read_text(encoding="utf-8")):
-        for r in rec["returned"]["reporadar_top10"]:
+        for r in rec["returned"]["anonymous_top10"]:
             if r.get("llm_score") != MIN_ACTIONABLE or r.get("finescale_p") is None:
                 continue
             rows.append(

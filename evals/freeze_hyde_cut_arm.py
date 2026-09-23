@@ -97,7 +97,7 @@ sys.path.insert(0, str(EVALS.parent / "src"))
 from band_testbeds import sign_test  # noqa: E402
 from bigram_report import paired_bootstrap  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 RES = EVALS / "results"
 FROZEN = EVALS / "hyde_cut_arm.json"
@@ -137,7 +137,7 @@ def load(fname: str) -> dict[str, list[tuple[str, int]]]:
     return {
         e["case"]: [
             (dedup_id(str(p["arxiv_id"])), int(p["judge_score"]))
-            for p in e["returned"]["reporadar_toppicks"]
+            for p in e["returned"]["anonymous_toppicks"]
         ]
         for e in run
     }

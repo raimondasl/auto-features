@@ -14,7 +14,7 @@ in both directions:
   deleted a stage and the warning still promises it.
 
 Import reachability is the right probe here specifically because every one of these
-stages is a lazily-imported optional block: `reporadar.triage` is imported at the point of
+stages is a lazily-imported optional block: `anonymous.triage` is imported at the point of
 use and nowhere else, so "is it in the graph" and "can it run" coincide. The test asserts
 that property directly rather than relying on it silently.
 """
@@ -29,7 +29,7 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src" / "reporadar"
+SRC = ROOT / "src" / "anonymous"
 
 # The code each entry point actually executes, as (file, function-or-None) pairs. A bare
 # file means "every import in it".
@@ -53,7 +53,7 @@ def _imports_for(entry_point: str) -> set[str]:
 
 
 def _imported_modules(path: Path, function: str | None = None) -> set[str]:
-    """Every `reporadar.*` module imported in *path*, or in just one function of it."""
+    """Every `anonymous.*` module imported in *path*, or in just one function of it."""
     tree: ast.AST = ast.parse(path.read_text(encoding="utf-8"))
     if function is not None:
         tree = next(
@@ -63,12 +63,12 @@ def _imported_modules(path: Path, function: str | None = None) -> set[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.startswith("reporadar"):
+                if alias.name.startswith("anonymous"):
                     found.add(alias.name)
-        elif isinstance(node, ast.ImportFrom) and (node.module or "").startswith("reporadar"):
+        elif isinstance(node, ast.ImportFrom) and (node.module or "").startswith("anonymous"):
             module = node.module or ""
             found.add(module)
-            # `from reporadar.signals import integrity` and `import reporadar.signals.integrity`
+            # `from anonymous.signals import integrity` and `import anonymous.signals.integrity`
             # name the same module two ways; record both so the guard cannot be dodged by
             # switching import style.
             for alias in node.names:
@@ -77,9 +77,9 @@ def _imported_modules(path: Path, function: str | None = None) -> set[str]:
 
 
 def _cfg(**overrides: Any) -> Any:
-    from reporadar.config import RepoRadarConfig
+    from anonymous.config import AnonymousConfig
 
-    cfg = RepoRadarConfig()
+    cfg = AnonymousConfig()
     for dotted, value in overrides.items():
         target: Any = cfg
         *parents, leaf = dotted.split("__")
@@ -92,9 +92,9 @@ def _cfg(**overrides: Any) -> Any:
 def _load_yaml(tmp_path: Path, text: str) -> Any:
     """Load one of the shipped templates the way `rr` does — through the real loader, so a
     template that stopped parsing shows up here rather than in a user's first run."""
-    from reporadar.config import load_config
+    from anonymous.config import load_config
 
-    path = tmp_path / ".reporadar.yml"
+    path = tmp_path / ".anonymous.yml"
     path.write_text(text, encoding="utf-8")
     return load_config(path)
 
@@ -124,7 +124,7 @@ class TestTheTableMatchesTheCode:
 
     @pytest.mark.parametrize("entry_point", sorted(ENTRY_SOURCES))
     def test_no_stage_is_secretly_run(self, entry_point: str) -> None:
-        from reporadar.stages import STAGES
+        from anonymous.stages import STAGES
 
         imported = _imports_for(entry_point)
         wrong = [s.key for s in STAGES if s.missing_from(entry_point) and s.module in imported]
@@ -136,7 +136,7 @@ class TestTheTableMatchesTheCode:
 
     @pytest.mark.parametrize("entry_point", sorted(ENTRY_SOURCES))
     def test_no_stage_is_secretly_skipped(self, entry_point: str) -> None:
-        from reporadar.stages import STAGES
+        from anonymous.stages import STAGES
 
         imported = _imports_for(entry_point)
         wrong = [
@@ -150,14 +150,14 @@ class TestTheTableMatchesTheCode:
     def test_the_positive_case_is_actually_covered(self) -> None:
         """If every stage were marked skip-everywhere, the direction above would pass
         vacuously. At least one stage must claim to run in a reduced entry point."""
-        from reporadar.stages import STAGES, WATCH
+        from anonymous.stages import STAGES, WATCH
 
         assert any(not s.missing_from(WATCH) for s in STAGES)
 
     def test_update_runs_everything(self) -> None:
         """`rr update` is the pipeline the numbers describe; by construction nothing is
         missing from it, and `unrun_stages` returning anything means the table is wrong."""
-        from reporadar.stages import UPDATE, unrun_stages
+        from anonymous.stages import UPDATE, unrun_stages
 
         assert unrun_stages(_everything_on(), UPDATE) == []
 
@@ -168,7 +168,7 @@ class TestTheTableMatchesTheCode:
         can produce a stage it skips. If someone adds a stage to `rr update` alone, the two
         direction checks above fail first — and if someone re-forks the watcher, this fails.
         """
-        from reporadar.stages import WATCH, unrun_stages
+        from anonymous.stages import WATCH, unrun_stages
 
         assert unrun_stages(_everything_on(), WATCH) == []
 
@@ -176,7 +176,7 @@ class TestTheTableMatchesTheCode:
         """The half deliberately NOT unified: one shared pool across many member repos is
         a different shape, not duplicated code. It keeps the disclosure, and this pins that
         it is still telling the truth rather than having quietly gone silent."""
-        from reporadar.stages import WORKSPACE, unrun_stages
+        from anonymous.stages import WORKSPACE, unrun_stages
 
         assert {s.key for s in unrun_stages(_everything_on(), WORKSPACE)} >= {"triage", "hyde"}
 
@@ -188,7 +188,7 @@ class TestTheStagesAreLazilyImported:
 
     @pytest.mark.parametrize("entry_point", sorted(ENTRY_SOURCES))
     def test_no_stage_module_is_imported_at_module_level(self, entry_point: str) -> None:
-        from reporadar.stages import STAGES
+        from anonymous.stages import STAGES
 
         modules = {s.module for s in STAGES}
         for name, _func in ENTRY_SOURCES[entry_point]:
@@ -205,7 +205,7 @@ class TestWhatTheUserIsTold:
     def test_the_gate_needs_both_fields(self) -> None:
         """`triage.enabled` alone is a no-op, so warning about a gate that was never on
         would train the user to ignore the warning."""
-        from reporadar.stages import WORKSPACE, unrun_stages
+        from anonymous.stages import WORKSPACE, unrun_stages
 
         keys = {s.key for s in unrun_stages(_cfg(triage__enabled=True), WORKSPACE)}
         assert "triage" not in keys
@@ -213,7 +213,7 @@ class TestWhatTheUserIsTold:
         assert "triage" in {s.key for s in unrun_stages(both, WORKSPACE)}
 
     def test_finescale_is_not_reported_without_the_gate(self) -> None:
-        from reporadar.stages import WORKSPACE, unrun_stages
+        from anonymous.stages import WORKSPACE, unrun_stages
 
         cfg = _cfg(triage__finescale__enabled=True)
         assert "finescale" not in {s.key for s in unrun_stages(cfg, WORKSPACE)}
@@ -221,16 +221,16 @@ class TestWhatTheUserIsTold:
     def test_a_default_config_is_told_something(self, tmp_path: Path) -> None:
         """The shipped template enables `hybrid` and `w_embedding`, so even a user who
         never touched the config is running a reduced pipeline under `rr watch`."""
-        from reporadar.config import default_config_yaml
-        from reporadar.stages import WORKSPACE, unrun_stages
+        from anonymous.config import default_config_yaml
+        from anonymous.stages import WORKSPACE, unrun_stages
 
         cfg = _load_yaml(tmp_path, default_config_yaml())
         assert unrun_stages(cfg, WORKSPACE), "the default template must still trigger disclosure"
 
     def test_the_measured_preset_is_told_a_lot(self, tmp_path: Path) -> None:
         """The preset behind +5.72. Under `rr watch` a user gets none of what earns it."""
-        from reporadar.config import measured_config_yaml
-        from reporadar.stages import WORKSPACE, unrun_stages
+        from anonymous.config import measured_config_yaml
+        from anonymous.stages import WORKSPACE, unrun_stages
 
         cfg = _load_yaml(tmp_path, measured_config_yaml())
         keys = {s.key for s in unrun_stages(cfg, WORKSPACE)}
@@ -240,13 +240,13 @@ class TestWhatTheUserIsTold:
     def test_the_gate_is_named_first(self) -> None:
         """The warning truncates, so ordering is load-bearing: the stage worth most of the
         -8.12 -> +5.72 gap must not be the one cut off."""
-        from reporadar.stages import WORKSPACE, unrun_stages
+        from anonymous.stages import WORKSPACE, unrun_stages
 
         missing = unrun_stages(_everything_on(), WORKSPACE)
         assert missing[0].key == "triage"
 
     def test_the_warning_says_what_to_do_instead(self) -> None:
-        from reporadar.stages import WORKSPACE, drift_warning
+        from anonymous.stages import WORKSPACE, drift_warning
 
         text = " ".join(drift_warning(_everything_on(), WORKSPACE))
         assert "rr update" in text
@@ -255,19 +255,19 @@ class TestWhatTheUserIsTold:
     def test_silence_when_there_is_nothing_to_disclose(self) -> None:
         """A config running nothing optional gets no warning — otherwise the message is
         noise and stops being read."""
-        from reporadar.stages import WORKSPACE, drift_warning
+        from anonymous.stages import WORKSPACE, drift_warning
 
         cfg = _cfg(ranking__hybrid=False, signals__integrity=False, enrichment__provider="off")
         assert drift_warning(cfg, WORKSPACE) == []
 
     def test_truncation_admits_it_truncated(self) -> None:
-        from reporadar.stages import WORKSPACE, drift_warning
+        from anonymous.stages import WORKSPACE, drift_warning
 
         lines = drift_warning(_everything_on(), WORKSPACE, limit=2)
         assert any("more" in line for line in lines)
 
     def test_unknown_entry_point_is_refused(self) -> None:
-        from reporadar.stages import unrun_stages
+        from anonymous.stages import unrun_stages
 
         with pytest.raises(ValueError, match="unknown entry point"):
             unrun_stages(_cfg(), "digest")
@@ -277,7 +277,7 @@ class TestTheWatcherSurfacesIt:
     def test_the_cycle_result_carries_the_skipped_list(self, tmp_path: Path) -> None:
         """Programmatic callers (the GitHub Action, anything wrapping the loop) need it in
         data, not only in a log line they never see."""
-        import reporadar.watcher as watcher
+        import anonymous.watcher as watcher
 
         assert "skipped_stages" in (SRC / "watcher.py").read_text(encoding="utf-8")
         assert hasattr(watcher, "run_update_cycle")
@@ -304,7 +304,7 @@ def test_every_stage_names_a_module_that_exists() -> None:
     as 'not imported' forever and the stage could be wired up unnoticed."""
     import importlib.util
 
-    from reporadar.stages import STAGES
+    from anonymous.stages import STAGES
 
     for stage in STAGES:
         assert importlib.util.find_spec(stage.module) is not None, (
@@ -313,7 +313,7 @@ def test_every_stage_names_a_module_that_exists() -> None:
 
 
 def test_stage_keys_are_unique() -> None:
-    from reporadar.stages import STAGES
+    from anonymous.stages import STAGES
 
     keys = [s.key for s in STAGES]
     assert len(keys) == len(set(keys))

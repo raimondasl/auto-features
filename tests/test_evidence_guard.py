@@ -31,9 +31,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from reporadar.evidence import has_abstract, partition_by_evidence
-from reporadar.finescale import enough_scored, score_papers
-from reporadar.triage import triage_papers
+from anonymous.evidence import has_abstract, partition_by_evidence
+from anonymous.finescale import enough_scored, score_papers
+from anonymous.triage import triage_papers
 
 _PROFILE = SimpleNamespace(
     keywords=[("retrieval", 0.5)],
@@ -91,7 +91,7 @@ class TestTheGateDoesNotScoreWhatItCannotRead:
             seen.append(prompt)
             return '{"score": 3, "reason": "ok"}'
 
-        with patch("reporadar.triage.complete", side_effect=record):
+        with patch("anonymous.triage.complete", side_effect=record):
             out = triage_papers(papers, _PROFILE, SimpleNamespace(), top_k=10)
 
         assert set(out) == {"2401.00001"}
@@ -103,7 +103,7 @@ class TestTheGateDoesNotScoreWhatItCannotRead:
         would rank the paper below genuinely-judged bad ones; an omission means "not a
         confident Top Pick", which is what we actually know."""
         papers = [{"arxiv_id": "2401.00002", "title": "No abstract", "abstract": None}]
-        with patch("reporadar.triage.complete", return_value='{"score": 0, "reason": "no"}'):
+        with patch("anonymous.triage.complete", return_value='{"score": 0, "reason": "no"}'):
             out = triage_papers(papers, _PROFILE, SimpleNamespace(), top_k=10)
         assert out == {}, "absent from the result, not present with a 0"
 
@@ -117,7 +117,7 @@ class TestTheGateDoesNotScoreWhatItCannotRead:
             {"arxiv_id": "2", "title": "b", "abstract": ""},
             {"arxiv_id": "3", "title": "c", "abstract": "text"},
         ]
-        with patch("reporadar.triage.complete", return_value='{"score": 2, "reason": "x"}'):
+        with patch("anonymous.triage.complete", return_value='{"score": 2, "reason": "x"}'):
             out = triage_papers(papers, _PROFILE, SimpleNamespace(), top_k=2)
         assert set(out) == {"1"}, "paper 3 is NOT pulled up to replace the skipped paper 2"
 
@@ -131,7 +131,7 @@ class TestTheRescoreCarriesTheSameGuard:
             {"arxiv_id": "1", "title": "a", "abstract": "text"},
             {"arxiv_id": "2", "title": "b", "abstract": "  "},
         ]
-        with patch("reporadar.finescale.top_logprobs", return_value=[("8", 1.0)]):
+        with patch("anonymous.finescale.top_logprobs", return_value=[("8", 1.0)]):
             out = score_papers(papers, _PROFILE, SimpleNamespace())
         assert set(out) == {"1"}
 
@@ -168,7 +168,7 @@ class TestItIsAnInvariantNotASetting:
         that argues with it."""
         from pathlib import Path
 
-        import reporadar.config as config
+        import anonymous.config as config
 
         text = Path(config.__file__).read_text(encoding="utf-8")
         for name in ("require_abstract", "min_abstract", "skip_no_abstract", "abstract_guard"):

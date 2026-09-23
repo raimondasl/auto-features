@@ -11,7 +11,7 @@ anything, the deferred cancellation never landed, and the SDK tried to send a SE
 
 The session died silently. The process stayed up, so nothing looked wrong until the user's next
 request -- `get_ranked_papers`, a retry, anything -- which was never answered. To the user it
-looked like RepoRadar crashing on whatever they asked for next.
+looked like Anonymous crashing on whatever they asked for next.
 
 Drives the real server over an in-memory transport with raw JSON-RPC, so the request ids and
 the cancellation are exactly what an editor sends. The collection is stubbed to be slow and
@@ -33,7 +33,7 @@ import anyio  # noqa: E402
 from mcp.shared.message import SessionMessage  # noqa: E402
 from mcp.types import LATEST_PROTOCOL_VERSION, JSONRPCMessage  # noqa: E402
 
-from reporadar import mcp_server  # noqa: E402
+from anonymous import mcp_server  # noqa: E402
 
 SLOW_SECONDS = 1.5
 
@@ -42,7 +42,7 @@ def _repo(tmp_path: Path) -> Path:
     # A project marker, or the server rightly refuses to guess which repository this is.
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'x'\n", encoding="utf-8")
     (tmp_path / "README.md").write_text("# x\n", encoding="utf-8")
-    (tmp_path / ".reporadar.yml").write_text("repo_path: .\n", encoding="utf-8")
+    (tmp_path / ".anonymous.yml").write_text("repo_path: .\n", encoding="utf-8")
     return tmp_path
 
 

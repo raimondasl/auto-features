@@ -1,7 +1,7 @@
-"""Tests for reporadar.executables — PATH lookups that cannot land in the repository.
+"""Tests for anonymous.executables — PATH lookups that cannot land in the repository.
 
-RepoRadar's working directory is the repository it profiles, which may be one the user did not
-write. `shutil.which` on Windows looks there before PATH, so every program RepoRadar starts by
+Anonymous's working directory is the repository it profiles, which may be one the user did not
+write. `shutil.which` on Windows looks there before PATH, so every program Anonymous starts by
 name -- `az`, `uvx`, the `rr` a schedule runs -- is found with this instead.
 """
 
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from reporadar import delegate, scheduler
-from reporadar.executables import find_on_path
+from anonymous import delegate, scheduler
+from anonymous.executables import find_on_path
 
 
 def _plant(directory: Path, name: str) -> Path:
@@ -26,7 +26,7 @@ def _plant(directory: Path, name: str) -> Path:
 
 @pytest.fixture
 def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """A working directory holding every spelling of the programs RepoRadar starts."""
+    """A working directory holding every spelling of the programs Anonymous starts."""
     here = tmp_path / "repo"
     here.mkdir()
     for stem in ("uvx", "rr", "az"):

@@ -1,4 +1,4 @@
-"""Tests for reporadar.repo_summary — the LLM reading of what a repo is and lacks."""
+"""Tests for anonymous.repo_summary — the LLM reading of what a repo is and lacks."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from reporadar.repo_summary import (
+from anonymous.repo_summary import (
     RepoSummary,
     _parse_summary,
     _verbatim_only,
@@ -126,7 +126,7 @@ class TestCache:
     def test_a_hash_hit_makes_no_model_call(self, tmp_path: Path) -> None:
         repo = _repo(tmp_path, "# T\n\nColBERT encodes each passage into a matrix.\n")
         cache: dict = {}
-        with patch("reporadar.repo_summary.complete", return_value=_GOOD) as m:
+        with patch("anonymous.repo_summary.complete", return_value=_GOOD) as m:
             first = summarize_repo(repo, _CFG, cache=cache)
             second = summarize_repo(repo, _CFG, cache=cache)
         assert m.call_count == 1
@@ -135,7 +135,7 @@ class TestCache:
     def test_changed_docs_invalidate_the_cache(self, tmp_path: Path) -> None:
         repo = _repo(tmp_path, "# T\n\nColBERT encodes each passage into a matrix.\n")
         cache: dict = {}
-        with patch("reporadar.repo_summary.complete", return_value=_GOOD) as m:
+        with patch("anonymous.repo_summary.complete", return_value=_GOOD) as m:
             summarize_repo(repo, _CFG, cache=cache)
             (repo / "README.md").write_text("# T\n\nSomething else entirely.\n", encoding="utf-8")
             summarize_repo(repo, _CFG, cache=cache)
@@ -149,14 +149,14 @@ class TestCache:
         """
         repo = _repo(tmp_path, "# T\n\nColBERT encodes each passage into a matrix.\n")
         cache: dict = {}
-        with patch("reporadar.repo_summary.complete", return_value=_GOOD) as m:
+        with patch("anonymous.repo_summary.complete", return_value=_GOOD) as m:
             summarize_repo(repo, _CFG, cache=cache)
-            with patch("reporadar.repo_summary._PROMPT_VERSION", 99):
+            with patch("anonymous.repo_summary._PROMPT_VERSION", 99):
                 summarize_repo(repo, _CFG, cache=cache)
         assert m.call_count == 2
 
     def test_a_repo_with_no_docs_costs_nothing(self, tmp_path: Path) -> None:
-        with patch("reporadar.repo_summary.complete") as m:
+        with patch("anonymous.repo_summary.complete") as m:
             assert summarize_repo(tmp_path, _CFG) == RepoSummary()
         m.assert_not_called()
 
@@ -178,7 +178,7 @@ class TestCorpus:
         assert "A tagline." in corpus
 
     def test_a_huge_readme_cannot_blow_the_input_budget(self, tmp_path: Path) -> None:
-        from reporadar.repo_summary import MAX_INPUT_CHARS
+        from anonymous.repo_summary import MAX_INPUT_CHARS
 
         repo = _repo(tmp_path, "# T\n\n" + ("retrieval " * 50_000))
         assert len(collect_doc_corpus(repo)) <= MAX_INPUT_CHARS

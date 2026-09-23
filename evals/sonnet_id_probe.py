@@ -65,9 +65,9 @@ from second_judge import (  # noqa: E402
     verify_contexts,
 )
 
-from reporadar import llm_client  # noqa: E402
-from reporadar.credentials import resolve_api_key  # noqa: E402
-from reporadar.paper_id import dedup_id, is_arxiv_id  # noqa: E402
+from anonymous import llm_client  # noqa: E402
+from anonymous.credentials import resolve_api_key  # noqa: E402
+from anonymous.paper_id import dedup_id, is_arxiv_id  # noqa: E402
 
 PREREG = EVALS / "PREREG-sonnet-id-probe.md"
 FROZEN = EVALS / "sonnet_id_probe.json"
@@ -426,7 +426,7 @@ def anthropic_key_resolves() -> bool:
     The config is the one `second_verdict` builds, and `resolve_api_key` is the function the
     client's own dispatch calls, so this answers exactly what the first call would find.
     """
-    from reporadar.config import SuggestionsConfig
+    from anonymous.config import SuggestionsConfig
 
     cfg = SuggestionsConfig(provider="claude", claude_model=DEFAULT_MODEL, timeout=120)
     return bool(resolve_api_key("claude", cfg))

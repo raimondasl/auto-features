@@ -3,8 +3,7 @@
 Every "registered before" claim in the paper rests on commit order in the development
 repository, which this mirror does not carry. The times below are the commit times of each
 registration and of the first committed result it governs, in UTC. The commit identifiers are
-withheld during review and will be added with the de-anonymised version; they can then be checked
-against the public history.
+withheld during review and will be added after it.
 
 | registration | registered | first result committed |
 |---|---|---|

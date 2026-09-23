@@ -1,4 +1,4 @@
-"""Tests for reporadar.triage (LLM actionability scoring)."""
+"""Tests for anonymous.triage (LLM actionability scoring)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from reporadar.llm_client import LLMError
-from reporadar.triage import (
+from anonymous.llm_client import LLMError
+from anonymous.triage import (
     _parse_verdict,
     build_triage_prompt,
     rerank_by_actionability,
@@ -100,7 +100,7 @@ class TestBuildPrompt:
 
 class TestScoreActionability:
     def test_returns_parsed_verdict(self) -> None:
-        with patch("reporadar.triage.complete", return_value='{"score": 2, "reason": "ok"}'):
+        with patch("anonymous.triage.complete", return_value='{"score": 2, "reason": "ok"}'):
             assert score_actionability(_PAPER, _PROFILE, SimpleNamespace()) == (2, "ok")
 
 
@@ -122,7 +122,7 @@ class TestTriagePapers:
                 raise LLMError("network down")
             return "not json"
 
-        with patch("reporadar.triage.complete", side_effect=by_call):
+        with patch("anonymous.triage.complete", side_effect=by_call):
             out = triage_papers([p1, p2, p3], _PROFILE, SimpleNamespace(), top_k=10)
 
         assert set(out) == {"2401.00001"}
@@ -130,7 +130,7 @@ class TestTriagePapers:
 
     def test_respects_top_k(self) -> None:
         papers = [{**_PAPER, "arxiv_id": f"2401.{i:05d}"} for i in range(10)]
-        with patch("reporadar.triage.complete", return_value='{"score": 2, "reason": "x"}'):
+        with patch("anonymous.triage.complete", return_value='{"score": 2, "reason": "x"}'):
             out = triage_papers(papers, _PROFILE, SimpleNamespace(), top_k=3)
         assert len(out) == 3
 

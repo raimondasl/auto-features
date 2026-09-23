@@ -45,7 +45,7 @@ sys.path.insert(0, str(EVALS))
 sys.path.insert(0, str(EVALS / "frame"))
 sys.path.insert(0, str(EVALS.parent / "src"))
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 WORK = EVALS / ".work"
 
@@ -103,8 +103,8 @@ def artifact_path(source: str, scheme: str) -> Path:
         raise SystemExit(
             "REFUSED: pool positives with the pool control scheme.\n"
             "  §4 registers the arm-neutral scheme for this population and states the reason:\n"
-            "  the shipped candidate pool is RepoRadar's own HEAD-seeded output, so a judge\n"
-            "  harsher on RepoRadar-shaped papers — Sonnet, by a factor of 2.3 — would be\n"
+            "  the shipped candidate pool is Anonymous's own HEAD-seeded output, so a judge\n"
+            "  harsher on Anonymous-shaped papers — Sonnet, by a factor of 2.3 — would be\n"
             "  credited with 'validity' for a property of the control set.\n"
             "  There is also no data for it: pool_papers() reads .work/pool-cut100/<case>.json,\n"
             "  which exists only for the 37 legacy slugs, so every pool positive would draw\n"

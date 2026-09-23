@@ -1,4 +1,4 @@
-"""Tests for reporadar.evaluation — the `rr eval` harness."""
+"""Tests for anonymous.evaluation — the `rr eval` harness."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.config import QueriesConfig, RankingConfig, RepoRadarConfig
-from reporadar.evaluation import (
+from anonymous.config import AnonymousConfig, QueriesConfig, RankingConfig
+from anonymous.evaluation import (
     Judgments,
     bootstrap_delta,
     compare_configs,
@@ -22,8 +22,8 @@ from reporadar.evaluation import (
     specter_scores_leave_one_out,
     stored_signals,
 )
-from reporadar.profiler import RepoProfile
-from reporadar.store import PaperStore
+from anonymous.profiler import RepoProfile
+from anonymous.store import PaperStore
 
 ON_TOPIC = "retrieval augmented generation with transformers and vector search"
 OFF_TOPIC = "combinatorial optimization of scheduling heuristics on graphs"
@@ -37,8 +37,8 @@ def _profile() -> RepoProfile:
     )
 
 
-def _cfg(**ranking: float) -> RepoRadarConfig:
-    cfg = RepoRadarConfig()
+def _cfg(**ranking: float) -> AnonymousConfig:
+    cfg = AnonymousConfig()
     cfg.queries = QueriesConfig()
     if ranking:
         cfg.ranking = RankingConfig(**ranking)  # type: ignore[arg-type]
@@ -590,7 +590,7 @@ class TestSpecterLabelLeakage:
     def _store_with_random_vectors(self, tmp_path: Path, seed: int, n: int = 40) -> PaperStore:
         import numpy as np
 
-        from reporadar.specter import SPECTER_DIM, SPECTER_MODEL, vec_to_bytes
+        from anonymous.specter import SPECTER_DIM, SPECTER_MODEL, vec_to_bytes
 
         rng = np.random.default_rng(seed)
         store = PaperStore(tmp_path / f"p{seed}.db")
@@ -662,7 +662,7 @@ class TestSpecterLabelLeakage:
         # paper would be the leak in its purest form.
         import numpy as np
 
-        from reporadar.specter import SPECTER_DIM, SPECTER_MODEL, vec_to_bytes
+        from anonymous.specter import SPECTER_DIM, SPECTER_MODEL, vec_to_bytes
 
         rng = np.random.default_rng(1)
         with PaperStore(tmp_path / "p.db") as store:
@@ -775,7 +775,7 @@ class TestCutoffAndMrr:
         assert narrow["recall@k"] < wide["recall@k"]
 
     def test_mrr_is_the_reciprocal_rank_of_the_first_relevant_paper(self) -> None:
-        from reporadar.metrics import mrr as mrr_metric
+        from anonymous.metrics import mrr as mrr_metric
 
         assert mrr_metric([0, 0, 1, 0]) == pytest.approx(1 / 3)
         assert mrr_metric([1, 0, 0]) == 1.0

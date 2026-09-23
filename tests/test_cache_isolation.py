@@ -23,9 +23,9 @@ from unittest.mock import MagicMock, patch
 
 import arxiv
 
-from reporadar import arxiv_cache
-from reporadar.collector import collect_papers
-from reporadar.config import ArxivConfig
+from anonymous import arxiv_cache
+from anonymous.collector import collect_papers
+from anonymous.config import ArxivConfig
 
 QUERY = "all:shared-cache-probe"
 CFG = ArxivConfig(max_results_per_query=50, lookback_days=30)
@@ -53,7 +53,7 @@ def _result(entry_id: str = "http://arxiv.org/abs/2401.00001v1") -> arxiv.Result
 
 
 def _collect_with(results: list[arxiv.Result]) -> tuple[list[dict], MagicMock]:
-    with patch("reporadar.collector.arxiv.Client") as MockClient:
+    with patch("anonymous.collector.arxiv.Client") as MockClient:
         MockClient.return_value.results.return_value = iter(results)
         papers = collect_papers([QUERY], CFG)
     return papers, MockClient.return_value
@@ -68,7 +68,7 @@ def _diagnose(client: MagicMock) -> str:
     two CI rounds and three wrong hypotheses on a failure that reproduced only on the
     runner. The assertion now carries the state that separates them.
     """
-    from reporadar import arxiv_cache, collector
+    from anonymous import arxiv_cache, collector
 
     cached = arxiv_cache.get(dict(CACHE_FIELDS))
     return (

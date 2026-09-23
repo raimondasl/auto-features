@@ -1,4 +1,4 @@
-"""Tests for reporadar.llm_client (shared LLM transport)."""
+"""Tests for anonymous.llm_client (shared LLM transport)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar.llm_client import LLMError, complete
+from anonymous.llm_client import LLMError, complete
 
 
 def _resp(payload: dict) -> MagicMock:
@@ -91,7 +91,7 @@ class TestComplete:
         """Blind retry would pay a wasted request on every call, and 400s still consume
         request-rate budget. Discovering it from the API and remembering costs one extra
         request per model per process; a hardcoded model list would go stale instead."""
-        from reporadar import llm_client
+        from anonymous import llm_client
 
         cfg = SimpleNamespace(provider="claude", claude_api_key="k", claude_model="claude-sonnet-5")
         sent: list[dict] = []
@@ -165,7 +165,7 @@ class TestComplete:
     def test_network_error_retries_then_llmerror(self) -> None:
         cfg = SimpleNamespace(provider="ollama", timeout=5)
         with (
-            patch("reporadar.llm_client.time.sleep") as sleep,
+            patch("anonymous.llm_client.time.sleep") as sleep,
             patch(
                 "urllib.request.urlopen",
                 side_effect=urllib.error.URLError("refused"),
@@ -301,7 +301,7 @@ class TestTheOpenAIProvider:
         """The reasoning models refuse the parameter; the Claude path already learned this."""
         import urllib.error
 
-        from reporadar import llm_client
+        from anonymous import llm_client
 
         llm_client._REJECTS_TEMPERATURE.discard("gpt-4o-mini")
         err = urllib.error.HTTPError(
@@ -326,9 +326,9 @@ class TestTheOpenAIProvider:
     def test_openai_is_a_known_provider_for_suggestions_and_triage(self) -> None:
         """Both validators refused it, so the gate could not run on OpenAI at all — the
         transport existed for the rescore and nothing could reach it for the gate."""
-        from reporadar.config import RepoRadarConfig, validate_config
+        from anonymous.config import AnonymousConfig, validate_config
 
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         cfg.repo_path = "."
         cfg.suggestions.provider = "openai"
         cfg.triage.enabled = True
@@ -359,7 +359,7 @@ class TestTheOpenAIRequestShapeIsLearnedNotGuessed:
         return _resp({"choices": [{"message": {"content": "hi"}, "finish_reason": "stop"}]})
 
     def _reset(self) -> None:
-        from reporadar import llm_client
+        from anonymous import llm_client
 
         llm_client._TOKEN_CAP.pop("m-reasoning", None)
         llm_client._REJECTS_TEMPERATURE.discard("m-reasoning")
@@ -441,7 +441,7 @@ def _400(message: str, code: str | None = None) -> urllib.error.HTTPError:
 
 
 def _forget(*keys: str) -> None:
-    from reporadar import llm_client
+    from anonymous import llm_client
 
     for key in keys:
         llm_client._TOKEN_CAP.pop(key, None)
@@ -456,7 +456,7 @@ _AZ_KEY = "azure:myres.openai.azure.com:gpt-5.6-luna"
 @pytest.fixture
 def entra(monkeypatch: pytest.MonkeyPatch):  # noqa: ANN201
     """A token from `az`, without running it. Records which tenant asked."""
-    from reporadar import azure_auth
+    from anonymous import azure_auth
 
     asked: list[str] = []
     monkeypatch.setattr(azure_auth, "get_token", lambda tenant="": asked.append(tenant) or "entra")
@@ -518,7 +518,7 @@ class TestTheAzureOpenAIProvider:
     def test_a_token_failure_is_reported_with_its_fix_and_not_retried(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from reporadar import azure_auth
+        from anonymous import azure_auth
 
         def refuse(tenant: str = "") -> str:
             raise azure_auth.AzureAuthError("Not signed in to Azure. Run `az login` in a terminal.")
@@ -588,7 +588,7 @@ class TestTheAzureOpenAIProvider:
     ) -> None:
         """gpt-5.6-luna refuses `temperature: 0` on OpenAI and accepted it on Azure: the same
         name, two behaviours, so one endpoint's lesson must not rewrite the other's request."""
-        from reporadar import llm_client
+        from anonymous import llm_client
 
         with patch("urllib.request.urlopen", side_effect=[_400(_AZ_TEMPERATURE), _ok()]):
             complete("p", _azure_cfg())
@@ -619,7 +619,7 @@ class TestTheFineScaleRequestAdaptsToo:
         )
 
     def test_every_rejection_luna_made_is_adapted_to_in_one_call(self, entra: list[str]) -> None:
-        from reporadar.llm_client import top_logprobs
+        from anonymous.llm_client import top_logprobs
 
         side = [
             _400(_AZ_MAX_TOKENS),
@@ -638,7 +638,7 @@ class TestTheFineScaleRequestAdaptsToo:
         assert final["reasoning_effort"] == "none"
 
     def test_the_cap_is_remembered_so_the_next_paper_costs_no_400(self, entra: list[str]) -> None:
-        from reporadar.llm_client import top_logprobs
+        from anonymous.llm_client import top_logprobs
 
         first = [_400(_AZ_TOP_LOGPROBS), self._logprobs()]
         with patch("urllib.request.urlopen", side_effect=first):
@@ -650,7 +650,7 @@ class TestTheFineScaleRequestAdaptsToo:
     def test_a_model_that_refuses_reasoning_effort_has_it_dropped(self, entra: list[str]) -> None:
         """Seen live: gpt-4.1-mini refused the "none" the Azure template sets for this stage.
         The message text here is paraphrased; the rule matches only the parameter's name."""
-        from reporadar.llm_client import top_logprobs
+        from anonymous.llm_client import top_logprobs
 
         key = "azure:myres.openai.azure.com:gpt-4.1-mini"
         refused = _400("Unrecognized request argument supplied: reasoning_effort")
@@ -663,7 +663,7 @@ class TestTheFineScaleRequestAdaptsToo:
 
     def test_without_a_provider_the_rescore_is_still_openai(self) -> None:
         """Every config written before Azure existed, and the eval harness, pass no provider."""
-        from reporadar.llm_client import top_logprobs
+        from anonymous.llm_client import top_logprobs
 
         with patch("urllib.request.urlopen", return_value=self._logprobs()) as m:
             top_logprobs("p", SimpleNamespace(openai_api_key="k", timeout=5))
@@ -679,7 +679,7 @@ class TestA429IsGivenTheWaitItAsksFor:
     def _sleeps(self, headers: dict | None) -> list[float]:
         with (
             patch("urllib.request.urlopen", side_effect=[_http(429, headers=headers), _ok()]),
-            patch("reporadar.llm_client.time.sleep") as sleep,
+            patch("anonymous.llm_client.time.sleep") as sleep,
         ):
             complete("p", self.CFG)
         return [c.args[0] for c in sleep.call_args_list]
@@ -693,24 +693,24 @@ class TestA429IsGivenTheWaitItAsksFor:
     def test_a_quota_sized_wait_fails_the_call_at_once_instead_of_sleeping(self) -> None:
         """An exhausted quota answers `retry after 86400`. Sleeping a capped minute per retry per
         paper turned a 50-paper gate into 100 silent minutes -- and every paper still failed."""
-        from reporadar.llm_client import LLMRateLimited
+        from anonymous.llm_client import LLMRateLimited
 
         with (
             patch(
                 "urllib.request.urlopen", side_effect=[_http(429, headers={"retry-after": "86400"})]
             ),
-            patch("reporadar.llm_client.time.sleep") as sleep,
+            patch("anonymous.llm_client.time.sleep") as sleep,
             pytest.raises(LLMRateLimited, match="86400 s"),
         ):
             complete("p", self.CFG)
         sleep.assert_not_called()
 
     def test_retries_that_stay_rate_limited_say_so(self) -> None:
-        from reporadar.llm_client import LLMRateLimited
+        from anonymous.llm_client import LLMRateLimited
 
         with (
             patch("urllib.request.urlopen", side_effect=[_http(429) for _ in range(3)]),
-            patch("reporadar.llm_client.time.sleep"),
+            patch("anonymous.llm_client.time.sleep"),
             pytest.raises(LLMRateLimited),
         ):
             complete("p", self.CFG)
@@ -733,8 +733,8 @@ class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
     def test_the_gate_stops_after_one_unavailable_call(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from reporadar import triage
-        from reporadar.llm_client import LLMUnavailable
+        from anonymous import triage
+        from anonymous.llm_client import LLMUnavailable
 
         calls: list[int] = []
 
@@ -750,8 +750,8 @@ class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
     def test_the_gate_stops_after_a_run_of_rate_limited_papers(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from reporadar import triage
-        from reporadar.llm_client import LLMRateLimited, LLMUnavailable, RateLimitBreaker
+        from anonymous import triage
+        from anonymous.llm_client import LLMRateLimited, LLMUnavailable, RateLimitBreaker
 
         calls: list[int] = []
 
@@ -767,8 +767,8 @@ class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
     def test_one_rate_limited_paper_is_skipped_not_fatal(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from reporadar import triage
-        from reporadar.llm_client import LLMRateLimited
+        from anonymous import triage
+        from anonymous.llm_client import LLMRateLimited
 
         outcomes: list[object] = [
             LLMRateLimited("429"),
@@ -788,8 +788,8 @@ class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
         assert sorted(out) == ["p1", "p3"]
 
     def test_the_fine_scale_stops_the_same_way(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from reporadar import finescale
-        from reporadar.llm_client import LLMUnavailable
+        from anonymous import finescale
+        from anonymous.llm_client import LLMUnavailable
 
         calls: list[int] = []
 
@@ -803,7 +803,7 @@ class TestAStageStopsOnAFailureEveryPaperWouldRepeat:
         assert len(calls) == 1
 
     def test_the_fine_scale_warning_names_what_to_check_for_its_provider(self) -> None:
-        from reporadar.pipeline import _finescale_hint
+        from anonymous.pipeline import _finescale_hint
 
         def cfg(provider: str) -> SimpleNamespace:
             return SimpleNamespace(
@@ -822,8 +822,8 @@ class TestReviewFindingsOnTheTransport:
         """ "does not support 'none'" refuses the VALUE. Dropping the parameter ran gpt-5-mini at
         its default effort, which spent the gate's token cap reasoning and failed every paper with
         an empty answer nowhere near the cause."""
-        from reporadar import llm_client
-        from reporadar.llm_client import LLMUnavailable
+        from anonymous import llm_client
+        from anonymous.llm_client import LLMUnavailable
 
         refused = _400(
             "Unsupported value: 'reasoning_effort' does not support 'none' with this model. "
@@ -843,7 +843,7 @@ class TestReviewFindingsOnTheTransport:
     def test_a_refused_token_is_forgotten(
         self, entra: list[str], monkeypatch: pytest.MonkeyPatch, code: int
     ) -> None:
-        from reporadar import azure_auth
+        from anonymous import azure_auth
 
         forgotten: list[str] = []
         monkeypatch.setattr(azure_auth, "forget", lambda tenant="": forgotten.append(tenant))
@@ -876,7 +876,7 @@ class TestReviewFindingsOnTheTransport:
             complete("p", _azure_cfg())
 
     def test_an_unknown_fine_scale_provider_sends_nothing_anywhere(self) -> None:
-        from reporadar.llm_client import LLMUnavailable, top_logprobs
+        from anonymous.llm_client import LLMUnavailable, top_logprobs
 
         with patch("urllib.request.urlopen") as m, pytest.raises(LLMUnavailable, match="logprobs"):
             top_logprobs("p", SimpleNamespace(provider="claude", openai_api_key="k", timeout=5))

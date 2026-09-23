@@ -11,9 +11,14 @@ It is a curated snapshot of a development repository, not the whole of it. Devel
 plans and the running lab record are left out, as are the scripts and data of studies the paper
 does not report. Some docstrings still point to those notes; the pointers are historical.
 
+The pipeline's name is replaced by `anonymous` everywhere, in file names, code and data alike.
+The package therefore imports as `anonymous`, and the data bundle's field names match the
+code's. A checksum recorded inside a file was computed before the replacement, so it may not
+match the file as shipped.
+
 ## Layout
 
-- `src/reporadar/`: the pipeline. `finescale.py` holds the two-parameter calibration map, the only
+- `src/anonymous/`: the pipeline. `finescale.py` holds the two-parameter calibration map, the only
   fitted numbers in the rescore stage.
 - `evals/benchmark.yaml`, `evals/gold_targets.json`, `evals/witness_set.json`: the benchmark.
 - `evals/*.py`, `evals/frame/*.py`: evaluation scripts. Each says in its docstring what it

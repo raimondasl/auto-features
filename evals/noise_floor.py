@@ -52,7 +52,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from run_judge_eval import RESULTS_DIR  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 
 def load(path: str) -> dict[str, dict[str, Any]]:
@@ -204,7 +204,7 @@ def main() -> int:
 
     # --- The direct estimate, available from any number of draws -----------------------
     by_case = {
-        c: [r[c]["reporadar_toppicks"]["net_value@2"] for r in runs if c in r] for c in shared
+        c: [r[c]["anonymous_toppicks"]["net_value@2"] for r in runs if c in r] for c in shared
     }
     d = decompose(by_case)
     n = d["n"]
@@ -239,7 +239,7 @@ def main() -> int:
     if len(runs) == 2:
         a, b = runs
         d = [
-            b[c]["reporadar_toppicks"]["net_value@2"] - a[c]["reporadar_toppicks"]["net_value@2"]
+            b[c]["anonymous_toppicks"]["net_value@2"] - a[c]["anonymous_toppicks"]["net_value@2"]
             for c in shared
         ]
         print(
@@ -249,7 +249,7 @@ def main() -> int:
 
     # --- Where the noise comes from: how much of a run's output is even the same set? ---
     print("\n  candidate churn, averaged over every pair of draws:")
-    for key, label in (("reporadar_toppicks", "shown (Top Picks)"), ("reporadar_top10", "top-10")):
+    for key, label in (("anonymous_toppicks", "shown (Top Picks)"), ("anonymous_top10", "top-10")):
         vals = [
             j
             for i, x in enumerate(runs)

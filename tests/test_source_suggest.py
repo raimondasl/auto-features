@@ -1,9 +1,9 @@
-"""Tests for reporadar.sources.suggest."""
+"""Tests for anonymous.sources.suggest."""
 
 from __future__ import annotations
 
-from reporadar.profiler import RepoProfile
-from reporadar.sources.suggest import format_suggestion, suggest_sources
+from anonymous.profiler import RepoProfile
+from anonymous.sources.suggest import format_suggestion, suggest_sources
 
 
 def _profile(

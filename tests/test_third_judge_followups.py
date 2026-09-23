@@ -53,7 +53,7 @@ def band() -> list[dict[str, Any]]:
     """The aug20 band rebuilt here, joined on the ids third_judge.json carries."""
     third = json.loads(THIRD.read_text(encoding="utf-8"))
     dep = json.loads(DEPENDENCE.read_text(encoding="utf-8"))
-    from reporadar.paper_id import dedup_id
+    from anonymous.paper_id import dedup_id
 
     gem = {
         (m["case"], dedup_id(m["id"])): r["score"]

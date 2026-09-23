@@ -42,7 +42,7 @@ Applied in this order to every walked candidate; the **first failing rule is log
 | **X8** | L2a only: at most 2 of the 5 selected carry `materials-science` | count | $0 |
 | **X9** | Repository deleted or made private **before any arm has run on it** → `VOID-PRE`, replaced by the next reserve in seeded order, both rows kept | GitHub API | $0 |
 
-**Not exclusions, by design:** profiler failure (`rr profile` raising is a RepoRadar outcome, §5.6); Opus turn-budget exhaustion (§5.6); prose volume; absence of a bibliography; "primary literature already represented"; any human judgement of interest.
+**Not exclusions, by design:** profiler failure (`rr profile` raising is a Anonymous outcome, §5.6); Opus turn-budget exhaustion (§5.6); prose volume; absence of a bibliography; "primary literature already represented"; any human judgement of interest.
 
 **Pre-screens at $0 (recorded, not selective):** for every *selected* repo, after selection and before either arm runs: (a) `ids_v2(HEAD)` count (extractor v2, §6.1) and, where ≥ 24 months of history exists, `ids_v2(HEAD) − ids_v2(T0)` — recorded as covariates and as **incidental** adoptions (they never count toward §6's target); (b) arXiv-coverage covariate = fraction of DOI/arXiv/PMID identifiers extractable from docs at HEAD that resolve (OpenAlex) to a work with an arXiv version — reported per stratum as a manipulation check of §2.1 (expected order L1 > L2a > L2b > L3; L4 mostly undefined 0/0), never used to reassign a stratum.
 
@@ -54,7 +54,7 @@ Applied in this order to every walked candidate; the **first failing rule is log
 [...]
 
 ### 5.2 Pre-registered estimands and tests
-- **Primary (generalisation):** mean paired net@2, RepoRadar(tag) − Opus 5 draw 1, **GPT-5.5 label**, over the 23 held-out cases; 95 % CI from the project's bootstrap helper (same helper as every published figure); paired sign-flip permutation p (10,000 draws, two-sided); win/loss/tie.
+- **Primary (generalisation):** mean paired net@2, Anonymous(tag) − Opus 5 draw 1, **GPT-5.5 label**, over the 23 held-out cases; 95 % CI from the project's bootstrap helper (same helper as every published figure); paired sign-flip permutation p (10,000 draws, two-sided); win/loss/tie.
 - **Co-primary label:** the same under **Sonnet ≥ 2**; consensus (GPT ≥ 2 ∧ Sonnet ≥ 1) as the third PREREG-rung1 label. **All three always reported; the primary label is GPT-5.5 for continuity and is not switchable** (§6.4 says why no validity result can license a switch).
 - **Secondary (magnitude):** the same statistics over the pooled 60, always reported, labelled "37 convenience + 23 frame-sampled", **never gated on the held-out result** (a gate keyed to an observed mean is a data-dependent selection rule — reviewer refutation). Instead a pre-registered **heterogeneity test**: Welch t between legacy-37 and held-out-23 paired deltas, p reported.
 - **Pre-registered reading rule for the held-out estimate** (so the sentence cannot be chosen afterwards): m23 ≥ 0 and CI23 ∋ m37 → "consistent with the development-set estimate; not independently significant"; m23 ≥ 0 and CI23 ∌ m37 → "held-out advantage smaller than the development estimate"; m23 < 0 → "the development-set advantage is not supported on held-out data" and the paper's headline sentence is the held-out number. Applied under each label.

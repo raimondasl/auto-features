@@ -191,28 +191,28 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
-# RepoRadar eval benchmark
+# Anonymous eval benchmark
 evals/.env
 evals/.work/
 evals/cache/
 evals/results/
 
-# RepoRadar generated output (local runs)
-/reporadar_digest.*
+# Anonymous generated output (local runs)
+/anonymous_digest.*
 /digests/
 # The paper store `rr init` creates. Generated state, binary, and it grows every
 # run (2.6 MB after one run of this repo), so it never belongs in a commit.
-# The trailing slash restricts the match to the directory: a bare `/.reporadar`
+# The trailing slash restricts the match to the directory: a bare `/.anonymous`
 # would also swallow a stray *file* of that name. It is NOT needed to protect the
-# committed `.reporadar.yml` beside it — gitignore matches whole path components,
+# committed `.anonymous.yml` beside it — gitignore matches whole path components,
 # so neither form touches that file. Both checked with `git check-ignore`.
-/.reporadar/
-# Scratch configs for pointing `rr` at a benchmark clone (`diffusion.reporadar.yml`
+/.anonymous/
+# Scratch configs for pointing `rr` at a benchmark clone (`diffusion.anonymous.yml`
 # and friends). They carry absolute machine-specific paths, so they must not be
 # committed by a stray `git add -A`.
 # The leading `?` is load-bearing: gitignore's `*` matches the empty string, so
-# `/*.reporadar.yml` would also hide a user's real `.reporadar.yml` — verified.
-/?*.reporadar.yml
+# `/*.anonymous.yml` would also hide a user's real `.anonymous.yml` — verified.
+/?*.anonymous.yml
 
 # PyPI configuration file
 .pypirc
@@ -241,9 +241,6 @@ evals/frame/pool/raw/
 # ledger, positives, controls and verdicts, and each row already carries its context HASH,
 # which is what makes the prompt verifiable without publishing the prompt.
 evals/frame/pool/contexts/
-
-# isitdone receipts (tool-local, not shared state)
-.isitdone/
 
 # Submission draft: lives in the private paper repo, never here (double-blind)
 paper/SUBMISSION.md

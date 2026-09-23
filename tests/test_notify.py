@@ -1,12 +1,12 @@
-"""Tests for reporadar.notify."""
+"""Tests for anonymous.notify."""
 
 from __future__ import annotations
 
 import subprocess
 from unittest.mock import MagicMock, patch
 
-from reporadar.config import EmailHookConfig, HooksConfig
-from reporadar.notify import (
+from anonymous.config import EmailHookConfig, HooksConfig
+from anonymous.notify import (
     DigestSummary,
     _format_message,
     dispatch_notification,
@@ -80,7 +80,7 @@ class TestFormatMessage:
 
 
 class TestRunShellHook:
-    @patch("reporadar.notify.subprocess.run")
+    @patch("anonymous.notify.subprocess.run")
     def test_success(self, mock_run: MagicMock) -> None:
         mock_run.return_value = subprocess.CompletedProcess(args="echo ok", returncode=0)
         result = run_shell_hook("echo ok", _make_summary())
@@ -90,7 +90,7 @@ class TestRunShellHook:
         assert call_kwargs.kwargs["shell"] is True
         assert call_kwargs.kwargs["timeout"] == 60
 
-    @patch("reporadar.notify.subprocess.run")
+    @patch("anonymous.notify.subprocess.run")
     def test_nonzero_exit(self, mock_run: MagicMock) -> None:
         mock_run.return_value = subprocess.CompletedProcess(
             args="false", returncode=1, stderr="error"
@@ -98,19 +98,19 @@ class TestRunShellHook:
         result = run_shell_hook("false", _make_summary())
         assert result is False
 
-    @patch("reporadar.notify.subprocess.run")
+    @patch("anonymous.notify.subprocess.run")
     def test_timeout(self, mock_run: MagicMock) -> None:
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="sleep 100", timeout=60)
         result = run_shell_hook("sleep 100", _make_summary())
         assert result is False
 
-    @patch("reporadar.notify.subprocess.run")
+    @patch("anonymous.notify.subprocess.run")
     def test_os_error(self, mock_run: MagicMock) -> None:
         mock_run.side_effect = OSError("command not found")
         result = run_shell_hook("bad_cmd", _make_summary())
         assert result is False
 
-    @patch("reporadar.notify.subprocess.run")
+    @patch("anonymous.notify.subprocess.run")
     def test_env_vars_passed(self, mock_run: MagicMock) -> None:
         mock_run.return_value = subprocess.CompletedProcess(args="echo", returncode=0)
         run_shell_hook("echo $RR_RUN_ID", _make_summary(run_id=7))
@@ -119,7 +119,7 @@ class TestRunShellHook:
 
 
 class TestSendSlackWebhook:
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_success(self, mock_urlopen: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status = 200
@@ -130,13 +130,13 @@ class TestSendSlackWebhook:
         result = send_slack_webhook("https://hooks.slack.com/test", _make_summary())
         assert result is True
 
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_network_error(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.side_effect = Exception("connection refused")
         result = send_slack_webhook("https://hooks.slack.com/test", _make_summary())
         assert result is False
 
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_posts_json_with_text(self, mock_urlopen: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status = 200
@@ -148,7 +148,7 @@ class TestSendSlackWebhook:
         req = mock_urlopen.call_args[0][0]
         assert req.get_header("Content-type") == "application/json"
 
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_server_error(self, mock_urlopen: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status = 500
@@ -161,7 +161,7 @@ class TestSendSlackWebhook:
 
 
 class TestSendDiscordWebhook:
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_success(self, mock_urlopen: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status = 204
@@ -172,13 +172,13 @@ class TestSendDiscordWebhook:
         result = send_discord_webhook("https://discord.com/api/webhooks/test", _make_summary())
         assert result is True
 
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_network_error(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.side_effect = Exception("connection refused")
         result = send_discord_webhook("https://discord.com/api/webhooks/test", _make_summary())
         assert result is False
 
-    @patch("reporadar.notify.urllib.request.urlopen")
+    @patch("anonymous.notify.urllib.request.urlopen")
     def test_posts_json_with_content(self, mock_urlopen: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status = 204
@@ -192,7 +192,7 @@ class TestSendDiscordWebhook:
 
 
 class TestSendEmail:
-    @patch("reporadar.notify.smtplib.SMTP")
+    @patch("anonymous.notify.smtplib.SMTP")
     def test_success(self, mock_smtp_class: MagicMock) -> None:
         mock_server = MagicMock()
         mock_smtp_class.return_value.__enter__ = MagicMock(return_value=mock_server)
@@ -212,7 +212,7 @@ class TestSendEmail:
         mock_server.login.assert_called_once_with("user", "pass")
         mock_server.sendmail.assert_called_once()
 
-    @patch("reporadar.notify.smtplib.SMTP")
+    @patch("anonymous.notify.smtplib.SMTP")
     def test_no_tls(self, mock_smtp_class: MagicMock) -> None:
         mock_server = MagicMock()
         mock_smtp_class.return_value.__enter__ = MagicMock(return_value=mock_server)
@@ -229,7 +229,7 @@ class TestSendEmail:
         assert result is True
         mock_server.starttls.assert_not_called()
 
-    @patch("reporadar.notify.smtplib.SMTP")
+    @patch("anonymous.notify.smtplib.SMTP")
     def test_no_auth(self, mock_smtp_class: MagicMock) -> None:
         mock_server = MagicMock()
         mock_smtp_class.return_value.__enter__ = MagicMock(return_value=mock_server)
@@ -246,7 +246,7 @@ class TestSendEmail:
         )
         mock_server.login.assert_not_called()
 
-    @patch("reporadar.notify.smtplib.SMTP")
+    @patch("anonymous.notify.smtplib.SMTP")
     def test_connection_error(self, mock_smtp_class: MagicMock) -> None:
         mock_smtp_class.side_effect = ConnectionRefusedError("refused")
         result = send_email(
@@ -262,7 +262,7 @@ class TestSendEmail:
 class TestDispatchNotification:
     def test_shell_dispatch(self) -> None:
         hooks = HooksConfig(on_digest="echo done")
-        with patch("reporadar.notify.run_shell_hook", return_value=True) as mock:
+        with patch("anonymous.notify.run_shell_hook", return_value=True) as mock:
             result = dispatch_notification("shell", hooks, _make_summary())
         assert result is True
         mock.assert_called_once()
@@ -274,7 +274,7 @@ class TestDispatchNotification:
 
     def test_slack_dispatch(self) -> None:
         hooks = HooksConfig(slack_webhook_url="https://hooks.slack.com/test")
-        with patch("reporadar.notify.send_slack_webhook", return_value=True) as mock:
+        with patch("anonymous.notify.send_slack_webhook", return_value=True) as mock:
             result = dispatch_notification("slack", hooks, _make_summary())
         assert result is True
         mock.assert_called_once()
@@ -286,7 +286,7 @@ class TestDispatchNotification:
 
     def test_discord_dispatch(self) -> None:
         hooks = HooksConfig(discord_webhook_url="https://discord.com/api/webhooks/test")
-        with patch("reporadar.notify.send_discord_webhook", return_value=True) as mock:
+        with patch("anonymous.notify.send_discord_webhook", return_value=True) as mock:
             result = dispatch_notification("discord", hooks, _make_summary())
         assert result is True
         mock.assert_called_once()
@@ -299,7 +299,7 @@ class TestDispatchNotification:
     def test_email_dispatch(self) -> None:
         email = EmailHookConfig(smtp_host="smtp.test.com", to="user@test.com")
         hooks = HooksConfig(email=email)
-        with patch("reporadar.notify.send_email", return_value=True) as mock:
+        with patch("anonymous.notify.send_email", return_value=True) as mock:
             result = dispatch_notification("email", hooks, _make_summary())
         assert result is True
         mock.assert_called_once()

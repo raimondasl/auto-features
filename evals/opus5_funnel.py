@@ -57,7 +57,7 @@ from typing import Any
 EVALS = Path(__file__).resolve().parent
 sys.path.insert(0, str(EVALS.parent / "src"))
 
-from reporadar.paper_id import dedup_id, is_arxiv_id  # noqa: E402
+from anonymous.paper_id import dedup_id, is_arxiv_id  # noqa: E402
 
 RES = EVALS / "results"
 INDEX = EVALS / ".work" / "hyde_index"
@@ -100,7 +100,7 @@ def load() -> tuple[dict, set, dict, dict]:
     }
     run = json.loads((RES / CONTROL).read_text(encoding="utf-8"))
     shown = {
-        e["case"]: {dedup_id(str(p["arxiv_id"])) for p in e["returned"]["reporadar_toppicks"]}
+        e["case"]: {dedup_id(str(p["arxiv_id"])) for p in e["returned"]["anonymous_toppicks"]}
         for e in run
     }
     return picks, index_ids, pool, shown
@@ -126,7 +126,7 @@ def compute_ranks(picks, index_ids, pool) -> dict[str, dict[str, int]]:
     """
     import numpy as np
 
-    from reporadar import hyde
+    from anonymous import hyde
 
     hyp = json.loads(HYPOTHESES.read_text(encoding="utf-8"))
     shards = hyde.index_shards(INDEX)

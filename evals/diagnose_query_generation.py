@@ -37,14 +37,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from reporadar.config import SuggestionsConfig  # noqa: E402
-from reporadar.llm_client import complete  # noqa: E402
-from reporadar.profiler import _collect_text_corpus, profile_repo  # noqa: E402
+from anonymous.config import SuggestionsConfig  # noqa: E402
+from anonymous.llm_client import complete  # noqa: E402
+from anonymous.profiler import _collect_text_corpus, profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
 
-# The 24 papers the Opus baseline recommended and the judge scored >= 2, which RepoRadar's
+# The 24 papers the Opus baseline recommended and the judge scored >= 2, which Anonymous's
 # own queries never fetched. Produced by diagnose_pool.py.
 TARGETS = {
     "rag": ["2409.14683", "2404.02805", "2501.17788", "2304.01982", "2505.11471"],
@@ -104,7 +104,7 @@ def arxiv_ids(query: str, max_results: int = 50, tries: int = 4) -> list[str]:
     )
     for attempt in range(tries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "reporadar-diagnostic/1.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "anonymous-diagnostic/1.0"})
             with urllib.request.urlopen(req, timeout=90) as resp:
                 return _ID_RE.findall(resp.read().decode("utf-8", "replace"))
         except Exception as exc:  # noqa: BLE001

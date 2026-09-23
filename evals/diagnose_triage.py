@@ -39,14 +39,14 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
-from reporadar.llm_client import complete  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
-from reporadar.profiler import (
+from anonymous.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
+from anonymous.llm_client import complete  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
+from anonymous.profiler import (
     _collect_text_corpus,  # noqa: E402
     profile_repo,  # noqa: E402
 )
-from reporadar.triage import _RUBRIC, _parse_verdict, score_actionability  # noqa: E402
+from anonymous.triage import _RUBRIC, _parse_verdict, score_actionability  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
@@ -97,7 +97,7 @@ def fetch_papers(ids: list[str]) -> dict[str, dict[str, str]]:
             {"id_list": ",".join(chunk), "max_results": len(chunk)}
         )
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "reporadar-triage-eval/1.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "anonymous-triage-eval/1.0"})
             with urllib.request.urlopen(req, timeout=120) as resp:
                 body = resp.read().decode("utf-8", "replace")
         except Exception as exc:  # noqa: BLE001
@@ -207,7 +207,7 @@ def _summary_for(repo: Path, cfg: object):  # type: ignore[no-untyped-def]
     which is both 50x the cost and a different (noisier) experiment than the shipped
     path, where the summary is computed once per run.
     """
-    from reporadar.repo_summary import RepoSummary, summarize_repo
+    from anonymous.repo_summary import RepoSummary, summarize_repo
 
     disk = {}
     if SUMMARY_CACHE.is_file():

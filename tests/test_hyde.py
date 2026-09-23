@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from reporadar import hyde
+from anonymous import hyde
 
 
 class _Profile:
@@ -163,7 +163,7 @@ class TestTheEncoderGuard:
             hyde.discover(_Profile(), SimpleNamespace(), tmp_path)
 
     def test_verification_can_be_skipped_but_is_on_by_default(self, tmp_path: Path) -> None:
-        from reporadar.config import HydeConfig
+        from anonymous.config import HydeConfig
 
         assert HydeConfig().verify_encoder is True
         _write_shard(tmp_path, 2020, np.zeros((1, 128), dtype=np.uint8), ["2001.00001"])
@@ -249,14 +249,14 @@ class TestDiscover:
 
 class TestCollectByIds:
     def test_no_ids_makes_no_request(self) -> None:
-        from reporadar import collector
+        from anonymous import collector
 
         with patch.object(collector, "_shared_client") as client:
             assert collector.collect_by_ids([]) == []
         client.assert_not_called()
 
     def test_it_batches_and_dedups(self) -> None:
-        from reporadar import collector
+        from anonymous import collector
 
         def result(pid: str) -> MagicMock:
             r = MagicMock()
@@ -287,7 +287,7 @@ class TestCollectByIds:
         48 benchmark targets is >= 11 months old, and six are pre-2015. Re-applying the
         recency window to their output would undo the only thing they are for, so this
         asserts the behaviour rather than the absence of a keyword."""
-        from reporadar import collector
+        from anonymous import collector
 
         ancient = MagicMock()
         ancient.get_short_id.return_value = "1409.0473"  # Bahdanau et al., 2014

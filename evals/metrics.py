@@ -1,6 +1,6 @@
 """Benchmark-only metrics for the ``evals/`` harness.
 
-The shared IR primitives now live in :mod:`reporadar.metrics` so ``rr eval`` and this
+The shared IR primitives now live in :mod:`anonymous.metrics` so ``rr eval`` and this
 benchmark cannot drift apart; they are re-exported here so the runner scripts keep
 importing them from one place. What remains below is Tier-B-specific: judge-based,
 abstention-aware scoring that has no meaning outside the benchmark.
@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from reporadar.metrics import (
+from anonymous.metrics import (
     average_precision,
     dcg_at_k,
     evaluate_ranking,

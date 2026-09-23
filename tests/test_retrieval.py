@@ -1,10 +1,10 @@
-"""Tests for reporadar.retrieval (hybrid BM25 + RRF fusion)."""
+"""Tests for anonymous.retrieval (hybrid BM25 + RRF fusion)."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 
-from reporadar.retrieval import bm25_ranked_ids, bm25_scores, hybrid_reorder, rrf_fuse
+from anonymous.retrieval import bm25_ranked_ids, bm25_scores, hybrid_reorder, rrf_fuse
 
 
 class TestRrfFuse:

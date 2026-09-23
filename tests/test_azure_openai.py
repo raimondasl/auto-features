@@ -17,18 +17,18 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from reporadar import azure_auth, stages
-from reporadar.cli import cli
-from reporadar.config import LLM_PROVIDERS, load_config, validate_config
-from reporadar.mcp_server import setup_repo_action
-from reporadar.privacy import DESTINATIONS
+from anonymous import azure_auth, stages
+from anonymous.cli import cli
+from anonymous.config import LLM_PROVIDERS, load_config, validate_config
+from anonymous.mcp_server import setup_repo_action
+from anonymous.privacy import DESTINATIONS
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "reporadar"
+SRC = Path(__file__).resolve().parents[1] / "src" / "anonymous"
 ENDPOINT = "https://myres.openai.azure.com"
 
 
 def _write(tmp_path: Path, body: str) -> Path:
-    path = tmp_path / ".reporadar.yml"
+    path = tmp_path / ".anonymous.yml"
     path.write_text(body, encoding="utf-8")
     return path
 
@@ -119,9 +119,9 @@ class TestEveryGateDecisionUsesTheOneList:
     def test_the_stage_registry_counts_every_provider_as_a_gate(self, provider: str) -> None:
         """It counted only ollama and claude, so an OpenAI-gated config was reported by
         `rr workspace` as having no gate at all."""
-        from reporadar.config import RepoRadarConfig
+        from anonymous.config import AnonymousConfig
 
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         cfg.triage.enabled = True
         cfg.suggestions.provider = provider
         assert stages._gate_on(cfg)
@@ -186,7 +186,7 @@ def _repo(tmp_path: Path) -> Path:
 def _setup(tmp_path: Path, **azure: Any) -> dict[str, Any]:
     repo = _repo(tmp_path)
     return setup_repo_action(
-        repo, repo / ".reporadar.yml", categories=["cs.SE"], provider="azure_openai", **azure
+        repo, repo / ".anonymous.yml", categories=["cs.SE"], provider="azure_openai", **azure
     )
 
 
@@ -198,7 +198,7 @@ class TestSetupAsksForWhatItCannotInfer:
         result = _setup(tmp_path)
         assert result["status"] == "needs_input"
         assert {"azure_endpoint", "azure_deployment"} <= set(result["missing"])
-        assert not (tmp_path / ".reporadar.yml").exists()
+        assert not (tmp_path / ".anonymous.yml").exists()
 
     @pytest.mark.usefixtures("token_ok")
     def test_a_non_azure_endpoint_is_refused_with_the_reason(self, tmp_path: Path) -> None:
@@ -207,14 +207,14 @@ class TestSetupAsksForWhatItCannotInfer:
         )
         assert result["status"] == "needs_input"
         assert "Refusing Azure OpenAI endpoint" in result["why"]
-        assert not (tmp_path / ".reporadar.yml").exists()
+        assert not (tmp_path / ".anonymous.yml").exists()
 
     @pytest.mark.usefixtures("token_ok")
     def test_a_deployment_name_cannot_inject_yaml(self, tmp_path: Path) -> None:
         """It arrives as a tool argument and lands in a committed file."""
         result = _setup(tmp_path, azure_endpoint=ENDPOINT, azure_deployment="x\n  provider: claude")
         assert result["status"] == "needs_input"
-        assert not (tmp_path / ".reporadar.yml").exists()
+        assert not (tmp_path / ".anonymous.yml").exists()
 
 
 class TestTheSetupWordingMatchesWhatUsersSee:
@@ -226,12 +226,12 @@ class TestTheSetupWordingMatchesWhatUsersSee:
     def test_asking_for_the_endpoint_names_every_form_the_portal_can_show(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import reporadar.mcp_server as mcp_server
+        import anonymous.mcp_server as mcp_server
 
         monkeypatch.setattr(mcp_server, "profile_payload", lambda *a, **k: {"keywords": []})
         repo = _repo(tmp_path)
         result = setup_repo_action(
-            repo, repo / ".reporadar.yml", categories=["cs.SE"], provider="azure_openai"
+            repo, repo / ".anonymous.yml", categories=["cs.SE"], provider="azure_openai"
         )
         for suffix in azure_auth.ALLOWED_HOST_SUFFIXES:
             assert suffix in result["why"], f"{suffix} is accepted but never offered"
@@ -257,13 +257,13 @@ class TestSetupRetriesKeepWhatTheCallerSaid:
     def test_following_the_categories_retry_still_configures_azure(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import reporadar.mcp_server as mcp_server
+        import anonymous.mcp_server as mcp_server
 
         monkeypatch.setattr(mcp_server, "profile_payload", lambda *a, **k: {"keywords": []})
         repo = _repo(tmp_path)
         first = setup_repo_action(
             repo,
-            repo / ".reporadar.yml",
+            repo / ".anonymous.yml",
             provider="azure_openai",
             azure_endpoint=ENDPOINT,
             azure_deployment="gate",
@@ -277,19 +277,19 @@ class TestSetupRetriesKeepWhatTheCallerSaid:
         assert retry["azure_deployment"] == "gate"
         retry["categories"] = ["cs.SE"]
         retry.pop("azure_finescale_deployment")  # the optional placeholder, left unset
-        second = setup_repo_action(repo, repo / ".reporadar.yml", **retry)
+        second = setup_repo_action(repo, repo / ".anonymous.yml", **retry)
         assert second["status"] == "ok"
-        assert load_config(repo / ".reporadar.yml").suggestions.provider == "azure_openai"
+        assert load_config(repo / ".anonymous.yml").suggestions.provider == "azure_openai"
 
     def test_missing_azure_values_and_categories_are_asked_for_together(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import reporadar.mcp_server as mcp_server
+        import anonymous.mcp_server as mcp_server
 
         monkeypatch.setattr(mcp_server, "profile_payload", lambda *a, **k: {"keywords": []})
         repo = _repo(tmp_path)
         result = setup_repo_action(
-            repo, repo / ".reporadar.yml", provider="azure_openai", azure_endpoint=ENDPOINT
+            repo, repo / ".anonymous.yml", provider="azure_openai", azure_endpoint=ENDPOINT
         )
         assert set(result["missing"]) == {"azure_deployment", "categories"}
         assert "repo_profile" in result
@@ -304,7 +304,7 @@ class TestSetupRetriesKeepWhatTheCallerSaid:
         repo = _repo(tmp_path)
         result = setup_repo_action(
             repo,
-            repo / ".reporadar.yml",
+            repo / ".anonymous.yml",
             categories=["cs.SE"],
             measured=False,
             provider="azure_openai",
@@ -312,7 +312,7 @@ class TestSetupRetriesKeepWhatTheCallerSaid:
             azure_deployment="gate",
         )
         assert result["status"] == "error"
-        assert not (repo / ".reporadar.yml").exists()
+        assert not (repo / ".anonymous.yml").exists()
 
     @pytest.mark.usefixtures("token_ok")
     @pytest.mark.parametrize("name", ["123", "true", "null", "0x1F", "1_000"])
@@ -326,7 +326,7 @@ class TestSetupRetriesKeepWhatTheCallerSaid:
             azure_finescale_deployment=name,
         )
         assert result["status"] == "ok"
-        cfg = load_config(tmp_path / ".reporadar.yml")
+        cfg = load_config(tmp_path / ".anonymous.yml")
         assert cfg.suggestions.azure_deployment == name
         assert cfg.triage.finescale.azure_deployment == name
 
@@ -336,7 +336,7 @@ class TestSetupWritesAWorkingKeylessConfig:
     def test_the_written_config_loads_as_an_azure_gate_and_validates(self, tmp_path: Path) -> None:
         result = _setup(tmp_path, azure_endpoint=ENDPOINT + "/", azure_deployment="gpt-5.6-luna")
         assert result["status"] == "ok"
-        cfg = load_config(tmp_path / ".reporadar.yml")
+        cfg = load_config(tmp_path / ".anonymous.yml")
         assert cfg.suggestions.provider == "azure_openai"
         assert cfg.suggestions.azure_deployment == "gpt-5.6-luna"
         assert cfg.azure_openai.endpoint == ENDPOINT
@@ -346,7 +346,7 @@ class TestSetupWritesAWorkingKeylessConfig:
     def test_the_rescore_is_on_only_when_a_deployment_was_named(self, tmp_path: Path) -> None:
         off = _setup(tmp_path / "a", azure_endpoint=ENDPOINT, azure_deployment="g")
         assert off["finescale_enabled"] is False
-        assert load_config(tmp_path / "a" / ".reporadar.yml").triage.finescale.enabled is False
+        assert load_config(tmp_path / "a" / ".anonymous.yml").triage.finescale.enabled is False
 
         on = _setup(
             tmp_path / "b",
@@ -354,7 +354,7 @@ class TestSetupWritesAWorkingKeylessConfig:
             azure_deployment="g",
             azure_finescale_deployment="gpt-4.1-mini",
         )
-        cfg = load_config(tmp_path / "b" / ".reporadar.yml")
+        cfg = load_config(tmp_path / "b" / ".anonymous.yml")
         assert on["finescale_enabled"] is True
         assert (cfg.triage.finescale.enabled, cfg.triage.finescale.provider) == (
             True,
@@ -364,7 +364,7 @@ class TestSetupWritesAWorkingKeylessConfig:
     @pytest.mark.usefixtures("token_ok")
     def test_a_keyless_config_never_tells_the_user_they_need_a_key(self, tmp_path: Path) -> None:
         _setup(tmp_path, azure_endpoint=ENDPOINT, azure_deployment="g")
-        text = (tmp_path / ".reporadar.yml").read_text(encoding="utf-8")
+        text = (tmp_path / ".anonymous.yml").read_text(encoding="utf-8")
         assert "API_KEY" not in text
         assert "Cognitive Services OpenAI User" in text
 
@@ -398,10 +398,10 @@ class TestDoctorOnAKeylessConfig:
             azure_finescale_deployment="gpt-4.1-mini",
         )
         with (
-            patch("reporadar.hyde.index_shards", return_value=[1]),
-            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", True),
+            patch("anonymous.hyde.index_shards", return_value=[1]),
+            patch("anonymous.embeddings.EMBEDDINGS_AVAILABLE", True),
         ):
-            return CliRunner().invoke(cli, ["doctor", "--config", str(tmp_path / ".reporadar.yml")])
+            return CliRunner().invoke(cli, ["doctor", "--config", str(tmp_path / ".anonymous.yml")])
 
     def test_both_stages_pass_without_any_key(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -430,6 +430,6 @@ class TestDoctorOnAKeylessConfig:
             raise azure_auth.AzureAuthError("Not signed in to Azure. Run `az login` in a terminal.")
 
         monkeypatch.setattr(azure_auth, "get_token", refuse)
-        result = CliRunner().invoke(cli, ["doctor", "--config", str(tmp_path / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["doctor", "--config", str(tmp_path / ".anonymous.yml")])
         assert result.exit_code == 1
         assert "no Entra token" in result.output and "az login" in result.output

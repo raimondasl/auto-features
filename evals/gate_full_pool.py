@@ -74,10 +74,10 @@ from harness import (  # noqa: E402
 )
 from label_pool import balanced_draw, wilson  # noqa: E402
 
-from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
-from reporadar.profiler import profile_repo  # noqa: E402
-from reporadar.triage import score_actionability  # noqa: E402
+from anonymous.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
+from anonymous.profiler import profile_repo  # noqa: E402
+from anonymous.triage import score_actionability  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
@@ -149,7 +149,7 @@ def build_pools(refresh: bool = False, pause: float = 10.0) -> None:
             f"[{name:10}] pool={len(rows):5,} papers  {time.perf_counter() - t0:5.1f}s",
             flush=True,
         )
-        # Belt and braces on top of `reporadar.arxiv_rate`, which now spaces every request
+        # Belt and braces on top of `anonymous.arxiv_rate`, which now spaces every request
         # this process makes. Kept because the throttle that hit this script cost a whole
         # rebuild, and an extra second per case is not worth arguing about.
         time.sleep(pause)

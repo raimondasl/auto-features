@@ -14,7 +14,7 @@ predictions and the kill bars — was fixed while the spend was still zero.
 
 Two questions, and the run answers both because they need the same session:
 
-1. **Does RepoRadar work on non-ML scientific software?** Six live runs (§5) said "on three of
+1. **Does Anonymous work on non-ML scientific software?** Six live runs (§5) said "on three of
    six", on a single draw, with no baseline, before nine profiler fixes. That is the demo's
    whole premise and it has never been measured properly.
 2. **What are this project's numbers now?** §11 measured that the profiler work moved the
@@ -49,7 +49,7 @@ seeing a result.
 
 **Excluded, and this matters more than the inclusions.** htslib, kallisto, tblite, kim-api,
 LAMMPS, deepmd-kit and nequip are not here. The first five are the compiled, manifest-less,
-`doc`-less repositories where RepoRadar is *known* to be weakest — install boilerplate as
+`doc`-less repositories where Anonymous is *known* to be weakest — install boilerplate as
 queries (`pre-commit`, `mamba`, `gnu lesser`), a citation id as a query (`giab007`), a package
 that loses its own name (`__kallisto__`). Dropping them makes this cohort **optimistic about
 the population it claims to represent**, and any sentence written from these results has to
@@ -154,7 +154,7 @@ same signature, now with n=12 instead of n=6 behind it.
 
 ### 14.8 Bars
 
-- **WIN** — scientific-12 mean **≥ +4.0** and pooled precision **≥ 0.80**. "RepoRadar works on
+- **WIN** — scientific-12 mean **≥ +4.0** and pooled precision **≥ 0.80**. "Anonymous works on
   scientific software" becomes a supportable claim for repositories of this kind, with §14.2's
   exclusion stated alongside it.
 - **KILL** — scientific-12 mean **≤ +2.0** or pooled precision **≤ 0.65**. The demo is scoped to

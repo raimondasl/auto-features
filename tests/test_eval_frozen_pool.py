@@ -255,9 +255,9 @@ class TestReportsRefuseToMixModes:
             "case": "a",
             "pool_size": 10,
             "n_actionable_in_pool": 5,
-            "reporadar_toppicks": {"n_returned": 2, "n_actionable": 2, "net_value@2": 2.0},
-            "reporadar_top10": {"n_returned": 10, "n_actionable": 5, "net_value@2": 0.0},
-            "returned": {"reporadar_toppicks": [], "reporadar_top10": []},
+            "anonymous_toppicks": {"n_returned": 2, "n_actionable": 2, "net_value@2": 2.0},
+            "anonymous_top10": {"n_returned": 10, "n_actionable": 5, "net_value@2": 0.0},
+            "returned": {"anonymous_toppicks": [], "anonymous_top10": []},
         }
         if mode:
             rec["pool_provenance"] = {"mode": mode, "fingerprint": "abc123def456"}

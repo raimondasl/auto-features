@@ -11,7 +11,7 @@ a pool of one system and one draw.
 This module builds the honest version:
 
 * **Pool the sources that are already judged.** At $0: `cli` baseline picks, `api` baseline
-  picks (a different system -- P13), RepoRadar's own returned papers from the headline run,
+  picks (a different system -- P13), Anonymous's own returned papers from the headline run,
   the git-history adoptions (the only model-free source; judged against the repo as it was
   *before* adoption, which is a different judging context and is recorded as such), and every
   judged `gold_spread` redraw. Every member carries its judge score and full source
@@ -27,7 +27,7 @@ This module builds the honest version:
 * **Reach is a probability, not a count ratio.** For each non-self source S,
   ``P(witness in candidate pool | witness drawn from S)`` with a Wilson interval. Growing
   the witness set tightens the interval instead of degrading the number; a *different*
-  source scoring lower is the pooling-bias measurement, not a confound. RepoRadar-sourced
+  source scoring lower is the pooling-bias measurement, not a confound. Anonymous-sourced
   witnesses are excluded from every reach denominator (leave-one-source-out): they are in
   the pool by construction, and grading a system against a pool containing its own finds
   is how pooled evaluation flatters incumbents.
@@ -70,7 +70,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import baseline as baseline_mod  # noqa: E402
 from diagnose_pool import JUDGE, _judge_stem  # noqa: E402
 
-from reporadar.paper_id import canonical_ref, dedup_id  # noqa: E402
+from anonymous.paper_id import canonical_ref, dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 FROZEN = EVALS / "witness_set.json"
@@ -79,7 +79,7 @@ WORK = EVALS / ".work"
 ACTIONABLE = 2
 DIGEST_WINDOW = 15
 
-# The headline run: source of the `reporadar` witnesses and of the shown sets for regret.
+# The headline run: source of the `anonymous` witnesses and of the shown sets for regret.
 # Named, not globbed -- "the most recent run" is how an artifact re-points itself.
 HEADLINE_RUN = (
     EVALS / "results" / "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260815T225831Z.json"
@@ -88,10 +88,10 @@ ADOPTIONS = WORK / "adoptions.json"
 TURN_PROBE = EVALS / "turn_budget_probe.json"
 POOLS = ("pool-wemb", "pool-cohort3")
 
-# Leave-one-source-out: a source may grade RepoRadar's reach unless RepoRadar produced it.
-# `reporadar` witnesses are in the pool by construction, and grading a system against a pool
+# Leave-one-source-out: a source may grade Anonymous's reach unless Anonymous produced it.
+# `anonymous` witnesses are in the pool by construction, and grading a system against a pool
 # containing its own finds is how pooled evaluation flatters incumbents. They stay in the set
-# — a future system graded against this artifact should face RepoRadar's finds too.
+# — a future system graded against this artifact should face Anonymous's finds too.
 #
 # This is a list of the SELF sources rather than an allowlist of the others because the
 # source labels are no longer a fixed set: `gold_spread` draws mint one per configuration
@@ -101,12 +101,12 @@ POOLS = ("pool-wemb", "pool-cohort3")
 # is that a future *self* source has to be added here; `tests/test_witness_set.py` pins the
 # full label set so that addition cannot be forgotten quietly.
 # `cli-v2-opus5-rr@30` is a SELF source, and this is the whole reason the inversion above
-# was worth its cost. That draw is an agent that was HANDED RepoRadar's Top Picks through the
-# MCP server, so any witness it contributes may be one RepoRadar found and it simply repeated.
-# Counting those toward RepoRadar's reach denominator would let the system grade itself
+# was worth its cost. That draw is an agent that was HANDED Anonymous's Top Picks through the
+# MCP server, so any witness it contributes may be one Anonymous found and it simply repeated.
+# Counting those toward Anonymous's reach denominator would let the system grade itself
 # through a proxy -- the pooled-evaluation flattery this rule exists to prevent, arriving by
 # a route that did not exist when the rule was written. [P27]
-SELF_SOURCES = ("reporadar", "cli-v2-opus5-rr@30", "cli-v2-opus5-rrwide@30")
+SELF_SOURCES = ("anonymous", "cli-v2-opus5-rr@30", "cli-v2-opus5-rrwide@30")
 # Display order for `report`; labels outside it are printed after, discovered from the data.
 KNOWN_ORDER = ("cli", "cli-redraw", "cli-v2", "cli-v2-opus5", "api", "adoption")
 
@@ -155,7 +155,7 @@ def draw_source_label(row: dict[str, Any]) -> str:
         stem = f"{stem}-{baseline_mod.model_tag(model)}"
     if tools != baseline_mod.DEFAULT_TOOLS:
         # The fourth axis, and by this function's own argument the least deniable one: an
-        # agent handed RepoRadar's ranked list is not the same searcher as one without it,
+        # agent handed Anonymous's ranked list is not the same searcher as one without it,
         # and pooling the two would hide the entire quantity P27 exists to measure.
         stem = f"{stem}-{tools.removeprefix('web+')}"
     return stem if cap == baseline_mod.DEFAULT_MAX_TURNS else f"{stem}@{cap}"
@@ -247,7 +247,7 @@ def _wilson(hits: int, n: int, z: float = 1.96) -> tuple[float, float]:
 def gather_witnesses() -> dict[str, dict[str, dict[str, Any]]]:
     """{case: {id: {"judge": score, "sources": [...]}}} -- judged >= 2 only.
 
-    Judge scores for `cli`/`api`/`reporadar` witnesses come from the shared verdict cache
+    Judge scores for `cli`/`api`/`anonymous` witnesses come from the shared verdict cache
     (one verdict per (case, paper), shared across sources -- so multi-source witnesses
     cannot carry contradictory scores). Adoption scores come from the mining artifact and
     were judged against the repository at t0, before the adoption; that is a different
@@ -287,8 +287,8 @@ def gather_witnesses() -> dict[str, dict[str, dict[str, Any]]]:
 
     if HEADLINE_RUN.is_file():
         for entry in json.loads(HEADLINE_RUN.read_text(encoding="utf-8")):
-            for paper in entry["returned"]["reporadar_toppicks"]:
-                add(entry["case"], dedup_id(paper["arxiv_id"]), "reporadar", paper["judge_score"])
+            for paper in entry["returned"]["anonymous_toppicks"]:
+                add(entry["case"], dedup_id(paper["arxiv_id"]), "anonymous", paper["judge_score"])
 
     if ADOPTIONS.is_file():
         for row in json.loads(ADOPTIONS.read_text(encoding="utf-8")):
@@ -355,7 +355,7 @@ def reach(witnesses: dict[str, dict[str, dict[str, Any]]], pool: str) -> dict[st
         for pid, meta in papers.items():
             non_self = non_self_sources(meta["sources"])
             if not non_self:
-                continue  # reporadar-only: in the pool by construction, grades nothing
+                continue  # anonymous-only: in the pool by construction, grades nothing
             hit = pid in pools[case]
             for source in non_self:
                 rows[source]["n"] += 1
@@ -390,7 +390,7 @@ def regret(witnesses: dict[str, dict[str, dict[str, Any]]]) -> dict[str, Any] | 
     per_case: dict[str, dict[str, Any]] = {}
     for entry in sorted(run, key=lambda e: e["case"]):
         case = entry["case"]
-        shown = entry["returned"]["reporadar_toppicks"]
+        shown = entry["returned"]["anonymous_toppicks"]
         shown_ids = {dedup_id(p["arxiv_id"]) for p in shown}
         shown_scores = [int(p["judge_score"]) for p in shown]
         actual = sum(1 if s >= ACTIONABLE else -2 for s in shown_scores)

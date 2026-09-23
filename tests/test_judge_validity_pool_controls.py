@@ -116,7 +116,7 @@ class TestTheMatchIsOnTheArxivPrimaryCategory:
 
     def test_the_collector_now_keeps_it(self) -> None:
         """`categories[0]` is feed tag order and is not a promise about which one is primary."""
-        from reporadar.collector import _result_to_paper
+        from anonymous.collector import _result_to_paper
 
         class R:
             entry_id = "http://arxiv.org/abs/2401.00001v1"

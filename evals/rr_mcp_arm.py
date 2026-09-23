@@ -1,14 +1,14 @@
-"""Give the agentic baseline RepoRadar as an MCP tool, and score the three arms. [P27]
+"""Give the agentic baseline Anonymous as an MCP tool, and score the three arms. [P27]
 
-The comparator question in PLANS 3b is *either/or*: RepoRadar's +6.27 against Opus 5's
+The comparator question in PLANS 3b is *either/or*: Anonymous's +6.27 against Opus 5's
 +5.19, paired +1.08 with an interval crossing zero. Nobody has measured the arm a user
-would actually run, which is **both** — Opus 5 in agentic mode with RepoRadar's MCP server
+would actually run, which is **both** — Opus 5 in agentic mode with Anonymous's MCP server
 attached, free to use its own search *and* the ranked list.
 
 It is worth measuring because the two systems fail differently, and the split is already
 known (P26): on the 32 cases where Opus 5 does not over-answer the two are level (−0.06);
-all of RepoRadar's margin comes from 5 cases where Opus 5 answers into a repository it
-should have abstained on. RepoRadar's edge is **abstention discipline, not discovery**. So
+all of Anonymous's margin comes from 5 cases where Opus 5 answers into a repository it
+should have abstained on. Anonymous's edge is **abstention discipline, not discovery**. So
 the augmented arm has a mechanism available to it that neither arm has alone: a gate-passed
 shortlist to check its own picks against, on exactly the repositories where its picks are
 what hurt it.
@@ -17,9 +17,9 @@ Three arms, one judge, one cohort:
 
 | arm | what it is | where it comes from |
 |---|---|---|
-| **A. RepoRadar** | the frozen arXiv+EPMC arm | `evals/results/…234024Z.json` |
+| **A. Anonymous** | the frozen arXiv+EPMC arm | `evals/results/…234024Z.json` |
 | **B. Opus 5** | v2, 30 turns, WebSearch+WebFetch | `evals/gold_spread_v2_opus5.json` |
-| **C. Opus 5 + RepoRadar** | B, plus `rr mcp` over stdio | this module + `--tools web+rr` |
+| **C. Opus 5 + Anonymous** | B, plus `rr mcp` over stdio | this module + `--tools web+rr` |
 
 ## What makes C a controlled arm rather than a new system
 
@@ -32,7 +32,7 @@ counts are recorded per row so "did it even use it?" is answered from the artifa
 
 **Arm C sees exactly what the shipped product would show for arm A's run.** The store
 holds the papers arm A returned, in arm A's order, with arm A's gate scores — not a fresh
-RepoRadar run. So a difference between A and C cannot be a different draw of RepoRadar
+Anonymous run. So a difference between A and C cannot be a different draw of Anonymous
 (NR-54 measured that at sd 1.44/case), and C's ceiling is legible: it is A's picks plus
 whatever the agent finds.
 
@@ -45,7 +45,7 @@ it. It is worth **+0.05 net@2/case to arm A**, CI [−0.14, +0.24]: 8 of the 11 
 actionable and 3 are not, so the `+1`s and the `−2`s nearly cancel. Estimated at +0.22
 first, by counting only the actionable side; `evals/mcp_arm_report.py` is what corrected
 it. The arm does not paper over it in either direction: the tool behaves exactly as the
-product does, and the comparison names a second RepoRadar arm,
+product does, and the comparison names a second Anonymous arm,
 
     **A′ = A minus the papers the product would mute**,
 
@@ -59,7 +59,7 @@ mode that would invalidate the whole experiment without leaving a trace. :func:`
 allow-lists the fields it copies rather than blocking the two it must not, because a
 block-list is one new field away from leaking.
 
-**No RepoRadar spend.** The pool is frozen, the gate verdicts are frozen, and the ranking
+**No Anonymous spend.** The pool is frozen, the gate verdicts are frozen, and the ranking
 is deterministic given the pool — so seeding costs $0 and re-running it reproduces the same
 store byte for byte.
 
@@ -99,10 +99,10 @@ if str(EVALS) not in sys.path:
 from harness import WORK_DIR, load_benchmark  # noqa: E402
 from run_judge_eval import rank_candidates  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
-from reporadar.store import PaperStore  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
+from anonymous.store import PaperStore  # noqa: E402
 
-# Arm A: the frozen RepoRadar run the P26 comparison uses as PRIMARY. Named here rather
+# Arm A: the frozen Anonymous run the P26 comparison uses as PRIMARY. Named here rather
 # than passed in, so the three arms cannot silently come from different runs -- the
 # comparison is only meaningful if C's tool serves the picks A is scored on.
 ARM_A = (
@@ -128,11 +128,11 @@ def arm_picks(results_path: Path, case: str) -> list[dict[str, Any]]:
     """Arm A's returned Top Picks for *case*, in order, **with the judge stripped**.
 
     Raises when the case is absent rather than returning an empty list: a case arm A never
-    ran is not a case where RepoRadar recommended nothing, and seeding an empty store for
+    ran is not a case where Anonymous recommended nothing, and seeding an empty store for
     it would give arm C an unattached MCP server and call the result a measurement.
     """
     row = _arm_row(results_path, case)
-    return [{f: p[f] for f in PICK_FIELDS if f in p} for p in row["returned"]["reporadar_toppicks"]]
+    return [{f: p[f] for f in PICK_FIELDS if f in p} for p in row["returned"]["anonymous_toppicks"]]
 
 
 def _arm_row(results_path: Path, case: str) -> dict[str, Any]:
@@ -176,7 +176,7 @@ def case_db(case: str, *, wide: bool = False) -> Path:
     --db` is what makes two stores for one repository possible at all.
     """
     name = "papers-wide.db" if wide else "papers.db"
-    return WORK_DIR / case / ".reporadar" / name
+    return WORK_DIR / case / ".anonymous" / name
 
 
 def _ranking_flags(results_path: Path, case: str) -> dict[str, Any]:
@@ -203,7 +203,7 @@ def seed_case(
     The narrow store holds **only the digest picks** — 3 to 15 papers. That is what makes
     arm C serve exactly arm A's output, and it is also why 48 of the augmented arm's 87 MCP
     calls were `search_papers` against a corpus of about a dozen papers the agent had
-    already been handed, where the product's `search_papers` covers everything RepoRadar
+    already been handed, where the product's `search_papers` covers everything Anonymous
     ever fetched (725–1252 candidates on these cases). Arm C was therefore a **floor**.
 
     `wide=True` seeds the whole frozen pool into the `papers` table and leaves
@@ -322,11 +322,11 @@ def write_config(
 
     Written under `.work/mcp-arm/` rather than into the cloned repository: the agent can
     read its working tree, and a config file naming the arm would be a hint no user of the
-    product would have. The store lives under `<repo>/.reporadar/`, which IS a thing a real
+    product would have. The store lives under `<repo>/.anonymous/`, which IS a thing a real
     user has; `--db` names which of the two stores this run serves, so the narrow and wide
     arms coexist instead of one being rebuilt over the other between runs.
 
-    *token* makes the pair unique per run. The call log is how "did the agent use RepoRadar
+    *token* makes the pair unique per run. The call log is how "did the agent use Anonymous
     at all?" gets answered from the artifact instead of assumed, and a log shared between
     two concurrent runs of the same case would attribute one run's calls to the other —
     which is worse than no log, because it looks like data.
@@ -336,7 +336,7 @@ def write_config(
     stem = f"{case}-wide" if wide else case
     if token:
         stem = f"{stem}-{token}"
-    rr_yml = MCP_DIR / f"{stem}.reporadar.yml"
+    rr_yml = MCP_DIR / f"{stem}.anonymous.yml"
     rr_yml.write_text(
         # `triage.enabled` is what puts the gate in the payload's tiering rule. Only the
         # picks carry a gate score in EITHER store, so it changes no set in either -- it is
@@ -359,7 +359,7 @@ def write_config(
         json.dumps(
             {
                 "mcpServers": {
-                    "reporadar": {
+                    "anonymous": {
                         "command": str(rr_bin),
                         "args": [
                             "mcp",
@@ -426,7 +426,7 @@ def verify_case(case: str, *, results_path: Path = ARM_A, wide: bool = False) ->
     Read back rather than trusted: this is the only check that exercises what the agent
     will actually receive, and it is the check that would catch a leak.
     """
-    from reporadar.mcp_server import ranked_papers_payload
+    from anonymous.mcp_server import ranked_papers_payload
 
     db = case_db(case, wide=wide)
     if not db.exists():
@@ -462,7 +462,7 @@ def verify_case(case: str, *, results_path: Path = ARM_A, wide: bool = False) ->
 
 
 def _ranked_payload(case: str, *, wide: bool) -> dict[str, Any] | None:
-    from reporadar.mcp_server import ranked_papers_payload
+    from anonymous.mcp_server import ranked_papers_payload
 
     db = case_db(case, wide=wide)
     if not db.exists():

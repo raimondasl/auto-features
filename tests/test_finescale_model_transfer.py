@@ -17,9 +17,9 @@ from typing import Any, NamedTuple
 import finescale_model_transfer as fmt
 import pytest
 
-from reporadar import azure_auth, llm_client
-from reporadar.llm_client import LLMError, LLMRateLimited, LLMUnavailable
-from reporadar.paper_id import dedup_id
+from anonymous import azure_auth, llm_client
+from anonymous.llm_client import LLMError, LLMRateLimited, LLMUnavailable
+from anonymous.paper_id import dedup_id
 
 PROMPT = "Respond with ONLY a single digit 0-9."
 

@@ -62,7 +62,7 @@ class TestAblateDocs:
 
     def test_every_manifest_the_profiler_parses_is_carried(self, repo: Path) -> None:
         """Guards the list drifting away from profiler._extract_anchors."""
-        from reporadar import profiler
+        from anonymous import profiler
 
         src = Path(profiler.__file__).read_text(encoding="utf-8")
         for manifest in MANIFESTS:
@@ -107,8 +107,8 @@ class TestAblateDocs:
     def test_the_ablated_profile_is_actually_thinner(self, repo: Path) -> None:
         """The treatment has to be a treatment — an ablation that changes nothing is a
         null result manufactured by the harness."""
-        from reporadar.config import ProfilerConfig
-        from reporadar.profiler import profile_repo
+        from anonymous.config import ProfilerConfig
+        from anonymous.profiler import profile_repo
 
         (repo / "README.md").write_text(
             "vector search over embeddings with approximate nearest neighbours. " * 60,
@@ -124,7 +124,7 @@ def arm(**nets: float) -> dict[str, dict[str, Any]]:
         case: {
             "case": case,
             "pool_size": 12,
-            "reporadar_toppicks": {
+            "anonymous_toppicks": {
                 "n_returned": abs(int(v)) or 0,
                 "n_actionable": max(0, int(v)),
                 "net_value@2": v,

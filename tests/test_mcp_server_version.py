@@ -1,9 +1,9 @@
-"""The MCP handshake names RepoRadar's version, not the MCP SDK's.
+"""The MCP handshake names Anonymous's version, not the MCP SDK's.
 
 `FastMCP` takes no version, and the low-level server it wraps falls back to
-`importlib.metadata.version("mcp")` when none is set. So a 1.0.7 install introduced itself to
-editors as `reporadar 1.30.0` -- the SDK release uvx happened to resolve that day -- which is
-what a user reads in the server list when asking which RepoRadar they are running.
+`importlib.metadata.version("mcp")` when none is set. So an install introduced itself to
+editors as `anonymous <SDK version>` -- the SDK release uvx happened to resolve that day -- which is
+what a user reads in the server list when asking which Anonymous they are running.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import anyio  # noqa: E402
 from mcp.client.session import ClientSession  # noqa: E402
 from mcp.shared.memory import create_client_server_memory_streams  # noqa: E402
 
-from reporadar import __version__, mcp_server  # noqa: E402
+from anonymous import __version__, mcp_server  # noqa: E402
 
 
 def _repo(tmp_path: Path) -> Path:
@@ -26,7 +26,7 @@ def _repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def test_the_handshake_reports_reporadars_version(tmp_path: Path) -> None:
+def test_the_handshake_reports_anonymouss_version(tmp_path: Path) -> None:
     server = mcp_server.build_server(repo_path=_repo(tmp_path))._mcp_server
     seen: dict[str, str] = {}
 
@@ -45,7 +45,7 @@ def test_the_handshake_reports_reporadars_version(tmp_path: Path) -> None:
             tg.cancel_scope.cancel()
 
     anyio.run(main)
-    assert seen == {"name": "reporadar", "version": __version__}
+    assert seen == {"name": "anonymous", "version": __version__}
 
 
 def test_it_is_not_the_sdks_version() -> None:

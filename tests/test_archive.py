@@ -1,12 +1,12 @@
-"""Tests for reporadar.archive — the GitHub Pages digest archive."""
+"""Tests for anonymous.archive — the GitHub Pages digest archive."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from reporadar.archive import INDEX_NAME, MANIFEST_NAME, archive_digest
-from reporadar.store import PaperStore
+from anonymous.archive import INDEX_NAME, MANIFEST_NAME, archive_digest
+from anonymous.store import PaperStore
 
 
 def _paper(arxiv_id: str, title: str = "A Paper") -> dict:

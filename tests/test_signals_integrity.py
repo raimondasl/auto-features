@@ -1,4 +1,4 @@
-"""Tests for reporadar.signals.integrity."""
+"""Tests for anonymous.signals.integrity."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from reporadar.signals.integrity import (
+from anonymous.signals.integrity import (
     detect_withdrawal,
     fetch_comments,
     find_withdrawn,
@@ -115,7 +115,7 @@ class TestDetectWithdrawal:
 class TestFetchComments:
     def test_skips_non_arxiv_ids_entirely(self) -> None:
         # Synthetic ids from other sources would make arXiv reject the whole request.
-        with patch("reporadar.signals.integrity._client") as client:
+        with patch("anonymous.signals.integrity._client") as client:
             assert fetch_comments(["ss:12345", "oa:W1", "biorxiv:10.1101/x"]) == {}
             client.assert_not_called()
 
@@ -123,7 +123,7 @@ class TestFetchComments:
         result = MagicMock()
         result.entry_id = "http://arxiv.org/abs/1407.6496v2"
         result.comment = "This paper has been withdrawn"
-        with patch("reporadar.signals.integrity._client") as client:
+        with patch("anonymous.signals.integrity._client") as client:
             client.return_value.results.return_value = [result]
             got = fetch_comments(["1407.6496v2"])
         assert got == {"1407.6496v2": "This paper has been withdrawn"}
@@ -133,7 +133,7 @@ class TestFetchComments:
         result = MagicMock()
         result.entry_id = "http://arxiv.org/abs/2607.09080v2"
         result.comment = "Withdrawn"
-        with patch("reporadar.signals.integrity._client") as client:
+        with patch("anonymous.signals.integrity._client") as client:
             client.return_value.results.return_value = [result]
             got = fetch_comments(["2607.09080v1"])
         assert got == {"2607.09080v1": "Withdrawn"}
@@ -145,14 +145,14 @@ class TestFetchComments:
         result = MagicMock()
         result.entry_id = "http://arxiv.org/abs/2401.00001v1"
         result.comment = ""
-        with patch("reporadar.signals.integrity._client") as client:
+        with patch("anonymous.signals.integrity._client") as client:
             client.return_value.results.return_value = [result]
             got = fetch_comments(["2401.00001v1", "9999.99999v1"])
         assert "9999.99999v1" not in got
         assert got["2401.00001v1"] == ""
 
     def test_network_failure_degrades_to_no_signal(self) -> None:
-        with patch("reporadar.signals.integrity._client") as client:
+        with patch("anonymous.signals.integrity._client") as client:
             client.return_value.results.side_effect = RuntimeError("boom")
             assert fetch_comments(["2401.00001v1"]) == {}
 

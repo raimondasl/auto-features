@@ -16,8 +16,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar import arxiv_rate, collector
-from reporadar.signals import integrity
+from anonymous import arxiv_rate, collector
+from anonymous.signals import integrity
 
 
 @pytest.fixture(autouse=True)
@@ -59,8 +59,8 @@ class TestTheShippedIntervalIsArxivsStatedCeiling:
         assert arxiv_rate.THROTTLED_BACKOFF >= 10 * arxiv_rate.DEFAULT_MIN_REQUEST_INTERVAL
 
     def test_the_user_agent_identifies_the_project(self) -> None:
-        assert "RepoRadar" in arxiv_rate.USER_AGENT
-        assert "github.com" in arxiv_rate.USER_AGENT
+        assert "Anonymous" in arxiv_rate.USER_AGENT
+        assert "(+https://" in arxiv_rate.USER_AGENT
 
     def test_the_interval_cannot_be_set_negative(self) -> None:
         arxiv_rate.set_min_interval(-5)

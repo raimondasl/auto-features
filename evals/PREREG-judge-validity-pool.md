@@ -59,7 +59,7 @@ No third judge fixes this. Consensus, majority-of-three and a tiebreaker all *pi
 
 NR-56 and NR-57 built that label and could not settle the question: 35 usable positives across 9 repositories, `graph` supplying 13, gaps 0.143 and 0.243, neither excluding zero. NR-57 established that **this benchmark cannot supply more** — mining all 37 cases moved usable adoptions from 31 to 35. So the positives must come from a population enumerated for the purpose. That is this pool.
 
-**What it is not.** It is not a benchmark, it produces no net@2 figure, and no repository in it enters `benchmark.yaml`. It runs no RepoRadar arm and no comparator: mining is git plus a regular expression, and judging shows each judge a repository as it stood at T0. That is why it can run entirely on its own, and why this is its own file (section 11).
+**What it is not.** It is not a benchmark, it produces no net@2 figure, and no repository in it enters `benchmark.yaml`. It runs no Anonymous arm and no comparator: mining is git plus a regular expression, and judging shows each judge a repository as it stood at T0. That is why it can run entirely on its own, and why this is its own file (section 11).
 
 ---
 
@@ -216,7 +216,7 @@ The window is now split into **six contiguous, non-overlapping monthly slices** 
 
 **Full enumeration was the maintainer's stated preference and was rejected on measured cost, not on principle.** At arXiv's enforced 3 s minimum request interval and a 100-record page, one busy window is ~6.6 minutes and a run needs 40–80 of them: **4.4 to 8.8 hours** of continuous third-party API access, on the critical path *after* the walk, since the windows are not known until the positives exist. arXiv returned HTTP 429 during the measurement that produced these figures and subsequent fetches did not complete. `depth="full"` is implemented and available, so the choice stays open rather than being closed by this paragraph; the default is the stratified draw.
 
-**Why not the shipped candidate pool.** A pool built by RepoRadar is RepoRadar's own HEAD-seeded output, so a judge harsher on RepoRadar-shaped papers — Sonnet, by a factor of 2.3 — would be credited with "validity". Both adoption refutations agree on this. The legacy 35 are re-run under this control scheme; the pool-control result stays reported as NR-57.
+**Why not the shipped candidate pool.** A pool built by Anonymous is Anonymous's own HEAD-seeded output, so a judge harsher on Anonymous-shaped papers — Sonnet, by a factor of 2.3 — would be credited with "validity". Both adoption refutations agree on this. The legacy 35 are re-run under this control scheme; the pool-control result stays reported as NR-57.
 
 **What "matched" does not mean, and it is the largest limitation in this file.** A control is a paper from the same field and the same half-year that the repository did not cite. **Nothing about that makes it a worse paper for the repository than the one it did adopt.** Quite possibly it is better: the maintainers may never have seen it, may have had nobody free to do the work, may have been locked into an existing dependency, or may have chosen on grounds that have nothing to do with technical merit. Adoption records what a project *did*, not what would have helped it most, and no procedure available here can tell those apart — asking a model which paper would have helped more is precisely the circularity this pool exists to escape.
 

@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import pytest
 
-from reporadar.config import FinescaleConfig, OutputConfig, RepoRadarConfig, TriageConfig
-from reporadar.explain import explain_paper
+from anonymous.config import AnonymousConfig, FinescaleConfig, OutputConfig, TriageConfig
+from anonymous.explain import explain_paper
 
 
 def _cfg(
@@ -30,8 +30,8 @@ def _cfg(
     top_k: int = 50,
     rerank: bool = True,
     min_actionable: int = 2,
-) -> RepoRadarConfig:
-    cfg = RepoRadarConfig()
+) -> AnonymousConfig:
+    cfg = AnonymousConfig()
     cfg.output = OutputConfig(top_n=top_n)
     cfg.triage = TriageConfig(
         enabled=triage,
@@ -204,7 +204,7 @@ class TestItStaysReadOnly:
         """
         from pathlib import Path
 
-        source = Path("src/reporadar/explain.py").read_text(encoding="utf-8")
+        source = Path("src/anonymous/explain.py").read_text(encoding="utf-8")
         for banned in ("llm_client", "requests", "urllib", "arxiv", "openai", "anthropic"):
             assert f"import {banned}" not in source, banned
         assert "def save" not in source and ".save_" not in source

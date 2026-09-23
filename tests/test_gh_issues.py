@@ -1,10 +1,10 @@
-"""Tests for reporadar.gh_issues."""
+"""Tests for anonymous.gh_issues."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from reporadar.gh_issues import (
+from anonymous.gh_issues import (
     check_gh_available,
     create_issue,
     create_issues,
@@ -29,17 +29,17 @@ def _make_paper(**overrides) -> dict:
 
 
 class TestCheckGhAvailable:
-    @patch("reporadar.gh_issues.subprocess.run")
+    @patch("anonymous.gh_issues.subprocess.run")
     def test_returns_true_when_available(self, mock_run: MagicMock) -> None:
         mock_run.return_value = MagicMock(returncode=0)
         assert check_gh_available() is True
 
-    @patch("reporadar.gh_issues.subprocess.run")
+    @patch("anonymous.gh_issues.subprocess.run")
     def test_returns_false_when_not_found(self, mock_run: MagicMock) -> None:
         mock_run.side_effect = FileNotFoundError("gh not found")
         assert check_gh_available() is False
 
-    @patch("reporadar.gh_issues.subprocess.run")
+    @patch("anonymous.gh_issues.subprocess.run")
     def test_returns_false_on_nonzero_exit(self, mock_run: MagicMock) -> None:
         mock_run.return_value = MagicMock(returncode=1)
         assert check_gh_available() is False
@@ -49,7 +49,7 @@ class TestFormatIssue:
     def test_title_format(self) -> None:
         paper = _make_paper()
         issue = format_issue(paper)
-        assert issue["title"] == "[RepoRadar] Test Paper on RAG"
+        assert issue["title"] == "[Anonymous] Test Paper on RAG"
 
     def test_body_contains_paper_link(self) -> None:
         paper = _make_paper()
@@ -109,14 +109,14 @@ class TestFormatIssueWithEnrichment:
 
 
 class TestCreateIssue:
-    @patch("reporadar.gh_issues.subprocess.run")
+    @patch("anonymous.gh_issues.subprocess.run")
     def test_calls_gh_with_correct_args(self, mock_run: MagicMock) -> None:
         mock_run.return_value = MagicMock(
             returncode=0,
             stdout="https://github.com/foo/bar/issues/1\n",
         )
         issue = {"title": "Test", "body": "Body"}
-        url = create_issue(issue, labels=["reporadar"])
+        url = create_issue(issue, labels=["anonymous"])
 
         assert url == "https://github.com/foo/bar/issues/1"
         call_args = mock_run.call_args[0][0]
@@ -125,7 +125,7 @@ class TestCreateIssue:
         assert "create" in call_args
         assert "--label" in call_args
 
-    @patch("reporadar.gh_issues.subprocess.run")
+    @patch("anonymous.gh_issues.subprocess.run")
     def test_returns_none_on_failure(self, mock_run: MagicMock) -> None:
         mock_run.return_value = MagicMock(returncode=1, stderr="error")
         issue = {"title": "Test", "body": "Body"}
@@ -133,7 +133,7 @@ class TestCreateIssue:
 
 
 class TestCreateIssues:
-    @patch("reporadar.gh_issues.create_issue")
+    @patch("anonymous.gh_issues.create_issue")
     def test_batch_creation(self, mock_create: MagicMock) -> None:
         mock_create.return_value = "https://github.com/foo/bar/issues/1"
         papers = [_make_paper(), _make_paper(arxiv_id="2401.00002v1")]
@@ -143,7 +143,7 @@ class TestCreateIssues:
         assert len(results) == 2
         assert all(r["status"] == "created" for r in results)
 
-    @patch("reporadar.gh_issues.create_issue")
+    @patch("anonymous.gh_issues.create_issue")
     def test_dry_run_mode(self, mock_create: MagicMock) -> None:
         papers = [_make_paper()]
         results = create_issues(papers, dry_run=True)
@@ -152,7 +152,7 @@ class TestCreateIssues:
         assert results[0]["status"] == "dry_run"
         mock_create.assert_not_called()
 
-    @patch("reporadar.gh_issues.create_issue")
+    @patch("anonymous.gh_issues.create_issue")
     def test_handles_creation_failure(self, mock_create: MagicMock) -> None:
         mock_create.return_value = None
         papers = [_make_paper()]

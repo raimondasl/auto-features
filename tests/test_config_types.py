@@ -23,12 +23,12 @@ from typing import Any
 
 import pytest
 
-from reporadar.config import RepoRadarConfig, load_config, validate_config
+from anonymous.config import AnonymousConfig, load_config, validate_config
 
 
 def _load(tmp_path: Path, yml: str) -> Any:
-    (tmp_path / ".reporadar.yml").write_text(yml, encoding="utf-8")
-    return load_config(tmp_path / ".reporadar.yml")
+    (tmp_path / ".anonymous.yml").write_text(yml, encoding="utf-8")
+    return load_config(tmp_path / ".anonymous.yml")
 
 
 class TestQuotedNumbersAreAccepted:
@@ -95,7 +95,7 @@ class TestTheOffSwitchStillWorks:
     def test_the_normaliser_is_reached_through_the_registry(self) -> None:
         """A guard against the fix drifting: the check runs BEFORE the dataclass is built,
         so a leaf with its own meaning for a bool has to be registered or it gets refused."""
-        from reporadar.config import _NORMALIZERS, _normalize_off
+        from anonymous.config import _NORMALIZERS, _normalize_off
 
         assert _NORMALIZERS["enrichment.provider"] is _normalize_off
 
@@ -140,11 +140,11 @@ class TestItDoesNotGetInTheWay:
     def test_both_shipped_templates_still_load(self, tmp_path: Path) -> None:
         """The check runs on every load, so a template it rejects would break `rr init`
         for everyone — the loudest possible regression, and worth pinning directly."""
-        from reporadar.config import default_config_yaml, measured_config_yaml
+        from anonymous.config import default_config_yaml, measured_config_yaml
 
         for text in (default_config_yaml(), measured_config_yaml()):
             cfg = _load(tmp_path, text)
-            assert isinstance(cfg, RepoRadarConfig)
+            assert isinstance(cfg, AnonymousConfig)
 
     def test_an_unknown_key_still_reports_itself(self, tmp_path: Path) -> None:
         """Unknown keys pass through so the dataclass raises its own error, which already
@@ -154,15 +154,15 @@ class TestItDoesNotGetInTheWay:
 
 
 def test_every_section_is_covered_not_a_remembered_subset() -> None:
-    """The C-16 property: the section map is derived from `RepoRadarConfig`'s own fields,
+    """The C-16 property: the section map is derived from `AnonymousConfig`'s own fields,
     so adding a section cannot leave it unchecked."""
     from dataclasses import fields, is_dataclass
 
-    from reporadar.config import _section_types
+    from anonymous.config import _section_types
 
     expected = {
         f.name
-        for f in fields(RepoRadarConfig)
+        for f in fields(AnonymousConfig)
         if isinstance(f.default_factory, type) and is_dataclass(f.default_factory)  # type: ignore[misc]
     }
     assert set(_section_types()) == expected

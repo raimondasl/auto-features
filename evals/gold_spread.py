@@ -97,7 +97,7 @@ from rr_mcp_arm import read_call_log  # noqa: E402
 from run_judge_eval import load_dotenv  # noqa: E402
 from verify import TIER_SET, resolve_references, tiers_grew  # noqa: E402
 
-from reporadar.paper_id import canonical_ref, dedup_id  # noqa: E402
+from anonymous.paper_id import canonical_ref, dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 OUT = EVALS / "gold_spread.json"
@@ -186,7 +186,7 @@ def _judge_cached(case: str, paper_id: str) -> int | None:
 
 
 def mcp_config_for(case_name: str, tools: str) -> tuple[Path, Path]:
-    """The seeded RepoRadar server config for *case_name*, or a loud failure.
+    """The seeded Anonymous server config for *case_name*, or a loud failure.
 
     Refuses a missing store rather than running without one. `--allowedTools` naming tools
     no server provides is not an error Claude Code reports: the agent simply never sees
@@ -204,7 +204,7 @@ def mcp_config_for(case_name: str, tools: str) -> tuple[Path, Path]:
     db = case_db(case_name, wide=wide)
     if not db.exists():
         raise SystemExit(
-            f"{case_name}: no seeded RepoRadar store at {db}.\n"
+            f"{case_name}: no seeded Anonymous store at {db}.\n"
             f"Run `uv run python evals/rr_mcp_arm.py --seed"
             f"{' --wide' if wide else ''}` first ($0)."
         )
@@ -303,7 +303,7 @@ def run_baseline_only(
         "raw_ids": list(result.get("ids") or []),
         "raw_titles": list(result.get("titles") or []),
         "num_turns": result.get("num_turns"),
-        # What the agent did with RepoRadar, read off the server's own log rather than
+        # What the agent did with Anonymous, read off the server's own log rather than
         # inferred from the answer. Without it a null result is unreadable: "the tool did
         # not help" and "the agent never found the tool" are opposite findings.
         **({"mcp": read_call_log(call_log)} if call_log is not None else {}),
@@ -759,7 +759,7 @@ def main() -> int:
         choices=sorted(baseline_mod.TOOLSETS),
         help=(
             "Which tools the agent gets. web = WebSearch+WebFetch, every published run. "
-            "web+rr adds RepoRadar's MCP server on top (P27) and needs the per-case stores "
+            "web+rr adds Anonymous's MCP server on top (P27) and needs the per-case stores "
             "from `evals/rr_mcp_arm.py --seed` first. Each toolset writes its OWN artifact."
         ),
     )

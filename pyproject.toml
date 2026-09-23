@@ -3,30 +3,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-# The distribution name is not "reporadar": PyPI refuses that name. Its similarity check
-# ultranormalizes candidates -- strips ". _ -", folds l/L/i/I to 1 and o/O to 0 -- and under that
-# rule "reporadar" and the existing, unrelated "repo-radar" (a GitHub pull-request auditing
-# toolkit) are the same string. No spelling escapes it: "repo_radar", "RepoRadar" and "rep0radar"
-# all collapse to the same thing, and acquiring "repo-radar" would not help either, because the
-# check matches any project rather than only other people's. The "-papers" suffix is what does the
-# disambiguating work, on the axis where the two products actually differ: repo-radar audits pull
-# requests, this recommends papers.
-#
-# Only the distribution name moves. The import package is still "reporadar" and the command is
-# still "rr" -- see [tool.hatch.build.targets.wheel] and [project.scripts]. This is the same split
-# as beautifulsoup4/bs4.
-name = "reporadar-papers"
-version = "1.0.8"
-# "relevant to your repo" is the framing this project exists to argue against — the paper is
-# titled "From Relevance to Actionability", and the whole system is built around a utility
-# judgment that a topical-relevance tool does not make. That sentence was the first thing a
-# reader would have seen on PyPI, describing a different tool.
-description = "Recommend research papers a code repository should act on, and nothing when none qualify."
+# The distribution name differs from the import package, which is "anonymous", and the
+# command is "rr" -- see [tool.hatch.build.targets.wheel] and [project.scripts]. This is the same
+# split as beautifulsoup4/bs4.
+name = "anonymous-papers"
+version = "0.0.0"
+description = "Repository-conditioned paper recommendation with abstention (anonymised research artifact)."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
-authors = [{ name = "raimondasl" }]
-keywords = ["arxiv", "research", "recommendation", "repository", "llm", "digest"]
+authors = [{ name = "anonymous" }]
+keywords = ["recommendation", "retrieval", "llm-judges"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -49,12 +36,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/raimondasl/auto-features"
-Repository = "https://github.com/raimondasl/auto-features"
-Issues = "https://github.com/raimondasl/auto-features/issues"
+Homepage = "https://anonymous.4open.science/r/utility-judgments"
+Repository = "https://anonymous.4open.science/r/utility-judgments"
+Issues = "https://anonymous.4open.science/r/utility-judgments/issues"
 
 [project.scripts]
-rr = "reporadar.cli:cli"
+rr = "anonymous.cli:cli"
 
 [project.optional-dependencies]
 embeddings = [
@@ -63,7 +50,7 @@ embeddings = [
 hyde = [
     # HyDE dense discovery (`rr sync-index` + `hyde.enabled`). The encoder must be the
     # one the published index was built with, or queries land in a different space —
-    # `reporadar.hyde.verify_encoder` refuses to search unless vectors match bit-for-bit.
+    # `anonymous.hyde.verify_encoder` refuses to search unless vectors match bit-for-bit.
     "sentence-transformers>=2.0",
     # Reads two columns out of remote Parquet shards over HTTP Range, which is what
     # turns a 2,542 MB dataset into a 432 MB one-time sync.
@@ -80,17 +67,17 @@ evals = [
     "snowballstemmer>=2.2",
     # P4 reads one column out of a remote Parquet shard over HTTP Range, to check
     # whether Design 2's "columnar range-fetch" is real before anything is built on
-    # it. Nothing in src/reporadar imports it.
+    # it. Nothing in src/anonymous imports it.
     "pyarrow>=15",
 ]
 mcp = [
-    # Only needed for `rr mcp` (RepoRadar as an MCP server for coding agents).
+    # Only needed for `rr mcp` (Anonymous as an MCP server for coding agents).
     #
     # Upper-bounded deliberately. mcp 2.x renamed FastMCP to MCPServer and dropped
-    # `mcp.server.fastmcp`, which `reporadar.mcp_server.build_server` imports -- so an
+    # `mcp.server.fastmcp`, which `anonymous.mcp_server.build_server` imports -- so an
     # unbounded `mcp>=1.0` resolves to 2.x and `rr mcp` cannot start at all. uv.lock hid
     # this completely: the dev venv and CI both pin a working 1.x, so only a user doing a
-    # fresh resolve ever saw it, and the published plugin could not start for anyone.
+    # fresh resolve ever saw it.
     # Lift the bound when build_server is ported to MCPServer, not before -- and when you
     # do, rewrite it as `>=2,<3` rather than deleting it. Of 21 actively maintained MCP
     # server packages on PyPI (ones that released after mcp 2.0), 18 cap the major and 3
@@ -122,11 +109,11 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/reporadar"]
+packages = ["src/anonymous"]
 
 # The sdist had no target, so hatchling swept the repository: 598 files, 16.3 MB unpacked,
 # including the 3.4 MB candidate universe, the walk ledger, the judge-validity datasheet and a
-# 0.6 MB RESULTS.md. Everyone running `pip install reporadar-papers` would have downloaded a
+# 0.6 MB RESULTS.md. Everyone running `pip install anonymous-papers` would have downloaded a
 # corpus to get a CLI. The wheel was already scoped and looked fine, which is why this went
 # unnoticed — the two targets fail independently.
 #
@@ -135,7 +122,7 @@ packages = ["src/reporadar"]
 # exclude it.
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src/reporadar",
+    "/src/anonymous",
     "/tests",
     "/README.md",
     "/LICENSE",
@@ -176,5 +163,5 @@ ignore_missing_imports = true
 # FastMCP's `@server.tool()` decorator is untyped (external SDK), which trips
 # strict's untyped-decorator check on the tool bodies; the bodies just delegate
 # to already-typed helpers in this module.
-module = ["reporadar.mcp_server"]
+module = ["anonymous.mcp_server"]
 disallow_untyped_decorators = false

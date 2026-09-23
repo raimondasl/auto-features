@@ -1,4 +1,4 @@
-"""Rung 1: is the +0.54 margin over Opus 5 a property of RepoRadar or of GPT-5.5? [NR-52]
+"""Rung 1: is the +0.54 margin over Opus 5 a property of Anonymous or of GPT-5.5? [NR-52]
 
 Pre-registered in `evals/PREREG-rung1.md`, committed before any margin was computed under any
 label. Read that first; this script only executes it.
@@ -49,7 +49,7 @@ from second_judge import (  # noqa: E402
     verify_contexts,
 )
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 RES = EVALS / "results"
 WORK = EVALS / ".work"
@@ -68,7 +68,7 @@ def shipped_arm() -> dict[str, list[dict[str, Any]]]:
 
     def load(name: str) -> dict[str, list[dict[str, Any]]]:
         run = json.loads((RES / name).read_text(encoding="utf-8"))
-        return {e["case"]: list(e["returned"]["reporadar_toppicks"]) for e in run}
+        return {e["case"]: list(e["returned"]["anonymous_toppicks"]) for e in run}
 
     out = load(SHIP)
     out["bio-mdtraj"] = load(SHIP_REPAIR)["bio-mdtraj"]
@@ -366,7 +366,7 @@ def report() -> int:
         "sonnet_only_sign_flips": bool((out["labels"]["sonnet_only"]["margin"] > 0) != (g > 0)),
         "sonnet_only_reading": (
             "The pre-registration named the Sonnet-only SIGN as the informative part, and it "
-            "flips. Under Sonnet, RepoRadar scores -2.03/case against Opus 5's +1.38: our shown "
+            "flips. Under Sonnet, Anonymous scores -2.03/case against Opus 5's +1.38: our shown "
             "papers run 58.5% actionable, BELOW net@2's 2/3 break-even, while Opus 5's run "
             "71.4%, above it. The prediction written in advance -- that a harsher judge would "
             "push BOTH arms negative and penalise the arm showing more -- is wrong in both "
@@ -382,7 +382,7 @@ def report() -> int:
     FROZEN.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
 
     print(f"{len(cases)} cases" + (f"; EXCLUDED {sorted(drifted)}" if drifted else "; no drift"))
-    header = f"{'label':<14}{'RepoRadar':>11}{'Opus 5':>9}{'margin':>9}{'CI95':>19}{'w/l/t':>12}"
+    header = f"{'label':<14}{'Anonymous':>11}{'Opus 5':>9}{'margin':>9}{'CI95':>19}{'w/l/t':>12}"
     print("\n" + header)
     for name in ("gpt", "consensus", "sonnet_only"):
         v = out["labels"][name]

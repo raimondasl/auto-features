@@ -131,7 +131,7 @@ class TestTheSurvey:
 
     def test_the_crontab_pair_agrees_on_its_handler(self):
         """Different handlers at the two ends is a silent one-way corruption."""
-        import reporadar.scheduler as scheduler
+        import anonymous.scheduler as scheduler
 
         source = ast.parse(Path(scheduler.__file__).read_text(encoding="utf-8"))
         handlers = {}
@@ -158,7 +158,7 @@ class TestTheCrontabRoundTripIsLossless:
     @staticmethod
     def _fake_crontab(monkeypatch, raw: bytes) -> list[str]:
         """Simulate `crontab -l` emitting *raw*; capture what `crontab -` receives."""
-        import reporadar.scheduler as scheduler
+        import anonymous.scheduler as scheduler
 
         written: list[str] = []
 
@@ -176,7 +176,7 @@ class TestTheCrontabRoundTripIsLossless:
         return written
 
     def test_a_foreign_entry_survives_byte_for_byte(self, monkeypatch):
-        import reporadar.scheduler as scheduler
+        import anonymous.scheduler as scheduler
 
         # A cron line owned by someone else, holding a byte cp1252 cannot decode.
         foreign = b"0 3 * * * /usr/bin/backup --tag caf\x81\n"
@@ -189,7 +189,7 @@ class TestTheCrontabRoundTripIsLossless:
         assert scheduler.CRON_MARKER in written[0], "our own entry should still be added"
 
     def test_our_own_lines_are_still_replaced_not_duplicated(self, monkeypatch):
-        import reporadar.scheduler as scheduler
+        import anonymous.scheduler as scheduler
 
         existing = f"0 1 * * * old-command {scheduler.CRON_MARKER}\n".encode("cp1252")
         written = self._fake_crontab(monkeypatch, existing)

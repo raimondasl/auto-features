@@ -1,8 +1,8 @@
-"""Tests for reporadar.search — full-corpus BM25 search."""
+"""Tests for anonymous.search — full-corpus BM25 search."""
 
 from __future__ import annotations
 
-from reporadar.search import search_corpus
+from anonymous.search import search_corpus
 
 
 def _paper(arxiv_id: str, title: str, abstract: str) -> dict:
