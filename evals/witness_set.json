@@ -4,6 +4,7 @@
  "n_cases": 37,
  "by_source": {
   "adoption": 22,
+  "anonymous": 189,
   "api": 50,
   "cli": 76,
   "cli-redraw": 92,
@@ -11,20 +12,19 @@
   "cli-v2-opus5-rr@30": 88,
   "cli-v2-opus5-rrwide@30": 69,
   "cli-v2-opus5@30": 302,
-  "cli-v2@30": 155,
-  "anonymous": 189
+  "cli-v2@30": 155
  },
  "sources": [
   "cli",
   "cli-redraw",
   "api",
   "adoption",
+  "anonymous",
   "cli-redraw@30",
   "cli-v2-opus5-rr@30",
   "cli-v2-opus5-rrwide@30",
   "cli-v2-opus5@30",
-  "cli-v2@30",
-  "anonymous"
+  "cli-v2@30"
  ],
  "n_non_self": 522,
  "witnesses": {

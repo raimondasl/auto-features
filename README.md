@@ -32,20 +32,20 @@ match the file as shipped.
 
 | paper | script | tracked result | data bundle |
 |---|---|---|---|
-| Section 3: benchmark, Table 1 | `freeze_gold_targets.py`, `witness_set.py` | `benchmark.yaml`, `gold_targets.json`, `witness_set.json` | none |
-| Section 3: labels, identifier re-judging, self-agreement | `rung1_second_judge.py`, `sonnet_id_probe.py`, `sonnet_self_agreement.py` | `rung1_second_judge.json`, `sonnet_id_probe.json`, `sonnet_self_agreement.json` | `.work/second_judge/` |
-| Section 3: kappa and its ceiling | `comparison_sensitivity.py` | `comparison_sensitivity.json` | none |
-| Section 3: adoption check, Table 2 | `frame/walk_pool.py`, `judge_validity_pool.py`, `judge_validity_adoption.py` | `frame/pool/`, `judge_validity_adoption.json` | adoption payloads, T0 contexts |
-| Section 3 and 7: third judge | `third_judge.py`, `third_judge_followups.py` | `third_judge.json`, `third_judge_followups.json` | `.work/third_judge/` |
+| Section 3: benchmark, Table 1 | `freeze_gold_targets.py`, `witness_set.py` | `benchmark.yaml`, `gold_targets.json`, `witness_set.json` | `cache/baseline/`, `cache/judge/`, `.work/pool-cohort3/`, `.work/pool-wemb/`, `.work/adoptions.json` |
+| Section 3: labels, identifier re-judging, self-agreement | `rung1_second_judge.py`, `sonnet_id_probe.py`, `sonnet_self_agreement.py` | `rung1_second_judge.json`, `sonnet_id_probe.json`, `sonnet_self_agreement.json` | `.work/second_judge/`, `cache/judge/`, `.work/sonnet_id_probe/` |
+| Section 3: kappa and its ceiling | `comparison_sensitivity.py` | `comparison_sensitivity.json` | Testbed A's run file |
+| Section 3: adoption check, Table 2 | `frame/walk_pool.py`, `judge_validity_pool.py`, `judge_validity_adoption.py` | `frame/pool/`, `judge_validity_adoption.json` | adoption payloads and verdicts, `.work/crossrepo_analysis.json`, T0 contexts |
+| Section 3 and 7: third judge | `third_judge.py`, `third_judge_followups.py` | `third_judge.json`, `third_judge_followups.json` | `.work/third_judge/`, `.work/second_judge/`, `cache/judge/` |
 | Section 4: channels and Table 3 | `diagnose_query_generation.py`, `hyde_replication.py`, `diagnose_citation_hop.py`, `hop_reach.py` | none | `.work/hyde_*`, `.work/hop_pool/` |
-| Section 4: widening the cut | `freeze_hyde_cut_arm.py`, `hyde_cut_reach.py` | `hyde_cut_arm.json`, `hyde_cut_reach.json` | run files of 2026-08-30 |
+| Section 4: widening the cut | `freeze_hyde_cut_arm.py`, `hyde_cut_reach.py` | `hyde_cut_arm.json`, `hyde_cut_reach.json` | `.work/pool-cut1000/`, run files of 2026-08-30 |
 | Section 4: random-pool base rate | `label_pool.py` | none | `.work/label_pool.json` |
 | Section 5: gate, ungated run | `run_judge_eval.py`, `band_testbeds.py` | none | run files of 2026-08-07, 08-14 and 09-08 |
 | Section 6: Table 4, E1 to E5 | `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`, `exp_pairwise.py`, `exp_features.py`, `compare_finescale_baseline.py` | none | `.work/exp/`, run files of 2026-08-07 |
-| Section 6: 37-repository bands, second scorer | `judge_dependence.py`, `finescale_current_gate.py`, `finescale_model_transfer.py` | `judge_dependence.json`, `finescale_current_gate.json`, `finescale_model_transfer.json` | none |
+| Section 6: 37-repository bands, second scorer | `judge_dependence.py`, `finescale_current_gate.py`, `finescale_model_transfer.py` | `judge_dependence.json`, `finescale_current_gate.json`, `finescale_model_transfer.json` | `.work/second_judge/`, `.work/exp/`, run files of 2026-08-20 and 09-08 |
 | Section 6.1: the map and its audit | `calibrate_finescale.py` | none | `.work/calibration*` |
-| Section 7: Table 5, penalty sweep | `rung1_second_judge.py`, `comparison_sensitivity.py`, `third_judge_followups.py` | the three JSON files | none |
-| Section 7: Fig. 1 | `judge_dependence.py` | `judge_dependence.json` | none |
+| Section 7: Table 5, penalty sweep | `rung1_second_judge.py`, `comparison_sensitivity.py`, `third_judge_followups.py` | the three JSON files | `.work/second_judge/`, `cache/judge/` |
+| Section 7: Fig. 1 | `judge_dependence.py` | `judge_dependence.json` | `.work/second_judge/`, `.work/second_judge_band.json` |
 | Section 7: cost | `measure_cost.py` | `cost_measured.json`, `gold_spread_v2_opus5.json` (draw 1 `cost_usd`) | none |
 
 Table 1's domains: machine learning 10 (rag, cv, rl, peft, diffusion, graph, speech, llminfer,
@@ -89,15 +89,55 @@ reported script imports them or a kept test exercises them.
   selecting everything bounds the result at AUC 0.651 and +1.32 net@2, still a fail.
 - `cost_measured.json`'s `published_claim` field records an older cost claim that the measurement
   refuted. Its measured figure is the one the paper uses. The HyDE line is measured separately.
-- `opus5_funnel.py` and `freeze_opus5_arm.py` read run files and a pool that are not shipped. Their
-  frozen outputs, `opus5_funnel.json` and `opus5_arm.json`, carry the figures.
+- `hyde_cut_reach.json` was frozen before `witness_set.json` was last regenerated. A rerun moves its
+  pooled reach from 0.1654 to 0.1648 and its reach at 1,000 from 0.4481 to 0.4464. The paper quotes
+  neither.
 - `frame/pool/datasheet.json` records file hashes of CRLF checkouts; the files in git are LF.
 - `benchmark.yaml` says in a comment that 8 of the original 12 cases are ML. The domain table
   above is the one the paper uses.
 
 ## Running
 
-`uv sync --all-extras` installs the pipeline with the evaluation and HyDE dependencies. Every
-script that buys verdicts or model calls refuses to run without its API key. Apart from the
-exceptions listed above, every figure in the paper can be recomputed offline from this tree and
-the data bundle.
+`uv sync --all-extras` installs the pipeline with the evaluation and HyDE dependencies. Unzip the
+data bundle at the root of this tree with a tool that keeps file times, such as `unzip` or 7-Zip,
+because one check reads them. The bundle's `DATA-README.md` describes its contents. Every script
+that buys verdicts or model calls refuses to run without its API key.
+
+The following were rerun from this tree and the data bundle alone, with the network blocked and no
+key set, and each reproduced its tracked result or its recorded figures exactly:
+
+- `freeze_gold_targets.py` and `--check`, `witness_set.py` and `--check`
+- `comparison_sensitivity.py`, `sonnet_self_agreement.py`, `third_judge_followups.py`
+- `judge_validity_adoption.py`, and `frame/walk_pool.py` resumed with its recorded arguments and
+  `--no-verify-pulse` (its `curve` list is per invocation)
+- `freeze_hyde_cut_arm.py`, `hyde_replication.py --report`, `label_pool.py --report`
+- `compare_finescale_baseline.py`, `exp_finescale.py --arm haiku --samples 10`,
+  `exp_select.py --model claude-haiku-4-5`, `exp_ensemble.py`, `exp_pairwise.py --testbed b
+  --no-anchors`, `exp_features.py` and `--combined`
+- `judge_dependence.py`, `calibrate_finescale.py --analyse` (pass `--out`, or it overwrites the
+  bundle's copy), `opus5_funnel.py`, `freeze_opus5_arm.py`
+
+These also need the 37 benchmark repositories cloned under `evals/.work/<case>` at the commits in
+the bundle's `REPOSITORIES.csv`: `rung1_second_judge.py`, `sonnet_id_probe.py --report`,
+`hop_reach.py`, `exp_select.py --model claude-sonnet-5`, `exp_pairwise.py --testbed a` and
+`finescale_model_transfer.py --check` and `--report`. With the original clones each reproduced
+exactly. Their context check rebuilds each repository's context and compares it with the hash
+stored in the verdicts. The rebuild depends on the platform and on the clone's `.git` contents, so a
+fresh clone may be reported as drifted. The bundle's `evals/.work/repo_contexts/` holds each context
+as the judge last saw it, and its `index.json` gives the rule for checking the hashes directly.
+
+These cannot be rerun offline:
+
+- `third_judge.py --report` needs the abstracts of the baseline's 120 DOI picks, which are
+  publisher text and not in the bundle.
+- `exp_finescale.py`'s default OpenAI arm and `finescale_current_gate.py` create their API client
+  before they read their caches, so they stop without an OpenAI key. Their caches hold every
+  result they report.
+- `judge_validity_pool.py --datasheet` and `--xrepo-analyse` verify their seeds against the NIST
+  randomness beacon, and the second also queries arXiv. The cross-repository figures of Section 3
+  are in the bundle's `evals/.work/crossrepo_analysis.json`.
+- `measure_cost.py` measures live token use. `diagnose_query_generation.py` and
+  `diagnose_citation_hop.py` query arXiv and Semantic Scholar, and their docstrings record their
+  figures.
+- `compare_finescale_baseline.py --testbed a300` stops on a failed baseline row. The paper does not
+  report that comparison.
