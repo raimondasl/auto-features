@@ -474,7 +474,7 @@
     }
    }
   },
-  "groups_note": "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed (Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were chosen on the 25 core cases. So only the 12 scientific cases saw no design decision, and 'later' is not the same as 'untouched'.",
+  "groups_note": "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed (Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were chosen on the 25 core cases. The 12 scientific cases came after those choices but were not untouched either: their predictions followed a six-repository pilot, and the shipped configuration was confirmed with their scores visible (C-45). 'Later' is not the same as 'untouched'.",
   "groups": {
    "gpt": {
     "development": {
@@ -1505,6 +1505,6 @@
    "vectordb",
    "webdev"
   ],
-  "_note": "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed (Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were chosen on the 25 core cases. So only the 12 scientific cases saw no design decision, and 'later' is not the same as 'untouched'."
+  "_note": "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed (Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were chosen on the 25 core cases. The 12 scientific cases came after those choices but were not untouched either: their predictions followed a six-repository pilot, and the shipped configuration was confirmed with their scores visible (C-45). 'Later' is not the same as 'untouched'."
  }
 }

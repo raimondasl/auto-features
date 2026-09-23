@@ -20,7 +20,9 @@ the paper can cite it.
 3. Development against later repositories. The 22 development cases are Testbed A's. The later 15
    are the 12 scientific cases and thin-gnn, thin-kv and thin-lang. The thin cases were added on
    2026-08-09, after Testbed A. That was before the digest width, gate depth and ranking weights
-   were chosen on the 25 core cases. So only the 12 scientific cases saw no design decision.
+   were chosen on the 25 core cases. The 12 scientific cases came after those choices, but not
+   untouched: their predictions followed a six-repository pilot, and the shipped configuration
+   was confirmed with their scores visible (C-45).
 4. The kappa ceiling. GPT-5.5 and Sonnet agree at kappa 0.199 on the aug20 band, binary at >= 2.
    Kappa cannot reach 1 when the two judges call different shares of the band actionable. The
    ceiling is the largest kappa those two shares allow.
@@ -114,8 +116,10 @@ THIN = ("thin-gnn", "thin-kv", "thin-lang")
 THIN_NOTE = (
     "thin-gnn, thin-kv and thin-lang were added on 2026-08-09, after the development testbed "
     "(Testbed A, 2026-08-07) but before the digest width, gate depth and ranking weights were "
-    "chosen on the 25 core cases. So only the 12 scientific cases saw no design decision, and "
-    "'later' is not the same as 'untouched'."
+    "chosen on the 25 core cases. The 12 scientific cases came after those choices but were not "
+    "untouched either: their predictions followed a six-repository pilot, and the shipped "
+    "configuration was confirmed with their scores visible (C-45). 'Later' is not the same "
+    "as 'untouched'."
 )
 
 # The GPT-5.5 against Sonnet kappa NR-52's docstring and NR-53 quote for the aug20 band.

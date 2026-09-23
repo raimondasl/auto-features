@@ -63,14 +63,17 @@ the weak one.
 | papers shown / of those actionable | 235 / 89 | **212 / 189** |
 | precision | 0.379 | **0.892** |
 | repositories where it scores negative | **19 of 25** | 0 of 25 *(this draw; see below)* |
-| against the agentic Opus 4.8 baseline | — | +1.56 (paired **+4.16**, 95% CI [+2.44, +6.00], sign *p* = 0.0004) |
+| against Claude Opus 5 with web search, all 37 repositories | — | depends on the judge: **+0.32** [−1.78, +2.51] under GPT-5.5, **−3.41** [−7.00, +0.54] under Claude Sonnet 5, **−2.27** [−6.59, +2.35] under Gemini 3.8 Flash |
+| against the superseded Opus 4.8 baseline, 25 repositories | — | +1.84; paired +3.88, 95% CI [+2.24, +5.60] (restated, C-25) |
 | API keys | none | Anthropic **and** OpenAI |
 | disk | none | ~1.1 GB (one time) |
-| cost per repo per run | $0 | **~$0.01–0.02** |
+| cost per repo per run | $0 | **~$0.05**, measured |
 
 > **Restated 2026-08-25 [C-25].** The baseline's +1.56 is understated by **0.28/case**: three cases (`compiler`, `graph`, `storage`) whose cached transcripts were replaced by a restoration note in 2026-08-09 replayed as abstentions, forfeiting seven of the baseline's own picks — all judged actionable. Corrected, the comparator is **+1.84** (58 shown / 54 actionable, precision 0.931) and the paired margin **+3.88**, 95% CI [+2.24, +5.60], 17 w / 2 l / 6 t, sign *p* = 0.0007. RepoRadar's own +5.72 does not move: net@2 reads a system's own returned papers. The figures below are the run files as measured; `uv run python evals/restate_c25.py` prints both columns. See evals/RESULTS.md → **[P13, C-25]**.
 
-> **The margin depends on which model you compare against, and we now have three [P26].** The row above names Claude Opus 4.8 at the v1 prompt and a 12-turn cap. Against two stronger comparators on the same 25 repositories:
+> **The current comparison [NR-52, NR-68, NR-69].** Against Claude Opus 5 with web search over all 37 repositories, the margin depends on the judge, and no interval excludes zero. Under GPT-5.5 it is +0.32 (17 w / 17 l / 3 t), and +11 of its +12 comes from the three negative controls, where RepoRadar shows nothing. Without them it is +0.03 under GPT-5.5 and negative under Claude Sonnet 5 and Gemini 3.8 Flash. The cost difference does not depend on the judge: about $0.05 per repository against about $9.50 for Opus 5 at list prices. The history below is kept as measured.
+
+> **The margin depends on which model you compare against [P26].** The Opus 4.8 row above names Claude Opus 4.8 at the v1 prompt and a 12-turn cap. Against two stronger comparators on the same 25 repositories:
 >
 > | comparator | its net@2 | papers/case | RepoRadar's margin |
 > |---|---|---|---|
@@ -122,11 +125,11 @@ downstream.
 
 | stage | needs | cost per repo per run | measured worth |
 |---|---|---|---|
-| actionability gate (`triage`) | `ANTHROPIC_API_KEY` or local Ollama | ~$0.01 (Haiku over 50 papers; measured ~$0.02/100) | most of the −8.12 → +5.72 gap; it is what declines to show a paper |
+| actionability gate (`triage`) | `ANTHROPIC_API_KEY` or local Ollama | ~$0.05 (Haiku over 50 papers, measured $0.050) | most of the −8.12 → +5.72 gap; it is what declines to show a paper |
 | fine-scale rescore (`triage.finescale`) | `OPENAI_API_KEY` | <$0.01 (one call per band paper) | +1.36 mean net@2; eliminates net-negative repos |
 | HyDE discovery (`hyde`) | `.[hyde]` + `rr sync-index`, ~1.1 GB | <$0.01 (4 Haiku hypotheses/run) | +1.36 mean net@2; keyword search alone reached **0 of 24** targets |
 | hybrid fusion (`ranking.hybrid`) | nothing — plain Python | $0 | better nDCG; keep it **with** the gate, see NR-11 |
-| | | **~$0.01–0.02 total** | vs **~$0.80/repo** for the agentic baseline it beats |
+| | | **~$0.05 total**, measured | vs **~$9.50/repo** at list prices for the current agentic baseline, Opus 5; the quality comparison depends on the judge (above) |
 
 **Why a second vendor.** The rescore reads the *token probability distribution* over the
 score digit, not the sampled digit — that is the mechanism that works — and of the major
@@ -194,7 +197,7 @@ rr open --top 5
 
 Creates `.reporadar.yml` config and `.reporadar/` storage directory. Safe to run multiple times — skips files that already exist.
 
-`--measured` writes the configuration every published number in this project was measured under (mean net@2 **+5.72** against the agentic baseline's +1.56) instead of the keyword-only default (**−8.12**). It needs an Anthropic key, an OpenAI key and `rr sync-index`, and costs ~$0.01–0.02 per repository per run — see [The measured configuration](#the-measured-configuration). Without the flag, `rr init` prints what the default gives up.
+`--measured` writes the configuration every published number in this project was measured under (mean net@2 **+5.72** on the 25-repository benchmark) instead of the keyword-only default (**−8.12**). It needs an Anthropic key, an OpenAI key and `rr sync-index`, and costs about $0.05 per repository per run, measured — see [The measured configuration](#the-measured-configuration). Without the flag, `rr init` prints what the default gives up.
 
 ### `rr profile [--config PATH]`
 

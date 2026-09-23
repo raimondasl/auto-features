@@ -183,8 +183,8 @@ def cli() -> None:
     is_flag=True,
     help=(
         "Write the configuration every published number was measured under "
-        "(mean net@2 +5.72 vs an agentic Opus baseline's +1.56). Needs an Anthropic key, "
-        "an OpenAI key, and `rr sync-index` (~1.1 GB); ~$0.01-0.02 per repo per run."
+        "(mean net@2 +5.72 on the 25-repository benchmark). Needs an Anthropic key, "
+        "an OpenAI key, and `rr sync-index` (~1.1 GB); ~$0.05 per repo per run, measured."
     ),
 )
 def init(path: str, measured: bool) -> None:
@@ -235,7 +235,7 @@ def init(path: str, measured: bool) -> None:
         info("")
         info("  Then `rr doctor` — it checks all three and names what each one costs.")
         info("  Every gap above fails silently at run time; that is what doctor is for.")
-        info("Cost: roughly $0.01-0.02 per repository per run.")
+        info("Cost: roughly $0.05 per repository per run, measured.")
     else:
         # Said here rather than only in the file, because the number is large enough that
         # a user who never opens the config should still hear it once.
