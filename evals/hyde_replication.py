@@ -58,9 +58,9 @@ from build_hop_pool import resolve_targets  # noqa: E402
 from harness import WORK_DIR, assemble_repo_context  # noqa: E402
 from verify_hyde_deps import DATASET, RangeFile, _shard_url  # noqa: E402
 
-from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
-from reporadar.llm_client import complete  # noqa: E402
-from reporadar.profiler import profile_repo  # noqa: E402
+from anonymous.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
+from anonymous.llm_client import complete  # noqa: E402
+from anonymous.profiler import profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"

@@ -23,14 +23,14 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.config import QueriesConfig, RankingConfig
-from reporadar.paper_id import dedup_id, doi_key, is_arxiv_id
-from reporadar.pipeline import KEYWORD_SOURCE_QUERIES
-from reporadar.profiler import RepoProfile
-from reporadar.ranker import has_comparable_categories, rank_papers, score_paper
-from reporadar.sources.biorxiv import _normalize as biorxiv_normalize
-from reporadar.sources.openalex import _normalize_paper as openalex_normalize
-from reporadar.sources.semantic_scholar import _normalize_paper as s2_normalize
+from anonymous.config import QueriesConfig, RankingConfig
+from anonymous.paper_id import dedup_id, doi_key, is_arxiv_id
+from anonymous.pipeline import KEYWORD_SOURCE_QUERIES
+from anonymous.profiler import RepoProfile
+from anonymous.ranker import has_comparable_categories, rank_papers, score_paper
+from anonymous.sources.biorxiv import _normalize as biorxiv_normalize
+from anonymous.sources.openalex import _normalize_paper as openalex_normalize
+from anonymous.sources.semantic_scholar import _normalize_paper as s2_normalize
 
 ROOT = Path(__file__).resolve().parents[1]
 PREPRINT_DOI = "10.1101/2024.03.15.585278"

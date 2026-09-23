@@ -70,7 +70,7 @@ from rung1_second_judge import (  # noqa: E402
 )
 from second_judge import DEFAULT_MODEL, cohens_kappa, quadratic_kappa, verify_contexts  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 REPLICATE_TAG = f"{DEFAULT_MODEL}#replicate"
 SEED = 20260831

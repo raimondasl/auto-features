@@ -45,8 +45,8 @@ import yaml  # noqa: E402
 from diagnose_citation_hop import hop, seeds_for  # noqa: E402
 from diagnose_pool import actionable_baseline_ids  # noqa: E402
 
-from reporadar.citations import _s2_batch_post, _s2_id  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.citations import _s2_batch_post, _s2_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 OUT_DIR = EVALS / ".work" / "hop_pool"

@@ -49,19 +49,19 @@ sys.path.insert(0, str(EVALS_DIR.parent / "src"))
 # is why this script no longer costs 174 arXiv requests on a re-run.
 from harness import WORK_DIR, load_benchmark, profile_case_repo  # noqa: E402
 
-from reporadar import arxiv_cache, s2_rate  # noqa: E402
-from reporadar.collector import (  # noqa: E402
+from anonymous import arxiv_cache, s2_rate  # noqa: E402
+from anonymous.collector import (  # noqa: E402
     CollectionError,
     build_queries,
     collect_papers,
     to_plain_keywords,
 )
-from reporadar.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
-from reporadar.paper_id import dedup_id, is_arxiv_id  # noqa: E402
-from reporadar.pipeline import KEYWORD_SOURCE_QUERIES  # noqa: E402
-from reporadar.ranker import rank_papers  # noqa: E402
-from reporadar.retrieval import hybrid_reorder  # noqa: E402
-from reporadar.sources.semantic_scholar import collect_papers as s2_collect  # noqa: E402
+from anonymous.config import ArxivConfig, QueriesConfig, RankingConfig  # noqa: E402
+from anonymous.paper_id import dedup_id, is_arxiv_id  # noqa: E402
+from anonymous.pipeline import KEYWORD_SOURCE_QUERIES  # noqa: E402
+from anonymous.ranker import rank_papers  # noqa: E402
+from anonymous.retrieval import hybrid_reorder  # noqa: E402
+from anonymous.sources.semantic_scholar import collect_papers as s2_collect  # noqa: E402
 
 # Slower than the 1 RPS floor. S2 throttles beyond its documented limit under load, and a
 # refusal miscounted as "S2 returned nothing" is exactly the error this script exists to

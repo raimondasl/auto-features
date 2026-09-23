@@ -21372,12 +21372,12 @@
    {
     "rank": "1206",
     "full_name": "boudinfl/ake-datasets",
-    "note": "git grep exited 143 at 0395f120f8505405dc6f8fc04eefffabfd920918 in C:\\Users\\raimo\\auto-features\\evals\\.work\\fullclone\\boudinfl__ake-datasets: fatal: full write "
+    "note": "git grep exited 143 at 0395f120f8505405dc6f8fc04eefffabfd920918 in C:\\Users\\user\\artifact\\evals\\.work\\fullclone\\boudinfl__ake-datasets: fatal: full write "
    },
    {
     "rank": "1752",
     "full_name": "sourcenetwork/defradb",
-    "note": "git grep exited 3221225794 at 2c2dfb4fafaa567e0e1ce8b2aa1321225bddde6c in C:\\Users\\raimo\\auto-features\\evals\\.work\\fullclone\\sourcenetwork__defradb: "
+    "note": "git grep exited 3221225794 at 2c2dfb4fafaa567e0e1ce8b2aa1321225bddde6c in C:\\Users\\user\\artifact\\evals\\.work\\fullclone\\sourcenetwork__defradb: "
    }
   ]
  },

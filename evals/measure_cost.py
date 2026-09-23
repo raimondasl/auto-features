@@ -1,7 +1,7 @@
 """What does one repository actually cost to run?
 
 The published figure, "~$0.01-0.02 per repository per run", has no derivation anywhere in
-this repository. No run file records tokens, cost or spend for the RepoRadar side. The only
+this repository. No run file records tokens, cost or spend for the Anonymous side. The only
 price model in the tree is `evals/baseline.py`, and it prices the *comparator*. So the
 headline cost comparison puts a measured baseline against an unmeasured system.
 
@@ -33,9 +33,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import band_testbeds as tb  # noqa: E402
 
-from reporadar.config import ProfilerConfig  # noqa: E402
-from reporadar.profiler import profile_repo  # noqa: E402
-from reporadar.triage import build_triage_prompt  # noqa: E402
+from anonymous.config import ProfilerConfig  # noqa: E402
+from anonymous.profiler import profile_repo  # noqa: E402
+from anonymous.triage import build_triage_prompt  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 POOL = EVALS / ".work" / "pool-cut100"

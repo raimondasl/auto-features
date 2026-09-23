@@ -61,7 +61,7 @@ import sonnet_id_probe as sip  # noqa: E402
 from band_testbeds import auc  # noqa: E402
 from bigram_report import paired_bootstrap  # noqa: E402
 
-from reporadar.paper_id import is_arxiv_id  # noqa: E402
+from anonymous.paper_id import is_arxiv_id  # noqa: E402
 
 WORK = EVALS / ".work"
 STATE = WORK / "third_judge"

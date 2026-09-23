@@ -1,14 +1,14 @@
-"""The head-to-head: RepoRadar + the fine-scale rescore vs the Opus baseline, all 22 repos.
+"""The head-to-head: Anonymous + the fine-scale rescore vs the Opus baseline, all 22 repos.
 
 Costs nothing and calls nothing. The Opus baseline's picks and the judge's verdicts on them
-are already inside the frozen run file, alongside RepoRadar's, so the comparison is a replay
+are already inside the frozen run file, alongside Anonymous's, so the comparison is a replay
 rather than a new benchmark — which also means the two systems are scored on the same
 candidates, by the same judge, in the same session.
 
 The probabilities are **leave-one-repo-out**: for each held-out repo the score→probability
 map is fitted on the other 21 and applied to that one. That is the honest estimate of what
 the shipped map does on a repo it has not seen, and it deliberately uses the SAME model
-family as `reporadar.finescale` (a plain unregularised logistic on the raw 0-9 expectation).
+family as `anonymous.finescale` (a plain unregularised logistic on the raw 0-9 expectation).
 Fitting a differently-regularised map and reporting its number is exactly the error the
 "Correction" section of RESULTS.md documents: `exp_features.loro_fit` selects L2 strength by
 AUC, which is rank-only and therefore blind to where P crosses the 2/3 threshold.

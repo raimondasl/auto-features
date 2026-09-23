@@ -1,4 +1,4 @@
-"""Tests for reporadar.cli — integration tests for all CLI commands."""
+"""Tests for anonymous.cli — integration tests for all CLI commands."""
 
 from __future__ import annotations
 
@@ -12,15 +12,15 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from reporadar.cli import (
+from anonymous.cli import (
     _FOUNDATIONAL_LOOKBACK,
     _apply_foundational,
     _format_size,
     _parse_since,
     cli,
 )
-from reporadar.config import ArxivConfig, RankingConfig
-from reporadar.store import PaperStore
+from anonymous.config import ArxivConfig, RankingConfig
+from anonymous.store import PaperStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -28,7 +28,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 def _setup_repo(tmp_path: Path) -> Path:
     """Create a minimal repo with config and README."""
     shutil.copy(FIXTURES_DIR / "sample_readme.md", tmp_path / "README.md")
-    config_file = tmp_path / ".reporadar.yml"
+    config_file = tmp_path / ".anonymous.yml"
     config_file.write_text(
         f"repo_path: {tmp_path}\n"
         "arxiv:\n"
@@ -76,7 +76,7 @@ def _community_paper(arxiv_id: str) -> dict:
 
 def _seed_db(tmp_path: Path) -> None:
     """Create a populated DB with papers, a run, and scores."""
-    db_path = tmp_path / ".reporadar" / "papers.db"
+    db_path = tmp_path / ".anonymous" / "papers.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with PaperStore(db_path) as store:
         papers = [
@@ -134,7 +134,7 @@ class TestSearchCommand:
         _seed_db(tmp_path)
         result = CliRunner().invoke(
             cli,
-            ["search", "retrieval augmented generation", "--config", str(repo / ".reporadar.yml")],
+            ["search", "retrieval augmented generation", "--config", str(repo / ".anonymous.yml")],
         )
         assert result.exit_code == 0
         assert "Test Paper on RAG" in result.output
@@ -145,7 +145,7 @@ class TestSearchCommand:
         _seed_db(tmp_path)
         result = CliRunner().invoke(
             cli,
-            ["search", "retrieval", "--config", str(repo / ".reporadar.yml"), "--format", "json"],
+            ["search", "retrieval", "--config", str(repo / ".anonymous.yml"), "--format", "json"],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -156,30 +156,30 @@ class TestSearchCommand:
         repo = _setup_repo(tmp_path)
         _seed_db(tmp_path)
         result = CliRunner().invoke(
-            cli, ["search", "zzzznomatchxyz", "--config", str(repo / ".reporadar.yml")]
+            cli, ["search", "zzzznomatchxyz", "--config", str(repo / ".anonymous.yml")]
         )
         assert result.exit_code == 0
         assert "No matches" in result.output
 
     def test_missing_db_errors(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)  # no _seed_db → no papers.db
-        result = CliRunner().invoke(cli, ["search", "x", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["search", "x", "--config", str(repo / ".anonymous.yml")])
         assert result.exit_code == 1
 
     def test_rejects_non_positive_limit(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(tmp_path)
         result = CliRunner().invoke(
-            cli, ["search", "retrieval", "--config", str(repo / ".reporadar.yml"), "-n", "0"]
+            cli, ["search", "retrieval", "--config", str(repo / ".anonymous.yml"), "-n", "0"]
         )
         assert result.exit_code == 2  # click IntRange rejects 0 as a usage error
 
     def test_semantic_without_embeddings_errors(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(tmp_path)
-        with patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", False):
+        with patch("anonymous.embeddings.EMBEDDINGS_AVAILABLE", False):
             result = CliRunner().invoke(
-                cli, ["search", "x", "--config", str(repo / ".reporadar.yml"), "--semantic"]
+                cli, ["search", "x", "--config", str(repo / ".anonymous.yml"), "--semantic"]
             )
         assert result.exit_code == 1
         assert "embeddings extra" in result.output
@@ -187,7 +187,7 @@ class TestSearchCommand:
 
 class TestDedupId:
     def test_version_strips_only_arxiv_ids(self) -> None:
-        from reporadar.cli import _dedup_id
+        from anonymous.cli import _dedup_id
 
         assert _dedup_id("2401.12345v3") == "2401.12345"
         assert _dedup_id("2401.12345") == "2401.12345"
@@ -240,9 +240,9 @@ class TestInitCommand:
         result = runner.invoke(cli, ["init", "--path", str(tmp_path)])
 
         assert result.exit_code == 0
-        assert (tmp_path / ".reporadar.yml").exists()
-        assert (tmp_path / ".reporadar").is_dir()
-        assert "RepoRadar initialized" in result.output
+        assert (tmp_path / ".anonymous.yml").exists()
+        assert (tmp_path / ".anonymous").is_dir()
+        assert "Anonymous initialized" in result.output
 
     def test_idempotent(self, tmp_path: Path) -> None:
         runner = CliRunner()
@@ -259,7 +259,7 @@ class TestInitCommand:
 
         import yaml
 
-        content = (tmp_path / ".reporadar.yml").read_text(encoding="utf-8")
+        content = (tmp_path / ".anonymous.yml").read_text(encoding="utf-8")
         data = yaml.safe_load(content)
         assert data["repo_path"] == "."
         assert "arxiv" in data
@@ -281,7 +281,7 @@ class TestInitCommand:
 
         result = CliRunner().invoke(cli, ["init", "--path", str(tmp_path), "--measured"])
         assert result.exit_code == 0
-        data = yaml.safe_load((tmp_path / ".reporadar.yml").read_text(encoding="utf-8"))
+        data = yaml.safe_load((tmp_path / ".anonymous.yml").read_text(encoding="utf-8"))
         assert data["triage"]["enabled"] is True
         assert data["triage"]["finescale"]["enabled"] is True
         assert data["hyde"]["enabled"] is True
@@ -295,10 +295,10 @@ class TestInitCommand:
     def test_the_measured_config_loads_and_enables_every_stage(self, tmp_path: Path) -> None:
         """A recommended config that does not round-trip through the real loader is a
         suggestion nobody has run."""
-        from reporadar.config import load_config
+        from anonymous.config import load_config
 
         CliRunner().invoke(cli, ["init", "--path", str(tmp_path), "--measured"])
-        cfg = load_config(tmp_path / ".reporadar.yml")
+        cfg = load_config(tmp_path / ".anonymous.yml")
         assert cfg.triage.enabled and cfg.triage.finescale.enabled
         assert cfg.hyde.enabled and cfg.ranking.hybrid
         assert cfg.suggestions.provider == "claude"
@@ -314,7 +314,7 @@ class TestInitCommand:
         """Mutation guard: if --measured silently fell back to the default template, every
         assertion above about stages would fail, but a future refactor could make them
         both write the measured one and nothing would notice."""
-        from reporadar.config import default_config_yaml, measured_config_yaml
+        from anonymous.config import default_config_yaml, measured_config_yaml
 
         assert default_config_yaml() != measured_config_yaml()
         assert "enabled: true" not in default_config_yaml()
@@ -325,7 +325,7 @@ class TestProfileCommand:
     def test_prints_keywords(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         runner = CliRunner()
-        result = runner.invoke(cli, ["profile", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["profile", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "Keywords (TF-IDF):" in result.output
@@ -333,7 +333,7 @@ class TestProfileCommand:
         assert "Inferred domains:" in result.output
 
     def test_empty_repo(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(f"repo_path: {tmp_path}\n", encoding="utf-8")
 
         runner = CliRunner()
@@ -348,7 +348,7 @@ class TestProfileCommand:
             encoding="utf-8",
         )
         (tmp_path / "requirements.txt").write_text("scanpy\nanndata\n", encoding="utf-8")
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(f"repo_path: {tmp_path}\nsources: [arxiv]\n", encoding="utf-8")
 
         result = CliRunner().invoke(cli, ["profile", "--config", str(config_file)])
@@ -366,7 +366,7 @@ class TestProfileCommand:
             encoding="utf-8",
         )
         (tmp_path / "requirements.txt").write_text("scanpy\nanndata\n", encoding="utf-8")
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             f"repo_path: {tmp_path}\nsources: [arxiv, europepmc]\n", encoding="utf-8"
         )
@@ -378,7 +378,7 @@ class TestProfileCommand:
 
 
 class TestUpdateCommand:
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_full_pipeline(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         now = datetime.now(UTC).isoformat()
@@ -398,31 +398,31 @@ class TestUpdateCommand:
         ]
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "Profiling repo:" in result.output
         assert "Fetching papers" in result.output
         assert "Scoring papers" in result.output
         assert "Done!" in result.output
-        assert (repo / ".reporadar" / "papers.db").exists()
+        assert (repo / ".anonymous" / "papers.db").exists()
 
-    @patch("reporadar.pipeline.collect_papers")
-    @patch("reporadar.citations.fetch_references")
+    @patch("anonymous.pipeline.collect_papers")
+    @patch("anonymous.citations.fetch_references")
     def test_citation_proximity_wiring(
         self, mock_refs: MagicMock, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
         # Pins the versioned(citing)-vs-base(cited) id contract end-to-end through
         # the update -> fetch_references -> find_citation_links -> save_citations chain.
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "  w_recency: 0.3\n", "  w_recency: 0.3\n  w_citation_proximity: 5.0\n"
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db) as store:
             store.star_paper("2401.00099v1")  # the seed
@@ -450,20 +450,20 @@ class TestUpdateCommand:
         with PaperStore(db) as store:
             assert store.get_citations_for(["2402.00001v1"]) == {"2402.00001v1": ["2401.00099"]}
 
-    @patch("reporadar.pipeline.collect_papers")
-    @patch("reporadar.sources.s2_recommendations.fetch_recommendations")
+    @patch("anonymous.pipeline.collect_papers")
+    @patch("anonymous.sources.s2_recommendations.fetch_recommendations")
     def test_recommendations_wiring(
         self, mock_recs: MagicMock, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
         # Pins the seed contract: stars/high ratings are positives, low ratings are
         # negatives, and a low rating beats an implicit star for the same paper.
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8") + "recommendations:\n  enabled: true\n",
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db) as store:
             store.save_rating("2401.00010v1", 5)  # positive
@@ -512,24 +512,24 @@ class TestUpdateCommand:
         with PaperStore(db) as store:
             assert store.get_paper("2403.00002v1") is not None
 
-    @patch("reporadar.pipeline.collect_papers")
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.pipeline.collect_papers")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_specter_wiring(
         self, mock_vectors: MagicMock, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
         import numpy as np
 
-        from reporadar.specter import SPECTER_DIM
+        from anonymous.specter import SPECTER_DIM
 
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "  w_recency: 0.3\n", "  w_recency: 0.3\n  w_specter: 5.0\n"
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         seed_paper = {
             "arxiv_id": "2401.00050v1",
@@ -577,12 +577,12 @@ class TestUpdateCommand:
             assert by_id["2402.00001v1"]["specter_score"] == 1.0
             assert by_id["2402.00002v1"]["specter_score"] == 0.0
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_community_wiring_uses_cached_upvotes(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         # _setup_repo already sets enrichment.provider to "off", which is the point:
         # ranking reads upvotes cached by an *earlier* run, since enrichment (stage 9)
         # happens after ranking (stage 8).
@@ -592,7 +592,7 @@ class TestUpdateCommand:
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         popular, quiet, unseen = (
             _community_paper("2402.00001v1"),
@@ -624,7 +624,7 @@ class TestUpdateCommand:
         assert by_id["2402.00003v1"]["community_score"] is None
         assert by_id["2402.00003v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_feedback_tuning_preserves_non_learned_weights(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -639,7 +639,7 @@ class TestUpdateCommand:
         the hand-written rebuild leaves such an assertion green).
         """
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "  w_recency: 0.3\n",
@@ -648,7 +648,7 @@ class TestUpdateCommand:
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         upvoted, quiet = _community_paper("2402.00001v1"), _community_paper("2402.00002v1")
         with PaperStore(db) as store:
@@ -688,20 +688,20 @@ class TestUpdateCommand:
         assert by_id["2402.00002v1"]["community_score"] < 1.0
         assert by_id["2402.00001v1"]["score_total"] > by_id["2402.00002v1"]["score_total"]
 
-    @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.integrity.fetch_comments")
+    @patch("anonymous.pipeline.collect_papers")
     def test_integrity_demotes_and_records_a_withdrawn_paper(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         withdrawn, clean = _community_paper("2607.00001v1"), _community_paper("2607.00002v1")
         mock_collect.return_value = [withdrawn, clean]
@@ -725,13 +725,13 @@ class TestUpdateCommand:
         # next run can skip it — that is not the same as being flagged.
         assert signals["2607.00002v1"]["value"] is None
 
-    @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.integrity.fetch_comments")
+    @patch("anonymous.pipeline.collect_papers")
     def test_integrity_failure_does_not_break_the_run(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
@@ -746,8 +746,8 @@ class TestUpdateCommand:
         assert result.exit_code == 0
         assert "Integrity check failed" in result.output
 
-    @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.integrity.fetch_comments")
+    @patch("anonymous.pipeline.collect_papers")
     def test_an_arxiv_outage_is_reported_not_hidden(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -757,7 +757,7 @@ class TestUpdateCommand:
         clean "no withdrawn papers" while having checked nothing.
         """
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
@@ -772,15 +772,15 @@ class TestUpdateCommand:
         assert result.exit_code == 0
         assert "could not reach arXiv" in result.output
 
-    @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.integrity.fetch_comments")
+    @patch("anonymous.pipeline.collect_papers")
     def test_local_fallback_flags_a_paper_arxiv_cannot_resolve(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
         # A notice in the stored abstract needs no network, so it must cover papers
         # from non-arXiv sources too — whose synthetic ids the API cannot resolve.
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
@@ -799,8 +799,8 @@ class TestUpdateCommand:
         # A synthetic id must not be queued for a lookup it can never satisfy.
         mock_comments.assert_not_called()
 
-    @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.integrity.fetch_comments")
+    @patch("anonymous.pipeline.collect_papers")
     def test_integrity_skips_recently_checked_papers(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
@@ -811,14 +811,14 @@ class TestUpdateCommand:
         papers. A stored (clean) result from today means no lookup at all.
         """
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         paper = _community_paper("2607.00001v1")
         with PaperStore(db) as store:
@@ -832,20 +832,20 @@ class TestUpdateCommand:
         mock_comments.assert_not_called()
         assert "0 looked up" in result.output
 
-    @patch("reporadar.signals.integrity.fetch_comments")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.integrity.fetch_comments")
+    @patch("anonymous.pipeline.collect_papers")
     def test_a_previously_flagged_paper_stays_demoted_without_a_refetch(
         self, mock_collect: MagicMock, mock_comments: MagicMock, tmp_path: Path
     ) -> None:
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "signals:\n  integrity: false\n", "signals:\n  integrity: true\n"
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         flagged, clean = _community_paper("2607.00001v1"), _community_paper("2607.00002v1")
         with PaperStore(db) as store:
@@ -868,20 +868,20 @@ class TestUpdateCommand:
             by_id = {s["arxiv_id"]: s for s in store.get_scores_for_run(run_id)}
         assert by_id["2607.00001v1"]["score_total"] < by_id["2607.00002v1"]["score_total"]
 
-    @patch("reporadar.signals.hn.fetch_attention")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.signals.hn.fetch_attention")
+    @patch("anonymous.pipeline.collect_papers")
     def test_hackernews_wiring(
         self, mock_collect: MagicMock, mock_attention: MagicMock, tmp_path: Path
     ) -> None:
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8")
             .replace("  w_recency: 0.3\n", "  w_recency: 0.3\n  w_attention: 5.0\n")
             .replace("  integrity: false\n", "  integrity: false\n  hackernews: true\n"),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         discussed, quiet = _community_paper("2607.00001v1"), _community_paper("2607.00002v1")
         mock_collect.return_value = [discussed, quiet]
@@ -910,31 +910,31 @@ class TestUpdateCommand:
         assert signals["2607.00001v1"]["value"] == "1351"
         assert signals["2607.00001v1"]["detail"].endswith("42823568")
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_no_papers_found(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "No new papers found" in result.output
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_collection_error(self, mock_collect: MagicMock, tmp_path: Path) -> None:
-        from reporadar.collector import CollectionError
+        from anonymous.collector import CollectionError
 
         repo = _setup_repo(tmp_path)
         mock_collect.side_effect = CollectionError("network down")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 1
         assert "Failed to fetch papers" in result.output
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_explain_flag(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         now = datetime.now(UTC).isoformat()
@@ -955,7 +955,7 @@ class TestUpdateCommand:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["update", "--config", str(repo / ".reporadar.yml"), "--explain"]
+            cli, ["update", "--config", str(repo / ".anonymous.yml"), "--explain"]
         )
 
         assert result.exit_code == 0
@@ -964,14 +964,14 @@ class TestUpdateCommand:
         assert "category" in result.output
         assert "recency" in result.output
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_explain_uses_the_feedback_tuned_weights(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
         # With feedback on, the scores come from adjusted weights; explaining them
         # with the file's weights printed contributions that didn't sum to the total.
         repo = _setup_repo(tmp_path)
-        cfg_path = repo / ".reporadar.yml"
+        cfg_path = repo / ".anonymous.yml"
         cfg_path.write_text(
             cfg_path.read_text(encoding="utf-8").replace(
                 "  w_recency: 0.3\n",
@@ -979,7 +979,7 @@ class TestUpdateCommand:
             ),
             encoding="utf-8",
         )
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         target = _community_paper("2402.00001v1")
         with PaperStore(db) as store:
@@ -1003,7 +1003,7 @@ class TestUpdateCommand:
         explanation = result.output[result.output.index("Score explanations:") :]
         assert "1.00 *" not in explanation
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_score_distribution_shown(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         now = datetime.now(UTC).isoformat()
@@ -1023,17 +1023,17 @@ class TestUpdateCommand:
         ]
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "Score stats:" in result.output
         assert "mean=" in result.output
         assert "median=" in result.output
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_no_queries(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         # Empty repo with no README — profiler finds no keywords
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             f"repo_path: {tmp_path}\narxiv:\n  categories: []\nqueries:\n  seed: []\n",
             encoding="utf-8",
@@ -1052,14 +1052,14 @@ class TestDigestCommand:
         _seed_db(repo)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["digest", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["digest", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "Digest written to" in result.output
         assert (repo / "digest.md").exists()
 
         content = (repo / "digest.md").read_text(encoding="utf-8")
-        assert "RepoRadar Digest" in content
+        assert "Anonymous Digest" in content
         assert "Test Paper on RAG" in content
 
     def test_html_format(self, tmp_path: Path) -> None:
@@ -1072,7 +1072,7 @@ class TestDigestCommand:
             [
                 "digest",
                 "--config",
-                str(repo / ".reporadar.yml"),
+                str(repo / ".anonymous.yml"),
                 "--format",
                 "html",
             ],
@@ -1092,7 +1092,7 @@ class TestDigestCommand:
             [
                 "digest",
                 "--config",
-                str(repo / ".reporadar.yml"),
+                str(repo / ".anonymous.yml"),
                 "-o",
                 str(out),
             ],
@@ -1111,7 +1111,7 @@ class TestDigestCommand:
             [
                 "digest",
                 "--config",
-                str(repo / ".reporadar.yml"),
+                str(repo / ".anonymous.yml"),
                 "--diff",
             ],
         )
@@ -1126,7 +1126,7 @@ class TestDigestCommand:
         repo = _setup_repo(tmp_path)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["digest", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["digest", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 1
         assert "No database found" in result.output
@@ -1134,20 +1134,20 @@ class TestDigestCommand:
     def test_no_runs(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         # Create empty DB with no runs
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db_path):
             pass
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["digest", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["digest", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 1
         assert "No runs found" in result.output
 
 
 class TestOpenCommand:
-    @patch("reporadar.cli.webbrowser.open")
+    @patch("anonymous.cli.webbrowser.open")
     def test_opens_papers(self, mock_open: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(repo)
@@ -1158,7 +1158,7 @@ class TestOpenCommand:
             [
                 "open",
                 "--config",
-                str(repo / ".reporadar.yml"),
+                str(repo / ".anonymous.yml"),
                 "-n",
                 "1",
             ],
@@ -1169,7 +1169,7 @@ class TestOpenCommand:
         assert "Opened 1 papers" in result.output
         mock_open.assert_called_once()
 
-    @patch("reporadar.cli.webbrowser.open")
+    @patch("anonymous.cli.webbrowser.open")
     def test_default_top_5(self, mock_open: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(repo)
@@ -1180,7 +1180,7 @@ class TestOpenCommand:
             [
                 "open",
                 "--config",
-                str(repo / ".reporadar.yml"),
+                str(repo / ".anonymous.yml"),
             ],
         )
 
@@ -1191,20 +1191,20 @@ class TestOpenCommand:
         repo = _setup_repo(tmp_path)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["open", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["open", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 1
         assert "No database found" in result.output
 
     def test_no_runs(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db_path):
             pass
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["open", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["open", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 1
         assert "No runs found" in result.output
@@ -1216,7 +1216,7 @@ class TestStatusCommand:
         _seed_db(repo)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["status", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["status", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "Repo path:" in result.output
@@ -1230,20 +1230,20 @@ class TestStatusCommand:
         repo = _setup_repo(tmp_path)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["status", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["status", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "No database found" in result.output
 
     def test_status_db_no_runs(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db_path):
             pass
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["status", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["status", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "No runs yet" in result.output
@@ -1255,7 +1255,7 @@ class TestHistoryCommand:
         _seed_db(repo)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["history", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["history", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "Run" in result.output
@@ -1265,27 +1265,27 @@ class TestHistoryCommand:
         repo = _setup_repo(tmp_path)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["history", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["history", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 1
         assert "No database found" in result.output
 
     def test_history_no_runs(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db_path):
             pass
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["history", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["history", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "No runs found" in result.output
 
     def test_history_limit_flag(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db_path) as store:
             for i in range(5):
@@ -1297,7 +1297,7 @@ class TestHistoryCommand:
             [
                 "history",
                 "--config",
-                str(repo / ".reporadar.yml"),
+                str(repo / ".anonymous.yml"),
                 "--limit",
                 "2",
             ],
@@ -1315,13 +1315,13 @@ class TestQueriesCommand:
         repo = _setup_repo(tmp_path)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["queries", "--config", str(repo / ".reporadar.yml")])
+        result = runner.invoke(cli, ["queries", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert "queries" in result.output.lower()
 
     def test_no_queries_message(self, tmp_path: Path) -> None:
-        config_file = tmp_path / ".reporadar.yml"
+        config_file = tmp_path / ".anonymous.yml"
         config_file.write_text(
             f"repo_path: {tmp_path}\narxiv:\n  categories: []\nqueries:\n  seed: []\n",
             encoding="utf-8",
@@ -1335,8 +1335,8 @@ class TestQueriesCommand:
 
 
 class TestGhIssuesCommand:
-    @patch("reporadar.gh_issues.check_gh_available", return_value=True)
-    @patch("reporadar.gh_issues.create_issue")
+    @patch("anonymous.gh_issues.check_gh_available", return_value=True)
+    @patch("anonymous.gh_issues.create_issue")
     def test_dry_run_shows_preview(
         self, mock_create: MagicMock, mock_gh: MagicMock, tmp_path: Path
     ) -> None:
@@ -1346,15 +1346,15 @@ class TestGhIssuesCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["gh-issues", "--config", str(repo / ".reporadar.yml"), "--dry-run"],
+            ["gh-issues", "--config", str(repo / ".anonymous.yml"), "--dry-run"],
         )
 
         assert result.exit_code == 0
         assert "DRY RUN" in result.output
         mock_create.assert_not_called()
 
-    @patch("reporadar.gh_issues.check_gh_available", return_value=True)
-    @patch("reporadar.gh_issues.create_issue")
+    @patch("anonymous.gh_issues.check_gh_available", return_value=True)
+    @patch("anonymous.gh_issues.create_issue")
     def test_skips_already_exported(
         self, mock_create: MagicMock, mock_gh: MagicMock, tmp_path: Path
     ) -> None:
@@ -1362,7 +1362,7 @@ class TestGhIssuesCommand:
         _seed_db(repo)
 
         # Mark all papers as already exported
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         with PaperStore(db_path) as store:
             store.record_export("2401.00001v1", "github_issue", "url1")
             store.record_export("2401.00002v1", "github_issue", "url2")
@@ -1370,14 +1370,14 @@ class TestGhIssuesCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["gh-issues", "--config", str(repo / ".reporadar.yml")],
+            ["gh-issues", "--config", str(repo / ".anonymous.yml")],
         )
 
         assert result.exit_code == 0
         assert "already been exported" in result.output
         mock_create.assert_not_called()
 
-    @patch("reporadar.gh_issues.check_gh_available", return_value=False)
+    @patch("anonymous.gh_issues.check_gh_available", return_value=False)
     def test_gh_not_available(self, mock_gh: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(repo)
@@ -1385,7 +1385,7 @@ class TestGhIssuesCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["gh-issues", "--config", str(repo / ".reporadar.yml")],
+            ["gh-issues", "--config", str(repo / ".anonymous.yml")],
         )
 
         assert result.exit_code == 1
@@ -1393,7 +1393,7 @@ class TestGhIssuesCommand:
 
 
 class TestNotifyCommand:
-    @patch("reporadar.notify.dispatch_notification", return_value=True)
+    @patch("anonymous.notify.dispatch_notification", return_value=True)
     def test_success(self, mock_dispatch: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(repo)
@@ -1401,7 +1401,7 @@ class TestNotifyCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+            ["notify", "--config", str(repo / ".anonymous.yml"), "--channel", "shell"],
         )
 
         assert result.exit_code == 0
@@ -1413,7 +1413,7 @@ class TestNotifyCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+            ["notify", "--config", str(repo / ".anonymous.yml"), "--channel", "shell"],
         )
 
         assert result.exit_code == 1
@@ -1421,7 +1421,7 @@ class TestNotifyCommand:
 
     def test_no_runs(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        db_path = repo / ".reporadar" / "papers.db"
+        db_path = repo / ".anonymous" / "papers.db"
         db_path.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db_path):
             pass
@@ -1429,13 +1429,13 @@ class TestNotifyCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+            ["notify", "--config", str(repo / ".anonymous.yml"), "--channel", "shell"],
         )
 
         assert result.exit_code == 1
         assert "No runs found" in result.output
 
-    @patch("reporadar.notify.dispatch_notification", return_value=False)
+    @patch("anonymous.notify.dispatch_notification", return_value=False)
     def test_failure_exits_1(self, mock_dispatch: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(repo)
@@ -1443,7 +1443,7 @@ class TestNotifyCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["notify", "--config", str(repo / ".reporadar.yml"), "--channel", "shell"],
+            ["notify", "--config", str(repo / ".anonymous.yml"), "--channel", "shell"],
         )
 
         assert result.exit_code == 1
@@ -1451,38 +1451,38 @@ class TestNotifyCommand:
 
 
 class TestScheduleCommand:
-    @patch("reporadar.scheduler.add_schedule", return_value=True)
+    @patch("anonymous.scheduler.add_schedule", return_value=True)
     def test_add_success(self, mock_add: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["schedule", "--config", str(repo / ".reporadar.yml"), "--cron", "0 9 * * 1"],
+            ["schedule", "--config", str(repo / ".anonymous.yml"), "--cron", "0 9 * * 1"],
         )
         assert result.exit_code == 0
         assert "Schedule registered" in result.output
 
-    @patch("reporadar.scheduler.add_schedule", return_value=False)
+    @patch("anonymous.scheduler.add_schedule", return_value=False)
     def test_add_failure(self, mock_add: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["schedule", "--config", str(repo / ".reporadar.yml"), "--cron", "0 9 * * 1"],
+            ["schedule", "--config", str(repo / ".anonymous.yml"), "--cron", "0 9 * * 1"],
         )
         assert result.exit_code == 1
         assert "Failed" in result.output
 
-    @patch("reporadar.scheduler.list_schedules", return_value=[])
+    @patch("anonymous.scheduler.list_schedules", return_value=[])
     def test_list_empty(self, mock_list: MagicMock) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["schedule", "--list"])
         assert result.exit_code == 0
         assert "No schedules" in result.output
 
-    @patch("reporadar.scheduler.list_schedules")
+    @patch("anonymous.scheduler.list_schedules")
     def test_list_with_tasks(self, mock_list: MagicMock) -> None:
-        from reporadar.scheduler import ScheduledTask
+        from anonymous.scheduler import ScheduledTask
 
         mock_list.return_value = [
             ScheduledTask(cron_expr="0 9 * * 1", command="rr update", platform="unix")
@@ -1493,14 +1493,14 @@ class TestScheduleCommand:
         assert "0 9 * * 1" in result.output
         assert "unix" in result.output
 
-    @patch("reporadar.scheduler.remove_schedule", return_value=True)
+    @patch("anonymous.scheduler.remove_schedule", return_value=True)
     def test_remove_success(self, mock_rm: MagicMock) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["schedule", "--remove"])
         assert result.exit_code == 0
         assert "Schedule removed" in result.output
 
-    @patch("reporadar.scheduler.remove_schedule", return_value=False)
+    @patch("anonymous.scheduler.remove_schedule", return_value=False)
     def test_remove_not_found(self, mock_rm: MagicMock) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["schedule", "--remove"])
@@ -1517,15 +1517,15 @@ class TestScheduleCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["schedule", "--config", str(repo / ".reporadar.yml"), "--cron", "bad"],
+            ["schedule", "--config", str(repo / ".anonymous.yml"), "--cron", "bad"],
         )
         assert result.exit_code == 1
         assert "Invalid cron" in result.output
 
 
 class TestWorkspaceCommands:
-    @patch("reporadar.workspace.WORKSPACE_DIR")
-    @patch("reporadar.workspace.WORKSPACE_DB")
+    @patch("anonymous.workspace.WORKSPACE_DIR")
+    @patch("anonymous.workspace.WORKSPACE_DB")
     def test_init(self, mock_db: MagicMock, mock_dir: MagicMock, tmp_path: Path) -> None:
         mock_dir.__truediv__ = lambda self, x: tmp_path / x
         mock_db.__fspath__ = lambda self: str(tmp_path / "workspace.db")
@@ -1533,10 +1533,10 @@ class TestWorkspaceCommands:
         # Directly test with a custom db_path to avoid home directory side effects
         with (
             patch(
-                "reporadar.workspace.open_workspace_store",
+                "anonymous.workspace.open_workspace_store",
                 return_value=PaperStore(tmp_path / "workspace.db"),
             ),
-            patch("reporadar.workspace.ensure_workspace_dir", return_value=tmp_path),
+            patch("anonymous.workspace.ensure_workspace_dir", return_value=tmp_path),
         ):
             runner = CliRunner()
             result = runner.invoke(cli, ["workspace", "init"])
@@ -1550,7 +1550,7 @@ class TestWorkspaceCommands:
         repo_dir.mkdir()
 
         with patch(
-            "reporadar.workspace.open_workspace_store",
+            "anonymous.workspace.open_workspace_store",
             return_value=PaperStore(ws_db),
         ):
             runner = CliRunner()
@@ -1564,7 +1564,7 @@ class TestWorkspaceCommands:
             assert "Added repo" in result.output
 
         with patch(
-            "reporadar.workspace.open_workspace_store",
+            "anonymous.workspace.open_workspace_store",
             return_value=PaperStore(ws_db),
         ):
             # List
@@ -1573,7 +1573,7 @@ class TestWorkspaceCommands:
             assert "myrepo" in result.output
 
         with patch(
-            "reporadar.workspace.open_workspace_store",
+            "anonymous.workspace.open_workspace_store",
             return_value=PaperStore(ws_db),
         ):
             # Remove
@@ -1584,7 +1584,7 @@ class TestWorkspaceCommands:
     def test_list_empty(self, tmp_path: Path) -> None:
         ws_db = tmp_path / "workspace.db"
         with patch(
-            "reporadar.workspace.open_workspace_store",
+            "anonymous.workspace.open_workspace_store",
             return_value=PaperStore(ws_db),
         ):
             runner = CliRunner()
@@ -1592,11 +1592,11 @@ class TestWorkspaceCommands:
         assert result.exit_code == 0
         assert "No repos registered" in result.output
 
-    # `reporadar.cli.collect_papers`, NOT the pipeline's: `rr workspace update` is the one
+    # `anonymous.cli.collect_papers`, NOT the pipeline's: `rr workspace update` is the one
     # collector still implemented in `cli.py`, because one shared pool across many member
     # repos is a different shape from one-repo-one-run. If this ever needs retargeting,
     # the workspace path has been unified too and `stages.py` should say so.
-    @patch("reporadar.cli.collect_papers")
+    @patch("anonymous.cli.collect_papers")
     def test_update_pipeline(self, mock_collect: MagicMock, tmp_path: Path) -> None:
         ws_db = tmp_path / "workspace.db"
         repo_dir = _setup_repo(tmp_path)
@@ -1617,11 +1617,11 @@ class TestWorkspaceCommands:
         ]
 
         store = PaperStore(ws_db)
-        store.add_workspace_repo("testrepo", str(repo_dir), str(repo_dir / ".reporadar.yml"))
+        store.add_workspace_repo("testrepo", str(repo_dir), str(repo_dir / ".anonymous.yml"))
         store.close()
 
         with patch(
-            "reporadar.workspace.open_workspace_store",
+            "anonymous.workspace.open_workspace_store",
             return_value=PaperStore(ws_db),
         ):
             runner = CliRunner()
@@ -1632,7 +1632,7 @@ class TestWorkspaceCommands:
     def test_digest_no_runs(self, tmp_path: Path) -> None:
         ws_db = tmp_path / "workspace.db"
         with patch(
-            "reporadar.workspace.open_workspace_store",
+            "anonymous.workspace.open_workspace_store",
             return_value=PaperStore(ws_db),
         ):
             runner = CliRunner()
@@ -1642,7 +1642,7 @@ class TestWorkspaceCommands:
 
 
 class TestWatchCommand:
-    @patch("reporadar.watcher.watch_loop")
+    @patch("anonymous.watcher.watch_loop")
     def test_basic_invocation(self, mock_loop: MagicMock, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         mock_loop.side_effect = KeyboardInterrupt()
@@ -1650,7 +1650,7 @@ class TestWatchCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["watch", "--config", str(repo / ".reporadar.yml"), "--interval", "1m"],
+            ["watch", "--config", str(repo / ".anonymous.yml"), "--interval", "1m"],
         )
         assert result.exit_code == 0
         assert "Watch stopped" in result.output
@@ -1660,7 +1660,7 @@ class TestWatchCommand:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["watch", "--config", str(repo / ".reporadar.yml"), "--interval", "bad"],
+            ["watch", "--config", str(repo / ".anonymous.yml"), "--interval", "bad"],
         )
         assert result.exit_code == 1
         assert "Invalid interval" in result.output
@@ -1682,7 +1682,7 @@ class TestFormatSize:
 class TestEvalCommand:
     def _repo_with_ratings(self, tmp_path: Path, n: int = 24) -> Path:
         repo = _setup_repo(tmp_path)
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         on_topic = "retrieval augmented generation with transformers"
         off_topic = "combinatorial scheduling heuristics on graphs"
@@ -1708,7 +1708,7 @@ class TestEvalCommand:
 
     def test_reports_metrics(self, tmp_path: Path) -> None:
         repo = self._repo_with_ratings(tmp_path)
-        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".anonymous.yml")])
         assert result.exit_code == 0
         assert "nDCG@10" in result.output
         assert "Judged papers: 24" in result.output
@@ -1716,7 +1716,7 @@ class TestEvalCommand:
     def test_json_output_is_machine_readable(self, tmp_path: Path) -> None:
         repo = self._repo_with_ratings(tmp_path)
         result = CliRunner().invoke(
-            cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--format", "json"]
+            cli, ["eval", "--config", str(repo / ".anonymous.yml"), "--format", "json"]
         )
         assert result.exit_code == 0
         payload = json.loads(result.output)
@@ -1727,19 +1727,19 @@ class TestEvalCommand:
     def test_no_ratings_explains_what_to_do(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
         _seed_db(tmp_path)  # papers and scores, but no ratings or stars
-        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".anonymous.yml")])
         assert result.exit_code == 1
         assert "rr rate" in result.output
 
     def test_missing_db_errors(self, tmp_path: Path) -> None:
         repo = _setup_repo(tmp_path)
-        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["eval", "--config", str(repo / ".anonymous.yml")])
         assert result.exit_code == 1
         assert "rr update" in result.output
 
     def test_compare_detects_a_regression(self, tmp_path: Path) -> None:
         repo = self._repo_with_ratings(tmp_path, n=30)
-        good = repo / ".reporadar.yml"
+        good = repo / ".anonymous.yml"
         bad = repo / "bad.yml"
         bad.write_text(
             good.read_text(encoding="utf-8").replace("  w_keyword: 1.0\n", "  w_keyword: 0.0\n"),
@@ -1754,7 +1754,7 @@ class TestEvalCommand:
 
     def test_baseline_is_recorded_and_listed(self, tmp_path: Path) -> None:
         repo = self._repo_with_ratings(tmp_path)
-        cfg_path = str(repo / ".reporadar.yml")
+        cfg_path = str(repo / ".anonymous.yml")
         recorded = CliRunner().invoke(
             cli, ["eval", "--config", cfg_path, "--baseline", "--label", "before"]
         )
@@ -1768,7 +1768,7 @@ class TestEvalCommand:
     def test_history_without_snapshots_is_not_an_error(self, tmp_path: Path) -> None:
         repo = self._repo_with_ratings(tmp_path)
         result = CliRunner().invoke(
-            cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--history"]
+            cli, ["eval", "--config", str(repo / ".anonymous.yml"), "--history"]
         )
         assert result.exit_code == 0
         assert "No baselines recorded yet" in result.output
@@ -1776,8 +1776,8 @@ class TestEvalCommand:
     def test_baseline_stores_the_weights_that_produced_it(self, tmp_path: Path) -> None:
         # A snapshot without its config cannot be compared to anything later.
         repo = self._repo_with_ratings(tmp_path)
-        CliRunner().invoke(cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--baseline"])
-        with PaperStore(repo / ".reporadar" / "papers.db") as store:
+        CliRunner().invoke(cli, ["eval", "--config", str(repo / ".anonymous.yml"), "--baseline"])
+        with PaperStore(repo / ".anonymous" / "papers.db") as store:
             snapshot = store.get_metric_snapshots()[0]
         assert snapshot["config"]["w_keyword"] == 1.0
         assert snapshot["metrics"]["ndcg@k"] > 0
@@ -1788,7 +1788,7 @@ class TestEvalRegressionGate:
 
     def _repo(self, tmp_path: Path, n: int = 30) -> Path:
         repo = _setup_repo(tmp_path)
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         on_topic = "retrieval augmented generation with transformers"
         off_topic = "combinatorial scheduling heuristics on graphs"
@@ -1815,7 +1815,7 @@ class TestEvalRegressionGate:
     def test_a_regression_exits_nonzero(self, tmp_path: Path) -> None:
         # Exit status is the whole point: a CI job gates the build on it.
         repo = self._repo(tmp_path)
-        good = repo / ".reporadar.yml"
+        good = repo / ".anonymous.yml"
         bad = repo / "bad.yml"
         bad.write_text(
             good.read_text(encoding="utf-8").replace("  w_keyword: 1.0\n", "  w_keyword: 0.0\n"),
@@ -1829,7 +1829,7 @@ class TestEvalRegressionGate:
 
     def test_an_unchanged_config_passes(self, tmp_path: Path) -> None:
         repo = self._repo(tmp_path)
-        cfg_path = str(repo / ".reporadar.yml")
+        cfg_path = str(repo / ".anonymous.yml")
         runner = CliRunner()
         runner.invoke(cli, ["eval", "--config", cfg_path, "--baseline"])
         result = runner.invoke(cli, ["eval", "--config", cfg_path, "--against", "latest"])
@@ -1838,7 +1838,7 @@ class TestEvalRegressionGate:
 
     def test_against_a_specific_snapshot_id(self, tmp_path: Path) -> None:
         repo = self._repo(tmp_path)
-        cfg_path = str(repo / ".reporadar.yml")
+        cfg_path = str(repo / ".anonymous.yml")
         runner = CliRunner()
         runner.invoke(cli, ["eval", "--config", cfg_path, "--baseline", "--label", "first"])
         result = runner.invoke(cli, ["eval", "--config", cfg_path, "--against", "1"])
@@ -1849,14 +1849,14 @@ class TestEvalRegressionGate:
         # A CI job gating on exit 0 must not be told "fine" when nothing was compared.
         repo = self._repo(tmp_path)
         result = CliRunner().invoke(
-            cli, ["eval", "--config", str(repo / ".reporadar.yml"), "--against", "latest"]
+            cli, ["eval", "--config", str(repo / ".anonymous.yml"), "--against", "latest"]
         )
         assert result.exit_code == 1
         assert "No recorded baseline" in result.output
 
     def test_compare_plus_against_warns_rather_than_ignoring(self, tmp_path: Path) -> None:
         repo = self._repo(tmp_path)
-        cfg_path = str(repo / ".reporadar.yml")
+        cfg_path = str(repo / ".anonymous.yml")
         result = CliRunner().invoke(
             cli,
             ["eval", "--config", cfg_path, "--compare", cfg_path, cfg_path, "--against", "latest"],
@@ -1867,7 +1867,7 @@ class TestEvalRegressionGate:
     def test_history_shows_the_cutoff_each_snapshot_used(self, tmp_path: Path) -> None:
         # Snapshots taken at different k are not comparable; hiding k hides that.
         repo = self._repo(tmp_path)
-        cfg_path = str(repo / ".reporadar.yml")
+        cfg_path = str(repo / ".anonymous.yml")
         runner = CliRunner()
         runner.invoke(cli, ["eval", "--config", cfg_path, "-k", "5", "--baseline"])
         result = runner.invoke(cli, ["eval", "--config", cfg_path, "--history"])
@@ -1898,7 +1898,7 @@ class TestScanSourceReachesEveryPipeline:
             "class BlackbriarPipeline:\n    pass\n",
             encoding="utf-8",
         )
-        (repo / ".reporadar.yml").write_text(
+        (repo / ".anonymous.yml").write_text(
             f"repo_path: {repo.as_posix()}\n"
             "profiler:\n  scan_source: true\n"
             "arxiv:\n  categories: [cs.IR]\n"
@@ -1910,11 +1910,11 @@ class TestScanSourceReachesEveryPipeline:
 
     def _expected_queries(self, repo: Path) -> list[str]:
         """What `rr update` would transmit — the reference every other path must match."""
-        from reporadar.collector import build_queries
-        from reporadar.config import load_config
-        from reporadar.profiler import profile_repo
+        from anonymous.collector import build_queries
+        from anonymous.config import load_config
+        from anonymous.profiler import profile_repo
 
-        cfg = load_config(repo / ".reporadar.yml")
+        cfg = load_config(repo / ".anonymous.yml")
         profile = profile_repo(repo, profiler_cfg=cfg.profiler)
         return build_queries(profile, cfg.queries, cfg.arxiv)
 
@@ -1924,11 +1924,11 @@ class TestScanSourceReachesEveryPipeline:
         expected = self._expected_queries(repo)
         assert any("blackbriar" in q.lower() for q in expected), expected
 
-        from reporadar.collector import build_queries
-        from reporadar.config import load_config
-        from reporadar.profiler import profile_repo
+        from anonymous.collector import build_queries
+        from anonymous.config import load_config
+        from anonymous.profiler import profile_repo
 
-        cfg = load_config(repo / ".reporadar.yml")
+        cfg = load_config(repo / ".anonymous.yml")
         without = build_queries(profile_repo(repo), cfg.queries, cfg.arxiv)
         assert not any("blackbriar" in q.lower() for q in without), (
             "omitting profiler_cfg no longer changes the queries, so these tests prove nothing"
@@ -1946,11 +1946,11 @@ class TestScanSourceReachesEveryPipeline:
 
         ws_db = tmp_path / "workspace.db"
         store = PaperStore(ws_db)
-        store.add_workspace_repo("myrepo", str(repo), str(repo / ".reporadar.yml"))
+        store.add_workspace_repo("myrepo", str(repo), str(repo / ".anonymous.yml"))
 
         with (
-            patch("reporadar.workspace.open_workspace_store", return_value=PaperStore(ws_db)),
-            patch("reporadar.cli.collect_papers", side_effect=fake_collect),
+            patch("anonymous.workspace.open_workspace_store", return_value=PaperStore(ws_db)),
+            patch("anonymous.cli.collect_papers", side_effect=fake_collect),
         ):
             result = CliRunner().invoke(cli, ["workspace", "update"])
 
@@ -1964,12 +1964,12 @@ class TestScanSourceReachesEveryPipeline:
         Fixing only the collection half would leave `workspace update` matching papers
         against source identifiers and then ranking them against a docs-only profile.
         """
-        from reporadar.config import load_config
-        from reporadar.profiler import profile_repo
-        from reporadar.workspace import score_papers_for_repo
+        from anonymous.config import load_config
+        from anonymous.profiler import profile_repo
+        from anonymous.workspace import score_papers_for_repo
 
         repo = self._repo(tmp_path)
-        cfg = load_config(repo / ".reporadar.yml")
+        cfg = load_config(repo / ".anonymous.yml")
 
         seen: list[object] = []
         real_profile_repo = profile_repo
@@ -1978,7 +1978,7 @@ class TestScanSourceReachesEveryPipeline:
             seen.append(profiler_cfg)
             return real_profile_repo(path, profiler_cfg=profiler_cfg)
 
-        with patch("reporadar.profiler.profile_repo", side_effect=spy):
+        with patch("anonymous.profiler.profile_repo", side_effect=spy):
             score_papers_for_repo("myrepo", str(repo), [], cfg)
 
         assert seen, "score_papers_for_repo never profiled the repo"
@@ -1987,7 +1987,7 @@ class TestScanSourceReachesEveryPipeline:
         )
 
     def test_watch_cycle_builds_the_same_queries_as_update(self, tmp_path: Path) -> None:
-        from reporadar.watcher import run_update_cycle
+        from anonymous.watcher import run_update_cycle
 
         repo = self._repo(tmp_path)
         expected = self._expected_queries(repo)
@@ -1998,11 +1998,11 @@ class TestScanSourceReachesEveryPipeline:
             collected.append(list(queries))
             return []
 
-        # `reporadar.pipeline.collect_papers`, because the watch cycle now runs the shared
+        # `anonymous.pipeline.collect_papers`, because the watch cycle now runs the shared
         # pipeline rather than its own copy -- which is the whole point of this test's
         # sibling above: both entry points must build the SAME queries.
-        with patch("reporadar.pipeline.collect_papers", side_effect=fake_collect):
-            run_update_cycle(str(repo / ".reporadar.yml"))
+        with patch("anonymous.pipeline.collect_papers", side_effect=fake_collect):
+            run_update_cycle(str(repo / ".anonymous.yml"))
 
         assert collected, "the watch cycle never reached collection"
         assert collected[0] == expected
@@ -2017,7 +2017,7 @@ class TestNoNewProfilerCfgOmissions:
         `scan_source` — it just quietly narrows what the tool searches for. Three call
         sites drifted this way before anyone noticed. Fail the build instead.
         """
-        src = Path(__file__).resolve().parent.parent / "src" / "reporadar"
+        src = Path(__file__).resolve().parent.parent / "src" / "anonymous"
         offenders: list[str] = []
         for path in src.rglob("*.py"):
             if path.name == "profiler.py":  # the definition itself
@@ -2050,7 +2050,7 @@ class TestCrossSourceDedupIsVersionAware:
         Nothing raises, no test fails, and the run looks fine — you just see the same
         paper twice. Three merges drifted this way, so assert the shape directly.
         """
-        src = Path(__file__).resolve().parent.parent / "src" / "reporadar" / "cli.py"
+        src = Path(__file__).resolve().parent.parent / "src" / "anonymous" / "cli.py"
         offenders: list[str] = []
         for n, line in enumerate(src.read_text(encoding="utf-8").splitlines(), 1):
             stripped = line.strip()
@@ -2066,13 +2066,13 @@ class TestCrossSourceDedupIsVersionAware:
     def test_dedup_id_strips_the_version(self) -> None:
         # Guards the helper the merges rely on; if this changed, the merges would still
         # "use _dedup_id" while no longer deduping.
-        from reporadar.cli import _dedup_id
+        from anonymous.cli import _dedup_id
 
         assert _dedup_id("2401.12345v2") == _dedup_id("2401.12345")
         assert _dedup_id("2401.12345v2") == "2401.12345"
 
     def test_non_arxiv_ids_are_left_alone(self) -> None:
-        from reporadar.cli import _dedup_id
+        from anonymous.cli import _dedup_id
 
         # Synthetic and legacy ids must pass through untouched, or unrelated papers
         # would start colliding with each other.
@@ -2088,12 +2088,12 @@ class TestDoctorNamesWhatEachGapCosts:
 
     @staticmethod
     def _cfg(tmp_path, **over):  # noqa: ANN001, ANN205
-        from reporadar.config import measured_config_yaml
+        from anonymous.config import measured_config_yaml
 
         body = measured_config_yaml().replace("repo_path: .", f"repo_path: {tmp_path.as_posix()}")
         for k, v in over.items():
             body = body.replace(k, v)
-        p = tmp_path / ".reporadar.yml"
+        p = tmp_path / ".anonymous.yml"
         p.write_text(body, encoding="utf-8")
         return p
 
@@ -2102,8 +2102,8 @@ class TestDoctorNamesWhatEachGapCosts:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         cfg = self._cfg(tmp_path, **over)
         with (
-            patch("reporadar.hyde.index_shards", return_value=list(range(shards))),
-            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", embeddings),
+            patch("anonymous.hyde.index_shards", return_value=list(range(shards))),
+            patch("anonymous.embeddings.EMBEDDINGS_AVAILABLE", embeddings),
         ):
             return CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
 
@@ -2130,8 +2130,8 @@ class TestDoctorNamesWhatEachGapCosts:
         monkeypatch.setenv("OPENAI_API_KEY", "k")
         cfg = self._cfg(tmp_path, **{"[cs.LG, cs.CL]": "[cs.DB]"})
         with (
-            patch("reporadar.hyde.index_shards", return_value=[1, 2, 3]),
-            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", True),
+            patch("anonymous.hyde.index_shards", return_value=[1, 2, 3]),
+            patch("anonymous.embeddings.EMBEDDINGS_AVAILABLE", True),
         ):
             r = CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
         assert r.exit_code == 0, r.output
@@ -2142,8 +2142,8 @@ class TestDoctorNamesWhatEachGapCosts:
         monkeypatch.setenv("OPENAI_API_KEY", "k")
         cfg = self._cfg(tmp_path)
         with (
-            patch("reporadar.hyde.index_shards", return_value=[1]),
-            patch("reporadar.embeddings.EMBEDDINGS_AVAILABLE", True),
+            patch("anonymous.hyde.index_shards", return_value=[1]),
+            patch("anonymous.embeddings.EMBEDDINGS_AVAILABLE", True),
         ):
             r = CliRunner().invoke(cli, ["doctor", "--config", str(cfg)])
         assert r.exit_code == 1 and "cs.LG/cs.CL default" in r.output
@@ -2152,8 +2152,8 @@ class TestDoctorNamesWhatEachGapCosts:
 def test_version_option_names_the_distribution_not_the_import_package() -> None:
     """`package_name` must be pyproject's `name`, which is not the import package.
 
-    The two diverge: PyPI refused `reporadar` as too similar to an unrelated `repo-radar`,
-    so the distribution is `reporadar-papers` while the import package stays `reporadar`.
+    The two diverge: the distribution is `anonymous-papers` while the import package is
+    `anonymous`.
     This cannot be caught by invoking the CLI — click >= 8.4.2 quietly recovers from a wrong
     value by resolving it as an import name, so `rr --version` keeps working on a modern
     click — but the declared floor is click>=8.0, where the same mistake raises RuntimeError
@@ -2166,7 +2166,7 @@ def test_version_option_names_the_distribution_not_the_import_package() -> None:
     declared = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     expected = declared["project"]["name"]
 
-    source = (root / "src" / "reporadar" / "cli.py").read_text(encoding="utf-8")
+    source = (root / "src" / "anonymous" / "cli.py").read_text(encoding="utf-8")
     found = re.search(r'version_option\(package_name="([^"]+)"\)', source)
     assert found is not None, "version_option(package_name=...) not found in cli.py"
     assert found.group(1) == expected, (
@@ -2180,8 +2180,8 @@ def test_the_mcp_extra_excludes_the_sdk_major_that_cannot_run() -> None:
     mcp 2.x renamed FastMCP to MCPServer and dropped that module, so an unbounded
     `mcp>=1.0` resolves to a version where `rr mcp` cannot start at all. No runtime test
     can catch this: `uv.lock` pins a working 1.x, so the dev venv and CI never do the
-    fresh resolve a user does — which is exactly how a published plugin that could not
-    start for anyone passed a green suite. Compare the declared specifier instead.
+    fresh resolve a user does — which is how a plugin that could not start at all
+    passed a green suite. Compare the declared specifier instead.
     """
     import tomllib
 
@@ -2191,11 +2191,11 @@ def test_the_mcp_extra_excludes_the_sdk_major_that_cannot_run() -> None:
     spec = next(s for s in specs if s.split(">")[0].split("<")[0].split("[")[0].strip() == "mcp")
     assert "<2" in spec.replace(" ", ""), (
         f"the mcp extra is {spec!r}; it must exclude 2.x while "
-        "reporadar.mcp_server imports mcp.server.fastmcp"
+        "anonymous.mcp_server imports mcp.server.fastmcp"
     )
 
     # And retire yourself when the port lands, rather than silently holding the ceiling.
-    source = (root / "src" / "reporadar" / "mcp_server.py").read_text(encoding="utf-8")
+    source = (root / "src" / "anonymous" / "mcp_server.py").read_text(encoding="utf-8")
     assert "mcp.server.fastmcp" in source, (
         "mcp_server no longer imports mcp.server.fastmcp: if it is ported to MCPServer, "
         "lift the <2 bound in pyproject.toml and delete this test"
@@ -2206,14 +2206,14 @@ class TestUpdateCanNarrateItselfToAParentProcess:
     """`--progress-json`, which is how a delegated collection's progress reaches an MCP
     client.
 
-    RepoRadar's server cannot run dense discovery — it installs the light `[mcp]` extra, and
+    Anonymous's server cannot run dense discovery — it installs the light `[mcp]` extra, and
     sentence-transformers would put torch in every installation — so with HyDE enabled it
-    runs the pipeline as a `uvx` subprocess instead (see `reporadar.delegate`). That only
+    runs the pipeline as a `uvx` subprocess instead (see `anonymous.delegate`). That only
     works if the child narrates itself: a tool call silent for the minutes collection takes
     is a tool call Copilot CLI cancels.
     """
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_the_stream_carries_progress_warnings_and_the_closing_counts(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -2235,7 +2235,7 @@ class TestUpdateCanNarrateItselfToAParentProcess:
 
         result = CliRunner().invoke(
             cli,
-            ["update", "--config", str(repo / ".reporadar.yml"), "--progress-json"],
+            ["update", "--config", str(repo / ".anonymous.yml"), "--progress-json"],
         )
 
         assert result.exit_code == 0, result.output
@@ -2250,7 +2250,7 @@ class TestUpdateCanNarrateItselfToAParentProcess:
         assert closing[0]["papers"] == 1
         assert set(closing[0]) >= {"run_id", "stopped", "queries", "papers", "scored"}
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_a_run_that_stops_early_still_reports_a_result(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -2262,7 +2262,7 @@ class TestUpdateCanNarrateItselfToAParentProcess:
 
         result = CliRunner().invoke(
             cli,
-            ["update", "--config", str(repo / ".reporadar.yml"), "--progress-json"],
+            ["update", "--config", str(repo / ".anonymous.yml"), "--progress-json"],
         )
 
         assert result.exit_code == 0, result.output
@@ -2275,7 +2275,7 @@ class TestUpdateCanNarrateItselfToAParentProcess:
         assert closing[0]["stopped"]
         assert closing[0]["papers"] == 0
 
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_without_the_flag_nothing_changes(
         self, mock_collect: MagicMock, tmp_path: Path
     ) -> None:
@@ -2284,7 +2284,7 @@ class TestUpdateCanNarrateItselfToAParentProcess:
         repo = _setup_repo(tmp_path)
         mock_collect.return_value = []
 
-        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0
         assert '{"event"' not in result.stderr

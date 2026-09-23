@@ -1,4 +1,4 @@
-"""Tests for reporadar.sources.openalex."""
+"""Tests for anonymous.sources.openalex."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from reporadar.sources.openalex import (
+from anonymous.sources.openalex import (
     _extract_arxiv_id,
     _normalize_paper,
     collect_papers,
@@ -86,7 +86,7 @@ class TestExtractArxivId:
 
 
 class TestSearchPapers:
-    @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    @patch("anonymous.sources.openalex.urllib.request.urlopen")
     def test_returns_normalized_papers(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"results": [_make_oa_work()]})
 
@@ -97,7 +97,7 @@ class TestSearchPapers:
         assert results[0]["title"] == "Test Paper"
         assert "Alice Smith" in results[0]["authors"]
 
-    @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    @patch("anonymous.sources.openalex.urllib.request.urlopen")
     def test_query_url_construction(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"results": []})
 
@@ -108,7 +108,7 @@ class TestSearchPapers:
         assert "mailto=user%40example.com" in req.full_url
         assert "search=test+query" in req.full_url
 
-    @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    @patch("anonymous.sources.openalex.urllib.request.urlopen")
     def test_api_key_in_url(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"results": []})
 
@@ -117,7 +117,7 @@ class TestSearchPapers:
         req = mock_urlopen.call_args[0][0]
         assert "api_key=secret-key" in req.full_url
 
-    @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    @patch("anonymous.sources.openalex.urllib.request.urlopen")
     def test_no_api_key_when_absent(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"results": []})
 
@@ -126,7 +126,7 @@ class TestSearchPapers:
         req = mock_urlopen.call_args[0][0]
         assert "api_key=" not in req.full_url
 
-    @patch("reporadar.sources.openalex.urllib.request.urlopen")
+    @patch("anonymous.sources.openalex.urllib.request.urlopen")
     def test_abstract_reconstruction(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"results": [_make_oa_work()]})
 
@@ -153,8 +153,8 @@ class TestPaperNormalization:
 
 
 class TestCollectPapers:
-    @patch("reporadar.sources.openalex.time.sleep")
-    @patch("reporadar.sources.openalex.search_papers")
+    @patch("anonymous.sources.openalex.time.sleep")
+    @patch("anonymous.sources.openalex.search_papers")
     def test_dedup_across_queries(self, mock_search: MagicMock, mock_sleep: MagicMock) -> None:
         # Use a recent date (relative to now) so the paper stays inside the
         # default lookback window regardless of when the suite runs.
@@ -175,8 +175,8 @@ class TestCollectPapers:
         results = collect_papers(["query1", "query2"], rate_limit=0.0)
         assert len(results) == 1
 
-    @patch("reporadar.sources.openalex.time.sleep")
-    @patch("reporadar.sources.openalex.search_papers")
+    @patch("anonymous.sources.openalex.time.sleep")
+    @patch("anonymous.sources.openalex.search_papers")
     def test_date_filtering(self, mock_search: MagicMock, mock_sleep: MagicMock) -> None:
         old_paper = {
             "arxiv_id": "old",
@@ -334,7 +334,7 @@ class TestArxivIdFromLocations:
 
     def test_locations_is_requested_from_the_api(self) -> None:
         """A select that omits it makes the whole fix a no-op that still passes unit tests."""
-        with patch("reporadar.sources.openalex.urllib.request.urlopen") as mock_urlopen:
+        with patch("anonymous.sources.openalex.urllib.request.urlopen") as mock_urlopen:
             mock_urlopen.return_value = _mock_response({"results": []})
             search_papers("q")
             url = mock_urlopen.call_args[0][0].full_url

@@ -135,7 +135,7 @@ class TestReadmeDiscoveryMatchesTheProfiler:
 
     def test_names_match_the_shipped_profiler_source(self):
         src = (
-            Path(__file__).resolve().parent.parent / "src" / "reporadar" / "profiler.py"
+            Path(__file__).resolve().parent.parent / "src" / "anonymous" / "profiler.py"
         ).read_text(encoding="utf-8")
         for name in nerdme.README_NAMES:
             assert f'"{name}"' in src, (

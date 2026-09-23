@@ -19,11 +19,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar import finescale
-from reporadar.digest import categorize_papers
-from reporadar.llm_client import LLMError, top_logprobs
-from reporadar.store import PaperStore
-from reporadar.triage import build_triage_prompt, repo_context_block
+from anonymous import finescale
+from anonymous.digest import categorize_papers
+from anonymous.llm_client import LLMError, top_logprobs
+from anonymous.store import PaperStore
+from anonymous.triage import build_triage_prompt, repo_context_block
 
 
 class _Profile:
@@ -276,7 +276,7 @@ class TestEveryOutputFormatHonoursTheGate:
         s.close()
 
     def _render(self, store: PaperStore, tmp_path: Path, fmt: str, threshold: float | None) -> str:
-        from reporadar.digest import write_digest
+        from anonymous.digest import write_digest
 
         out, _ = write_digest(
             store,
@@ -307,7 +307,7 @@ class TestEveryOutputFormatHonoursTheGate:
     def test_the_archive_manifest_count_reflects_the_gate(
         self, store: PaperStore, tmp_path: Path
     ) -> None:
-        from reporadar.archive import archive_digest
+        from anonymous.archive import archive_digest
 
         archive_digest(
             store,
@@ -417,7 +417,7 @@ class TestTheOpenAITransport:
     def test_redaction_applies_before_the_prompt_leaves(self) -> None:
         seen: list[str] = []
         with patch.object(
-            sys.modules["reporadar.llm_client"],
+            sys.modules["anonymous.llm_client"],
             "_call_openai_top_logprobs",
             side_effect=lambda p, *a: seen.append(p) or [("5", 1.0)],
         ):

@@ -1,12 +1,12 @@
-"""Tests for reporadar.trends."""
+"""Tests for anonymous.trends."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from reporadar.profiler import RepoProfile
-from reporadar.store import PaperStore
-from reporadar.trends import compute_keyword_frequencies, detect_trends
+from anonymous.profiler import RepoProfile
+from anonymous.store import PaperStore
+from anonymous.trends import compute_keyword_frequencies, detect_trends
 
 
 def _make_profile(**overrides) -> RepoProfile:

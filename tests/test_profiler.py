@@ -1,4 +1,4 @@
-"""Tests for reporadar.profiler."""
+"""Tests for anonymous.profiler."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.profiler import (
+from anonymous.profiler import (
     RepoProfile,
     _extract_anchors,
     _extract_keywords,
@@ -178,7 +178,7 @@ class TestProfileRepo:
 
 # A repo shaped like diffusers/transformers/peft: no requirements.txt, a pyproject.toml
 # holding only tool config, and dependencies declared in setup.py. This layout is
-# standard across the HuggingFace ecosystem — exactly the ML repos RepoRadar targets.
+# standard across the HuggingFace ecosystem — exactly the ML repos Anonymous targets.
 _HF_STYLE_SETUP_PY = """\
 import sys
 from setuptools import setup, find_packages
@@ -237,7 +237,7 @@ def _hf_style_repo(tmp_path: Path) -> Path:
 
 class TestSetupPyAnchors:
     def test_dependencies_are_found_in_setup_py(self, tmp_path: Path) -> None:
-        from reporadar.profiler import _parse_setup_py
+        from anonymous.profiler import _parse_setup_py
 
         found = _parse_setup_py(_hf_style_repo(tmp_path) / "setup.py")
         assert "torch" in found
@@ -266,7 +266,7 @@ class TestSetupPyAnchors:
         A setup.py is arbitrary Python from an untrusted repository. If profiling
         executed it, `rr profile` on a cloned repo would be remote code execution.
         """
-        from reporadar.profiler import _parse_setup_py
+        from anonymous.profiler import _parse_setup_py
 
         repo = tmp_path / "hostile"
         repo.mkdir()
@@ -286,7 +286,7 @@ class TestSetupPyAnchors:
         assert not canary.exists(), "profiling EXECUTED the repo's setup.py"
 
     def test_an_unparseable_setup_py_does_not_break_profiling(self, tmp_path: Path) -> None:
-        from reporadar.profiler import _parse_setup_py
+        from anonymous.profiler import _parse_setup_py
 
         repo = tmp_path / "broken"
         repo.mkdir()
@@ -298,14 +298,14 @@ class TestPackagingMetadata:
     def test_keywords_and_description_are_collected(self, tmp_path: Path) -> None:
         # `keywords="deep learning diffusion ..."` is the author stating the subject
         # outright — the densest topic signal in the repo.
-        from reporadar.profiler import _packaging_metadata_text
+        from anonymous.profiler import _packaging_metadata_text
 
         text = _packaging_metadata_text(_hf_style_repo(tmp_path)).lower()
         assert "diffusion" in text
         assert "state-of-the-art" in text
 
     def test_pyproject_description_is_collected(self, tmp_path: Path) -> None:
-        from reporadar.profiler import _packaging_metadata_text
+        from anonymous.profiler import _packaging_metadata_text
 
         repo = tmp_path / "modern"
         repo.mkdir()
@@ -318,7 +318,7 @@ class TestPackagingMetadata:
         assert "retrieval" in text and "bm25" in text
 
     def test_a_repo_without_metadata_yields_nothing(self, tmp_path: Path) -> None:
-        from reporadar.profiler import _packaging_metadata_text
+        from anonymous.profiler import _packaging_metadata_text
 
         repo = tmp_path / "bare"
         repo.mkdir()
@@ -327,7 +327,7 @@ class TestPackagingMetadata:
 
 class TestBoilerplateIsNotATopic:
     def test_badges_and_urls_are_stripped(self) -> None:
-        from reporadar.profiler import _clean_document
+        from anonymous.profiler import _clean_document
 
         cleaned = _clean_document(_BOILERPLATE_README)
         assert "shields.io" not in cleaned
@@ -336,7 +336,7 @@ class TestBoilerplateIsNotATopic:
         assert "License" in cleaned
 
     def test_rst_directives_are_stripped(self) -> None:
-        from reporadar.profiler import _clean_document
+        from anonymous.profiler import _clean_document
 
         cleaned = _clean_document(
             ".. automodule:: mypkg.core\n    :members:\n    :undoc-members:\n\nReal prose here.\n"
@@ -395,8 +395,8 @@ class TestQueriesAreAboutTheRepo:
         Asserting on keywords alone would miss a regression in how they become queries,
         which is the stage that actually reaches the arXiv API.
         """
-        from reporadar.collector import build_queries
-        from reporadar.config import ArxivConfig, QueriesConfig
+        from anonymous.collector import build_queries
+        from anonymous.config import ArxivConfig, QueriesConfig
 
         repo = _hf_style_repo(tmp_path)
         queries = build_queries(
@@ -505,7 +505,7 @@ class TestRepoProse:
 
     def test_respects_the_configured_budget(self, tmp_path: Path) -> None:
         """A 41k-character README must not reach a prompt because nobody truncated it."""
-        from reporadar.config import ProfilerConfig
+        from anonymous.config import ProfilerConfig
 
         repo = self._repo(tmp_path, "# T\n\n" + ("retrieval " * 5000), None)
         prose = profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=120)).prose
@@ -524,8 +524,8 @@ class TestRepoProse:
         That inversion is the only thing the explicit guard buys, which is why it is
         tested here rather than left to the slice.
         """
-        from reporadar.config import ProfilerConfig
-        from reporadar.triage import build_triage_prompt
+        from anonymous.config import ProfilerConfig
+        from anonymous.triage import build_triage_prompt
 
         repo = self._repo(tmp_path, "# T\n\nSecret internal system.\n", self._PYPROJECT)
         profile = profile_repo(repo, profiler_cfg=ProfilerConfig(prose_chars=budget))
@@ -536,7 +536,7 @@ class TestRepoProse:
 
     def test_the_prose_reaches_the_triage_prompt(self, tmp_path: Path) -> None:
         """End-to-end, because the field existing is not the point — being sent is."""
-        from reporadar.triage import build_triage_prompt
+        from anonymous.triage import build_triage_prompt
 
         repo = self._repo(tmp_path, "# Thing\n\nThing does late-interaction retrieval.\n", None)
         prompt = build_triage_prompt({"title": "P", "abstract": "a"}, profile_repo(repo))
@@ -552,7 +552,7 @@ class TestRepoProse:
         (`evals/diagnose_triage.py --repo-context prose --prose-chars N`), not so anyone
         believes 300 is optimal.
         """
-        from reporadar.config import ProfilerConfig
+        from anonymous.config import ProfilerConfig
 
         assert ProfilerConfig().prose_chars == 300
 
@@ -565,7 +565,7 @@ class TestRepoProse:
         """
         from types import SimpleNamespace
 
-        from reporadar.config import ProfilerConfig
+        from anonymous.config import ProfilerConfig
 
         repo = self._repo(tmp_path, "# T\n\n" + ("x " * 4000), None)
         bare = profile_repo(repo, profiler_cfg=SimpleNamespace(scan_source=False))
@@ -582,7 +582,7 @@ class TestCitedArxivIds:
     """
 
     def test_reads_readme_citation_and_docs(self, tmp_path: Path) -> None:
-        from reporadar.profiler import cited_arxiv_ids_of
+        from anonymous.profiler import cited_arxiv_ids_of
 
         (tmp_path / "README.md").write_text(
             "See our paper: https://arxiv.org/abs/1708.01492v5", encoding="utf-8"
@@ -609,7 +609,7 @@ class TestCitedArxivIds:
         pattern: `2019.10694` is a Comput. Phys. Commun. DOI fragment in dscribe's, and the
         other three are MACE's. A month of 19, 29, 84 or 42 is not an arXiv id.
         """
-        from reporadar.profiler import cited_arxiv_ids_of
+        from anonymous.profiler import cited_arxiv_ids_of
 
         (tmp_path / "README.md").write_text(
             "doi 10.1016/j.cpc.2019.10694, refs 1029.28096 1484.11876 2042.03300 7022.2013",
@@ -618,13 +618,13 @@ class TestCitedArxivIds:
         assert cited_arxiv_ids_of(tmp_path) == frozenset()
 
     def test_old_style_ids_survive(self, tmp_path: Path) -> None:
-        from reporadar.profiler import cited_arxiv_ids_of
+        from anonymous.profiler import cited_arxiv_ids_of
 
         (tmp_path / "README").write_text("cond-mat/0501001 and math.GT/0309136v2", encoding="utf-8")
         assert cited_arxiv_ids_of(tmp_path) == {"cond-mat/0501001", "math.GT/0309136"}
 
     def test_profile_repo_exposes_them(self, tmp_path: Path) -> None:
-        from reporadar.profiler import profile_repo
+        from anonymous.profiler import profile_repo
 
         (tmp_path / "README.md").write_text(
             "A tool for sequence alignment. Paper: arXiv:1708.01492", encoding="utf-8"
@@ -632,7 +632,7 @@ class TestCitedArxivIds:
         assert profile_repo(tmp_path).cited_arxiv_ids == {"1708.01492"}
 
     def test_no_citations_is_an_empty_set_not_a_crash(self, tmp_path: Path) -> None:
-        from reporadar.profiler import cited_arxiv_ids_of, profile_repo
+        from anonymous.profiler import cited_arxiv_ids_of, profile_repo
 
         (tmp_path / "README.md").write_text("No papers here.", encoding="utf-8")
         assert cited_arxiv_ids_of(tmp_path) == frozenset()
@@ -745,7 +745,7 @@ class TestProseAnchor:
         return repo
 
     def _prose(self, repo: Path, anchor: str) -> str:
-        from reporadar.config import ProfilerConfig
+        from anonymous.config import ProfilerConfig
 
         return profile_repo(
             repo, profiler_cfg=ProfilerConfig(prose_chars=300, prose_anchor=anchor)
@@ -834,7 +834,7 @@ class TestProseAnchor:
 
     def test_prose_chars_zero_still_withholds_everything(self, tmp_path: Path) -> None:
         """The privacy contract outranks the anchor: 0 means send no prose at all."""
-        from reporadar.config import ProfilerConfig
+        from anonymous.config import ProfilerConfig
 
         repo = self._repo(tmp_path, "filler " * 100 + "minimap2 is a versatile mapper.")
         assert (

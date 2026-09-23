@@ -77,9 +77,9 @@ from build_hop_pool import resolve_targets  # noqa: E402
 from diagnose_triage import _load_env, fetch_papers  # noqa: E402
 from harness import WORK_DIR, assemble_repo_context  # noqa: E402
 
-from reporadar.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
-from reporadar.profiler import profile_repo  # noqa: E402
-from reporadar.triage import score_actionability  # noqa: E402
+from anonymous.config import ProfilerConfig, SuggestionsConfig  # noqa: E402
+from anonymous.profiler import profile_repo  # noqa: E402
+from anonymous.triage import score_actionability  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
@@ -352,7 +352,7 @@ def report(rows: list[dict[str, Any]]) -> None:
         sel = [r for r in rows if r["stratum"] == stratum]
         jud = [r for r in sel if r["judge"] is not None]
         act = sum(1 for r in jud if r["judge"] >= ACTIONABLE)
-        # The >=2 bar is the shipped one, and it is permissive: PR #83 measured half of a
+        # The >=2 bar is the shipped one, and it is permissive: an earlier run measured half of a
         # random hop-pool sample clearing it. Score 3 — "directly addresses a known
         # limitation" — is the bar the 48 gold targets were drawn at, so it is the one that
         # compares to every recall number in this project.

@@ -4,7 +4,7 @@ Every label the benchmark owns comes from the ranker's own top-10 plus the basel
 a sample of exactly what the ranker already liked. So the ranker has never been scored, the
 32% base rate behind the triage numbers is measured on a skewed distribution, and an earlier
 attempt to infer ranker quality from the Tier B pool produced an artifact (the pool mixes
-RepoRadar's 40% with Opus's 100%; see RESULTS.md).
+Anonymous's 40% with Opus's 100%; see RESULTS.md).
 
 This judges a **rank-stratified sample** of the candidate pool: papers from ranks 1-10,
 11-50, 51-150 and 151+. If the ranker discriminates, the actionable rate falls monotonically

@@ -1,11 +1,11 @@
-"""Tests for reporadar.digest."""
+"""Tests for anonymous.digest."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from reporadar.digest import (
+from anonymous.digest import (
     categorize_papers,
     filter_since,
     generate_digest,
@@ -17,7 +17,7 @@ from reporadar.digest import (
     markdown_to_html,
     write_digest,
 )
-from reporadar.store import PaperStore
+from anonymous.store import PaperStore
 
 
 def _days_ago(n: int) -> str:
@@ -256,7 +256,7 @@ class TestGenerateDigest:
             run_id = _seed_store(store)
             content = generate_digest(store, run_id)
 
-        assert "# RepoRadar Digest" in content
+        assert "# Anonymous Digest" in content
         assert "Top Picks" in content
         assert "High Relevance RAG Paper" in content
 
@@ -350,7 +350,7 @@ class TestMarkdownToHtml:
         html = markdown_to_html("# Hello World")
         assert "<!DOCTYPE html>" in html
         assert "Hello World" in html
-        assert "<title>RepoRadar Digest</title>" in html
+        assert "<title>Anonymous Digest</title>" in html
 
     def test_empty_content(self) -> None:
         html = markdown_to_html("")
@@ -370,7 +370,7 @@ class TestGenerateDigestHtml:
             html = generate_digest_html(store, run_id)
 
         assert "<!DOCTYPE html>" in html
-        assert "<title>RepoRadar Digest</title>" in html
+        assert "<title>Anonymous Digest</title>" in html
         # A real rendered page, not the legacy markdown-in-<pre> wrapper.
         assert "<pre>" not in html
         assert "High Relevance RAG Paper" in html
@@ -879,7 +879,7 @@ class TestWriteDigest:
 
         assert out.exists()
         content = out.read_text(encoding="utf-8")
-        assert "# RepoRadar Digest" in content
+        assert "# Anonymous Digest" in content
 
     def test_creates_parent_dirs(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
@@ -897,7 +897,7 @@ class TestWriteDigest:
         assert out.exists()
         content = out.read_text(encoding="utf-8")
         assert "<!DOCTYPE html>" in content
-        assert "RepoRadar Digest" in content
+        assert "Anonymous Digest" in content
 
     def test_html_format_explicit_extension(self, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "papers.db") as store:
@@ -942,7 +942,7 @@ class TestWriteDigestSummary:
         assert len(result) == 2
 
     def test_summary_has_correct_stats(self, tmp_path: Path) -> None:
-        from reporadar.notify import DigestSummary
+        from anonymous.notify import DigestSummary
 
         with PaperStore(tmp_path / "papers.db") as store:
             run_id = _seed_store(store)
@@ -1048,7 +1048,7 @@ class TestRssExport:
         assert root.tag == "rss"
         channel = root.find("channel")
         assert channel is not None
-        assert channel.find("title").text == "RepoRadar Digest"
+        assert channel.find("title").text == "Anonymous Digest"
 
     def test_rss_includes_papers(self, tmp_path: Path) -> None:
         import xml.etree.ElementTree as ET
@@ -1073,7 +1073,7 @@ class TestWithdrawnSectionScope:
     """
 
     def test_withdrawn_far_below_the_window_is_not_reported(self) -> None:
-        from reporadar.digest import digest_window
+        from anonymous.digest import digest_window
 
         scored = [{"score_total": 0.9 - i / 100, "arxiv_id": f"p{i}"} for i in range(40)]
         scored[35]["withdrawn_in"] = "comment"
@@ -1083,7 +1083,7 @@ class TestWithdrawnSectionScope:
         assert withdrawn == []
 
     def test_withdrawn_inside_the_window_is_reported_and_displaces(self) -> None:
-        from reporadar.digest import digest_window
+        from anonymous.digest import digest_window
 
         scored = [{"score_total": 0.9 - i / 100, "arxiv_id": f"p{i}"} for i in range(40)]
         scored[2]["withdrawn_in"] = "comment"

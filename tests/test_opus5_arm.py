@@ -4,17 +4,17 @@ The arm was quoted at **+1.90** over 25 core + 6 bio. Six materials-science runs
 and they do not extend the result -- they bend it:
 
 * **all 37: +1.08, CI [-0.97, +3.16]**, 20W/15L. The margin now crosses zero.
-* **matsci 6: -3.17.** The one cohort RepoRadar loses, and it loses on precision too (0.841
+* **matsci 6: -3.17.** The one cohort Anonymous loses, and it loses on precision too (0.841
   against Opus 5's 0.895) -- everywhere else the ordering is the other way round.
 * **On the 32 cases where Opus 5 does not over-answer, the two systems are level: -0.06.**
-  Every point of the margin comes from five cases where it does, four of which RepoRadar
+  Every point of the margin comes from five cases where it does, four of which Anonymous
   answers by abstaining entirely. The advantage is shyness, not retrieval.
 
 net@2 charges 2 per false positive precisely to price shyness, so this is a real advantage
 and not an artefact. It is simply not the claim "we find better papers", and the paper should
 not be allowed to imply that it is.
 
-`evals/results/` is gitignored, so the RepoRadar side is frozen here for the same reason
+`evals/results/` is gitignored, so the Anonymous side is frozen here for the same reason
 `gold_targets.json`, `bio_matched_arm.json` and `multisource_arm.json` exist.
 """
 
@@ -53,10 +53,10 @@ class TestTheArmIsWhatItClaims:
         assert len(artifact["per_case"]) == 37
         assert artifact["cohorts"]["all37"]["n_cases"] == 37
 
-    def test_the_reporadar_arms_differ_only_in_sources(self, artifact):
+    def test_the_anonymous_arms_differ_only_in_sources(self, artifact):
         """Three same-day arms. The comparison would mean nothing if the window or the
         embedding weight moved between them."""
-        arms = artifact["reporadar_arms"]
+        arms = artifact["anonymous_arms"]
         assert {a["digest_window"] for a in arms.values()} == {15}
         assert {a["w_embedding"] for a in arms.values()} == {1.5}
         assert arms["arxiv"]["sources"] == ["arxiv"]
@@ -90,7 +90,7 @@ class TestTheCompletedHeadline:
             assert co["arxiv_epmc"]["precision"] > co["opus5"]["precision"], name
         mat = artifact["cohorts"]["matsci6"]
         assert mat["opus5"]["precision"] > mat["arxiv_epmc"]["precision"]
-        assert mat["arxiv_epmc"]["precision"] == 0.841, "RepoRadar's worst cohort"
+        assert mat["arxiv_epmc"]["precision"] == 0.841, "Anonymous's worst cohort"
         assert mat["opus5"]["precision"] == 0.895, "Opus 5's best"
 
     def test_the_cohorts_are_not_averaged(self, artifact):
@@ -119,8 +119,8 @@ class TestWhereTheMarginActuallyLives:
         assert over["paired_delta"] == 8.4
         assert over["share_of_total_margin"] > 1.0
 
-    def test_four_of_them_are_cases_reporadar_declines_to_answer(self, artifact):
-        """`cli`, `http`, `linter`, `webdev` -- RepoRadar returns nothing and scores 0;
+    def test_four_of_them_are_cases_anonymous_declines_to_answer(self, artifact):
+        """`cli`, `http`, `linter`, `webdev` -- Anonymous returns nothing and scores 0;
         Opus 5 returns 5 to 20 papers and scores -7 on average. This is the gate refusing a
         repository it has no good candidates for, and it is worth 70% of the total margin.
 
@@ -128,14 +128,14 @@ class TestWhereTheMarginActuallyLives:
         result: capping both systems at min(n) sets k=0 on exactly these four, deleting the
         behaviour under examination and answering a different question.
         """
-        ab = artifact["margin_decomposition"]["reporadar_abstained"]
+        ab = artifact["margin_decomposition"]["anonymous_abstained"]
         assert ab["cases"] == ["cli", "http", "linter", "webdev"]
-        assert ab["reporadar_mean"] == 0, "abstaining scores 0, never negative"
+        assert ab["anonymous_mean"] == 0, "abstaining scores 0, never negative"
         assert ab["opus5_mean"] == -7
         assert ab["share_of_total_margin"] == 0.7
 
     def test_on_the_cases_both_systems_answer_the_margin_is_small(self, artifact):
-        ans = artifact["margin_decomposition"]["reporadar_answered"]
+        ans = artifact["margin_decomposition"]["anonymous_answered"]
         assert ans["n_cases"] == 33
         assert ans["paired_delta"] == 0.36
 
@@ -157,7 +157,7 @@ class TestOpus5IsNotWinningThroughNonArxivMaterial:
 
     def test_it_is_opus5s_lowest_non_arxiv_share_of_any_cohort(self, artifact):
         """So the causation cannot run the suggested way: if non-arXiv reach were what beat
-        RepoRadar, the cohort with a fifth of the reach would not be the cohort it wins."""
+        Anonymous, the cohort with a fifth of the reach would not be the cohort it wins."""
         shares = {
             name: artifact["cohorts"][name]["opus5"]["non_arxiv_share"]
             for name in ("core25", "bio6", "matsci6")
@@ -173,8 +173,8 @@ class TestOpus5IsNotWinningThroughNonArxivMaterial:
         core = artifact["cohorts"]["core25"]
         assert core["opus5"]["arxiv_precision"] < core["arxiv_epmc"]["arxiv_precision"]
 
-    def test_no_source_arm_rescues_reporadar_on_matsci(self, artifact):
-        """All three RepoRadar configurations lose to Opus 5 there, and the OpenAlex arm --
+    def test_no_source_arm_rescues_anonymous_on_matsci(self, artifact):
+        """All three Anonymous configurations lose to Opus 5 there, and the OpenAlex arm --
         the one that reaches furthest outside arXiv -- is the worst of them. Adding sources
         is not the lever for this cohort."""
         mat = artifact["cohorts"]["matsci6"]
@@ -188,7 +188,7 @@ class TestTheAccountingIsInternallyConsistent:
         n = len(artifact["per_case"])
         d = artifact["margin_decomposition"]
         assert d["opus5_overanswered"]["n_cases"] + d["opus5_not_overanswered"]["n_cases"] == n
-        assert d["reporadar_abstained"]["n_cases"] + d["reporadar_answered"]["n_cases"] == n
+        assert d["anonymous_abstained"]["n_cases"] + d["anonymous_answered"]["n_cases"] == n
 
     def test_the_arxiv_only_arm_shows_no_non_arxiv_papers(self, artifact):
         for name, co in artifact["cohorts"].items():

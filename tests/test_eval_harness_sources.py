@@ -1,7 +1,7 @@
 """The eval harness must be able to fetch every source the product can.
 
 `evals/harness.collect_live_papers` has its own source dispatch, separate from
-`reporadar.pipeline`. When §13 shipped the Europe PMC adapter it was wired into the product and
+`anonymous.pipeline`. When §13 shipped the Europe PMC adapter it was wired into the product and
 **not** into the harness, so `--sources arxiv,europepmc` could not have measured the channel it
 was built to measure — the run would have died on the unknown-source guard after cloning six
 repositories. Found while about to run the §20 arm, which is two days later than it should have
@@ -26,7 +26,7 @@ if str(EVALS) not in sys.path:
 
 import harness  # noqa: E402
 
-from reporadar.pipeline import KEYWORD_SOURCE_QUERIES, KEYWORD_SOURCES  # noqa: E402
+from anonymous.pipeline import KEYWORD_SOURCE_QUERIES, KEYWORD_SOURCES  # noqa: E402
 
 
 def _harness_source_branches() -> set[str]:

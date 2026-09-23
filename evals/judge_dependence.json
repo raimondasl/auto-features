@@ -37,7 +37,7 @@
    "aug20": {
     "provider": "claude",
     "model": "claude-haiku-4-5",
-    "read_from": "not recorded: the 2026-08-20 runs have no ranking_config or pool_config, because they predate the gate-provider option (be986c7). The gate was the default Claude triage model, claude-haiku-4-5."
+    "read_from": "not recorded: the 2026-08-20 runs have no ranking_config or pool_config, because they predate the gate-provider option (withheld). The gate was the default Claude triage model, claude-haiku-4-5."
    },
    "H": {
     "provider": "claude",
@@ -54,7 +54,7 @@
    "slope": 0.9674915191842209,
    "intercept": -5.809648743203093,
    "threshold": 0.6666666666666666,
-   "rule": "admitted when reporadar.finescale.probability(exp09) >= threshold"
+   "rule": "admitted when anonymous.finescale.probability(exp09) >= threshold"
   },
   "actionable": "label >= 2, for both judges",
   "estimator": "band_testbeds.auc",

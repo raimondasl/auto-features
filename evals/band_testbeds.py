@@ -7,7 +7,7 @@ so every experiment scores against the same frozen data:
 
 * **Testbed A** — the live pool-50 run `judge-gpt-5.5-20260807T180938Z.json` (22 cases,
   220 shown papers). Per-paper gate bands are NOT recorded there; they are reconstructed
-  positionally: `reporadar_top10` is emitted in `rerank_by_actionability` order — a stable
+  positionally: `anonymous_top10` is emitted in `rerank_by_actionability` order — a stable
   sort on (llm_score, score_total) descending — so with the sweep counts n3/n2/n1
   (returned at min_actionable 3/2/1), positions [0,n3) are gate-3, [n3,n2) the score-2
   band, [n2,n1) gate-1, and the rest gate-0/unscored. The counts come from the same file,
@@ -39,7 +39,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"
@@ -112,7 +112,7 @@ class CaseBand:
 
 
 def _base(arxiv_id: str) -> str:
-    """Delegates to the one shared rule; see reporadar.paper_id."""
+    """Delegates to the one shared rule; see anonymous.paper_id."""
     return dedup_id(arxiv_id)
 
 
@@ -152,12 +152,12 @@ def _bands_from_run(entries: list[dict]) -> dict[str, CaseBand]:
     out: dict[str, CaseBand] = {}
     for entry in entries:
         case = entry["case"]
-        sweep = entry["reporadar_toppicks_sweep"]
+        sweep = entry["anonymous_toppicks_sweep"]
         n3 = sweep["3"]["n_returned"]
         n2 = sweep["2"]["n_returned"]
         n1 = sweep["1"]["n_returned"]
         band = CaseBand(case=case)
-        for pos, row in enumerate(entry["returned"]["reporadar_top10"]):
+        for pos, row in enumerate(entry["returned"]["anonymous_top10"]):
             base_id = _base(row["arxiv_id"])
             gate = 3 if pos < n3 else 2 if pos < n2 else 1 if pos < n1 else 0
             title, abstract = _text_for(case, base_id)
@@ -273,9 +273,9 @@ def repo_block(case: str) -> str:
 
     sys.path.insert(0, str(EVALS.parent / "src"))
 
-    from reporadar.config import ProfilerConfig
-    from reporadar.profiler import profile_repo
-    from reporadar.triage import repo_context_block
+    from anonymous.config import ProfilerConfig
+    from anonymous.profiler import profile_repo
+    from anonymous.triage import repo_context_block
 
     repo = WORK / case
     if not repo.is_dir():

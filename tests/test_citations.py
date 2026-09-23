@@ -1,4 +1,4 @@
-"""Tests for reporadar.citations."""
+"""Tests for anonymous.citations."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar.citations import fetch_citation_counts, fetch_references, normalize_citations
+from anonymous.citations import fetch_citation_counts, fetch_references, normalize_citations
 
 
 class TestFetchReferences:
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_extracts_arxiv_references(self, mock_urlopen: MagicMock) -> None:
         response_data = [
             {
@@ -40,14 +40,14 @@ class TestFetchReferences:
     def test_empty_input(self) -> None:
         assert fetch_references([]) == {}
 
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_api_failure_returns_empty(self, mock_urlopen: MagicMock) -> None:
         import urllib.error
 
         mock_urlopen.side_effect = urllib.error.URLError("network error")
         assert fetch_references(["2401.00001v1"]) == {}
 
-    @patch("reporadar.citations._s2_batch_post")
+    @patch("anonymous.citations._s2_batch_post")
     def test_chunks_small_enough_to_stay_under_the_nested_cap(self, mock_post: MagicMock) -> None:
         """Chunk size is bounded by nested items, not by the 500-id limit.
 
@@ -58,7 +58,7 @@ class TestFetchReferences:
         blank at chunks of 50. This test previously asserted the 500 chunking, i.e. it
         encoded the bug.
         """
-        from reporadar.citations import _S2_NESTED_CAP, _S2_REFERENCE_CHUNK
+        from anonymous.citations import _S2_NESTED_CAP, _S2_REFERENCE_CHUNK
 
         mock_post.return_value = []
         ids = [f"2401.{i:05d}v1" for i in range(220)]
@@ -67,7 +67,7 @@ class TestFetchReferences:
         # A chunk must not be able to reach the cap on any plausible reference density.
         assert _S2_REFERENCE_CHUNK * 100 < _S2_NESTED_CAP
 
-    @patch("reporadar.citations._s2_batch_post")
+    @patch("anonymous.citations._s2_batch_post")
     def test_a_chunk_pinned_at_the_cap_is_split_and_retried(self, mock_post: MagicMock) -> None:
         """Density varies by corpus, so a fixed chunk size is not enough on its own.
 
@@ -75,7 +75,7 @@ class TestFetchReferences:
         genuine result unless it is re-fetched smaller — and accepting it would silently
         drop the tail of the chunk.
         """
-        from reporadar.citations import _S2_NESTED_CAP
+        from anonymous.citations import _S2_NESTED_CAP
 
         ref = {"externalIds": {"ArXiv": "1706.03762"}}
         calls: list[int] = []
@@ -96,7 +96,7 @@ class TestFetchReferences:
         # Every paper resolves once the chunk is small enough, instead of only the first.
         assert len(result) == 8, f"only {len(result)} of 8 papers survived truncation"
 
-    @patch("reporadar.citations._s2_batch_post")
+    @patch("anonymous.citations._s2_batch_post")
     def test_an_ordinary_response_is_not_split(self, mock_post: MagicMock) -> None:
         # The split must be triggered by the cap, not by every request — otherwise it
         # multiplies traffic against an API that already rate-limits this project.
@@ -105,7 +105,7 @@ class TestFetchReferences:
         fetch_references([f"2401.{i:05d}v1" for i in range(10)])
         assert mock_post.call_count == 1
 
-    @patch("reporadar.citations._s2_batch_post")
+    @patch("anonymous.citations._s2_batch_post")
     def test_stats_distinguish_an_outage_from_a_genuine_negative(
         self, mock_post: MagicMock
     ) -> None:
@@ -122,7 +122,7 @@ class TestFetchReferences:
         assert stats["requests"] > 0
         assert stats["failed"] == stats["requests"], "an outage must be visible in the stats"
 
-    @patch("reporadar.citations._s2_batch_post")
+    @patch("anonymous.citations._s2_batch_post")
     def test_stats_show_no_failures_on_a_genuine_empty_result(self, mock_post: MagicMock) -> None:
         # Papers that really cite nothing arXiv-indexed must NOT look like an outage.
         mock_post.return_value = [{"references": []} for _ in range(20)]
@@ -132,7 +132,7 @@ class TestFetchReferences:
 
 
 class TestFetchCitationCounts:
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_basic_fetch(self, mock_urlopen: MagicMock) -> None:
         response_data = [
             {"paperId": "abc", "citationCount": 42},
@@ -149,7 +149,7 @@ class TestFetchCitationCounts:
         assert result == {"2401.00001v1": 42, "2401.00002v1": 10}
         mock_urlopen.assert_called_once()
 
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_api_call_format(self, mock_urlopen: MagicMock) -> None:
         response_data = [{"paperId": "abc", "citationCount": 5}]
         mock_resp = MagicMock()
@@ -169,7 +169,7 @@ class TestFetchCitationCounts:
         payload = json.loads(req.data)
         assert "ARXIV:2401.12345" in payload["ids"]
 
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_api_failure_returns_empty(self, mock_urlopen: MagicMock) -> None:
         import urllib.error
 
@@ -179,8 +179,8 @@ class TestFetchCitationCounts:
 
         assert result == {}
 
-    @patch("reporadar.citations.time.sleep")
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.time.sleep")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_rate_limiting_handled(self, mock_urlopen: MagicMock, mock_sleep: MagicMock) -> None:
         import urllib.error
 
@@ -210,7 +210,7 @@ class TestFetchCitationCounts:
         result = fetch_citation_counts([])
         assert result == {}
 
-    @patch("reporadar.citations.urllib.request.urlopen")
+    @patch("anonymous.citations.urllib.request.urlopen")
     def test_null_entries_skipped(self, mock_urlopen: MagicMock) -> None:
         response_data = [
             {"paperId": "abc", "citationCount": 42},

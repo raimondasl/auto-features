@@ -39,7 +39,7 @@ import band_testbeds as tb
 import finescale_model_transfer as fmt
 import pytest
 
-from reporadar import finescale
+from anonymous import finescale
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "evals" / "judge_dependence.json"

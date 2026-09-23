@@ -1,6 +1,6 @@
 """Hallucination guard: resolve proposed papers against arXiv, then off it.
 
-LLM baselines (and sometimes RepoRadar's non-arXiv sources) can reference papers
+LLM baselines (and sometimes Anonymous's non-arXiv sources) can reference papers
 that don't exist or misquote IDs. Before judging, every proposed paper is
 resolved to real metadata; anything that can't be resolved is counted as a
 hallucination and scored 0, so the comparison stays honest.
@@ -56,12 +56,12 @@ from typing import Any
 
 import arxiv
 
-from reporadar.citations import _s2_batch_post
-from reporadar.paper_id import ARXIV_ARCHIVES, dedup_id, doi_key, is_arxiv_id
-from reporadar.sources.europepmc import EPMC_SEARCH
-from reporadar.sources.europepmc import _normalize as _epmc_normalize
-from reporadar.sources.europepmc import _request_json as _epmc_request
-from reporadar.sources.openalex import fetch_work_by_doi, reconstruct_abstract
+from anonymous.citations import _s2_batch_post
+from anonymous.paper_id import ARXIV_ARCHIVES, dedup_id, doi_key, is_arxiv_id
+from anonymous.sources.europepmc import EPMC_SEARCH
+from anonymous.sources.europepmc import _normalize as _epmc_normalize
+from anonymous.sources.europepmc import _request_json as _epmc_request
+from anonymous.sources.openalex import fetch_work_by_doi, reconstruct_abstract
 
 
 class SourceUnavailable(Exception):
@@ -348,7 +348,7 @@ def resolve_reference(
     """Resolve one reference. Returns (paper, outcome).
 
     ``outcome`` is one of "resolved", "hallucinated", "lookup_failed", "unjudgeable".
-    Classification uses the shared predicates in `reporadar.paper_id` rather than a local
+    Classification uses the shared predicates in `anonymous.paper_id` rather than a local
     rule, because "is this an arXiv id" already had three implementations once (C-14).
     """
     ref = ref.strip()

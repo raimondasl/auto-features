@@ -17,7 +17,7 @@ Two layers, as in the other artifact tests:
   builder had exactly that bug -- it re-implemented the pick replay and dropped `rag`'s two
   ids-only orphans).
 * **When the local inputs exist** -- the live derivation against the artifact, and one
-  invariant that doubles as a self-test of the pool matching: every `reporadar`-sourced
+  invariant that doubles as a self-test of the pool matching: every `anonymous`-sourced
   witness sits in its own run's frozen pool by construction, so a single miss there means
   the id normalisation is broken, not that the pool is small.
 """
@@ -48,21 +48,21 @@ KNOWN_SOURCES = {
     "cli-redraw@30",
     "cli-v2@30",  # the v2-prompt sweep, 2026-08-26: grading, not self
     "cli-v2-opus5@30",  # Opus 5, 25 core + 6 bio: grading, not self
-    # Opus 5 WITH RepoRadar's MCP server attached [P27]. SELF, and it is the case the
+    # Opus 5 WITH Anonymous's MCP server attached [P27]. SELF, and it is the case the
     # inversion in `witness_set.SELF_SOURCES` was written for: that agent was handed
-    # RepoRadar's Top Picks, so a witness it names may be one RepoRadar found and it
-    # repeated. Grading RepoRadar's reach against it would be the system grading itself
+    # Anonymous's Top Picks, so a witness it names may be one Anonymous found and it
+    # repeated. Grading Anonymous's reach against it would be the system grading itself
     # through a proxy -- the pooled-evaluation flattery the rule exists to prevent, arriving
     # by a route that did not exist when the rule was written.
     "cli-v2-opus5-rr@30",
-    # Same agent again with RepoRadar's WHOLE frozen pool as its search corpus [P27].
+    # Same agent again with Anonymous's WHOLE frozen pool as its search corpus [P27].
     # SELF for the same reason and more so: 49% of its picks came from that pool.
     "cli-v2-opus5-rrwide@30",
     "api",
-    "reporadar",
+    "anonymous",
     "adoption",
 }
-SELF = {"reporadar", "cli-v2-opus5-rr@30", "cli-v2-opus5-rrwide@30"}
+SELF = {"anonymous", "cli-v2-opus5-rr@30", "cli-v2-opus5-rrwide@30"}
 NON_SELF = KNOWN_SOURCES - SELF
 
 
@@ -208,19 +208,19 @@ class TestTheCommittedArtifact:
         grew because the instrument could finally read them.
 
         **700 -> 756 (2026-09-01), and the fourth payoff is the largest.** The P27 augmented
-        arm — Opus 5 with RepoRadar's MCP server attached — contributed 88 witnesses over the
+        arm — Opus 5 with Anonymous's MCP server attached — contributed 88 witnesses over the
         12 scientific cases, 56 of them new. **Both regret figures did not move.** That is the
         prediction paid off at the biggest step yet, and by a source that did not exist when
         the prediction was written.
 
         It is also the step where the *reach* denominator mattered rather than the count:
-        `cli-v2-opus5-rr@30` is a SELF source, because that agent was handed RepoRadar's Top
-        Picks and any witness it names may be one RepoRadar found and it repeated. Pooling it
+        `cli-v2-opus5-rr@30` is a SELF source, because that agent was handed Anonymous's Top
+        Picks and any witness it names may be one Anonymous found and it repeated. Pooling it
         into the non-self set would have let the system grade itself through a proxy.
 
         **756 -> 785 (2026-09-01), and the fifth payoff.** The wide-corpus arm added 69
         witnesses, 29 of them new; **both regret figures did not move.** Also SELF, and less
-        arguably than its predecessor: 49% of that arm's picks came from RepoRadar's own
+        arguably than its predecessor: 49% of that arm's picks came from Anonymous's own
         candidate pool. `n_non_self` is unchanged at 522, which is the check that matters —
         the pooled reach denominator did not absorb a single one of them.
         """
@@ -294,11 +294,11 @@ class TestTheLiveDerivation:
         }
         assert rebuilt == artifact["witnesses"]
 
-    def test_reporadar_witnesses_are_in_their_own_pool(self, artifact):
+    def test_anonymous_witnesses_are_in_their_own_pool(self, artifact):
         """By construction -- so a miss here means the id matching broke, nothing else."""
         import witness_set
 
-        from reporadar.paper_id import dedup_id  # noqa: F401  (parity with builder)
+        from anonymous.paper_id import dedup_id  # noqa: F401  (parity with builder)
 
         pools = witness_set._pool_ids("pool-wemb")
         if not pools:
@@ -307,5 +307,5 @@ class TestTheLiveDerivation:
             if case not in pools:
                 continue
             for pid, meta in papers.items():
-                if meta["sources"] == ["reporadar"]:
+                if meta["sources"] == ["anonymous"]:
                     assert pid in pools[case], f"{case}/{pid}: id normalisation is broken"

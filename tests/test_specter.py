@@ -1,4 +1,4 @@
-"""Tests for reporadar.specter — SPECTER2 similarity to the work you liked."""
+"""Tests for anonymous.specter — SPECTER2 similarity to the work you liked."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from reporadar.specter import (
+from anonymous.specter import (
     SPECTER_DIM,
     SPECTER_MODEL,
     build_query_vector,
@@ -17,7 +17,7 @@ from reporadar.specter import (
     score_papers,
     specter_scores,
 )
-from reporadar.store import PaperStore
+from anonymous.store import PaperStore
 
 
 def _paper(arxiv_id: str, title: str = "T") -> dict:
@@ -43,7 +43,7 @@ def _vec(*values: float) -> list[float]:
 
 
 class TestFetchSpecterVectors:
-    @patch("reporadar.specter._s2_batch_post")
+    @patch("anonymous.specter._s2_batch_post")
     def test_parses_vectors_and_skips_missing(self, mock_post: MagicMock) -> None:
         mock_post.return_value = [
             {"embedding": {"model": "specter_v2", "vector": _vec(1.0, 0.0)}},
@@ -55,20 +55,20 @@ class TestFetchSpecterVectors:
         assert out["2401.1v1"].shape == (SPECTER_DIM,)
         assert mock_post.call_args[0][1] == "embedding.specter_v2"
 
-    @patch("reporadar.specter._s2_batch_post")
+    @patch("anonymous.specter._s2_batch_post")
     def test_drops_synthetic_ids(self, mock_post: MagicMock) -> None:
         # Only real arXiv ids resolve at S2 — don't waste batch slots.
         assert fetch_specter_vectors(["dblp:x/y", "biorxiv:10.1/z", "ss:abc"]) == {}
         mock_post.assert_not_called()
 
-    @patch("reporadar.specter._s2_batch_post")
+    @patch("anonymous.specter._s2_batch_post")
     def test_api_failure_returns_empty(self, mock_post: MagicMock) -> None:
         mock_post.return_value = None
         assert fetch_specter_vectors(["2401.1v1"]) == {}
 
 
 class TestLoadOrFetch:
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_caches_then_reuses(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
             store.upsert_paper(_paper("2401.1v1"))
@@ -83,7 +83,7 @@ class TestLoadOrFetch:
             mock_fetch.assert_not_called()  # served from cache
             assert np.allclose(first["2401.1v1"], second["2401.1v1"])
 
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_fetches_only_the_missing_ones(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
             store.upsert_paper(_paper("2401.1v1"))
@@ -99,7 +99,7 @@ class TestLoadOrFetch:
 
 
 class TestBuildQueryVector:
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_centroid_of_starred_and_highly_rated(
         self, mock_fetch: MagicMock, tmp_path: Path
     ) -> None:
@@ -122,7 +122,7 @@ class TestBuildQueryVector:
         # a raw mean would have been magnitude-weighted (1.0 here).
         assert query[0] == pytest.approx(0.5) and query[1] == pytest.approx(0.5)
 
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_large_norm_seed_does_not_dominate(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
             for aid in ("2401.1v1", "2401.2v1"):
@@ -141,7 +141,7 @@ class TestBuildQueryVector:
         with PaperStore(tmp_path / "p.db") as store:
             assert build_query_vector(store) is None
 
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_none_when_s2_has_no_vectors(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
             store.upsert_paper(_paper("2401.1v1"))
@@ -205,7 +205,7 @@ class TestScorePapers:
         with PaperStore(tmp_path / "p.db") as store:
             assert score_papers(store, [_paper("2401.9v1")]) == {}
 
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_end_to_end(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
         spread = {
             "2401.near": _vec(1.0, 0.0),
@@ -225,7 +225,7 @@ class TestScorePapers:
         assert scores["2401.far"] == 0.0
         assert 0.0 < scores["2401.mid"] < 1.0
 
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_papers_without_vectors_get_the_neutral_mean(
         self, mock_fetch: MagicMock, tmp_path: Path
     ) -> None:
@@ -250,7 +250,7 @@ class TestScorePapers:
 
 
 class TestCacheResilience:
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_orphan_seed_does_not_break_scoring(
         self, mock_fetch: MagicMock, tmp_path: Path
     ) -> None:
@@ -265,7 +265,7 @@ class TestCacheResilience:
         assert "2401.orphan" in out  # still usable in-memory
         assert build_query_vector.__name__  # sanity: module import intact
 
-    @patch("reporadar.specter.fetch_specter_vectors")
+    @patch("anonymous.specter.fetch_specter_vectors")
     def test_misses_are_not_refetched(self, mock_fetch: MagicMock, tmp_path: Path) -> None:
         with PaperStore(tmp_path / "p.db") as store:
             store.upsert_paper(_paper("2401.unknown"))

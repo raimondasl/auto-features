@@ -1,11 +1,11 @@
-"""Tests for reporadar.sources.hf_papers."""
+"""Tests for anonymous.sources.hf_papers."""
 
 from __future__ import annotations
 
 import json
 from unittest.mock import MagicMock, patch
 
-from reporadar.sources.hf_papers import (
+from anonymous.sources.hf_papers import (
     _base_arxiv_id,
     _code_urls_from_paper,
     _repo_ids,
@@ -53,7 +53,7 @@ class TestHelpers:
 
 
 class TestFetchEnrichment:
-    @patch("reporadar.sources.hf_papers.urllib.request.urlopen")
+    @patch("anonymous.sources.hf_papers.urllib.request.urlopen")
     def test_full_enrichment(self, mock_urlopen: MagicMock) -> None:
         # Order of calls: paper, models, datasets
         mock_urlopen.side_effect = [
@@ -74,7 +74,7 @@ class TestFetchEnrichment:
         assert result["datasets"] == ["org/dataset-a"]
         assert result["tasks"] == []
 
-    @patch("reporadar.sources.hf_papers.urllib.request.urlopen")
+    @patch("anonymous.sources.hf_papers.urllib.request.urlopen")
     def test_models_only_no_paper_page(self, mock_urlopen: MagicMock) -> None:
         import urllib.error
 
@@ -92,7 +92,7 @@ class TestFetchEnrichment:
         assert result["has_code"] is False
         assert result["models"] == ["org/model-a"]
 
-    @patch("reporadar.sources.hf_papers.urllib.request.urlopen")
+    @patch("anonymous.sources.hf_papers.urllib.request.urlopen")
     def test_returns_none_when_nothing_found(self, mock_urlopen: MagicMock) -> None:
         import urllib.error
 
@@ -106,8 +106,8 @@ class TestFetchEnrichment:
 
 
 class TestFetchEnrichmentsBatch:
-    @patch("reporadar.sources.hf_papers.time.sleep")
-    @patch("reporadar.sources.hf_papers.fetch_enrichment")
+    @patch("anonymous.sources.hf_papers.time.sleep")
+    @patch("anonymous.sources.hf_papers.fetch_enrichment")
     def test_batch_collects_and_skips_none(
         self, mock_fetch: MagicMock, mock_sleep: MagicMock
     ) -> None:
@@ -120,8 +120,8 @@ class TestFetchEnrichmentsBatch:
 
         assert set(results.keys()) == {"a"}
 
-    @patch("reporadar.sources.hf_papers.time.sleep")
-    @patch("reporadar.sources.hf_papers.fetch_enrichment")
+    @patch("anonymous.sources.hf_papers.time.sleep")
+    @patch("anonymous.sources.hf_papers.fetch_enrichment")
     def test_batch_tolerates_exceptions(self, mock_fetch: MagicMock, mock_sleep: MagicMock) -> None:
         mock_fetch.side_effect = [
             RuntimeError("boom"),

@@ -907,8 +907,8 @@ class TestTheTrackedArtifact:
         assert {r["finish_reason"] for r in data["rows"]} == {"STOP"}
 
     def test_the_run_was_frozen_at_its_start_commit(self, data: dict[str, Any]) -> None:
-        """NR-69 quotes the head the run started from. The frozen files are the ones of 1a4914c."""
-        assert data["frozen"]["head"] == "f2f9af671c452e60a28e50815e91f5b0c03cf726"
+        """NR-69 quotes the head the run started from. The frozen files are the ones of withheld."""
+        assert data["frozen"]["head"] == "withheld"
         assert set(data["frozen"]["files"]) == set(tj.FROZEN)
 
     def test_the_readings_quoted_in_nr69(self, data: dict[str, Any]) -> None:

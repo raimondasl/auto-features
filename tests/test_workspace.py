@@ -1,12 +1,12 @@
-"""Tests for reporadar.workspace."""
+"""Tests for anonymous.workspace."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from reporadar.store import CURRENT_SCHEMA_VERSION, PaperStore
-from reporadar.workspace import (
+from anonymous.store import CURRENT_SCHEMA_VERSION, PaperStore
+from anonymous.workspace import (
     combined_digest_data,
     open_workspace_store,
     score_papers_for_repo,
@@ -92,8 +92,8 @@ class TestWorkspaceStore:
 
 
 class TestScorePapersForRepo:
-    @patch("reporadar.ranker.rank_papers")
-    @patch("reporadar.profiler.profile_repo")
+    @patch("anonymous.ranker.rank_papers")
+    @patch("anonymous.profiler.profile_repo")
     def test_profiles_and_ranks(self, mock_profile: MagicMock, mock_rank: MagicMock) -> None:
         mock_profile.return_value = MagicMock(keywords=[], anchors=[], domains=[])
         mock_rank.return_value = [
@@ -214,9 +214,9 @@ class TestOpenWorkspaceStore:
 
 
 class TestEnsureWorkspaceDir:
-    @patch("reporadar.workspace.WORKSPACE_DIR")
+    @patch("anonymous.workspace.WORKSPACE_DIR")
     def test_creates_dir(self, mock_dir: MagicMock, tmp_path: Path) -> None:
-        ws_dir = tmp_path / ".reporadar"
+        ws_dir = tmp_path / ".anonymous"
         mock_dir.__truediv__ = lambda self, x: ws_dir / x
         # Can't easily mock Path.home(), just test the logic by calling directly
         ws_dir.mkdir(parents=True, exist_ok=True)

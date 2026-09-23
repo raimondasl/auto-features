@@ -82,7 +82,7 @@ MAX_MISSING_TARGETS = 4
 # a fail, not a footnote: the index would ship inside a tool other people run.
 PERMISSIVE = {"apache-2.0", "mit", "bsd-3-clause", "cc0-1.0", "cc-by-4.0", "odc-by"}
 
-_UA = {"User-Agent": "reporadar-evals/1.0 (P4 dependency verification)"}
+_UA = {"User-Agent": "anonymous-evals/1.0 (P4 dependency verification)"}
 
 
 def _get(url: str, *, headers: dict[str, str] | None = None, retries: int = 4) -> bytes:

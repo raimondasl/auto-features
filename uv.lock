@@ -1730,8 +1730,8 @@ wheels = [
 ]
 
 [[package]]
-name = "reporadar-papers"
-version = "1.0.8"
+name = "anonymous-papers"
+version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "arxiv" },

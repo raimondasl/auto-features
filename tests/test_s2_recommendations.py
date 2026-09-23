@@ -1,11 +1,11 @@
-"""Tests for reporadar.sources.s2_recommendations (mocked HTTP)."""
+"""Tests for anonymous.sources.s2_recommendations (mocked HTTP)."""
 
 from __future__ import annotations
 
 import json
 from unittest.mock import MagicMock, patch
 
-from reporadar.sources.s2_recommendations import _seed_ids, fetch_recommendations
+from anonymous.sources.s2_recommendations import _seed_ids, fetch_recommendations
 
 
 def _resp(*papers: dict) -> MagicMock:
@@ -52,12 +52,12 @@ class TestSeedIds:
 
 class TestFetchRecommendations:
     def test_no_positive_seeds_skips_the_call(self) -> None:
-        with patch("reporadar.sources.s2_recommendations.urllib.request.urlopen") as mock_open:
+        with patch("anonymous.sources.s2_recommendations.urllib.request.urlopen") as mock_open:
             assert fetch_recommendations([], ["2401.1"]) == []
             assert fetch_recommendations(["dblp:only/synthetic"], []) == []
             mock_open.assert_not_called()  # negative-only / unusable seeds would 400
 
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_normalizes_arxiv_and_non_arxiv(self, mock_open: MagicMock) -> None:
         mock_open.return_value = _resp(
             {
@@ -88,7 +88,7 @@ class TestFetchRecommendations:
         assert out[0]["authors"] == ["Alice"]
         assert out[1]["pdf_url"] == "https://oa/pdf"
 
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_uses_publication_date_over_year(self, mock_open: MagicMock) -> None:
         # A year-only date would look ~6 months stale to the recency scorer and
         # mute genuinely recent recommendations, so the exact date wins.
@@ -111,7 +111,7 @@ class TestFetchRecommendations:
         assert out[0]["published"].startswith("2026-07-20")
         assert out[1]["published"].startswith("2026-01-01")  # year fallback
 
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_sends_positive_and_negative_seeds(self, mock_open: MagicMock) -> None:
         mock_open.return_value = _resp()
         fetch_recommendations(["2106.09685v1"], ["1706.03762"], limit=5)
@@ -121,7 +121,7 @@ class TestFetchRecommendations:
         assert payload["negativePaperIds"] == ["ARXIV:1706.03762"]
         assert "limit=5" in req.full_url
 
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_http_400_returns_none_not_empty(self, mock_open: MagicMock) -> None:
         # None = "request failed" (so the CLI can say *unavailable*); [] would
         # mean "the API genuinely had nothing for you".
@@ -131,8 +131,8 @@ class TestFetchRecommendations:
         assert fetch_recommendations(["2106.09685"]) is None
         assert mock_open.call_count == 1  # a 400 is not retried
 
-    @patch("reporadar.sources.s2_recommendations.time.sleep")
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.time.sleep")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_retries_on_rate_limit_then_succeeds(
         self, mock_open: MagicMock, _sleep: MagicMock
     ) -> None:
@@ -146,8 +146,8 @@ class TestFetchRecommendations:
         assert out is not None and len(out) == 1
         assert mock_open.call_count == 2
 
-    @patch("reporadar.sources.s2_recommendations.time.sleep")
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.time.sleep")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_network_error_exhausts_retries_and_returns_none(
         self, mock_open: MagicMock, _sleep: MagicMock
     ) -> None:
@@ -157,7 +157,7 @@ class TestFetchRecommendations:
         assert fetch_recommendations(["2106.09685"]) is None
         assert mock_open.call_count == 3
 
-    @patch("reporadar.sources.s2_recommendations.urllib.request.urlopen")
+    @patch("anonymous.sources.s2_recommendations.urllib.request.urlopen")
     def test_dedups_repeated_recommendations(self, mock_open: MagicMock) -> None:
         dup = {"paperId": "p1", "title": "T", "externalIds": {"ArXiv": "2402.1"}}
         mock_open.return_value = _resp(dup, dup)

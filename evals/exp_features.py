@@ -38,7 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import band_testbeds as tb  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 S2_CACHE = tb.EXP / "s2_meta.json"
 S2_URL = (

@@ -144,7 +144,7 @@ class TestTheCurrentTreeIsClean:
         # `pipeline.py`, not `cli.py`, since the orchestrator moved there on 2026-08-16 --
         # and this guard is what asked the question ("has the caller moved?") rather than
         # passing quietly on a file that had stopped calling it.
-        for parts in (("src", "reporadar", "pipeline.py"), ("src", "reporadar", "digest.py")):
+        for parts in (("src", "anonymous", "pipeline.py"), ("src", "anonymous", "digest.py")):
             assert _window_callers(root.joinpath(*parts)), f"{parts[-1]} no longer calls it"
 
     def test_every_config_difference_is_declared(self) -> None:
@@ -351,18 +351,18 @@ class TestTheStagesTheProductShipsWithout:
         they still do: the validator is probed for what it actually accepts, and the
         pipeline's gate must name the shared tuple rather than a literal of its own.
         """
-        from reporadar.config import LLM_PROVIDERS, RepoRadarConfig, validate_config
-        from reporadar.stages import _gate_on
+        from anonymous.config import LLM_PROVIDERS, AnonymousConfig, validate_config
+        from anonymous.stages import _gate_on
 
         def accepted(provider: str) -> bool:
-            cfg = RepoRadarConfig()
+            cfg = AnonymousConfig()
             cfg.suggestions.provider = provider
             return not any("Unknown suggestions provider" in w for w in validate_config(cfg))
 
         probes = {*LLM_PROVIDERS, "template", "anthropic", "azure", "gemini", "bogus"}
         assert {p for p in probes if accepted(p)} == {"template", *LLM_PROVIDERS}
 
-        root = Path(__file__).resolve().parents[1] / "src" / "reporadar"
+        root = Path(__file__).resolve().parents[1] / "src" / "anonymous"
         source = (root / "pipeline.py").read_text(encoding="utf-8")
         gates = re.findall(r"cfg\.suggestions\.provider in (\S+?):", source)
         assert gates == ["LLM_PROVIDERS"], (
@@ -370,7 +370,7 @@ class TestTheStagesTheProductShipsWithout:
             "provider a user can set could skip the gate without any error"
         )
         for provider in LLM_PROVIDERS:
-            cfg = RepoRadarConfig()
+            cfg = AnonymousConfig()
             cfg.triage.enabled = True
             cfg.suggestions.provider = provider
             assert _gate_on(cfg), f"stages reports the gate off for {provider!r}"
@@ -380,8 +380,8 @@ class TestTheStagesTheProductShipsWithout:
         """`hyde.discover(model_name=MODEL_NAME)` is what the eval uses; `HydeConfig.model`
         is what the product uses. Two names for one encoder, and the index only answers to
         the one it was built with."""
-        from reporadar.config import HydeConfig
-        from reporadar.hyde import MODEL_NAME
+        from anonymous.config import HydeConfig
+        from anonymous.hyde import MODEL_NAME
 
         assert HydeConfig().model == MODEL_NAME == BENCHMARK_HEADLINE["hyde.model"]
 
@@ -442,12 +442,12 @@ class TestBothRunnersFailTheSameWay:
     ) -> None:
         import run_eval
 
-        from reporadar.collector import CollectionError
+        from anonymous.collector import CollectionError
 
         def boom(*_args: object, **_kwargs: object) -> list[dict[str, object]]:
             raise CollectionError("429 from arXiv")
 
-        monkeypatch.setattr("reporadar.collector.collect_papers", boom)
+        monkeypatch.setattr("anonymous.collector.collect_papers", boom)
         profile = run_eval.profile_case_repo(Path(__file__).resolve().parents[1])
         case = {"expected_categories": ["cs.LG"], "name": "x"}
         with pytest.raises(CollectionError):
@@ -468,7 +468,7 @@ class TestTheAlreadyCitedRuleIsWiredEverywhere:
         omissions = [
             f"{path.relative_to(Path(__file__).resolve().parents[1]).as_posix()}:{line}"
             for path in all_modules()
-            if path.parts[-3:-1] == ("src", "reporadar")
+            if path.parts[-3:-1] == ("src", "anonymous")
             for line, passes in _tier_callers(path)
             if not passes
         ]
@@ -478,7 +478,7 @@ class TestTheAlreadyCitedRuleIsWiredEverywhere:
 
     def test_a_caller_that_omits_it_is_found(self, tmp_path: Path) -> None:
         """Mutation: a checker that cannot fail is a clean bill of health, not a check."""
-        f = tmp_path / "src" / "reporadar" / "offender.py"
+        f = tmp_path / "src" / "anonymous" / "offender.py"
         f.parent.mkdir(parents=True)
         f.write_text("top, maybe, muted = categorize_papers(scored, top_n=5)\n", encoding="utf-8")
 
@@ -510,7 +510,7 @@ class TestTheAlreadyCitedRuleIsWiredEverywhere:
         benchmark_callers = [
             f"{path.name}:{line}"
             for path in all_modules()
-            if path.parts[-3:-1] != ("src", "reporadar")
+            if path.parts[-3:-1] != ("src", "anonymous")
             and path.name != "audit_product_divergence.py"
             for line, _ in _tier_callers(path)
         ]
@@ -532,7 +532,7 @@ class TestTheAlreadyCitedRuleIsWiredEverywhere:
         """
         import audit_product_divergence as audit
 
-        offender = tmp_path / "src" / "reporadar" / "offender.py"
+        offender = tmp_path / "src" / "anonymous" / "offender.py"
         offender.parent.mkdir(parents=True)
         offender.write_text("categorize_papers(scored, top_n=5)\n", encoding="utf-8")
         monkeypatch.setattr(audit, "all_modules", lambda: [*all_modules(), offender])

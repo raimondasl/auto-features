@@ -165,13 +165,13 @@ class TestTheSharedArxivPredicate:
     """
 
     def test_the_bogus_id_is_rejected_by_both(self):
-        from reporadar.paper_id import is_arxiv_id
+        from anonymous.paper_id import is_arxiv_id
 
         assert not is_arxiv_id("publication/2256929")
         assert verify.extract_arxiv_ids("see publication/2256929") == []
 
     def test_real_old_style_ids_still_pass_both(self):
-        from reporadar.paper_id import dedup_id, is_arxiv_id
+        from anonymous.paper_id import dedup_id, is_arxiv_id
 
         for pid in ("hep-th/9901001", "cond-mat/0403023", "cs.LG/0501001", "astro-ph/0605086"):
             assert is_arxiv_id(pid), pid
@@ -180,7 +180,7 @@ class TestTheSharedArxivPredicate:
         assert dedup_id("cond-mat/0403023v2") == "cond-mat/0403023"
 
     def test_there_is_only_one_archive_list(self):
-        from reporadar.paper_id import ARXIV_ARCHIVES
+        from anonymous.paper_id import ARXIV_ARCHIVES
 
         assert verify._ARCHIVES is ARXIV_ARCHIVES
 
@@ -282,7 +282,7 @@ class TestTheStatusOutParameter:
     def _post(self, monkeypatch, exc):
         import urllib.request
 
-        from reporadar import citations
+        from anonymous import citations
 
         monkeypatch.setattr(citations.s2_rate, "wait_turn", lambda: None)
         monkeypatch.setattr(citations.s2_rate, "note_throttled", lambda: None)
@@ -433,7 +433,7 @@ class TestTheOpenAlexStatusOutParameter:
     def _post(self, monkeypatch, exc):
         import urllib.request
 
-        from reporadar.sources import openalex
+        from anonymous.sources import openalex
 
         monkeypatch.setattr(openalex.time, "sleep", lambda _s: None)
 

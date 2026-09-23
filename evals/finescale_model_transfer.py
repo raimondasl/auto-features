@@ -9,8 +9,8 @@ could disagree the document wins and this file is the bug.
     uv run python evals/finescale_model_transfer.py --score    # the Azure passes
     uv run python evals/finescale_model_transfer.py --report   # the analysis, $0
 
-The Azure resource is named by the environment, never by this file, because the repository is
-public and the resource is not: RR_TRANSFER_AZURE_ENDPOINT, RR_TRANSFER_AZURE_RG and
+The Azure resource is named by the environment, never by this file, because the resource is
+private: RR_TRANSFER_AZURE_ENDPOINT, RR_TRANSFER_AZURE_RG and
 RR_TRANSFER_AZURE_ACCOUNT. Nothing that identifies it is written into the artifact either.
 """
 
@@ -43,7 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import band_testbeds as tb  # noqa: E402
 import exp_finescale as ef  # noqa: E402
 
-from reporadar import finescale  # noqa: E402
+from anonymous import finescale  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 RESULTS = EVALS / "results"
@@ -156,7 +156,7 @@ def load_band(band: Band) -> list[BandPaper]:
     fcg.RUN = RESULTS / band.run
     papers = fcg.load_band()
     run = json.loads((RESULTS / band.run).read_text(encoding="utf-8"))
-    shown = {e["case"]: (e.get("returned") or {}).get("reporadar_top10") or [] for e in run}
+    shown = {e["case"]: (e.get("returned") or {}).get("anonymous_top10") or [] for e in run}
     out = [
         BandPaper(
             case=p.case,
@@ -411,7 +411,7 @@ def sonnet_stage(loaded: dict[str, list[BandPaper]], art: dict[str, Any]) -> lis
             }
         )
         print(f"Sonnet verdicts to buy: {len(wanted)}")
-        from reporadar.llm_client import LLMError, LLMRateLimited, LLMUnavailable
+        from anonymous.llm_client import LLMError, LLMRateLimited, LLMUnavailable
 
         void: list[list[str]] = []
         streak = 0
@@ -506,7 +506,7 @@ def install_capture() -> None:
     returned or raised. `_call_openai_top_logprobs` looks the function up in the module when it
     runs, so this reaches every request `top_logprobs` makes.
     """
-    from reporadar import llm_client
+    from anonymous import llm_client
 
     if getattr(llm_client._post_adaptive, "_transfer_capture", False):
         return
@@ -564,7 +564,7 @@ def classify(exc: BaseException | None, cap: Capture | None) -> str:
     """One call's outcome: answered, content_filtered, empty, rate_limited, unavailable_http,
     unavailable_token or error. Rate limits and LLMUnavailable are LLMError subclasses, so they
     are tested first."""
-    from reporadar.llm_client import LLMError, LLMRateLimited, LLMUnavailable
+    from anonymous.llm_client import LLMError, LLMRateLimited, LLMUnavailable
 
     if exc is None:
         return "answered"
@@ -675,7 +675,7 @@ def cache_path(pass_name: str, paper: BandPaper) -> Path:
 
 
 def treatment_cfg() -> Any:
-    from reporadar.config import FinescaleConfig
+    from anonymous.config import FinescaleConfig
 
     endpoint = os.environ.get("RR_TRANSFER_AZURE_ENDPOINT", "")
     return FinescaleConfig(
@@ -695,7 +695,7 @@ def score_one(paper: BandPaper, cfg: Any, sleep: Any = time.sleep) -> dict[str, 
     Rows are answered (scored or no digit), empty, content_filtered or error. Only error rows
     are left uncached by the caller.
     """
-    from reporadar.llm_client import top_logprobs
+    from anonymous.llm_client import top_logprobs
 
     refusals = 0
     errors = 0
@@ -861,7 +861,7 @@ def run_segment(
 
 def az_reading() -> dict[str, Any]:
     """The deployment's model, version and capacity, read with `az`. Records no names."""
-    from reporadar import azure_auth
+    from anonymous import azure_auth
 
     az = azure_auth.az_executable()
     rg = os.environ.get("RR_TRANSFER_AZURE_RG", "")
@@ -940,7 +940,7 @@ def score_stage(
     loaded: dict[str, list[BandPaper]], art: dict[str, Any], sleep: Any = time.sleep
 ) -> None:
     """Band L's first pass and resume passes, then its retest, then band H's other papers."""
-    from reporadar import azure_auth
+    from anonymous import azure_auth
 
     run = art["run"]
     if finished(run):
@@ -1506,7 +1506,7 @@ def main() -> int:
     _lock = hold_run_lock()  # noqa: F841 -- held until exit
 
     if args.score:
-        from reporadar import azure_auth
+        from anonymous import azure_auth
 
         try:
             azure_auth.chat_completions_url(os.environ.get("RR_TRANSFER_AZURE_ENDPOINT", ""))

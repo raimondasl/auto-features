@@ -38,9 +38,9 @@ sys.path.insert(0, str(ROOT / "evals"))
 import judge as judge_mod  # noqa: E402
 import sonnet_id_probe as probe  # noqa: E402
 
-from reporadar import llm_client  # noqa: E402
-from reporadar.config import SuggestionsConfig  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous import llm_client  # noqa: E402
+from anonymous.config import SuggestionsConfig  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 ARTIFACT = ROOT / "evals" / "sonnet_id_probe.json"
 
@@ -464,7 +464,7 @@ class TestBeforeAnyCall:
     def test_the_key_check_is_the_clients_own_resolution(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("REPORADAR_CONFIG_DIR", str(tmp_path))
+        monkeypatch.setenv("ANONYMOUS_CONFIG_DIR", str(tmp_path))
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         assert probe.anthropic_key_resolves() is False
         monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")

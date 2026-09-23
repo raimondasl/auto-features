@@ -904,7 +904,7 @@
   "passes": true,
   "but_the_bar_was_weak": "The consensus label demotes 0.7% of shipped and 1.7% of Opus 5 GPT-actionable papers, so it is nearly GPT by construction and this pass carries little information. Recorded rather than repaired: moving a bar after seeing the data is the failure NR-49 documented, so the pass stands as written and its weakness is measured beside it.",
   "sonnet_only_sign_flips": true,
-  "sonnet_only_reading": "The pre-registration named the Sonnet-only SIGN as the informative part, and it flips. Under Sonnet, RepoRadar scores -2.03/case against Opus 5's +1.38: our shown papers run 58.5% actionable, BELOW net@2's 2/3 break-even, while Opus 5's run 71.4%, above it. The prediction written in advance -- that a harsher judge would push BOTH arms negative and penalise the arm showing more -- is wrong in both halves, and the direction is against us.",
+  "sonnet_only_reading": "The pre-registration named the Sonnet-only SIGN as the informative part, and it flips. Under Sonnet, Anonymous scores -2.03/case against Opus 5's +1.38: our shown papers run 58.5% actionable, BELOW net@2's 2/3 break-even, while Opus 5's run 71.4%, above it. The prediction written in advance -- that a harsher judge would push BOTH arms negative and penalise the arm showing more -- is wrong in both halves, and the direction is against us.",
   "gpt_margin_is_draw_dependent": "This control (20260830T034455Z, RR mean +5.51) gives a GPT margin of +0.32; opus5_arm.json's control (20260827T213701Z, RR mean +5.73) gives +0.54 against an identical Opus 5 arm. Same config, different draw, 0.22/case apart -- C-7 applies to our own side too, and the headline number is not draw-stable."
  }
 }

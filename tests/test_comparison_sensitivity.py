@@ -15,7 +15,7 @@ What is pinned, because prose depends on it:
   9/8. Under Sonnet the margin is negative for every lambda >= 0. No GPT-5.5 or consensus interval
   excludes zero at any lambda. Sonnet's excludes zero at lambda 1 only.
 * Lambda 2 gives NR-52 back: +0.32, +0.57 and -3.41, with its published intervals.
-* The negative controls. RepoRadar shows nothing on webdev, cli and http, and Opus 5 shows 31
+* The negative controls. Anonymous shows nothing on webdev, cli and http, and Opus 5 shows 31
   papers there. Under GPT-5.5 they carry +11 of the +12 total, and without them the margin is
   +0.03 [-2.15, +2.29]. Under Sonnet the margin without them is -5.35 [-8.41, -2.32].
 * The cases. On the 22 development cases the GPT-5.5 margin is +2.27. On the 15 later cases it is
@@ -350,7 +350,7 @@ class TestThePenalty:
 
     def test_where_each_arm_crosses_the_break_even(self, artifact: dict) -> None:
         """Under GPT-5.5 and consensus both arms clear lambda / (1 + lambda) at every lambda.
-        Under Sonnet RepoRadar falls below it from lambda 1.5, and Opus 5 from lambda 3."""
+        Under Sonnet Anonymous falls below it from lambda 1.5, and Opus 5 from lambda 3."""
         below: dict[str, set[float]] = {}
         for label in LABELS:
             rows = _rows(artifact, label).values()
@@ -387,7 +387,7 @@ class TestTheControls:
         assert flagged == set(CONTROLS)
 
     @pytest.mark.parametrize("label", LABELS)
-    def test_repo_radar_shows_nothing_on_them(self, artifact: dict, label: str) -> None:
+    def test_anonymous_shows_nothing_on_them(self, artifact: dict, label: str) -> None:
         rows = _rows(artifact, label)
         for case in CONTROLS:
             assert rows[case]["rr_a"] + rows[case]["rr_u"] == 0, (label, case)

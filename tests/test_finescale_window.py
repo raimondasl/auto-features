@@ -23,9 +23,9 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from reporadar.cli import cli
-from reporadar.digest import categorize_papers, digest_window
-from reporadar.store import PaperStore
+from anonymous.cli import cli
+from anonymous.digest import categorize_papers, digest_window
+from anonymous.store import PaperStore
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -103,7 +103,7 @@ class TestDigestWindow:
 def _repo_with_gate(tmp_path: Path, *, top_n: int, top_k: int) -> Path:
     """A repo whose digest window is deliberately narrower than its gate."""
     shutil.copy(FIXTURES_DIR / "sample_readme.md", tmp_path / "README.md")
-    cfg = tmp_path / ".reporadar.yml"
+    cfg = tmp_path / ".anonymous.yml"
     cfg.write_text(
         f"repo_path: {tmp_path}\n"
         "arxiv:\n  categories: [cs.CL]\n  max_results_per_query: 10\n  lookback_days: 14\n"
@@ -142,9 +142,9 @@ def _papers(n: int) -> list[dict]:
 class TestUpdateScopesTheBandToTheWindow:
     """End to end through `rr update`, because the defect was in the wiring, not the rule."""
 
-    @patch("reporadar.finescale.score_papers")
-    @patch("reporadar.triage.triage_papers")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.finescale.score_papers")
+    @patch("anonymous.triage.triage_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_a_band_paper_outside_the_window_is_not_rescored(
         self,
         mock_collect: MagicMock,
@@ -162,7 +162,7 @@ class TestUpdateScopesTheBandToTheWindow:
         }
         mock_score.return_value = {}
 
-        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
 
         assert result.exit_code == 0, result.output
         assert mock_score.called, "the fine-scale stage did not run at all"
@@ -170,9 +170,9 @@ class TestUpdateScopesTheBandToTheWindow:
         assert len(scored_ids) == 2, f"rescored {len(scored_ids)} papers for a 2-paper digest"
         assert "Rescoring 2 band papers" in result.output
 
-    @patch("reporadar.finescale.score_papers")
-    @patch("reporadar.triage.triage_papers")
-    @patch("reporadar.pipeline.collect_papers")
+    @patch("anonymous.finescale.score_papers")
+    @patch("anonymous.triage.triage_papers")
+    @patch("anonymous.pipeline.collect_papers")
     def test_the_scoped_band_matches_what_the_digest_would_show(
         self,
         mock_collect: MagicMock,
@@ -193,7 +193,7 @@ class TestUpdateScopesTheBandToTheWindow:
         }
         mock_score.return_value = {}
 
-        db = repo / ".reporadar" / "papers.db"
+        db = repo / ".anonymous" / "papers.db"
         db.parent.mkdir(parents=True, exist_ok=True)
         with PaperStore(db) as store:
             store.upsert_papers(papers)
@@ -201,7 +201,7 @@ class TestUpdateScopesTheBandToTheWindow:
             # deeper than it otherwise would.
             store.save_signals([(papers[0]["arxiv_id"], "withdrawn", "cs.CL", None)])
 
-        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".reporadar.yml")])
+        result = CliRunner().invoke(cli, ["update", "--config", str(repo / ".anonymous.yml")])
         assert result.exit_code == 0, result.output
 
         scoped = {p["arxiv_id"] for p in mock_score.call_args.args[0]}

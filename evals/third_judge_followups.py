@@ -47,7 +47,7 @@ import judge_dependence as jd  # noqa: E402
 from bigram_report import paired_bootstrap  # noqa: E402
 from second_judge import cohens_kappa  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 THIRD = EVALS / "third_judge.json"

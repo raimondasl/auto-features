@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import band_testbeds as tb  # noqa: E402
 import exp_finescale as ef  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 RUN = (
@@ -86,7 +86,7 @@ def load_band() -> list[tb.Paper]:
             dedup_id(c.get("arxiv_id") or ""): c
             for c in json.loads(pool_file.read_text(encoding="utf-8"))["candidates"]
         }
-        shown = (entry.get("returned") or {}).get("reporadar_top10") or []
+        shown = (entry.get("returned") or {}).get("anonymous_top10") or []
         for pos, paper in enumerate(shown):
             if paper.get("llm_score") != 2:
                 continue

@@ -1,8 +1,8 @@
-"""Tests for reporadar.suggestions."""
+"""Tests for anonymous.suggestions."""
 
 from __future__ import annotations
 
-from reporadar.suggestions import (
+from anonymous.suggestions import (
     MAX_SUGGESTIONS,
     enrich_papers_with_suggestions,
     generate_suggestions,

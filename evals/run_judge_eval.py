@@ -1,7 +1,7 @@
 """Tier B: LLM-judged, abstention-aware actionable-improvement benchmark.
 
 For each real repo, two systems produce a paper list:
-  1. RepoRadar  — its "Top Picks" tier (score >= 0.5), which may be empty.
+  1. Anonymous  — its "Top Picks" tier (score >= 0.5), which may be empty.
   2. Baseline   — Opus 4.8 via Claude Code headless (the strong baseline).
 
 A neutral OpenAI judge (default GPT-5.5), blind to the source, scores the pooled
@@ -49,18 +49,18 @@ from harness import (  # noqa: E402
 from metrics import summarize_system  # noqa: E402
 from verify import resolve_references  # noqa: E402
 
-from reporadar.collector import CollectionError  # noqa: E402
-from reporadar.config import (  # noqa: E402
+from anonymous.collector import CollectionError  # noqa: E402
+from anonymous.config import (  # noqa: E402
     ABSENT_CATEGORY_MODES,
     BIGRAM_MODES,
     QueriesConfig,
     RankingConfig,
 )
-from reporadar.digest import TOP_THRESHOLD  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
-from reporadar.ranker import rank_papers  # noqa: E402
-from reporadar.retrieval import hybrid_reorder  # noqa: E402
-from reporadar.triage import rerank_by_actionability  # noqa: E402
+from anonymous.digest import TOP_THRESHOLD  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
+from anonymous.ranker import rank_papers  # noqa: E402
+from anonymous.retrieval import hybrid_reorder  # noqa: E402
+from anonymous.triage import rerank_by_actionability  # noqa: E402
 
 RESULTS_DIR = EVALS_DIR / "results"
 ENV_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENALEX_API_KEY", "SEMANTIC_SCHOLAR_API_KEY"]
@@ -110,8 +110,8 @@ def case_profile(
     `--rr-prose-chars` for the two LLM stages, because it governs only how much README
     prose reaches a prompt — the split predates this helper and is deliberate.
     """
-    from reporadar.config import ProfilerConfig
-    from reporadar.profiler import profile_repo
+    from anonymous.config import ProfilerConfig
+    from anonymous.profiler import profile_repo
 
     cfg = (
         ProfilerConfig(
@@ -150,7 +150,7 @@ def collect_candidates(
 ) -> list[dict[str, Any]]:
     """Everything retrieval found, before any ranking — the unit a frozen pool stores.
 
-    Split out from :func:`reporadar_ranked` so `--rr-frozen-pool` can freeze *candidates*
+    Split out from :func:`anonymous_ranked` so `--rr-frozen-pool` can freeze *candidates*
     rather than a ranked list. Freezing the ranked output made every ranking experiment
     collect live at the 1.04 floor, which is the opposite of what the flag exists for: the
     pool is the dominant variance term and ranking is deterministic given it, so a ranking
@@ -187,7 +187,7 @@ def rank_candidates(
     w_embedding: float = 0.0,
     paper_embeddings: dict[str, Any] | None = None,
 ) -> list[tuple[dict[str, Any], float]]:
-    """RepoRadar's ranking over an already-collected pool: top-N (paper, score) best-first.
+    """Anonymous's ranking over an already-collected pool: top-N (paper, score) best-first.
 
     Deterministic given *papers*, which is what makes a frozen candidate pool sound: the
     same pool re-ranked under the same flags reproduces the stored run exactly, and under
@@ -213,7 +213,7 @@ def rank_candidates(
         # VOID, NOT NULL. Without the extra the ranker scores every paper on keyword and
         # category alone, so the arm would report "the embedding weight does nothing"
         # about a component that never ran -- the exact shape of C-9 and NR-30.
-        from reporadar.embeddings import EMBEDDINGS_AVAILABLE, compute_repo_embedding
+        from anonymous.embeddings import EMBEDDINGS_AVAILABLE, compute_repo_embedding
 
         if not EMBEDDINGS_AVAILABLE:
             raise SystemExit(
@@ -247,7 +247,7 @@ def rank_candidates(
     return out
 
 
-def reporadar_ranked(
+def anonymous_ranked(
     repo_dir: Path,
     categories: list[str],
     sources: list[str],
@@ -263,7 +263,7 @@ def reporadar_ranked(
     typed_anchors: bool = False,
     w_embedding: float = 0.0,
 ) -> list[tuple[dict[str, Any], float]]:
-    """RepoRadar's real ranking: top-N (paper, score) best-first.
+    """Anonymous's real ranking: top-N (paper, score) best-first.
 
     Top Picks (the abstention-respecting output) = those with score >= 0.5.
     Returning the top-N regardless lets us tell a conservative threshold apart
@@ -349,7 +349,7 @@ def _add_hyde_candidates(
 ) -> list[dict[str, Any]]:
     """Extend the candidate pool with the shipped HyDE channel, before ranking.
 
-    Routed through `reporadar.hyde` and `reporadar.collector.collect_by_ids` rather than
+    Routed through `anonymous.hyde` and `anonymous.collector.collect_by_ids` rather than
     reimplemented — the same discipline `--rr-finescale` follows, and for the same reason:
     a harness that rebuilds the thing under test measures the harness. Here it matters
     doubly, because the hypothesis prompt is what the 27/48 was measured with.
@@ -358,8 +358,8 @@ def _add_hyde_candidates(
     DEGRADED arm, not a clean one — the whole point of the flag is the extra candidates —
     so it prints loudly and the summary counts how many cases it happened to.
     """
-    from reporadar import hyde
-    from reporadar.collector import collect_by_ids
+    from anonymous import hyde
+    from anonymous.collector import collect_by_ids
 
     cfg = SimpleNamespace(
         provider="claude",
@@ -447,7 +447,7 @@ def aggregate_sweep(
     return summary
 
 
-def _triage_reporadar(
+def _triage_anonymous(
     repo_dir: Path,
     papers: list[dict[str, Any]],
     keys: dict[str, str],
@@ -459,7 +459,7 @@ def _triage_reporadar(
     provider: str = "claude",
     effort: str = "",
 ) -> dict[str, dict[str, Any]]:
-    """Run Feature 6 LLM triage over RepoRadar's ranked papers (Claude/Anthropic).
+    """Run Feature 6 LLM triage over Anonymous's ranked papers (Claude/Anthropic).
 
     *prose_chars* is the README budget on the profile; 0 withholds it. The prompt itself
     is always the shipped one — this used to assemble its own "README context" variant,
@@ -468,8 +468,8 @@ def _triage_reporadar(
     12 benchmark repos, and it silently dropped the domains/key-topics block as well. A
     harness that rebuilds the prompt measures the harness. See evals/RESULTS.md.
     """
-    from reporadar.config import SuggestionsConfig
-    from reporadar.triage import triage_papers
+    from anonymous.config import SuggestionsConfig
+    from anonymous.triage import triage_papers
 
     profile = case_profile(
         repo_dir, scan_source=scan_source, prose_chars=prose_chars, prose_anchor=prose_anchor
@@ -494,7 +494,7 @@ def _apply_finescale(
 ) -> list[dict[str, Any]]:
     """Rescore the gate's threshold band and return the surviving Top Picks.
 
-    Routed through ``reporadar.finescale`` and ``reporadar.triage.repo_context_block``
+    Routed through ``anonymous.finescale`` and ``anonymous.triage.repo_context_block``
     rather than reimplemented, for the reason this file learned the hard way: a harness
     that rebuilds a prompt measures the harness. It matters more here than anywhere else,
     because the score→probability map is *calibrated to that exact prompt* — a local copy
@@ -503,7 +503,7 @@ def _apply_finescale(
     Mutates ``rr_topn`` in place with ``finescale``/``finescale_p`` so the per-paper
     values land in the results file and the run can be re-analysed without re-calling.
     """
-    from reporadar.finescale import enough_scored, score_papers
+    from anonymous.finescale import enough_scored, score_papers
 
     above = [p for p in rr_topn if (p.get("llm_score") or 0) > args.rr_min_actionable]
     band = [p for p in rr_topn if p.get("llm_score") == args.rr_min_actionable]
@@ -765,7 +765,7 @@ def ablate_docs(repo_dir: Path, budget: int, *, scan_source: bool = False) -> Pa
     The benchmark's thinnest README is 1,639 characters against a 300-character prose
     budget — **no case is under 1,000, and none under 300** — so every measurement of
     what to tell the system about a repository was made where supply exceeds demand by
-    5.5x. RepoRadar's actual target user is a private codebase with almost no prose.
+    5.5x. Anonymous's actual target user is a private codebase with almost no prose.
     This builds that case out of a real one.
 
     Only the README and ``docs/`` are removed. Dependency manifests are copied verbatim,
@@ -841,7 +841,7 @@ def returned_records(
     "not scored", present-and-null means "scoring failed". Collapsing those two into a
     null would make a run in which triage never executed indistinguishable from one in
     which it executed and failed, which is the same distinction
-    :func:`reporadar.finescale.score_papers` exists to preserve.
+    :func:`anonymous.finescale.score_papers` exists to preserve.
     """
     out = []
     for p in papers:
@@ -894,7 +894,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         print(f'        goal: "{goal[:96]}"')
     categories = case["expected_categories"]
 
-    # 1. RepoRadar ranking -> Top-10 (diagnostic) and Top Picks (headline).
+    # 1. Anonymous ranking -> Top-10 (diagnostic) and Top Picks (headline).
     #    --rr-rerank triages a deeper candidate pool (RERANK_POOL) and reorders it
     #    by llm_score before the Top-10 cut, so an actionable paper the heuristic
     #    ranker buried below rank 10 can still rise into the returned set.
@@ -979,7 +979,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
     if args.rr_triage:
         # Feature 6: gate Top Picks on the LLM actionability score instead of the
         # heuristic 0.5 threshold, so the benchmark measures triage's effect.
-        triaged = _triage_reporadar(
+        triaged = _triage_anonymous(
             rr_dest,
             rr_candidates,
             keys,
@@ -998,7 +998,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         rr_toppicks = [p for p in rr_topn if (p.get("llm_score") or 0) >= args.rr_min_actionable]
         n_scored = sum(1 for p in rr_topn if p.get("llm_score") is not None)
         print(
-            f"        RepoRadar[triaged{'+rerank' if args.rr_rerank else ''}]: "
+            f"        Anonymous[triaged{'+rerank' if args.rr_rerank else ''}]: "
             f"{n_scored}/{len(rr_topn)} scored, {len(rr_toppicks)} actionable "
             f"(Top Picks, min>={args.rr_min_actionable})"
         )
@@ -1012,7 +1012,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         rr_topn = rr_candidates[: args.rr_window]
         rr_toppicks = [p for p, s in rr_ranked[: args.rr_window] if s >= TOP_THRESHOLD]
         print(
-            f"        RepoRadar: {len(rr_topn)} ranked, "
+            f"        Anonymous: {len(rr_topn)} ranked, "
             f"{len(rr_toppicks)} in Top Picks tier (>=0.5)"
         )
 
@@ -1030,7 +1030,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         )
     baseline_status = b.get("status", "ok")
     if baseline_status == "skipped":
-        print("        baseline skipped (--baseline none) — pool is RepoRadar's top-10 only")
+        print("        baseline skipped (--baseline none) — pool is Anonymous's top-10 only")
     elif baseline_status != "ok":
         print(f"        !! BASELINE DID NOT RUN [{baseline_status}]: {b.get('raw', '')[:200]}")
     b_papers, n_halluc, n_lookup_failed, n_unjudgeable = resolve_references(b["ids"], b["titles"])
@@ -1050,7 +1050,7 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         f"{len(b_papers)} real, {n_halluc} hallucinated (cost ${b.get('cost_usd', 0):.2f})"
     )
 
-    # 3. Pool = RepoRadar top-N ∪ baseline; judge each once, blind to source.
+    # 3. Pool = Anonymous top-N ∪ baseline; judge each once, blind to source.
     #    A judge failure drops the paper from the pool — never fabricate a 0.
     pool: dict[str, dict[str, Any]] = {}
     for p in rr_topn + b_papers:
@@ -1108,8 +1108,8 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
 
     n_relevant = sum(1 for g in pool_gains if g >= 2)
     print(f"        pool judged: {len(pool_gains)} papers, {n_relevant} genuinely actionable (>=2)")
-    _print_system("RepoRadar[TopPicks]", rr_pick_metrics)
-    _print_system("RepoRadar[Top10]   ", rr_topn_metrics)
+    _print_system("Anonymous[TopPicks]", rr_pick_metrics)
+    _print_system("Anonymous[Top10]   ", rr_topn_metrics)
     b_extra = "" if not baseline_ok else f"recent={b_metrics['n_recent']}/{len(b_papers)}"
     _print_system("Baseline           ", b_metrics, extra=b_extra)
 
@@ -1180,17 +1180,17 @@ def run(case: dict, keys: dict[str, str], args: argparse.Namespace) -> dict[str,
         "n_actionable_in_pool": n_relevant,
         "n_judge_failed": n_judge_failed,
         "baseline_status": baseline_status,
-        "reporadar_toppicks": rr_pick_metrics,
-        "reporadar_top10": rr_topn_metrics,
+        "anonymous_toppicks": rr_pick_metrics,
+        "anonymous_top10": rr_topn_metrics,
         "baseline": b_metrics,
         "returned": {
-            "reporadar_toppicks": _returned(rr_toppicks),
-            "reporadar_top10": _returned(rr_topn),
+            "anonymous_toppicks": _returned(rr_toppicks),
+            "anonymous_top10": _returned(rr_topn),
             "baseline": _returned(b_papers) if baseline_ok else [],
         },
     }
     if sweep is not None:
-        result["reporadar_toppicks_sweep"] = sweep
+        result["anonymous_toppicks_sweep"] = sweep
     return result
 
 
@@ -1221,26 +1221,26 @@ def main() -> int:
     parser.add_argument(
         "--model", default=judge_mod.DEFAULT_JUDGE_MODEL, help="OpenAI judge model."
     )
-    parser.add_argument("--sources", default="arxiv", help="RepoRadar sources (comma-separated).")
+    parser.add_argument("--sources", default="arxiv", help="Anonymous sources (comma-separated).")
     parser.add_argument(
         "--baseline",
         choices=["cli", "api", "none"],
         default="cli",
         help="Opus baseline mode: 'cli' = Claude Code headless (needs `claude` on PATH); "
         "'api' = Anthropic Messages API + web_search (needs ANTHROPIC_API_KEY, no CLI); "
-        "'none' = skip it. Use 'none' only for RepoRadar-vs-RepoRadar arm comparisons, "
+        "'none' = skip it. Use 'none' only for Anonymous-vs-Anonymous arm comparisons, "
         "where the baseline contributes nothing but cost — and note it also shrinks the "
-        "judged pool to RepoRadar's own top-10, so pool statistics are NOT comparable "
+        "judged pool to Anonymous's own top-10, so pool statistics are NOT comparable "
         "with runs that included it.",
     )
     parser.add_argument("--no-cache", action="store_true", help="Ignore cached verdicts/baseline.")
     parser.add_argument(
         "--rr-triage",
         action="store_true",
-        help="Gate RepoRadar Top Picks on Feature 6 LLM triage (needs ANTHROPIC_API_KEY).",
+        help="Gate Anonymous Top Picks on Feature 6 LLM triage (needs ANTHROPIC_API_KEY).",
     )
     parser.add_argument(
-        "--rr-triage-model", default="claude-haiku-4-5", help="Model for RepoRadar triage."
+        "--rr-triage-model", default="claude-haiku-4-5", help="Model for Anonymous triage."
     )
     parser.add_argument(
         "--rr-gate-provider",
@@ -1279,7 +1279,7 @@ def main() -> int:
     parser.add_argument(
         "--rr-rerank",
         action="store_true",
-        help=f"Listwise-rerank RepoRadar's Top Picks by LLM actionability: triage a deeper "
+        help=f"Listwise-rerank Anonymous's Top Picks by LLM actionability: triage a deeper "
         f"pool of {RERANK_POOL} candidates and reorder by llm_score before the Top-10 cut, so a "
         f"buried-but-actionable paper can surface. Implies --rr-triage. Incurs more triage spend.",
     )
@@ -1307,7 +1307,7 @@ def main() -> int:
         "--rr-hyde",
         action="store_true",
         help="Add HyDE dense-index candidates to the pool before ranking, via the shipped "
-        "reporadar.hyde. Measured in isolation at 27/48 targets with 15 reachable by no "
+        "anonymous.hyde. Measured in isolation at 27/48 targets with 15 reachable by no "
         "other channel; this flag is how that converts (or does not) into net@2. Needs a "
         "synced index — see --rr-hyde-index.",
     )
@@ -1386,7 +1386,7 @@ def main() -> int:
     parser.add_argument(
         "--rr-finescale",
         action="store_true",
-        help="Apply the shipped fine-scale rescore (reporadar.finescale) to the papers "
+        help="Apply the shipped fine-scale rescore (anonymous.finescale) to the papers "
         "sitting exactly at --rr-min-actionable: score each 0-9, read the expectation over "
         "the answer token's logprob distribution, and keep only those clearing "
         "--rr-finescale-threshold. Needs OPENAI_API_KEY (Anthropic exposes no logprobs). "
@@ -1416,7 +1416,7 @@ def main() -> int:
         metavar="FILE",
         help="Stated-intent arm (roadmap item 0): a JSON {case: goal} file, e.g. "
         "evals/goals/blind.json. The goal reaches ONLY the HyDE hypothesis prompt — "
-        "reporadar.hyde appends it after the shared repo block, so it structurally cannot "
+        "anonymous.hyde appends it after the shared repo block, so it structurally cannot "
         "enter the 0-3 gate or the fine-scale rescore. That placement is P8's result, not "
         "a preference: stated wants fed to the GATE scored net@2 +57 against +95, the worst "
         "arm in the campaign, and that experiment concluded wants belong in the query. A "
@@ -1427,11 +1427,11 @@ def main() -> int:
         type=int,
         default=None,
         metavar="CHARS",
-        help="Thin-docs arm: build RepoRadar's profile from a repo whose README is capped "
+        help="Thin-docs arm: build Anonymous's profile from a repo whose README is capped "
         "at CHARS and whose docs/ is withheld (0 = manifests only). The judge still sees "
         "the REAL repo, so ground truth does not degrade with the treatment. Every case in "
         "the benchmark has a README of 1,639+ chars against a 300-char prose budget, so "
-        "nothing here has ever measured the regime RepoRadar's target user lives in. Note "
+        "nothing here has ever measured the regime Anonymous's target user lives in. Note "
         "that at CHARS >= 300 the gate's prose block is IDENTICAL to the control's (both "
         "are README[:300]) and only the derived keywords, queries and HyDE hypotheses "
         "thin out — which is what isolates retrieval degradation from prompt degradation.",
@@ -1473,7 +1473,7 @@ def main() -> int:
     parser.add_argument(
         "--rr-all-time",
         action="store_true",
-        help="RepoRadar discovery: all-time relevance-sorted fetch (no 90-day window, "
+        help="Anonymous discovery: all-time relevance-sorted fetch (no 90-day window, "
         "recency weight dropped) so seminal older papers can surface. Tests whether the "
         "baseline's edge is a discovery-window artifact. NOTE: surfaces new papers not in "
         "the judge cache, so this incurs fresh OpenAI judge (and triage) spend.",
@@ -1507,7 +1507,7 @@ def main() -> int:
     rr_gate = (
         # The gate that ACTUALLY ran, not the pool's HyDE model. A run labelled with the
         # wrong model is how a measurement gets published under the wrong name, which this
-        # harness has already done once (see _triage_reporadar's docstring).
+        # harness has already done once (see _triage_anonymous's docstring).
         f"triage{'+rerank' if args.rr_rerank else ''}"
         f"({args.rr_gate_model or args.rr_triage_model}, "
         f"min>={args.rr_min_actionable}{'+sweep' if args.rr_sweep else ''})"
@@ -1515,9 +1515,9 @@ def main() -> int:
     rr_label = rr_gate if args.rr_triage else "heuristic 0.5"
     disco_label = "all-time/relevance" if args.rr_all_time else "90-day/recency"
     disco_label += "+hybrid(bm25+rrf)" if args.rr_hybrid else ""
-    print("=== RepoRadar Tier B: actionable-improvement benchmark ===")
-    print(f"judge={judge_label}  baseline={baseline_label}  reporadar_gate={rr_label}")
-    print(f"reporadar_discovery={disco_label}")
+    print("=== Anonymous Tier B: actionable-improvement benchmark ===")
+    print(f"judge={judge_label}  baseline={baseline_label}  anonymous_gate={rr_label}")
+    print(f"anonymous_discovery={disco_label}")
     if args.rr_frozen_pool is not None:
         print(
             "*** FROZEN POOL MODE — candidates are reused, NOT collected live. Valid only "
@@ -1532,7 +1532,7 @@ def main() -> int:
         print("\n! --baseline api needs ANTHROPIC_API_KEY. Set it (see evals/README.md).")
         return 1
     if args.rr_triage and "ANTHROPIC_API_KEY" not in keys:
-        print("\n! --rr-triage needs ANTHROPIC_API_KEY (RepoRadar triage uses Claude).")
+        print("\n! --rr-triage needs ANTHROPIC_API_KEY (Anonymous triage uses Claude).")
         return 1
 
     bench = load_benchmark()
@@ -1584,7 +1584,7 @@ def main() -> int:
             print(f"   {msg[:160]}")
 
     if args.rr_sweep and results:
-        key = "reporadar_toppicks_sweep"
+        key = "anonymous_toppicks_sweep"
         per_case = [r[key] for r in results if key in r]
         agg = aggregate_sweep(per_case)
         print(f"\n=== Top Picks threshold sweep — cross-case ({len(per_case)} cases) ===")

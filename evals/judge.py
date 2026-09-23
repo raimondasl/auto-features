@@ -25,7 +25,7 @@ _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from reporadar.paper_id import is_arxiv_id  # noqa: E402
+from anonymous.paper_id import is_arxiv_id  # noqa: E402
 
 RUBRIC_VERSION = "v1"  # bump to invalidate cached verdicts
 DEFAULT_JUDGE_MODEL = "gpt-5.5"

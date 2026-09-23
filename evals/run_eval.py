@@ -1,4 +1,4 @@
-"""RepoRadar evaluation benchmark runner.
+"""Anonymous evaluation benchmark runner.
 
 Two modes:
 
@@ -42,7 +42,7 @@ from harness import (  # noqa: E402  (needs evals/ on sys.path first)
 )
 from metrics import evaluate_ranking  # noqa: E402
 
-from reporadar.collector import CollectionError  # noqa: E402
+from anonymous.collector import CollectionError  # noqa: E402
 
 FIXTURES_DIR = EVALS_DIR / "fixtures"
 WORK_DIR = EVALS_DIR / ".work"
@@ -104,7 +104,7 @@ def eval_negative_control(ranked: list[dict[str, Any]], case: dict, k: int) -> d
 
 
 def run_offline(bench: dict, only: str | None, k: int, embeddings: bool) -> int:
-    print("\n=== RepoRadar offline benchmark ===")
+    print("\n=== Anonymous offline benchmark ===")
     print(
         f"(k={k}, embeddings={'on' if embeddings else 'off'}, recency weight=0 for determinism)\n"
     )
@@ -212,14 +212,14 @@ def collect_live(
     lookback_days: int,
 ) -> list[dict[str, Any]]:
     """Mirror the live collection path: build queries, fetch from each source."""
-    from reporadar.collector import (
+    from anonymous.collector import (
         CollectionError,
         build_queries,
         collect_papers,
         to_plain_keywords,
     )
-    from reporadar.config import ArxivConfig, QueriesConfig
-    from reporadar.paper_id import dedup_id
+    from anonymous.config import ArxivConfig, QueriesConfig
+    from anonymous.paper_id import dedup_id
 
     categories = case["expected_categories"] or ["cs.LG", "cs.CL", "cs.CV", "cs.SE"]
     arxiv_cfg = ArxivConfig(
@@ -245,7 +245,7 @@ def collect_live(
     plain_queries = [to_plain_keywords(q) for q in queries[:5]]
 
     if "openalex" in sources:
-        from reporadar.sources.openalex import collect_papers as oa_collect
+        from anonymous.sources.openalex import collect_papers as oa_collect
 
         for p in oa_collect(
             plain_queries,
@@ -257,7 +257,7 @@ def collect_live(
                 seen.add(dedup_id(p["arxiv_id"]))
 
     if "semantic_scholar" in sources:
-        from reporadar.sources.semantic_scholar import collect_papers as ss_collect
+        from anonymous.sources.semantic_scholar import collect_papers as ss_collect
 
         for p in ss_collect(
             plain_queries,
@@ -299,7 +299,7 @@ def run_live(
     bench: dict, only: str | None, k: int, embeddings: bool, sources: list[str], reuse: bool
 ) -> int:
     keys = collected_keys()
-    print("\n=== RepoRadar live benchmark ===")
+    print("\n=== Anonymous live benchmark ===")
     print(f"(k={k}, sources={','.join(sources)}, embeddings={'on' if embeddings else 'off'})")
     print(f"keys present: {', '.join(keys) or 'none (arXiv only)'}\n")
 

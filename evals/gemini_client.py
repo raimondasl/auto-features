@@ -2,7 +2,7 @@
 
 `evals/PREREG-third-judge.md` registers a third judge from a third vendor. The product knows no
 Gemini provider, and this study must not add one. So the calls go through `urllib` and `json`
-here, inside `evals/`. `pyproject.toml`, `uv.lock` and `src/reporadar` stay untouched.
+here, inside `evals/`. `pyproject.toml`, `uv.lock` and `src/anonymous` stay untouched.
 
 Three endpoints, and only `generate` costs money:
 

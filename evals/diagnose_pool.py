@@ -1,9 +1,9 @@
-"""Is RepoRadar's failure a POOL problem or a SELECTION problem?
+"""Is Anonymous's failure a POOL problem or a SELECTION problem?
 
 Free, keyless, no LLM calls — only arXiv fetches. Run this before any retrieval work.
 
 For every paper the Opus baseline recommended AND the GPT-5.5 judge scored >= 2 (genuinely
-actionable), ask one question: did RepoRadar's own queries fetch it at all?
+actionable), ask one question: did Anonymous's own queries fetch it at all?
 
     fetched but not returned  -> SELECTION problem (ranking or triage dropped a good paper)
     never fetched             -> POOL problem (the queries cannot reach it)
@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from harness import collect_live_papers, profile_case_repo  # noqa: E402
 
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 BASELINE = EVALS / "cache" / "baseline" / "cli"

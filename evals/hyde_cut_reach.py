@@ -50,7 +50,7 @@ EVALS = Path(__file__).resolve().parent
 sys.path.insert(0, str(EVALS))
 sys.path.insert(0, str(EVALS.parent / "src"))
 
-from reporadar.paper_id import dedup_id, is_arxiv_id  # noqa: E402
+from anonymous.paper_id import dedup_id, is_arxiv_id  # noqa: E402
 
 WORK = EVALS / ".work"
 INDEX = WORK / "hyde_index"
@@ -80,7 +80,7 @@ def load_hypotheses() -> dict[str, list[str]]:
 
 
 def witnesses_by_case() -> dict[str, list[tuple[str, list[str]]]]:
-    """Non-self witnesses only: reporadar's own picks are in the pool by construction."""
+    """Non-self witnesses only: anonymous's own picks are in the pool by construction."""
     import witness_set as ws
 
     data = json.loads(WITNESSES.read_text(encoding="utf-8"))["witnesses"]
@@ -100,8 +100,8 @@ def generate() -> int:
     from dotenv import load_dotenv
     from harness import profile_case_repo
 
-    from reporadar import hyde
-    from reporadar.config import SuggestionsConfig
+    from anonymous import hyde
+    from anonymous.config import SuggestionsConfig
 
     load_dotenv(EVALS / ".env")
     have = load_hypotheses()
@@ -131,7 +131,7 @@ def compute_ranks(cases: dict[str, list[tuple[str, list[str]]]]) -> dict[str, di
     """Best rank of each witness across its case's hypotheses, over the shipped index."""
     import numpy as np
 
-    from reporadar import hyde
+    from anonymous import hyde
 
     hyp = load_hypotheses()
     shards = hyde.index_shards(INDEX)

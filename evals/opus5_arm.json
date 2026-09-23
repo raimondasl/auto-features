@@ -1,5 +1,5 @@
 {
- "_comment": "P26: Opus 5 as a comparator over the COMPLETE 37-case cohort, against RepoRadar at three source configurations. Derived by evals/freeze_opus5_arm.py from evals/gold_spread_v2_opus5.json (in tree) and three run files under evals/results/ (gitignored); pinned by tests/test_opus5_arm.py. net@2 = #actionable - 2 x #non-actionable over what each system RETURNED; abstaining scores 0.",
+ "_comment": "P26: Opus 5 as a comparator over the COMPLETE 37-case cohort, against Anonymous at three source configurations. Derived by evals/freeze_opus5_arm.py from evals/gold_spread_v2_opus5.json (in tree) and three run files under evals/results/ (gitignored); pinned by tests/test_opus5_arm.py. net@2 = #actionable - 2 x #non-actionable over what each system RETURNED; abstaining scores 0.",
  "opus5_config": {
   "artifact": "gold_spread_v2_opus5.json",
   "draw": 1,
@@ -11,7 +11,7 @@
   "n_cases": 37,
   "cost_usd": 351.4
  },
- "reporadar_arms": {
+ "anonymous_arms": {
   "arxiv": {
    "run_file": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260827T213701Z.json",
    "sources": [
@@ -693,7 +693,7 @@
     "webdev"
    ],
    "n_cases": 5,
-   "reporadar_mean": -0.2,
+   "anonymous_mean": -0.2,
    "opus5_mean": -8.6,
    "paired_delta": 8.4,
    "share_of_total_margin": 1.05
@@ -734,12 +734,12 @@
     "vectordb"
    ],
    "n_cases": 32,
-   "reporadar_mean": 7.28,
+   "anonymous_mean": 7.28,
    "opus5_mean": 7.34,
    "paired_delta": -0.06,
    "share_of_total_margin": -0.05
   },
-  "reporadar_abstained": {
+  "anonymous_abstained": {
    "cases": [
     "cli",
     "http",
@@ -747,12 +747,12 @@
     "webdev"
    ],
    "n_cases": 4,
-   "reporadar_mean": 0,
+   "anonymous_mean": 0,
    "opus5_mean": -7,
    "paired_delta": 7,
    "share_of_total_margin": 0.7
   },
-  "reporadar_answered": {
+  "anonymous_answered": {
    "cases": [
     "ann",
     "bio-align",
@@ -789,7 +789,7 @@
     "vectordb"
    ],
    "n_cases": 33,
-   "reporadar_mean": 7.03,
+   "anonymous_mean": 7.03,
    "opus5_mean": 6.67,
    "paired_delta": 0.36,
    "share_of_total_margin": 0.3

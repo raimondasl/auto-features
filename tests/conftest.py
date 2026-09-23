@@ -1,4 +1,4 @@
-"""Shared test fixtures for RepoRadar."""
+"""Shared test fixtures for Anonymous."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from reporadar import arxiv_cache, arxiv_rate, s2_rate
+from anonymous import arxiv_cache, arxiv_rate, s2_rate
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -30,7 +30,7 @@ def _no_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     the original mistake stayed invisible. Tests that genuinely exercise the HTTP layer
     patch ``urlopen`` themselves, which replaces this and records nothing.
 
-    Both HTTP stacks have to be blocked: RepoRadar's own adapters use stdlib
+    Both HTTP stacks have to be blocked: Anonymous's own adapters use stdlib
     ``urllib``, but the ``arxiv`` package (and therefore ``collector``) uses
     ``requests``, so guarding only ``urlopen`` left the biggest caller uncovered.
     """
@@ -71,7 +71,7 @@ def _no_azure_cli(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     cleared on both sides so no test sees another's token. Tests of the fetch itself restore it
     and mock `subprocess.run` instead.
     """
-    from reporadar import azure_auth
+    from anonymous import azure_auth
 
     attempted: list[str] = []
 
@@ -86,7 +86,7 @@ def _no_azure_cli(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     if attempted:
         raise AssertionError(
             f"test tried to fetch {len(attempted)} real Entra token(s). Patch "
-            "reporadar.azure_auth.get_token (or subprocess.run for the fetch itself)."
+            "anonymous.azure_auth.get_token (or subprocess.run for the fetch itself)."
         )
 
 
@@ -200,4 +200,4 @@ def _no_developer_credentials(
     Found exactly that way: green on CI, red on the one machine that had used the feature.
     A suite whose result depends on the developer's credentials is not testing the product.
     """
-    monkeypatch.setenv("REPORADAR_CONFIG_DIR", str(tmp_path_factory.mktemp("rr-credentials")))
+    monkeypatch.setenv("ANONYMOUS_CONFIG_DIR", str(tmp_path_factory.mktemp("rr-credentials")))

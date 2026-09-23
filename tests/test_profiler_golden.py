@@ -18,7 +18,7 @@ number was measured on". Regenerate the fixture deliberately, in the same commit
 change, with the Tier A metrics re-measured alongside:
 
     uv run python -c "import json; from pathlib import Path; \\
-        from reporadar.profiler import profile_repo; from reporadar.config import ProfilerConfig; \\
+        from anonymous.profiler import profile_repo; from anonymous.config import ProfilerConfig; \\
         print(json.dumps({c: (lambda p: {'keywords': [t for t, _ in p.keywords], \\
             'anchors': p.anchors, 'domains': p.domains, 'prose': p.prose, \\
             'corpus_phrases': p.corpus_phrases})(profile_repo(Path('evals/repos')/c, \\
@@ -34,8 +34,8 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.config import ProfilerConfig
-from reporadar.profiler import profile_repo
+from anonymous.config import ProfilerConfig
+from anonymous.profiler import profile_repo
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = json.loads(

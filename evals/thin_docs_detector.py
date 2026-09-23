@@ -61,7 +61,7 @@ from harness import EVALS_DIR, WORK_DIR, load_benchmark  # noqa: E402
 from metrics import average_ranks, net_actionable_value  # noqa: E402
 from run_judge_eval import ablate_docs  # noqa: E402
 
-from reporadar.profiler import _collect_text_corpus  # noqa: E402
+from anonymous.profiler import _collect_text_corpus  # noqa: E402
 
 RESULTS = EVALS_DIR / "results"
 
@@ -112,7 +112,7 @@ def net_by_case(path: Path) -> dict[str, float]:
     d = json.loads(path.read_text(encoding="utf-8"))
     out = {}
     for case in d:
-        picks = (case.get("returned") or {}).get("reporadar_toppicks")
+        picks = (case.get("returned") or {}).get("anonymous_toppicks")
         if picks is None:
             continue
         scores = [p["judge_score"] for p in picks if p.get("judge_score") is not None]

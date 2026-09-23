@@ -1,11 +1,11 @@
 """Rung 1: the margin passes the bar, and the bar barely tested it. [NR-52]
 
 The validity gate the ladder in `RESEARCH-net2-directions.md` put before every dollar: is the
-margin over Opus 5 a property of RepoRadar or of GPT-5.5? Pre-registered in
-`evals/PREREG-rung1.md` and **committed before any margin was computed** (`7ce7a35`), with
+margin over Opus 5 a property of Anonymous or of GPT-5.5? Pre-registered in
+`evals/PREREG-rung1.md` and **committed before any margin was computed** (`withheld`), with
 three labels named in advance and all three reported.
 
-| label | RepoRadar | Opus 5 | margin | CI95 | w/l/t |
+| label | Anonymous | Opus 5 | margin | CI95 | w/l/t |
 |---|---|---|---|---|---|
 | GPT | +5.51 | +5.19 | **+0.32** | [−1.78, +2.51] | 17/17/3 |
 | consensus | +5.35 | +4.78 | **+0.57** | [−1.73, +2.92] | 18/16/3 |

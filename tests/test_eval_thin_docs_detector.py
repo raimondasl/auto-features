@@ -39,7 +39,7 @@ def _net_by_case(path: Path) -> dict[str, float]:
 
     out = {}
     for case in json.loads(path.read_text(encoding="utf-8")):
-        picks = (case.get("returned") or {}).get("reporadar_toppicks")
+        picks = (case.get("returned") or {}).get("anonymous_toppicks")
         if picks is None:
             continue
         scores = [p["judge_score"] for p in picks if p.get("judge_score") is not None]
@@ -51,7 +51,7 @@ class TestTheCorpusIsTheProfilersOwn:
     def test_it_calls_the_shipped_collector(self) -> None:
         import thin_docs_detector as det
 
-        from reporadar.profiler import _collect_text_corpus
+        from anonymous.profiler import _collect_text_corpus
 
         assert det._collect_text_corpus is _collect_text_corpus
 

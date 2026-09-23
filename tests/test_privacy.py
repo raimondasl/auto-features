@@ -1,11 +1,12 @@
-"""Tests for reporadar.privacy — the `rr audit` registry, redaction, and drift guard."""
+"""Tests for anonymous.privacy — the `rr audit` registry, redaction, and drift guard."""
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-from reporadar.config import (
+from anonymous.config import (
+    AnonymousConfig,
     ArxivConfig,
     EmailHookConfig,
     HooksConfig,
@@ -13,11 +14,10 @@ from reporadar.config import (
     QueriesConfig,
     RankingConfig,
     RecommendationsConfig,
-    RepoRadarConfig,
     SignalsConfig,
     SuggestionsConfig,
 )
-from reporadar.privacy import (
+from anonymous.privacy import (
     DESTINATIONS,
     NONE,
     REPO_AND_CONTENT,
@@ -29,9 +29,9 @@ from reporadar.privacy import (
     redact,
     redact_all,
 )
-from reporadar.profiler import RepoProfile
+from anonymous.profiler import RepoProfile
 
-SRC = Path(__file__).resolve().parent.parent / "src" / "reporadar"
+SRC = Path(__file__).resolve().parent.parent / "src" / "anonymous"
 
 # How an outbound call looks in this codebase. `arxiv.Client` covers the arxiv package
 # (which uses requests internally); `SentenceTransformer(` covers the one destination
@@ -73,10 +73,10 @@ _NOT_A_DESTINATION = {
 # from another module — `specter` does exactly this, borrowing `_s2_batch_post` from
 # `citations`, and it is one of the registry's own declared destinations. So a module
 # that pulls a *private* name out of an outbound module is treated as outbound too.
-# Private specifically: `from reporadar.store import PaperStore` is ordinary layering,
+# Private specifically: `from anonymous.store import PaperStore` is ordinary layering,
 # but a leading-underscore helper crossing a module boundary is the shared-transport
 # pattern. Propagation runs to a fixpoint, so a two-hop chain is caught as well.
-_PRIVATE_IMPORT_RE = re.compile(r"from\s+reporadar\.([\w.]+)\s+import\s+([^\n()]+|\([^)]*\))")
+_PRIVATE_IMPORT_RE = re.compile(r"from\s+anonymous\.([\w.]+)\s+import\s+([^\n()]+|\([^)]*\))")
 
 
 def _module_name(path: Path) -> str:
@@ -181,7 +181,7 @@ class TestRegistryDoesNotDrift:
 
 class TestActiveDestinations:
     def test_a_default_config_reaches_few_places(self) -> None:
-        active = active_destinations(RepoRadarConfig())
+        active = active_destinations(AnonymousConfig())
         services = {d.service for d in active}
         assert "arXiv" in services  # the core source, always
         # Off by default and must not appear.
@@ -191,15 +191,15 @@ class TestActiveDestinations:
         assert "Hacker News (Algolia)" not in services
 
     def test_enabling_a_source_shows_up(self) -> None:
-        cfg = RepoRadarConfig(sources=["arxiv", "dblp", "openalex"])
+        cfg = AnonymousConfig(sources=["arxiv", "dblp", "openalex"])
         services = {d.service for d in active_destinations(cfg)}
         assert "DBLP" in services and "OpenAlex" in services
 
     def test_the_llm_provider_decides_whether_anything_leaves(self) -> None:
         # The sharpest distinction in the whole feature: the same prompt either goes
         # to a third party or to a process on your own machine.
-        claude = RepoRadarConfig(suggestions=SuggestionsConfig(provider="claude"))
-        ollama = RepoRadarConfig(suggestions=SuggestionsConfig(provider="ollama"))
+        claude = AnonymousConfig(suggestions=SuggestionsConfig(provider="claude"))
+        ollama = AnonymousConfig(suggestions=SuggestionsConfig(provider="ollama"))
         claude_dests = {d.service: d for d in active_destinations(claude)}
         ollama_dests = {d.service: d for d in active_destinations(ollama)}
         assert claude_dests["Anthropic"].sensitivity == REPO_AND_CONTENT
@@ -209,12 +209,12 @@ class TestActiveDestinations:
     def test_biorxiv_is_reported_as_sending_nothing_repo_derived(self) -> None:
         # Verified against sources/biorxiv.py: it requests a date interval and filters
         # locally, so unlike every other source it transmits no inferred vocabulary.
-        cfg = RepoRadarConfig(sources=["arxiv", "biorxiv"])
+        cfg = AnonymousConfig(sources=["arxiv", "biorxiv"])
         biorxiv = next(d for d in active_destinations(cfg) if d.service == "bioRxiv")
         assert biorxiv.sensitivity == NONE
 
     def test_most_sensitive_first(self) -> None:
-        cfg = RepoRadarConfig(
+        cfg = AnonymousConfig(
             sources=["arxiv", "biorxiv"], suggestions=SuggestionsConfig(provider="claude")
         )
         order = [d.sensitivity for d in active_destinations(cfg)]
@@ -223,13 +223,13 @@ class TestActiveDestinations:
         assert order == sorted(order, key=lambda s: rank.get(s, 9))
 
     def test_notify_only_appears_once_a_hook_is_configured(self) -> None:
-        bare = {d.service for d in on_demand_destinations(RepoRadarConfig())}
+        bare = {d.service for d in on_demand_destinations(AnonymousConfig())}
         assert "Slack / Discord / SMTP" not in bare
-        wired = RepoRadarConfig(hooks=HooksConfig(slack_webhook_url="https://hooks.example/x"))
+        wired = AnonymousConfig(hooks=HooksConfig(slack_webhook_url="https://hooks.example/x"))
         assert "Slack / Discord / SMTP" in {d.service for d in on_demand_destinations(wired)}
 
     def test_an_email_only_hook_counts_too(self) -> None:
-        cfg = RepoRadarConfig(hooks=HooksConfig(email=EmailHookConfig(smtp_host="smtp.example")))
+        cfg = AnonymousConfig(hooks=HooksConfig(email=EmailHookConfig(smtp_host="smtp.example")))
         assert "Slack / Discord / SMTP" in {d.service for d in on_demand_destinations(cfg)}
 
     def test_a_broken_gate_reports_rather_than_hides(self) -> None:
@@ -247,7 +247,7 @@ class TestActiveDestinations:
         It is not part of `rr update`, but omitting it from a privacy audit because of
         that would hide a real outbound flow from the person asking what leaves.
         """
-        cfg = RepoRadarConfig(hooks=HooksConfig(slack_webhook_url="https://hooks.example/x"))
+        cfg = AnonymousConfig(hooks=HooksConfig(slack_webhook_url="https://hooks.example/x"))
         update_run = {d.service for d in active_destinations(cfg)}
         on_demand = {d.service for d in on_demand_destinations(cfg)}
         assert "GitHub" not in update_run
@@ -315,13 +315,13 @@ class TestAuditPlan:
         )
 
     def test_reports_the_queries_that_would_be_sent(self) -> None:
-        plan = audit_plan(RepoRadarConfig(), self._profile(), ["all:retrieval", "all:atlas"])
+        plan = audit_plan(AnonymousConfig(), self._profile(), ["all:retrieval", "all:atlas"])
         assert plan["queries"] == ["all:retrieval", "all:atlas"]
 
     def test_reports_the_diff_between_redacted_and_unredacted_queries(self) -> None:
         # The audit reports the *real* post-redaction queries plus the same build with
         # redaction off, so "what did my filter actually remove" is answerable.
-        cfg = RepoRadarConfig(privacy=PrivacyConfig(redact=["projectatlas"]))
+        cfg = AnonymousConfig(privacy=PrivacyConfig(redact=["projectatlas"]))
         plan = audit_plan(
             cfg,
             self._profile(),
@@ -335,7 +335,7 @@ class TestAuditPlan:
     def test_says_when_redaction_changed_nothing(self) -> None:
         # Patterns that match nothing protect nothing, and a user who believes
         # otherwise is worse off than one who knows.
-        cfg = RepoRadarConfig(privacy=PrivacyConfig(redact=["neverappears"]))
+        cfg = AnonymousConfig(privacy=PrivacyConfig(redact=["neverappears"]))
         plan = audit_plan(
             cfg, self._profile(), ["all:retrieval"], queries_unredacted=["all:retrieval"]
         )
@@ -345,19 +345,19 @@ class TestAuditPlan:
     def test_reports_the_real_queries_even_without_an_unredacted_baseline(self) -> None:
         # Omitting the baseline must never cause the audit to *re-redact* and print
         # strings that differ from what build_queries actually hands the sources.
-        cfg = RepoRadarConfig(privacy=PrivacyConfig(redact=["retrieval"]))
+        cfg = AnonymousConfig(privacy=PrivacyConfig(redact=["retrieval"]))
         plan = audit_plan(cfg, self._profile(), ["all:retrieval"])
         assert plan["queries"] == ["all:retrieval"]
         assert plan["redaction_changed_anything"] is False
 
     def test_reports_whether_source_scanning_is_on(self) -> None:
-        cfg = RepoRadarConfig()
+        cfg = AnonymousConfig()
         assert audit_plan(cfg, self._profile(), [])["scans_source"] is False
         cfg.profiler.scan_source = True
         assert audit_plan(cfg, self._profile(), [])["scans_source"] is True
 
     def test_redacts_the_reported_keywords_and_anchors(self) -> None:
-        cfg = RepoRadarConfig(privacy=PrivacyConfig(redact=["projectatlas"]))
+        cfg = AnonymousConfig(privacy=PrivacyConfig(redact=["projectatlas"]))
         plan = audit_plan(cfg, self._profile(), [])
         assert not any("projectatlas" in k for k in plan["keywords"])
         assert "torch" in plan["anchors"]
@@ -365,12 +365,12 @@ class TestAuditPlan:
 
 class TestPrivacyConfig:
     def test_defaults_to_no_redaction(self) -> None:
-        assert RepoRadarConfig().privacy.redact == []
+        assert AnonymousConfig().privacy.redact == []
 
     def test_parsed_from_yaml(self, tmp_path: Path) -> None:
-        from reporadar.config import load_config
+        from anonymous.config import load_config
 
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text(
             "repo_path: .\nprivacy:\n  redact:\n    - projectatlas\n    - 're:proj-\\d+'\n",
             encoding="utf-8",
@@ -379,7 +379,7 @@ class TestPrivacyConfig:
         assert cfg.privacy.redact == ["projectatlas", r"re:proj-\d+"]
 
     def test_patterns_compile_from_config(self) -> None:
-        cfg = RepoRadarConfig(privacy=PrivacyConfig(redact=["atlas", r"re:proj-\d+"]))
+        cfg = AnonymousConfig(privacy=PrivacyConfig(redact=["atlas", r"re:proj-\d+"]))
         patterns = compile_patterns(cfg.privacy.redact)
         assert len(patterns) == 2
         assert all(isinstance(p, re.Pattern) for p in patterns)
@@ -392,7 +392,7 @@ class TestSensitivityCoverage:
             assert dest.sensitivity in known, f"{dest.service}: {dest.sensitivity}"
 
     def test_the_signals_and_ranking_gates_work(self) -> None:
-        cfg = RepoRadarConfig(
+        cfg = AnonymousConfig(
             ranking=RankingConfig(w_specter=1.0, w_citation_proximity=1.0),
             signals=SignalsConfig(hackernews=True),
             recommendations=RecommendationsConfig(enabled=True),
@@ -413,7 +413,7 @@ class TestQueryRedactionWiring:
         )
 
     def test_term_is_absent_from_every_built_query(self) -> None:
-        from reporadar.collector import build_queries
+        from anonymous.collector import build_queries
 
         queries = build_queries(
             self._profile(["projectatlas", "retrieval"]),
@@ -429,7 +429,7 @@ class TestQueryRedactionWiring:
     def test_redaction_leaves_no_degenerate_query(self) -> None:
         # Redacting the assembled string instead of the terms would emit
         # `(all: ) AND (cat:cs.IR)` - a broken query, not a private one.
-        from reporadar.collector import build_queries
+        from anonymous.collector import build_queries
 
         queries = build_queries(
             self._profile(["projectatlas"]),
@@ -442,9 +442,9 @@ class TestQueryRedactionWiring:
     def test_config_load_mirrors_privacy_terms_onto_queries(self, tmp_path: Path) -> None:
         # The wiring that makes redaction unmissable: build_queries reads it off
         # QueriesConfig, so the mirror is what connects `privacy.redact` to reality.
-        from reporadar.config import load_config
+        from anonymous.config import load_config
 
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text(
             "repo_path: .\nprivacy:\n  redact:\n    - projectatlas\n", encoding="utf-8"
         )
@@ -457,7 +457,7 @@ class TestLLMPromptRedactionWiring:
     """The LLM path sends far more than query strings - it sends the profile."""
 
     def test_prompt_is_redacted_before_dispatch(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
-        import reporadar.llm_client as llm_client
+        import anonymous.llm_client as llm_client
 
         captured: list[str] = []
 
@@ -488,8 +488,8 @@ class TestLLMPromptRedactionWiring:
         the term would be gone, but the model would also be answering a differently
         formatted question, and nothing would say so.
         """
-        import reporadar.llm_client as llm_client
-        from reporadar.triage import build_triage_prompt
+        import anonymous.llm_client as llm_client
+        from anonymous.triage import build_triage_prompt
 
         captured: list[str] = []
         monkeypatch.setattr(
@@ -521,18 +521,18 @@ class TestAuditCommand:
         (tmp_path / "README.md").write_text(
             "# ProjectAtlas\n\nA retrieval and ranking service.\n", encoding="utf-8"
         )
-        (tmp_path / ".reporadar.yml").write_text(
+        (tmp_path / ".anonymous.yml").write_text(
             f"repo_path: {tmp_path}\n"
             "arxiv:\n  categories: [cs.IR]\n"
             "queries:\n  seed: ['projectatlas ranking']\n" + extra,
             encoding="utf-8",
         )
-        return tmp_path / ".reporadar.yml"
+        return tmp_path / ".anonymous.yml"
 
     def test_lists_destinations_and_the_real_queries(self, tmp_path: Path) -> None:
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         cfg = self._repo(tmp_path)
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg)])
@@ -545,7 +545,7 @@ class TestAuditCommand:
     def test_reports_what_redaction_removed(self, tmp_path: Path) -> None:
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         cfg = self._repo(tmp_path, "privacy:\n  redact:\n    - projectatlas\n")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg)])
@@ -557,7 +557,7 @@ class TestAuditCommand:
         # A user who configures redaction and gets silence will assume it worked.
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         cfg = self._repo(tmp_path, "privacy:\n  redact:\n    - neverappearsanywhere\n")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg)])
@@ -569,7 +569,7 @@ class TestAuditCommand:
 
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         cfg = self._repo(tmp_path, "sources: [arxiv, dblp]\n")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg), "--json"])
@@ -590,7 +590,7 @@ class TestAuditCommand:
         """
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         cfg = self._repo(tmp_path, "sources: [arxiv, dblp, openalex]\nprivacy:\n  redact: [x]\n")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg)])
@@ -603,7 +603,7 @@ class TestAuditCommand:
         # asserts this at teardown; the run below is what gives it something to check.
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         cfg = self._repo(tmp_path, "sources: [arxiv, dblp, openalex]\n")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg)])
@@ -630,7 +630,7 @@ class TestAuditMatchesWhatUpdateTransmits:
             "class BlackbriarPipeline:\n    pass\n",
             encoding="utf-8",
         )
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         cfg_file.write_text(
             f"repo_path: {repo.as_posix()}\narxiv:\n  categories: [cs.IR]\n" + cfg_extra,
             encoding="utf-8",
@@ -638,9 +638,9 @@ class TestAuditMatchesWhatUpdateTransmits:
         return repo, cfg_file
 
     def _transmitted(self, repo: Path, cfg_file: Path) -> list[str]:
-        from reporadar.collector import build_queries
-        from reporadar.config import load_config
-        from reporadar.profiler import profile_repo
+        from anonymous.collector import build_queries
+        from anonymous.config import load_config
+        from anonymous.profiler import profile_repo
 
         cfg = load_config(cfg_file)
         # Exactly how cli.update builds them (profile_repo(..., profiler_cfg=cfg.profiler)).
@@ -649,7 +649,7 @@ class TestAuditMatchesWhatUpdateTransmits:
     def test_prints_every_query_with_source_scanning_off(self, tmp_path: Path) -> None:
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         repo, cfg_file = self._repo(tmp_path, "")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg_file)])
@@ -667,7 +667,7 @@ class TestAuditMatchesWhatUpdateTransmits:
         """
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         repo, cfg_file = self._repo(tmp_path, "profiler:\n  scan_source: true\n")
         transmitted = self._transmitted(repo, cfg_file)
@@ -684,7 +684,7 @@ class TestAuditMatchesWhatUpdateTransmits:
         # A report that contradicts itself is worse than one that says less.
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
+        from anonymous.cli import cli
 
         _repo, cfg_file = self._repo(tmp_path, "profiler:\n  scan_source: true\n")
         result = CliRunner().invoke(cli, ["audit", "--config", str(cfg_file)])
@@ -701,21 +701,21 @@ class TestReviewFixes:
         # `hooks.on_digest` runs an arbitrary command with RR_* env vars. It was the one
         # configured hook the notify predicate did not check, so a config using only it
         # was reported as reaching nothing at all.
-        cfg = RepoRadarConfig(hooks=HooksConfig(on_digest="curl -d $RR_SUMMARY https://x/"))
+        cfg = AnonymousConfig(hooks=HooksConfig(on_digest="curl -d $RR_SUMMARY https://x/"))
         services = {d.service for d in on_demand_destinations(cfg)}
         assert "Your `hooks.on_digest` shell command" in services
 
     def test_the_shell_hook_is_rated_at_the_ceiling(self) -> None:
         # An arbitrary command can exfiltrate anything; a privacy report must not imply
         # a bound it cannot enforce.
-        cfg = RepoRadarConfig(hooks=HooksConfig(on_digest="./send.sh"))
+        cfg = AnonymousConfig(hooks=HooksConfig(on_digest="./send.sh"))
         hook = next(
             d for d in on_demand_destinations(cfg) if d.service.startswith("Your `hooks.on_digest")
         )
         assert hook.sensitivity == REPO_AND_CONTENT
 
     def test_no_shell_hook_means_no_such_destination(self) -> None:
-        services = {d.service for d in on_demand_destinations(RepoRadarConfig())}
+        services = {d.service for d in on_demand_destinations(AnonymousConfig())}
         assert not any(s.startswith("Your `hooks.on_digest") for s in services)
 
     def test_a_regex_matching_the_empty_string_is_rejected(self) -> None:
@@ -753,13 +753,13 @@ class TestReviewFixes:
 
         from click.testing import CliRunner
 
-        from reporadar.cli import cli
-        from reporadar.config import load_config, validate_config
+        from anonymous.cli import cli
+        from anonymous.config import load_config, validate_config
 
         repo = tmp_path / "repo"
         repo.mkdir()
         (repo / "README.md").write_text("# X\n\nranking service\n", encoding="utf-8")
-        cfg_file = tmp_path / ".reporadar.yml"
+        cfg_file = tmp_path / ".anonymous.yml"
         # Enabling OpenAlex without an api_key is a documented validate_config warning,
         # and is exactly the config a privacy-conscious user would audit.
         cfg_file.write_text(
@@ -790,7 +790,7 @@ class TestTheRegistryDescribesWhatTheTriagePromptActuallyCarries:
     def test_the_prompt_carries_prose_and_the_registry_says_so(self) -> None:
         from types import SimpleNamespace
 
-        from reporadar.triage import build_triage_prompt
+        from anonymous.triage import build_triage_prompt
 
         profile = SimpleNamespace(
             keywords=[("retrieval", 0.5)],
@@ -809,7 +809,7 @@ class TestTheRegistryDescribesWhatTheTriagePromptActuallyCarries:
 
     def test_the_opt_out_it_advertises_is_a_real_setting(self) -> None:
         """`enabled_by` names `profiler.prose_chars: 0`; a stale name is a broken promise."""
-        from reporadar.config import ProfilerConfig
+        from anonymous.config import ProfilerConfig
 
         assert "profiler.prose_chars" in self._anthropic().enabled_by
         assert hasattr(ProfilerConfig(), "prose_chars")
@@ -822,8 +822,8 @@ class TestTheRegistryDescribesWhatTheTriagePromptActuallyCarries:
         """
         from types import SimpleNamespace
 
-        import reporadar.llm_client as llm
-        from reporadar.triage import build_triage_prompt
+        import anonymous.llm_client as llm
+        from anonymous.triage import build_triage_prompt
 
         sent: dict[str, str] = {}
         monkeypatch.setattr(

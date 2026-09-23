@@ -55,8 +55,8 @@ from finescale_domains import DEFAULT_LEGACY, DEFAULT_SCI  # noqa: E402
 from rung1_second_judge import cached_sonnet, son_of  # noqa: E402
 from second_judge import DEFAULT_MODEL as SONNET  # noqa: E402
 
-from reporadar import finescale  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
+from anonymous import finescale  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 RESULTS = EVALS / "results"
@@ -203,7 +203,7 @@ def load_run_band(name: str, sonnet: dict[tuple[str, str], int]) -> list[dict[st
     run = read(RESULTS / band.run)
     versioned: dict[tuple[str, str], str] = {}
     for entry in run:
-        for paper in (entry.get("returned") or {}).get("reporadar_top10") or []:
+        for paper in (entry.get("returned") or {}).get("anonymous_top10") or []:
             vid = str(paper.get("arxiv_id") or "")
             key = (entry["case"], dedup_id(vid))
             expect(versioned.get(key, vid) == vid, f"band {name} {key} has two versioned ids")
@@ -638,7 +638,7 @@ def main() -> int:
             "model": "claude-haiku-4-5",
             "read_from": (
                 "not recorded: the 2026-08-20 runs have no ranking_config or pool_config, "
-                "because they predate the gate-provider option (be986c7). The gate was the "
+                "because they predate the gate-provider option (withheld). The gate was the "
                 "default Claude triage model, claude-haiku-4-5."
             ),
         }
@@ -690,7 +690,7 @@ def main() -> int:
             "slope": finescale.SLOPE,
             "intercept": finescale.INTERCEPT,
             "threshold": finescale.SHOW_THRESHOLD,
-            "rule": "admitted when reporadar.finescale.probability(exp09) >= threshold",
+            "rule": "admitted when anonymous.finescale.probability(exp09) >= threshold",
         },
         "actionable": f"label >= {tb.ACTIONABLE}, for both judges",
         "estimator": "band_testbeds.auc",

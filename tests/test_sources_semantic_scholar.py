@@ -1,11 +1,11 @@
-"""Tests for reporadar.sources.semantic_scholar."""
+"""Tests for anonymous.sources.semantic_scholar."""
 
 from __future__ import annotations
 
 import json
 from unittest.mock import MagicMock, patch
 
-from reporadar.sources.semantic_scholar import (
+from anonymous.sources.semantic_scholar import (
     _normalize_paper,
     collect_papers,
     search_papers,
@@ -37,7 +37,7 @@ def _make_ss_paper(**overrides) -> dict:
 
 
 class TestSearchPapers:
-    @patch("reporadar.sources.semantic_scholar.urllib.request.urlopen")
+    @patch("anonymous.sources.semantic_scholar.urllib.request.urlopen")
     def test_returns_normalized_papers(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"data": [_make_ss_paper()]})
 
@@ -48,7 +48,7 @@ class TestSearchPapers:
         assert results[0]["title"] == "Test Paper"
         assert results[0]["authors"] == ["Alice Smith", "Bob Jones"]
 
-    @patch("reporadar.sources.semantic_scholar.urllib.request.urlopen")
+    @patch("anonymous.sources.semantic_scholar.urllib.request.urlopen")
     def test_query_url_construction(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"data": []})
 
@@ -59,7 +59,7 @@ class TestSearchPapers:
         assert "retrieval%20augmented%20generation" in req.full_url
         assert "limit=10" in req.full_url
 
-    @patch("reporadar.sources.semantic_scholar.urllib.request.urlopen")
+    @patch("anonymous.sources.semantic_scholar.urllib.request.urlopen")
     def test_empty_results(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = _mock_response({"data": []})
         results = search_papers("nonexistent query")
@@ -103,8 +103,8 @@ class TestPaperNormalization:
 
 
 class TestCollectPapers:
-    @patch("reporadar.sources.semantic_scholar.time.sleep")
-    @patch("reporadar.sources.semantic_scholar.search_papers")
+    @patch("anonymous.sources.semantic_scholar.time.sleep")
+    @patch("anonymous.sources.semantic_scholar.search_papers")
     def test_dedup_across_queries(self, mock_search: MagicMock, mock_sleep: MagicMock) -> None:
         paper = {
             "arxiv_id": "2401.12345",
@@ -124,8 +124,8 @@ class TestCollectPapers:
 
         assert len(results) == 1  # deduped
 
-    @patch("reporadar.sources.semantic_scholar.time.sleep")
-    @patch("reporadar.sources.semantic_scholar.search_papers")
+    @patch("anonymous.sources.semantic_scholar.time.sleep")
+    @patch("anonymous.sources.semantic_scholar.search_papers")
     def test_date_filtering(self, mock_search: MagicMock, mock_sleep: MagicMock) -> None:
         old_paper = {
             "arxiv_id": "old",
@@ -159,7 +159,7 @@ class TestCollectPapers:
 
 
 class TestApiFailure:
-    @patch("reporadar.sources.semantic_scholar.urllib.request.urlopen")
+    @patch("anonymous.sources.semantic_scholar.urllib.request.urlopen")
     def test_network_error_returns_empty(self, mock_urlopen: MagicMock) -> None:
         import urllib.error
 
@@ -167,8 +167,8 @@ class TestApiFailure:
         results = search_papers("test")
         assert results == []
 
-    @patch("reporadar.sources.semantic_scholar.time.sleep")
-    @patch("reporadar.sources.semantic_scholar.urllib.request.urlopen")
+    @patch("anonymous.sources.semantic_scholar.time.sleep")
+    @patch("anonymous.sources.semantic_scholar.urllib.request.urlopen")
     def test_rate_limit_retries(self, mock_urlopen: MagicMock, mock_sleep: MagicMock) -> None:
         import urllib.error
 

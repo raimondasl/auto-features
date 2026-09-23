@@ -14,11 +14,11 @@ every rescue idea's expected value flips depending on which judge you believe, a
 34 false positives we would try to remove are judge-score-1 boundary papers.
 
 So before buying any product change, ask whether the published **+0.54/case** margin over
-Opus 5 is a property of RepoRadar or a property of GPT-5.5.
+Opus 5 is a property of Anonymous or a property of GPT-5.5.
 
 ## Arms and instrument
 
-* **Control**: shipped RepoRadar arm, `judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-`
+* **Control**: shipped Anonymous arm, `judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-`
   `20260830T034455Z.json`, with `bio-mdtraj` from its `20260830T075622Z` repair. 306 shown
   papers over 37 cases.
 * **Comparator**: Opus 5 draw 1, `evals/gold_spread_v2_opus5.json`, status `ok`, picks
@@ -95,7 +95,7 @@ any two-judge construction.
 Genuinely uncertain, and that is why it is worth $5–10. Two considerations point opposite ways.
 
 *Toward a pass*: the margin's mechanism is **abstention** — 5 over-answer cases supply 105% of
-it, and 4 of those are cases where RepoRadar returns nothing at all. Returning nothing scores
+it, and 4 of those are cases where Anonymous returns nothing at all. Returning nothing scores
 0 under **every** label, so the largest component of the margin is judge-invariant by
 construction.
 

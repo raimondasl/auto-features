@@ -1,4 +1,4 @@
-"""Tests for reporadar.llm_suggestions (mocked HTTP calls)."""
+"""Tests for anonymous.llm_suggestions (mocked HTTP calls)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from reporadar.llm_suggestions import (
+from anonymous.llm_suggestions import (
     _build_prompt,
     _parse_suggestions,
     generate_llm_suggestions,
 )
-from reporadar.profiler import RepoProfile
+from anonymous.profiler import RepoProfile
 
 
 def _make_profile() -> RepoProfile:
@@ -135,7 +135,7 @@ class TestGenerateLlmSuggestions:
         assert len(result) == 3
 
     def test_claude_no_api_key_raises(self) -> None:
-        from reporadar.llm_client import LLMError
+        from anonymous.llm_client import LLMError
 
         config = MockConfig(provider="claude", claude_api_key="")
         paper = _make_paper()
@@ -150,7 +150,7 @@ class TestGenerateLlmSuggestions:
     def test_network_error_propagates(self) -> None:
         import urllib.error
 
-        from reporadar.llm_client import LLMError
+        from anonymous.llm_client import LLMError
 
         config = MockConfig(provider="ollama")
         paper = _make_paper()
@@ -158,7 +158,7 @@ class TestGenerateLlmSuggestions:
 
         # After exhausting retries, a network failure surfaces as a typed LLMError.
         with (
-            patch("reporadar.llm_client.time.sleep"),
+            patch("anonymous.llm_client.time.sleep"),
             patch(
                 "urllib.request.urlopen",
                 side_effect=urllib.error.URLError("Connection refused"),
@@ -170,13 +170,13 @@ class TestGenerateLlmSuggestions:
 
 class TestEnrichWithLlmFallback:
     def test_falls_back_to_template_on_error(self) -> None:
-        from reporadar.suggestions import enrich_papers_with_suggestions
+        from anonymous.suggestions import enrich_papers_with_suggestions
 
         config = MockConfig(provider="ollama")
         papers = [_make_paper(abstract="We evaluate on GLUE benchmark.")]
 
         with patch(
-            "reporadar.llm_suggestions.generate_llm_suggestions",
+            "anonymous.llm_suggestions.generate_llm_suggestions",
             side_effect=Exception("Connection refused"),
         ):
             result = enrich_papers_with_suggestions(papers, config=config, profile=_make_profile())
@@ -185,7 +185,7 @@ class TestEnrichWithLlmFallback:
         assert "suggestions" in result[0]
 
     def test_template_when_no_config(self) -> None:
-        from reporadar.suggestions import enrich_papers_with_suggestions
+        from anonymous.suggestions import enrich_papers_with_suggestions
 
         papers = [_make_paper(abstract="We evaluate on GLUE benchmark.")]
         result = enrich_papers_with_suggestions(papers)

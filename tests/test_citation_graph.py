@@ -1,11 +1,11 @@
-"""Tests for reporadar.citation_graph — seed set + citation-link logic."""
+"""Tests for anonymous.citation_graph — seed set + citation-link logic."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from reporadar.citation_graph import base_id, build_seed_set, find_citation_links
-from reporadar.store import PaperStore
+from anonymous.citation_graph import base_id, build_seed_set, find_citation_links
+from anonymous.store import PaperStore
 
 
 class TestBaseId:
@@ -16,7 +16,7 @@ class TestBaseId:
 
 class TestBuildSeedSet:
     # Ids here are real arXiv shape (four digits after the dot), not the `2401.1v1`
-    # shorthand they used to use. `base_id` now delegates to `reporadar.paper_id.dedup_id`,
+    # shorthand they used to use. `base_id` now delegates to `anonymous.paper_id.dedup_id`,
     # which is anchored against the two genuine id formats precisely so it cannot edit an
     # opaque `ss:`/`dblp:` id — and that anchoring also declines to touch a shape no arXiv
     # paper has. A fixture that only passes under a looser rule was testing the looseness.

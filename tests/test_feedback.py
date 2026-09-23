@@ -1,8 +1,8 @@
-"""Tests for reporadar.feedback."""
+"""Tests for anonymous.feedback."""
 
 from __future__ import annotations
 
-from reporadar.feedback import compute_adjusted_weights, find_similar_to_highly_rated
+from anonymous.feedback import compute_adjusted_weights, find_similar_to_highly_rated
 
 
 class TestComputeAdjustedWeights:

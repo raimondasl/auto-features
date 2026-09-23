@@ -35,7 +35,7 @@ sys.path.insert(0, str(ROOT / "evals"))
 import baseline as baseline_mod  # noqa: E402
 from fill_cli_baseline import PINNED_DISCRIMINATOR  # noqa: E402
 
-from reporadar.paper_id import canonical_ref, dedup_id, doi_key  # noqa: E402
+from anonymous.paper_id import canonical_ref, dedup_id, doi_key  # noqa: E402
 
 CACHE = ROOT / "evals" / "cache" / "baseline"
 

@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 
-from reporadar.sources import iacr
+from anonymous.sources import iacr
 
 FIXTURE = Path(__file__).parent / "fixtures" / "iacr_search_sample.html"
 
@@ -155,7 +155,7 @@ class TestPoliteness:
         assert source.count("_throttle()") >= 2, "both fetch paths must throttle"
 
     def test_the_user_agent_identifies_the_project(self) -> None:
-        assert "RepoRadar" in iacr.USER_AGENT and "github.com" in iacr.USER_AGENT
+        assert "Anonymous" in iacr.USER_AGENT and "(+https://" in iacr.USER_AGENT
 
 
 class TestDateFiltering:

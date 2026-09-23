@@ -2,11 +2,11 @@
 
 Opus 5 draw 1 now covers all 37 cases (25 core + 6 bio + 6 materials). Every figure this
 artifact holds is derived from `gold_spread_v2_opus5.json`, which IS in version control, and
-three RepoRadar run files under `evals/results/`, which are not -- the same asymmetry that
+three Anonymous run files under `evals/results/`, which are not -- the same asymmetry that
 `gold_targets.json` and `multisource_arm.json` exist to close.
 
 The artifact deliberately records more than the headline. The headline (+1.08 paired over 37)
-is the least informative number in the file: it is a blend of a cohort where RepoRadar wins,
+is the least informative number in the file: it is a blend of a cohort where Anonymous wins,
 a cohort where it loses, and a split -- over-answered vs not -- that accounts for all of it.
 """
 
@@ -18,7 +18,7 @@ import sys
 sys.path.insert(0, "evals")
 from bigram_report import paired_bootstrap
 
-from reporadar.paper_id import is_arxiv_id
+from anonymous.paper_id import is_arxiv_id
 
 RES = pathlib.Path("evals/results")
 ARMS = {
@@ -60,7 +60,7 @@ def ci(deltas):
     return round(lo, 2), round(hi, 2)
 
 
-# -- RepoRadar: three source arms, same day, same flags but `sources` --
+# -- Anonymous: three source arms, same day, same flags but `sources` --
 arms = {}
 for label, fname in ARMS.items():
     run = json.loads((RES / fname).read_text(encoding="utf-8"))
@@ -72,7 +72,7 @@ for label, fname in ARMS.items():
         "per_case": {
             e["case"]: [
                 (str(p["arxiv_id"]), int(p["judge_score"]))
-                for p in e["returned"]["reporadar_toppicks"]
+                for p in e["returned"]["anonymous_toppicks"]
             ]
             for e in run
         },
@@ -121,7 +121,7 @@ def block(picks_by_case, sel):
 
 out = {
     "_comment": (
-        "P26: Opus 5 as a comparator over the COMPLETE 37-case cohort, against RepoRadar at "
+        "P26: Opus 5 as a comparator over the COMPLETE 37-case cohort, against Anonymous at "
         "three source configurations. Derived by evals/freeze_opus5_arm.py from "
         "evals/gold_spread_v2_opus5.json (in tree) and three run files under evals/results/ "
         "(gitignored); pinned by tests/test_opus5_arm.py. net@2 = #actionable - 2 x "
@@ -138,7 +138,7 @@ out = {
         "n_cases": len(cases),
         "cost_usd": round(sum(v for v in o5_cost.values() if v), 2),
     },
-    "reporadar_arms": {
+    "anonymous_arms": {
         label: {k: a[k] for k in ("run_file", "sources", "digest_window", "w_embedding")}
         for label, a in arms.items()
     },
@@ -174,15 +174,15 @@ for name, pred in COHORTS.items():
 # -- where the margin lives --
 # The headline is a blend. These two splits are the finding: on the cases where Opus 5 does
 # not over-answer the two systems are level, and every point of the margin comes from cases
-# where it does -- four of which are cases RepoRadar answers by abstaining entirely.
+# where it does -- four of which are cases Anonymous answers by abstaining entirely.
 rr = {c: net(s for _, s in arms[PRIMARY]["per_case"][c]) for c in cases}
 o5 = {c: net(s for _, s in o5_picks[c]) for c in cases}
 total = sum(rr[c] - o5[c] for c in cases)
 splits = {
     "opus5_overanswered": [c for c in cases if o5[c] < 0],
     "opus5_not_overanswered": [c for c in cases if o5[c] >= 0],
-    "reporadar_abstained": [c for c in cases if not arms[PRIMARY]["per_case"][c]],
-    "reporadar_answered": [c for c in cases if arms[PRIMARY]["per_case"][c]],
+    "anonymous_abstained": [c for c in cases if not arms[PRIMARY]["per_case"][c]],
+    "anonymous_answered": [c for c in cases if arms[PRIMARY]["per_case"][c]],
 }
 out["margin_decomposition"] = {}
 for name, sel in splits.items():
@@ -190,7 +190,7 @@ for name, sel in splits.items():
     out["margin_decomposition"][name] = {
         "cases": sorted(sel),
         "n_cases": len(sel),
-        "reporadar_mean": round(st.mean(rr[c] for c in sel), 2) if sel else None,
+        "anonymous_mean": round(st.mean(rr[c] for c in sel), 2) if sel else None,
         "opus5_mean": round(st.mean(o5[c] for c in sel), 2) if sel else None,
         "paired_delta": round(st.mean(d), 2) if sel else None,
         "share_of_total_margin": round(sum(d) / total, 3) if sel and total else None,

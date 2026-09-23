@@ -8,7 +8,7 @@ This is not tidiness. Two separate measured results make the placement non-negot
   a checklist ("is this on the list?"). That experiment's conclusion was that wants belong
   in the query.
 * **The fine-scale calibration** is a frozen two-parameter logistic fitted against the exact
-  bytes of :func:`reporadar.triage.repo_context_block`. A goal merged into that block would
+  bytes of :func:`anonymous.triage.repo_context_block`. A goal merged into that block would
   move where P crosses 2/3 with nothing failing loudly.
 
 So the tests below assert an isolation property, not an output: whatever a goal does to
@@ -22,9 +22,9 @@ from typing import Any
 
 import pytest
 
-from reporadar import finescale, hyde
-from reporadar.profiler import RepoProfile
-from reporadar.triage import build_triage_prompt, repo_context_block
+from anonymous import finescale, hyde
+from anonymous.profiler import RepoProfile
+from anonymous.triage import build_triage_prompt, repo_context_block
 
 GOAL = "reduce write amplification during compaction under write-heavy workloads"
 

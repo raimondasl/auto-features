@@ -1,4 +1,4 @@
-"""Tests for `reporadar.typed_anchors` (the P9/P10/P11 channel, shipped off by default).
+"""Tests for `anonymous.typed_anchors` (the P9/P10/P11 channel, shipped off by default).
 
 The module's two invariants are the ones the measurement record cares about:
 
@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from reporadar import typed_anchors as ta
-from reporadar.llm_client import LLMError
+from anonymous import typed_anchors as ta
+from anonymous.llm_client import LLMError
 
 
 class _Reply:
@@ -61,7 +61,7 @@ class TestReadReadme:
         assert ta.read_readme(tmp_path) == ""
 
     def test_search_order_matches_the_profiler(self):
-        from reporadar import profiler
+        from anonymous import profiler
 
         src = Path(profiler.__file__).read_text(encoding="utf-8")
         for name in ta.README_NAMES:
@@ -130,7 +130,7 @@ class TestCache:
         reply = _Reply('{"entities":[{"span":"LSM","type":"method"}]}')
         monkeypatch.setattr(ta, "complete", reply)
         repo = _repo(tmp_path, "an LSM tree")
-        cache = repo / ".reporadar" / "typed_anchors.json"
+        cache = repo / ".anonymous" / "typed_anchors.json"
         cache.parent.mkdir(parents=True)
         cache.write_text("{not json", encoding="utf-8")
         assert ta.extract_typed_anchors(repo, llm_cfg=object()) == ["lsm"]
@@ -139,8 +139,8 @@ class TestCache:
 
 class TestProfilerIntegration:
     def test_off_by_default_costs_nothing(self, tmp_path, monkeypatch):
-        from reporadar.config import ProfilerConfig
-        from reporadar.profiler import profile_repo
+        from anonymous.config import ProfilerConfig
+        from anonymous.profiler import profile_repo
 
         reply = _Reply('{"entities":[{"span":"LSM","type":"method"}]}')
         monkeypatch.setattr(ta, "complete", reply)
@@ -149,8 +149,8 @@ class TestProfilerIntegration:
         assert reply.calls == 0, "typed_anchors defaults False; NR-36 left scan_source the same"
 
     def test_enabled_merges_spans_into_anchors(self, tmp_path, monkeypatch):
-        from reporadar.config import ProfilerConfig
-        from reporadar.profiler import profile_repo
+        from anonymous.config import ProfilerConfig
+        from anonymous.profiler import profile_repo
 
         monkeypatch.setattr(ta, "complete", _Reply('{"entities":[{"span":"LSM","type":"method"}]}'))
         _repo(tmp_path, "# proj\n\nan LSM tree storage engine\n")

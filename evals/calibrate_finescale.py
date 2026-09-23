@@ -10,13 +10,13 @@ the run you care about was judged by `run_judge_eval.py`, its artifact already c
 `finescale`/`finescale_p` for every band paper — use `evals/finescale_domains.py`, which reuses
 `analyse()` below for $0. See RESEARCH-scientific-software.md §18.1.
 
-`reporadar.finescale` carries two frozen constants, SLOPE and INTERCEPT, fitted offline
+`anonymous.finescale` carries two frozen constants, SLOPE and INTERCEPT, fitted offline
 against one stored judge run. Everything downstream of them — which papers clear P >= 2/3,
 and therefore the +4.55 headline — depends on that map still being located where it was
 fitted. Nothing in the test suite can catch it moving: the tests pin the prompt bytes, and
 the failure mode is semantic, not textual. This script is the measurement.
 
-**What it measures.** For every paper in RepoRadar's own top-10 across the 22-case
+**What it measures.** For every paper in Anonymous's own top-10 across the 22-case
 2026-08-09 run, the GPT-5.5 judge already recorded a verdict. That is ground truth for
 `actionable == score >= 2`, on exactly the population the map is asked about, with no
 selection bias inside the top-10 (the harness judges the whole of it). Re-running the
@@ -27,7 +27,7 @@ against the verdict already on disk.
 worth reading, the reconstruction has to arrive at the decision the live run actually
 made. If the rebuilt Top Picks set does not match the recorded one, this script is
 measuring itself rather than the product, and it says so instead of printing a number.
-That is the same discipline `_triage_reporadar` exists to enforce, learned the same way.
+That is the same discipline `_triage_anonymous` exists to enforce, learned the same way.
 
 **What it cannot do.** It cannot tune the threshold. P >= 2/3 is derived from net@2's own
 arithmetic (3p - 2 > 0), not chosen, so "the threshold that scores best here" is not a
@@ -50,14 +50,14 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from harness import WORK_DIR, clone_repo, load_benchmark  # noqa: E402
-from run_judge_eval import ENV_KEYS, RESULTS_DIR, _triage_reporadar, load_dotenv  # noqa: E402
+from run_judge_eval import ENV_KEYS, RESULTS_DIR, _triage_anonymous, load_dotenv  # noqa: E402
 
-from reporadar.collector import collect_by_ids  # noqa: E402
-from reporadar.config import ProfilerConfig  # noqa: E402
-from reporadar.finescale import INTERCEPT, SHOW_THRESHOLD, SLOPE, score_paper  # noqa: E402
-from reporadar.llm_client import LLMError  # noqa: E402
-from reporadar.paper_id import dedup_id  # noqa: E402
-from reporadar.profiler import profile_repo  # noqa: E402
+from anonymous.collector import collect_by_ids  # noqa: E402
+from anonymous.config import ProfilerConfig  # noqa: E402
+from anonymous.finescale import INTERCEPT, SHOW_THRESHOLD, SLOPE, score_paper  # noqa: E402
+from anonymous.llm_client import LLMError  # noqa: E402
+from anonymous.paper_id import dedup_id  # noqa: E402
+from anonymous.profiler import profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 CACHE_DIR = WORK_DIR / "calibration"
@@ -89,7 +89,7 @@ def _save_cache(case: str, rows: dict[str, dict[str, Any]]) -> None:
 
 
 def base_id(arxiv_id: str) -> str:
-    """Delegates to the one shared rule; see reporadar.paper_id."""
+    """Delegates to the one shared rule; see anonymous.paper_id."""
     return dedup_id(arxiv_id)
 
 
@@ -121,7 +121,7 @@ def score_case(
     profile = profile_repo(dest, profiler_cfg=ProfilerConfig(prose_chars=PROSE_CHARS))
     to_score = [by_id[i] for i in missing if i in by_id]
 
-    gate = _triage_reporadar(dest, to_score, keys, TRIAGE_MODEL, PROSE_CHARS)
+    gate = _triage_anonymous(dest, to_score, keys, TRIAGE_MODEL, PROSE_CHARS)
     fs_cfg = SimpleNamespace(
         openai_api_key=keys.get("OPENAI_API_KEY", ""), openai_model=FINESCALE_MODEL, timeout=60
     )
@@ -157,7 +157,7 @@ def shown_by_policy(row: dict[str, Any], slope: float, intercept: float) -> bool
 
     A band paper with no fine-scale score is NOT shown — "could not score" and "scored
     low" have to stay distinguishable, and the safe reading of the first one is to
-    abstain. `reporadar.finescale.enough_scored` makes the same call one level up.
+    abstain. `anonymous.finescale.enough_scored` makes the same call one level up.
     """
     gate = row.get("llm_score")
     if gate is None or gate < MIN_ACTIONABLE:
@@ -469,8 +469,8 @@ def main() -> int:
     print(f"Scoring the top-10 of {len(run)} cases from {args.run}")
     for rec in run:
         case = rec["case"]
-        top10 = rec["returned"]["reporadar_top10"]
-        recorded[case] = {base_id(p["arxiv_id"]) for p in rec["returned"]["reporadar_toppicks"]}
+        top10 = rec["returned"]["anonymous_top10"]
+        recorded[case] = {base_id(p["arxiv_id"]) for p in rec["returned"]["anonymous_toppicks"]}
         if args.analyse:
             cached = _load_cache(case)
             rows = [cached[b] for p in top10 if (b := base_id(p["arxiv_id"])) in cached]

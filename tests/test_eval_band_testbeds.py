@@ -46,12 +46,12 @@ def _entry(case: str, judges: list[int], n3: int, n2: int, n1: int) -> dict:
     return {
         "case": case,
         "returned": {
-            "reporadar_top10": [
+            "anonymous_top10": [
                 {"arxiv_id": f"260{i}.0000{i}v1", "title": f"paper {i}", "judge_score": j}
                 for i, j in enumerate(judges)
             ]
         },
-        "reporadar_toppicks_sweep": {
+        "anonymous_toppicks_sweep": {
             "3": {"n_returned": n3, "net_value@2": net2(judges[:n3])},
             "2": {"n_returned": n2, "net_value@2": net2(judges[:n2])},
             "1": {"n_returned": n1, "net_value@2": net2(judges[:n1])},
@@ -223,7 +223,7 @@ class TestReconstructionAgainstTheRealRun:
         bands = tb.load_testbed_a()
         entries = {e["case"]: e for e in json.loads(tb.POOL50.read_text(encoding="utf-8"))}
         for case, band in bands.items():
-            sweep = entries[case]["reporadar_toppicks_sweep"]
+            sweep = entries[case]["anonymous_toppicks_sweep"]
             assert tb.net2([p.judge for p in band.admitted]) == sweep["2"]["net_value@2"], case
             assert tb.net2([p.judge for p in band.gate3]) == sweep["3"]["net_value@2"], case
 

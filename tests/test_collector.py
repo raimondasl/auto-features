@@ -1,4 +1,4 @@
-"""Tests for reporadar.collector."""
+"""Tests for anonymous.collector."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import arxiv
 import pytest
 
-from reporadar import collector
-from reporadar.collector import (
+from anonymous import collector
+from anonymous.collector import (
     CollectionError,
     _category_filter,
     _generate_bigram_queries,
@@ -21,8 +21,8 @@ from reporadar.collector import (
     collect_papers,
     to_plain_keywords,
 )
-from reporadar.config import ArxivConfig, QueriesConfig
-from reporadar.profiler import RepoProfile
+from anonymous.config import ArxivConfig, QueriesConfig
+from anonymous.profiler import RepoProfile
 
 
 def _make_profile(**overrides) -> RepoProfile:
@@ -173,7 +173,7 @@ class TestResultToPaper:
 
 
 class TestCollectPapers:
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Client")
     def test_collects_and_deduplicates(self, MockClient: MagicMock) -> None:
         now = datetime.now(UTC)
         results_q1 = [
@@ -199,7 +199,7 @@ class TestCollectPapers:
         ids = {p["arxiv_id"] for p in papers}
         assert ids == {"2401.00001v1", "2401.00002v1", "2401.00003v1"}
 
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Client")
     def test_filters_old_papers(self, MockClient: MagicMock) -> None:
         now = datetime.now(UTC)
         old = datetime(2020, 1, 1, tzinfo=UTC)
@@ -218,8 +218,8 @@ class TestCollectPapers:
         assert len(papers) == 1
         assert papers[0]["title"] == "New Paper"
 
-    @patch("reporadar.collector.arxiv.Search")
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Search")
+    @patch("anonymous.collector.arxiv.Client")
     def test_sort_by_defaults_to_relevance(
         self, MockClient: MagicMock, MockSearch: MagicMock
     ) -> None:
@@ -230,8 +230,8 @@ class TestCollectPapers:
         collect_papers(["q1"], ArxivConfig(max_results_per_query=50))
         assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.Relevance
 
-    @patch("reporadar.collector.arxiv.Search")
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Search")
+    @patch("anonymous.collector.arxiv.Client")
     def test_an_explicit_submitted_sort_is_still_honoured(
         self, MockClient: MagicMock, MockSearch: MagicMock
     ) -> None:
@@ -242,8 +242,8 @@ class TestCollectPapers:
         )
         assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.SubmittedDate
 
-    @patch("reporadar.collector.arxiv.Search")
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Search")
+    @patch("anonymous.collector.arxiv.Client")
     def test_sort_by_relevance_uses_relevance_criterion(
         self, MockClient: MagicMock, MockSearch: MagicMock
     ) -> None:
@@ -253,7 +253,7 @@ class TestCollectPapers:
         collect_papers(["q1"], cfg)
         assert MockSearch.call_args.kwargs["sort_by"] == arxiv.SortCriterion.Relevance
 
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Client")
     def test_matched_query_recorded(self, MockClient: MagicMock) -> None:
         now = datetime.now(UTC)
         results = [
@@ -268,7 +268,7 @@ class TestCollectPapers:
 
         assert papers[0]["matched_query"] == "all:transformers"
 
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Client")
     def test_empty_results(self, MockClient: MagicMock) -> None:
         mock_client = MockClient.return_value
         mock_client.results.return_value = iter([])
@@ -278,7 +278,7 @@ class TestCollectPapers:
 
         assert papers == []
 
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Client")
     def test_on_query_start_callback(self, MockClient: MagicMock) -> None:
         now = datetime.now(UTC)
         results = [
@@ -300,7 +300,7 @@ class TestCollectPapers:
         assert calls[0] == (0, 2, "q1")
         assert calls[1] == (1, 2, "q2")
 
-    @patch("reporadar.collector.arxiv.Client")
+    @patch("anonymous.collector.arxiv.Client")
     def test_no_callback_by_default(self, MockClient: MagicMock) -> None:
         mock_client = MockClient.return_value
         mock_client.results.return_value = iter([])
@@ -312,7 +312,7 @@ class TestCollectPapers:
 
 
 class TestQueryWithRetry:
-    @patch("reporadar.collector.time.sleep")
+    @patch("anonymous.collector.time.sleep")
     def test_succeeds_after_transient_failure(self, mock_sleep: MagicMock) -> None:
         now = datetime.now(UTC)
         good_result = _make_arxiv_result(
@@ -334,7 +334,7 @@ class TestQueryWithRetry:
         # First retry delay should be base_delay * 2^0 = 1.0
         mock_sleep.assert_called_with(1.0)
 
-    @patch("reporadar.collector.time.sleep")
+    @patch("anonymous.collector.time.sleep")
     def test_exhausted_raises_collection_error(self, mock_sleep: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.results.side_effect = ConnectionError("always fails")
@@ -345,7 +345,7 @@ class TestQueryWithRetry:
 
         assert mock_sleep.call_count == 2  # retries = max_retries - 1
 
-    @patch("reporadar.collector.time.sleep")
+    @patch("anonymous.collector.time.sleep")
     def test_backoff_delay_doubles(self, mock_sleep: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.results.side_effect = [
@@ -535,7 +535,7 @@ class TestArxivThrottlingIsRetriedNotRaised:
     def test_http_error_is_retried_and_wrapped(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
         import arxiv
 
-        from reporadar import collector
+        from anonymous import collector
 
         assert not issubclass(arxiv.ArxivError, OSError), (
             "arxiv errors are now OSErrors; this test no longer proves anything"
@@ -560,7 +560,7 @@ class TestArxivThrottlingIsRetriedNotRaised:
     def test_a_transient_error_still_yields_results_on_retry(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
         import arxiv
 
-        from reporadar import collector
+        from anonymous import collector
 
         state = {"n": 0}
 
@@ -705,7 +705,7 @@ _BRIDGING_MODULES = (
     # `pipeline.py` since 2026-08-16; `cli.py` bridged queries until the orchestrator
     # moved out of it, and `rr workspace update` -- the one collector still in `cli.py` --
     # is arXiv-only, so it never translates.
-    ("src", "reporadar", "pipeline.py"),
+    ("src", "anonymous", "pipeline.py"),
     ("evals", "harness.py"),
     ("evals", "run_eval.py"),
 )
@@ -791,7 +791,7 @@ class TestTheSharedClientCannotGoStale:
         survived two rounds of investigation.
         """
         collector._CLIENTS.clear()
-        with patch("reporadar.collector.arxiv.Client"):
+        with patch("anonymous.collector.arxiv.Client"):
             collector._shared_client(50)
             keys = list(collector._CLIENTS)
         assert keys, "nothing was cached"
@@ -808,7 +808,7 @@ class TestTheSharedClientCannotGoStale:
         collector._CLIENTS.clear()
         stale = 0
         for _ in range(400):
-            with patch("reporadar.collector.arxiv.Client") as MockClient:
+            with patch("anonymous.collector.arxiv.Client") as MockClient:
                 mock_client = MockClient.return_value
                 mock_client.results.return_value = iter(["paper"])
                 if collector._shared_client(50) is not mock_client:

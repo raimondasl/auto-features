@@ -51,9 +51,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import diagnose_query_generation as qg  # noqa: E402
 import snowballstemmer  # noqa: E402
 
-from reporadar.config import SuggestionsConfig  # noqa: E402
-from reporadar.llm_client import complete  # noqa: E402
-from reporadar.profiler import _collect_text_corpus, profile_repo  # noqa: E402
+from anonymous.config import SuggestionsConfig  # noqa: E402
+from anonymous.llm_client import complete  # noqa: E402
+from anonymous.profiler import _collect_text_corpus, profile_repo  # noqa: E402
 
 EVALS = Path(__file__).resolve().parent
 WORK = EVALS / ".work"

@@ -1,10 +1,10 @@
-"""Tests for reporadar.sources.dblp (mocked HTTP)."""
+"""Tests for anonymous.sources.dblp (mocked HTTP)."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from reporadar.sources.dblp import collect_papers, search_papers
+from anonymous.sources.dblp import collect_papers, search_papers
 
 
 def _hits(*infos: dict) -> dict:
@@ -12,7 +12,7 @@ def _hits(*infos: dict) -> dict:
 
 
 class TestSearchPapers:
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_normalizes_hit(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _hits(
             {
@@ -37,21 +37,21 @@ class TestSearchPapers:
         assert p["categories"] == ["OSDI"]
         assert p["url"] == "https://doi.org/x"
 
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_single_author_dict(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _hits(
             {"title": "T", "key": "k", "year": "2025", "authors": {"author": {"text": "Solo"}}}
         )
         assert search_papers("x")[0]["authors"] == ["Solo"]
 
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_failure_returns_empty(self, mock_req: MagicMock) -> None:
         mock_req.return_value = None
         assert search_papers("x") == []
 
 
 class TestDblpJsonQuirks:
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_ee_as_list_or_dict_coerced_to_str(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _hits(
             {"title": "A", "key": "conf/x/y1", "year": "2025", "ee": ["https://a", "https://b"]},
@@ -67,7 +67,7 @@ class TestDblpJsonQuirks:
         assert out[0]["url"] == "https://a"
         assert out[1]["url"] == "https://c"
 
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_venue_as_list_coerced(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _hits(
             {"title": "A", "key": "k", "year": "2025", "venue": ["OSDI", "SOSP"]}
@@ -75,7 +75,7 @@ class TestDblpJsonQuirks:
         cats = search_papers("q")[0]["categories"]
         assert cats == ["OSDI"] and isinstance(cats[0], str)  # str, not a nested list
 
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_single_hit_object_not_list(self, mock_req: MagicMock) -> None:
         # DBLP returns `hit` as one object (not a 1-element list) for a single match.
         mock_req.return_value = {
@@ -84,7 +84,7 @@ class TestDblpJsonQuirks:
         out = search_papers("q")
         assert len(out) == 1 and out[0]["title"] == "Solo"
 
-    @patch("reporadar.sources.dblp._request_json")
+    @patch("anonymous.sources.dblp._request_json")
     def test_corr_entry_gets_real_arxiv_id(self, mock_req: MagicMock) -> None:
         mock_req.return_value = _hits(
             {
@@ -100,7 +100,7 @@ class TestDblpJsonQuirks:
 
 
 class TestCollectPapers:
-    @patch("reporadar.sources.dblp.search_papers")
+    @patch("anonymous.sources.dblp.search_papers")
     def test_dedups_and_filters_old_years(self, mock_search: MagicMock) -> None:
         def _p(aid: str, year: str) -> dict:
             return {

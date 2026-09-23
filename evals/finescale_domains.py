@@ -71,8 +71,8 @@ def load_population(path: Path) -> tuple[dict[str, list[dict[str, Any]]], dict[s
     recorded: dict[str, set[str]] = {}
     for rec in json.loads(path.read_text(encoding="utf-8")):
         case = rec["case"]
-        data[case] = rec["returned"]["reporadar_top10"]
-        recorded[case] = {base_id(p["arxiv_id"]) for p in rec["returned"]["reporadar_toppicks"]}
+        data[case] = rec["returned"]["anonymous_top10"]
+        recorded[case] = {base_id(p["arxiv_id"]) for p in rec["returned"]["anonymous_toppicks"]}
     return data, recorded
 
 
@@ -91,7 +91,7 @@ def stage_value(data: dict[str, list[dict[str, Any]]]) -> tuple[float, float]:
     "Without it" is not a hypothetical: it is `sweep_top_picks` at min>=2, which re-gates the
     *same* ranked window on the *same* triage scores. The two selections differ by exactly one
     shipped stage, which is what makes the difference readable as that stage's contribution.
-    Verified equal to the recorded `reporadar_toppicks_sweep["2"]` net value on all 37 cases.
+    Verified equal to the recorded `anonymous_toppicks_sweep["2"]` net value on all 37 cases.
     """
     cases = sorted(data)
     with_stage = sum(
@@ -115,14 +115,14 @@ def check_sweep_equivalence(path: Path) -> tuple[int, int, list[str]]:
     agree = total = 0
     bad: list[str] = []
     for rec in json.loads(path.read_text(encoding="utf-8")):
-        recorded = rec.get("reporadar_toppicks_sweep", {}).get("2", {}).get("net_value@2")
+        recorded = rec.get("anonymous_toppicks_sweep", {}).get("2", {}).get("net_value@2")
         if recorded is None:
             continue
         total += 1
         rebuilt = net2(
             [
                 r
-                for r in rec["returned"]["reporadar_top10"]
+                for r in rec["returned"]["anonymous_top10"]
                 if (r.get("llm_score") or -1) >= MIN_ACTIONABLE
             ]
         )

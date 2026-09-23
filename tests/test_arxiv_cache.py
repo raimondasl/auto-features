@@ -24,7 +24,7 @@ from typing import Any
 
 import pytest
 
-from reporadar import arxiv_cache
+from anonymous import arxiv_cache
 
 
 @pytest.fixture(autouse=True)

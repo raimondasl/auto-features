@@ -1,4 +1,4 @@
-"""Tests for reporadar.delegate — running the pipeline in an environment this one is not.
+"""Tests for anonymous.delegate — running the pipeline in an environment this one is not.
 
 Two things are load-bearing here and neither is the happy path.
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from reporadar import delegate
+from anonymous import delegate
 
 
 class _Hyde:
@@ -33,7 +33,7 @@ class _Hyde:
 
 
 class Cfg:
-    """Stands in for a RepoRadarConfig: the fields this module reads."""
+    """Stands in for a AnonymousConfig: the fields this module reads."""
 
     def __init__(
         self, *, enabled: bool = True, repo_path: str = ".", index_dir: str = "no-index-here"
@@ -70,15 +70,15 @@ class Recorder:
 
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
-    (tmp_path / ".reporadar").mkdir()
+    (tmp_path / ".anonymous").mkdir()
     return tmp_path
 
 
 def _places(repo: Path) -> dict[str, Path]:
     return {
         "repo": repo,
-        "config_path": repo / ".reporadar.yml",
-        "db": repo / ".reporadar" / "papers.db",
+        "config_path": repo / ".anonymous.yml",
+        "db": repo / ".anonymous" / "papers.db",
     }
 
 
@@ -117,7 +117,7 @@ class TestWhereCollectionRuns:
         releases on opposite ends of the same pipe."""
         plan = delegate.plan(Cfg(), **_places(repo))
         assert plan.delegated
-        assert plan.spec == "reporadar-papers[hyde]==9.9.9"
+        assert plan.spec == "anonymous-papers[hyde]==9.9.9"
         assert plan.command is not None
         assert "--from" in plan.command and plan.spec in plan.command
 
@@ -212,7 +212,7 @@ class TestNoIndexMeansNoHeavyEnvironment:
     `setup_repo` writes `hyde.enabled: true` for every user, so every new plugin user's first
     collection built the embedding model's environment -- several gigabytes of torch on Linux
     -- only for the child to report that no index was synced. That contradicted the promise
-    #305's own docs make: only the people who opted in ever download it.
+    the delegation's own docs make: only the people who opted in ever download it.
     """
 
     @pytest.mark.usefixtures("cannot_run_hyde")
@@ -272,7 +272,7 @@ class TestWhichPathsAChildWouldUse:
     def test_a_relative_repo_path_resolves_against_the_repository(self, repo: Path) -> None:
         child_repo, child_db = delegate.child_paths(Cfg(), repo)
         assert child_repo == repo.resolve()
-        assert child_db == (repo / ".reporadar" / "papers.db").resolve()
+        assert child_db == (repo / ".anonymous" / "papers.db").resolve()
 
     def test_an_absolute_repo_path_is_taken_as_written(self, repo: Path, tmp_path: Path) -> None:
         other = tmp_path / "other"
@@ -297,7 +297,7 @@ def _fake_child(body: str, tmp_path: Path) -> delegate.Plan:
     return delegate.Plan(
         command=[sys.executable, "-c", _EMIT + textwrap.dedent(body)],
         cwd=tmp_path,
-        spec="reporadar-papers[hyde]==9.9.9",
+        spec="anonymous-papers[hyde]==9.9.9",
         reason="test",
     )
 
@@ -462,7 +462,7 @@ class TestDrivingTheChild:
 _SERVER_STANDIN = """
 import json, sys, threading, time
 from pathlib import Path
-from reporadar import delegate
+from anonymous import delegate
 
 mode = sys.argv[1]
 if mode == "reader":
@@ -493,10 +493,10 @@ os._exit(0)
 
 
 class TestTheChildNeverSharesTheServersStdin:
-    """The 1.0.5 hang, found in a real VS Code session.
+    """A hang found in a real VS Code session.
 
     `delegate.run` did not set `stdin`, so the child inherited the MCP server's — the JSON-RPC
-    pipe from the editor. On Windows that deadlocks before a line of RepoRadar runs: the
+    pipe from the editor. On Windows that deadlocks before a line of Anonymous runs: the
     server has a synchronous read parked on that pipe, and the child's interpreter, setting
     up its own stdio, queries the same file object and waits for that read to finish. The
     read waits for the editor's next message; the editor waits for the tool result; the tool
@@ -608,7 +608,7 @@ class TestTheTwoEndsOfTheProtocolAgree:
     def _emitted(self, event: str, **fields: object) -> str:
         import click
 
-        from reporadar.cli import JsonReporter
+        from anonymous.cli import JsonReporter
 
         written: list[str] = []
         reporter = JsonReporter(inner=Recorder())
@@ -647,7 +647,7 @@ class TestTheTwoEndsOfTheProtocolAgree:
 class TestTheManualCommand:
     def test_it_names_the_extra_that_carries_the_encoder(self) -> None:
         assert delegate.manual_command("1.2.3") == (
-            'uvx --from "reporadar-papers[hyde]==1.2.3" rr update'
+            'uvx --from "anonymous-papers[hyde]==1.2.3" rr update'
         )
 
     def test_without_a_version_it_is_still_runnable(self) -> None:
@@ -661,6 +661,6 @@ class TestThisEnvironment:
         assert isinstance(delegate.hyde_importable(), bool)
 
     def test_uvx_is_resolved_to_a_path_when_present(self) -> None:
-        from reporadar.executables import find_on_path
+        from anonymous.executables import find_on_path
 
         assert delegate.uvx_executable() == find_on_path("uvx")

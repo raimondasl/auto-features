@@ -10,7 +10,7 @@ failing to merge one.
 
 **The wiring.** A unit test of `dedup_id` passes whether or not anyone calls it, which is
 exactly how `to_plain_keywords` sat correct and unused through C-9. So the guard reads the
-source of **every** module in `src/reporadar/` and `evals/`, not the handful where the bug
+source of **every** module in `src/anonymous/` and `evals/`, not the handful where the bug
 was last found. That scoping is the point: the previous version of this guard listed five
 pipeline files, and a survey on 2026-08-15 then turned up three competing rules across
 eight product modules it had never looked at — the same "guard scoped to where you found
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from reporadar.paper_id import dedup_id
+from anonymous.paper_id import dedup_id
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,7 +56,7 @@ def _product_and_eval_modules() -> list[Path]:
     `evals/.work/` holds cloned benchmark repositories — other people's source, with their
     own conventions — so it is excluded. Everything this project actually wrote is in.
     """
-    files = sorted(ROOT.joinpath("src", "reporadar").rglob("*.py"))
+    files = sorted(ROOT.joinpath("src", "anonymous").rglob("*.py"))
     files += sorted(p for p in ROOT.joinpath("evals").glob("*.py"))
     return [p for p in files if ".work" not in p.parts]
 
@@ -144,7 +144,7 @@ class TestOneRuleEverywhere:
             for rule, why in COMPETING_RULES:
                 assert rule not in line, (
                     f"{rel}:{line_no} answers 'same paper?' with a rule that {why}, "
-                    f"instead of calling reporadar.paper_id.dedup_id: {stripped}"
+                    f"instead of calling anonymous.paper_id.dedup_id: {stripped}"
                 )
 
     def test_the_guard_covers_more_than_where_the_bug_was_found(self) -> None:
@@ -181,15 +181,15 @@ class TestTheCallersActuallyCallIt:
     @pytest.mark.parametrize(
         "rel",
         [
-            "src/reporadar/cli.py",
-            "src/reporadar/digest.py",
-            "src/reporadar/citations.py",
-            "src/reporadar/citation_graph.py",
-            "src/reporadar/mcp_server.py",
-            "src/reporadar/sources/dblp.py",
-            "src/reporadar/sources/hf_papers.py",
-            "src/reporadar/signals/hn.py",
-            "src/reporadar/signals/integrity.py",
+            "src/anonymous/cli.py",
+            "src/anonymous/digest.py",
+            "src/anonymous/citations.py",
+            "src/anonymous/citation_graph.py",
+            "src/anonymous/mcp_server.py",
+            "src/anonymous/sources/dblp.py",
+            "src/anonymous/sources/hf_papers.py",
+            "src/anonymous/signals/hn.py",
+            "src/anonymous/signals/integrity.py",
             "evals/harness.py",
             "evals/run_eval.py",
             "evals/run_judge_eval.py",
@@ -202,12 +202,12 @@ class TestTheCallersActuallyCallIt:
     def test_the_shared_rule_stays_cheap_to_import(self) -> None:
         """Why it is not in `collector`.
 
-        Importing `reporadar.collector` costs ~1.9 s and 1,250 modules — it pulls in the
+        Importing `anonymous.collector` costs ~1.9 s and 1,250 modules — it pulls in the
         arXiv client. Eight callers would have paid that to normalise a string, and the
         lazily-imported ones would have stopped being lazy. A shared rule nobody can afford
         to import grows local copies again, which is how this started.
         """
-        source = ROOT.joinpath("src", "reporadar", "paper_id.py").read_text(encoding="utf-8")
+        source = ROOT.joinpath("src", "anonymous", "paper_id.py").read_text(encoding="utf-8")
         imports = [
             ln
             for ln in source.splitlines()

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from reporadar.profiler import (
+from anonymous.profiler import (
     _clean_document,
     _collect_text_corpus,
     _extract_anchors,
