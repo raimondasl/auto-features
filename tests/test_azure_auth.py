@@ -84,7 +84,7 @@ class TestOnlyAzureHostsCanReceiveATokenRequest:
 
 class TestTheTenantCannotReachTheCommandLineAsAnythingButATenant:
     @pytest.mark.parametrize(
-        "tenant", ["", "6fb0b7a7-07cb-421e-ac5d-c19fb4bf995a", "contoso.onmicrosoft.com"]
+        "tenant", ["", "12345678-1234-1234-1234-123456789abc", "contoso.onmicrosoft.com"]
     )
     def test_ids_and_domains_pass(self, tenant: str) -> None:
         assert validate_tenant(f" {tenant} ") == tenant
