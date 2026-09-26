@@ -41,6 +41,7 @@ match the file as shipped.
 | Section 4: widening the cut | `freeze_hyde_cut_arm.py`, `hyde_cut_reach.py` | `hyde_cut_arm.json`, `hyde_cut_reach.json` | `.work/pool-cut1000/`, run files of 2026-08-30 |
 | Section 4: random-pool base rate | `label_pool.py` | none | `.work/label_pool.json` |
 | Section 5: gate, ungated run | `run_judge_eval.py`, `band_testbeds.py` | none | run files of 2026-08-07, 08-14 and 09-08 |
+| Section 5: the gate on all 37 repositories | `gate_on_37.py` | `gate_on_37.json` | run file of 2026-09-08 (band H) |
 | Section 6: Table 4, E1 to E5 | `exp_select.py`, `exp_finescale.py`, `exp_ensemble.py`, `exp_pairwise.py`, `exp_features.py`, `compare_finescale_baseline.py` | none | `.work/exp/`, run files of 2026-08-07 |
 | Section 6: 37-repository bands, second scorer | `judge_dependence.py`, `finescale_current_gate.py`, `finescale_model_transfer.py` | `judge_dependence.json`, `finescale_current_gate.json`, `finescale_model_transfer.json` | `.work/second_judge/`, `.work/exp/`, run files of 2026-08-20 and 09-08 |
 | Section 6.1: the map and its audit | `calibrate_finescale.py` | none | `.work/calibration*` |
@@ -107,7 +108,7 @@ The following were rerun from this tree and the data bundle alone, with the netw
 key set, and each reproduced its tracked result or its recorded figures exactly:
 
 - `freeze_gold_targets.py` and `--check`, `witness_set.py` and `--check`
-- `comparison_sensitivity.py`, `sonnet_self_agreement.py`, `third_judge_followups.py`
+- `comparison_sensitivity.py`, `sonnet_self_agreement.py`, `third_judge_followups.py`, `gate_on_37.py`
 - `judge_validity_adoption.py`, and `frame/walk_pool.py` resumed with its recorded arguments and
   `--no-verify-pulse` (its `curve` list is per invocation)
 - `freeze_hyde_cut_arm.py`, `hyde_replication.py --report`, `label_pool.py --report`
