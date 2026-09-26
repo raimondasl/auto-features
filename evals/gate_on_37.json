@@ -1,0 +1,450 @@
+{
+ "summary": {
+  "run": "judge-gpt-5.5-frozenpool-bigrams_verified-wemb1.5-20260908T063132Z.json",
+  "judge": "gpt-5.5",
+  "admitted_means": "admitted within the 15-paper digest",
+  "share_of_threes": {
+   "threes": 76,
+   "admitted": 404,
+   "share": 0.1881
+  },
+  "share_vs_precision": {
+   "repositories": 34,
+   "pearson_r": 0.2478,
+   "ci95": [
+    -0.0026,
+    0.5157
+   ]
+  },
+  "policies": {
+   "repositories": 37,
+   "show_admitted": {
+    "mean_net2": 5.4865,
+    "precision": 0.8342
+   },
+   "show_only_threes": {
+    "mean_net2": 1.0811,
+    "precision": 0.8421,
+    "repositories_shown_nothing": 13
+   }
+  },
+  "ranker_within_band": {
+   "repositories": 26,
+   "pairs": 412,
+   "auc": 0.551,
+   "ci95": [
+    0.4581,
+    0.6248
+   ]
+  }
+ },
+ "rows": [
+  {
+   "case": "rag",
+   "admitted": 15,
+   "threes": 5,
+   "actionable": 13,
+   "actionable_threes": 5,
+   "net_all": 9,
+   "net_threes": 5,
+   "band_pairs": 16,
+   "band_pairs_ordered": 8
+  },
+  {
+   "case": "cv",
+   "admitted": 9,
+   "threes": 3,
+   "actionable": 8,
+   "actionable_threes": 3,
+   "net_all": 6,
+   "net_threes": 3,
+   "band_pairs": 5,
+   "band_pairs_ordered": 4
+  },
+  {
+   "case": "rl",
+   "admitted": 15,
+   "threes": 0,
+   "actionable": 14,
+   "actionable_threes": 0,
+   "net_all": 12,
+   "net_threes": 0,
+   "band_pairs": 14,
+   "band_pairs_ordered": 9
+  },
+  {
+   "case": "webdev",
+   "admitted": 2,
+   "threes": 0,
+   "actionable": 1,
+   "actionable_threes": 0,
+   "net_all": -1,
+   "net_threes": 0,
+   "band_pairs": 1,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "peft",
+   "admitted": 15,
+   "threes": 5,
+   "actionable": 14,
+   "actionable_threes": 4,
+   "net_all": 12,
+   "net_threes": 2,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "diffusion",
+   "admitted": 15,
+   "threes": 1,
+   "actionable": 15,
+   "actionable_threes": 1,
+   "net_all": 15,
+   "net_threes": 1,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "graph",
+   "admitted": 15,
+   "threes": 2,
+   "actionable": 15,
+   "actionable_threes": 2,
+   "net_all": 15,
+   "net_threes": 2,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "speech",
+   "admitted": 15,
+   "threes": 1,
+   "actionable": 12,
+   "actionable_threes": 1,
+   "net_all": 6,
+   "net_threes": 1,
+   "band_pairs": 33,
+   "band_pairs_ordered": 16
+  },
+  {
+   "case": "crypto",
+   "admitted": 5,
+   "threes": 0,
+   "actionable": 4,
+   "actionable_threes": 0,
+   "net_all": 2,
+   "net_threes": 0,
+   "band_pairs": 4,
+   "band_pairs_ordered": 2
+  },
+  {
+   "case": "systems",
+   "admitted": 6,
+   "threes": 0,
+   "actionable": 4,
+   "actionable_threes": 0,
+   "net_all": 0,
+   "net_threes": 0,
+   "band_pairs": 8,
+   "band_pairs_ordered": 5
+  },
+  {
+   "case": "cli",
+   "admitted": 0,
+   "threes": 0,
+   "actionable": 0,
+   "actionable_threes": 0,
+   "net_all": 0,
+   "net_threes": 0,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "http",
+   "admitted": 0,
+   "threes": 0,
+   "actionable": 0,
+   "actionable_threes": 0,
+   "net_all": 0,
+   "net_threes": 0,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "db",
+   "admitted": 15,
+   "threes": 6,
+   "actionable": 15,
+   "actionable_threes": 6,
+   "net_all": 15,
+   "net_threes": 6,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "storage",
+   "admitted": 15,
+   "threes": 4,
+   "actionable": 15,
+   "actionable_threes": 4,
+   "net_all": 15,
+   "net_threes": 4,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "numerics",
+   "admitted": 15,
+   "threes": 0,
+   "actionable": 14,
+   "actionable_threes": 0,
+   "net_all": 12,
+   "net_threes": 0,
+   "band_pairs": 14,
+   "band_pairs_ordered": 7
+  },
+  {
+   "case": "compiler",
+   "admitted": 9,
+   "threes": 1,
+   "actionable": 4,
+   "actionable_threes": 1,
+   "net_all": -6,
+   "net_threes": 1,
+   "band_pairs": 15,
+   "band_pairs_ordered": 3
+  },
+  {
+   "case": "llminfer",
+   "admitted": 15,
+   "threes": 1,
+   "actionable": 11,
+   "actionable_threes": 1,
+   "net_all": 3,
+   "net_threes": 1,
+   "band_pairs": 40,
+   "band_pairs_ordered": 12
+  },
+  {
+   "case": "vectordb",
+   "admitted": 15,
+   "threes": 1,
+   "actionable": 11,
+   "actionable_threes": 1,
+   "net_all": 3,
+   "net_threes": 1,
+   "band_pairs": 40,
+   "band_pairs_ordered": 26
+  },
+  {
+   "case": "linter",
+   "admitted": 0,
+   "threes": 0,
+   "actionable": 0,
+   "actionable_threes": 0,
+   "net_all": 0,
+   "net_threes": 0,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "encryption",
+   "admitted": 3,
+   "threes": 0,
+   "actionable": 1,
+   "actionable_threes": 0,
+   "net_all": -3,
+   "net_threes": 0,
+   "band_pairs": 2,
+   "band_pairs_ordered": 2
+  },
+  {
+   "case": "ann",
+   "admitted": 15,
+   "threes": 4,
+   "actionable": 14,
+   "actionable_threes": 4,
+   "net_all": 12,
+   "net_threes": 4,
+   "band_pairs": 10,
+   "band_pairs_ordered": 5
+  },
+  {
+   "case": "columnar",
+   "admitted": 12,
+   "threes": 0,
+   "actionable": 11,
+   "actionable_threes": 0,
+   "net_all": 9,
+   "net_threes": 0,
+   "band_pairs": 11,
+   "band_pairs_ordered": 3
+  },
+  {
+   "case": "thin-lang",
+   "admitted": 4,
+   "threes": 0,
+   "actionable": 2,
+   "actionable_threes": 0,
+   "net_all": -2,
+   "net_threes": 0,
+   "band_pairs": 4,
+   "band_pairs_ordered": 2
+  },
+  {
+   "case": "thin-kv",
+   "admitted": 15,
+   "threes": 0,
+   "actionable": 10,
+   "actionable_threes": 0,
+   "net_all": 0,
+   "net_threes": 0,
+   "band_pairs": 50,
+   "band_pairs_ordered": 37
+  },
+  {
+   "case": "thin-gnn",
+   "admitted": 15,
+   "threes": 2,
+   "actionable": 12,
+   "actionable_threes": 0,
+   "net_all": 6,
+   "net_threes": -4,
+   "band_pairs": 12,
+   "band_pairs_ordered": 12
+  },
+  {
+   "case": "bio-align",
+   "admitted": 11,
+   "threes": 4,
+   "actionable": 9,
+   "actionable_threes": 2,
+   "net_all": 5,
+   "net_threes": -2,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "bio-singlecell",
+   "admitted": 7,
+   "threes": 1,
+   "actionable": 5,
+   "actionable_threes": 1,
+   "net_all": 1,
+   "net_threes": 1,
+   "band_pairs": 8,
+   "band_pairs_ordered": 4
+  },
+  {
+   "case": "bio-scvi",
+   "admitted": 15,
+   "threes": 3,
+   "actionable": 14,
+   "actionable_threes": 3,
+   "net_all": 12,
+   "net_threes": 3,
+   "band_pairs": 11,
+   "band_pairs_ordered": 8
+  },
+  {
+   "case": "bio-mdsim",
+   "admitted": 15,
+   "threes": 3,
+   "actionable": 12,
+   "actionable_threes": 3,
+   "net_all": 6,
+   "net_threes": 3,
+   "band_pairs": 27,
+   "band_pairs_ordered": 20
+  },
+  {
+   "case": "bio-mdtraj",
+   "admitted": 7,
+   "threes": 2,
+   "actionable": 6,
+   "actionable_threes": 2,
+   "net_all": 4,
+   "net_threes": 2,
+   "band_pairs": 4,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "bio-kmer",
+   "admitted": 5,
+   "threes": 0,
+   "actionable": 5,
+   "actionable_threes": 0,
+   "net_all": 5,
+   "net_threes": 0,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "mat-mlip",
+   "admitted": 15,
+   "threes": 8,
+   "actionable": 11,
+   "actionable_threes": 5,
+   "net_all": 3,
+   "net_threes": -1,
+   "band_pairs": 6,
+   "band_pairs_ordered": 3
+  },
+  {
+   "case": "mat-chgpot",
+   "admitted": 15,
+   "threes": 11,
+   "actionable": 12,
+   "actionable_threes": 10,
+   "net_all": 6,
+   "net_threes": 8,
+   "band_pairs": 4,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "mat-descriptors",
+   "admitted": 15,
+   "threes": 3,
+   "actionable": 12,
+   "actionable_threes": 1,
+   "net_all": 6,
+   "net_threes": -3,
+   "band_pairs": 11,
+   "band_pairs_ordered": 3
+  },
+  {
+   "case": "mat-toolkit",
+   "admitted": 9,
+   "threes": 1,
+   "actionable": 9,
+   "actionable_threes": 1,
+   "net_all": 9,
+   "net_threes": 1,
+   "band_pairs": 0,
+   "band_pairs_ordered": 0
+  },
+  {
+   "case": "mat-featurize",
+   "admitted": 15,
+   "threes": 2,
+   "actionable": 9,
+   "actionable_threes": 1,
+   "net_all": -3,
+   "net_threes": -1,
+   "band_pairs": 40,
+   "band_pairs_ordered": 23
+  },
+  {
+   "case": "mat-phonon",
+   "admitted": 15,
+   "threes": 2,
+   "actionable": 13,
+   "actionable_threes": 2,
+   "net_all": 9,
+   "net_threes": 2,
+   "band_pairs": 22,
+   "band_pairs_ordered": 13
+  }
+ ]
+}
