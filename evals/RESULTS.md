@@ -1171,6 +1171,26 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### On all 37 repositories the gate's 3s buy no precision, and the ranker still does not order the band. **[NR-70]**
+
+Post hoc and descriptive, $0, 2026-09-26. The paper's Section 5 took its gate figures from the
+22-repository development testbed. The author, reviewing the draft, asked why they were not
+measured on all 37. They can be, from a run already judged: the shipped Haiku gate's run over 37 repositories
+(band H, `20260908T063132Z`), whose 15-paper digests the primary judge scored in full. Script
+`evals/gate_on_37.py`, artifact `evals/gate_on_37.json`, pinned by `tests/test_gate_on_37.py`.
+"Admitted" means admitted within the 15-paper digest: in 21 repositories the gate admitted 15 or
+more, and papers past the fifteenth were never judged.
+
+- 76 of 404 admitted papers score 3 (18.8 percent), as C-37 already records for this run.
+- Over the 34 repositories with any admitted paper, the share of 3s correlates with precision at
+  r = +0.25, 95% CI [-0.00, +0.52] (repository bootstrap). The testbed gave +0.30.
+- Showing only the 3s shows nothing in 13 of 37 repositories. Its precision is 0.842 against 0.834
+  for every admitted paper, so on this run the 3s buy no precision. Mean net@2 falls from +5.49 to
+  +1.08. On the testbed, only-3s had bought precision by abstaining on 14 of 22.
+- Within the score-2 band the list is in the heuristic ranker's order (ties on gate score go to
+  its total). It puts 55.1 percent of 412 informative pairs in the judge's order, [0.458, 0.625],
+  over 26 repositories. The testbed's "no useful order" stands.
+
 ### A third vendor's judge is stricter than both, so two judges understated how far LLM judges differ in level. **[NR-69]**
 
 Pre-registered in [PREREG-third-judge.md](PREREG-third-judge.md), committed at `1a4914c` with the
