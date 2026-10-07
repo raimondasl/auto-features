@@ -1171,6 +1171,57 @@ coverage number for that table on non-Python repositories first.
 > a term class extracted as empty everywhere, rather than a comment saying to be careful —
 > and `tests/test_eval_relation_probe.py` fires it in both directions.
 
+### Other searchers' picks are reached about as well as Table 3's 56, and a redraw of the same searcher no better than other searchers. **[NR-71]**
+
+Post hoc and descriptive, $0, 2026-10-07. A review of the submitted paper said Table 3's coverage
+"partly measures agreement with that particular search procedure": the 56 reference papers are
+one draw of one searcher (`cli`), and the channels were developed while looking at them.
+NUMBERS.md had already ruled that searcher dependence needs an arXiv-only, same-cohort comparison
+(see the NR-46 addendum below). This is that comparison. Script `evals/searcher_reach.py`, artifact
+`evals/searcher_reach.json`, pinned by `tests/test_searcher_reach.py`.
+
+Method, identical to Table 3's. The comparison papers are the other searchers' arXiv picks on
+Table 3's 20 repositories, from `witness_set.json`, which keeps only papers GPT-5.5 scored 2 or
+more. Excluded are the system's own picks, the agents handed its picks, and adoptions. Each paper
+is ranked with Table 3's cached hypotheses, encoder and index: hypothetical-document search
+reaches it at a best rank of 1,000 or better, ties in its favour. The hop reaches it if it is in
+P1's hop pool; the nine repositories without one count as misses. One Opus 5 pick is not in the
+index and is left out.
+
+Anchors. Table 3's stored ranks still give 34, 21 and 43. Every fresh rank, 261 papers, equals
+NR-46's stored rank. Table 3's own run of 25 August does not reproduce exactly: re-encoding the
+same hypotheses moves 13 of the 56 ranks and one paper across the cut, so hypothetical-document
+search reaches 35 of the 56 today (0.63, against Table 3's 0.61). The union stays 43, and ties
+broken against the paper still give 33 and 42 (0.59 and 0.75, as the paper says). The comparison
+ranks the 56 afresh, so every set shares one encoder run.
+
+| papers | n | repos | HyDE | hop | union [Wilson] | union minus the 56 [paired] |
+|---|---|---|---|---|---|---|
+| the 56 | 56 | 20 | 0.63 | 0.38 | 0.77 [0.64, 0.86] | |
+| same searcher, redrawn | 91 | 18 | 0.58 | 0.33 | 0.73 [0.63, 0.81] | -0.04 [-0.16, +0.08] |
+| Opus 5 | 124 | 19 | 0.55 | 0.40 | 0.72 [0.63, 0.79] | -0.05 [-0.15, +0.06] |
+| second prompt version | 107 | 20 | 0.53 | 0.44 | 0.72 [0.63, 0.80] | -0.05 [-0.13, +0.05] |
+| API baseline | 27 | 15 | 0.63 | 0.26 | 0.67 [0.48, 0.81] | -0.10 [-0.31, +0.12] |
+| all other searchers, pooled | 244 | 20 | 0.52 | 0.34 | 0.68 [0.62, 0.74] | -0.08 [-0.16, +0.01] |
+
+The paired intervals are a bootstrap over the 20 repositories. A 9-paper set (`cli-redraw@30`,
+three repositories) is in the artifact and not read.
+
+- The pooled union, 0.68, lies inside Table 3's interval [0.64, 0.86]. Coverage does not depend
+  on agreement with the reference searcher beyond what Table 3's own interval already allows.
+- A redraw of the same searcher is reached at 0.73, no better than Opus 5 or the second prompt
+  version (0.72 each). Whatever advantage the 56 have belongs to that one draw, not to the
+  searcher's procedure.
+- No union difference excludes zero. Without the 56's own papers the pooled set (205) reaches
+  0.66, paired difference -0.10 [-0.20, +0.02]. Of the 27 paired intervals on sets of 20 or more
+  papers, one excludes zero: hypothetical-document search alone on the second prompt version's
+  papers outside the 56, -0.15 [-0.27, -0.02]. One in 27 is what chance alone gives.
+
+What it does not show. Every paper here was still judged by GPT-5.5, so the actionable sets are
+one judge's. It measures coverage of other searchers' finds, not recall: the actionable population
+runs to tens of thousands per repository. The paper is submitted and unchanged; Table 3's 0.61
+stands for its run, and the re-encoded 0.63 is inside its interval.
+
 ### On all 37 repositories the gate's 3s buy no precision, and the ranker still does not order the band. **[NR-70]**
 
 Post hoc and descriptive, $0, 2026-09-26. The paper's Section 5 took its gate figures from the
@@ -3403,6 +3454,17 @@ HyDE would have returned; it cannot model the ranker renormalising over a 10× p
 and it is what the paid arm is for.
 
 **Cost** $0 + ~$0.20 of hypothesis generation. Pinned by `tests/test_hyde_cut_reach.py`.
+
+#### Addendum, 2026-10-07: reach per source over arXiv papers only
+
+NUMBERS.md kept "0.72 of 76 against 0.42" out of the paper, because the Opus 5 figure divides by
+non-arXiv picks the index can never return, and the two sets sit on different repositories.
+Counting only arXiv witnesses (`witness_set.json`), the same reach at cut 1,000 (already pooled,
+or a HyDE rank under 1,000) is: `cli` 55 of 76 (0.72), `cli-redraw` 55 of 92 (0.60), `api` 36 of
+50 (0.72), `cli-v2@30` 61 of 111 (0.55) and `cli-v2-opus5@30` 128 of 210 (0.61). So most of the
+gap to 0.42 was non-arXiv picks. A redraw of the reference searcher is reached no better than Opus
+5. This is pool-or-HyDE reach over all measured repositories, not Table 3's channels; NR-71 makes
+the same-cohort comparison with Table 3's channels.
 
 ### Opus 5's papers die in our queries, one rank tier below the cut. **[NR-45, opens item 10]**
 

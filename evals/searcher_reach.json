@@ -1,0 +1,749 @@
+{
+ "_comment": "NR-71. Post hoc and descriptive. Table 3's channels measured against other searchers' arXiv picks on the same 20 repositories, every paper judged >= 2 by GPT-5.5 (witness_set). Same hypotheses, encoder, index, hop pools and tie rule as Table 3, which it reproduces. Derived by evals/searcher_reach.py; pinned by tests/test_searcher_reach.py.",
+ "reference": {
+  "label": "the 56 (Table 3), fresh ranks",
+  "papers": 56,
+  "repositories": 20,
+  "hyde": {
+   "reached": 35,
+   "share": 0.625,
+   "repo_boot95": [
+    0.5094,
+    0.7288
+   ]
+  },
+  "hop": {
+   "reached": 21,
+   "share": 0.375,
+   "repo_boot95": [
+    0.1667,
+    0.5806
+   ]
+  },
+  "union": {
+   "reached": 43,
+   "share": 0.7679,
+   "wilson95": [
+    0.6423,
+    0.859
+   ],
+   "repo_boot95": [
+    0.6429,
+    0.8727
+   ]
+  },
+  "hyde_pess": {
+   "reached": 33,
+   "share": 0.5893
+  },
+  "union_pess": {
+   "reached": 42,
+   "share": 0.75
+  }
+ },
+ "anchors": {
+  "table3_stored_counts": {
+   "hyde": 34,
+   "hop": 21,
+   "union": 43
+  },
+  "fresh_counts_for_the_56": {
+   "hyde": 35,
+   "hop": 21,
+   "union": 43,
+   "hyde_pess": 33,
+   "union_pess": 42
+  },
+  "the_56_ranks_moved_since_table3": 13,
+  "ranks_equal_to_nr46": 261,
+  "ranks_not_in_nr46": 0
+ },
+ "sets": {
+  "api": {
+   "papers": 27,
+   "repositories": 15,
+   "hyde": {
+    "reached": 17,
+    "share": 0.6296,
+    "repo_boot95": [
+     0.3846,
+     0.875
+    ],
+    "minus_reference": 0.0046,
+    "minus_reference_paired95": [
+     -0.2209,
+     0.2524
+    ]
+   },
+   "hop": {
+    "reached": 7,
+    "share": 0.2593,
+    "repo_boot95": [
+     0.0,
+     0.5
+    ],
+    "minus_reference": -0.1157,
+    "minus_reference_paired95": [
+     -0.3189,
+     0.0794
+    ]
+   },
+   "union": {
+    "reached": 18,
+    "share": 0.6667,
+    "wilson95": [
+     0.4782,
+     0.8136
+    ],
+    "repo_boot95": [
+     0.4091,
+     0.92
+    ],
+    "minus_reference": -0.1012,
+    "minus_reference_paired95": [
+     -0.3093,
+     0.1194
+    ]
+   },
+   "hyde_pess": {
+    "reached": 16,
+    "share": 0.5926
+   },
+   "union_pess": {
+    "reached": 18,
+    "share": 0.6667
+   }
+  },
+  "cli-redraw": {
+   "papers": 91,
+   "repositories": 18,
+   "hyde": {
+    "reached": 53,
+    "share": 0.5824,
+    "repo_boot95": [
+     0.4607,
+     0.7019
+    ],
+    "minus_reference": -0.0426,
+    "minus_reference_paired95": [
+     -0.1429,
+     0.0592
+    ]
+   },
+   "hop": {
+    "reached": 30,
+    "share": 0.3297,
+    "repo_boot95": [
+     0.1294,
+     0.5591
+    ],
+    "minus_reference": -0.0453,
+    "minus_reference_paired95": [
+     -0.1501,
+     0.0898
+    ]
+   },
+   "union": {
+    "reached": 66,
+    "share": 0.7253,
+    "wilson95": [
+     0.6259,
+     0.8064
+    ],
+    "repo_boot95": [
+     0.5962,
+     0.8539
+    ],
+    "minus_reference": -0.0426,
+    "minus_reference_paired95": [
+     -0.1552,
+     0.0795
+    ]
+   },
+   "hyde_pess": {
+    "reached": 50,
+    "share": 0.5495
+   },
+   "union_pess": {
+    "reached": 64,
+    "share": 0.7033
+   }
+  },
+  "cli-redraw@30": {
+   "papers": 9,
+   "repositories": 3,
+   "hyde": {
+    "reached": 9,
+    "share": 1.0,
+    "repo_boot95": [
+     1.0,
+     1.0
+    ],
+    "minus_reference": 0.375,
+    "minus_reference_paired95": [
+     0.2712,
+     0.4898
+    ]
+   },
+   "hop": {
+    "reached": 5,
+    "share": 0.5556,
+    "repo_boot95": [
+     0.0,
+     1.0
+    ],
+    "minus_reference": 0.1806,
+    "minus_reference_paired95": [
+     -0.4444,
+     0.6032
+    ]
+   },
+   "union": {
+    "reached": 9,
+    "share": 1.0,
+    "wilson95": [
+     0.7009,
+     1.0
+    ],
+    "repo_boot95": [
+     1.0,
+     1.0
+    ],
+    "minus_reference": 0.2321,
+    "minus_reference_paired95": [
+     0.127,
+     0.3529
+    ]
+   },
+   "hyde_pess": {
+    "reached": 9,
+    "share": 1.0
+   },
+   "union_pess": {
+    "reached": 9,
+    "share": 1.0
+   }
+  },
+  "cli-v2-opus5@30": {
+   "papers": 124,
+   "repositories": 19,
+   "hyde": {
+    "reached": 68,
+    "share": 0.5484,
+    "repo_boot95": [
+     0.4559,
+     0.6429
+    ],
+    "minus_reference": -0.0766,
+    "minus_reference_paired95": [
+     -0.1903,
+     0.0517
+    ]
+   },
+   "hop": {
+    "reached": 50,
+    "share": 0.4032,
+    "repo_boot95": [
+     0.1869,
+     0.6045
+    ],
+    "minus_reference": 0.0282,
+    "minus_reference_paired95": [
+     -0.064,
+     0.1262
+    ]
+   },
+   "union": {
+    "reached": 89,
+    "share": 0.7177,
+    "wilson95": [
+     0.6329,
+     0.7895
+    ],
+    "repo_boot95": [
+     0.6063,
+     0.8182
+    ],
+    "minus_reference": -0.0501,
+    "minus_reference_paired95": [
+     -0.1469,
+     0.0615
+    ]
+   },
+   "hyde_pess": {
+    "reached": 66,
+    "share": 0.5323
+   },
+   "union_pess": {
+    "reached": 88,
+    "share": 0.7097
+   }
+  },
+  "cli-v2@30": {
+   "papers": 107,
+   "repositories": 20,
+   "hyde": {
+    "reached": 57,
+    "share": 0.5327,
+    "repo_boot95": [
+     0.4219,
+     0.6442
+    ],
+    "minus_reference": -0.0923,
+    "minus_reference_paired95": [
+     -0.196,
+     0.0179
+    ]
+   },
+   "hop": {
+    "reached": 47,
+    "share": 0.4393,
+    "repo_boot95": [
+     0.2252,
+     0.6214
+    ],
+    "minus_reference": 0.0643,
+    "minus_reference_paired95": [
+     -0.0331,
+     0.1691
+    ]
+   },
+   "union": {
+    "reached": 77,
+    "share": 0.7196,
+    "wilson95": [
+     0.628,
+     0.796
+    ],
+    "repo_boot95": [
+     0.5962,
+     0.8191
+    ],
+    "minus_reference": -0.0482,
+    "minus_reference_paired95": [
+     -0.1325,
+     0.0466
+    ]
+   },
+   "hyde_pess": {
+    "reached": 54,
+    "share": 0.5047
+   },
+   "union_pess": {
+    "reached": 75,
+    "share": 0.7009
+   }
+  },
+  "other searchers, pooled": {
+   "papers": 244,
+   "repositories": 20,
+   "hyde": {
+    "reached": 128,
+    "share": 0.5246,
+    "repo_boot95": [
+     0.4297,
+     0.625
+    ],
+    "minus_reference": -0.1004,
+    "minus_reference_paired95": [
+     -0.1914,
+     0.0031
+    ]
+   },
+   "hop": {
+    "reached": 84,
+    "share": 0.3443,
+    "repo_boot95": [
+     0.1619,
+     0.524
+    ],
+    "minus_reference": -0.0307,
+    "minus_reference_paired95": [
+     -0.1153,
+     0.0551
+    ]
+   },
+   "union": {
+    "reached": 167,
+    "share": 0.6844,
+    "wilson95": [
+     0.6236,
+     0.7395
+    ],
+    "repo_boot95": [
+     0.5691,
+     0.7953
+    ],
+    "minus_reference": -0.0834,
+    "minus_reference_paired95": [
+     -0.1629,
+     0.0135
+    ]
+   },
+   "hyde_pess": {
+    "reached": 125,
+    "share": 0.5123
+   },
+   "union_pess": {
+    "reached": 165,
+    "share": 0.6762
+   }
+  }
+ },
+ "sets_excluding_the_56": {
+  "api": {
+   "papers": 17,
+   "repositories": 12,
+   "hyde": {
+    "reached": 9,
+    "share": 0.5294,
+    "repo_boot95": [
+     0.2727,
+     0.8462
+    ],
+    "minus_reference": -0.0956,
+    "minus_reference_paired95": [
+     -0.3526,
+     0.2285
+    ]
+   },
+   "hop": {
+    "reached": 2,
+    "share": 0.1176,
+    "repo_boot95": [
+     0.0,
+     0.2941
+    ],
+    "minus_reference": -0.2574,
+    "minus_reference_paired95": [
+     -0.43,
+     -0.0881
+    ]
+   },
+   "union": {
+    "reached": 10,
+    "share": 0.5882,
+    "wilson95": [
+     0.3601,
+     0.7839
+    ],
+    "repo_boot95": [
+     0.3333,
+     0.9167
+    ],
+    "minus_reference": -0.1796,
+    "minus_reference_paired95": [
+     -0.3922,
+     0.114
+    ]
+   },
+   "hyde_pess": {
+    "reached": 9,
+    "share": 0.5294
+   },
+   "union_pess": {
+    "reached": 10,
+    "share": 0.5882
+   }
+  },
+  "cli-redraw": {
+   "papers": 64,
+   "repositories": 18,
+   "hyde": {
+    "reached": 34,
+    "share": 0.5312,
+    "repo_boot95": [
+     0.3867,
+     0.68
+    ],
+    "minus_reference": -0.0938,
+    "minus_reference_paired95": [
+     -0.2446,
+     0.0673
+    ]
+   },
+   "hop": {
+    "reached": 16,
+    "share": 0.25,
+    "repo_boot95": [
+     0.0938,
+     0.48
+    ],
+    "minus_reference": -0.125,
+    "minus_reference_paired95": [
+     -0.2611,
+     0.0441
+    ]
+   },
+   "union": {
+    "reached": 44,
+    "share": 0.6875,
+    "wilson95": [
+     0.5661,
+     0.7877
+    ],
+    "repo_boot95": [
+     0.5342,
+     0.8571
+    ],
+    "minus_reference": -0.0804,
+    "minus_reference_paired95": [
+     -0.237,
+     0.1009
+    ]
+   },
+   "hyde_pess": {
+    "reached": 33,
+    "share": 0.5156
+   },
+   "union_pess": {
+    "reached": 43,
+    "share": 0.6719
+   }
+  },
+  "cli-redraw@30": {
+   "papers": 4,
+   "repositories": 3,
+   "hyde": {
+    "reached": 4,
+    "share": 1.0,
+    "repo_boot95": [
+     1.0,
+     1.0
+    ],
+    "minus_reference": 0.375,
+    "minus_reference_paired95": [
+     0.2712,
+     0.4898
+    ]
+   },
+   "hop": {
+    "reached": 1,
+    "share": 0.25,
+    "repo_boot95": [
+     0.0,
+     1.0
+    ],
+    "minus_reference": -0.125,
+    "minus_reference_paired95": [
+     -0.4464,
+     0.6032
+    ]
+   },
+   "union": {
+    "reached": 4,
+    "share": 1.0,
+    "wilson95": [
+     0.5101,
+     1.0
+    ],
+    "repo_boot95": [
+     1.0,
+     1.0
+    ],
+    "minus_reference": 0.2321,
+    "minus_reference_paired95": [
+     0.127,
+     0.3529
+    ]
+   },
+   "hyde_pess": {
+    "reached": 4,
+    "share": 1.0
+   },
+   "union_pess": {
+    "reached": 4,
+    "share": 1.0
+   }
+  },
+  "cli-v2-opus5@30": {
+   "papers": 97,
+   "repositories": 19,
+   "hyde": {
+    "reached": 49,
+    "share": 0.5052,
+    "repo_boot95": [
+     0.4066,
+     0.6104
+    ],
+    "minus_reference": -0.1198,
+    "minus_reference_paired95": [
+     -0.2659,
+     0.0315
+    ]
+   },
+   "hop": {
+    "reached": 34,
+    "share": 0.3505,
+    "repo_boot95": [
+     0.1478,
+     0.557
+    ],
+    "minus_reference": -0.0245,
+    "minus_reference_paired95": [
+     -0.1464,
+     0.1051
+    ]
+   },
+   "union": {
+    "reached": 65,
+    "share": 0.6701,
+    "wilson95": [
+     0.5716,
+     0.7556
+    ],
+    "repo_boot95": [
+     0.5476,
+     0.7889
+    ],
+    "minus_reference": -0.0978,
+    "minus_reference_paired95": [
+     -0.2198,
+     0.0411
+    ]
+   },
+   "hyde_pess": {
+    "reached": 49,
+    "share": 0.5052
+   },
+   "union_pess": {
+    "reached": 65,
+    "share": 0.6701
+   }
+  },
+  "cli-v2@30": {
+   "papers": 78,
+   "repositories": 18,
+   "hyde": {
+    "reached": 37,
+    "share": 0.4744,
+    "repo_boot95": [
+     0.3671,
+     0.5882
+    ],
+    "minus_reference": -0.1506,
+    "minus_reference_paired95": [
+     -0.265,
+     -0.02
+    ]
+   },
+   "hop": {
+    "reached": 32,
+    "share": 0.4103,
+    "repo_boot95": [
+     0.2029,
+     0.5949
+    ],
+    "minus_reference": 0.0353,
+    "minus_reference_paired95": [
+     -0.0935,
+     0.1716
+    ]
+   },
+   "union": {
+    "reached": 54,
+    "share": 0.6923,
+    "wilson95": [
+     0.5829,
+     0.7837
+    ],
+    "repo_boot95": [
+     0.56,
+     0.8
+    ],
+    "minus_reference": -0.0755,
+    "minus_reference_paired95": [
+     -0.1833,
+     0.0417
+    ]
+   },
+   "hyde_pess": {
+    "reached": 36,
+    "share": 0.4615
+   },
+   "union_pess": {
+    "reached": 53,
+    "share": 0.6795
+   }
+  },
+  "other searchers, pooled": {
+   "papers": 205,
+   "repositories": 20,
+   "hyde": {
+    "reached": 103,
+    "share": 0.5024,
+    "repo_boot95": [
+     0.4048,
+     0.6111
+    ],
+    "minus_reference": -0.1226,
+    "minus_reference_paired95": [
+     -0.2339,
+     0.0029
+    ]
+   },
+   "hop": {
+    "reached": 65,
+    "share": 0.3171,
+    "repo_boot95": [
+     0.1461,
+     0.4977
+    ],
+    "minus_reference": -0.0579,
+    "minus_reference_paired95": [
+     -0.1639,
+     0.0497
+    ]
+   },
+   "union": {
+    "reached": 136,
+    "share": 0.6634,
+    "wilson95": [
+     0.5962,
+     0.7246
+    ],
+    "repo_boot95": [
+     0.5431,
+     0.7865
+    ],
+    "minus_reference": -0.1044,
+    "minus_reference_paired95": [
+     -0.2036,
+     0.016
+    ]
+   },
+   "hyde_pess": {
+    "reached": 102,
+    "share": 0.4976
+   },
+   "union_pess": {
+    "reached": 135,
+    "share": 0.6585
+   }
+  }
+ },
+ "not_in_index": {
+  "api": 0,
+  "cli-redraw": 0,
+  "cli-redraw@30": 0,
+  "cli-v2-opus5@30": 1,
+  "cli-v2@30": 0,
+  "other searchers, pooled": 1
+ },
+ "table3_union_wilson95": [
+  0.64,
+  0.86
+ ],
+ "reading": {
+  "_comment": "Sets under 20 papers are reported but not read.",
+  "pooled_union_inside_table3_interval": true,
+  "same_searcher_redraw_union": {
+   "cli-redraw": 0.7253
+  },
+  "other_procedures_union": {
+   "api": 0.6667,
+   "cli-v2-opus5@30": 0.7177,
+   "cli-v2@30": 0.7196
+  }
+ }
+}
