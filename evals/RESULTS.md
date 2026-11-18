@@ -675,7 +675,7 @@ is **one paper on `diffusion`**.
 > 91, and precision rises 0.78 → 0.89. The 132, 97 and 0.73 were copied from gate_full_pool's
 > whole-pool gate precision (0.73 over 33 admits), a different quantity. 132 shown at 97
 > actionable would give +1.23, not +1.91. The same row of the 2026-08-08 comparison table is
-> wrong the same way. +1.91 and +3.14 stand. Found by the ECIR artifact audit.
+> wrong the same way. +1.91 and +3.14 stand. Found by the artifact audit.
 
 **Replication on the other arm.** Freezing the map fitted on Testbed A and applying it
 unchanged to the pool-300 arm (different run, different shown sets): **+3.09 vs +1.73**,
@@ -1173,7 +1173,7 @@ coverage number for that table on non-Python repositories first.
 
 ### Other searchers' picks are reached about as well as Table 3's 56, and a redraw of the same searcher no better than other searchers. **[NR-71]**
 
-Post hoc and descriptive, $0, 2026-10-07. A review of the submitted paper said Table 3's coverage
+Post hoc and descriptive, $0, 2026-10-07. A review said Table 3's coverage
 "partly measures agreement with that particular search procedure": the 56 reference papers are
 one draw of one searcher (`cli`), and the channels were developed while looking at them.
 NUMBERS.md had already ruled that searcher dependence needs an arXiv-only, same-cohort comparison
